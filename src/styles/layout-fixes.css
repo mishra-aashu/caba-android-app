@@ -1,0 +1,236 @@
+/* =============================================
+   LAYOUT FIXES AND OVERRIDES
+   ============================================= */
+
+/* Ensure proper three-column layout on desktop */
+@media (min-width: 769px) {
+  .desktop-layout {
+    display: flex !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  .sidebar {
+    width: 70px !important;
+    min-width: 70px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .main-content {
+    width: 380px !important;
+    min-width: 320px !important;
+    max-width: 420px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .right-panel {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  /* Hide mobile navigation on desktop */
+  .bottom-nav {
+    display: none !important;
+  }
+}
+
+/* Mobile layout fixes */
+@media (max-width: 768px) {
+  .desktop-layout {
+    flex-direction: column !important;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .main-content {
+    width: 100% !important;
+    max-width: none !important;
+    flex: 1 !important;
+  }
+
+  .right-panel {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 1000 !important;
+    display: none !important;
+  }
+
+  .right-panel.visible-on-mobile {
+    display: flex !important;
+  }
+
+  .main-content.hidden-on-mobile {
+    display: none !important;
+  }
+
+  .bottom-nav {
+    display: flex !important;
+  }
+
+  .bottom-nav.hidden {
+    display: none !important;
+  }
+}
+
+/* Chat header spacing fixes */
+.chat-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 16px !important;
+  gap: 12px !important;
+}
+
+.chat-user-info {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  margin-right: 16px !important;
+}
+
+.chat-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+}
+
+/* Ensure proper button spacing in chat actions */
+.chat-actions .icon-btn {
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Fix dropdown positioning in chat header */
+.chat-actions .dropdown {
+  position: relative !important;
+}
+
+.chat-actions .dropdown-menu {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  left: auto !important;
+  margin-top: 8px !important;
+}
+
+/* Ensure user details don't overflow */
+.user-details {
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.user-details h3 {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
+}
+
+.user-details p {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 2px 0 0 0 !important;
+}
+
+/* Mobile chat header adjustments */
+@media (max-width: 768px) {
+  .chat-header {
+    padding: 8px 12px !important;
+    min-height: 60px !important;
+  }
+
+  .chat-user-info {
+    margin-right: 12px !important;
+  }
+
+  .chat-actions {
+    gap: 4px !important;
+  }
+
+  .chat-actions .icon-btn {
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-header {
+    padding: 6px 8px !important;
+    min-height: 56px !important;
+  }
+
+  .chat-user-info {
+    margin-right: 8px !important;
+  }
+
+  .chat-actions {
+    gap: 2px !important;
+  }
+
+  .chat-actions .icon-btn {
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+/* Ensure proper z-index stacking */
+.sidebar {
+  z-index: 3 !important;
+}
+
+.main-content {
+  z-index: 2 !important;
+}
+
+.right-panel {
+  z-index: 1 !important;
+}
+
+@media (max-width: 768px) {
+  .right-panel.visible-on-mobile {
+    z-index: 1000 !important;
+  }
+}
+
+/* Fix any background bleeding issues */
+.home-container,
+.desktop-layout,
+.main-content,
+.sidebar,
+.right-panel {
+  background: var(--wa-surface, #ffffff) !important;
+}
+
+.chat-list-container {
+  background: var(--wa-surface, #ffffff) !important;
+}
+
+.chat-preview-placeholder {
+  background: var(--wa-background, #f0f2f5) !important;
+}
+
+/* Ensure smooth transitions */
+.desktop-layout * {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Override any conflicting chat theme styles in home screen */
+.home-container .chat-list-container,
+.home-container .chat-list,
+.home-container .chat-item,
+.home-container .main-content {
+  background-image: none !important;
+  background-attachment: initial !important;
+  background-size: initial !important;
+  background-position: initial !important;
+  background-repeat: initial !important;
+}

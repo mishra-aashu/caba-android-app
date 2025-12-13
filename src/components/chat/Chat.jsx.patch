@@ -1,0 +1,24 @@
+// Fix for loadMessages - pass authUser directly instead of waiting for currentUser state
+// Change line 266 from:
+// if (!currentUser) {
+// To:
+// if (!authUser) {
+
+// And update the loadMessages function signature to accept user parameter
+// Change line 260 from:
+// const loadMessages = async () => {
+// To:
+// const loadMessages = async (user = authUser) => {
+
+// Then update line 266 to use the user parameter:
+// if (!user) {
+//   console.error('No authenticated user found');
+//   setMessages([]);
+//   return;
+// }
+
+// And update line 271 to use user instead of currentUser:
+// console.log('Current authenticated user:', user.id);
+
+// And update line 310 to use user instead of currentUser:
+// sender_id: user.id,

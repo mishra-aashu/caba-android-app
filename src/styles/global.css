@@ -1,0 +1,496 @@
+/* =============================================
+     GLOBAL STYLES FOR REACT APP
+     ============================================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+   height: 100%;
+   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+     sans-serif;
+   -webkit-font-smoothing: antialiased;
+   -moz-osx-font-smoothing: grayscale;
+   background: var(--background);
+   color: var(--text-primary);
+   margin: 0;
+   padding: 0;
+   display: block;
+ }
+
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Reset some common styles */
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* Global icon styling */
+.fas, .far, .fab, .fa, .lucide {
+  color: var(--icon-primary) !important;
+  font-weight: 900 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.fas:hover, .far:hover, .fab:hover, .fa:hover, .lucide:hover {
+  color: var(--icon-accent) !important;
+  transform: scale(1.05);
+}
+
+[data-theme="dark"] .fas,
+[data-theme="dark"] .far,
+[data-theme="dark"] .fab,
+[data-theme="dark"] .fa,
+[data-theme="dark"] .lucide {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: 16px; /* Prevent zoom on iOS */
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.justify-content-center {
+  justify-content: center;
+}
+
+.justify-content-between {
+  justify-content: space-between;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.h-100 {
+  height: 100%;
+}
+
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 1rem; }
+.p-4 { padding: 1.5rem; }
+
+.m-1 { margin: 0.25rem; }
+.m-2 { margin: 0.5rem; }
+.m-3 { margin: 1rem; }
+.m-4 { margin: 1.5rem; }
+
+/* =========================
+   WHATSAPP AUTHENTIC COLORS
+   ========================= */
+:root {
+  /* WhatsApp Light Mode (Classic) */
+  --wa-bg-app: #FFFFFF;
+  --wa-bg-chat: #ECE5DD;
+  --wa-header: #008069;
+  --wa-header-dark: #075E54;
+  --wa-bubble-sent: #DCF8C6;
+  --wa-bubble-received: #FFFFFF;
+  --wa-text-primary: #111B21;
+  --wa-text-secondary: #667781;
+  --wa-accent: #25D366;
+  --wa-checkmark: #53BDEB;
+  --wa-border: #E9EDEF;
+  --wa-hover: #F5F6F6;
+  --wa-input-bg: #F0F2F5;
+  
+  /* Mapped Variables for Compatibility */
+  --primary-color: #008069;
+  --secondary-color: #075E54;
+  --accent-color: #25D366;
+  --background-color: #ECE5DD;
+  --text-color: #111B21;
+  --header-background: #008069;
+  --chat-background: #ECE5DD;
+  --message-background: #FFFFFF;
+  --sent-message-background: #DCF8C6;
+  --received-message-background: #FFFFFF;
+  --text-primary: #111B21;
+  --text-secondary: #667781;
+  --background: #FFFFFF;
+  --surface: #F0F2F5;
+  --border-color: #E9EDEF;
+  --hover-color: #F5F6F6;
+  --success-color: #25D366;
+  --error-color: #E53935;
+  --warning-color: #FF9800;
+  --info-color: #53BDEB;
+  
+  /* Spacing & Layout */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 0.5px rgba(0,0,0,0.13);
+  --shadow-md: 0 1px 2px rgba(0,0,0,0.15);
+  --shadow-lg: 0 2px 5px rgba(0,0,0,0.2);
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+
+  /* Icon Colors */
+  --icon-primary: #667781;
+  --icon-secondary: #8696A0;
+  --icon-accent: #25D366;
+  --icon-active: #008069;
+
+  /* Button Colors */
+  --btn-primary-bg: #008069;
+  --btn-primary-text: #FFFFFF;
+  --btn-secondary-bg: #F0F2F5;
+  --btn-secondary-text: #111B21;
+  --btn-danger-bg: #E53935;
+  --btn-danger-text: #FFFFFF;
+}
+
+/* WhatsApp Dark Mode (Modern Night Theme) */
+[data-theme="dark"] {
+  --wa-bg-app: #111B21;
+  --wa-bg-chat: #0B141A;
+  --wa-header: #202C33;
+  --wa-bubble-sent: #005C4B;
+  --wa-bubble-received: #202C33;
+  --wa-text-primary: #E9EDEF;
+  --wa-text-secondary: #8696A0;
+  --wa-accent: #00A884;
+  --wa-checkmark: #53BDEB;
+  --wa-border: #2A3942;
+  --wa-hover: #2A3942;
+  --wa-input-bg: #2A3942;
+  
+  /* Mapped Variables */
+  --primary-color: #00A884;
+  --secondary-color: #005C4B;
+  --accent-color: #00A884;
+  --background-color: #0B141A;
+  --text-color: #E9EDEF;
+  --header-background: #202C33;
+  --chat-background: #0B141A;
+  --message-background: #202C33;
+  --sent-message-background: #005C4B;
+  --received-message-background: #202C33;
+  --text-primary: #E9EDEF;
+  --text-secondary: #8696A0;
+  --background: #111B21;
+  --surface: #202C33;
+  --border-color: #2A3942;
+  --hover-color: #2A3942;
+  --success-color: #00A884;
+  --error-color: #F15C6D;
+  --warning-color: #FFA726;
+  --info-color: #53BDEB;
+
+  /* Icon Colors Dark */
+  --icon-primary: #8696A0;
+  --icon-secondary: #667781;
+  --icon-accent: #00A884;
+  --icon-active: #00A884;
+
+  /* Button Colors Dark */
+  --btn-primary-bg: #00A884;
+  --btn-primary-text: #FFFFFF;
+  --btn-secondary-bg: #2A3942;
+  --btn-secondary-text: #E9EDEF;
+  --btn-danger-bg: #F15C6D;
+  --btn-danger-text: #FFFFFF;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 576px) {
+  .d-mobile-none { display: none !important; }
+  .d-mobile-block { display: block !important; }
+  .d-mobile-flex { display: flex !important; }
+}
+
+@media (min-width: 576px) {
+  .d-tablet-none { display: none !important; }
+  .d-tablet-block { display: block !important; }
+  .d-tablet-flex { display: flex !important; }
+}
+
+@media (min-width: 768px) {
+  .d-desktop-none { display: none !important; }
+  .d-desktop-block { display: block !important; }
+  .d-desktop-flex { display: flex !important; }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--background);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Form styles */
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: border-color var(--transition-fast);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  border: none;
+  outline: none;
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+.btn-primary:hover {
+  background: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: var(--hover-color);
+  border-color: var(--primary-color);
+}
+
+.btn-success {
+  background: var(--success-color);
+  color: white;
+}
+
+.btn-success:hover {
+  background: #45a049;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: var(--btn-danger-bg);
+  color: var(--btn-danger-text);
+}
+
+.btn-danger:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Card styles */
+.card {
+  background: var(--background);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+}
+
+.card-header {
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Avatar styles */
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.avatar-md {
+  width: 48px;
+  height: 48px;
+}
+
+.avatar-lg {
+  width: 64px;
+  height: 64px;
+}
+
+.avatar-xl {
+  width: 96px;
+  height: 96px;
+}
+
+/* Status indicators */
+.status-online {
+  background: #4CAF50;
+}
+
+.status-offline {
+  background: #ccc;
+}
+
+.status-away {
+  background: #ff9800;
+}
+
+/* Utility for hiding scrollbars */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Focus styles for accessibility */
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Loader positioning fixes */
+.messaging-loader-overlay,
+.intro-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

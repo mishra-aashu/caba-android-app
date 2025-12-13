@@ -1,0 +1,300 @@
+/* =============================================
+     NEWS COMPONENT STYLES
+     ============================================= */
+
+.news-container {
+  min-height: 100vh;
+  background: var(--background);
+  padding: var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+.news-header {
+  background: var(--surface);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.news-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.my-status-section,
+.recent-statuses-section {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.my-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.my-status:hover {
+  background: var(--hover-color);
+}
+
+.status-avatar {
+  position: relative;
+}
+
+.avatar-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.status-info h3 {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.status-info p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.add-status-btn {
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.add-status-btn:hover {
+  background: #45a049;
+  transform: scale(1.1);
+}
+
+.recent-statuses-section h2 {
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recent-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.status-item:hover {
+  background: var(--hover-color);
+}
+
+.status-info h3 {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.status-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  margin: var(--spacing-sm) 0 0 0;
+  font-size: 14px;
+}
+
+.news-loading,
+.news-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  color: var(--text-primary);
+}
+
+.news-error p {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.news-error button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--error-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background var(--transition-fast);
+}
+
+.news-error button:hover {
+  background: #d32f2f;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .news-container {
+    padding: var(--spacing-md);
+  }
+
+  .news-header {
+    padding: var(--spacing-md);
+  }
+
+  .news-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .my-status-section,
+  .recent-statuses-section {
+    padding: var(--spacing-md);
+  }
+
+  .my-status {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .status-info h3 {
+    font-size: 15px;
+  }
+
+  .status-info p {
+    font-size: 13px;
+  }
+
+  .add-status-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .status-item {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+
+  .empty-state {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .news-container {
+    padding: var(--spacing-sm);
+  }
+
+  .news-header {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .my-status-section,
+  .recent-statuses-section {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .my-status {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-xs);
+  }
+
+  .status-info {
+    flex: 1;
+  }
+
+  .add-status-btn {
+    margin-left: 0;
+    margin-top: var(--spacing-xs);
+  }
+
+  .recent-statuses-section h2 {
+    font-size: 16px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .status-item {
+    gap: var(--spacing-sm);
+  }
+
+  .avatar-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .status-info h3 {
+    font-size: 14px;
+  }
+
+  .status-info p {
+    font-size: 11px;
+  }
+}

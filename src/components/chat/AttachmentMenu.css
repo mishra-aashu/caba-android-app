@@ -1,0 +1,120 @@
+.attachment-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+}
+
+.attachment-popup {
+  width: 100%;
+  background: #1f2937;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
+  color: white;
+  box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.attachment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.attachment-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #9ca3af;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.attachment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.attachment-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.attachment-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(1.05);
+}
+
+.attachment-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.attachment-icon i {
+  font-size: 24px;
+  color: white;
+}
+
+.attachment-name {
+  font-size: 12px;
+  color: white;
+  text-align: center;
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .attachment-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  
+  .attachment-icon {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .attachment-icon i {
+    font-size: 20px;
+  }
+  
+  .attachment-name {
+    font-size: 11px;
+  }
+}

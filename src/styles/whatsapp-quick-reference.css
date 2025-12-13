@@ -1,0 +1,343 @@
+/* =============================================
+   WHATSAPP QUICK REFERENCE - COPY-PASTE READY
+   ============================================= */
+
+/* 
+   USAGE: Add these classes directly to your components
+   All colors automatically adapt to light/dark mode
+*/
+
+/* ========== BACKGROUNDS ========== */
+.wa-bg-app { background-color: var(--wa-bg-app); }
+.wa-bg-chat { background-color: var(--wa-bg-chat); }
+.wa-bg-header { background-color: var(--wa-header); }
+.wa-bg-input { background-color: var(--wa-input-bg); }
+
+/* ========== TEXT COLORS ========== */
+.wa-text-primary { color: var(--wa-text-primary); }
+.wa-text-secondary { color: var(--wa-text-secondary); }
+.wa-text-white { color: #FFFFFF; }
+
+/* ========== BORDERS ========== */
+.wa-border { border: 1px solid var(--wa-border); }
+.wa-border-bottom { border-bottom: 1px solid var(--wa-border); }
+.wa-border-top { border-top: 1px solid var(--wa-border); }
+
+/* ========== COMMON LAYOUTS ========== */
+.wa-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wa-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wa-flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* ========== SPACING ========== */
+.wa-p-8 { padding: 8px; }
+.wa-p-12 { padding: 12px; }
+.wa-p-16 { padding: 16px; }
+.wa-gap-8 { gap: 8px; }
+.wa-gap-12 { gap: 12px; }
+.wa-gap-16 { gap: 16px; }
+
+/* ========== SHADOWS ========== */
+.wa-shadow-sm { box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
+.wa-shadow-md { box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+.wa-shadow-lg { box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+
+/* ========== BORDER RADIUS ========== */
+.wa-rounded-sm { border-radius: 4px; }
+.wa-rounded-md { border-radius: 8px; }
+.wa-rounded-lg { border-radius: 12px; }
+.wa-rounded-full { border-radius: 50%; }
+.wa-rounded-pill { border-radius: 24px; }
+
+/* ========== HOVER EFFECTS ========== */
+.wa-hover:hover {
+  background-color: var(--wa-hover);
+  cursor: pointer;
+}
+
+.wa-hover-scale:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+.wa-hover-scale:active {
+  transform: scale(0.95);
+}
+
+/* ========== ICON SIZES ========== */
+.wa-icon-sm { width: 20px; height: 20px; }
+.wa-icon-md { width: 24px; height: 24px; }
+.wa-icon-lg { width: 32px; height: 32px; }
+
+/* ========== AVATAR SIZES ========== */
+.wa-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.wa-avatar-md {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.wa-avatar-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ========== BADGES ========== */
+.wa-badge {
+  background-color: var(--wa-accent);
+  color: #FFFFFF;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+  display: inline-block;
+}
+
+.wa-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--wa-accent);
+  display: inline-block;
+}
+
+/* ========== STATUS INDICATORS ========== */
+.wa-status-online {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--wa-accent);
+  border: 2px solid var(--wa-bg-app);
+}
+
+.wa-status-typing {
+  color: var(--wa-accent);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ========== DIVIDERS ========== */
+.wa-divider {
+  height: 1px;
+  background-color: var(--wa-border);
+  margin: 8px 0;
+}
+
+.wa-divider-vertical {
+  width: 1px;
+  background-color: var(--wa-border);
+  height: 100%;
+}
+
+/* ========== SCROLLBAR STYLING ========== */
+.wa-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wa-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wa-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--wa-text-secondary);
+  border-radius: 3px;
+}
+
+.wa-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--wa-text-primary);
+}
+
+/* ========== UTILITY CLASSES ========== */
+.wa-full-width { width: 100%; }
+.wa-full-height { height: 100%; }
+.wa-text-center { text-align: center; }
+.wa-text-right { text-align: right; }
+.wa-text-left { text-align: left; }
+.wa-no-wrap { white-space: nowrap; }
+.wa-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes wa-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes wa-slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes wa-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.wa-fade-in { animation: wa-fade-in 0.3s ease; }
+.wa-slide-up { animation: wa-slide-up 0.3s ease; }
+.wa-pulse { animation: wa-pulse 2s infinite; }
+
+/* ========== RESPONSIVE HELPERS ========== */
+@media (max-width: 768px) {
+  .wa-hide-mobile { display: none !important; }
+  .wa-show-mobile { display: block !important; }
+}
+
+@media (min-width: 769px) {
+  .wa-hide-desktop { display: none !important; }
+  .wa-show-desktop { display: block !important; }
+}
+
+/* ========== QUICK COMPONENT TEMPLATES ========== */
+
+/* Simple Button */
+.wa-btn {
+  padding: 10px 20px;
+  background-color: var(--wa-accent);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wa-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.wa-btn:active {
+  transform: translateY(0);
+}
+
+/* Icon Button */
+.wa-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  color: var(--icon-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.wa-icon-btn:hover {
+  background-color: var(--wa-hover);
+}
+
+/* Card */
+.wa-card {
+  background-color: var(--wa-bg-app);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  border: 1px solid var(--wa-border);
+}
+
+/* List Item */
+.wa-list-item {
+  padding: 12px 16px;
+  background-color: var(--wa-bg-app);
+  border-bottom: 1px solid var(--wa-border);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.wa-list-item:hover {
+  background-color: var(--wa-hover);
+}
+
+/* Input Field */
+.wa-input {
+  width: 100%;
+  padding: 10px 16px;
+  background-color: var(--wa-input-bg);
+  border: 1px solid var(--wa-border);
+  border-radius: 8px;
+  color: var(--wa-text-primary);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.wa-input:focus {
+  border-color: var(--wa-accent);
+}
+
+.wa-input::placeholder {
+  color: var(--wa-text-secondary);
+}
+
+/* ========== EXAMPLE USAGE ========== */
+
+/*
+<!-- Header Example -->
+<header class="wa-bg-header wa-p-16 wa-flex-between">
+  <h1 class="wa-text-white">CaBa</h1>
+  <button class="wa-icon-btn">
+    <MoreVerticalIcon />
+  </button>
+</header>
+
+<!-- Chat Item Example -->
+<div class="wa-list-item wa-flex-start wa-gap-12">
+  <img src="avatar.jpg" class="wa-avatar-md" />
+  <div class="wa-full-width">
+    <div class="wa-flex-between">
+      <span class="wa-text-primary">Rahul Kumar</span>
+      <span class="wa-text-secondary" style="font-size: 12px;">10:30 AM</span>
+    </div>
+    <div class="wa-text-secondary wa-ellipsis">Last message...</div>
+  </div>
+</div>
+
+<!-- Message Bubble Example -->
+<div class="message-bubble message-sent wa-slide-up">
+  <p class="message-text">Hello! Kaa baa?</p>
+  <div class="message-time">10:30 AM ✓✓</div>
+</div>
+
+<!-- FAB Button Example -->
+<button class="whatsapp-fab wa-shadow-lg wa-hover-scale">
+  <MessageCircleIcon size={24} />
+</button>
+*/

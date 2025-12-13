@@ -1,0 +1,42 @@
+{
+  "name": "caba",
+  "private": true,
+  "version": "0.0.7",
+  "homepage": ".",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capgo/capacitor-updater": "^7.34.2",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+    "@supabase/supabase-js": "^2.83.0",
+    "axios": "^1.13.2",
+    "html5-qrcode": "^2.3.8",
+    "lucide-react": "^0.554.0",
+    "qrcode": "^1.5.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "gh-pages": "^6.3.0",
+    "globals": "^16.5.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2"
+  }
+}

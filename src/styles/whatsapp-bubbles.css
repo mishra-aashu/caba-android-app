@@ -1,0 +1,225 @@
+/* =============================================
+   WHATSAPP MESSAGE BUBBLES - AUTHENTIC STYLE
+   ============================================= */
+
+/* Message Container */
+.message-bubble {
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  max-width: 65%;
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 19px;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+  word-wrap: break-word;
+  transition: all 0.2s ease;
+}
+
+/* Sent Message (Right Side - Light Mode) */
+.message-sent {
+  background-color: var(--wa-bubble-sent);
+  color: var(--wa-text-primary);
+  align-self: flex-end;
+  border-top-right-radius: 0;
+  margin-left: auto;
+}
+
+/* Received Message (Left Side - Light Mode) */
+.message-received {
+  background-color: var(--wa-bubble-received);
+  color: var(--wa-text-primary);
+  align-self: flex-start;
+  border-top-left-radius: 0;
+  margin-right: auto;
+}
+
+/* Dark Mode Bubbles */
+[data-theme="dark"] .message-sent {
+  background-color: var(--wa-bubble-sent);
+  color: var(--wa-text-primary);
+}
+
+[data-theme="dark"] .message-received {
+  background-color: var(--wa-bubble-received);
+  color: var(--wa-text-primary);
+}
+
+/* Message Time Stamp */
+.message-time {
+  font-size: 11px;
+  color: var(--wa-text-secondary);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+[data-theme="dark"] .message-time {
+  color: var(--wa-text-secondary);
+}
+
+/* WhatsApp Checkmarks (Blue Ticks) */
+.message-checkmark {
+  color: var(--wa-checkmark);
+  font-size: 16px;
+  margin-left: 2px;
+}
+
+.message-checkmark.read {
+  color: var(--wa-checkmark);
+}
+
+.message-checkmark.sent {
+  color: var(--wa-text-secondary);
+}
+
+/* Message Text */
+.message-text {
+  margin: 0;
+  padding: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Message Media Container */
+.message-media {
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 4px;
+  max-width: 100%;
+}
+
+.message-media img,
+.message-media video {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+}
+
+/* Hover Effect */
+.message-bubble:hover {
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Message Actions (Reply, Forward, etc.) */
+.message-actions {
+  position: absolute;
+  top: 4px;
+  right: -40px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  gap: 4px;
+}
+
+.message-bubble:hover .message-actions {
+  opacity: 1;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background-color: var(--wa-bubble-received);
+  border-radius: 8px;
+  border-top-left-radius: 0;
+  max-width: 65px;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--wa-text-secondary);
+  animation: typing 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+[data-theme="dark"] .typing-indicator {
+  background-color: var(--wa-bubble-received);
+}
+
+/* Message Date Divider */
+.message-date-divider {
+  text-align: center;
+  margin: 16px 0;
+}
+
+.message-date-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: var(--wa-input-bg);
+  color: var(--wa-text-primary);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+}
+
+[data-theme="dark"] .message-date-badge {
+  background-color: var(--wa-header);
+}
+
+/* Reply/Quote Message */
+.message-reply {
+  background-color: rgba(0,0,0,0.05);
+  border-left: 4px solid var(--wa-accent);
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+[data-theme="dark"] .message-reply {
+  background-color: rgba(255,255,255,0.05);
+}
+
+.message-reply-name {
+  color: var(--wa-accent);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.message-reply-text {
+  color: var(--wa-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .message-bubble {
+    max-width: 80%;
+    font-size: 14px;
+  }
+  
+  .message-actions {
+    display: none;
+  }
+}

@@ -1,0 +1,135 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;900&display=swap');
+
+body {
+    font-family: 'Outfit', sans-serif;
+    margin: 0;
+    overflow: hidden; /* Prevents scroll during intro */
+    background-color: #0f172a;
+}
+
+/* Background similar to the first blue image */
+.bg-main {
+    background: radial-gradient(circle at center, #0e7490 0%, #0f172a 100%);
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- RESPONSIVE ICON STYLES --- */
+
+/* Base Icon Container */
+.app-icon {
+    /* Responsive Size using CSS variables or clamp */
+    width: clamp(140px, 30vw, 180px);
+    height: clamp(140px, 30vw, 180px);
+    background: linear-gradient(180deg, #22d3ee 0%, #0284c7 100%);
+    border-radius: 22%; /* Squircle */
+    position: relative;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+/* Hover effect for Desktop */
+@media (hover: hover) {
+    .app-icon:hover {
+        transform: scale(1.05);
+    }
+}
+
+/* GLOSS EFFECT (Top half shine) */
+.gloss-shine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 55%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 100%);
+    border-radius: 22% 22% 100% 100% / 22% 22% 20% 20%;
+    z-index: 20;
+    pointer-events: none;
+}
+
+/* BUBBLE 1 (Background Bubble) */
+.bubble-back {
+    position: absolute;
+    right: 14%;
+    bottom: 18%;
+    width: 48%;
+    height: 48%;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(10deg);
+    z-index: 5;
+}
+
+/* BUBBLE 2 (Foreground Main Bubble) */
+.bubble-front {
+    position: absolute;
+    left: 14%;
+    top: 16%;
+    width: 56%;
+    height: 56%;
+    background-color: #ffffff;
+    border-radius: 50% 50% 0 50%;
+    transform: rotate(-5deg);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 4px 10px rgba(0,0,0,0.1);
+}
+
+/* The Text 'C' inside the bubble */
+.icon-text {
+    font-size: clamp(40px, 8vw, 60px); /* Responsive Font Size */
+    font-weight: 900;
+    color: #0369a1;
+    margin-top: -4%;
+    user-select: none;
+}
+
+/* INTRO TEXT */
+.brand-name {
+    font-size: clamp(3rem, 10vw, 4rem);
+    font-weight: 700;
+    color: white;
+    margin-top: 2rem;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideUpFade 0.8s ease-out forwards 0.5s;
+    text-align: center;
+}
+
+/* ANIMATIONS */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.floating {
+    animation: float 4s ease-in-out infinite;
+}
+
+@keyframes slideUpFade {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* TRANSITIONS for Intro -> App */
+.intro-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease-in-out, visibility 0.8s;
+    z-index: 50;
+    background: inherit; /* Match parent bg */
+    padding: 20px;
+}

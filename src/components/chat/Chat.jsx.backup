@@ -1,0 +1,296 @@
+
+// Initialize chat
+useEffect(() => {
+  initializeChat();
+  return () => {
+    cleanup();
+  };
+}, [chatId, otherUserId]);
+
+// Scroll to bottom when messages change
+useEffect(() => {
+  scrollToBottom();
+}, [messages]);
+
+const initializeChat = async () => {
+  try {
+    // Get current user from localStorage
+    const userStr = localStorage.getItem('currentUser');
+    if (!userStr) {
+      console.error('No current user found');
+      return;
+    }
+    const user = JSON.parse(userStr);
+    setCurrentUser(user);
+
+    // Load other user info
+    await loadOtherUserInfo(otherUserId);
+
+    // Load messages
+    await loadMessages();
+
+    // Setup subscriptions
+    setupMessageSubscriptions();
+    setupTypingSubscriptions();
+
+    // Load theme
+    loadTheme();
+
+  } catch (error) {
+    console.error('Error initializing chat:', error);
+  }
+};
+
+const cleanup = () => {
+  if (messagesSubscriptionRef.current) {
+    messagesSubscriptionRef.current.unsubscribe();
+  }
+  if (typingSubscriptionRef.current) {
+    typingSubscriptionRef.current.unsubscribe();
+  }
+  if (typingTimeoutRef.current) {
+    clearTimeout(typingTimeoutRef.current);
+  }
+};
+
+const loadOtherUserInfo = async (userId) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) throw error;
+    setOtherUser(user);
+  } catch (error) {
+    console.error('Error loading user info:', error);
+  }
+};
+
+const loadMessages = async () => {
+  try {
+    const { data: messagesData, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    setMessages(messagesData || []);
+
+    // Mark messages as read
+    await markMessagesAsRead();
+  } catch (error) {
+    console.error('Error loading messages:', error);
+  }
+};
+
+const setupMessageSubscriptions = () => {
+  messagesSubscriptionRef.current = supabase
+    .channel('messages')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'messages',
+      filter: `chat_id=eq.${chatId}`
+    }, async (payload) => {
+      if (payload.new.sender_id !== currentUser?.id) {
+        setMessages(prev => [...prev, payload.new]);
+        // Mark as read
+        await markMessagesAsRead();
+      }
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'messages',
+      filter: `chat_id=eq.${chatId}`
+    }, (payload) => {
+      // Update message status (read receipts, edits, etc.)
+      setMessages(prev => prev.map(msg =>
+        msg.id === payload.new.id ? payload.new : msg
+      ));
+    })
+    .on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'messages',
+      filter: `chat_id=eq.${chatId}`
+    }, (payload) => {
+      // Remove deleted message
+      setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+    })
+    .subscribe();
+};
+
+const setupTypingSubscriptions = () => {
+  typingSubscriptionRef.current = supabase
+    .channel(`typing_${chatId}`)
+    .on('broadcast', { event: 'typing' }, (payload) => {
+      const typingData = payload.payload;
+      if (typingData.user_id !== currentUser?.id && typingData.chat_id === chatId) {
+        setIsTyping(typingData.is_typing);
+      }
+    })
+    .subscribe();
+};
+
+
+
+const handleBlockUser = async () => {
+  const confirmed = window.confirm(`Block ${otherUser.name}? They won't be able to message or call you.`);
+
+  if (!confirmed || !currentUser) return;
+
+  try {
+    const { error } = await supabase
+      .from('blocked_users')
+      .insert([{
+        blocker_id: currentUser.id,
+        blocked_id: otherUser.id
+      }]);
+
+    if (error) throw error;
+
+    // Navigate back
+    navigate('/');
+  } catch (error) {
+    console.error('Error blocking user:', error);
+  }
+};
+
+const loadTheme = () => {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  setTheme(savedTheme);
+  document.documentElement.setAttribute('data-theme', savedTheme);
+};
+
+const sendMessage = async (content) => {
+  if (!content.trim() || !currentUser) return;
+
+  try {
+    const newMessage = {
+      chat_id: chatId,
+      sender_id: currentUser.id,
+      receiver_id: otherUserId,
+      content: content.trim(),
+      message_type: 'text',
+      is_read: false,
+      reply_to: replyingTo?.id || null
+    };
+
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([newMessage])
+      .select();
+
+    if (error) throw error;
+
+    // Update local messages
+    if (data && data[0]) {
+      setMessages(prev => [...prev, data[0]]);
+    }
+
+    // Update chat last message
+    await supabase
+      .from('chats')
+      .update({
+        last_message: content.substring(0, 50),
+        last_message_time: new Date().toISOString()
+      })
+      .eq('id', chatId);
+
+    // Clear reply
+    setReplyingTo(null);
+
+    // Stop typing indicator
+    sendTypingStatus(false);
+
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+};
+
+const sendTypingStatus = async (isTyping) => {
+  if (!currentUser || !chatId) return;
+
+  try {
+    await supabase
+      .channel(`typing_${chatId}`)
+      .send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: {
+          chat_id: chatId,
+          user_id: currentUser.id,
+          is_typing: isTyping,
+          timestamp: new Date().toISOString()
+        }
+      });
+  } catch (error) {
+    console.error('Error sending typing status:', error);
+  }
+};
+
+const handleTyping = () => {
+  sendTypingStatus(true);
+
+  if (typingTimeoutRef.current) {
+    clearTimeout(typingTimeoutRef.current);
+  }
+
+  typingTimeoutRef.current = setTimeout(() => {
+    sendTypingStatus(false);
+  }, 3000);
+};
+
+const scrollToBottom = () => {
+  messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+};
+
+const markMessagesAsRead = async () => {
+  try {
+    if (!currentUser) return;
+
+    await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('chat_id', chatId)
+      .eq('receiver_id', currentUser.id)
+      .eq('is_read', false);
+
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+  }
+};
+
+const handleReply = (message) => {
+  setReplyingTo(message);
+};
+
+const cancelReply = () => {
+  setReplyingTo(null);
+};
+
+const handleMessageSelect = (messageId) => {
+  setSelectedMessages(prev => {
+            </button >
+            <div className="selection-info">
+              {selectedMessages.size} selected
+            </div>
+            <div className="selection-actions">
+              <button className="selection-action-btn" title="Delete">
+                🗑️
+              </button>
+              <button className="selection-action-btn" title="Forward">
+                ➡️
+              </button>
+  onCancelReply={cancelReply}
+/>
+
+      </div >
+);
+};
+
+export default Chat;
