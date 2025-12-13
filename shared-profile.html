@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - CaBa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .profile-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .profile-header {
+            margin-bottom: 30px;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .profile-about {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .profile-phone {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #ffeaea;
+            border-radius: 10px;
+            border: 1px solid #e74c3c;
+        }
+
+        .loading {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .app-link {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .app-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .app-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .profile-container {
+                padding: 20px;
+            }
+            
+            .profile-name {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container" id="profileContainer">
+        <div class="loading" id="loadingMessage">Loading profile...</div>
+    </div>
+
+    <script>
+        // Configuration
+        const SUPABASE_URL = 'https://riekjnqllkrqkmqxmtfu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpZWtqbnFsbGtycWttcXhtdGZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4ODc3MjQsImV4cCI6MjA3NzQ2MzcyNH0.heQABR_DZFWZ_UIb38Tzdgcy-5z5LSUob0icnqsiiQY';
+
+        // Simple Supabase client (minimal implementation for profile lookup)
+        const supabaseConfig = {
+            url: SUPABASE_URL,
+            key: SUPABASE_ANON_KEY
+        };
+
+        class SimpleSupabaseClient {
+            constructor(config) {
+                this.url = config.url;
+                this.key = config.key;
+            }
+
+            async from(table) {
+                return new SimpleQueryBuilder(this.url, this.key, table);
+            }
+        }
+
+        class SimpleQueryBuilder {
+            constructor(url, key, table) {
+                this.url = url;
+                this.key = key;
+                this.table = table;
+                this.selectQuery = '*';
+                this.filters = [];
+            }
+
+            select(columns = '*') {
+                this.selectQuery = columns;
+                return this;
+            }
+
+            eq(column, value) {
+                this.filters.push(`${column}=eq.${value}`);
+                return this;
+            }
+
+            single() {
+                this.single = true;
+                return this;
+            }
+
+            async then(resolve, reject) {
+                try {
+                    let url = `${this.url}/rest/v1/${this.table}?select=${this.selectQuery}`;
+                    if (this.filters.length > 0) {
+                        url += '&' + this.filters.join('&');
+                    }
+
+                    const response = await fetch(url, {
+                        headers: {
+                            'apikey': this.key,
+                            'Authorization': `Bearer ${this.key}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (this.single) {
+                        resolve({ data: data[0] || null, error: null });
+                    } else {
+                        resolve({ data, error: null });
+                    }
+                } catch (error) {
+                    resolve({ data: null, error: error.message });
+                }
+            }
+        }
+
+        const supabase = new SimpleSupabaseClient(supabaseConfig);
+
+        // Utility functions
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        function getProfileUrl(userId) {
+            return `${window.location.origin}/shared-profile.html?userId=${userId}`;
+        }
+
+        function getAppUrl() {
+            return window.location.origin;
+        }
+
+        // Load user profile
+        async function loadUserProfile(userId) {
+            try {
+                const { data: user, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                if (!user) {
+                    throw new Error('User not found');
+                }
+
+                return user;
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                throw error;
+            }
+        }
+
+        // Render profile
+        function renderProfile(user) {
+            const container = document.getElementById('profileContainer');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            if (loadingMessage) {
+                loadingMessage.style.display = 'none';
+            }
+
+            container.innerHTML = `
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        ${user.avatar ? 
+                            `<img src="${user.avatar}" alt="Profile Picture" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                             <div style="display: none;">${getInitials(user.name)}</div>` : 
+                            getInitials(user.name)
+                        }
+                    </div>
+                    <div class="profile-name">${user.name}</div>
+                    ${user.about ? `<div class="profile-about">${user.about}</div>` : ''}
+                    ${user.phone ? `<div class="profile-phone">📱 ${user.phone}</div>` : ''}
+                </div>
+
+                <div class="action-buttons">
+                    <a href="javascript:void(0)" class="btn btn-primary" onclick="addToContacts('${user.id}', '${user.name}', '${user.phone || ''}', '${user.about || ''}')">
+                        👤 Add to Contacts
+                    </a>
+                    <a href="${getAppUrl()}" class="btn btn-secondary">
+                        💬 Open CaBa App
+                    </a>
+                </div>
+
+                <div class="app-link">
+                    <small>Don't have CaBa yet? <a href="${getAppUrl()}" target="_blank">Download here</a></small>
+                </div>
+            `;
+        }
+
+        // Add to contacts function
+        function addToContacts(userId, name, phone, about) {
+            try {
+                // Get existing contacts
+                let contacts = JSON.parse(localStorage.getItem('CaBa_contacts') || '[]');
+                
+                // Check if already exists
+                if (contacts.some(contact => contact.id === userId)) {
+                    alert('User already in contacts!');
+                    return;
+                }
+
+                // Add new contact
+                contacts.push({
+                    id: userId,
+                    name: name,
+                    phone: phone,
+                    about: about,
+                    addedAt: new Date().toISOString()
+                });
+
+                // Save to localStorage
+                localStorage.setItem('CaBa_contacts', JSON.stringify(contacts));
+
+                // Show success message
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '✅ Added to Contacts!';
+                button.style.background = '#27ae60';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error adding to contacts:', error);
+                alert('Failed to add to contacts. Please try again.');
+            }
+        }
+
+        // Handle errors
+        function handleError(error) {
+            const container = document.getElementById('profileContainer');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            if (loadingMessage) {
+                loadingMessage.style.display = 'none';
+            }
+
+            container.innerHTML = `
+                <div class="error-message">
+                    <h3>Profile Not Found</h3>
+                    <p>The user profile you're looking for doesn't exist or has been removed.</p>
+                </div>
+                <a href="${getAppUrl()}" class="btn btn-primary">
+                    🏠 Go to CaBa App
+                </a>
+            `;
+        }
+
+        // Main function
+        async function init() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get('userId');
+
+                if (!userId) {
+                    throw new Error('No user ID provided');
+                }
+
+                const user = await loadUserProfile(userId);
+                renderProfile(user);
+
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
