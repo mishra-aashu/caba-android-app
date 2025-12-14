@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import '../../styles/auth.css';
@@ -7,6 +7,12 @@ const Login = () => {
   const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    // Trigger animation on mount
+    setIsVisible(true);
+  }, []);
 
   const handleGoogleLogin = async () => {
     try {
@@ -27,16 +33,25 @@ const Login = () => {
 
   return (
     <div className="auth-page">
-      <div className="auth-container">
+      <div className={`auth-container ${isVisible ? 'visible' : ''}`}>
+        {/* App Logo */}
+        <div className="app-logo">
+          <div className="logo-icon" style={{ animation: 'bounce 2s infinite' }}>
+            📱
+          </div>
+          <h1 className="app-name">CaBa</h1>
+          <p className="app-tagline">Connect & Chat Anytime</p>
+        </div>
+
         <div className="auth-header">
           <h1>Welcome Back</h1>
-          <p>Login to your CaBa account</p>
+          <p>Sign in to continue your conversations</p>
         </div>
 
         <div className="auth-form">
           {/* Error Display */}
           {error && (
-            <div className="error-message">
+            <div className="error-message animate-shake">
               {error}
             </div>
           )}
@@ -44,7 +59,7 @@ const Login = () => {
           {/* Google Login Button */}
           <button
             type="button"
-            className="btn btn-google"
+            className={`btn btn-google ${loading ? 'loading' : ''}`}
             onClick={handleGoogleLogin}
             disabled={loading}
           >
@@ -54,15 +69,88 @@ const Login = () => {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            {loading ? 'Signing in...' : 'Continue with Google'}
+            {loading ? (
+              <>
+                <div className="spinner"></div>
+                Signing in...
+              </>
+            ) : (
+              'Continue with Google'
+            )}
           </button>
+
+          {/* Features List */}
+          <div className="features-list" style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>💬</span>
+              <span style={{ fontSize: '1.5rem' }}>📞</span>
+              <span style={{ fontSize: '1.5rem' }}>📹</span>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Chat, Call & Video with friends and family
+            </p>
+          </div>
 
           {/* Signup Link */}
           <div className="auth-footer">
-            <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
+            <p>Don't have an account? <Link to="/signup" style={{ animation: 'pulse 2s infinite' }}>Sign Up</Link></p>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-10px); }
+          60% { transform: translateY(-5px); }
+        }
+
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+
+        .auth-container.visible {
+          animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(50px) scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+
+        .btn-google.loading {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .btn-google.loading::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+          0% { left: -100%; }
+          100% { left: 100%; }
+        }
+      `}</style>
     </div>
   );
 };
