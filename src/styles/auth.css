@@ -8,7 +8,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #22c55e 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
   padding: 20px;
 }
 
@@ -466,6 +468,12 @@
   75% { transform: translateX(10px); }
 }
 
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 /* Auth Footer */
 .auth-footer {
   text-align: center;
@@ -658,7 +666,9 @@
 
 /* Dark Mode Support */
 [data-theme="dark"] .auth-page {
-  background: linear-gradient(135deg, #0f5132 0%, #0a3622 100%);
+  background: linear-gradient(135deg, #2d1b69 0%, #11998e 25%, #38ef7d 50%, #56ab2f 75%, #0f5132 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
 }
 
 [data-theme="dark"] .message.success {
