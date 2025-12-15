@@ -1,4 +1,5 @@
 // Using global objects: window.supabaseClient, window.FREE_TURN_SERVERS
+import { Camera } from '@capacitor/camera';
 
 /**
  * Complete WebRTC Calling System
@@ -276,6 +277,16 @@ class WebRTCCall {
                 };
                 this.localStream = await navigator.mediaDevices.getDisplayMedia(constraints);
             } else {
+                // Request permissions first
+                if (callType === 'video') {
+                    try {
+                        await Camera.requestPermissions();
+                        console.log('Camera permission granted');
+                    } catch (error) {
+                        console.warn('Camera permission request failed:', error);
+                    }
+                }
+
                 // Voice or video call
                 constraints = {
                     audio: {
