@@ -2,7 +2,7 @@
   "name": "caba",
   "private": true,
   "version": "0.0.7",
-  "homepage": ".",
+  "homepage": "/",
   "type": "module",
   "scripts": {
     "dev": "vite",
