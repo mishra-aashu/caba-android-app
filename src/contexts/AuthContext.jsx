@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
       try {
         // Initialize Google Auth plugin
         await GoogleAuth.initialize({
-          clientId: '335571630396-o3vavu8bpc75vht2lgl0tsdfvp3sp5tq.apps.googleusercontent.com',
+          clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
           scopes: ['profile', 'email'],
           grantOfflineAccess: true,
         });
