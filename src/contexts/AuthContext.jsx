@@ -128,9 +128,7 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithGoogle = async () => {
     try {
-      // --- FIX 2: Better Platform Check & Logic Separation ---
-      
-      // SCENARIO A: ANDROID (Native Plugin)
+      // 1. Android / iOS (Native)
       if (Capacitor.isNativePlatform()) {
         const googleUser = await GoogleAuth.signIn();
         const { error } = await supabase.auth.signInWithIdToken({
@@ -139,16 +137,19 @@ export const AuthProvider = ({ children }) => {
         });
         if (error) throw error;
         return { success: true };
-      } 
-      
-      // SCENARIO B: WEB (Supabase Standard OAuth)
+      }
+
+      // 2. Web (Browser)
       else {
-        // Determine the correct URL based on where the app is running
-        // If on localhost, just use origin. If on production (GitHub pages), append the path.
+        // DETECT ENVIRONMENT
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const redirectUrl = isLocal 
-            ? window.location.origin 
-            : `${window.location.origin}/caba-android-app/`; // Adjust this if your production URL structure is different
+
+        // VITAL FIX: If on GitHub Pages, we MUST include the repository name
+        const redirectUrl = isLocal
+            ? window.location.origin  // http://localhost:5173
+            : 'https://mishra-aashu.github.io/caba-android-app/'; // Your EXACT production URL
+
+        console.log("Redirecting to:", redirectUrl); // Debugging log
 
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -160,7 +161,7 @@ export const AuthProvider = ({ children }) => {
             }
           }
         });
-        
+
         if (error) throw error;
         return { success: true };
       }
