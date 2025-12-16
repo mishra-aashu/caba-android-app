@@ -1,7 +1,7 @@
 // Supabase Configuration
 const SUPABASE_CONFIG = {
-  url: 'https://apckbdqmpsqhzehgtzzf.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwY2tiZHFtcHNxaHplaGd0enpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NjYyNTgsImV4cCI6MjA4MTQ0MjI1OH0.z5GCqUvOtPETrKzFkGoXjQetRx8S8cVwNMCYbnWVWyo'
+  url: 'https://riekjnqllkrqkmqxmtfu.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpZWtqbnFsbGtycWttcXhtdGZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4ODc3MjQsImV4cCI6MjA3NzQ2MzcyNH0.heQABR_DZFWZ_UIb38Tzdgcy-5z5LSUob0icnqsiiQY'
 };
 
 // Initialize Supabase client
