@@ -20,7 +20,7 @@
       var l = window.location;
       l.replace(
         l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        '/caba-android-app/' +
+        '/' +
         (l.search ? '?' + l.search.slice(1) : '') +
         l.hash
       );
