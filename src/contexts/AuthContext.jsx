@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabase } from './SupabaseContext';
 import AuthService from '../services/authService';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core'; // Import Core for proper platform check
 
 const AuthContext = createContext({});
 
@@ -19,127 +20,38 @@ export const AuthProvider = ({ children }) => {
 
     const initializeAuth = async () => {
       try {
-        // Initialize Google Auth plugin
-        await GoogleAuth.initialize({
-          clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
-          scopes: ['profile', 'email'],
-          grantOfflineAccess: true,
-        });
+        // --- FIX 1: ONLY Initialize Plugin on Android/iOS ---
+        if (Capacitor.isNativePlatform()) {
+          await GoogleAuth.initialize({
+            clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+            scopes: ['profile', 'email'],
+            grantOfflineAccess: true,
+          });
+        }
 
-        // Check for user from HTML login pages first
-        const storedUser = sessionStorage.getItem('_auth_user');
-        if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-          setIsAuthenticated(true);
-          setLoading(false);
-          return;
+        // Check for session immediately
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          await handleUserSession(session.user);
+        } else {
+            // Check legacy session storage if Supabase has no session
+            const storedUser = sessionStorage.getItem('_auth_user');
+            if (storedUser) {
+                setUser(JSON.parse(storedUser));
+                setIsAuthenticated(true);
+            }
         }
 
         // Listen for Supabase auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
           console.log('🔐 Auth state changed:', event);
-
           if (event === 'SIGNED_IN' && session?.user) {
-            try {
-              // Check if user exists in database
-              const { data: existingUser, error: dbError } = await supabase
-                .from('users')
-                .select('*')
-                .eq('email', session.user.email)
-                .single();
-
-              let dbUser;
-
-              if (dbError && dbError.code === 'PGRST116') {
-                // User doesn't exist, create new user
-                const userData = {
-                  id: session.user.id,
-                  email: session.user.email,
-                  name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
-                  phone: '',
-                  avatar: session.user.user_metadata?.avatar_url || null,
-                  is_online: true
-                };
-
-                const { data: newUser, error: insertError } = await supabase
-                  .from('users')
-                  .insert([userData])
-                  .select()
-                  .single();
-
-                if (insertError) {
-                  console.error('Insert error:', insertError);
-                  throw new Error('Failed to create user account');
-                }
-
-                dbUser = newUser;
-              } else if (existingUser) {
-                // User exists, update their status
-                await supabase
-                  .from('users')
-                  .update({
-                    is_online: true,
-                    last_seen: new Date().toISOString()
-                  })
-                  .eq('id', existingUser.id);
-
-                dbUser = existingUser;
-              } else {
-                throw new Error('Database error occurred');
-              }
-
-              // Store user data
-              sessionStorage.setItem('_auth_user', JSON.stringify(dbUser));
-              setUser(dbUser);
-              setIsAuthenticated(true);
-
-              // Navigate to home after successful authentication
-              navigate('/', { replace: true });
-            } catch (error) {
-              console.error('User creation/update error:', error);
-              // Still set basic user data for UI
-              const userData = {
-                id: session.user.id,
-                email: session.user.email,
-                name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
-                phone: '',
-                avatar: session.user.user_metadata?.avatar_url || null,
-                is_online: true
-              };
-              setUser(userData);
-              setIsAuthenticated(true);
-              navigate('/', { replace: true });
-            }
+            await handleUserSession(session.user);
           } else if (event === 'SIGNED_OUT') {
-            sessionStorage.removeItem('_auth_user');
-            setUser(null);
-            setIsAuthenticated(false);
-            navigate('/login', { replace: true });
+            handleSignOut();
           }
-
-          setLoading(false);
         });
-
-        // Check current session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // User is already signed in
-          const userData = {
-            id: session.user.id,
-            email: session.user.email,
-            name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
-            phone: '',
-            avatar: session.user.user_metadata?.avatar_url || null,
-            is_online: true
-          };
-
-          setUser(userData);
-          setIsAuthenticated(true);
-
-          // Navigate to home if already authenticated
-          navigate('/', { replace: true });
-        }
 
         setLoading(false);
 
@@ -155,69 +67,115 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, [supabase]);
 
+  // Helper to handle user data fetching/creation to avoid code duplication
+  const handleUserSession = async (authUser) => {
+    try {
+        const { data: existingUser, error: dbError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', authUser.email)
+            .single();
+
+        let dbUser;
+        // User Metadata handling
+        const metaName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email.split('@')[0];
+        const metaAvatar = authUser.user_metadata?.avatar_url || null;
+
+        if (dbError && dbError.code === 'PGRST116') {
+            // Create New User
+            const { data: newUser, error: insertError } = await supabase
+                .from('users')
+                .insert([{
+                    id: authUser.id,
+                    email: authUser.email,
+                    name: metaName,
+                    phone: '',
+                    avatar: metaAvatar,
+                    is_online: true
+                }])
+                .select()
+                .single();
+            
+            if (insertError) throw insertError;
+            dbUser = newUser;
+        } else if (existingUser) {
+            // Update Existing User
+            await supabase
+                .from('users')
+                .update({ is_online: true, last_seen: new Date().toISOString() })
+                .eq('id', existingUser.id);
+            dbUser = existingUser;
+        }
+
+        // Finalize Login
+        sessionStorage.setItem('_auth_user', JSON.stringify(dbUser || authUser));
+        setUser(dbUser || authUser);
+        setIsAuthenticated(true);
+        navigate('/', { replace: true });
+        
+    } catch (error) {
+        console.error("Error handling user session:", error);
+    }
+  };
+
+  const handleSignOut = () => {
+    sessionStorage.removeItem('_auth_user');
+    setUser(null);
+    setIsAuthenticated(false);
+    navigate('/login', { replace: true });
+  };
 
   const signInWithGoogle = async () => {
     try {
-      // Check if running in Capacitor (mobile app)
-      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        // Use Capacitor Google Auth plugin for mobile
+      // --- FIX 2: Better Platform Check & Logic Separation ---
+      
+      // SCENARIO A: ANDROID (Native Plugin)
+      if (Capacitor.isNativePlatform()) {
         const googleUser = await GoogleAuth.signIn();
-
-        // Sign in with Supabase using the Google ID token
-        const { data, error } = await supabase.auth.signInWithIdToken({
+        const { error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
-          token: googleUser.authentication.idToken
+          token: googleUser.authentication.idToken,
         });
-
-        if (error) {
-          return { success: false, error: error.message };
-        }
-
+        if (error) throw error;
         return { success: true };
-      } else {
-        // Use Supabase OAuth for web development
-        const { data, error } = await supabase.auth.signInWithOAuth({
+      } 
+      
+      // SCENARIO B: WEB (Supabase Standard OAuth)
+      else {
+        // Determine the correct URL based on where the app is running
+        // If on localhost, just use origin. If on production (GitHub pages), append the path.
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const redirectUrl = isLocal 
+            ? window.location.origin 
+            : `${window.location.origin}/caba-android-app/`; // Adjust this if your production URL structure is different
+
+        const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: `${window.location.origin}/caba-android-app/`
+            redirectTo: redirectUrl,
+            queryParams: {
+                access_type: 'offline',
+                prompt: 'consent',
+            }
           }
         });
-
-        if (error) {
-          return { success: false, error: error.message };
-        }
-
-        // For web OAuth, the redirect will happen automatically
+        
+        if (error) throw error;
         return { success: true };
       }
     } catch (error) {
+      console.error("Google Sign In Error:", error);
       return { success: false, error: error.message };
     }
   };
 
-  const signUpWithGoogle = async () => {
-    return signInWithGoogle();
-  };
-
   const signOut = async () => {
     try {
-      // Clear session storage
-      sessionStorage.removeItem('_auth_user');
-
-      // Sign out from Supabase
-      await supabase.auth.signOut();
-
-      // Clear auth service
-      if (authService) {
-        authService.signOut();
+      if (Capacitor.isNativePlatform()) {
+          await GoogleAuth.signOut(); // Clean up native session
       }
-
-      // Update state
-      setUser(null);
-      setIsAuthenticated(false);
-
-      // Navigate to login
-      navigate('/login', { replace: true });
+      await supabase.auth.signOut();
+      handleSignOut();
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -227,26 +185,16 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     isAuthenticated,
-    signInWithPhone: (phone, password) => authService?.authenticateWithPhone(phone, password),
-    signUpWithPhone: (phone, password, name, email) => authService?.signUpWithPhone(phone, password, name, email),
     signInWithGoogle,
-    signUpWithGoogle,
     signOut,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children} 
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
+// (!loading && children) prevents the app from rendering Login page briefly while checking session
+export const useAuth = () => useContext(AuthContext);
 export default AuthContext;

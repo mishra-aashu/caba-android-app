@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/auth.css';
 
 const Login = () => {
@@ -98,7 +98,7 @@ const Login = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes bounce {
           0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
           40% { transform: translateY(-10px); }
