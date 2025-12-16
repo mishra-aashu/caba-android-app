@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Login Test</title>
+</head>
+<body>
+    <h1>Google Login Test</h1>
+    <button id="loginBtn">Login with Google</button>
+    <div id="status"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        const supabase = createClient(
+            'https://apckbdqmpsqhzehgtzzf.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwY2tiZHFtcHNxaHplaGd0enpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NjYyNTgsImV4cCI6MjA4MTQ0MjI1OH0.z5GCqUvOtPETrKzFkGoXjQetRx8S8cVwNMCYbnWVWyo'
+        );
+
+        const loginBtn = document.getElementById('loginBtn');
+        const status = document.getElementById('status');
+
+        loginBtn.addEventListener('click', async () => {
+            status.textContent = 'Logging in...';
+            try {
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: 'https://mishra-aashu.github.io/caba-android-app/'
+                    }
+                });
+
+                if (error) {
+                    status.textContent = 'Error: ' + error.message;
+                } else {
+                    status.textContent = 'Redirecting to Google...';
+                }
+            } catch (err) {
+                status.textContent = 'Error: ' + err.message;
+            }
+        });
+
+        // Check if already logged in
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                status.textContent = 'Already logged in! Redirecting...';
+                window.location.href = 'https://mishra-aashu.github.io/caba-android-app/';
+            }
+        });
+    </script>
+</body>
+</html>
