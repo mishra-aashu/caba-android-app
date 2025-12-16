@@ -120,6 +120,7 @@ export const AuthProvider = ({ children }) => {
 
   const handleSignOut = () => {
     sessionStorage.removeItem('_auth_user');
+    localStorage.removeItem('sb-riekjnqllkrqkmqxmtfu-auth-token');
     setUser(null);
     setIsAuthenticated(false);
     navigate('/login', { replace: true });
