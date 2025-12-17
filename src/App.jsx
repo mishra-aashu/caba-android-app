@@ -26,6 +26,8 @@ import { IncomingCallModal } from './components/IncomingCallModal';
 import MessagingLoader from './components/MessagingLoader';
 import AuthDebug from './components/AuthDebug';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { Camera } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 CapacitorUpdater.notifyAppReady();
 
@@ -94,6 +96,29 @@ function App() {
       return () => subscription?.unsubscribe();
     }
   }, [supabase]);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          // Explicitly ask for Camera Permission
+          const cameraStatus = await Camera.requestPermissions();
+
+          if (cameraStatus.camera === 'granted' || cameraStatus.camera === 'limited') {
+            console.log("Camera Permission Granted by Android!");
+            // Ab agar tumhara Web code navigator.mediaDevices.getUserMedia call karega
+            // to wo fail nahi hoga.
+          } else {
+            console.log("Camera Permission Denied!");
+          }
+        } catch (error) {
+          console.error("Error asking permissions:", error);
+        }
+      }
+    };
+
+    checkPermissions();
+  }, []);
 
   return (
     <CallProviderWrapper>
