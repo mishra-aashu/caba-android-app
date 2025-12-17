@@ -125,6 +125,31 @@ Follow the established patterns:
 - Real-time subscriptions cleanup
 - Mobile-first responsive design
 
+## Deployment
+
+### Vercel Deployment
+
+1. **Prerequisites**:
+   - Vercel account
+   - Supabase project set up
+   - Google OAuth credentials
+
+2. **Environment Variables** (set in Vercel dashboard):
+   ```
+   VITE_SUPABASE_URL=your-supabase-url
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+   VITE_GOOGLE_CLIENT_ID=your-google-client-id
+   VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret
+   ```
+
+3. **Deploy Steps**:
+   - Connect your GitHub repository to Vercel
+   - Vercel will auto-detect the Vite configuration
+   - Set the environment variables in Vercel dashboard
+   - Deploy
+
+The app uses HashRouter, so no additional routing configuration is needed for Vercel.
+
 ## License
 
 This project is licensed under the MIT License.
