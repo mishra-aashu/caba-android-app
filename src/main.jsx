@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 import './index.css'
 import './styles/global.css'
 import './styles/whatsapp-bubbles.css'
@@ -14,7 +14,7 @@ import { AuthProvider } from './contexts/AuthContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <HashRouter>
       <SupabaseProvider>
         <AuthProvider>
           <ThemeProvider>
@@ -24,6 +24,6 @@ createRoot(document.getElementById('root')).render(
           </ThemeProvider>
         </AuthProvider>
       </SupabaseProvider>
-    </BrowserRouter>
+    </HashRouter>
   </StrictMode>,
 )

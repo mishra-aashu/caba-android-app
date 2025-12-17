@@ -139,17 +139,14 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
       }
 
-      // 2. Web (Browser)
+      // 2. WEB (GitHub Pages / Localhost) - Universal Logic
       else {
-        // DETECT ENVIRONMENT
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        // Ye logic apne aap sahi URL pakad lega chahe localhost ho ya github
+        // window.location.origin = https://user.github.io
+        // window.location.pathname = /caba-android-app/
+        const redirectUrl = window.location.origin + window.location.pathname;
 
-        // VITAL FIX: If on GitHub Pages, we MUST include the repository name
-        const redirectUrl = isLocal
-            ? window.location.origin  // http://localhost:5173
-            : 'https://mishra-aashu.github.io/caba-android-app/'; // Your EXACT production URL
-
-        console.log("Redirecting to:", redirectUrl); // Debugging log
+        console.log("Redirecting to:", redirectUrl);
 
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',

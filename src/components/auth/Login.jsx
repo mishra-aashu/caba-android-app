@@ -35,14 +35,7 @@ const Login = () => {
     <div className="auth-page">
       <div className={`auth-container ${isVisible ? 'visible' : ''}`}>
         {/* App Logo */}
-        <div className="app-logo">
-          <div className="logo-icon" style={{ animation: 'bounce 2s infinite' }}>
-            📱
-          </div>
-          <h1 className="app-name">CaBa</h1>
-          <p className="app-tagline">Connect & Chat Anytime</p>
-        </div>
-
+       
         <div className="auth-header">
           <h1>Welcome Back</h1>
           <p>Sign in to continue your conversations</p>
@@ -79,22 +72,7 @@ const Login = () => {
             )}
           </button>
 
-          {/* Features List */}
-          <div className="features-list" style={{ marginTop: '2rem', textAlign: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>💬</span>
-              <span style={{ fontSize: '1.5rem' }}>📞</span>
-              <span style={{ fontSize: '1.5rem' }}>📹</span>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              Chat, Call & Video with friends and family
-            </p>
-          </div>
-
-          {/* Signup Link */}
-          <div className="auth-footer">
-            <p>Don't have an account? <Link to="/signup" style={{ animation: 'pulse 2s infinite' }}>Sign Up</Link></p>
-          </div>
+          
         </div>
       </div>
 
