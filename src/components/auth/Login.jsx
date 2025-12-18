@@ -32,7 +32,7 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-page">
+    <div className="auth-page login-page">
       <div className={`auth-container ${isVisible ? 'visible' : ''}`}>
         {/* App Logo */}
        

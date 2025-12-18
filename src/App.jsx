@@ -28,6 +28,7 @@ import AuthDebug from './components/AuthDebug';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Camera } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
+import useResumeRevalidate from './hooks/useResumeRevalidate';
 
 CapacitorUpdater.notifyAppReady();
 
@@ -74,6 +75,7 @@ const CallProviderWrapper = ({ children }) => {
 function App() {
   const [showIntro, setShowIntro] = useState(true);
   const { supabase } = useSupabase();
+  useResumeRevalidate();
   
 
 

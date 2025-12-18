@@ -4,7 +4,7 @@ class NotificationSound {
       // Map sound names to files
       const soundMap = {
         default: '/assets/audio/nice_ring_tones.mp3',
-        message: '/assets/audio/nice_ring_tones.mp3',
+        message: '/assets/audio/linkedin_notification.mp3',
         call: '/assets/audio/professional.mp3',
         reminder: '/assets/audio/Sakura-Girl-Wake-Up-chosic.com_.mp3'
       };

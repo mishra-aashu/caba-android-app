@@ -16,6 +16,7 @@ import MessagingLoader from '../MessagingLoader';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useTypingIndicator } from '../../hooks/useRealtimeTyping';
 import { useMessageStatusUpdates } from '../../hooks/useMessageStatusUpdates';
+import NotificationSound from '../../utils/notificationSound';
 import '../../styles/chat.css';
 import '../../styles/layout-fixes.css';
 import './AttachmentMenu.css';
@@ -65,15 +66,20 @@ const Chat = () => {
   const handleNewMessage = useCallback((newMessage) => {
     setMessages(prev => [...prev, newMessage]);
 
+    // Play notification sound for incoming messages
+    if (newMessage.sender_id !== currentUser?.id && !isMuted) {
+      NotificationSound.playMessageNotification();
+    }
+
     // Increment unread count if not scrolled to bottom
     if (!isScrolledToBottom) {
       setUnreadCount(prev => prev + 1);
     } else {
       markMessagesAsRead();
     }
-  }, [isScrolledToBottom]);
+  }, [isScrolledToBottom, currentUser?.id, isMuted]);
 
-  useRealtimeMessages(validChatId, handleNewMessage);
+  useRealtimeMessages(validChatId, handleNewMessage, currentUser?.id);
 
   const { isOtherUserTyping, sendTypingStatus } = useTypingIndicator(validChatId, currentUser?.id);
 
@@ -280,6 +286,8 @@ const Chat = () => {
         .eq('id', chatId);
 
       setReplyingTo(null);
+      // Play notification sound when sending message
+      NotificationSound.playMessageNotification();
       // Typing status is automatically handled by the hook when input stops
     } catch (error) {
       console.error('Error sending message:', error);

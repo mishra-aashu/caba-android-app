@@ -1,15 +1,13 @@
 import { useEffect, useCallback } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
-import NotificationSound from '../utils/notificationSound';
 
-export const useRealtimeMessages = (chatId, onMessage) => {
+export const useRealtimeMessages = (chatId, onMessage, currentUserId) => {
     const { supabase } = useSupabase();
-    
+
     const stableOnMessage = useCallback((payload) => {
         onMessage(payload.new);
-        NotificationSound.playMessageNotification();
-    }, [onMessage]);
-    
+    }, [onMessage, currentUserId]);
+
     useEffect(() => {
         if (!chatId || !supabase) return;
 

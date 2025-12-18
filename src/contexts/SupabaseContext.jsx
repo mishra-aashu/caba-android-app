@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../config/supabase.js';
 import IncomingCall from '../components/calls/IncomingCall';
+import ConnectionToast from '../components/common/ConnectionToast';
 
 const SupabaseContext = createContext();
 
@@ -11,6 +12,9 @@ export const SupabaseProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [incomingCallChannel, setIncomingCallChannel] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [showConnectionToast, setShowConnectionToast] = useState(false);
+  const [lastResumeAt, setLastResumeAt] = useState(null);
 
   useEffect(() => {
     // Get initial session
@@ -149,17 +153,78 @@ export const SupabaseProvider = ({ children }) => {
     setIncomingCall(null);
   };
 
+  const validateSessionAndRefresh = async () => {
+    console.log('Starting validateSessionAndRefresh');
+    if (isConnecting) {
+      console.log('Already connecting, skipping');
+      return;
+    }
+    setIsConnecting(true);
+    try {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.warn('Session check error:', error);
+      }
+      let activeSession = currentSession;
+      console.log('Current session:', !!activeSession);
+      console.log('Refreshing session on resume...');
+      try {
+        const { data, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error('Refresh session error:', refreshError);
+        } else {
+          activeSession = data?.session || activeSession;
+          console.log('Session refreshed');
+        }
+      } catch (e) {
+        console.error('Refresh session exception:', e);
+      }
+      console.log('Disconnecting realtime...');
+      try { await supabase.realtime.disconnect(); } catch (e) { console.log('Disconnect error:', e); }
+      console.log('Connecting realtime...');
+      try { await supabase.realtime.connect(); console.log('Realtime connected successfully'); } catch (e) { console.log('Connect error:', e); }
+      try {
+        const channels = supabase.getChannels ? supabase.getChannels() : [];
+        console.log('Re-subscribing channels:', channels.length);
+        channels.forEach((ch) => {
+          try { ch.subscribe(); console.log('Re-subscribed channel:', ch.topic); } catch (e) { console.log('Subscribe error:', e); }
+        });
+      } catch (e) { console.log('Get channels error:', e); }
+      setLastResumeAt(Date.now());
+      console.log('validateSessionAndRefresh completed');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const ensureConnected = () => {
+    if (isConnecting) {
+      setShowConnectionToast(true);
+      setTimeout(() => setShowConnectionToast(false), 1500);
+      return false;
+    }
+    return true;
+  };
+
   const value = {
     supabase,
     user,
     session,
     loading,
     signOut: () => supabase.auth.signOut(),
+    isConnecting,
+    lastResumeAt,
+    validateSessionAndRefresh,
+    ensureConnected,
   };
 
   return (
     <SupabaseContext.Provider value={value}>
       {children}
+
+      {(isConnecting || showConnectionToast) && (
+        <ConnectionToast text="Connecting..." />
+      )}
 
       {/* Global Incoming Call Overlay */}
       {incomingCall && (

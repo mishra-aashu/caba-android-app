@@ -1,67 +1,71 @@
 :root {
-  --font-sans: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-
-  --background: #ffffff;
-  --foreground: #020817;
-
-  --card: #ffffff;
-  --card-foreground: #020817;
-
-  --popover: #ffffff;
-  --popover-foreground: #020817;
-
-  --primary: #1a1a1a;
-  --primary-foreground: #fafafa;
-
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #1a1a1a;
-
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  /* --- LIGHT MODE (Premium Clean) --- */
+  --bg-color: #F0F2F5;
+  --surface-color: #FFFFFF;
+  --text-primary: #111B21;
+  --text-secondary: #667781;
+  --border-color: #E9EDEF;
+  /* THE PREMIUM GREEN GRADIENT */
+  --brand-primary: #00A884;
+  --brand-gradient: linear-gradient(135deg, #008069 0%, #25D366 100%);
+  --shadow-sm: 0 1px 2px rgba(11, 20, 26, 0.05);
+  --shadow-md: 0 4px 12px rgba(11, 20, 26, 0.1);
+  /* Bridge existing tokens */
+  --background: var(--bg-color);
+  --foreground: var(--text-primary);
+  --card: var(--surface-color);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-color);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--brand-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-color);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--surface-color);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--brand-primary);
+  --accent-foreground: #ffffff;
+  --destructive: #E53935;
+  --destructive-foreground: #ffffff;
+  --border: var(--border-color);
+  --input: var(--border-color);
+  --ring: var(--brand-primary);
   --radius: 0.5rem;
-
-
 }
 
 [data-theme='dark'] {
-  --background: #09090b;
-  --foreground: #fafafa;
-
-  --card: #09090b;
-  --card-foreground: #fafafa;
-
-  --popover: #09090b;
-  --popover-foreground: #fafafa;
-
-  --primary: #fafafa;
-  --primary-foreground: #18181b;
-
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-
+  /* --- DARK MODE (OLED Friendly & Deep) --- */
+  --bg-color: #0B141A;
+  --surface-color: #202C33;
+  --text-primary: #E9EDEF;
+  --text-secondary: #8696A0;
+  --border-color: #2A3942;
+  /* DARK MODE GREEN GRADIENT */
+  --brand-primary: #00A884;
+  --brand-gradient: linear-gradient(135deg, #054740 0%, #00A884 100%);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  /* Bridge existing tokens */
+  --background: var(--bg-color);
+  --foreground: var(--text-primary);
+  --card: var(--surface-color);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-color);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--brand-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-color);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--surface-color);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--brand-primary);
+  --accent-foreground: #ffffff;
   --destructive: #7f1d1d;
   --destructive-foreground: #fafafa;
-
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #fafafa;
+  --border: var(--border-color);
+  --input: var(--border-color);
+  --ring: var(--brand-primary);
 }
 
 * {
@@ -71,10 +75,106 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg-color);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prefers-color-scheme dark fallback */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0B141A;
+    --surface-color: #202C33;
+    --text-primary: #E9EDEF;
+    --text-secondary: #8696A0;
+    --border-color: #2A3942;
+    --brand-primary: #00A884;
+    --brand-gradient: linear-gradient(135deg, #054740 0%, #00A884 100%);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+    --background: var(--bg-color);
+    --foreground: var(--text-primary);
+    --card: var(--surface-color);
+    --card-foreground: var(--text-primary);
+    --popover: var(--surface-color);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--brand-primary);
+    --primary-foreground: #ffffff;
+    --secondary: var(--surface-color);
+    --secondary-foreground: var(--text-secondary);
+    --muted: var(--surface-color);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--brand-primary);
+    --accent-foreground: #ffffff;
+    --border: var(--border-color);
+    --input: var(--border-color);
+    --ring: var(--brand-primary);
+  }
+}
+
+/* Premium Headers */
+.app-header,
+.chat-header,
+.support-chat-header,
+.whatsapp-header {
+  background: var(--brand-gradient) !important;
+  color: #ffffff !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.chat-header .icon,
+.chat-header i,
+.chat-header svg,
+.app-header .icon,
+.app-header i,
+.app-header svg,
+.support-chat-header .icon,
+.support-chat-header i,
+.support-chat-header svg,
+.whatsapp-header .icon,
+.whatsapp-header i,
+.whatsapp-header svg {
+  color: #ffffff !important;
+}
+
+/* Premium Primary Buttons */
+.btn-primary,
+.send-button {
+  background: var(--brand-gradient) !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.btn-primary:hover,
+.send-button:hover {
+  filter: brightness(1.05) saturate(1.05);
+}
+
+.btn-primary:active,
+.send-button:active {
+  filter: brightness(0.98);
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* Modern Chat Bubbles */
+.message.sent .message-bubble,
+.message-bubble.sent,
+.message-outgoing .message-bubble {
+  background: var(--brand-gradient) !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.message.received .message-bubble,
+.message-bubble.received,
+.message-incoming .message-bubble {
+  background: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 
