@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../config/supabase.js';
 import IncomingCall from '../components/calls/IncomingCall';
 import ConnectionToast from '../components/common/ConnectionToast';
+import useAutoReconnect from '../hooks/useAutoReconnect';
 
 const SupabaseContext = createContext();
 
@@ -15,6 +16,13 @@ export const SupabaseProvider = ({ children }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showConnectionToast, setShowConnectionToast] = useState(false);
   const [lastResumeAt, setLastResumeAt] = useState(null);
+
+  // Use auto reconnect hook with callback to resubscribe channels
+  useAutoReconnect(() => {
+    if (user && !incomingCallChannel) {
+      setupGlobalIncomingCallListener();
+    }
+  });
 
   useEffect(() => {
     // Get initial session

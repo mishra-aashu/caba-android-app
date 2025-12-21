@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSupabase } from './contexts/SupabaseContext';
 import { useAuth } from './hooks/useAuth';
 import { CallProvider } from './context/CallContext';
@@ -76,6 +77,16 @@ function App() {
   const [showIntro, setShowIntro] = useState(true);
   const { supabase } = useSupabase();
   useResumeRevalidate();
+
+  // Create a client
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: true, // IMPORTANT: Jaise hi app focus me aayega, data refresh hoga
+        refetchOnReconnect: true,   // IMPORTANT: Net wapas aate hi refresh
+      },
+    },
+  });
   
 
 
@@ -123,40 +134,42 @@ function App() {
   }, []);
 
   return (
-    <CallProviderWrapper>
-      {showIntro ? (
-        <Intro onComplete={() => setShowIntro(false)} />
-      ) : (
-        <Routes>
-          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-          <Route path="/chat/:chatId/:otherUserId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-          <Route path="/chat/new/:userId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-          <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
-          <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-          <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
-          <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
-          <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
-          <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
-          <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
-          <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-          <Route path="/user-details/:id" element={<ProtectedRoute><UserDetails /></ProtectedRoute>} />
-          <Route path="/shared-profile/:id" element={<ProtectedRoute><SharedProfile /></ProtectedRoute>} />
-        </Routes>
-      )}
+    <QueryClientProvider client={queryClient}>
+      <CallProviderWrapper>
+        {showIntro ? (
+          <Intro onComplete={() => setShowIntro(false)} />
+        ) : (
+          <Routes>
+            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+            <Route path="/chat/:chatId/:otherUserId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+            <Route path="/chat/new/:userId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+            <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+            <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+            <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
+            <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
+            <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
+            <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
+            <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+            <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/user-details/:id" element={<ProtectedRoute><UserDetails /></ProtectedRoute>} />
+            <Route path="/shared-profile/:id" element={<ProtectedRoute><SharedProfile /></ProtectedRoute>} />
+          </Routes>
+        )}
 
-      {/* Global Call Components */}
-      <CallStatusIndicator />
-      <IncomingCallModal />
-      <AuthDebug />
-    </CallProviderWrapper>
+        {/* Global Call Components */}
+        <CallStatusIndicator />
+        <IncomingCallModal />
+        <AuthDebug />
+      </CallProviderWrapper>
+    </QueryClientProvider>
   );
 }
 

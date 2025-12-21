@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useCall } from '../../context/CallContext';
@@ -62,6 +63,29 @@ const Chat = () => {
 
   // Realtime hooks - only activate when we have a valid chat ID
   const validChatId = chatId && chatId !== 'new' ? chatId : null;
+
+  // Query for fetching messages
+  const { data: messagesData, isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
+    queryKey: ['messages', validChatId],
+    queryFn: async () => {
+      if (!validChatId) return [];
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', validChatId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!validChatId,
+  });
+
+  // Update messages state when query data changes
+  useEffect(() => {
+    if (messagesData) {
+      setMessages(messagesData);
+    }
+  }, [messagesData]);
 
   const handleNewMessage = useCallback((newMessage) => {
     setMessages(prev => {
@@ -133,7 +157,7 @@ const Chat = () => {
         await handleNewChat(currentUser, userId);
       } else if (chatId && otherUserId) {
         await loadOtherUserInfo(otherUserId);
-        await loadMessages();
+        // Messages are now loaded via useQuery
       }
     } catch (error) {
       console.error('Error initializing chat:', error);
@@ -198,28 +222,6 @@ const Chat = () => {
     }
   };
 
-  const loadMessages = async () => {
-    try {
-      // First check all messages in database
-      const { data: allMessages, error: allError } = await supabase
-        .from('messages')
-        .select('*')
-        .limit(10);
-
-      // Then check messages for this chat
-      const { data: messagesData, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('chat_id', chatId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(messagesData || []);
-      await markMessagesAsRead();
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    }
-  };
 
 
 

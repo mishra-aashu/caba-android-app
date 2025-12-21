@@ -20,6 +20,7 @@
     "@capgo/capacitor-updater": "^7.34.2",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@supabase/supabase-js": "^2.83.0",
+    "@tanstack/react-query": "^5.90.12",
     "axios": "^1.13.2",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.554.0",
