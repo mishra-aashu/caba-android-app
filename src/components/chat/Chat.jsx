@@ -64,7 +64,12 @@ const Chat = () => {
   const validChatId = chatId && chatId !== 'new' ? chatId : null;
 
   const handleNewMessage = useCallback((newMessage) => {
-    setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => {
+      // Check if message already exists to prevent duplicates
+      const exists = prev.some(msg => msg.id === newMessage.id);
+      if (exists) return prev;
+      return [...prev, newMessage];
+    });
 
     // Play notification sound for incoming messages
     if (newMessage.sender_id !== currentUser?.id && !isMuted) {

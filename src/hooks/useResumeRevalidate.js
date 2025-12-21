@@ -32,19 +32,9 @@ export const useResumeRevalidate = () => {
       });
     }
 
-    const onClick = (e) => {
-      if (ensureConnected && !ensureConnected()) {
-        // Prevent click to avoid freezing, show toast using ensureConnected.
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
-    };
-
-    document.addEventListener("click", onClick, true);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      document.removeEventListener("click", onClick, true);
       if (appStateListener) {
         appStateListener.remove();
       }
