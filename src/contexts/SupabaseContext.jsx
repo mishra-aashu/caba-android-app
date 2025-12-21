@@ -4,7 +4,7 @@ import IncomingCall from '../components/calls/IncomingCall';
 import ConnectionToast from '../components/common/ConnectionToast';
 import useAutoReconnect from '../hooks/useAutoReconnect';
 
-const SupabaseContext = createContext();
+const SupabaseContext = createContext(); 
 
 export const SupabaseProvider = ({ children }) => {
   const [user, setUser] = useState(null);
