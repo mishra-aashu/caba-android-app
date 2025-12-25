@@ -1,32 +1,64 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
 
 export const useTypingIndicator = (chatId, currentUserId) => {
-    const { supabase } = useSupabase();
+    const { supabase, session } = useSupabase();
     const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+    const channelRef = useRef(null);
 
     useEffect(() => {
-        if (!chatId || !supabase) return;
+        // Channel Start karne ka function
+        const startChannel = () => {
+            // Agar purana channel zinda hai, toh pehle usse maaro (Cleanup)
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
 
-        const channel = supabase
-            .channel(`typing_${chatId}`)
-            .on('broadcast', { event: 'typing' }, (payload) => {
-                if (payload.payload.userId !== currentUserId) {
-                    setIsOtherUserTyping(payload.payload.isTyping);
+            if (!chatId) return;
 
-                    if (payload.payload.isTyping) {
-                        setTimeout(() => setIsOtherUserTyping(false), 3000);
+            console.log(`🔌 Connecting to typing indicators for chat: ${chatId}...`);
+
+            // Naya channel banao
+            const channel = supabase
+                .channel(`typing_${chatId}`)
+                .on('broadcast', { event: 'typing' }, (payload) => {
+                    if (payload.payload.userId !== currentUserId) {
+                        setIsOtherUserTyping(payload.payload.isTyping);
+
+                        if (payload.payload.isTyping) {
+                            setTimeout(() => setIsOtherUserTyping(false), 3000);
+                        }
                     }
-                }
-            })
-            .subscribe();
+                })
+                .subscribe((status) => {
+                    console.log(`Typing indicators status: ${status}`);
 
-        return () => channel.unsubscribe();
-    }, [chatId, currentUserId, supabase]);
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ Typing indicators connected!');
+                    }
+
+                    // Agar error aaye ya time out ho jaye, toh turant restart karo
+                    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        console.log('❌ Typing indicators connection died. Retrying in 1s...');
+                        setTimeout(startChannel, 1000);
+                    }
+                });
+
+            channelRef.current = channel;
+        };
+
+        // Initial Start
+        startChannel();
+
+        // Cleanup when component unmounts
+        return () => {
+            if (channelRef.current) supabase.removeChannel(channelRef.current);
+        };
+    }, [chatId, currentUserId, supabase, session]);
 
     const sendTypingStatus = useCallback((isTyping) => {
         if (!supabase || !chatId) return;
-        
+
         const channel = supabase.channel(`typing_${chatId}`);
         channel.send({
             type: 'broadcast',

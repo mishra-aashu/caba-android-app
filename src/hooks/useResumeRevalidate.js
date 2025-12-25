@@ -7,39 +7,27 @@ export const useResumeRevalidate = () => {
   const { supabase, validateSessionAndRefresh, ensureConnected } = useSupabase();
 
   useEffect(() => {
-    const onVisibility = () => {
-      console.log('Visibility changed:', document.visibilityState);
-      if (document.visibilityState === "visible") {
-        console.log('App resumed, validating session...');
-        if (validateSessionAndRefresh) {
-          validateSessionAndRefresh();
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisibility);
+    // Note: Removed aggressive session refresh on visibility change
+    // Auto-reconnect is now handled by individual realtime hooks
+    // This prevents conflicts between old and new reconnection logic
 
     let appStateListener;
     if (Capacitor.isNativePlatform()) {
       appStateListener = App.addListener('appStateChange', (state) => {
         console.log('App state changed:', state);
         if (state.isActive) {
-          console.log('App resumed on native, validating session...');
-          if (validateSessionAndRefresh) {
-            validateSessionAndRefresh();
-          }
+          console.log('App resumed on native platform');
+          // Let individual hooks handle their own reconnection
         }
       });
     }
 
-
     return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
       if (appStateListener) {
         appStateListener.remove();
       }
     };
-  }, [supabase, validateSessionAndRefresh, ensureConnected]);
+  }, [supabase, ensureConnected]);
 };
 
 export default useResumeRevalidate;

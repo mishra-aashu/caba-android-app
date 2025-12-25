@@ -2,29 +2,51 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
 
 export const useChatListRealtime = (currentUserId) => {
-    const { supabase } = useSupabase();
+    const { supabase, session } = useSupabase();
     const [chats, setChats] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [hasMoreChats, setHasMoreChats] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
 
-    const loadChats = useCallback(async (userId) => {
+    const loadChats = useCallback(async (userId, isLoadMore = false) => {
         if (!userId) {
             setLoading(false);
             return;
         }
 
+        if (isLoadMore) {
+            setLoadingMore(true);
+        } else {
+            setLoading(true);
+        }
+
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('chat_list_view')
                 .select('*')
                 .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
                 .order('last_message_time', { ascending: false });
 
+            if (isLoadMore && chats.length > 0) {
+                // Load more chats older than the last one
+                const lastChat = chats[chats.length - 1];
+                query = query.lt('last_message_time', lastChat.last_message_time);
+            }
+
+            // Load 20 chats at a time
+            query = query.limit(20);
+
+            const { data, error } = await query;
+
             if (error) {
                 console.error('Error loading chats from view:', error);
-                const storedChats = localStorage.getItem(`chats_${userId}`);
-                const localChats = storedChats ? JSON.parse(storedChats) : [];
-                setChats(localChats);
+                if (!isLoadMore) {
+                    const storedChats = localStorage.getItem(`chats_${userId}`);
+                    const localChats = storedChats ? JSON.parse(storedChats) : [];
+                    setChats(localChats);
+                }
                 setLoading(false);
+                setLoadingMore(false);
                 return;
             }
 
@@ -37,7 +59,7 @@ export const useChatListRealtime = (currentUserId) => {
                     avatar: isUser1 ? chat.user2_avatar : chat.user1_avatar,
                     is_online: isUser1 ? chat.user2_online : chat.user1_online
                 };
-                
+
                 return {
                     id: chat.chat_id,
                     otherUser,
@@ -46,14 +68,24 @@ export const useChatListRealtime = (currentUserId) => {
                     unreadCount: parseInt(chat.unread_count) || 0
                 };
             });
-            setChats(formattedChats);
+
+            if (isLoadMore) {
+                setChats(prev => [...prev, ...formattedChats]);
+                setHasMoreChats(formattedChats.length === 20);
+            } else {
+                setChats(formattedChats);
+                setHasMoreChats(formattedChats.length === 20);
+            }
         } catch (error) {
             console.error('Error loading chats:', error);
-            setChats([]);
+            if (!isLoadMore) {
+                setChats([]);
+            }
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
-    }, [supabase]);
+    }, [supabase, chats]);
 
     const updateChatInList = useCallback(async (chatId) => {
         const { data } = await supabase
@@ -105,41 +137,101 @@ export const useChatListRealtime = (currentUserId) => {
     }, [currentUserId, loadChats]);
 
     useEffect(() => {
-        if (!currentUserId) return;
-
-        const messagesChannel = supabase
-            .channel('chat_list_messages')
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'messages'
-            }, async (payload) => {
-                const message = payload.new;
-                if (message.sender_id === currentUserId ||
-                    message.receiver_id === currentUserId) {
-                    await updateChatInList(message.chat_id);
+        // Channel Start karne ka function
+        const startChannels = () => {
+            // Agar purane channels zinde hain, toh pehle unhe maaro (Cleanup)
+            const existingChannels = supabase.getChannels ? supabase.getChannels() : [];
+            existingChannels.forEach(channel => {
+                if (channel.topic && (channel.topic.includes('chat_list_messages') || channel.topic.includes('chat_list_chats'))) {
+                    supabase.removeChannel(channel);
                 }
-            })
-            .subscribe();
+            });
 
-        const chatsChannel = supabase
-            .channel('chat_list_chats')
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'chats'
-            }, (payload) => {
-                if (payload.new.user1_id === currentUserId || payload.new.user2_id === currentUserId) {
-                    updateChatInList(payload.new.id);
-                }
-            })
-            .subscribe();
+            if (!currentUserId) return;
 
-        return () => {
-            if (messagesChannel) messagesChannel.unsubscribe();
-            if (chatsChannel) chatsChannel.unsubscribe();
+            console.log(`🔌 Connecting to chat list realtime updates for user: ${currentUserId}...`);
+
+            // Messages channel banao
+            const messagesChannel = supabase
+                .channel('chat_list_messages')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'messages'
+                    },
+                    async (payload) => {
+                        const message = payload.new;
+                        if (message.sender_id === currentUserId || message.receiver_id === currentUserId) {
+                            console.log('⚡ New message in chat list:', payload);
+                            await updateChatInList(message.chat_id);
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    console.log(`Chat list messages status: ${status}`);
+
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ Chat list messages connected!');
+                    }
+
+                    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        console.log('❌ Chat list messages connection died. Retrying in 1s...');
+                        setTimeout(startChannels, 1000);
+                    }
+                });
+
+            // Chats channel banao
+            const chatsChannel = supabase
+                .channel('chat_list_chats')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'chats'
+                    },
+                    (payload) => {
+                        if (payload.new.user1_id === currentUserId || payload.new.user2_id === currentUserId) {
+                            console.log('⚡ Chat update in chat list:', payload);
+                            updateChatInList(payload.new.id);
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    console.log(`Chat list chats status: ${status}`);
+
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ Chat list chats connected!');
+                    }
+
+                    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        console.log('❌ Chat list chats connection died. Retrying in 1s...');
+                        setTimeout(startChannels, 1000);
+                    }
+                });
         };
-    }, [currentUserId, updateChatInList, supabase]);
 
-    return { chats, setChats, loading };
+        // Initial Start
+        startChannels();
+
+        // Cleanup when component unmounts
+        return () => {
+            const existingChannels = supabase.getChannels ? supabase.getChannels() : [];
+            existingChannels.forEach(channel => {
+                if (channel.topic && (channel.topic.includes('chat_list_messages') || channel.topic.includes('chat_list_chats'))) {
+                    supabase.removeChannel(channel);
+                }
+            });
+        };
+    }, [currentUserId, updateChatInList, supabase, session]);
+
+    const loadMoreChats = useCallback(() => {
+        if (currentUserId && hasMoreChats && !loadingMore) {
+            loadChats(currentUserId, true);
+        }
+    }, [currentUserId, hasMoreChats, loadingMore, loadChats]);
+
+    return { chats, setChats, loading, hasMoreChats, loadingMore, loadMoreChats };
 };

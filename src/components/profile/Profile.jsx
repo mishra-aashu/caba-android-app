@@ -6,6 +6,7 @@ import { dpOptions } from '../../utils/dpOptions';
 import '../../styles/profile.css';
 import '../qr/QRCodeGenerator.css';
 import '../qr/QRCodeScanner.css';
+import FullscreenImageModal from './FullscreenImageModal';
 
 const Profile = () => {
   const { supabase } = useSupabase();
@@ -20,6 +21,8 @@ const Profile = () => {
   const [showUserFoundModal, setShowUserFoundModal] = useState(false);
   const [foundUser, setFoundUser] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', about: '', email: '' });
+  const [showFullscreenImage, setShowFullscreenImage] = useState(false);
+  const [fullscreenImageUrl, setFullscreenImageUrl] = useState('');
 
   useEffect(() => {
     if (!authLoading) {
@@ -193,7 +196,7 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="profile-screen">
-        <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>
+        <div className="profile-loading-message">Loading...</div>
       </div>
     );
   }
@@ -201,7 +204,7 @@ const Profile = () => {
   if (!user) {
     return (
       <div className="profile-screen">
-        <div style={{ textAlign: 'center', padding: '50px' }}>Please log in to view profile</div>
+        <div className="profile-no-user-message">Please log in to view profile</div>
       </div>
     );
   }
@@ -220,20 +223,35 @@ const Profile = () => {
 
       <div className="profile-content">
         <div className="profile-picture-section">
-          <div className="profile-avatar" onClick={() => setShowDpModal(true)}>
+          <div className="profile-avatar" onClick={() => {
+            if (user.avatar) {
+              setFullscreenImageUrl(parseInt(user.avatar) ? dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path : user.avatar);
+              setShowFullscreenImage(true);
+            }
+          }}>
             {user.avatar ? (
               <img
                 src={parseInt(user.avatar) ?
                   dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path :
                   user.avatar}
                 alt="Profile Picture"
-                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
               />
             ) : (
               <div className="profile-initials">{getInitials(user.name)}</div>
             )}
           </div>
+          <button className="edit-dp-btn" onClick={() => setShowDpModal(true)}>
+            <i className="fas fa-camera"></i>
+          </button>
         </div>
+        {showFullscreenImage && (
+        <FullscreenImageModal
+          src={fullscreenImageUrl}
+          onClose={() => setShowFullscreenImage(false)}
+        />
+      )}
+
+
 
         <div className="profile-info-section">
           <div className="info-item">
@@ -306,7 +324,7 @@ const Profile = () => {
 
       {/* Edit Profile Modal */}
       {showEditModal && (
-        <div className="modal" style={{ display: 'flex' }}>
+        <div className="modal">
           <div className="modal-content">
             <div className="modal-header">
               <h2>Edit Profile</h2>
@@ -355,7 +373,7 @@ const Profile = () => {
 
       {/* Choose DP Modal */}
       {showDpModal && (
-        <div className="modal" style={{ display: 'flex' }}>
+        <div className="modal">
           <div className="modal-content">
             <div className="modal-header">
               <h2>Choose Profile Picture</h2>
@@ -364,13 +382,13 @@ const Profile = () => {
               </button>
             </div>
             <div className="modal-body">
-              <div className="dp-options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '10px' }}>
+              <div className="dp-options-grid">
                 {dpOptions.map(option => (
                   <img
                     key={option.id}
                     src={option.path}
                     alt={`DP ${option.id}`}
-                    style={{ width: '80px', height: '80px', borderRadius: '8px', cursor: 'pointer', objectFit: 'cover' }}
+
                     onClick={() => selectDp(option.id)}
                   />
                 ))}
@@ -400,7 +418,7 @@ const Profile = () => {
 
       {/* User Found Modal */}
       {showUserFoundModal && foundUser && (
-        <div className="modal" style={{ display: 'flex' }}>
+        <div className="modal">
           <div className="modal-content">
             <div className="modal-header">
               <h2>User Found</h2>
@@ -408,20 +426,20 @@ const Profile = () => {
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            <div className="modal-body" style={{ textAlign: 'center' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
-                  <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '15px', color: 'white', fontSize: '24px' }}>
+            <div className="user-found-body-content">
+              <div className="user-found-info-container">
+                <div className="user-found-details-row">
+                  <div className="avatar-circle-small">
                     {getInitials(foundUser.name)}
                   </div>
-                  <div style={{ textAlign: 'left' }}>
-                    <h3 style={{ margin: '0', color: 'var(--text-primary)' }}>{foundUser.name}</h3>
-                    <p style={{ margin: '5px 0', color: 'var(--text-secondary)' }}>{foundUser.phone}</p>
-                    {foundUser.about && <p style={{ margin: '0', color: 'var(--text-secondary)', fontSize: '14px' }}>{foundUser.about}</p>}
+                  <div className="user-found-info">
+                    <h3>{foundUser.name}</h3>
+                    <p>{foundUser.phone}</p>
+                        <p>{foundUser.about}</p>
                   </div>
                 </div>
               </div>
-              <div className="action-buttons" style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <div className="action-buttons">
                 <button className="btn-primary" onClick={addToContacts}>
                   <i className="fas fa-user-plus"></i>
                   Add to Contacts

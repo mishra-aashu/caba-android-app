@@ -6,7 +6,6 @@
  import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical } from 'lucide-react';
  import DropdownMenu from './common/DropdownMenu';
  import Modal from './common/Modal';
- import MessagingLoader from './MessagingLoader';
  import './user-details/UserDetails.css';
  import '../styles/layout-fixes.css';
  import '../styles/mobile-improvements.css';
@@ -595,7 +594,12 @@ const UserDetails = () => {
     };
 
     if (loading) {
-        return <MessagingLoader />;
+        return (
+            <div className="user-details-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading user details...</p>
+            </div>
+        );
     }
 
     if (!user) {

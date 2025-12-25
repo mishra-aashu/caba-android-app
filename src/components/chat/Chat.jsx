@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
@@ -13,22 +13,24 @@ import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import MediaViewer from '../media/MediaViewer';
-import MessagingLoader from '../MessagingLoader';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useTypingIndicator } from '../../hooks/useRealtimeTyping';
 import { useMessageStatusUpdates } from '../../hooks/useMessageStatusUpdates';
 import NotificationSound from '../../utils/notificationSound';
 import '../../styles/chat.css';
-import '../../styles/layout-fixes.css';
+
 import './AttachmentMenu.css';
 
 const Chat = () => {
-   const { chatId, otherUserId, userId } = useParams();
-   const navigate = useNavigate();
-   const { supabase } = useSupabase();
-   const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
-   const { startCall } = useCall();
-   const { user: currentUser, loading: authLoading, isAuthenticated } = useAuth();
+    const { chatId } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const otherUserId = queryParams.get('otherUserId');
+    const { supabase } = useSupabase();
+    const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
+    const { startCall } = useCall();
+    const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
 
    // Initialize chat theme when chatId changes
    useEffect(() => {
@@ -39,6 +41,8 @@ const Chat = () => {
    // State
    const [messages, setMessages] = useState([]);
    const [otherUser, setOtherUser] = useState(null);
+   const [hasMoreMessages, setHasMoreMessages] = useState(true);
+   const [loadingMore, setLoadingMore] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [selectedMessages, setSelectedMessages] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -64,21 +68,52 @@ const Chat = () => {
   // Realtime hooks - only activate when we have a valid chat ID
   const validChatId = chatId && chatId !== 'new' ? chatId : null;
 
-  // Query for fetching messages
+  // Query for fetching messages (initial load)
   const { data: messagesData, isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
-    queryKey: ['messages', validChatId],
+    queryKey: ['messages', validChatId, session?.access_token],
     queryFn: async () => {
       if (!validChatId) return [];
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('chat_id', validChatId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false }) // Load latest first
+        .limit(50); // Load 50 messages initially
       if (error) throw error;
-      return data || [];
+      return (data || []).reverse(); // Reverse to show chronological order
     },
     enabled: !!validChatId,
   });
+
+  // Function to load more messages
+  const loadMoreMessages = async () => {
+    if (!validChatId || !hasMoreMessages || loadingMore) return;
+
+    setLoadingMore(true);
+    try {
+      const oldestMessage = messages[0];
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', validChatId)
+        .lt('created_at', oldestMessage.created_at)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setMessages(prev => [...data.reverse(), ...prev]);
+        setHasMoreMessages(data.length === 50); // If we got 50, there might be more
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Update messages state when query data changes
   useEffect(() => {
@@ -134,7 +169,7 @@ const Chat = () => {
     return () => {
       cleanup();
     };
-  }, [chatId, otherUserId, userId, authLoading, isAuthenticated, currentUser]);
+  }, [chatId, otherUserId, authLoading, isAuthenticated, currentUser]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -151,59 +186,14 @@ const Chat = () => {
   }, [chatId, currentUser]);
 
   const initializeChat = async () => {
-    try {
-      // Handle new chat creation
-      if (userId && (!chatId || chatId === 'new')) {
-        await handleNewChat(currentUser, userId);
-      } else if (chatId && otherUserId) {
-        await loadOtherUserInfo(otherUserId);
-        // Messages are now loaded via useQuery
-      }
-    } catch (error) {
-      console.error('Error initializing chat:', error);
+    if (chatId && otherUserId) {
+      await loadOtherUserInfo(otherUserId);
     }
   };
 
   const cleanup = () => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
-    }
-  };
-
-  const handleNewChat = async (currentUser, targetUserId) => {
-    try {
-      // Check if chat already exists between current user and target user
-      const { data: existingChat, error: chatError } = await supabase
-        .from('chats')
-        .select('id')
-        .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${currentUser.id})`)
-        .single();
-
-      if (existingChat && !chatError) {
-        // Chat exists, redirect to it
-        navigate(`/chat/${existingChat.id}/${targetUserId}`, { replace: true });
-        return;
-      }
-
-      // Create new chat
-      const { data: newChat, error: createError } = await supabase
-        .from('chats')
-        .insert([{
-          user1_id: currentUser.id,
-          user2_id: targetUserId,
-          last_message: null,
-          last_message_time: new Date().toISOString()
-        }])
-        .select()
-        .single();
-
-      if (createError) throw createError;
-
-      // Redirect to the new chat
-      navigate(`/chat/${newChat.id}/${targetUserId}`, { replace: true });
-    } catch (error) {
-      console.error('Error handling new chat:', error);
-      navigate('/', { replace: true });
     }
   };
 
@@ -587,6 +577,7 @@ const Chat = () => {
     const container = e.target;
     const scrolledFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     const isAtBottom = scrolledFromBottom < 50; // Consider "at bottom" if within 50px
+    const isAtTop = container.scrollTop < 50; // Consider "at top" if within 50px
 
     setShowScrollButton(scrolledFromBottom > 300);
     setIsScrolledToBottom(isAtBottom);
@@ -603,6 +594,11 @@ const Chat = () => {
     if (isAtBottom && unreadCount > 0) {
       setUnreadCount(0);
       markMessagesAsRead();
+    }
+
+    // Load more messages when scrolled to top
+    if (isAtTop && hasMoreMessages && !loadingMore && messages.length > 0) {
+      loadMoreMessages();
     }
   };
 
@@ -646,7 +642,12 @@ const Chat = () => {
   };
 
   if (!otherUser || !currentUser) {
-    return <MessagingLoader />;
+    return (
+      <div className="chat-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading chat...</p>
+      </div>
+    );
   }
 
   return (
@@ -770,6 +771,14 @@ const Chat = () => {
         onScroll={handleScroll}
         ref={messagesContainerRef}
       >
+        {/* Load More Indicator */}
+        {loadingMore && (
+          <div className="load-more-indicator">
+            <div className="loading-spinner"></div>
+            <p>Loading more messages...</p>
+          </div>
+        )}
+
         <MessageList
           messages={messages}
           currentUser={currentUser}
@@ -833,7 +842,10 @@ const Chat = () => {
 
           <div className="search-results">
             {isSearching ? (
-              <MessagingLoader />
+              <div className="search-loading">
+                <div className="loading-spinner"></div>
+                <p>Searching...</p>
+              </div>
             ) : searchResults.length > 0 ? (
               searchResults.map(message => (
                 <div

@@ -1,5 +1,4 @@
  import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useSupabase } from './SupabaseContext';
 
 // Complete Chat Themes Data with enhanced visibility and proper naming
 const chatThemes = {
@@ -830,7 +829,6 @@ const ChatThemeContext = createContext();
 
 // Chat Theme Provider Component
 export const ChatThemeProvider = ({ children }) => {
-  const { supabase } = useSupabase();
   
   // State
   const [currentChatTheme, setCurrentChatTheme] = useState('classic_purple');

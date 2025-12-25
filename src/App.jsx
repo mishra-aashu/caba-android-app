@@ -1,176 +1,144 @@
-import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useSupabase } from './contexts/SupabaseContext';
-import { useAuth } from './hooks/useAuth';
+import { Suspense, lazy, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth'; // Use the main auth hook
 import { CallProvider } from './context/CallContext';
-import { Login, Signup, ForgotPassword, ResetPassword } from './components/auth';
-import { Chat } from './components/chat';
-import Home from './components/Home';
-import Profile from './components/profile';
-import Settings from './components/settings';
-import News from './components/news';
-import Reminders from './components/reminders';
-import CreateReminder from './components/reminders/CreateReminder';
-import Calls from './components/calls';
-import Blocked from './components/blocked';
-import UserDetails from './components/UserDetails';
-import SharedProfile from './components/shared-profile';
-import About from './components/About';
-import SupportChat from './components/SupportChat';
-import Admin from './components/Admin';
-import { QRPage } from './components/qr';
-import Intro from './components/Intro';
-import CallScreen from './components/CallScreen';
-import CallStatusIndicator from './components/CallStatusIndicator';
-import { IncomingCallModal } from './components/IncomingCallModal';
-import MessagingLoader from './components/MessagingLoader';
-import AuthDebug from './components/AuthDebug';
+import { ChatThemeProvider } from './contexts/ChatThemeContext';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
-import { Camera } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
-import useResumeRevalidate from './hooks/useResumeRevalidate';
+import { Toaster } from 'react-hot-toast';
 
-CapacitorUpdater.notifyAppReady();
+// Lazy load components
+const Login = lazy(() => import('./components/auth/Login'));
+const Signup = lazy(() => import('./components/auth/Signup'));
+const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
+const Home = lazy(() => import('./components/Home'));
+const Chat = lazy(() => import('./components/chat/Chat'));
+const Profile = lazy(() => import('./components/profile/Profile'));
+const Settings = lazy(() => import('./components/settings'));
+const News = lazy(() => import('./components/news'));
+const Reminders = lazy(() => import('./components/reminders'));
+const CreateReminder = lazy(() => import('./components/reminders/CreateReminder'));
+const Calls = lazy(() => import('./components/calls'));
+const Blocked = lazy(() => import('./components/blocked'));
+const UserDetails = lazy(() => import('./components/UserDetails'));
+const SharedProfile = lazy(() => import('./components/shared-profile'));
+const About = lazy(() => import('./components/About'));
+const SupportChat = lazy(() => import('./components/SupportChat'));
+const Admin = lazy(() => import('./components/Admin'));
+const QRPage = lazy(() => import('./components/qr'));
+const Intro = lazy(() => import('./components/Intro'));
+const CallScreen = lazy(() => import('./components/CallScreen'));
+const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
+const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
+// AuthDebug is intentionally not imported or rendered
 
+// Initialize Capacitor Updater
+if (Capacitor.isNativePlatform()) {
+  CapacitorUpdater.notifyAppReady();
+}
 
+const AppContent = () => {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
+  // Handle deep linking for OAuth callbacks
+  useEffect(() => {
+    const { search } = window.location;
+    if (search.startsWith('?/')) {
+      const path = search.slice(2).replace(/~and~/g, '&');
+      window.history.replaceState(null, '', path);
+    }
+  }, []);
 
-const ProtectedRoute = ({ children }) => {
-  const { user, loading, isAuthenticated } = useAuth();
-
-  if (loading) return <MessagingLoader />;
-
-  if (!isAuthenticated) {
-    // Redirect to React login route
-    return <Navigate to="/login" replace />;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
-  return children;
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+      <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+      <Route path="/intro" element={<PublicRoute><Intro /></PublicRoute>} />
+      <Route path="/shared-profile/:userId" element={<SharedProfile />} />
+
+      {/* Protected routes */}
+      <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+      <Route path="/chat/new/:userId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+      <Route path="/chat/:chatId?" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+      <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+      <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
+      <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
+      <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
+      <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
+      <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+      <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+      <Route path="/user-details/:id" element={<ProtectedRoute><UserDetails /></ProtectedRoute>} />
+      <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
+
+      {/* 404 route */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 };
 
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) return <MessagingLoader />;
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    // Redirect to the home page or the original intended page
+    const from = location.state?.from?.pathname || '/';
+    return <Navigate to={from} replace />;
   }
 
   return children;
 };
 
-const CallProviderWrapper = ({ children }) => {
-  const { user } = useAuth();
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
 
-  return (
-    <CallProvider currentUser={user}>
-      {children}
-    </CallProvider>
-  );
+  if (!isAuthenticated) {
+    // Redirect to login page with the current location to return to after login
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
 };
 
-// Home component is now imported
-
-function App() {
-  const [showIntro, setShowIntro] = useState(true);
-  const { supabase } = useSupabase();
-  useResumeRevalidate();
-
-  // Create a client
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        refetchOnWindowFocus: true, // IMPORTANT: Jaise hi app focus me aayega, data refresh hoga
-        refetchOnReconnect: true,   // IMPORTANT: Net wapas aate hi refresh
-      },
-    },
-  });
-  
-
-
-  useEffect(() => {
-    const { pathname, search } = window.location;
-    if (search.startsWith('?/')) {
-      const path = search.slice(2).replace(/~and~/g, '&');
-      window.history.replaceState(null, '', pathname + path);
-    }
-
-    // Handle Google OAuth callback
-    if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('Google OAuth success, redirecting to home');
-          // User will be automatically redirected by ProtectedRoute logic
-        }
-      });
-
-      return () => subscription?.unsubscribe();
-    }
-  }, [supabase]);
-
-  useEffect(() => {
-    const checkPermissions = async () => {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          // Explicitly ask for Camera Permission
-          const cameraStatus = await Camera.requestPermissions();
-
-          if (cameraStatus.camera === 'granted' || cameraStatus.camera === 'limited') {
-            console.log("Camera Permission Granted by Android!");
-            // Ab agar tumhara Web code navigator.mediaDevices.getUserMedia call karega
-            // to wo fail nahi hoga.
-          } else {
-            console.log("Camera Permission Denied!");
-          }
-        } catch (error) {
-          console.error("Error asking permissions:", error);
-        }
-      }
-    };
-
-    checkPermissions();
-  }, []);
-
+const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <CallProviderWrapper>
-        {showIntro ? (
-          <Intro onComplete={() => setShowIntro(false)} />
-        ) : (
-          <Routes>
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-            <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-            <Route path="/chat/:chatId/:otherUserId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/chat/new/:userId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
-            <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-            <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
-            <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
-            <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
-            <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
-            <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
-            <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            <Route path="/user-details/:id" element={<ProtectedRoute><UserDetails /></ProtectedRoute>} />
-            <Route path="/shared-profile/:id" element={<ProtectedRoute><SharedProfile /></ProtectedRoute>} />
-          </Routes>
-        )}
-
-        {/* Global Call Components */}
-        <CallStatusIndicator />
-        <IncomingCallModal />
-        <AuthDebug />
-      </CallProviderWrapper>
-    </QueryClientProvider>
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      {/* AuthProvider is provided in main.jsx */}
+      {/* SupabaseProvider is provided in main.jsx */}
+      {/* ThemeProvider is provided in main.jsx */}
+        <ChatThemeProvider>
+          <CallProvider>
+            <AppContent />
+            {/* Global Components */}
+            <CallStatusIndicator />
+            <IncomingCallModal />
+            <Toaster position="bottom-right" />
+          </CallProvider>
+        </ChatThemeProvider>
+    </Suspense>
   );
-}
+};
 
 export default App;

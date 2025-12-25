@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useAuth } from '../hooks/useAuth';
@@ -9,16 +9,13 @@ import { MessageCircle, Phone, Newspaper, Settings, User, Search, MoreVertical, 
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import Chat from './chat/Chat';
-import MessagingLoader from './MessagingLoader';
 import { useChatListRealtime } from '../hooks/useChatListRealtime';
-import '../styles/home.css';
-import '../styles/layout-fixes.css';
-import '../styles/mobile-improvements.css';
-import '../styles/clean-cards.css';
+
+
 
 const Home = () => {
-  const { supabase } = useSupabase();
-  const { user, loading: authLoading, signOut } = useAuth();
+   const { supabase } = useSupabase();
+   const { user, session, loading: authLoading, signOut } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { chatId, otherUserId } = useParams();
@@ -48,8 +45,11 @@ const Home = () => {
   const [phoneLoading, setPhoneLoading] = useState(false);
   const [contactMenuOpen, setContactMenuOpen] = useState(null);
 
+  // Ref for chat list container
+  const chatListRef = useRef(null);
+
   // Realtime chat list with service role for custom auth
-  const { chats: allChats, setChats, loading: chatsLoading } = useChatListRealtime(currentUser?.id ? currentUser.id : null);
+  const { chats: allChats, setChats, loading: chatsLoading, hasMoreChats, loadingMore, loadMoreChats } = useChatListRealtime(currentUser?.id ? currentUser.id : null);
 
   // Filter out support chats for admin (if any exist)
   const chats = allChats.filter(chat =>
@@ -62,7 +62,7 @@ const Home = () => {
     if (!authLoading) {
       initializeHome();
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, session]);
 
   // Reload saved contacts when modal opens
   useEffect(() => {
@@ -170,7 +170,7 @@ const Home = () => {
   };
 
   const handleChatClick = (chat) => {
-    navigate(`/chat/${chat.id}/${chat.otherUser.id}`);
+    navigate(`/chat/${chat.id}?otherUserId=${chat.otherUser.id}`);
   };
 
   const handleNavigation = (path) => {
@@ -415,6 +415,16 @@ const Home = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const handleChatListScroll = (e) => {
+    const container = e.target;
+    const scrolledFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const isAtBottom = scrolledFromBottom < 100; // Load more when within 100px of bottom
+
+    if (isAtBottom && hasMoreChats && !loadingMore) {
+      loadMoreChats();
+    }
+  };
+
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -490,46 +500,74 @@ const Home = () => {
     }
   };
 
-  const handleSuggestionClick = (user) => {
+  const handleStartChatWithContact = async (contact) => {
+    if (!currentUser || !contact?.id) return;
+
+    try {
+      // Check if chat already exists
+      const { data: existingChat, error: chatError } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${contact.id}),and(user1_id.eq.${contact.id},user2_id.eq.${currentUser.id})`)
+        .single();
+      
+      if (chatError && chatError.code !== 'PGRST116') { // PGRST116 = 'exact one row not found'
+        throw chatError;
+      }
+
+      if (existingChat) {
+        // Chat exists, navigate to it
+        navigate(`/chat/${existingChat.id}/${contact.id}`);
+      } else {
+        // Create new chat
+        const { data: newChat, error: createError } = await supabase
+          .from('chats')
+          .insert([{
+            user1_id: currentUser.id,
+            user2_id: contact.id,
+          }])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        
+        // Navigate to the new chat
+        navigate(`/chat/${newChat.id}/${contact.id}`);
+      }
+
+      // Close modals
+      setShowNewContactModal(false);
+      setShowSelectContact(false);
+
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      alert('Could not start chat. Please try again.');
+    }
+  };
+
+  const handleSuggestionClick = async (user) => {
     // Special handling for support account
     if (user.id === 'support-account') {
       navigate('/support');
-      setShowSearch(false);
-      setSearchTerm('');
-      setSearchSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    // Check if chat already exists
-    const existingChat = chats.find(chat => chat.otherUser.id === user.id);
-    if (existingChat) {
-      handleChatClick(existingChat);
     } else {
-      // Navigate to new chat - let Chat component handle creation
-      navigate(`/chat/new/${user.id}`);
+      // Use the same logic as starting a chat with a contact
+      await handleStartChatWithContact(user);
     }
+    
+    // Reset search state
     setShowSearch(false);
     setSearchTerm('');
     setSearchSuggestions([]);
     setShowSuggestions(false);
   };
 
-  const handleStartChatWithContact = (contact) => {
-    // Check if chat already exists
-    const existingChat = chats.find(chat => chat.otherUser.id === contact.id);
-    if (existingChat) {
-      handleChatClick(existingChat);
-    } else {
-      // Navigate to new chat - let Chat component handle creation
-      navigate(`/chat/new/${contact.id}`);
-    }
-    setShowNewContactModal(false);
-    setShowSelectContact(false);
-  };
-
   if (authLoading || loading) {
-    return <MessagingLoader />;
+    return (
+      <div className="home-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   // Show phone modal if needed
@@ -634,9 +672,6 @@ const Home = () => {
     );
   }
 
-  if (chatsLoading) {
-    return <MessagingLoader />;
-  }
 
   // Check if we are in a chat (for mobile view toggling)
   const isChatOpen = !!chatId && !!otherUserId;
@@ -820,12 +855,12 @@ const Home = () => {
           )}
 
           {/* Chat List */}
-          <div className="chat-list-wrapper">
-            {chatsLoading ? (
-              <div className="loading-state">
-                <p>Loading chats...</p>
-              </div>
-            ) : filteredChats.length > 0 ? (
+          <div
+            className="chat-list-wrapper"
+            onScroll={handleChatListScroll}
+            ref={chatListRef}
+          >
+            {filteredChats.length > 0 ? (
               filteredChats.map(chat => (
                 <div
                   key={chat.id}
@@ -863,6 +898,14 @@ const Home = () => {
                 <MessageCircle size={48} />
                 <h3>No conversations yet</h3>
                 <p>Start messaging your contacts</p>
+              </div>
+            )}
+
+            {/* Load More Indicator */}
+            {loadingMore && (
+              <div className="load-more-chats">
+                <div className="loading-spinner"></div>
+                <p>Loading more chats...</p>
               </div>
             )}
           </div>

@@ -1,7 +1,7 @@
-import { useAuth as useAuthContext } from '../contexts/AuthContext';
+import useAuthStore from '../store/authStore';
 
 export const useAuth = () => {
-  return useAuthContext();
+  return useAuthStore();
 };
 
 export default useAuth;
