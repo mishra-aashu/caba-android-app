@@ -7,8 +7,10 @@ import { App } from '@capacitor/app'; // Import Capacitor App plugin
 const useAuthStore = create((set, get) => ({
   user: null,
   session: null,
+  dbUser: null,
   isAuthenticated: false,
   loading: true,
+  isPhoneAuth: false,
 
   initializeAuth: async () => {
     try {
@@ -18,6 +20,16 @@ const useAuthStore = create((set, get) => ({
           scopes: ['profile', 'email'],
           grantOfflineAccess: true,
         });
+      }
+
+      // Check for phone auth first
+      const phoneUser = localStorage.getItem('phoneAuthUser');
+      const phoneToken = localStorage.getItem('phoneAuthToken');
+
+      if (phoneUser && phoneToken) {
+        const user = JSON.parse(phoneUser);
+        set({ user, dbUser: user, isAuthenticated: true, isPhoneAuth: true, loading: false });
+        return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -97,6 +109,7 @@ const useAuthStore = create((set, get) => ({
       const metaName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email.split('@')[0];
       const metaAvatar = authUser.user_metadata?.avatar_url || null;
 
+      let dbUser;
       if (dbError && dbError.code === 'PGRST116') {
         const { data: newUser, error: insertError } = await supabase
           .from('users')
@@ -111,12 +124,15 @@ const useAuthStore = create((set, get) => ({
           .select()
           .single();
         if (insertError) throw insertError;
+        dbUser = newUser;
       } else if (existingUser) {
         await supabase
           .from('users')
           .update({ is_online: true, last_seen: new Date().toISOString() })
           .eq('id', existingUser.id);
+        dbUser = existingUser;
       }
+      set({ dbUser });
     } catch (error) {
       console.error("Error handling user session:", error);
     }
@@ -154,8 +170,18 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  signInWithPhone: async (user) => {
+    localStorage.setItem('phoneAuthUser', JSON.stringify(user));
+    localStorage.setItem('phoneAuthToken', 'phone_auth_' + user.id);
+    set({ user, dbUser: user, isAuthenticated: true, isPhoneAuth: true });
+  },
+
   signOut: async () => {
     await supabase.auth.signOut();
+    // Clear phone auth
+    localStorage.removeItem('phoneAuthUser');
+    localStorage.removeItem('phoneAuthToken');
+    set({ user: null, session: null, dbUser: null, isAuthenticated: false, isPhoneAuth: false });
   },
 }));
 

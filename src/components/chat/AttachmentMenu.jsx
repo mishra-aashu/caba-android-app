@@ -1,56 +1,41 @@
 import React from 'react';
+import { IonIcon } from '@ionic/react';
+import { 
+  documentText, 
+  camera, 
+  image, 
+  headset, 
+  location, 
+  person 
+} from 'ionicons/icons';
 import './AttachmentMenu.css';
 
-const AttachmentMenu = ({ isVisible, onClose, onFileSelect }) => {
-  
-  const attachmentOptions = [
-    { id: 'camera', name: 'Camera', icon: 'fas fa-camera', color: '#E91E63' },
-    { id: 'gallery', name: 'Gallery', icon: 'fas fa-images', color: '#9C27B0' },
-    { id: 'video', name: 'Video', icon: 'fas fa-video', color: '#FF5722' },
-    { id: 'audio', name: 'Audio', icon: 'fas fa-microphone', color: '#FF9800' },
-    { id: 'location', name: 'Location', icon: 'fas fa-map-marker-alt', color: '#4CAF50' },
-    { id: 'reminder', name: 'Reminder', icon: 'fas fa-bell', color: '#00BCD4' }
+const AttachmentMenu = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  const menuItems = [
+    { id: 1, icon: documentText, label: "Document", color: "#7f66ff" }, // Purple
+    { id: 2, icon: camera, label: "Camera", color: "#ff2e74" },       // Pink/Red
+    { id: 3, icon: image, label: "Gallery", color: "#bf59cf" },       // Violet
+    { id: 4, icon: headset, label: "Audio", color: "#ff8c00" },       // Orange
+    { id: 5, icon: location, label: "Location", color: "#00a884" },    // Green
+    { id: 6, icon: person, label: "Contact", color: "#009de2" }        // Blue
   ];
 
-  const handleOptionClick = (option) => {
-    console.log('Option clicked:', option.name);
-    if (onFileSelect) {
-      onFileSelect({ type: option.id, name: option.name });
-    }
-    if (onClose) {
-      onClose();
-    }
-  };
-
-  if (!isVisible) return null;
-
   return (
-    <div className="whatsapp-attachment-overlay">
-      <div className={`whatsapp-attachment-popup ${isVisible ? 'open' : ''}`}>
-        <div className="whatsapp-attachment-header">
-          <h3>Share</h3>
-          <button onClick={onClose} className="whatsapp-attachment-close">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div className="whatsapp-menu-grid">
-          {attachmentOptions.map((option) => (
-            <div
-              key={option.id}
-              className="whatsapp-menu-item"
-              onClick={() => handleOptionClick(option)}
+    <div className="attachment-overlay" onClick={onClose}>
+      <div className="attachment-card">
+        {menuItems.map((item) => (
+          <div key={item.id} className="attachment-item">
+            <div 
+              className="icon-circle" 
+              style={{ backgroundColor: item.color }}
             >
-              <div
-                className="whatsapp-icon-circle"
-                style={{ backgroundColor: option.color }}
-              >
-                <i className={option.icon}></i>
-              </div>
-              <span className="whatsapp-item-name">{option.name}</span>
+              <IonIcon icon={item.icon} />
             </div>
-          ))}
-        </div>
+            <span className="icon-label">{item.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

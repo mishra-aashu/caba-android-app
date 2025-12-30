@@ -1,19 +1,27 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth'; // Use the main auth hook
-import { CallProvider } from './context/CallContext';
+// import { CallProvider } from './context/CallContext';
 import { ChatThemeProvider } from './contexts/ChatThemeContext';
+import { DataProvider } from './contexts/DataContext';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
 import { Toaster } from 'react-hot-toast';
+import PhoneAuthModal from './components/auth/PhoneAuthModal';
+import { supabase } from './config/supabase';
+import useAuthStore from './store/authStore';
+import '../src/styles/desktop.css';
 
 // Lazy load components
 const Login = lazy(() => import('./components/auth/Login'));
 const Signup = lazy(() => import('./components/auth/Signup'));
 const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
-const Home = lazy(() => import('./components/Home'));
+const MainLayout = lazy(() => import('./components/MainLayout'));
 const Chat = lazy(() => import('./components/chat/Chat'));
+const ChatPlaceholder = lazy(() => import('./components/common/ChatPlaceholder'));
+const Terms = lazy(() => import('./components/legal/Terms'));
+const Privacy = lazy(() => import('./components/legal/Privacy'));
 const Profile = lazy(() => import('./components/profile/Profile'));
 const Settings = lazy(() => import('./components/settings'));
 const News = lazy(() => import('./components/news'));
@@ -31,6 +39,8 @@ const Intro = lazy(() => import('./components/Intro'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
 const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
+import DesktopNavbar from './components/common/DesktopNavbar';
+import useIsDesktop from './hooks/useIsDesktop';
 // AuthDebug is intentionally not imported or rendered
 
 // Initialize Capacitor Updater
@@ -68,11 +78,15 @@ const AppContent = () => {
       <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
       <Route path="/intro" element={<PublicRoute><Intro /></PublicRoute>} />
       <Route path="/shared-profile/:userId" element={<SharedProfile />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} />
 
       {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-      <Route path="/chat/new/:userId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-      <Route path="/chat/:chatId?" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+      <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        <Route index element={<ChatPlaceholder />} />
+        <Route path="chat/:chatId/:otherUserId" element={<Chat />} />
+      </Route>
+      
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
@@ -107,15 +121,77 @@ const PublicRoute = ({ children }) => {
 };
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, dbUser } = useAuth();
   const location = useLocation();
+  const [showPhoneAuth, setShowPhoneAuth] = useState(false);
+  const [showPhoneCollect, setShowPhoneCollect] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setShowPhoneAuth(true);
+      setShowPhoneCollect(false);
+    } else {
+      setShowPhoneAuth(false);
+      setShowPhoneCollect(dbUser && (!dbUser.phone || dbUser.phone === ''));
+    }
+  }, [isAuthenticated, dbUser]);
+
+  const handleAuthSuccess = (user) => {
+    // Auth state will update automatically
+    setShowPhoneAuth(false);
+  };
+
+  const handleCollectSuccess = async ({ phone, name }) => {
+    try {
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .update({ phone, name })
+        .eq('id', dbUser.id)
+        .select()
+        .single();
+      if (error) throw error;
+      // Update dbUser in store
+      useAuthStore.setState({ dbUser: updatedUser });
+      setShowPhoneCollect(false);
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
 
   if (!isAuthenticated) {
-    // Redirect to login page with the current location to return to after login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <>
+        <div className="app-layout">
+          <DesktopNavbar />
+          <main className="app-content">
+            {children}
+          </main>
+        </div>
+        <PhoneAuthModal
+          isOpen={showPhoneAuth}
+          onClose={() => setShowPhoneAuth(false)}
+          onAuthSuccess={handleAuthSuccess}
+        />
+      </>
+    );
   }
 
-  return children;
+  return (
+    <>
+      <div className="app-layout">
+        <DesktopNavbar />
+        <main className="app-content">
+          {children}
+        </main>
+      </div>
+      <PhoneAuthModal
+        isOpen={showPhoneCollect}
+        onClose={() => setShowPhoneCollect(false)}
+        mode="collect"
+        onCollectSuccess={handleCollectSuccess}
+      />
+    </>
+  );
 };
 
 const App = () => {
@@ -128,15 +204,15 @@ const App = () => {
       {/* AuthProvider is provided in main.jsx */}
       {/* SupabaseProvider is provided in main.jsx */}
       {/* ThemeProvider is provided in main.jsx */}
+        <DataProvider>
         <ChatThemeProvider>
-          <CallProvider>
-            <AppContent />
-            {/* Global Components */}
-            <CallStatusIndicator />
-            <IncomingCallModal />
-            <Toaster position="bottom-right" />
-          </CallProvider>
+          <AppContent />
+          {/* Global Components */}
+          <CallStatusIndicator />
+          <IncomingCallModal />
+          <Toaster position="bottom-right" />
         </ChatThemeProvider>
+      </DataProvider>
     </Suspense>
   );
 };

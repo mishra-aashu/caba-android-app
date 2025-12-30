@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 
 const AuthContext = createContext({});
@@ -7,16 +7,20 @@ const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
   const { user, loading, isAuthenticated, initializeAuth, signInWithGoogle, signOut } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation(); // Get current location
 
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy', '/intro'];
+    const isPublicPage = publicPaths.includes(location.pathname) || location.pathname.startsWith('/shared-profile');
+
+    if (!loading && !isAuthenticated && !isPublicPage) {
       navigate('/login', { replace: true });
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading, navigate, location]); // Added location to dependencies
 
   const value = {
     user,

@@ -71,7 +71,7 @@ const Calls = () => {
       // Load contacts with explicit user fetching to handle data type issues
       const { data: contactsList, error: contactsError } = await supabase
         .from('contacts')
-        .select('contact_user_id')
+        .select('contact_user_id, contact_name')
         .eq('user_id', user.id);
 
       if (contactsError) throw contactsError;
@@ -87,7 +87,10 @@ const Calls = () => {
             .in('id', userIds);
 
           if (!usersError && users) {
-            contactsData = users;
+            contactsData = users.map(u => {
+              const contact = contactsList.find(c => c.contact_user_id === u.id);
+              return { ...u, contact_name: contact?.contact_name };
+            });
           }
         }
       }
@@ -176,7 +179,7 @@ const Calls = () => {
 
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
-    return contact.name.toLowerCase().includes(search) ||
+    return (contact.contact_name || contact.name).toLowerCase().includes(search) ||
             (contact.phone && contact.phone.includes(search));
   });
 
@@ -318,7 +321,7 @@ const Calls = () => {
                     <span className={`online-status ${contact.is_online ? 'online' : ''}`}></span>
                   </div>
                   <div className="contact-info">
-                    <h4>{contact.name}</h4>
+                    <h4>{contact.contact_name || contact.name}</h4>
                     <p>{contact.phone || 'No phone'}</p>
                   </div>
                   <div className="call-buttons">

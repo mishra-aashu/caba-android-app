@@ -51,7 +51,9 @@ const MessageList = ({
         <React.Fragment key={dateKey}>
           {/* Date Separator */}
           <div className="date-separator">
-            <span>{new Date(dateMessages[0].created_at).toLocaleDateString()}</span>
+            <div className="date-pill">
+              {new Date(dateMessages[0].created_at).toLocaleDateString()}
+            </div>
           </div>
 
           {/* Messages for this date */}

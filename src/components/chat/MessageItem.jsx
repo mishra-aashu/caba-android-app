@@ -16,6 +16,7 @@ import {
   Clock,
   MapPin,
 } from 'lucide-react';
+import MessageBubble from './MessageBubble';
 
 const MessageItem = ({
   message,
@@ -188,94 +189,38 @@ const MessageItem = ({
     }
   };
 
-  const renderMessageContent = () => {
-    let messageContent;
+  const renderMessageContentForBubble = () => {
+    if (message.is_deleted) {
+      return "You deleted this message";
+    }
 
-    // Handle different message types
     if (message.message_type === 'news_share') {
-      // News share message
       try {
         const newsData = JSON.parse(message.content);
-        messageContent = (
-          <div
-            className="news-share-message"
-            onClick={() => window.open(newsData.link, '_blank')}
-          >
-            <div className="news-share-header">
-              <Newspaper size={16} />
-              <span>Shared News</span>
-            </div>
-            <div className="news-share-content">
-              <h4>{newsData.title}</h4>
-              <p>
-                <strong>{newsData.source}</strong>
-              </p>
-              <div className="news-share-link">Read Full Article →</div>
-            </div>
-          </div>
-        );
+        return `Shared News: ${newsData.title} (${newsData.source})`;
       } catch (e) {
-        messageContent = <p className="message-text">{message.content}</p>;
+        return message.content;
       }
     } else if (message.message_type === 'reminder') {
-      // Reminder message
       try {
         const reminderData = JSON.parse(message.content);
         if (reminderData.type === 'reminder_request') {
-          messageContent = (
-            <div className="reminder-message-card">
-              <div className="reminder-header">
-                <Bell size={16} className="reminder-icon" />
-                <span className="reminder-label">REMINDER REQUEST</span>
-              </div>
-              <div className="reminder-content">
-                <h4 className="reminder-title">{reminderData.title}</h4>
-                {reminderData.description && (
-                  <p className="reminder-description">
-                    {reminderData.description}
-                  </p>
-                )}
-                <div className="reminder-details">
-                  <div className="reminder-time">
-                    <Clock size={16} />
-                    {new Date(reminderData.reminder_time).toLocaleString()}
-                  </div>
-                  {reminderData.location && (
-                    <div className="reminder-location">
-                      <MapPin size={16} />
-                      {reminderData.location}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
+          return `Reminder: ${reminderData.title}`;
         }
       } catch (e) {
-        messageContent = (
-          <p>
-            <Calendar size={16} /> Reminder message
-          </p>
-        );
+        return message.content;
       }
     } else if (
       ['image', 'video', 'audio', 'document'].includes(message.message_type)
     ) {
-      // Media message
-      messageContent = (
-        <MediaMessage
-          message={message}
-          isSent={isSent}
-          onDownload={handleDownload}
-          onView={handleView}
-        />
-      );
+      // For media, MessageBubble will just show the content string (e.g., "Image")
+      // The actual MediaMessage component will need to be rendered within MessageBubble's text slot or separately
+      // For now, return a placeholder string. We'll refine this later.
+      return `[${message.message_type.charAt(0).toUpperCase() + message.message_type.slice(1)}]`;
     } else {
       // Text message
-      messageContent = <p className="message-text">{message.content}</p>;
+      return message.content;
     }
-
-    return messageContent;
   };
 
   return (
@@ -302,77 +247,17 @@ const MessageItem = ({
           {isSelected && <span>✓</span>}
         </div>
       )}
-      <div className="message-content">
-        {/* Message bubble with all content */}
-        <div className="message-bubble" ref={bubbleRef}>
-          {/* Reply indicator */}
-          {isReplied && (
-            <div className="replied-message-container">
-              <div className="replied-message-header">
-                <Reply size={16} />
-                <span className="replied-message-user">
-                  {isSent ? 'You' : 'Them'}
-                </span>
-              </div>
-              <div className="replied-message-content">
-                {/* Would need to fetch replied message content */}
-                Replied message
-              </div>
-            </div>
-          )}
 
-          {/* Message content */}
-          {isEditing ? (
-            <div className="message-edit">
-              <input
-                type="text"
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') saveEdit();
-                  if (e.key === 'Escape') cancelEdit();
-                }}
-                autoFocus
-              />
-              <div className="edit-actions">
-                <button onClick={saveEdit}>Save</button>
-                <button onClick={cancelEdit}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            renderMessageContent()
-          )}
+      {/* Main message bubble component */}
+      <MessageBubble
+        text={renderMessageContentForBubble()}
+        time={formatTime(message.created_at)}
+        isMine={isSent}
+        isDeleted={message.is_deleted} // Assuming message has an is_deleted prop
+      />
 
-          {/* Vanish timer */}
-          {message.vanish_at && !message.is_vanished && (
-            <div className="vanish-timer">
-              <Clock size={16} />
-              <span>Timer</span>
-            </div>
-          )}
-
-          {/* Message status for sent messages */}
-          {isSent && (
-            <span className="message-status">
-              {message.is_read ? (
-                <CheckCheck size={16} />
-              ) : (
-                <Check size={16} />
-              )}
-            </span>
-          )}
-        </div>
-
-        {/* Timestamp positioned outside bubble */}
-        <div className="message-meta">
-          <span className="message-time">
-            {formatTime(message.created_at)}
-            {message.edited_at && ' (edited)'}
-          </span>
-        </div>
-
-        {/* Message actions dropdown */}
-        {showActions && !isSelectionMode && (
+      {/* Message actions dropdown - keep outside MessageBubble for now */}
+      {showActions && !isSelectionMode && (
           <div className="message-actions">
             <button className="message-arrow-btn">
               <MoreVertical size={16} />
@@ -399,8 +284,7 @@ const MessageItem = ({
               )}
             </div>
           </div>
-        )}
-      </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

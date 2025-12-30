@@ -68,11 +68,22 @@ class SessionManager {
         return { success: false, error: 'Email not confirmed. Please check your email and confirm your account.' };
       }
 
-      this.currentUser = userData;
-      this.storeUser(userData);
+      const { data: updatedUser, error: updateError } = await this.supabase
+        .from('users')
+        .update({ is_online: true, last_seen: new Date().toISOString() })
+        .eq('id', userData.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+          console.error("Error updating user status on sign-in", updateError);
+      }
+
+      this.currentUser = updatedUser || userData;
+      this.storeUser(this.currentUser);
       this.notifyListeners();
 
-      return { success: true, data: { user: userData } };
+      return { success: true, data: { user: this.currentUser } };
     } catch (error) {
       console.error('Phone sign in error:', error);
       return { success: false, error: error.message };
@@ -203,6 +214,13 @@ class SessionManager {
 
   async signOut() {
     try {
+      if (this.currentUser) {
+          await this.supabase
+            .from('users')
+            .update({ is_online: false, last_seen: new Date().toISOString() })
+            .eq('id', this.currentUser.id);
+      }
+
       await this.supabase.auth.signOut();
       this.currentUser = null;
       this.clearStoredUser();

@@ -3,7 +3,6 @@ import { useCallHistory } from '../hooks/useCallHistory';
 import { useCall } from '../context/CallContext';
 import { dpOptions } from '../utils/dpOptions';
 import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Video } from 'lucide-react';
-import '../styles/clean-cards.css';
 
 export function CallHistory({ userId, userAvatar, userName }) {
   const { history, loading, error, missedCount } = useCallHistory(userId);

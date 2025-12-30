@@ -1,4 +1,6 @@
 import callService from './callService';
+import { Capacitor } from '@capacitor/core';
+import { Camera } from '@capacitor/camera';
 
 class WebRTCService {
   constructor() {
@@ -106,10 +108,51 @@ class WebRTCService {
   }
 
   /**
-   * Get local media stream
+   * Request media permissions for Camera and Microphone
+   */
+  async requestMediaPermissions(video = true, audio = true) {
+    if (!Capacitor.isNativePlatform()) {
+      // On web, getUserMedia will trigger the prompt, so we can just proceed.
+      console.log('On web, getUserMedia will handle permissions.');
+      return true;
+    }
+
+    // On native platforms (Android/iOS)
+    try {
+      if (video) {
+        const cameraPermissions = await Camera.requestPermissions({ permissions: ['camera'] });
+        if (cameraPermissions.camera !== 'granted') {
+          throw new Error('Camera permission was denied.');
+        }
+      }
+      
+      if (audio) {
+        // For microphone on native, the most reliable way to trigger the OS-level
+        // prompt (after declaring it in AndroidManifest.xml) is a direct,
+        // short-lived getUserMedia call.
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        // We immediately stop the tracks because we only used this call to trigger the prompt.
+        // The real, combined stream will be acquired in getLocalStream.
+        stream.getTracks().forEach(track => track.stop());
+        console.log('🎤 Microphone permission seems to be granted.');
+      }
+      
+      return true;
+    } catch (e) {
+      console.error("❌ Permission request error:", e);
+      throw new Error("Permissions denied");
+    }
+  }
+
+  /**
+   * Get local media stream after ensuring permissions.
    */
   async getLocalStream(video = true, audio = true) {
     try {
+      // First, ensure we have permissions.
+      await this.requestMediaPermissions(video, audio);
+
+      // Now, get the actual stream.
       const constraints = {
         audio: audio ? {
           echoCancellation: true,
@@ -127,7 +170,10 @@ class WebRTCService {
       console.log('🎥 Local stream acquired');
       return this.localStream;
     } catch (error) {
-      console.error('❌ Error getting local stream:', error);
+      console.error('❌ Error getting local stream:', error.name, error.message);
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+          throw new Error("Permission denied");
+      }
       throw error;
     }
   }

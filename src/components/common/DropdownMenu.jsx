@@ -18,29 +18,26 @@ const DropdownMenu = ({
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target) && isOpen) {
                 setIsOpen(false);
             }
         };
 
         const handleTouchOutside = (event) => {
-            // Check if the touch target is outside the dropdown
             const touch = event.touches[0] || event.changedTouches[0];
-            if (touch && dropdownRef.current && !dropdownRef.current.contains(touch.target)) {
+            if (touch && dropdownRef.current && !dropdownRef.current.contains(touch.target) && isOpen) {
                 setIsOpen(false);
             }
         };
 
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-            document.addEventListener('touchstart', handleTouchOutside, { passive: true });
-        }
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleTouchOutside, { passive: true });
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('touchstart', handleTouchOutside);
         };
-    }, [isOpen]);
+    }, [isOpen]); // Keep isOpen in dependency array to ensure the closure for isOpen is up-to-date
 
     const handleItemClick = (item, event) => {
         event.preventDefault();
@@ -53,7 +50,7 @@ const DropdownMenu = ({
     };
 
     return (
-        <div className="dropdown" ref={dropdownRef}>
+        <div className={`dropdown ${isOpen ? 'is-open' : ''}`} ref={dropdownRef}>
             <button
                 className={`icon-btn ${buttonClassName}`}
                 onClick={(e) => {
@@ -82,10 +79,10 @@ const DropdownMenu = ({
                                     disabled={item.disabled}
                                     style={{
                                         ...item.style,
-                                        color: item.danger ? '#dc3545' : 'var(--chat-input-text, #212529)'
+                                        color: item.danger ? 'var(--danger-0)' : 'white'
                                     }}
                                 >
-                                    {item.icon && <span className="dropdown-item-icon" style={{color: item.danger ? '#dc3545' : 'var(--chat-input-icon-color, #667eea)'}}>{item.icon}</span>}
+                                    {item.icon && <span className="dropdown-item-icon" style={{color: item.danger ? 'var(--danger-0)' : 'white'}}>{item.icon}</span>}
                                     <span className="dropdown-item-label">{item.label}</span>
                                     {item.badge && <span className="dropdown-item-badge">{item.badge}</span>}
                                 </button>

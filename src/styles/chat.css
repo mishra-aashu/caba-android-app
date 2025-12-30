@@ -13,8 +13,9 @@
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
-  background: var(--chat-background);
+  background: var(--chat-bg-gradient);
   padding-bottom: 80px; /* Space for the input */
+  transition: background 0.3s ease;
 }
 
 .chat-header {
@@ -121,6 +122,13 @@
   border-bottom-right-radius: var(--radius-sm);
 }
 
+.messages-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Allow it to fill the available space */
+  position: relative; /* Establish positioning context for sticky children */
+}
+
 .message-time {
   font-size: 0.65rem;
   color: var(--text-secondary);
@@ -130,9 +138,9 @@
 
 /* Chat Input Area */
 .chat-input-container {
-  padding: 0.5rem 1rem;
-  background: var(--surface);
-  border-top: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border-top: none;
   position: sticky;
   bottom: 0;
   z-index: 10;
@@ -141,46 +149,172 @@
 .input-row {
   display: flex;
   align-items: flex-end;
-  gap: 0.5rem;
+  /* Removed gap: 0.5rem; */
+  background-color: var(--surface-color);
+  padding: 8px 12px;
+  border-radius: 24px;
+  box-shadow: var(--shadow-md);
+  justify-content: space-between;
+}
+
+.left-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-right: 0.5rem; /* Space between buttons and textarea */
 }
 
 .chat-input {
   flex: 1;
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 0.5rem 0.75rem;
-  background: var(--surface-secondary);
+  border: none;
+  border-radius: 0;
+  padding: 0.5rem 0.25rem;
+  background: transparent;
   color: var(--text-primary);
   outline: none;
   resize: none;
   font-size: 1rem;
-  min-height: 40px;
+  min-height: auto;
   max-height: 120px;
 }
 
 .chat-input:focus {
-  border-color: var(--primary-color);
+  border-color: transparent;
 }
 
-.btn-attach, .btn-send {
-  width: 40px;
-  height: 40px;
-  background: var(--primary-color);
-  color: var(--text-on-primary);
+.btn-attach, .btn-send, .btn-quick-reply {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  color: var(--text-secondary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: filter var(--transition-fast);
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+.btn-attach:hover, .btn-quick-reply:hover {
+    background-color: var(--bg-color);
 }
 
-.btn-attach:hover, .btn-send:hover {
-  filter: brightness(110%);
+.btn-send {
+    background-color: var(--brand-primary);
+    color: white;
 }
 
 .btn-send:disabled {
-  background: var(--surface-secondary);
-  color: var(--icon-secondary);
+  background: var(--bg-color);
+  color: var(--text-secondary);
   cursor: not-allowed;
-  filter: none;
 }
+
+/* --- Date Separator --- */
+.date-separator {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.date-pill {
+  background-color: var(--surface-color);
+  color: var(--text-secondary);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+[data-theme='dark'] .date-pill {
+    background-color: #1f2c34;
+    color: #8696a0;
+}
+
+/* --- Quick Replies Menu --- */
+.quick-replies-menu {
+  position: absolute;
+  bottom: 80px; /* Position above input bar */
+  left: 10px;
+  right: 10px;
+  background-color: var(--surface-color);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: var(--shadow-md);
+  z-index: 998; /* Below attachment menu but above other content */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  animation: slideUp 0.2s ease-out;
+}
+
+.quick-reply-option {
+  padding: 8px 15px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background-color: transparent;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-reply-option:hover {
+  background-color: var(--bg-color);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+/* Animation for the popup menus */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- Scroll To Bottom Button --- */
+.scroll-bottom-btn {
+  position: absolute;
+  bottom: 90px; /* Position above the input container */
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: var(--surface-color);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  z-index: 5;
+  transition: transform 0.2s ease-out;
+}
+
+.scroll-bottom-btn:hover {
+  transform: scale(1.1);
+}
+
+.scroll-bottom-btn .unread-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: var(--brand-primary);
+  color: white;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface-color);
+}
+

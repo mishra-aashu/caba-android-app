@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useCall } from '../../context/CallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
+import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
 import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
@@ -16,20 +16,18 @@ import MediaViewer from '../media/MediaViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useTypingIndicator } from '../../hooks/useRealtimeTyping';
 import { useMessageStatusUpdates } from '../../hooks/useMessageStatusUpdates';
+import { formatLastSeen } from '../../utils/timeUtils';
 import NotificationSound from '../../utils/notificationSound';
 import '../../styles/chat.css';
 
 import './AttachmentMenu.css';
 
 const Chat = () => {
-    const { chatId } = useParams();
+    const { chatId, otherUserId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const otherUserId = queryParams.get('otherUserId');
     const { supabase } = useSupabase();
     const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
-    const { startCall } = useCall();
     const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
 
    // Initialize chat theme when chatId changes
@@ -41,88 +39,33 @@ const Chat = () => {
    // State
    const [messages, setMessages] = useState([]);
    const [otherUser, setOtherUser] = useState(null);
+   const [loading, setLoading] = useState(true);
    const [hasMoreMessages, setHasMoreMessages] = useState(true);
    const [loadingMore, setLoadingMore] = useState(false);
-  const [replyingTo, setReplyingTo] = useState(null);
-  const [selectedMessages, setSelectedMessages] = useState(new Set());
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isTempChat, setIsTempChat] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
-  const [showThemeModal, setShowThemeModal] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
-  const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
+   const [isMuted, setIsMuted] = useState(false);
+   const [isTempChat, setIsTempChat] = useState(false);
+   const [showScrollButton, setShowScrollButton] = useState(false);
+   const [unreadCount, setUnreadCount] = useState(0);
+   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+   const [showSearchModal, setShowSearchModal] = useState(false);
+   const [searchQuery, setSearchQuery] = useState('');
+   const [searchResults, setSearchResults] = useState([]);
+   const [isSearching, setIsSearching] = useState(false);
+   const [showDeleteModal, setShowDeleteModal] = useState(false);
+   const [selectedMessages, setSelectedMessages] = useState(new Set());
+   const [isSelectionMode, setIsSelectionMode] = useState(false);
+   const [showThemeModal, setShowThemeModal] = useState(false);
+   const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
+   const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
+   const [replyingTo, setReplyingTo] = useState(null);
 
-  // Refs
-  const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
+   const messagesEndRef = useRef(null);
+   const messagesContainerRef = useRef(null);
+   const typingTimeoutRef = useRef(null);
 
-  // Realtime hooks - only activate when we have a valid chat ID
-  const validChatId = chatId && chatId !== 'new' ? chatId : null;
+   const validChatId = chatId === 'new' ? null : chatId;
 
-  // Query for fetching messages (initial load)
-  const { data: messagesData, isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
-    queryKey: ['messages', validChatId, session?.access_token],
-    queryFn: async () => {
-      if (!validChatId) return [];
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('chat_id', validChatId)
-        .order('created_at', { ascending: false }) // Load latest first
-        .limit(50); // Load 50 messages initially
-      if (error) throw error;
-      return (data || []).reverse(); // Reverse to show chronological order
-    },
-    enabled: !!validChatId,
-  });
-
-  // Function to load more messages
-  const loadMoreMessages = async () => {
-    if (!validChatId || !hasMoreMessages || loadingMore) return;
-
-    setLoadingMore(true);
-    try {
-      const oldestMessage = messages[0];
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('chat_id', validChatId)
-        .lt('created_at', oldestMessage.created_at)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setMessages(prev => [...data.reverse(), ...prev]);
-        setHasMoreMessages(data.length === 50); // If we got 50, there might be more
-      } else {
-        setHasMoreMessages(false);
-      }
-    } catch (error) {
-      console.error('Error loading more messages:', error);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
-  // Update messages state when query data changes
-  useEffect(() => {
-    if (messagesData) {
-      setMessages(messagesData);
-    }
-  }, [messagesData]);
-
-  const handleNewMessage = useCallback((newMessage) => {
+   const handleNewMessage = useCallback((newMessage) => {
     setMessages(prev => {
       // Check if message already exists to prevent duplicates
       const exists = prev.some(msg => msg.id === newMessage.id);
@@ -185,9 +128,62 @@ const Chat = () => {
     setIsTempChat(!!tempChats[chatId]);
   }, [chatId, currentUser]);
 
+  const loadMessages = async (isLoadMore = false) => {
+    if (!chatId || chatId === 'new') return;
+
+    if (isLoadMore) {
+      setLoadingMore(true);
+    }
+
+    try {
+      let query = supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: false }); // Load latest first for pagination
+
+      if (isLoadMore && messages.length > 0) {
+        const oldestMessage = messages[0]; // Since messages are in ascending order
+        query = query.lt('created_at', oldestMessage.created_at);
+      }
+
+      query = query.limit(50); // Load 50 messages at a time
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const newMessages = data || [];
+
+      if (isLoadMore) {
+        const combined = [...newMessages.reverse(), ...messages]; // Reverse because we loaded descending
+        setMessages(combined);
+        await saveMessagesToDevice(chatId, combined);
+        setHasMoreMessages(newMessages.length === 50);
+      } else {
+        const reversed = newMessages.reverse(); // To ascending order
+        setMessages(reversed);
+        await saveMessagesToDevice(chatId, reversed);
+        setHasMoreMessages(newMessages.length === 50);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreMessages = () => {
+    if (chatId && hasMoreMessages && !loadingMore) {
+      loadMessages(true);
+    }
+  };
+
   const initializeChat = async () => {
     if (chatId && otherUserId) {
       await loadOtherUserInfo(otherUserId);
+      await loadMessages();
     }
   };
 
@@ -207,11 +203,22 @@ const Chat = () => {
 
       if (error) throw error;
       setOtherUser(user);
+
+      // Load contact name
+      const { data: contact } = await supabase
+        .from('contacts')
+        .select('contact_name')
+        .eq('user_id', currentUser.id)
+        .eq('contact_user_id', userId)
+        .maybeSingle();
+
+      if (contact) {
+        setOtherUser(prev => ({ ...prev, contact_name: contact.contact_name }));
+      }
     } catch (error) {
       console.error('Error loading user info:', error);
     }
   };
-
 
 
 
@@ -223,7 +230,8 @@ const Chat = () => {
     try {
       const { error } = await supabase
         .from('blocked_users')
-        .insert([{
+        .insert([
+          {
           blocker_id: currentUser.id,
           blocked_id: otherUser.id
         }]);
@@ -671,7 +679,7 @@ const Chat = () => {
             )}
           </div>
           <div className="user-details">
-            <h3 className="user-name">{otherUser.name}</h3>
+            <h3 className="user-name">{otherUser.contact_name || otherUser.name}</h3>
             <p className="user-status">
               {isOtherUserTyping ? 'typing...' : otherUser.is_online ? 'Online' : 'Offline'}
             </p>
@@ -927,14 +935,14 @@ const Chat = () => {
                     background: 'white'
                   }}
                 >
-                  <div style={{
+                  <div style={{ 
                     width: '100%',
                     height: '65%',
                     background: theme.background,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}></div>
-                  <div style={{
+                  <div style={{ 
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -943,14 +951,14 @@ const Chat = () => {
                     background: 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(10px)'
                   }}>
-                    <div style={{
+                    <div style={{ 
                       width: '32px',
                       height: '10px',
                       borderRadius: '6px',
                       background: theme.sentMessage.background,
                       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}></div>
-                    <div style={{
+                    <div style={{ 
                       width: '32px',
                       height: '10px',
                       borderRadius: '6px',
@@ -959,7 +967,7 @@ const Chat = () => {
                     }}></div>
                   </div>
                   {chatTheme === key && (
-                    <div style={{
+                    <div style={{ 
                       position: 'absolute',
                       top: '8px',
                       right: '8px',

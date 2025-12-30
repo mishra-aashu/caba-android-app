@@ -918,154 +918,32 @@ export const ChatThemeProvider = ({ children }) => {
     applyTheme(themeKey);
   };
 
-  // Helper function to check if element is inside homescreen/chat list
-  const isInHomescreen = (element) => {
-    if (!element) return false;
-    
-    // Check if element or any of its parents have homescreen-related classes
-    let current = element;
-    while (current && current !== document.body) {
-      const className = current.className || '';
-      // Convert className to string to handle DOMTokenList objects
-      const classNameStr = typeof className === 'string' ? className :
-                          (className.toString ? className.toString() : '');
-      
-      if (classNameStr.includes('home-container') ||
-          classNameStr.includes('chat-list') ||
-          classNameStr.includes('chat-item') ||
-          classNameStr.includes('chat-name') ||
-          classNameStr.includes('chat-time') ||
-          classNameStr.includes('last-message') ||
-          classNameStr.includes('chat-info') ||
-          classNameStr.includes('chat-header') ||
-          classNameStr.includes('main-content') ||
-          classNameStr.includes('sidebar')) {
-        return true;
-      }
-      current = current.parentElement;
-    }
-    return false;
-  };
-
-  // Apply theme styles - COMPLETELY EXCLUDE homescreen and chat list
+  // Apply theme styles by setting CSS custom properties on the root element
   const applyTheme = (themeKey) => {
     const theme = chatThemes[themeKey];
     if (!theme) return;
 
     const root = document.documentElement;
 
-    // Apply CSS custom properties for chat theme (these are safe to apply globally)
+    // Apply CSS custom properties for chat theme
     root.style.setProperty('--chat-bg-gradient', theme.background);
     root.style.setProperty('--sent-message-bg', theme.sentMessage.background);
     root.style.setProperty('--sent-message-text', theme.sentMessage.text);
-    root.style.setProperty('--sent-message-shadow', theme.sentMessage.shadow || '0 2px 8px rgba(0,0,0,0.15)');
-    root.style.setProperty('--sent-message-border', theme.sentMessage.border || 'none');
     root.style.setProperty('--received-message-bg', theme.receivedMessage.background);
     root.style.setProperty('--received-message-text', theme.receivedMessage.text);
-    root.style.setProperty('--received-message-shadow', theme.receivedMessage.shadow || '0 2px 8px rgba(0,0,0,0.1)');
-    root.style.setProperty('--received-message-border', theme.receivedMessage.border || 'none');
     root.style.setProperty('--chat-header-bg', theme.header.background);
     root.style.setProperty('--chat-header-text', theme.header.text);
     root.style.setProperty('--chat-header-icon-color', theme.header.iconColor);
-    root.style.setProperty('--chat-header-shadow', theme.header.shadow || '0 2px 8px rgba(0,0,0,0.15)');
     root.style.setProperty('--chat-input-bg', theme.input.background);
     root.style.setProperty('--chat-input-text', theme.input.text);
     root.style.setProperty('--chat-input-icon-color', theme.input.iconColor);
-    root.style.setProperty('--chat-input-border', theme.input.border || 'none');
-    root.style.setProperty('--chat-input-shadow', theme.input.shadow || '0 2px 8px rgba(0,0,0,0.1)');
     root.style.setProperty('--chat-buttons-bg', theme.buttons.background);
     root.style.setProperty('--chat-buttons-text', theme.buttons.text);
     root.style.setProperty('--chat-buttons-icon-color', theme.buttons.iconColor);
-
-    // Apply to elements ONLY if they're NOT in homescreen/chat list
-    const applyToElementIfNotInHomescreen = (selector, styleProperty, styleValue) => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(element => {
-        if (!isInHomescreen(element)) {
-          element.style[styleProperty] = styleValue;
-        }
-      });
-    };
-
-    // Apply styles only to elements outside homescreen with enhanced visibility
-    applyToElementIfNotInHomescreen('.chat-container', 'background', theme.background);
-    applyToElementIfNotInHomescreen('#messagesContainer', 'background', theme.background);
-    applyToElementIfNotInHomescreen('.chat-header', 'background', theme.header.background);
-    applyToElementIfNotInHomescreen('.chat-header', 'color', theme.header.text);
-    applyToElementIfNotInHomescreen('.chat-header', 'boxShadow', theme.header.shadow || '0 2px 8px rgba(0,0,0,0.15)');
-    applyToElementIfNotInHomescreen('.chat-header', 'textShadow', '0 1px 2px rgba(0,0,0,0.3)');
-    applyToElementIfNotInHomescreen('.message-input-area', 'background', theme.input.background);
-    applyToElementIfNotInHomescreen('.message-input-area', 'color', theme.input.text);
-    applyToElementIfNotInHomescreen('.message-input-area', 'border', theme.input.border || 'none');
-    applyToElementIfNotInHomescreen('.message-input-area', 'boxShadow', theme.input.shadow || '0 2px 8px rgba(0,0,0,0.1)');
-    applyToElementIfNotInHomescreen('.input-wrapper', 'background', theme.input.background);
-    applyToElementIfNotInHomescreen('.input-wrapper', 'border', theme.input.border || 'none');
-    applyToElementIfNotInHomescreen('.input-wrapper', 'boxShadow', theme.input.shadow || '0 2px 8px rgba(0,0,0,0.1)');
-    applyToElementIfNotInHomescreen('#messageInput', 'color', theme.input.text);
-    applyToElementIfNotInHomescreen('#messageInput', 'textShadow', '0 1px 2px rgba(0,0,0,0.1)');
-
-    // Apply to buttons and icons only if not in homescreen with enhanced styling
-    const allElements = document.querySelectorAll('*');
-    allElements.forEach(element => {
-      if (isInHomescreen(element)) return;
-      
-      const className = element.className || '';
-      // Convert className to string to handle DOMTokenList objects
-      const classNameStr = typeof className === 'string' ? className :
-                          (className.toString ? className.toString() : '');
-      const tagName = element.tagName;
-      
-      // Only apply to chat-specific elements, never homescreen
-      if ((classNameStr.includes('chat') && !classNameStr.includes('chat-list') && !classNameStr.includes('chat-item')) ||
-          (tagName === 'BUTTON' && element.closest('.chat-container')) ||
-          (classNameStr.includes('message') && element.closest('.chat-container'))) {
-         
-        if (tagName === 'BUTTON') {
-          element.style.background = theme.buttons.background;
-          element.style.color = theme.buttons.text;
-          element.style.border = 'none';
-          element.style.textShadow = '0 1px 2px rgba(0,0,0,0.2)';
-          element.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-          element.style.transition = 'all 0.3s ease';
-        }
-         
-        if (element.tagName === 'I' || element.tagName === 'SVG') {
-          const parentClass = element.parentElement?.className || '';
-          // Convert parentClass to string to handle DOMTokenList objects
-          const parentClassStr = typeof parentClass === 'string' ? parentClass :
-                                (parentClass.toString ? parentClass.toString() : '');
-          if (parentClassStr.includes('chat') && !parentClassStr.includes('chat-list')) {
-            element.style.color = theme.header.iconColor;
-            element.style.stroke = theme.header.iconColor;
-            element.style.filter = 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))';
-            element.style.transition = 'all 0.3s ease';
-          }
-        }
-        
-        // Enhanced message bubble styling
-        if (classNameStr.includes('message-bubble') || classNameStr.includes('message')) {
-          if (classNameStr.includes('sent')) {
-            element.style.background = theme.sentMessage.background;
-            element.style.color = theme.sentMessage.text;
-            element.style.border = theme.sentMessage.border || 'none';
-            element.style.boxShadow = theme.sentMessage.shadow || '0 2px 8px rgba(0,0,0,0.15)';
-            element.style.textShadow = '0 1px 2px rgba(0,0,0,0.2)';
-          } else if (classNameStr.includes('received')) {
-            element.style.background = theme.receivedMessage.background;
-            element.style.color = theme.receivedMessage.text;
-            element.style.border = theme.receivedMessage.border || 'none';
-            element.style.boxShadow = theme.receivedMessage.shadow || '0 2px 8px rgba(0,0,0,0.1)';
-            element.style.textShadow = '0 1px 2px rgba(0,0,0,0.1)';
-          }
-        }
-      }
-    });
-
-    // Add theme class to body for CSS targeting
-    document.body.className = document.body.className.replace(/theme-\w+/g, '');
-    document.body.classList.add(`theme-${themeKey.replace('_', '-')}`);
     
-    // Theme applied successfully (completely excludes homescreen)
+    // Add theme class to body for any potential specific CSS targeting
+    document.body.className = document.body.className.replace(/theme-\w+/g, '');
+    document.body.classList.add(`theme-${themeKey.replace(/_/, '-')}`);
   };
 
   // Apply theme when theme or chatId changes

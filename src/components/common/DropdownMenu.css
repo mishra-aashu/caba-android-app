@@ -22,18 +22,24 @@
 
 .dropdown-menu {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 8px); /* Use calc to maintain spacing without a physical gap */
     right: 0;
-    margin-top: 8px;
-    background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    /* margin-top: 8px; Removed to fix premature closing */
+    background: #0F172A !important;
+    backdrop-filter: none;
+    border: 1px solid var(--glass-stroke);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-1);
     min-width: 200px;
     z-index: 1000;
     overflow: hidden;
     animation: dropdownFadeIn 0.2s ease-out;
-    color: #212529;
+    color: var(--text-0) !important;
+    display: none; /* Hide by default */
+}
+
+.dropdown.is-open .dropdown-menu {
+    display: block !important; /* Force display when open */
 }
 
 .dropdown-menu-left {
@@ -63,14 +69,14 @@
     background: none;
     cursor: pointer;
     font-size: 14px;
-    color: var(--chat-input-text, #212529);
+    color: var(--text-0);
     text-align: left;
     transition: background-color 0.2s;
     white-space: nowrap;
 }
 
 .dropdown-item:hover:not(:disabled) {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .dropdown-item:disabled {
@@ -79,11 +85,11 @@
 }
 
 .dropdown-item.danger {
-    color: #dc3545;
+    color: var(--danger-0);
 }
 
 .dropdown-item.danger:hover:not(:disabled) {
-    background-color: rgba(220, 53, 69, 0.1);
+    background-color: rgba(239, 68, 68, 0.2);
 }
 
 .dropdown-item-icon {
@@ -92,7 +98,7 @@
     justify-content: center;
     font-size: 16px;
     width: 20px;
-    color: var(--chat-input-icon-color, #667eea);
+    color: var(--primary-0);
 }
 
 .dropdown-item-label {
@@ -100,7 +106,7 @@
 }
 
 .dropdown-item-badge {
-    background: var(--chat-buttons-bg, #667eea);
+    background: var(--primary-0);
     color: var(--chat-buttons-text, #ffffff);
     padding: 2px 8px;
     border-radius: 12px;
@@ -110,6 +116,6 @@
 
 .dropdown-divider {
     height: 1px;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--glass-stroke);
     margin: 4px 0;
 }

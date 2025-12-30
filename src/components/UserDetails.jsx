@@ -1,19 +1,19 @@
- import React, { useState, useEffect } from 'react';
- import { useParams, useNavigate } from 'react-router-dom';
- import { useSupabase } from '../contexts/SupabaseContext';
- import { useCall } from '../context/CallContext';
- import { dpOptions } from '../utils/dpOptions';
- import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical } from 'lucide-react';
- import DropdownMenu from './common/DropdownMenu';
- import Modal from './common/Modal';
- import './user-details/UserDetails.css';
- import '../styles/layout-fixes.css';
- import '../styles/mobile-improvements.css';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useSupabase } from '../contexts/SupabaseContext';
+import { useData } from '../contexts/DataContext';
+import { useCall } from '../context/CallContext';
+import { dpOptions } from '../utils/dpOptions';
+import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical } from 'lucide-react';
+import DropdownMenu from './common/DropdownMenu';
+import Modal from './common/Modal';
+import './user-details/UserDetails.css';
 
 const UserDetails = () => {
     const { id: userId } = useParams();
     const navigate = useNavigate();
     const { supabase } = useSupabase();
+    const { refreshContacts } = useData();
     const { startCall } = useCall();
 
     // State
@@ -28,12 +28,14 @@ const UserDetails = () => {
     const [contactName, setContactName] = useState('');
     const [contactPhone, setContactPhone] = useState('');
     const [contactAbout, setContactAbout] = useState('');
+    const [contactId, setContactId] = useState(null);
 
     // Modals
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [showEditContactModal, setShowEditContactModal] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
     const [showImageModal, setShowImageModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [reportReason, setReportReason] = useState('');
     const [reportDetails, setReportDetails] = useState('');
 
@@ -85,6 +87,20 @@ const UserDetails = () => {
                     setUser(freshUserData);
                     await loadAdditionalData(current, userId);
                 }
+
+                // Load contact name if viewing another user
+                if (current.id !== userId) {
+                    const { data: contact } = await supabase
+                        .from('contacts')
+                        .select('contact_name')
+                        .eq('user_id', current.id)
+                        .eq('contact_user_id', userId)
+                        .maybeSingle();
+
+                    if (contact) {
+                        setUser(prev => ({ ...prev, contact_name: contact.contact_name }));
+                    }
+                }
             } catch (networkError) {
                 console.warn('Network error loading user details:', networkError);
                 if (!cachedUser) {
@@ -131,13 +147,27 @@ const UserDetails = () => {
         try {
             const { data, error } = await supabase
                 .from('contacts')
-                .select('*')
+                .select('id')
                 .eq('user_id', currentUserId)
-                .eq('contact_user_id', targetUserId);
+                .eq('contact_user_id', targetUserId)
+                .maybeSingle();
 
-            setIsContact(data && data.length > 0);
+            if (error) {
+                console.error('Error checking contact status:', error);
+                setIsContact(false);
+                setContactId(null);
+                return;
+            }
+
+            if (data) {
+                setIsContact(true);
+                setContactId(data.id);
+            } else {
+                setIsContact(false);
+                setContactId(null);
+            }
         } catch (error) {
-            console.error('Error checking contact status:', error);
+            console.error('Error in checkContactStatus function:', error);
         }
     };
 
@@ -145,13 +175,20 @@ const UserDetails = () => {
         try {
             const { data, error } = await supabase
                 .from('blocked_users')
-                .select('*')
+                .select('blocker_id')
                 .eq('blocker_id', currentUserId)
-                .eq('blocked_id', targetUserId);
+                .eq('blocked_id', targetUserId)
+                .limit(1);
+            
+            if (error) {
+                console.error('Error checking block status:', error);
+                setIsBlocked(false); // Assume not blocked on error
+                return;
+            }
 
             setIsBlocked(data && data.length > 0);
         } catch (error) {
-            console.error('Error checking block status:', error);
+            console.error('Error in checkBlockStatus function:', error);
         }
     };
 
@@ -277,12 +314,16 @@ const UserDetails = () => {
             if (!currentUser || !user) return;
 
             // Check if contact already exists
-            const { data: existingContact } = await supabase
+            const { data: existingContact, error: existingContactError } = await supabase
                 .from('contacts')
-                .select('*')
+                .select('id')
                 .eq('user_id', currentUser.id)
                 .eq('contact_user_id', user.id)
-                .single();
+                .maybeSingle();
+
+            if(existingContactError && existingContactError.code !== 'PGRST116') { // PGRST116 is 'Not a single row'
+                throw existingContactError;
+            }
 
             if (existingContact) {
                 alert('Contact already exists');
@@ -292,7 +333,7 @@ const UserDetails = () => {
             // Add to contacts
             const { error } = await supabase
                 .from('contacts')
-                .insert([{
+                .insert([{ 
                     user_id: currentUser.id,
                     contact_user_id: user.id,
                     contact_name: user.name
@@ -301,6 +342,7 @@ const UserDetails = () => {
             if (error) throw error;
 
             setIsContact(true);
+            refreshContacts();
             alert('Contact added successfully');
         } catch (error) {
             console.error('Error adding contact:', error);
@@ -396,7 +438,7 @@ const UserDetails = () => {
             .select('*')
             .eq('user_id', currentUser.id)
             .eq('contact_user_id', userId)
-            .single()
+            .maybeSingle()
             .then(({ data: contact, error }) => {
                 if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
                     console.error('Error fetching contact:', error);
@@ -417,64 +459,47 @@ const UserDetails = () => {
     };
 
     const saveContactEdit = async () => {
+        if (!contactName.trim()) {
+            alert('Name is required');
+            return;
+        }
+
         try {
-            if (!contactName.trim()) {
-                alert('Name is required');
-                return;
+            // Update contact name in contacts table
+            if (isContact && contactId) {
+                const { error } = await supabase
+                    .from('contacts')
+                    .update({ contact_name: contactName.trim() })
+                    .eq('id', contactId);
+                if (error) throw error;
             }
 
-            // Update or insert contact in database
-            const contactData = {
-                user_id: currentUser.id,
-                contact_user_id: userId,
-                contact_name: contactName.trim(),
-                updated_at: new Date().toISOString()
-            };
-
-            // First check if contact exists
-            const { data: existingContact } = await supabase
-                .from('contacts')
-                .select('id')
-                .eq('user_id', currentUser.id)
-                .eq('contact_user_id', userId)
-                .single();
-
-            if (existingContact) {
-                // Update existing contact
-                await supabase
-                    .from('contacts')
-                    .update(contactData)
-                    .eq('id', existingContact.id);
-            } else {
-                // Insert new contact
-                await supabase
-                    .from('contacts')
-                    .insert([contactData]);
-            }
-
-            // Update user profile if it's the current user's own profile
+            // If editing own profile, update name/about in users table
             if (currentUser.id === userId) {
-                const updateData = {
-                    name: contactName.trim(),
-                    phone: contactPhone.trim(),
-                    updated_at: new Date().toISOString()
-                };
+                const updateData = { name: contactName.trim() };
                 if (contactAbout.trim()) {
                     updateData.about = contactAbout.trim();
                 }
-                await supabase
+                const { error: userError } = await supabase
                     .from('users')
                     .update(updateData)
                     .eq('id', currentUser.id);
+                if (userError) throw userError;
             }
 
-            // Update UI
-            setUser({ ...user, name: contactName.trim(), phone: contactPhone.trim(), about: contactAbout.trim() });
+            // Update local UI state
+            setUser(prevUser => ({
+                ...prevUser,
+                name: contactName.trim(),
+                about: currentUser.id === userId ? contactAbout.trim() : prevUser.about
+            }));
+
             setShowEditContactModal(false);
+            refreshContacts();
             alert('Contact updated successfully');
         } catch (error) {
             console.error('Error saving contact:', error);
-            alert('Failed to update contact');
+            alert('Failed to update contact.');
         }
     };
 
@@ -491,10 +516,12 @@ const UserDetails = () => {
         try {
             const { error } = await supabase
                 .from('blocked_users')
-                .insert([{
-                    blocker_id: currentUser.id,
-                    blocked_id: userId
-                }]);
+                .insert([
+                    {
+                        blocker_id: currentUser.id,
+                        blocked_id: userId
+                    }
+                ]);
 
             if (error) throw error;
 
@@ -539,12 +566,14 @@ const UserDetails = () => {
             // Submit to reports table
             const { error } = await supabase
                 .from('reports')
-                .insert([{
-                    reporter_id: currentUser.id,
-                    reported_id: userId,
-                    reason: reportReason,
-                    details: reportDetails
-                }]);
+                .insert([
+                    {
+                        reporter_id: currentUser.id,
+                        reported_id: userId,
+                        reason: reportReason,
+                        details: reportDetails
+                    }
+                ]);
 
             if (error) throw error;
 
@@ -558,11 +587,11 @@ const UserDetails = () => {
         }
     };
 
-    const handleDeleteContact = async () => {
-        const confirmed = confirm(`Delete chat with ${user.name}? This will delete all messages.`);
+    const handleDeleteContact = () => {
+        setShowDeleteModal(true);
+    };
 
-        if (!confirmed) return;
-
+    const confirmDelete = async () => {
         try {
             // Get chat
             const { data: chat } = await supabase
@@ -585,6 +614,7 @@ const UserDetails = () => {
                     .eq('id', chat.id);
             }
 
+            setShowDeleteModal(false);
             alert('Contact deleted');
             navigate('/');
         } catch (error) {
@@ -613,7 +643,6 @@ const UserDetails = () => {
 
     return (
         <div className="user-details-screen">
-            {/* Header */}
             <header className="user-details-header">
                 <button className="back-btn" onClick={() => navigate(-1)}>
                     <ArrowLeft size={24} />
@@ -632,7 +661,6 @@ const UserDetails = () => {
                 />
             </header>
 
-            {/* User Profile Section */}
             <div className="user-profile-section">
                 <div className="user-details-avatar" id="userDetailAvatar" onClick={() => user.avatar && setShowImageModal(true)} style={{ cursor: user.avatar ? 'pointer' : 'default' }}>
                     {user.avatar ? (
@@ -645,26 +673,26 @@ const UserDetails = () => {
                       <div className="dp-preview-initials" id="userDetailInitials">{getInitials(user.name)}</div>
                     )}
                 </div>
-                <h2 className="user-detail-name" id="userDetailName">{user.name}</h2>
+                <h2 className="user-detail-name" id="userDetailName">{user.contact_name || user.name}</h2>
                 <p className="user-detail-phone" id="userDetailPhone">{user.phone || '+91 0000000000'}</p>
             </div>
 
-            {/* Action Buttons */}
             <div className="user-actions">
                 <button className="action-btn" id="messageUserBtn" onClick={handleMessage}>
-                    <MessageCircle size={24} style={{ color: 'white' }} />
+                    <MessageCircle size={24} />
+                    <span>Message</span>
                 </button>
                 <button className="action-btn" id="voiceCallUserBtn" onClick={handleVoiceCall}>
-                    <Phone size={24} style={{ color: 'white' }} />
+                    <Phone size={24} />
+                    <span>Call</span>
                 </button>
                 <button className="action-btn" id="videoCallUserBtn" onClick={handleVideoCall}>
-                    <Video size={24} style={{ color: 'white' }} />
+                    <Video size={24} />
+                    <span>Video</span>
                 </button>
             </div>
 
-            {/* User Information */}
             <div className="user-info-sections">
-                {/* Media Section */}
                 <div className="info-section">
                     <h3 className="section-header">Media, Links, and Docs</h3>
                     <div className="media-preview">
@@ -683,7 +711,6 @@ const UserDetails = () => {
                     </div>
                 </div>
 
-                {/* Notifications Section */}
                 <div className="info-section">
                     <div className="settings-item toggle-item">
                         <div className="item-left">
@@ -697,7 +724,6 @@ const UserDetails = () => {
                     </div>
                 </div>
 
-                {/* Contact Actions */}
                 <div className="info-section">
                     {!isContact && (
                         <div className="settings-item" id="addToContactsBtn" onClick={handleAddToContacts}>
@@ -723,7 +749,6 @@ const UserDetails = () => {
                     </div>
                 </div>
 
-                {/* Groups in Common */}
                 <div className="info-section" id="groupsSection">
                     <h3 className="section-header">Groups in Common</h3>
                     <div id="commonGroups">
@@ -731,7 +756,6 @@ const UserDetails = () => {
                     </div>
                 </div>
 
-                {/* Danger Zone */}
                 <div className="info-section danger-section">
                     <div className="settings-item danger" id="blockContactBtn" onClick={handleBlockUser}>
                         <div className="item-left">
@@ -757,7 +781,6 @@ const UserDetails = () => {
 
             </div>
 
-            {/* Block Confirmation Modal */}
             <Modal
                 isOpen={showBlockModal}
                 onClose={() => setShowBlockModal(false)}
@@ -778,7 +801,6 @@ const UserDetails = () => {
                 </div>
             </Modal>
 
-            {/* Edit Contact Modal */}
             <Modal
                 isOpen={showEditContactModal}
                 onClose={() => setShowEditContactModal(false)}
@@ -806,7 +828,6 @@ const UserDetails = () => {
                 </div>
             </Modal>
 
-            {/* Report Modal */}
             <Modal
                 isOpen={showReportModal}
                 onClose={() => setShowReportModal(false)}
@@ -868,26 +889,44 @@ const UserDetails = () => {
                 </div>
             </Modal>
 
-            {/* Image Modal */}
-            {showImageModal && (
-                <div className="modal-backdrop" onClick={() => setShowImageModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="close-modal-btn" onClick={() => setShowImageModal(false)}>
-                            ×
+            <Modal
+                isOpen={showImageModal}
+                onClose={() => setShowImageModal(false)}
+                title="Image"
+                size="large"
+                bodyClassName="image-modal-body"
+            >
+                <div className="image-modal-content">
+                    {user.avatar && (
+                        <img
+                            src={parseInt(user.avatar) ? dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path : user.avatar}
+                            alt={user.name}
+                            className="full-screen-image"
+                            onClick={() => setShowImageModal(false)}
+                        />
+                    )}
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                title="Delete Chat"
+                size="small"
+            >
+                <div className="modal-content-text">
+                    <p>Delete chat with {user.name}?</p>
+                    <p className="warning-text">This will delete all messages and cannot be undone.</p>
+                    <div className="modal-actions">
+                        <button className="btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                            Cancel
                         </button>
-                        <div className="image-modal-content">
-                            {user.avatar && (
-                                <img
-                                    src={parseInt(user.avatar) ? dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path : user.avatar}
-                                    alt={user.name}
-                                    className="full-screen-image"
-                                    onClick={() => setShowImageModal(false)}
-                                />
-                            )}
-                        </div>
+                        <button className="btn-danger" onClick={confirmDelete}>
+                            Delete
+                        </button>
                     </div>
                 </div>
-            )}
+            </Modal>
         </div>
     );
 };

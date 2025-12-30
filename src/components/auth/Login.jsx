@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import '../../styles/auth.css';
 
 const Login = () => {
   const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     // Trigger animation on mount
@@ -15,6 +15,10 @@ const Login = () => {
   }, []);
 
   const handleGoogleLogin = async () => {
+    if (!agreed) {
+      setError('Please agree to the terms and conditions.');
+      return;
+    }
     try {
       setLoading(true);
       setError('');
@@ -34,27 +38,36 @@ const Login = () => {
   return (
     <div className="auth-page login-page">
       <div className={`auth-container ${isVisible ? 'visible' : ''}`}>
-        {/* App Logo */}
-       
         <div className="auth-header">
-          <h1>Welcome Back</h1>
+          <div className="app-logo">CaBa</div>
+          <h2>Welcome Back</h2>
           <p>Sign in to continue your conversations</p>
         </div>
 
         <div className="auth-form">
-          {/* Error Display */}
           {error && (
             <div className="error-message animate-shake">
               {error}
             </div>
           )}
 
-          {/* Google Login Button */}
+          <div className="terms-agreement">
+            <input 
+              type="checkbox" 
+              id="terms" 
+              checked={agreed} 
+              onChange={(e) => setAgreed(e.target.checked)} 
+            />
+            <label htmlFor="terms">
+              I agree to the <Link to="/terms">Terms and Conditions</Link> and <Link to="/privacy">Privacy Policy</Link>.
+            </label>
+          </div>
+
           <button
             type="button"
             className={`btn btn-google ${loading ? 'loading' : ''}`}
             onClick={handleGoogleLogin}
-            disabled={loading}
+            disabled={loading || !agreed}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -71,24 +84,10 @@ const Login = () => {
               'Continue with Google'
             )}
           </button>
-
-          
         </div>
       </div>
 
       <style>{`
-        @keyframes bounce {
-          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-          40% { transform: translateY(-10px); }
-          60% { transform: translateY(-5px); }
-        }
-
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
-        }
-
         .auth-container.visible {
           animation: slideIn 0.6s ease-out;
         }
@@ -106,6 +105,12 @@ const Login = () => {
 
         .animate-shake {
           animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
 
         .btn-google.loading {
@@ -134,3 +139,4 @@ const Login = () => {
 };
 
 export default Login;
+

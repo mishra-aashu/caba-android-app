@@ -1,0 +1,104 @@
+/* Container: Message ko Right ya Left align karne ke liye */
+.message-container {
+  display: flex;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.message-container.mine {
+  justify-content: flex-end; /* Mera message Right side */
+}
+
+.message-container.theirs {
+  justify-content: flex-start; /* Doosre ka Left side */
+}
+
+/* --- THE BUBBLE (Jaadu Yahan Hai) --- */
+.bubble {
+  max-width: 75%; /* Bubble screen ke 75% se bada na ho */
+  padding: 6px 7px 8px 9px; /* Padding: Top Right Bottom Left */
+  border-radius: 8px; /* Rounded Corners */
+  position: relative;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 14.2px;
+  line-height: 19px;
+  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13); /* Halka Shadow Depth ke liye */
+}
+
+/* Colors */
+.mine .bubble {
+  background: var(--sent-message-bg, #E7FFDB); /* Use variable with fallback */
+  color: var(--sent-message-text, #111b21);
+  border-top-right-radius: 0; /* Right corner sharp for tail */
+}
+
+.theirs .bubble {
+  background: var(--received-message-bg, #FFFFFF); /* Use variable with fallback */
+  color: var(--received-message-text, #111b21);
+  border-top-left-radius: 0; /* Left corner sharp for tail */
+}
+
+/* --- CONTENT ALIGNMENT (Text + Time) --- */
+.message-content {
+  display: flex;
+  flex-wrap: wrap; /* IMPORTANT: Agar text bada hai to time neeche aa jayega */
+  align-items: flex-end; /* Time hamesha bottom line par rahega */
+}
+
+.text {
+  margin-right: 10px; /* Text aur Time ke beech gap */
+  word-wrap: break-word; /* Lambe words todne ke liye */
+  white-space: pre-wrap; /* Line breaks ke liye */
+}
+
+/* Deleted Text Styling (Grey aur Italic) */
+.deleted-text {
+  font-style: italic;
+  color: #667781;
+  display: flex;
+  align-items: center;
+}
+
+/* --- TIMESTAMP DESIGN --- */
+.timestamp {
+  font-size: 11px;
+  color: #667781;
+  margin-left: auto; /* Time ko hamesha right side dhakel dega */
+  height: 15px; /* Alignment fix */
+  line-height: 15px;
+  display: flex;
+  align-items: center;
+  margin-bottom: -3px; /* Thoda neeche adjust karne ke liye */
+}
+
+.tick {
+  color: #53bdeb; /* Blue ticks color */
+  font-size: 14px;
+  margin-left: 3px;
+  font-weight: bold;
+}
+
+/* --- TAIL (Poonch) CSS --- */
+/* This is a trick. We can't color a border with a gradient.
+   So we create a pseudo-element that is the tail and give it the same background
+   as the bubble. This is complex.
+   A simpler trick is to use a solid color that is representative of the gradient.
+   The --sent-message-bg is a gradient. The tail needs a solid color.
+   The variable --brand-secondary is a solid green. Let's try that for the tail.
+   For light mode, the bubble is #E7FFDB. For dark mode, it's a gradient.
+*/
+.tail-mine {
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 0;
+  height: 0;
+  border-top: 0px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 10px solid #E7FFDB; 
+}
+
+[data-theme='dark'] .tail-mine {
+  border-left-color: #005c4b; /* Solid dark green for the tail */
+}
+

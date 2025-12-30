@@ -10,7 +10,8 @@ const Modal = ({
     size = 'medium', // 'small', 'medium', 'large', 'full'
     showCloseButton = true,
     closeOnOverlayClick = true,
-    className = ''
+    className = '',
+    bodyClassName = ''
 }) => {
     useEffect(() => {
         if (isOpen) {
@@ -56,7 +57,7 @@ const Modal = ({
                         )}
                     </div>
                 )}
-                <div className="modal-body">
+                <div className={`modal-body ${bodyClassName}`}>
                     {children}
                 </div>
             </div>

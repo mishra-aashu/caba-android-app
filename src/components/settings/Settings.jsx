@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
+import { useData } from '../../contexts/DataContext';
+import { clearAllCachedData } from '../../utils/FileSystemManager';
 import { MoreVertical } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import '../../styles/settings.css';
@@ -219,61 +221,37 @@ const Settings = () => {
     alert('Call ringtone updated');
   };
 
+  const { clearInMemoryCache } = useData();
+
+  // ... (other functions)
+
   // Clear cache functions
-  const clearMediaStorage = async () => {
-    if (!confirm('This will clear all cached media files. Continue?')) return;
-
-    try {
-      alert('Clearing media storage...');
-      // In a real implementation, this would clear IndexedDB media cache
-      await calculateStorageUsage();
-      alert('Media storage cleared successfully');
-    } catch (error) {
-      console.error('Error clearing media storage:', error);
-      alert('Failed to clear media storage');
-    }
-  };
-
-  const clearAppStorage = async () => {
-    if (!confirm('This will clear app cache and temporary data. Continue?')) return;
-
-    try {
-      alert('Clearing app storage...');
-      // Clear non-essential localStorage items
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (!['currentUser', 'rememberMe', 'theme', 'messageNotifications', 'callNotifications',
-              'notificationSound', 'vibrate', 'enterToSend', 'readReceipts', 'lastSeen', 'mutedUsers',
-              'showOnlineStatus', 'allowEveryoneMessage', 'profileVisible'].includes(key)) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      await calculateStorageUsage();
-      alert('App storage cleared successfully');
-    } catch (error) {
-      console.error('Error clearing app storage:', error);
-      alert('Failed to clear app storage');
-    }
-  };
-
   const clearAllCache = async () => {
-    if (!confirm('This will clear all cached data. Continue?')) return;
+    if (!confirm('This will clear all cached app data, including chats and media from this device. Continue?')) return;
 
     try {
-      alert('Clearing all cache...');
+      alert('Clearing all cached data...');
+      
+      // Delete all files from the device
+      await clearAllCachedData();
+      
+      // Clear the state in the running application
+      clearInMemoryCache();
 
-      // Clear media storage
-      await clearMediaStorage();
-      // Clear app storage
-      await clearAppStorage();
+      // Recalculate storage usage
+      await calculateStorageUsage();
 
-      alert('All cache cleared successfully');
+      alert('All cached data has been cleared.');
     } catch (error) {
       console.error('Error clearing cache:', error);
-      alert('Failed to clear cache');
+      alert('Failed to clear cache.');
     }
   };
+
+  // Point all clear functions to the main one for a unified experience
+  const clearMediaStorage = clearAllCache;
+  const clearAppStorage = clearAllCache;
+
 
   // Delete account
   const deleteAccount = async () => {

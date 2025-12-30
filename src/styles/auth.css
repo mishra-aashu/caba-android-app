@@ -142,6 +142,11 @@
   color: var(--text-primary);
   margin-bottom: var(--spacing-xs);
   text-align: center;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .form-subtitle {

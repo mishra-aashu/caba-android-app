@@ -24,7 +24,8 @@
 }
 
 .modal-container {
-    background: var(--chat-input-bg, #ffffff);
+    background: #1E293B !important;
+    backdrop-filter: none;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     max-height: 90vh;
@@ -32,7 +33,7 @@
     display: flex;
     flex-direction: column;
     animation: modalSlideIn 0.3s ease-out;
-    color: var(--chat-input-text, #212529);
+    color: var(--text-0);
 }
 
 @keyframes modalSlideIn {
@@ -73,14 +74,19 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 24px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--glass-stroke);
 }
 
 .modal-title {
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    color: var(--chat-input-text, #212529);
+    color: var(--text-0);
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .modal-close-btn {
@@ -92,12 +98,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--chat-input-icon-color, #667eea);
+    color: var(--primary-0);
     transition: background-color 0.2s;
 }
 
 .modal-close-btn:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .modal-body {
@@ -112,16 +118,16 @@
 }
 
 .modal-body::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .modal-body::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
 }
 
 .modal-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Mobile responsive */
@@ -150,5 +156,30 @@
 
     .modal-body {
         padding: 20px;
+    }
+}
+
+.image-modal-body {
+    padding: 0;
+}
+
+.image-modal-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    height: 100%;
+}
+
+.full-screen-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .image-modal-body {
+        padding: 0;
     }
 }

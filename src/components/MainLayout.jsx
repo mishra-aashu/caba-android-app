@@ -1,0 +1,341 @@
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { useChatListRealtime } from '../hooks/useChatListRealtime';
+import useIsDesktop from '../hooks/useIsDesktop';
+import DesktopLayout from './DesktopLayout';
+import ChatListPanel from './ChatListPanel';
+import { useSupabase } from '../contexts/SupabaseContext';
+import { dpOptions } from '../utils/dpOptions';
+import { getInitials } from '../utils/stringUtils';
+import toast from 'react-hot-toast';
+import BottomNavigation from './common/BottomNavigation';
+import '../styles/theme.css';
+
+const MainLayout = () => {
+    const { user, session } = useAuth();
+    const { supabase } = useSupabase();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const isDesktop = useIsDesktop();
+    const { chats, loading, hasMoreChats, loadingMore, loadMoreChats, setChats } = useChatListRealtime(user?.id);
+
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+    const [searchSuggestions, setSearchSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [showNewContactModal, setShowNewContactModal] = useState(false);
+    const [savedContacts, setSavedContacts] = useState([]);
+    const [showContactForm, setShowContactForm] = useState(false);
+    const [showSelectContact, setShowSelectContact] = useState(false);
+    const [contactName, setContactName] = useState('');
+    const [contactPhone, setContactPhone] = useState('');
+    const [contactMenuOpen, setContactMenuOpen] = useState(null);
+    const [isChatViewActive, setIsChatViewActive] = useState(false);
+
+    const chatListRef = useRef();
+
+    useEffect(() => {
+        setIsChatViewActive(location.pathname.startsWith('/chat/'));
+    }, [location]);
+
+    const fetchContacts = useCallback(async () => {
+        if (!user) return;
+        try {
+            const { data, error } = await supabase
+                .from('contacts')
+                .select(`
+                    id,
+                    user_id,
+                    contact_user_id,
+                    contact_name,
+                    is_favorite,
+                    created_at,
+                    otherUser:contact_user_id (id, name, phone, avatar, is_online)
+                `)
+                .eq('user_id', user.id);
+            if (error) throw error;
+            setSavedContacts(data || []);
+        } catch (error) {
+            console.error('Error fetching contacts:', error);
+            toast.error('Could not fetch contacts.');
+        }
+    }, [supabase, user]);
+
+    useEffect(() => {
+        fetchContacts();
+    }, [fetchContacts]);
+
+    const handleSaveContact = async () => {
+        if (!contactName.trim() || !contactPhone.trim()) {
+            return toast.error('Name and phone are required.');
+        }
+        if (!/^\d{10}$/.test(contactPhone)) {
+             return toast.error('Please enter a valid 10-digit phone number.');
+        }
+
+        try {
+            const { data: existingUser, error: userError } = await supabase
+                .from('users')
+                .select('id')
+                .eq('phone', contactPhone)
+                .single();
+
+            if (userError || !existingUser) {
+                return toast.error('No user found with this phone number.');
+            }
+
+            const { data, error } = await supabase
+                .from('contacts')
+                .insert([{
+                    user_id: user.id,
+                    contact_name: contactName,
+                    contact_user_id: existingUser.id
+                }])
+                .select();
+
+            if (error) throw error;
+
+            toast.success('Contact saved!');
+            setSavedContacts(prev => [...prev, data[0]]);
+            setContactName('');
+            setContactPhone('');
+            setShowContactForm(false);
+
+        } catch (error) {
+            console.error('Error saving contact:', error);
+            if (error.code === '23505') {
+                toast.error('You have already saved this contact.');
+            } else {
+                toast.error('Could not save contact.');
+            }
+        }
+    };
+    
+    const handleStartChatWithContact = async (contact) => {
+        if (!contact.contact_user_id) {
+            return toast.error("This contact can't be messaged.");
+        }
+        
+        try {
+            const { data: chat, error: chatError } = await supabase
+                .from('chats')
+                .select('id')
+                .or(`and(user1_id.eq.${user.id},user2_id.eq.${contact.contact_user_id}),and(user1_id.eq.${contact.contact_user_id},user2_id.eq.${user.id})`)
+                .single();
+    
+            if (chatError && chatError.code !== 'PGRST116') { // PGRST116 means no rows found
+                throw chatError;
+            }
+            
+            if (chat) {
+                setShowNewContactModal(false);
+                navigate(`/chat/${chat.id}/${contact.contact_user_id}`);
+            } else {
+                const newChat = { user1_id: user.id, user2_id: contact.contact_user_id };
+                const { data: newChatData, error: newChatError } = await supabase
+                    .from('chats')
+                    .insert([newChat])
+                    .select()
+                    .single();
+    
+                if (newChatError) throw newChatError;
+    
+                if (newChatData) {
+                    setShowNewContactModal(false);
+                    navigate(`/chat/${newChatData.id}/${contact.contact_user_id}`);
+                } else {
+                    throw new Error('Failed to create chat');
+                }
+            }
+        } catch(error) {
+            console.error('Error starting chat:', error);
+            toast.error('Could not start chat.');
+        }
+    }
+
+    const debounceTimeout = useRef(null);
+
+    const handleSearchChange = (e) => {
+        const query = e.target.value.replace(/\D/g, '');
+        setSearchTerm(query);
+
+        if (debounceTimeout.current) {
+            clearTimeout(debounceTimeout.current);
+        }
+
+        if (query.length !== 10) {
+            setSearchSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        debounceTimeout.current = setTimeout(async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('id, name, phone, avatar')
+                    .eq('phone', query)
+                    .neq('id', user.id)
+                    .limit(1);
+
+                if (error) throw error;
+
+                setSearchSuggestions(data || []);
+                setShowSuggestions(true);
+            } catch (error) {
+                console.error('Error searching users:', error);
+                toast.error('Failed to search for users.');
+            }
+        }, 500);
+    };
+
+    const handleSuggestionClick = async (suggestedUser) => {
+        setSearchTerm('');
+        setShowSuggestions(false);
+        setShowSearch(false);
+        
+        try {
+            const { data: chat, error: chatError } = await supabase
+                .from('chats')
+                .select('id')
+                .or(`and(user1_id.eq.${user.id},user2_id.eq.${suggestedUser.id}),and(user1_id.eq.${suggestedUser.id},user2_id.eq.${user.id})`)
+                .single();
+            
+            if (chatError && chatError.code !== 'PGRST116') {
+                throw chatError;
+            }
+    
+            if (chat) {
+                navigate(`/chat/${chat.id}/${suggestedUser.id}`);
+            } else {
+                 const newChat = { user1_id: user.id, user2_id: suggestedUser.id };
+                const { data: newChatData, error: newChatError } = await supabase
+                    .from('chats')
+                    .insert([newChat])
+                    .select()
+                    .single();
+    
+                if (newChatError) throw newChatError;
+    
+                if (newChatData) {
+                    navigate(`/chat/${newChatData.id}/${suggestedUser.id}`);
+                } else {
+                    throw new Error('Failed to create chat');
+                }
+            }
+        } catch(error) {
+            console.error('Error starting chat from suggestion:', error);
+            toast.error('Could not start chat.');
+        }
+    };
+
+    const handleChatClick = (chat) => {
+        if (!chat || !chat.otherUser) return;
+        navigate(`/chat/${chat.id}/${chat.otherUser.id}`);
+    };
+
+    const handleLogout = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            console.error('Error logging out:', error);
+        } else {
+            navigate('/login');
+        }
+    };
+    
+    const handleNavigation = (path) => navigate(path);
+
+    const handleChatListScroll = () => {
+        if (chatListRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = chatListRef.current;
+            if (scrollTop + clientHeight >= scrollHeight - 500 && hasMoreChats && !loadingMore) {
+                loadMoreChats();
+            }
+        }
+    };
+
+    const filteredChats = showSearch 
+      ? chats 
+      : chats.filter(chat =>
+          chat.otherUser?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+    const chatListPanelProps = {
+        searchTerm,
+        setSearchTerm,
+        showSearch,
+        setShowSearch,
+        searchSuggestions,
+        showSuggestions,
+        setShowSuggestions,
+        handleSearchChange,
+        handleSuggestionClick,
+        handleChatClick,
+        filteredChats,
+        handleChatListScroll,
+        chatListRef,
+        loadingMore,
+        hasMoreChats,
+        dpOptions,
+        getInitials,
+        formatTime: (time) => new Date(time).toLocaleTimeString(),
+        setShowNewContactModal,
+        currentUser: user,
+        handleNavigation,
+        handleAboutApp: () => alert('About App'),
+        handleHelp: () => alert('Help'),
+        handleLogout,
+        isAdmin: false,
+        savedContacts,
+        showNewContactModal,
+        showContactForm,
+        setShowContactForm,
+        showSelectContact,
+        setShowSelectContact,
+        contactName,
+        setContactName,
+        contactPhone,
+        setContactPhone,
+        handleSaveContact,
+        contactMenuOpen,
+        handleContactMenuToggle: () => {},
+        handleContactClick: () => {},
+        handleEditContact: () => {}, // Placeholder
+        handleDeleteContact: () => {},
+        handleStartChatWithContact,
+        isDesktop,
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                <p>Loading Chats...</p>
+            </div>
+        );
+    }
+    
+    if (!isDesktop) {
+        return (
+             <div className={`mobile-layout ${isChatViewActive ? 'show-chat' : ''}`}>
+                <div className="list-view">
+                   <ChatListPanel {...chatListPanelProps} />
+                </div>
+                <div className="chat-view">
+                    <Outlet />
+                </div>
+                {!isChatViewActive && <BottomNavigation />}
+            </div>
+        )
+    }
+
+    return (
+        <DesktopLayout 
+            chatListPanel={<ChatListPanel {...chatListPanelProps} />}
+            chatComponent={<Outlet />}
+        />
+    );
+};
+
+export default MainLayout;
