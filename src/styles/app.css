@@ -37,6 +37,11 @@
   --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.07);
   --success-color: #2E7D32;
   --error-color: #D32F2F;
+  --chat-header-icon-color: #000000;
+  --primary-0: #000000;
+  .icon-btn {
+    color: #000000;
+  }
 }
 
 [data-theme='dark'] {
@@ -52,6 +57,46 @@
   --brand-secondary: #004D40;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.4);
+  --chat-header-icon-color: #ffffff;
+  .icon-btn {
+    color: #ffffff;
+  }
+  .contact-menu-btn {
+    color: #ffffff;
+  }
+  .dropdown .icon-btn {
+    color: #ffffff;
+  }
+  .contacts-icon,
+  .search-toggle-icon,
+  .search-input-icon,
+  .empty-state-icon,
+  .add-contact-icon,
+  .contact-menu-icon,
+  .edit-contact-icon,
+  .delete-contact-icon,
+  .start-chat-icon,
+  .profile-icon,
+  .settings-icon,
+  .reminders-icon,
+  .admin-icon,
+  .about-icon,
+  .help-icon,
+  .logout-icon,
+  .home-icon,
+  .profile-nav-icon,
+  .history-icon,
+  .reminders-nav-icon,
+  .news-icon,
+  .qr-icon,
+  .settings-nav-icon,
+  .blocked-icon {
+    color: #ffffff;
+  }
+
+  .chats-title {
+    color: #ffffff;
+  }
 }
 
 /* =============================================
@@ -323,6 +368,7 @@ body {
     font-size: 1rem;
     font-weight: 500;
     white-space: nowrap;
+    color: var(--text-secondary);
     opacity: 0;
     transition: opacity 0.2s 0.05s ease;
   }
@@ -476,18 +522,24 @@ body {
     padding: 0;
 }
 
+.chat-list-container {
+  /* Inherits styles from chat-list-wrapper */
+}
+
 /* --- Chat Item Card --- */
 .chat-item-card {
-  background: transparent;
-  margin: 4px 12px;
-  border-radius: 12px;
+  background-color: var(--surface-color);
+  margin: 0;
+  border-radius: 0;
   padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 1rem;
   cursor: pointer;
-  transition: all 0.25s ease;
-  border: 1px solid transparent;
+  transition: background-color 0.2s;
+  border: none;
+  box-shadow: none;
+  border-bottom: 1px solid var(--border-color);
 }
 .chat-item-card:hover {
   background-color: var(--bg-color);
@@ -496,7 +548,25 @@ body {
     background: var(--brand-gradient);
     color: white;
 }
+.chat-item-card:last-child {
+  border-bottom: none;
+}
 .chat-item-card.active .text-secondary {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme='dark'] .chat-item-card {
+  background-color: #111b21;
+  border-bottom: 1px solid #222d34;
+}
+[data-theme='dark'] .chat-item-card:hover {
+  background-color: #202c33;
+}
+[data-theme='dark'] .chat-item-card.active {
+    background: var(--brand-gradient);
+    color: white;
+}
+[data-theme='dark'] .chat-item-card.active .text-secondary {
     color: rgba(255, 255, 255, 0.8);
 }
 
@@ -624,7 +694,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: #000000;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -841,10 +911,16 @@ body {
   color: var(--text-secondary);
 }
 
+.contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .contact-menu-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: #000000;
   cursor: pointer;
   padding: 5px;
   border-radius: 50%;
@@ -1051,8 +1127,42 @@ body {
 }
 
 /* =============================================
-   9. LEGAL PAGES
-   ============================================= */
+    9. ICON STYLES FOR LIGHT MODE
+    ============================================= */
+.contacts-icon,
+.search-toggle-icon,
+.search-input-icon,
+.empty-state-icon,
+.add-contact-icon,
+.contact-menu-icon,
+.edit-contact-icon,
+.delete-contact-icon,
+.start-chat-icon,
+.profile-icon,
+.settings-icon,
+.reminders-icon,
+.admin-icon,
+.about-icon,
+.help-icon,
+.logout-icon,
+.home-icon,
+.profile-nav-icon,
+.history-icon,
+.reminders-nav-icon,
+.news-icon,
+.qr-icon,
+.settings-nav-icon,
+.blocked-icon {
+  color: var(--text-primary);
+}
+
+.chats-title {
+  color: var(--text-primary);
+}
+
+/* =============================================
+    10. LEGAL PAGES
+    ============================================= */
 .legal-page-container {
   padding: 2rem;
   font-family: var(--font-sans);

@@ -54,41 +54,41 @@ const ChatListPanel = ({
 
   const dropdownItems = [
     {
-      icon: <User size={16} />,
+      icon: <User size={16} className="profile-icon" />,
       label: 'Profile',
       onClick: () => handleNavigation('/profile')
     },
     {
-      icon: <Settings size={16} />,
+      icon: <Settings size={16} className="settings-icon" />,
       label: 'Settings',
       onClick: () => handleNavigation('/settings')
     },
     {
-      icon: <Bell size={16} />,
+      icon: <Bell size={16} className="reminders-icon" />,
       label: 'Check Reminders',
       onClick: () => handleNavigation('/reminders')
     },
     
     ,
     ...(isAdmin ? [{
-      icon: <Crown size={16} />,
+      icon: <Crown size={16} className="admin-icon" />,
       label: 'Admin Panel',
       onClick: () => handleNavigation('/admin')
     }] : []),
     { divider: true },
     {
-      icon: <Info size={16} />,
+      icon: <Info size={16} className="about-icon" />,
       label: 'About App',
       onClick: handleAboutApp
     },
     {
-      icon: <HelpCircle size={16} />,
+      icon: <HelpCircle size={16} className="help-icon" />,
       label: 'Help',
       onClick: handleHelp
     },
     { divider: true },
     {
-      icon: <LogOut size={16} />,
+      icon: <LogOut size={16} className="logout-icon" />,
       label: 'Logout',
       onClick: handleLogout
     }
@@ -98,7 +98,7 @@ const ChatListPanel = ({
     <main className="main-content">
       <header className="top-header">
         <div className="header-left">
-          <h1>Chats</h1>
+          <h1 className="chats-title">Chats</h1>
         </div>
         <div className="header-right">
            <button
@@ -106,14 +106,14 @@ const ChatListPanel = ({
              onClick={() => setShowNewContactModal(true)}
              title="Contacts"
            >
-             <User size={20} />
+             <User size={20} className="contacts-icon" />
            </button>
            <button
              className="icon-btn"
              onClick={() => setShowSearch(!showSearch)}
              title="Search"
            >
-             <Search size={20} />
+             <Search size={20} className="search-toggle-icon" />
            </button>
 
            <DropdownMenu
@@ -124,7 +124,7 @@ const ChatListPanel = ({
 
       {showSearch && (
         <div className="search-bar">
-          <Search size={16} />
+          <Search size={16} className="search-input-icon" />
           <input
             type="text"
             placeholder="Search by phone number..."
@@ -208,7 +208,7 @@ const ChatListPanel = ({
           })
         ) : (
           <div className="empty-state">
-            <MessageCircle size={48} />
+            <MessageCircle size={48} className="empty-state-icon" />
             <h3>No conversations yet</h3>
             <p>Start messaging your contacts</p>
           </div>
@@ -281,7 +281,8 @@ const ChatListPanel = ({
                         onClick={() => handleStartChatWithContact(contact)}
                         title="Start Chat"
                       >
-                         Chat
+                        <MessageCircle size={16} className="start-chat-icon" />
+                        Chat
                       </button>
                     </div>
                   ))
@@ -296,7 +297,7 @@ const ChatListPanel = ({
                 className="add-contact-btn"
                 onClick={() => setShowContactForm(!showContactForm)}
               >
-                <Plus size={20} />
+                <Plus size={20} className="add-contact-icon" />
                 Add New Contact
               </button>
 
@@ -366,7 +367,7 @@ const ChatListPanel = ({
                           onClick={(e) => handleContactMenuToggle(contact.id, e, index)}
                           title="Options"
                         >
-                          <MoreVertical size={18} />
+                          <MoreVertical size={18} className="contact-menu-icon" />
                         </button>
                         {contactMenuOpen?.id === contact.id && (
                           <div className={`contact-menu ${contactMenuOpen.showAbove ? 'show-above' : 'show-below'}`}>
@@ -377,7 +378,7 @@ const ChatListPanel = ({
                                 handleEditContact(contact);
                               }}
                             >
-                              <Edit size={16} />
+                              <Edit size={16} className="edit-contact-icon" />
                               Edit
                             </button>
                             <button
@@ -387,7 +388,7 @@ const ChatListPanel = ({
                                 handleDeleteContact(contact.id);
                               }}
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={16} className="delete-contact-icon" />
                               Delete
                             </button>
                           </div>

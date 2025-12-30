@@ -1,8 +1,11 @@
 /* --- LIST CONTAINER (Pura List Area) --- */
 .chat-list-container {
-  background-color: var(--surface-color); /* Themed */
+  /* IMPORTANT: Container aur Item ka color same hona chahiye taaki gaps na dikhen */
+  background-color: var(--surface-color); 
   height: 100%;
   overflow-y: auto;
+  padding: 0; /* Extra padding hataya */
+  margin: 0;
 }
 
 /* --- MAIN ITEM (Single Chat Row) --- */
@@ -11,19 +14,26 @@
   align-items: center;
   width: 100%;
   height: 72px;
-  background-color: var(--surface-color); /* Themed */
+  
+  /* Background Color Match */
+  background-color: var(--surface-color); 
+  
+  /* --- SEAMLESS FIXES --- */
+  margin: 0;           /* Gap Khatam */
+  border-radius: 0;    /* Gol kinare Khatam */
+  box-shadow: none;    /* Shadow Khatam */
+  border: none;        /* Outer Border Khatam */
+  outline: none;       /* Focus Outline Khatam */
+  
   padding-left: 15px;
+  padding-right: 0;    /* Right padding child (info) sambhalega */
   cursor: pointer;
-  margin: 0;
-  border-radius: 0;
-  box-shadow: none;
-  border: none;
   transition: background-color 0.2s;
 }
 
 /* Click Effect */
 .chat-item:active {
-  background-color: var(--bg-color); /* Themed */
+  background-color: var(--bg-color); 
 }
 
 /* --- AVATAR (Photo) --- */
@@ -39,8 +49,9 @@
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid var(--border-color); /* Themed */
-  background-color: var(--bg-color); /* Themed */
+  /* Border aur Background theme variables se */
+  border: 1px solid var(--border-color); 
+  background-color: var(--bg-color); 
 }
 
 /* --- RIGHT SIDE CONTENT (Name + Message) --- */
@@ -51,10 +62,14 @@
   flex-direction: column;
   justify-content: center;
   padding-right: 15px;
-  border-bottom: 1px solid var(--border-color); /* Themed */
+  
+  /* --- SEPARATOR LINE FIX --- */
+  /* Line sirf text ke neeche aani chahiye */
+  border-bottom: 1px solid var(--border-color); 
   overflow: hidden;
 }
 
+/* Last item ki border hata do */
 .chat-item:last-child .chat-info {
   border-bottom: none;
 }
@@ -69,7 +84,7 @@
 
 .chat-name {
   font-size: 16.5px;
-  color: var(--text-primary); /* Themed */
+  color: var(--text-primary);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -79,12 +94,12 @@
 
 .chat-time {
   font-size: 11.5px;
-  color: var(--text-secondary); /* Themed */
-  white-space: nowrap; /* Corrected typo from white-weight */
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .chat-time.active {
-  color: var(--brand-primary); /* Themed */
+  color: var(--brand-primary);
   font-weight: 600;
 }
 
@@ -113,7 +128,7 @@
 
 .last-message {
   font-size: 14px;
-  color: var(--text-secondary); /* Themed */
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -121,7 +136,7 @@
 }
 
 .unread-badge {
-  background-color: var(--brand-primary); /* Themed */
+  background-color: var(--brand-primary);
   color: white;
   font-size: 11px;
   font-weight: 700;

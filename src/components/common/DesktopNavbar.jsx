@@ -8,49 +8,49 @@ const DesktopNavbar = () => {
       <ul className="desktop-navbar-nav">
         <li className="desktop-nav-item">
           <Link to="/" className="desktop-nav-link">
-            <Home className="desktop-nav-icon" />
+            <Home className="desktop-nav-icon home-icon" />
             <span className="desktop-nav-text">Home</span>
           </Link>
         </li>
         <li className="desktop-nav-item">
           <Link to="/profile" className="desktop-nav-link">
-            <User className="desktop-nav-icon" />
+            <User className="desktop-nav-icon profile-nav-icon" />
             <span className="desktop-nav-text">Profile</span>
           </Link>
         </li>
         <li className="desktop-nav-item">
           <Link to="/history" className="desktop-nav-link">
-            <History className="desktop-nav-icon" />
+            <History className="desktop-nav-icon history-icon" />
             <span className="desktop-nav-text">History</span>
           </Link>
         </li>
         <li className="desktop-nav-item">
           <Link to="/reminders" className="desktop-nav-link">
-            <Bell className="desktop-nav-icon" />
+            <Bell className="desktop-nav-icon reminders-nav-icon" />
             <span className="desktop-nav-text">Reminders</span>
           </Link>
         </li>
         <li className="desktop-nav-item">
           <Link to="/news" className="desktop-nav-link">
-            <Newspaper className="desktop-nav-icon" />
+            <Newspaper className="desktop-nav-icon news-icon" />
             <span className="desktop-nav-text">News</span>
           </Link>
         </li>
         <li className="desktop-nav-item">
           <Link to="/qr" className="desktop-nav-link">
-            <QrCode className="desktop-nav-icon" />
+            <QrCode className="desktop-nav-icon qr-icon" />
             <span className="desktop-nav-text">QR</span>
           </Link>
         </li>
         <li className="desktop-nav-item">
           <Link to="/settings" className="desktop-nav-link">
-            <Settings className="desktop-nav-icon" />
+            <Settings className="desktop-nav-icon settings-nav-icon" />
             <span className="desktop-nav-text">Settings</span>
           </Link>
         </li>
         <li className="desktop-nav-item">
           <Link to="/blocked" className="desktop-nav-link">
-            <Shield className="desktop-nav-icon" />
+            <Shield className="desktop-nav-icon blocked-icon" />
             <span className="desktop-nav-text">Blocked</span>
           </Link>
         </li>
