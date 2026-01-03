@@ -11,6 +11,7 @@ import PhoneAuthModal from './components/auth/PhoneAuthModal';
 import { supabase } from './config/supabase';
 import useAuthStore from './store/authStore';
 import '../src/styles/desktop.css';
+import '../src/styles/call-screen.css';
 
 // Lazy load components
 const Login = lazy(() => import('./components/auth/Login'));
@@ -37,11 +38,14 @@ const Admin = lazy(() => import('./components/Admin'));
 const QRPage = lazy(() => import('./components/qr'));
 const Intro = lazy(() => import('./components/Intro'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
+// import CallScreen from './components/CallScreen';
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
 const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
 import DesktopNavbar from './components/common/DesktopNavbar';
 import useIsDesktop from './hooks/useIsDesktop';
 // AuthDebug is intentionally not imported or rendered
+
+import { initializePushNotifications } from './utils/PushNotifications';
 
 // Initialize Capacitor Updater
 if (Capacitor.isNativePlatform()) {
@@ -195,6 +199,11 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const App = () => {
+  useEffect(() => {
+    // App khulte hi notification system start karo
+    initializePushNotifications();
+  }, []);
+
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen">

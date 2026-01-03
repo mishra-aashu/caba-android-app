@@ -29,6 +29,7 @@ const Chat = () => {
     const { supabase } = useSupabase();
     const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
     const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
+    const { startCall } = useCall();
 
    // Initialize chat theme when chatId changes
    useEffect(() => {

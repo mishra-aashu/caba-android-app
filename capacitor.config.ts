@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.CaBa.clone', // Ye sahi hona chahiye
+  appId: 'com.caba.app', // Ye sahi hona chahiye
   appName: 'caba',
   webDir: 'dist',
   plugins: {

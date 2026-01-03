@@ -31,27 +31,9 @@ const DesktopNavbar = () => {
           </Link>
         </li>
         <li className="desktop-nav-item">
-          <Link to="/news" className="desktop-nav-link">
-            <Newspaper className="desktop-nav-icon news-icon" />
-            <span className="desktop-nav-text">News</span>
-          </Link>
-        </li>
-        <li className="desktop-nav-item">
-          <Link to="/qr" className="desktop-nav-link">
-            <QrCode className="desktop-nav-icon qr-icon" />
-            <span className="desktop-nav-text">QR</span>
-          </Link>
-        </li>
-        <li className="desktop-nav-item">
           <Link to="/settings" className="desktop-nav-link">
             <Settings className="desktop-nav-icon settings-nav-icon" />
             <span className="desktop-nav-text">Settings</span>
-          </Link>
-        </li>
-        <li className="desktop-nav-item">
-          <Link to="/blocked" className="desktop-nav-link">
-            <Shield className="desktop-nav-icon blocked-icon" />
-            <span className="desktop-nav-text">Blocked</span>
           </Link>
         </li>
       </ul>

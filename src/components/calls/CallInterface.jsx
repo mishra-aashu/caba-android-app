@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../utils/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
+import '../../styles/call-interface.css';
 
 const CallInterface = ({ contact, callType, incoming = false, callId, roomId, onClose, onCallEnd }) => {
   const { theme } = useTheme();
@@ -187,7 +188,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
             </div>
           </div>
           <button className="minimize-btn" onClick={onClose} title="Minimize">
-            <i className="fas fa-chevron-down"></i>
+            <i className="fas fa-chevron-down minimize-icon"></i>
           </button>
         </div>
 
@@ -249,7 +250,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
               className={`control-btn ${isMuted ? 'muted' : ''}`}
               onClick={handleToggleMute}
             >
-              <i className={`fas ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'}`}></i>
+              <i className={`fas ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} mute-icon`}></i>
               <span className="control-label">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
 
@@ -259,7 +260,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
                   className={`control-btn ${isVideoOff ? 'video-off' : ''}`}
                   onClick={handleToggleVideo}
                 >
-                  <i className={`fas ${isVideoOff ? 'fa-video-slash' : 'fa-video'}`}></i>
+                  <i className={`fas ${isVideoOff ? 'fa-video-slash' : 'fa-video'} video-icon`}></i>
                   <span className="control-label">{isVideoOff ? 'Start Video' : 'Stop Video'}</span>
                 </button>
 
@@ -267,7 +268,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
                   className="control-btn"
                   onClick={handleSwitchCamera}
                 >
-                  <i className="fas fa-sync-alt"></i>
+                  <i className="fas fa-sync-alt switch-icon"></i>
                   <span className="control-label">Switch</span>
                 </button>
               </>
@@ -277,7 +278,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
               className="control-btn end-call-btn"
               onClick={handleEndCall}
             >
-              <i className="fas fa-phone-slash"></i>
+              <i className="fas fa-phone-slash end-icon"></i>
               <span className="control-label">End</span>
             </button>
           </div>

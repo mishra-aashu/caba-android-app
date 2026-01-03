@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCall } from '../context/CallContext';
+// import '../../styles/call-screen.css';
+import { dpOptions } from '../utils/dpOptions';
 import {
   Phone,
   PhoneOff,
@@ -36,28 +38,45 @@ function CallScreen() {
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
   const [showControls, setShowControls] = useState(true);
+  const [isSwapped, setIsSwapped] = useState(false);
 
   // Set up video elements
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
+    console.log('CallScreen: localStream changed', localStream);
+    console.log('CallScreen: localStream tracks:', localStream?.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
+    if (localVideoRef.current) {
+      const stream = isSwapped ? remoteStream : localStream;
+      if (stream) {
+        localVideoRef.current.srcObject = stream;
+        console.log('CallScreen: set srcObject on pip video, tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
+        // Ensure video plays
+        localVideoRef.current.play().catch(e => console.log('Play failed:', e));
+      }
     }
-  }, [localStream]);
+  }, [localStream, remoteStream, isSwapped]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    console.log('CallScreen: remoteStream changed', remoteStream);
+    console.log('CallScreen: remoteStream tracks:', remoteStream?.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
+    if (remoteVideoRef.current) {
+      const stream = isSwapped ? localStream : remoteStream;
+      if (stream) {
+        remoteVideoRef.current.srcObject = stream;
+        console.log('CallScreen: set srcObject on main video, tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
+      }
     }
-  }, [remoteStream]);
+    if (remoteAudioRef.current) {
+      const stream = isSwapped ? localStream : remoteStream;
+      if (stream) {
+        remoteAudioRef.current.srcObject = stream;
+        console.log('CallScreen: set srcObject on remote audio, tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
+      }
+    }
+  }, [localStream, remoteStream, isSwapped]);
 
-  // Auto-hide controls
-  useEffect(() => {
-    if (callState === 'connected') {
-      const timer = setTimeout(() => setShowControls(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [callState, showControls]);
+  // Controls are always visible
 
   // Redirect if no active call
   useEffect(() => {
@@ -82,66 +101,81 @@ function CallScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="call-screen-container">
       {/* Header */}
-      <div className={`fixed top-0 left-0 right-0 z-10 bg-black/80 backdrop-blur-sm transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="flex items-center justify-between p-4">
+      <div className={`call-screen-header ${showControls ? 'controls-visible' : 'controls-hidden'}`}>
+        <div className="header-content">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="back-button"
           >
-            <ArrowLeft className="w-5 h-5 text-white" />
+            <ArrowLeft className="back-icon" />
           </button>
-          <div className="text-center flex-1">
-            <p className="text-white/60 text-sm">
+          <div className="header-center">
+            <p className="call-status-text">
               {callState === 'calling' && '📞 Calling...'}
               {callState === 'connecting' && '🔄 Connecting...'}
               {callState === 'connected' && formatDuration(callDuration)}
             </p>
-            <h3 className="text-white font-semibold text-lg">
+            <h3 className="caller-name">
               {otherUser?.name || 'Unknown'}
             </h3>
           </div>
-          <div className="w-10" /> {/* Spacer for balance */}
+          <div className="header-spacer" />
         </div>
       </div>
 
       {/* Main Call Area */}
-      <div
-        className="h-screen flex items-center justify-center cursor-pointer"
-        onClick={() => setShowControls(!showControls)}
-      >
+      <div className="main-call-area">
         {/* Remote Video (Full Screen) */}
         {isVideoCall && (
           <video
             ref={remoteVideoRef}
             autoPlay
             playsInline
-            className="absolute inset-0 w-full h-full object-cover"
+            muted={isSwapped ? true : false}
+            className="remote-video"
+          />
+        )}
+
+        {/* Remote Audio (for audio calls) */}
+        {!isVideoCall && (
+          <audio
+            ref={remoteAudioRef}
+            autoPlay
+            playsInline
           />
         )}
 
         {/* Audio Only Background */}
         {!isVideoCall && (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-40 h-40 mx-auto rounded-full overflow-hidden ring-4 ring-white/20 mb-6">
+          <div className="audio-background">
+            <div className="audio-content">
+              <div className="caller-avatar-large">
                 {otherUser?.avatar ? (
-                  <img
-                    src={otherUser.avatar}
-                    alt={otherUser.name}
-                    className="w-full h-full object-cover"
-                  />
+                  parseInt(otherUser.avatar) ? (
+                    <img
+                      src={dpOptions.find(dp => dp.id === parseInt(otherUser.avatar))?.path || otherUser.avatar}
+                      alt={otherUser.name}
+                      className="avatar-image"
+                    />
+                  ) : (
+                    <img
+                      src={otherUser.avatar}
+                      alt={otherUser.name}
+                      className="avatar-image"
+                    />
+                  )
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-6xl font-bold text-white">
+                  <div className="avatar-placeholder">
                     {otherUser?.name?.charAt(0) || '?'}
                   </div>
                 )}
               </div>
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="audio-caller-name">
                 {otherUser?.name || 'Unknown'}
               </h2>
-              <p className="text-white/60">
+              <p className="audio-status">
                 {callState === 'calling' && 'Calling...'}
                 {callState === 'connecting' && 'Connecting...'}
                 {callState === 'connected' && `Connected • ${formatDuration(callDuration)}`}
@@ -152,17 +186,17 @@ function CallScreen() {
 
         {/* Local Video (Picture-in-Picture) */}
         {isVideoCall && localStream && (
-          <div className="absolute top-20 right-4 w-32 h-44 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20">
+          <div className="pip-container" onClick={() => setIsSwapped(!isSwapped)}>
             <video
               ref={localVideoRef}
               autoPlay
               playsInline
-              muted
-              className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : ''}`}
+              muted={isSwapped ? false : true}
+              className={`pip-video ${isVideoOff ? 'hidden' : ''}`}
             />
             {isVideoOff && (
-              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                <VideoOff className="w-8 h-8 text-gray-500" />
+              <div className="pip-placeholder">
+                <VideoOff className="pip-icon" />
               </div>
             )}
           </div>
@@ -170,19 +204,17 @@ function CallScreen() {
       </div>
 
       {/* Bottom Controls */}
-      <div className={`fixed bottom-0 left-0 right-0 z-10 bg-black/80 backdrop-blur-sm p-8 transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="flex justify-center items-center gap-6">
+      <div className={`call-controls ${showControls ? 'controls-visible' : 'controls-hidden'}`}>
+        <div className="controls-container">
           {/* Mute Button */}
           <button
             onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-              isMuted ? 'bg-red-500' : 'bg-white/20 hover:bg-white/30'
-            }`}
+            className={`control-button ${isMuted ? 'muted' : ''}`}
           >
             {isMuted ? (
-              <MicOff className="w-6 h-6 text-white" />
+              <MicOff className="control-icon" />
             ) : (
-              <Mic className="w-6 h-6 text-white" />
+              <Mic className="control-icon" />
             )}
           </button>
 
@@ -190,14 +222,12 @@ function CallScreen() {
           {isVideoCall && (
             <button
               onClick={(e) => { e.stopPropagation(); toggleVideo(); }}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                isVideoOff ? 'bg-red-500' : 'bg-white/20 hover:bg-white/30'
-              }`}
+              className={`control-button ${isVideoOff ? 'video-off' : ''}`}
             >
               {isVideoOff ? (
-                <VideoOff className="w-6 h-6 text-white" />
+                <VideoOff className="control-icon" />
               ) : (
-                <Video className="w-6 h-6 text-white" />
+                <Video className="control-icon" />
               )}
             </button>
           )}
@@ -205,18 +235,18 @@ function CallScreen() {
           {/* End Call Button */}
           <button
             onClick={(e) => { e.stopPropagation(); handleEndCall(); }}
-            className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all shadow-lg shadow-red-500/30"
+            className="end-call-button"
           >
-            <PhoneOff className="w-7 h-7 text-white" />
+            <PhoneOff className="end-call-icon" />
           </button>
 
           {/* Switch Camera (only for video calls) */}
           {isVideoCall && (
             <button
               onClick={(e) => { e.stopPropagation(); switchCamera(); }}
-              className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all"
+              className="control-button"
             >
-              <RotateCcw className="w-6 h-6 text-white" />
+              <RotateCcw className="control-icon" />
             </button>
           )}
 
@@ -224,14 +254,12 @@ function CallScreen() {
           {!isVideoCall && (
             <button
               onClick={(e) => e.stopPropagation()}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                isSpeakerOn ? 'bg-blue-500' : 'bg-white/20 hover:bg-white/30'
-              }`}
+              className={`control-button ${isSpeakerOn ? 'speaker-on' : ''}`}
             >
               {isSpeakerOn ? (
-                <Volume2 className="w-6 h-6 text-white" />
+                <Volume2 className="control-icon" />
               ) : (
-                <VolumeX className="w-6 h-6 text-white" />
+                <VolumeX className="control-icon" />
               )}
             </button>
           )}

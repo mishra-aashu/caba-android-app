@@ -1,14 +1,16 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCall } from '../context/CallContext';
 import { Phone, PhoneOff, Video, VideoOff } from 'lucide-react';
+import '../styles/call-status-indicator.css';
 
 function CallStatusIndicator() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { callState, callType, callId, callerInfo, receiverInfo, endCall } = useCall();
 
-  // Only show if there's an active call
-  if (!['calling', 'connecting', 'connected'].includes(callState)) {
+  // Only show if there's an active call and not on calls page (since it has header notification)
+  if (!['calling', 'connecting', 'connected'].includes(callState) || location.pathname.startsWith('/calls')) {
     return null;
   }
 
@@ -28,14 +30,14 @@ function CallStatusIndicator() {
 
   return (
     <div
-      className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg cursor-pointer hover:bg-green-600 transition-colors flex items-center gap-2 animate-pulse"
+      className="call-status-indicator"
       onClick={handleClick}
       title="Click to view active call"
     >
-      {/* Call Icon */}
-      <div className="flex items-center gap-1">
-        {isVideoCall ? <Video size={16} /> : <Phone size={16} />}
-        <span className="text-sm font-medium">
+      {/* Call Icon and Status */}
+      <div className="call-status-info">
+        {isVideoCall ? <Video className="call-status-icon" /> : <Phone className="call-status-icon" />}
+        <span className="call-status-text">
           {callState === 'calling' && 'Calling...'}
           {callState === 'connecting' && 'Connecting...'}
           {callState === 'connected' && 'On Call'}
@@ -43,17 +45,17 @@ function CallStatusIndicator() {
       </div>
 
       {/* User Name */}
-      <span className="text-sm max-w-24 truncate">
+      <span className="call-status-user-name">
         {otherUser?.name || 'Unknown'}
       </span>
 
       {/* End Call Button */}
       <button
         onClick={handleEndCall}
-        className="ml-2 bg-red-500 hover:bg-red-600 rounded-full p-1 transition-colors"
+        className="call-status-end-btn"
         title="End Call"
       >
-        <PhoneOff size={14} />
+        <PhoneOff className="call-status-end-icon" />
       </button>
     </div>
   );

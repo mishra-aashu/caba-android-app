@@ -1,7 +1,10 @@
 import React, { useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCall } from '../context/CallContext';
 import { Phone, PhoneOff, Video } from 'lucide-react';
+import { dpOptions } from '../utils/dpOptions';
+import '../styles/incoming-call-modal.css';
 
 export function IncomingCallModal() {
   const navigate = useNavigate();
@@ -15,8 +18,9 @@ export function IncomingCallModal() {
 
   const ringtoneRef = useRef(null);
   const hasUserInteracted = useRef(false);
+  const [isIgnored, setIsIgnored] = useState(false);
 
-  if (callState !== 'ringing' || !incomingCall) {
+  if (callState !== 'ringing' || !incomingCall || isIgnored) {
     return null;
   }
 
@@ -96,63 +100,77 @@ export function IncomingCallModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-3xl p-8 text-center max-w-sm w-full mx-4 shadow-2xl">
-        {/* Caller Avatar */}
-        <div className="relative mb-6">
-          <div className="w-32 h-32 mx-auto rounded-full overflow-hidden ring-4 ring-green-500 animate-pulse">
+    <div className="incoming-call-overlay">
+      <div className="incoming-call-container">
+        {/* Caller Avatar Section */}
+        <div className="incoming-call-avatar-section">
+          <div className="incoming-call-avatar">
             {callerInfo?.avatar ? (
-              <img
-                src={callerInfo.avatar}
-                alt={callerInfo.name}
-                className="w-full h-full object-cover"
-              />
+              parseInt(callerInfo.avatar) ? (
+                <img
+                  src={dpOptions.find(dp => dp.id === parseInt(callerInfo.avatar))?.path || callerInfo.avatar}
+                  alt={callerInfo.name}
+                />
+              ) : (
+                <img
+                  src={callerInfo.avatar}
+                  alt={callerInfo.name}
+                />
+              )
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-4xl font-bold text-white">
+              <div className="incoming-call-avatar-placeholder">
                 {callerInfo?.name?.charAt(0) || '?'}
               </div>
             )}
           </div>
 
           {/* Call Type Badge */}
-          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-green-500 px-4 py-1 rounded-full">
-            <span className="text-white text-sm font-medium flex items-center gap-1">
-              {isVideoCall ? <Video size={14} /> : <Phone size={14} />}
-              {isVideoCall ? 'Video Call' : 'Voice Call'}
-            </span>
+          <div className="incoming-call-type-badge">
+            {isVideoCall ? <Video className="incoming-call-type-icon" /> : <Phone className="incoming-call-type-icon" />}
+            <span>{isVideoCall ? 'Video Call' : 'Voice Call'}</span>
           </div>
         </div>
 
         {/* Caller Info */}
-        <h2 className="text-2xl font-bold text-white mb-1">
-          {callerInfo?.name || 'Unknown Caller'}
-        </h2>
-        <p className="text-gray-400 mb-8">
-          {callerInfo?.phone || 'Incoming call...'}
-        </p>
+        <div className="incoming-call-info">
+          <h2 className="incoming-call-name">
+            {callerInfo?.name || 'Unknown Caller'}
+          </h2>
+          <p className="incoming-call-phone">
+            {callerInfo?.phone || 'Incoming call...'}
+          </p>
+        </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-center gap-8">
+        <div className="incoming-call-actions">
+          {/* Ignore Button */}
+          <button
+            onClick={() => setIsIgnored(true)}
+            className="incoming-call-btn ignore"
+          >
+            Ignore
+          </button>
+
           {/* Reject Button */}
           <button
             onClick={() => handleUserInteraction(rejectCall)}
-            className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-red-500/30"
+            className="incoming-call-btn reject"
           >
-            <PhoneOff className="w-7 h-7 text-white" />
+            <PhoneOff className="incoming-call-icon" />
           </button>
 
           {/* Answer Button */}
           <button
             onClick={() => handleUserInteraction(answerCall)}
-            className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-green-500/30 animate-bounce"
+            className="incoming-call-btn accept"
           >
-            <Phone className="w-7 h-7 text-white" />
+            <Phone className="incoming-call-icon" />
           </button>
         </div>
 
-        {/* Swipe hint */}
-        <p className="text-gray-500 text-sm mt-6">
-          Tap to answer or reject
+        {/* Hint */}
+        <p className="incoming-call-hint">
+          Tap buttons to respond
         </p>
       </div>
     </div>
