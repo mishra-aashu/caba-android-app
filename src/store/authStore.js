@@ -14,13 +14,13 @@ const useAuthStore = create((set, get) => ({
 
   initializeAuth: async () => {
     try {
-      if (Capacitor.isNativePlatform()) {
-        await GoogleAuth.initialize({
-          clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
-          scopes: ['profile', 'email'],
-          grantOfflineAccess: true,
-        });
-      }
+      // if (Capacitor.isNativePlatform()) {
+      //   await GoogleAuth.initialize({
+      //     clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+      //     scopes: ['profile', 'email'],
+      //     grantOfflineAccess: true,
+      //   });
+      // }
 
       // Check for phone auth first
       const phoneUser = localStorage.getItem('phoneAuthUser');

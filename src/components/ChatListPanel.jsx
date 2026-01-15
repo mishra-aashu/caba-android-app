@@ -5,6 +5,7 @@ import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import ChatListItem from './chat/ChatListItem';
 import { getInitials } from '../utils/stringUtils';
+import { isUserOnline } from '../utils/timeUtils';
 
 const ChatListPanel = ({
   searchTerm,
@@ -163,7 +164,7 @@ const ChatListPanel = ({
                 ) : (
                   <div>{getInitials(user.name)}</div>
                 )}
-                <span className={`online-status ${user.is_online ? 'online' : ''}`}></span>
+                <span className={`online-status ${isUserOnline(Boolean(user.is_online), user.last_seen) ? 'online' : ''}`}></span>
               </div>
               <div className="suggestion-info">
                 <div className="suggestion-name">{user.name}</div>

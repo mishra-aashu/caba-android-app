@@ -7,6 +7,7 @@ import '../../styles/profile.css';
 import '../qr/QRCodeGenerator.css';
 import '../qr/QRCodeScanner.css';
 import FullscreenImageModal from './FullscreenImageModal';
+import toast from 'react-hot-toast';
 
 const Profile = () => {
   const { supabase } = useSupabase();
@@ -129,7 +130,7 @@ const Profile = () => {
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
 
       setShowEditModal(false);
-      alert('Profile updated successfully');
+      toast.success('Profile updated successfully');
 
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -152,7 +153,7 @@ const Profile = () => {
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
 
       setShowDpModal(false);
-      alert('Profile picture updated');
+      toast.success('Profile picture updated');
 
     } catch (error) {
       console.error('Error selecting DP:', error);

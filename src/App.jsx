@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth'; // Use the main auth hook
 // import { CallProvider } from './context/CallContext';
 import { ChatThemeProvider } from './contexts/ChatThemeContext';
@@ -46,6 +46,7 @@ import useIsDesktop from './hooks/useIsDesktop';
 // AuthDebug is intentionally not imported or rendered
 
 import { initializePushNotifications } from './utils/PushNotifications';
+import useOnlineStatus from './hooks/useOnlineStatus';
 
 // Initialize Capacitor Updater
 if (Capacitor.isNativePlatform()) {
@@ -55,6 +56,8 @@ if (Capacitor.isNativePlatform()) {
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
+  useOnlineStatus(); // Initialize online status tracking
+  useOnlineStatus(); // Initialize online status tracking
 
   // Handle deep linking for OAuth callbacks
   useEffect(() => {
@@ -127,6 +130,7 @@ const PublicRoute = ({ children }) => {
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, dbUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [showPhoneAuth, setShowPhoneAuth] = useState(false);
   const [showPhoneCollect, setShowPhoneCollect] = useState(false);
 
@@ -175,6 +179,7 @@ const ProtectedRoute = ({ children }) => {
           isOpen={showPhoneAuth}
           onClose={() => setShowPhoneAuth(false)}
           onAuthSuccess={handleAuthSuccess}
+          onBackToLogin={() => { setShowPhoneAuth(false); navigate('/login'); }}
         />
       </>
     );
@@ -199,10 +204,10 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const App = () => {
-  useEffect(() => {
-    // App khulte hi notification system start karo
-    initializePushNotifications();
-  }, []);
+  // useEffect(() => {
+  //   // App khulte hi notification system start karo
+  //   initializePushNotifications();
+  // }, []);
 
   return (
     <Suspense fallback={
@@ -219,7 +224,13 @@ const App = () => {
           {/* Global Components */}
           <CallStatusIndicator />
           <IncomingCallModal />
-          <Toaster position="bottom-right" />
+          <Toaster
+             position="bottom"
+             containerStyle={{
+               left: '62%',
+               top: '70%',
+               transform: 'translate(-50%, -50%)'
+             }} />
         </ChatThemeProvider>
       </DataProvider>
     </Suspense>

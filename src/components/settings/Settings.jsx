@@ -7,13 +7,13 @@ import { useData } from '../../contexts/DataContext';
 import { clearAllCachedData } from '../../utils/FileSystemManager';
 import { MoreVertical } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
+import toast from 'react-hot-toast';
 import '../../styles/settings.css';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { theme, toggleTheme } = useTheme();
-  const { chatTheme, chatThemes, selectTheme, currentThemeData } = useChatTheme();
   const baseUrl = import.meta.env.BASE_URL || '/';
   const [settings, setSettings] = useState({
     // Notifications
@@ -38,7 +38,6 @@ const Settings = () => {
   const [showPrivacyOptions, setShowPrivacyOptions] = useState(false);
   const [showStorageDetails, setShowStorageDetails] = useState(false);
   const [showRingtoneModal, setShowRingtoneModal] = useState(false);
-  const [showChatThemeModal, setShowChatThemeModal] = useState(false);
   const [currentPlayingAudio, setCurrentPlayingAudio] = useState(null);
   const [selectedRingtone, setSelectedRingtone] = useState('fm-freemusic-give-me-a-smile(chosic.com).mp3');
 
@@ -148,21 +147,11 @@ const Settings = () => {
   // Handle theme toggle
   const handleThemeToggle = () => {
     toggleTheme();
-    alert(`${theme === 'dark' ? 'Light' : 'Dark'} mode enabled`);
+    toast.success(`${theme === 'dark' ? 'Light' : 'Dark'} mode enabled`);
   };
 
-  // Handle chat theme selection
-  const handleChatThemeSelection = () => {
-    setShowChatThemeModal(true);
-  };
 
-  // Select chat theme
-  const selectChatTheme = async (themeKey) => {
-    await selectTheme(themeKey);
-    setShowChatThemeModal(false);
-    alert(`Chat theme "${chatThemes[themeKey].name}" applied`);
-  };
-
+  
   // Handle setting toggle
   const handleSettingToggle = (settingKey) => {
     const newValue = !settings[settingKey];
@@ -218,7 +207,7 @@ const Settings = () => {
     }
 
     setShowRingtoneModal(false);
-    alert('Call ringtone updated');
+    toast.success('Call ringtone updated');
   };
 
   const { clearInMemoryCache } = useData();
@@ -230,21 +219,21 @@ const Settings = () => {
     if (!confirm('This will clear all cached app data, including chats and media from this device. Continue?')) return;
 
     try {
-      alert('Clearing all cached data...');
-      
+      toast.success('Clearing all cached data...');
+
       // Delete all files from the device
       await clearAllCachedData();
-      
+
       // Clear the state in the running application
       clearInMemoryCache();
 
       // Recalculate storage usage
       await calculateStorageUsage();
 
-      alert('All cached data has been cleared.');
+      toast.success('All cached data has been cleared.');
     } catch (error) {
       console.error('Error clearing cache:', error);
-      alert('Failed to clear cache.');
+      toast.error('Failed to clear cache.');
     }
   };
 
@@ -283,12 +272,12 @@ const Settings = () => {
 
       // Clear local storage and navigate to login
       localStorage.clear();
-      alert('Account deleted successfully');
+      toast.success('Account deleted successfully');
       navigate('/login');
 
     } catch (error) {
       console.error('Error deleting account:', error);
-      alert('Failed to delete account');
+      toast.error('Failed to delete account');
     }
   };
 
@@ -430,16 +419,7 @@ const Settings = () => {
             </div>
           </div>
 
-          <div className="settings-item" onClick={handleChatThemeSelection}>
-            <div className="item-left">
-              <i className="fas fa-comments"></i>
-              <span className="label">Chat Theme</span>
-            </div>
-            <div className="item-right">
-              <span className="value">{currentThemeData.name}</span>
-              <span className="icon arrow">›</span>
-            </div>
-          </div>
+          
         </div>
 
         {/* Notifications Section */}
@@ -733,78 +713,7 @@ const Settings = () => {
         </div>
       )}
 
-      {/* Chat Theme Modal */}
-      {showChatThemeModal && (
-        <div className="modal" style={{ display: 'flex' }}>
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>Choose Chat Theme</h2>
-              <button className="close-modal" onClick={() => setShowChatThemeModal(false)}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '15px' }}>
-                {Object.entries(chatThemes).map(([key, theme]) => (
-                  <div
-                    key={key}
-                    className={`theme-item ${chatTheme === key ? 'active' : ''}`}
-                    onClick={() => selectChatTheme(key)}
-                    style={{
-                      cursor: 'pointer',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      transition: 'transform 0.2s, box-shadow 0.2s',
-                      border: chatTheme === key ? '3px solid var(--primary-color)' : '1px solid #ddd',
-                      height: '80px'
-                    }}
-                  >
-                    <div style={{
-                      width: '100%',
-                      height: '60%',
-                      background: theme.background,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center'
-                    }}></div>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '4px 8px',
-                      height: '40%'
-                    }}>
-                      <div style={{
-                        width: '35px',
-                        height: '8px',
-                        borderRadius: '4px',
-                        background: theme.sentMessage.background
-                      }}></div>
-                      <div style={{
-                        width: '35px',
-                        height: '8px',
-                        borderRadius: '4px',
-                        background: theme.receivedMessage.background
-                      }}></div>
-                    </div>
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '5px',
-                      left: '8px',
-                      right: '8px',
-                      fontSize: '0.7rem',
-                      fontWeight: '500',
-                      color: '#ffffff',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                      textAlign: 'center'
-                    }}>
-                      {theme.name}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      
       
       {/* Bottom Navigation */}
       <BottomNavigation />

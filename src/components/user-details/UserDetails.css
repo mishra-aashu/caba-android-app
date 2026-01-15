@@ -110,6 +110,13 @@
     color: var(--muted-text);
 }
 
+.user-detail-status {
+    font-size: 0.9rem;
+    color: var(--muted-text);
+    margin: 0.25rem 0 0;
+    font-style: italic;
+}
+
 /* Actions */
 .user-actions {
     display: flex;

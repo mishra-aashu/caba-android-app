@@ -3,7 +3,7 @@ import { supabase } from '../../config/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import '../../styles/PhoneModal.css';
 
-const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onCollectSuccess }) => {
+const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onCollectSuccess, onBackToLogin = () => {} }) => {
   const { signInWithPhone } = useAuth();
   const [step, setStep] = useState('phone'); // 'phone', 'name'
   const [phone, setPhone] = useState('');
@@ -170,6 +170,7 @@ const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onColle
             <button className="continue-btn" type="submit" disabled={loading}>
               {loading ? 'Checking...' : 'Continue'}
             </button>
+            <p className="back-to-login-link" onClick={onBackToLogin}>Back to Login</p>
           </form>
         ) : (
           <form onSubmit={handleNameSubmit}>

@@ -27,13 +27,3 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-
-// --- FORCE PLUGINS FIX ---
-subprojects {
-    afterEvaluate { project ->
-        // Ye plugin ki "Java 21 chahiye" wali zid ko shant karta hai
-        tasks.withType(JavaCompile).configureEach {
-            javaCompiler = null
-        }
-    }
-}

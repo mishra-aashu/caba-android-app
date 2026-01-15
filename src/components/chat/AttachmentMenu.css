@@ -80,3 +80,22 @@
   font-size: 13px;
   font-weight: 500;
 }
+
+/* Desktop specific adjustments */
+@media (min-width: 769px) {
+  .attachment-overlay {
+    position: absolute; /* Change from fixed to absolute for desktop */
+    width: 100%; /* Full width of chat container */
+    height: 100%; /* Full height of chat container */
+    top: 0;
+    left: 0;
+    z-index: 999;
+  }
+
+  .attachment-card {
+    bottom: 80px;
+    left: 10px;
+    width: calc(100% - 20px); /* Adjust for padding */
+    max-width: 350px;
+  }
+}

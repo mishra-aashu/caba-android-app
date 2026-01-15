@@ -8,6 +8,7 @@ import { CallHistory } from '../CallHistory';
 import { CallButton } from '../CallButton';
 import { IncomingCallModal } from '../IncomingCallModal';
 import BottomNavigation from '../common/BottomNavigation';
+import { isUserOnline } from '../../utils/timeUtils';
 import '../../styles/calls.css';
 
 const Calls = () => {
@@ -337,7 +338,7 @@ const Calls = () => {
                         getInitials(contact.name)
                       )}
                     </div>
-                    <span className={`online-status ${contact.is_online ? 'online' : ''}`}></span>
+                    <span className={`online-status ${isUserOnline(Boolean(contact.is_online), contact.last_seen) ? 'online' : ''}`}></span>
                   </div>
                   <div className="contact-info">
                     <h4>{contact.contact_name || contact.name}</h4>

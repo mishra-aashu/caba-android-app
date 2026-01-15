@@ -16,8 +16,9 @@ import MediaViewer from '../media/MediaViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useTypingIndicator } from '../../hooks/useRealtimeTyping';
 import { useMessageStatusUpdates } from '../../hooks/useMessageStatusUpdates';
-import { formatLastSeen } from '../../utils/timeUtils';
+import { formatLastSeen, isUserOnline } from '../../utils/timeUtils';
 import NotificationSound from '../../utils/notificationSound';
+import toast from 'react-hot-toast';
 import '../../styles/chat.css';
 
 import './AttachmentMenu.css';
@@ -128,6 +129,32 @@ const Chat = () => {
     const tempChats = JSON.parse(localStorage.getItem('tempChats') || '{}');
     setIsTempChat(!!tempChats[chatId]);
   }, [chatId, currentUser]);
+
+  // Subscribe to real-time updates for other user's online status
+  useEffect(() => {
+    if (!otherUserId) return;
+
+    const subscription = supabase
+      .channel(`user_status_${otherUserId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'users',
+        filter: `id=eq.${otherUserId}`
+      }, (payload) => {
+        const updatedUser = payload.new;
+        setOtherUser(prev => ({
+          ...prev,
+          is_online: Boolean(updatedUser.is_online),
+          last_seen: updatedUser.last_seen
+        }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [otherUserId]);
 
   const loadMessages = async (isLoadMore = false) => {
     if (!chatId || chatId === 'new') return;
@@ -682,7 +709,7 @@ const Chat = () => {
           <div className="user-details">
             <h3 className="user-name">{otherUser.contact_name || otherUser.name}</h3>
             <p className="user-status">
-              {isOtherUserTyping ? 'typing...' : otherUser.is_online ? 'Online' : 'Offline'}
+              {isOtherUserTyping ? 'typing...' : isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen) ? 'Online' : `Last seen ${formatLastSeen(otherUser.last_seen)}`}
             </p>
           </div>
         </div>

@@ -1,11 +1,12 @@
 import React from 'react';
 import { IonIcon } from '@ionic/react';
 import { checkmarkDoneOutline, checkmarkOutline, micOutline, imageOutline } from 'ionicons/icons';
+import { formatLastSeen } from '../../utils/timeUtils';
 import '../../styles/ChatListItem.css'; // Adjust path as necessary
 
 const ChatListItem = ({ chat, onClick }) => {
   // Props destructuring (Aapka Supabase data yahan aayega)
-  const { name, avatar, lastMessage, time, unreadCount, isMyMessage, status, type } = chat;
+  const { name, avatar, lastMessage, time, unreadCount, isMyMessage, status, type, is_online, last_seen } = chat;
 
   // Icon Logic Helper
   const getStatusIcon = () => {
@@ -29,11 +30,11 @@ const ChatListItem = ({ chat, onClick }) => {
       {/* 2. RIGHT: CONTENT (Border iske neeche aayegi) */}
       <div className="chat-info">
         
-        {/* Top Row: Name & Time */}
+        {/* Top Row: Name & Status/Time */}
         <div className="chat-header">
           <span className="chat-name">{name}</span>
-          <span className={`chat-time ${unreadCount > 0 ? 'active' : ''}`}>
-            {time}
+          <span className={`chat-status ${unreadCount > 0 ? 'active' : ''}`}>
+            {is_online ? 'Online' : `Last seen ${formatLastSeen(last_seen)}`}
           </span>
         </div>
 

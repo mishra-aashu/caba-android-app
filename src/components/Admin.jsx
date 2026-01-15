@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useAuth } from '../hooks/useAuth';
 import { dpOptions } from '../utils/dpOptions';
+import { isUserOnline } from '../utils/timeUtils';
 import {
   ArrowLeft, MessageSquare, Users, Settings, BarChart3, Shield,
   UserCheck, UserX, User, MessageCircle, Newspaper, Flag, Activity,
@@ -189,7 +190,7 @@ const Admin = () => {
         mediaResult,
         callsResult
       ] = await Promise.all([
-        supabase.from('users').select('id, is_online', { count: 'exact' }),
+        supabase.from('users').select('id, is_online, last_seen'),
         supabase.from('messages').select('*', { count: 'exact', head: true }),
         supabase.from('chats').select('*', { count: 'exact', head: true }),
         supabase.from('news_articles').select('*', { count: 'exact', head: true }),
@@ -198,10 +199,10 @@ const Admin = () => {
         supabase.from('call_history').select('*', { count: 'exact', head: true })
       ]);
 
-      const onlineUsers = usersResult.data?.filter(u => u.is_online).length || 0;
+      const onlineUsers = usersResult.data?.filter(u => isUserOnline(Boolean(u.is_online), u.last_seen)).length || 0;
 
       setStats({
-        totalUsers: usersResult.count || 0,
+        totalUsers: usersResult.data?.length || 0,
         totalMessages: messagesResult.count || 0,
         onlineUsers,
         totalChats: chatsResult.count || 0,
@@ -230,7 +231,7 @@ const Admin = () => {
         try {
           const { data: simpleUsers, error: simpleError } = await supabase
             .from('users')
-            .select('id, name, email, phone, avatar, is_admin, is_online, created_at')
+            .select('id, name, email, phone, avatar, is_admin, is_online, last_seen, created_at')
             .order('created_at', { ascending: false });
           
           if (simpleError) {
@@ -1108,8 +1109,8 @@ const Admin = () => {
                       </div>
 
                       <div className="user-status">
-                        <span className={`status ${user.is_online ? 'online' : 'offline'}`}>
-                          {user.is_online ? 'Online' : 'Offline'}
+                        <span className={`status ${isUserOnline(Boolean(user.is_online), user.last_seen) ? 'online' : 'offline'}`}>
+                          {isUserOnline(Boolean(user.is_online), user.last_seen) ? 'Online' : 'Offline'}
                         </span>
                         {user.is_admin && <span className="admin-tag">Admin</span>}
                       </div>

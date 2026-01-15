@@ -4,6 +4,7 @@ import { useSupabase } from '../contexts/SupabaseContext';
 import { useData } from '../contexts/DataContext';
 import { useCall } from '../context/CallContext';
 import { dpOptions } from '../utils/dpOptions';
+import { formatLastSeen, isUserOnline } from '../utils/timeUtils';
 import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical } from 'lucide-react';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
@@ -39,12 +40,40 @@ const UserDetails = () => {
     const [reportReason, setReportReason] = useState('');
     const [reportDetails, setReportDetails] = useState('');
 
+    // Real-time online status
+    const [currentOnlineStatus, setCurrentOnlineStatus] = useState(null);
+
     useEffect(() => {
         if (!userId || userId === 'undefined' || userId === 'null') {
             navigate('/');
             return;
         }
         loadUserDetails();
+    }, [userId]);
+
+    // Subscribe to real-time updates for user's online status
+    useEffect(() => {
+        if (!userId) return;
+
+        const subscription = supabase
+            .channel(`user_status_${userId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'users',
+                filter: `id=eq.${userId}`
+            }, (payload) => {
+                const updatedUser = payload.new;
+                setCurrentOnlineStatus({
+                    is_online: updatedUser.is_online,
+                    last_seen: updatedUser.last_seen
+                });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(subscription);
+        };
     }, [userId]);
 
     const loadUserDetails = async () => {
@@ -675,6 +704,9 @@ const UserDetails = () => {
                 </div>
                 <h2 className="user-detail-name" id="userDetailName">{user.contact_name || user.name}</h2>
                 <p className="user-detail-phone" id="userDetailPhone">{user.phone || '+91 0000000000'}</p>
+                <p className="user-detail-status">
+                    {isUserOnline(Boolean(currentOnlineStatus?.is_online), currentOnlineStatus?.last_seen || user.last_seen) ? 'Online' : `Last seen ${formatLastSeen(currentOnlineStatus?.last_seen || user.last_seen)}`}
+                </p>
             </div>
 
             <div className="user-actions">
