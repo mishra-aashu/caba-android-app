@@ -13,7 +13,8 @@ import {
   RotateCcw,
   Volume2,
   VolumeX,
-  ArrowLeft
+  ArrowLeft,
+  Monitor
 } from 'lucide-react';
 
 function CallScreen() {
@@ -29,10 +30,12 @@ function CallScreen() {
     isMuted,
     isVideoOff,
     isSpeakerOn,
+    isScreenSharing,
     callDuration,
     endCall,
     toggleMute,
     toggleVideo,
+    toggleScreenShare,
     switchCamera
   } = useCall();
 
@@ -217,6 +220,16 @@ function CallScreen() {
               <Mic className="control-icon" />
             )}
           </button>
+
+          {/* Screen Share Button (only for video calls) */}
+          {isVideoCall && (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleScreenShare(); }}
+              className={`control-button ${isScreenSharing ? 'screen-sharing' : ''}`}
+            >
+              <Monitor className="control-icon" />
+            </button>
+          )}
 
           {/* Video Toggle (only for video calls) */}
           {isVideoCall && (

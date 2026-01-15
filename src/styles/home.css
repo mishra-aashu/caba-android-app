@@ -59,6 +59,16 @@
   padding: 1rem;
   gap: 1rem;
   overflow-y: auto;
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 5; /* Ensure it's above the aurora background */
+}
+
+[data-theme='dark'] .sidebar {
+    background: rgba(30, 30, 30, 0.6);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .chat-pane {
@@ -125,7 +135,18 @@
   transition: background-color 0.2s;
 }
 .chat-item:hover {
-  background-color: rgba(0,0,0,0.05);
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.chat-item.active {
+  background-color: var(--brand-primary);
+  color: white;
+  border-radius: 12px;
+}
+
+.chat-item.active .chat-meta .preview,
+.chat-item.active .chat-time {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .avatar {
@@ -149,7 +170,7 @@
   overflow: hidden;
 }
 .chat-meta .title {
-  font-weight: 600;
+  font-weight: 700; /* Bolder name */
 }
 .chat-meta .preview {
   font-size: 0.9rem;
@@ -157,6 +178,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 400; /* Lighter preview text */
 }
 .chat-time {
   font-size: 0.8rem;

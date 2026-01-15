@@ -14,6 +14,7 @@ const ACTIONS = {
   TOGGLE_MUTE: 'TOGGLE_MUTE',
   TOGGLE_VIDEO: 'TOGGLE_VIDEO',
   TOGGLE_SPEAKER: 'TOGGLE_SPEAKER',
+  TOGGLE_SCREEN_SHARE: 'TOGGLE_SCREEN_SHARE',
   RESET_CALL: 'RESET_CALL',
   SET_ERROR: 'SET_ERROR',
   SET_CALLER_INFO: 'SET_CALLER_INFO'
@@ -32,6 +33,7 @@ const initialState = {
   isMuted: false,
   isVideoOff: false,
   isSpeakerOn: true,
+  isScreenSharing: false,
   callDuration: 0,
   error: null
 };
@@ -55,6 +57,8 @@ function callReducer(state, action) {
       return { ...state, isVideoOff: action.payload };
     case ACTIONS.TOGGLE_SPEAKER:
       return { ...state, isSpeakerOn: action.payload };
+    case ACTIONS.TOGGLE_SCREEN_SHARE:
+      return { ...state, isScreenSharing: action.payload };
     case ACTIONS.SET_CALLER_INFO:
       return { ...state, callerInfo: action.payload };
     case ACTIONS.SET_ERROR:
@@ -315,6 +319,12 @@ export function CallProvider({ children, currentUser }) {
     }
   }, []);
 
+  const toggleScreenShare = useCallback(async () => {
+    const isScreenSharing = await webRTCService.toggleScreenShare();
+    dispatch({ type: ACTIONS.TOGGLE_SCREEN_SHARE, payload: isScreenSharing });
+    return isScreenSharing;
+  }, []);
+
   const value = {
     ...state,
     startCall,
@@ -323,6 +333,7 @@ export function CallProvider({ children, currentUser }) {
     endCall,
     toggleMute,
     toggleVideo,
+    toggleScreenShare,
     switchCamera
   };
 

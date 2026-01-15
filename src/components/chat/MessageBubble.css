@@ -41,14 +41,16 @@
 /* --- CONTENT ALIGNMENT (Text + Time) --- */
 .message-content {
   display: flex;
-  flex-wrap: wrap; /* IMPORTANT: Agar text bada hai to time neeche aa jayega */
-  align-items: flex-end; /* Time hamesha bottom line par rahega */
+  flex-wrap: nowrap; /* Prevent wrapping */
+  align-items: flex-end;
 }
 
 .text {
-  margin-right: 10px; /* Text aur Time ke beech gap */
-  word-wrap: break-word; /* Lambe words todne ke liye */
-  white-space: pre-wrap; /* Line breaks ke liye */
+  margin-right: 10px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  flex-shrink: 1; /* Allow text to shrink */
+  min-width: 0; /* Allow text to shrink below its minimum content size */
 }
 
 /* Deleted Text Styling (Grey aur Italic) */

@@ -264,12 +264,14 @@
   box-shadow: 0 8px 20px rgba(239, 68, 68, 0.6);
 }
 
-.control-button.speaker-on {
+.control-button.speaker-on,
+.control-button.screen-sharing {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-.control-button.speaker-on:hover {
+.control-button.speaker-on:hover,
+.control-button.screen-sharing:hover {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   box-shadow: 0 8px 20px rgba(59, 130, 246, 0.6);
 }

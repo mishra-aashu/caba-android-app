@@ -13,8 +13,14 @@
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
-  background: var(--chat-bg-gradient);
-  padding-bottom: 80px; /* Space for the input */
+  background:
+    /* Top layer: Doodle pattern */
+    url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3e%3cg fill='%23000000' fill-opacity='0.08'%3e%3ccircle cx='50' cy='50' r='3'/%3e%3ccircle cx='10' cy='10' r='2'/%3e%3ccircle cx='90' cy='90' r='2'/%3e%3ccircle cx='10' cy='90' r='1'/%3e%3ccircle cx='90' cy='10' r='1'/%3e%3c/g%3e%3c/svg%3e"),
+    /* Base layer: Dynamic theme from context */
+    var(--chat-bg-gradient);
+  background-size: 300px 300px, cover;
+  background-repeat: repeat, no-repeat;
+  padding-bottom: 40px; /* Space for the input */
   transition: background 0.3s ease;
 }
 
@@ -109,24 +115,25 @@
 
 .message-bubble {
   max-width: 75%;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-lg);
+  padding: 0.6rem 1rem; /* Increased padding */
+  border-radius: 12px; /* Base radius */
   font-size: 0.9rem;
   line-height: 1.4;
   word-wrap: break-word;
   position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
 .message.received .message-bubble {
   background: var(--received-message-background);
   color: var(--text-primary);
-  border-bottom-left-radius: var(--radius-sm);
+  border-radius: 12px 12px 12px 0; /* Asymmetrical radius */
 }
 
 .message.sent .message-bubble {
   background: var(--sent-message-background);
   color: var(--text-on-primary, #fff); /* Default to white if not set */
-  border-bottom-right-radius: var(--radius-sm);
+  border-radius: 12px 12px 0 12px; /* Asymmetrical radius */
 }
 
 .messages-wrapper {
@@ -137,17 +144,17 @@
 }
 
 .message-time {
-  font-size: 0.65rem;
+  font-size: 11px; /* Smaller font size */
   color: var(--text-secondary);
   margin-top: 0.25rem;
   text-align: right;
+  opacity: 0.8; /* Less prominent */
 }
 
 /* Chat Input Area */
 .chat-input-container {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem; /* Added vertical padding */
   background: transparent;
-  border-top: none;
   position: sticky;
   bottom: 0;
   z-index: 10;
@@ -155,32 +162,30 @@
 
 .input-row {
   display: flex;
-  align-items: flex-end;
-  /* Removed gap: 0.5rem; */
-  background-color: var(--surface-color);
+  align-items: center; /* Vertically center align items */
+  background-color: var(--surface, rgba(255,255,255,0.1)); /* Soft background */
   padding: 8px 12px;
-  border-radius: 24px;
+  border-radius: 30px; /* More pronounced capsule shape */
   box-shadow: var(--shadow-md);
-  justify-content: space-between;
+  gap: 0.5rem; /* Use gap for spacing */
 }
 
+/* This class is no longer needed with the new gap property on input-row */
 .left-buttons {
     display: flex;
     gap: 0.5rem;
-    margin-right: 0.5rem; /* Space between buttons and textarea */
 }
 
 .chat-input {
   flex: 1;
   border: none;
-  border-radius: 0;
   padding: 0.5rem 0.25rem;
   background: transparent;
   color: var(--text-primary);
   outline: none;
   resize: none;
   font-size: 1rem;
-  min-height: auto;
+  line-height: 1.5;
   max-height: 120px;
 }
 
@@ -189,8 +194,8 @@
 }
 
 .btn-attach, .btn-send, .btn-quick-reply {
-  width: 44px;
-  height: 44px;
+  width: 40px; /* Slightly smaller buttons */
+  height: 40px;
   background: transparent;
   color: var(--text-secondary);
   border-radius: 50%;
@@ -202,18 +207,22 @@
   cursor: pointer;
 }
 .btn-attach:hover, .btn-quick-reply:hover {
-    background-color: var(--bg-color);
+    background-color: var(--hover-color);
 }
 
 .btn-send {
     background-color: var(--brand-primary);
     color: white;
 }
+.btn-send:hover {
+    filter: brightness(1.1);
+}
 
 .btn-send:disabled {
   background: var(--bg-color);
   color: var(--text-secondary);
   cursor: not-allowed;
+  filter: grayscale(1);
 }
 
 /* --- Date Separator --- */
@@ -404,3 +413,25 @@
   }
 }
 
+/* =============================================
+    DESKTOP ADJUSTMENTS
+    ============================================= */
+
+@media (min-width: 769px) {
+  .chat-screen {
+    height: 100%;
+  }
+
+  .messages-container {
+    padding-top: 0.5rem;
+  }
+
+  .chat-input-container {
+    padding: 0 0 0 0;
+  }
+
+  .input-row {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}

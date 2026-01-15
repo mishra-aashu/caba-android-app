@@ -14,6 +14,9 @@ class WebRTCService {
     this.onCallEnd = null;
     this.onConnectionStateChange = null;
     this.iceCandidatesQueue = [];
+    this.isScreenSharing = false;
+    this.originalVideoTrack = null;
+    this.screenStream = null;
 
     // Load TURN servers configuration
     this.loadTurnConfig();
@@ -541,6 +544,58 @@ class WebRTCService {
       }
     }
     return null;
+  }
+
+  /**
+   * Toggle screen sharing
+   */
+  async toggleScreenShare() {
+    if (!this.peerConnection) {
+      console.error('Cannot toggle screen share without a peer connection.');
+      return false;
+    }
+
+    const videoSender = this.peerConnection.getSenders().find(s => s.track?.kind === 'video');
+    if (!videoSender) {
+      console.error('Cannot toggle screen share without a video track.');
+      return false;
+    }
+
+    if (this.isScreenSharing) {
+      // Stop screen sharing
+      this.screenStream.getTracks().forEach(track => track.stop());
+      await videoSender.replaceTrack(this.originalVideoTrack);
+      this.localStream.removeTrack(this.localStream.getVideoTracks()[0]);
+      this.localStream.addTrack(this.originalVideoTrack);
+
+      this.isScreenSharing = false;
+      this.screenStream = null;
+      this.originalVideoTrack = null;
+
+      console.log('📺 Screen sharing stopped');
+      return false;
+    } else {
+      // Start screen sharing
+      try {
+        this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = this.screenStream.getVideoTracks()[0];
+        
+        this.originalVideoTrack = this.localStream.getVideoTracks()[0];
+        await videoSender.replaceTrack(screenTrack);
+        
+        // When the user stops sharing via the browser UI
+        screenTrack.onended = () => {
+          this.toggleScreenShare();
+        };
+        
+        this.isScreenSharing = true;
+        console.log('📺 Screen sharing started');
+        return true;
+      } catch (error) {
+        console.error('❌ Error starting screen share:', error);
+        return false;
+      }
+    }
   }
 
   /**

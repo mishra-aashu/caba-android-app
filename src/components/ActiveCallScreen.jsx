@@ -9,7 +9,8 @@ import {
   VideoOff,
   RotateCcw,
   Volume2,
-  VolumeX
+  VolumeX,
+  ScreenShare
 } from 'lucide-react';
 
 export function ActiveCallScreen() {
@@ -23,10 +24,12 @@ export function ActiveCallScreen() {
     isMuted,
     isVideoOff,
     isSpeakerOn,
+    isScreenSharing,
     callDuration,
     endCall,
     toggleMute,
     toggleVideo,
+    toggleScreenShare,
     switchCamera
   } = useCall();
 
@@ -173,6 +176,18 @@ export function ActiveCallScreen() {
             </button>
           )}
 
+          {/* Screen Share Button (only for video calls) */}
+          {isVideoCall && (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleScreenShare(); }}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                isScreenSharing ? 'bg-blue-500' : 'bg-white/20 hover:bg-white/30'
+              }`}
+            >
+              <ScreenShare className="w-6 h-6 text-white" />
+            </button>
+          )}
+
           {/* End Call Button */}
           <button
             onClick={(e) => { e.stopPropagation(); endCall(); }}
@@ -211,5 +226,6 @@ export function ActiveCallScreen() {
     </div>
   );
 }
+
 
 export default ActiveCallScreen;
