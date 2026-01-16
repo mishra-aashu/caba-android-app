@@ -6,7 +6,7 @@ import { useCall } from '../../context/CallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
 import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
-import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit } from 'lucide-react';
+import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
 import MessageList from './MessageList';
@@ -16,6 +16,8 @@ import MediaViewer from '../media/MediaViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useTypingIndicator } from '../../hooks/useRealtimeTyping';
 import { useMessageStatusUpdates } from '../../hooks/useMessageStatusUpdates';
+import { useChatListRealtime } from '../../hooks/useChatListRealtime';
+import ForwardModal from './ForwardModal';
 import { formatLastSeen, isUserOnline } from '../../utils/timeUtils';
 import NotificationSound from '../../utils/notificationSound';
 import toast from 'react-hot-toast';
@@ -60,6 +62,8 @@ const Chat = () => {
    const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
    const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
    const [replyingTo, setReplyingTo] = useState(null);
+   const [showForwardModal, setShowForwardModal] = useState(false);
+   const [messagesToForward, setMessagesToForward] = useState([]);
 
    const messagesEndRef = useRef(null);
    const messagesContainerRef = useRef(null);
@@ -100,6 +104,8 @@ const Chat = () => {
 
   useMessageStatusUpdates(validChatId, handleStatusUpdate);
 
+  const { chats: allChats } = useChatListRealtime(currentUser?.id);
+
   // Initialize chat when auth is ready
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -116,10 +122,12 @@ const Chat = () => {
     };
   }, [chatId, otherUserId, authLoading, isAuthenticated, currentUser]);
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change (only if user is already at bottom)
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isScrolledToBottom) {
+      scrollToBottom();
+    }
+  }, [messages, isScrolledToBottom]);
 
   // Load mute and temp chat preferences
   useEffect(() => {
@@ -272,58 +280,69 @@ const Chat = () => {
   };
 
 
-  const sendMessage = async (content, mediaData = null) => {
-    if ((!content.trim() && !mediaData) || !currentUser) return;
+  const sendMessage = async (content) => {
+    if (!content.trim() || !currentUser) return;
 
     try {
       const newMessage = {
-        id: crypto.randomUUID(),
-        chat_id: chatId,
+        chat_id: validChatId,
         sender_id: currentUser.id,
         receiver_id: otherUserId,
-        content: content.trim() || (mediaData ? mediaData.fileName : ''),
-        message_type: mediaData ? mediaData.mediaType : 'text',
-        is_read: false
+        content: content.trim(),
+        // All media-related columns will be null for text messages
+        media_path: null,
+        media_type: null,
+        reply_to: replyingTo ? replyingTo.id : null,
       };
-
-      // Add media fields if present
-      if (mediaData) {
-        newMessage.media_url = mediaData.mediaUrl;
-        newMessage.media_type = mediaData.mediaType;
-        newMessage.file_name = mediaData.fileName;
-        newMessage.file_size = mediaData.fileSize;
-      }
 
       const { data, error } = await supabase
         .from('messages')
-        .insert([newMessage])
-        .select();
+        .insert(newMessage)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      if (data && data[0]) {
-        setMessages(prev => [...prev, data[0]]);
-      }
-
-      // Update chat's last message
-      const lastMessageText = mediaData ?
-        `📎 ${mediaData.fileName}` :
-        content.substring(0, 50);
-
-      await supabase
-        .from('chats')
-        .update({
-          last_message: lastMessageText,
-          last_message_time: new Date().toISOString()
-        })
-        .eq('id', chatId);
-
+      // No need to manually add to state, realtime subscription will handle it.
+      // setMessages(prev => [...prev, data]);
+      
       setReplyingTo(null);
-      // Play notification sound when sending message
       NotificationSound.playMessageNotification();
-      // Typing status is automatically handled by the hook when input stops
+
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Failed to send message.');
+    }
+  };
+
+  const handleSendMedia = async (mediaPath, mediaType) => {
+    if (!mediaPath || !currentUser) return;
+
+    try {
+      const content = mediaType === 'image' ? '📷 Photo' : '🎥 Video';
+      
+      const newMessage = {
+        chat_id: validChatId,
+        sender_id: currentUser.id,
+        receiver_id: otherUserId,
+        content: content,
+        media_path: mediaPath,
+        media_type: mediaType,
+        reply_to: replyingTo ? replyingTo.id : null,
+      };
+
+      const { error } = await supabase
+        .from('messages')
+        .insert(newMessage);
+
+      if (error) throw error;
+      
+      setReplyingTo(null);
+      NotificationSound.playMessageNotification();
+
+    } catch (error) {
+      console.error('Error sending media message:', error);
+      toast.error('Failed to send media.');
     }
   };
 
@@ -419,13 +438,43 @@ const Chat = () => {
     setShowDeleteModal(false);
   };
 
+  const handleForwardMessages = async (messages, targetChat) => {
+    try {
+      for (const message of messages) {
+        const forwardMessage = {
+          chat_id: targetChat.id,
+          sender_id: currentUser.id,
+          receiver_id: targetChat.otherUser.id,
+          content: `Forwarded: ${message.content}`,
+          media_path: message.media_path,
+          media_type: message.media_type,
+          reply_to: null,
+        };
+
+        const { error } = await supabase
+          .from('messages')
+          .insert(forwardMessage);
+
+        if (error) throw error;
+      }
+
+      toast.success(`Message${messages.length > 1 ? 's' : ''} forwarded successfully`);
+    } catch (error) {
+      console.error('Error forwarding messages:', error);
+      toast.error('Failed to forward messages');
+    }
+  };
+
+  const handleForwardMessage = (message) => {
+    setMessagesToForward([message]);
+    setShowForwardModal(true);
+  };
+
   const handleSelectionForward = () => {
-    // Copy selected messages to clipboard for forwarding
     const selectedMsgs = messages.filter(msg => selectedMessages.has(msg.id));
-    const forwardText = selectedMsgs.map(msg => `${msg.sender_id === currentUser.id ? 'You' : otherUser.name}: ${msg.content}`).join('\n\n');
-    navigator.clipboard.writeText(`Forwarded messages:\n\n${forwardText}`);
+    setMessagesToForward(selectedMsgs);
+    setShowForwardModal(true);
     exitSelectionMode();
-    alert('Messages copied to clipboard for forwarding');
   };
 
   const handleSelectionCopy = () => {
@@ -788,15 +837,49 @@ const Chat = () => {
             {selectedMessages.size} selected
           </div>
           <div className="selection-actions">
-            <button className="selection-action-btn" title="Copy" onClick={handleSelectionCopy}>
-              <Copy size={16} />
-            </button>
-            <button className="selection-action-btn" title="Forward" onClick={handleSelectionForward}>
-              <ArrowRight size={16} />
-            </button>
-            <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
-              <Trash2 size={16} />
-            </button>
+            {selectedMessages.size === 1 && (
+              <>
+                <button
+                  className="selection-action-btn"
+                  title="Reply"
+                  onClick={() => {
+                    const messageId = Array.from(selectedMessages)[0];
+                    const message = messages.find(msg => msg.id === messageId);
+                    if (message) handleReply(message);
+                    exitSelectionMode();
+                  }}
+                >
+                  <Reply size={16} />
+                </button>
+                <button className="selection-action-btn" title="Copy" onClick={handleSelectionCopy}>
+                  <Copy size={16} />
+                </button>
+                <button className="selection-action-btn" title="Forward" onClick={handleSelectionForward}>
+                  <ArrowRight size={16} />
+                </button>
+                {Array.from(selectedMessages).every(messageId => {
+                  const message = messages.find(msg => msg.id === messageId);
+                  return message && message.sender_id === currentUser?.id;
+                }) && (
+                  <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </>
+            )}
+            {selectedMessages.size > 1 && (
+              <>
+                <button className="selection-action-btn" title="Copy" onClick={handleSelectionCopy}>
+                  <Copy size={16} />
+                </button>
+                <button className="selection-action-btn" title="Forward" onClick={handleSelectionForward}>
+                  <ArrowRight size={16} />
+                </button>
+                <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -822,6 +905,7 @@ const Chat = () => {
           isSelectionMode={isSelectionMode}
           onMessageSelect={handleMessageSelect}
           onReply={handleReply}
+          onForward={handleForwardMessage}
           onDelete={(messageId) => setMessages(prev => prev.filter(m => m.id !== messageId))}
           onMediaView={handleMediaView}
           onMediaDownload={handleMediaDownload}
@@ -845,11 +929,13 @@ const Chat = () => {
       {/* Message Input */}
       <MessageInput
         onSendMessage={sendMessage}
+        onSendMedia={handleSendMedia} // Pass the new media handler
         onTyping={handleTyping}
         replyingTo={replyingTo}
         onCancelReply={cancelReply}
         chatId={chatId}
         receiverId={otherUserId}
+        currentUser={currentUser} // Pass the current user object
       />
 
 
@@ -1047,6 +1133,19 @@ const Chat = () => {
         }}
         mediaId={currentMediaInfo?.mediaId}
         fileInfo={currentMediaInfo?.fileInfo}
+      />
+
+      {/* Forward Modal */}
+      <ForwardModal
+        isOpen={showForwardModal}
+        onClose={() => {
+          setShowForwardModal(false);
+          setMessagesToForward([]);
+        }}
+        chats={allChats}
+        messagesToForward={messagesToForward}
+        onForward={handleForwardMessages}
+        currentUser={currentUser}
       />
 
     </div>

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCall } from '../context/CallContext';
 // import '../../styles/call-screen.css';
@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   Monitor
 } from 'lucide-react';
+
+const DeepARComponent = lazy(() => import('./DeepARComponent'));
 
 function CallScreen() {
   const { callId: routeCallId } = useParams();
@@ -36,7 +38,9 @@ function CallScreen() {
     toggleMute,
     toggleVideo,
     toggleScreenShare,
-    switchCamera
+    switchCamera,
+    replaceLocalStream,
+    restoreCameraStream,
   } = useCall();
 
   const localVideoRef = useRef(null);
@@ -44,6 +48,22 @@ function CallScreen() {
   const remoteAudioRef = useRef(null);
   const [showControls, setShowControls] = useState(true);
   const [isSwapped, setIsSwapped] = useState(false);
+  const [showDeepAR, setShowDeepAR] = useState(false);
+  const [deepARStream, setDeepARStream] = useState(null);
+  const [isDeepARLoading, setIsDeepARLoading] = useState(false);
+
+  const handleDeepARStream = useCallback((stream) => {
+    setDeepARStream(stream);
+  }, []);
+
+  useEffect(() => {
+    if (showDeepAR && deepARStream) {
+      replaceLocalStream(deepARStream);
+    } else if (!showDeepAR && deepARStream) {
+      restoreCameraStream();
+    }
+  }, [showDeepAR, deepARStream, replaceLocalStream, restoreCameraStream]);
+
 
   // Set up video elements
   useEffect(() => {
@@ -101,6 +121,15 @@ function CallScreen() {
   const handleEndCall = async () => {
     await endCall();
     navigate('/', { replace: true });
+  };
+
+  const handleARButtonClick = () => {
+    if (!showDeepAR) {
+      setIsDeepARLoading(true);
+      setShowDeepAR(true);
+    } else {
+      setShowDeepAR(false);
+    }
   };
 
   return (
@@ -190,17 +219,28 @@ function CallScreen() {
         {/* Local Video (Picture-in-Picture) */}
         {isVideoCall && localStream && (
           <div className="pip-container" onClick={() => setIsSwapped(!isSwapped)}>
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted={isSwapped ? false : true}
-              className={`pip-video ${isVideoOff ? 'hidden' : ''}`}
-            />
-            {isVideoOff && (
-              <div className="pip-placeholder">
-                <VideoOff className="pip-icon" />
-              </div>
+           {showDeepAR ? (
+              <Suspense fallback={<div>Loading AR...</div>}>
+                <DeepARComponent onStreamReady={(stream) => {
+                  handleDeepARStream(stream);
+                  setIsDeepARLoading(false);
+                }} />
+              </Suspense>
+            ) : (
+              <>
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted={isSwapped ? false : true}
+                  className={`pip-video ${isVideoOff ? 'hidden' : ''}`}
+                />
+                {isVideoOff && (
+                  <div className="pip-placeholder">
+                    <VideoOff className="pip-icon" />
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -220,6 +260,16 @@ function CallScreen() {
               <Mic className="control-icon" />
             )}
           </button>
+          {/* AR Button */}
+          {isVideoCall && (
+            <button
+              onClick={handleARButtonClick}
+              className={`control-button ${showDeepAR ? 'ar-on' : ''}`}
+              disabled={isDeepARLoading}
+            >
+              {isDeepARLoading ? 'Loading...' : 'AR'}
+            </button>
+          )}
 
           {/* Screen Share Button (only for video calls) */}
           {isVideoCall && (

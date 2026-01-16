@@ -53,8 +53,7 @@ A comprehensive real-time communication platform built with React and Supabase, 
 CaBa/
 ├── public/                    # Static assets & config
 │   ├── assets/audio/         # Notification sounds
-│   ├── assets/images/        # Static images
-│   ├── *.html               # Auth pages (login, signup, etc.)
+│   ├── assets/images/        # Static images 
 │   ├── supabase-config.js   # Supabase configuration
 │   ├── turn-config.js       # WebRTC TURN servers
 │   └── webrtc-calling.js    # Standalone calling script

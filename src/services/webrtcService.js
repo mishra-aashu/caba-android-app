@@ -547,6 +547,18 @@ class WebRTCService {
   }
 
   /**
+   * Replace the video track in the peer connection
+   */
+  async replaceTrack(newTrack) {
+    if (this.peerConnection) {
+      const sender = this.peerConnection.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) {
+        await sender.replaceTrack(newTrack);
+      }
+    }
+  }
+
+  /**
    * Toggle screen sharing
    */
   async toggleScreenShare() {

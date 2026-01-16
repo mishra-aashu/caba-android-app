@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../utils/supabase';
 import MediaMessage from './MediaMessage';
 import {
@@ -6,41 +6,57 @@ import {
   Check,
   CheckCheck,
   MoreVertical,
-  Reply,
-  Copy,
-  Share2,
-  Edit,
-  Trash2,
   Newspaper,
   Bell,
   Clock,
   MapPin,
 } from 'lucide-react';
 import MessageBubble from './MessageBubble';
+import DesktopContextMenu from './DesktopContextMenu';
 
 const MessageItem = ({
   message,
+  repliedMsg,
   currentUser,
   isSelected,
   isSelectionMode,
   onSelect,
   onReply,
+  onForward,
   onDelete,
   onMediaView,
   onMediaDownload,
 }) => {
   const [showActions, setShowActions] = useState(false);
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [touchStartTime, setTouchStartTime] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const bubbleRef = useRef(null);
   const messageRef = useRef(null);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showActions) {
+        // Don't close if clicking on the message item or context menu
+        const isClickOnMessage = messageRef.current && messageRef.current.contains(e.target);
+        const isClickOnContextMenu = e.target.closest('.context-menu');
+
+        if (!isClickOnMessage && !isClickOnContextMenu) {
+          setShowActions(false);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showActions]);
+
   const isSent = message.sender_id === currentUser.id;
   const isReplied = message.reply_to;
+  // Better touch device detection - check if device primarily uses touch
+  const isTouchDevice = window.matchMedia && window.matchMedia('(hover: none)').matches;
 
   const handleLongPress = (e) => {
     e.preventDefault();
@@ -70,8 +86,7 @@ const MessageItem = ({
   };
 
   const handleForward = () => {
-    // Copy to clipboard for forwarding
-    navigator.clipboard.writeText(`Forwarded message:\n"${message.content}"`);
+    onForward(message);
     setShowActions(false);
   };
 
@@ -107,14 +122,8 @@ const MessageItem = ({
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    setShowDeleteModal(true);
+  const handleDelete = async () => {
     setShowActions(false);
-  };
-
-  const confirmDelete = async () => {
-    setShowDeleteModal(false);
-
     try {
       const { error } = await supabase
         .from('messages')
@@ -123,17 +132,13 @@ const MessageItem = ({
 
       if (error) throw error;
 
-      // Remove the message from the UI
+      // Remove the message from the UI instantly
       if (onDelete) {
         onDelete(message.id);
       }
     } catch (error) {
       console.error('Error deleting message:', error);
     }
-  };
-
-  const cancelDelete = () => {
-    setShowDeleteModal(false);
   };
 
   const formatTime = (timestamp) => {
@@ -189,133 +194,76 @@ const MessageItem = ({
     }
   };
 
-  const renderMessageContentForBubble = () => {
-    if (message.is_deleted) {
-      return "You deleted this message";
+  const renderMessageContent = () => {
+    if (message.media_path && (message.media_type === 'image' || message.media_type === 'video')) {
+      return (
+        <MediaMessage
+          message={message}
+          repliedMsg={repliedMsg}
+          currentUserId={currentUser?.id}
+          isSender={isSent}
+          time={formatTime(message.created_at)}
+          status={message.is_read ? 'read' : 'sent'}
+        />
+      );
     }
 
-    if (message.message_type === 'news_share') {
-      try {
-        const newsData = JSON.parse(message.content);
-        return `Shared News: ${newsData.title} (${newsData.source})`;
-      } catch (e) {
-        return message.content;
-      }
-    } else if (message.message_type === 'reminder') {
-      try {
-        const reminderData = JSON.parse(message.content);
-        if (reminderData.type === 'reminder_request') {
-          return `Reminder: ${reminderData.title}`;
-        }
-      } catch (e) {
-        return message.content;
-      }
-    } else if (
-      ['image', 'video', 'audio', 'document'].includes(message.message_type)
-    ) {
-      // For media, MessageBubble will just show the content string (e.g., "Image")
-      // The actual MediaMessage component will need to be rendered within MessageBubble's text slot or separately
-      // For now, return a placeholder string. We'll refine this later.
-      return `[${message.message_type.charAt(0).toUpperCase() + message.message_type.slice(1)}]`;
-    } else {
-      // Text message
-      return message.content;
-    }
+    // Fallback for text messages or other types
+    return (
+      <MessageBubble
+        text={message.content}
+        repliedMsg={repliedMsg}
+        currentUserId={currentUser?.id}
+        time={formatTime(message.created_at)}
+        isMine={isSent}
+        isDeleted={message.is_deleted}
+        status={message.is_read ? 'read' : 'sent'}
+        edited={!!message.edited_at}
+      />
+    );
   };
 
   return (
-    <div
-      ref={messageRef}
-      className={`message ${isSent ? 'sent' : 'received'} ${
-        isSelected ? 'selected' : ''
-      } ${isReplied ? 'replied' : ''} ${
-        message.is_vanished ? 'vanished' : ''
-      }`}
-      onClick={handleClick}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        if (!isSelectionMode) {
-          setShowActions(!showActions);
-        }
-      }}
-    >
-      {/* Selection indicator */}
-      {isSelectionMode && (
-        <div className={`selection-indicator ${isSelected ? 'selected' : ''}`}>
-          {isSelected && <span>✓</span>}
+    <>
+      <div
+        ref={messageRef}
+        id={`message-${message.id}`}
+        className={`message-item ${isSent ? 'sent' : 'received'} ${
+          isSelected ? 'selected' : ''
+        } ${showActions ? 'highlighted' : ''}`}
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onContextMenu={(e) => {
+          // Only show context menu on desktop (non-touch devices)
+          if (!isTouchDevice) {
+            e.preventDefault();
+            if (!isSelectionMode) {
+              setMenuPos({ x: e.clientX, y: e.clientY });
+              setShowActions(true);
+            }
+          }
+        }}
+      >
+        <div className="message-content-wrapper">
+          {renderMessageContent()}
         </div>
-      )}
+      </div>
 
-      {/* Main message bubble component */}
-      <MessageBubble
-        text={renderMessageContentForBubble()}
-        time={formatTime(message.created_at)}
-        isMine={isSent}
-        isDeleted={message.is_deleted} // Assuming message has an is_deleted prop
+      {/* Desktop Context Menu - Rendered outside message item to avoid click conflicts */}
+      <DesktopContextMenu
+        position={menuPos}
+        isVisible={showActions && !isSelectionMode && !isTouchDevice}
+        onReply={handleReply}
+        onCopy={handleCopy}
+        onForward={handleForward}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onSelect={onSelect}
+        isSent={isSent}
+        onClose={() => setShowActions(false)}
       />
-
-      {/* Message actions dropdown - keep outside MessageBubble for now */}
-      {showActions && !isSelectionMode && (
-          <div className="message-actions">
-            <button className="message-arrow-btn">
-              <MoreVertical size={16} />
-            </button>
-            <div className="message-dropdown">
-              <div className="message-option" onClick={handleReply}>
-                <Reply size={16} className="icon" /> Reply
-              </div>
-              <div className="message-option" onClick={handleCopy}>
-                <Copy size={16} className="icon" /> Copy
-              </div>
-              <div className="message-option" onClick={handleForward}>
-                <Share2 size={16} className="icon" /> Forward
-              </div>
-              {isSent && (
-                <>
-                  <div className="message-option" onClick={handleEdit}>
-                    <Edit size={16} className="icon" /> Edit
-                  </div>
-                  <div className="message-option danger" onClick={handleDelete}>
-                    <Trash2 size={16} className="icon" /> Delete
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="delete-modal-overlay" onClick={cancelDelete}>
-          <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="delete-modal-header">
-              <h3>Delete Message</h3>
-            </div>
-            <div className="delete-modal-body">
-              <p>Are you sure you want to delete this message? This action cannot be undone.</p>
-            </div>
-            <div className="delete-modal-actions">
-              <button
-                className="delete-cancel-btn"
-                onClick={cancelDelete}
-                style={{ padding: '10px 20px', marginRight: '10px' }}
-              >
-                Cancel
-              </button>
-              <button
-                className="delete-confirm-btn"
-                onClick={confirmDelete}
-                style={{ padding: '10px 20px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px' }}
-              >
-                Confirm Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 

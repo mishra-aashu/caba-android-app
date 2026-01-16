@@ -17,7 +17,8 @@ const ACTIONS = {
   TOGGLE_SCREEN_SHARE: 'TOGGLE_SCREEN_SHARE',
   RESET_CALL: 'RESET_CALL',
   SET_ERROR: 'SET_ERROR',
-  SET_CALLER_INFO: 'SET_CALLER_INFO'
+  SET_CALLER_INFO: 'SET_CALLER_INFO',
+  REPLACE_LOCAL_STREAM: 'REPLACE_LOCAL_STREAM'
 };
 
 // Initial State
@@ -44,6 +45,8 @@ function callReducer(state, action) {
     case ACTIONS.SET_CALL_STATE:
       return { ...state, callState: action.payload.state, ...action.payload.data };
     case ACTIONS.SET_LOCAL_STREAM:
+      return { ...state, localStream: action.payload };
+    case ACTIONS.REPLACE_LOCAL_STREAM:
       return { ...state, localStream: action.payload };
     case ACTIONS.SET_REMOTE_STREAM:
       return { ...state, remoteStream: action.payload };
@@ -325,6 +328,17 @@ export function CallProvider({ children, currentUser }) {
     return isScreenSharing;
   }, []);
 
+  const replaceLocalStream = useCallback(async (newStream) => {
+    await webRTCService.replaceTrack(newStream.getVideoTracks()[0]);
+    dispatch({ type: ACTIONS.REPLACE_LOCAL_STREAM, payload: newStream });
+  }, []);
+
+  const restoreCameraStream = useCallback(async () => {
+    const newStream = await webRTCService.getLocalStream(true, true);
+    await webRTCService.replaceTrack(newStream.getVideoTracks()[0]);
+    dispatch({ type: ACTIONS.REPLACE_LOCAL_STREAM, payload: newStream });
+  }, []);
+
   const value = {
     ...state,
     startCall,
@@ -334,7 +348,9 @@ export function CallProvider({ children, currentUser }) {
     toggleMute,
     toggleVideo,
     toggleScreenShare,
-    switchCamera
+    switchCamera,
+    replaceLocalStream,
+    restoreCameraStream
   };
 
   return (
@@ -343,6 +359,7 @@ export function CallProvider({ children, currentUser }) {
     </CallContext.Provider>
   );
 }
+
 
 // Custom Hook
 export function useCall() {

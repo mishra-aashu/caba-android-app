@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
-import { MessageCircle, Phone, Newspaper, Settings, User, Search, MoreVertical, Plus, Bell, Info, HelpCircle, LogOut, Crown, X, Eye, EyeOff, ShieldCheck, Edit, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy } from 'lucide-react';
+import { MessageCircle, Phone, Newspaper, Settings, User, Search, MoreVertical, Plus, Bell, Info, HelpCircle, LogOut, Crown, X, Eye, EyeOff, ShieldCheck, Edit, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, QrCode, MessageSquarePlus } from 'lucide-react';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import ChatListItem from './chat/ChatListItem';
@@ -50,6 +50,7 @@ const ChatListPanel = ({
   handleDeleteContact,
   handleStartChatWithContact,
   isDesktop,
+  currentChatId,
 }) => {
   const { supabase } = useSupabase(); // This hook is now correctly imported and used
 
@@ -204,6 +205,7 @@ const ChatListPanel = ({
                   type: 'text' // Placeholder: need logic to determine
                 }}
                 onClick={() => handleChatClick(chat)}
+                isActive={chat.id == currentChatId}
               />
             );
           })

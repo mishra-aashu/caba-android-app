@@ -24,7 +24,7 @@
 }
 
 .modal-container {
-    background: #1E293B !important;
+    background: var(--surface, #ffffff);
     backdrop-filter: none;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -33,7 +33,12 @@
     display: flex;
     flex-direction: column;
     animation: modalSlideIn 0.3s ease-out;
-    color: var(--text-0);
+    color: var(--text-primary, #333333);
+}
+
+[data-theme='dark'] .modal-container {
+    background: var(--surface, #1f2c34);
+    color: var(--text-primary, #e9edef);
 }
 
 @keyframes modalSlideIn {

@@ -1,42 +1,55 @@
-import React from 'react';
-import { IonIcon } from '@ionic/react';
-import { 
-  documentText, 
-  camera, 
-  image, 
-  headset, 
-  location, 
-  person 
-} from 'ionicons/icons';
+import React, { useRef } from 'react';
+import { Image, Video, X } from 'lucide-react';
 import './AttachmentMenu.css';
 
-const AttachmentMenu = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
+const AttachmentMenu = ({ isOpen, onClose, onFileSelect }) => {
+  const fileInputRef = useRef(null);
 
-  const menuItems = [
-    { id: 1, icon: documentText, label: "Document", color: "#7f66ff" }, // Purple
-    { id: 2, icon: camera, label: "Camera", color: "#ff2e74" },       // Pink/Red
-    { id: 3, icon: image, label: "Gallery", color: "#bf59cf" },       // Violet
-    { id: 4, icon: headset, label: "Audio", color: "#ff8c00" },       // Orange
-    { id: 5, icon: location, label: "Location", color: "#00a884" },    // Green
-    { id: 6, icon: person, label: "Contact", color: "#009de2" }        // Blue
-  ];
+  const handleIconClick = (accept) => {
+    fileInputRef.current.accept = accept;
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      onFileSelect(file);
+    }
+    // Reset the input value to allow selecting the same file again
+    event.target.value = null;
+    onClose();
+  };
+
+  if (!isOpen) {
+    return null;
+  }
 
   return (
-    <div className="attachment-overlay" onClick={onClose}>
-      <div className="attachment-card">
-        {menuItems.map((item) => (
-          <div key={item.id} className="attachment-item">
-            <div 
-              className="icon-circle" 
-              style={{ backgroundColor: item.color }}
-            >
-              <IonIcon icon={item.icon} />
-            </div>
-            <span className="icon-label">{item.label}</span>
-          </div>
-        ))}
+    <div className="attachment-menu-modal">
+      <div className="attachment-menu-header">
+        <h3>Attach</h3>
+        <button onClick={onClose} className="close-btn"><X size={20} /></button>
       </div>
+      <div className="attachment-options">
+        <div className="attachment-option" onClick={() => handleIconClick('image/*')}>
+          <div className="icon-wrapper photo-option">
+            <Image size={24} />
+          </div>
+          <span>Photo</span>
+        </div>
+        <div className="attachment-option" onClick={() => handleIconClick('video/*')}>
+          <div className="icon-wrapper video-option">
+            <Video size={24} />
+          </div>
+          <span>Video</span>
+        </div>
+      </div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
     </div>
   );
 };

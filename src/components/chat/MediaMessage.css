@@ -1,0 +1,113 @@
+/* --- 1. Message Row Alignment --- */
+.message-row {
+  display: flex;
+  width: 100%;
+  margin-bottom: 4px; /* Thoda gap kam rakhein consecutive messages ke liye */
+}
+
+.message-row.sent {
+  justify-content: flex-end; /* Right side */
+}
+
+.message-row.received {
+  justify-content: flex-start; /* Left side */
+}
+
+/* --- 2. The Bubble Wrapper --- */
+.media-bubble {
+  position: relative;
+  max-width: 75%; /* Mobile par 75%, PC par chhota kar sakte hain */
+  width: fit-content;
+  border-radius: 16px;
+  overflow: hidden; /* Image ko corners se bahar jane se roke */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Halki shadow depth ke liye */
+  background-color: #1f2c34; /* Dark Background agar image transparent ho */
+}
+
+/* PC View ke liye max-width control */
+@media (min-width: 768px) {
+  .media-bubble {
+    max-width: 350px; /* Desktop par zyada bada na dikhe */
+  }
+}
+
+/* --- 3. Differential Border Radius (WhatsApp Style) --- */
+/* Sent messages: Niche right ka corner sharp hoga */
+.message-row.sent .media-bubble {
+  border-radius: 16px 16px 4px 16px;
+}
+
+/* Received messages: Niche left ka corner sharp hoga */
+.message-row.received .media-bubble {
+  border-radius: 16px 16px 16px 4px;
+}
+
+/* --- 4. The Image Styling --- */
+.media-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.actual-image {
+  width: 100%;
+  height: auto;
+  max-height: 400px; /* Lambi images ko screen bharne se roke */
+  object-fit: cover; /* Image stretch na ho */
+  display: block;
+}
+
+/* --- 5. The "Blue Box" Fix (Placeholder) --- */
+/* Jo blue box aapke screenshot me hai, usko replace karein */
+.media-placeholder {
+  width: 280px; /* Fixed width for placeholder */
+  height: 200px;
+  background: linear-gradient(135deg, #2a3942 0%, #111b21 100%); /* Elegant Dark Gradient */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #8696a0;
+  cursor: pointer;
+}
+
+.media-placeholder:hover {
+  background: #202c33; /* Hover effect */
+}
+
+.media-placeholder .icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.media-placeholder .text {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* --- 6. Timestamp Overlay (Pro Look) --- */
+/* Ye time ko image ke upar layega, jaisa WhatsApp me hota hai */
+.media-time-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  padding: 40px 10px 6px 0; /* Top padding gradient ke liye */
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+
+  /* Gradient taaki text dikhe chahe image white ho ya black */
+  background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem; /* 12px */
+  font-weight: 500;
+}
+
+.tick-icon {
+  font-size: 0.8rem;
+  color: #53bdeb; /* Blue ticks ka color */
+}

@@ -4,66 +4,46 @@ import { checkmarkDoneOutline, checkmarkOutline, micOutline, imageOutline } from
 import { formatLastSeen } from '../../utils/timeUtils';
 import '../../styles/ChatListItem.css'; // Adjust path as necessary
 
-const ChatListItem = ({ chat, onClick }) => {
+const ChatListItem = ({ chat, onClick, isActive }) => {
   // Props destructuring (Aapka Supabase data yahan aayega)
   const { name, avatar, lastMessage, time, unreadCount, isMyMessage, status, type, is_online, last_seen } = chat;
 
-  // Icon Logic Helper
-  const getStatusIcon = () => {
-    if (!isMyMessage) return null;
-    if (status === 'read') return <IonIcon icon={checkmarkDoneOutline} className="msg-status-icon status-blue" />;
-    if (status === 'delivered') return <IonIcon icon={checkmarkDoneOutline} className="msg-status-icon status-grey" />;
-    return <IonIcon icon={checkmarkOutline} className="msg-status-icon status-grey" />;
-  };
-
   return (
-    <div className="chat-item" onClick={onClick}>
-      
-      {/* 1. LEFT: AVATAR */}
-      <div className="chat-avatar">
-        <img 
-          src={avatar || "https://ionicframework.com/docs/img/demos/avatar.svg"} 
-          alt={name} 
-        />
+    <div
+      className={`chat-item ${isActive ? 'active' : ''}`}
+      onClick={onClick}
+    >
+
+      {/* 1. Avatar Container */}
+      <div className="chat-avatar-container">
+        <img src={avatar || "https://ionicframework.com/docs/img/demos/avatar.svg"} alt="dp" className="chat-avatar" />
+        {/* Online Status Dot */}
+        {is_online && <span className="online-dot"></span>}
       </div>
 
-      {/* 2. RIGHT: CONTENT (Border iske neeche aayegi) */}
+      {/* 2. Text Info (Name + Message) */}
       <div className="chat-info">
-        
-        {/* Top Row: Name & Status/Time */}
-        <div className="chat-header">
-          <span className="chat-name">{name}</span>
-          <span className={`chat-status ${unreadCount > 0 ? 'active' : ''}`}>
-            {is_online ? 'Online' : `Last seen ${formatLastSeen(last_seen)}`}
+
+        <div className="chat-header-row">
+          <div className="chat-name">{name}</div>
+          <span className="chat-time">
+            {is_online ? 'Online' : (last_seen ? formatLastSeen(last_seen) : time)}
           </span>
         </div>
 
-        {/* Bottom Row: Message & Badge */}
-        <div className="chat-footer">
-          
-          <div className="last-message-container">
-            {/* Status Icon (Blue Ticks) */}
-            {getStatusIcon()}
+        <div className="chat-footer-row">
+          <p className="chat-last-message">
+            {lastMessage}
+          </p>
 
-            {/* Message Type Icon (Agar Photo/Audio hai) */}
-            {type === 'image' && <IonIcon icon={imageOutline} style={{marginRight: 4, color: '#667781'}} />}
-            {type === 'audio' && <IonIcon icon={micOutline} style={{marginRight: 4, color: '#667781'}} />}
-
-            {/* The Text */}
-            <span className="last-message">
-              {type === 'image' ? 'Photo' : type === 'audio' ? 'Voice Message' : lastMessage}
-            </span>
-          </div>
-
-          {/* Unread Badge (Sirf tab dikhega jab count > 0) */}
+          {/* Optional: Unread Count Badge */}
           {unreadCount > 0 && (
-            <div className="unread-badge">
-              {unreadCount}
-            </div>
+            <span className="unread-badge">{unreadCount}</span>
           )}
-          
         </div>
+
       </div>
+
     </div>
   );
 };

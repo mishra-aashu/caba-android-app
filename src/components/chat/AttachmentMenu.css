@@ -1,101 +1,121 @@
-/* --- OVERLAY (Background click se band karne ke liye) --- */
-.attachment-overlay {
-  position: fixed; /* Screen par chipka rahega */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent; /* Transparent taaki user peeche dekh sake */
-  z-index: 999; /* Typing area ke peeche lekin chat ke upar */
-}
-
-/* --- THE MAIN CARD (Professional Box) --- */
-.attachment-card {
+/* New styles for positioning the menu above the input bar */
+.attachment-menu-modal, .quick-replies-menu {
   position: absolute;
-  bottom: 80px; /* Input bar ki height (60px) + thoda gap (20px) */
-  left: 10px;   /* Left side se thoda gap (Paperclip ke upar) */
-  width: 95%;   /* Screen width ka 95% */
-  max-width: 350px; /* Desktop par zyada bada na ho */
-  
-  background-color: #1f2c34; /* WhatsApp Dark Mode BG */
-  border-radius: 20px; /* Rounded Corners */
-  padding: 25px 15px;
-  
-  /* GRID LAYOUT (3 columns, 2 rows) - WhatsApp Style */
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); 
-  gap: 25px 10px; /* Row Gap: 25px, Column Gap: 10px */
-  
-  /* Cool Animation (Slide Up) */
-  animation: slideUp 0.2s ease-out;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3); /* Utha hua dikhane ke liye shadow */
+  bottom: 100%; /* Position above the parent container */
+  left: 10px;
+  width: 90%;
+  max-width: 350px;
+  background-color: var(--surface-color);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px; /* Space between menu and input bar */
+  z-index: 100;
+  animation: pop-up 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-origin: bottom left;
 }
 
-/* --- ANIMATION KEYFRAMES --- */
- @keyframes slideUp {
+@keyframes pop-up {
   from {
+    transform: scale(0.9) translateY(10px);
     opacity: 0;
-    transform: translateY(20px) scale(0.9);
   }
   to {
+    transform: scale(1) translateY(0);
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
-/* --- INDIVIDUAL ITEM --- */
-.attachment-item {
+.attachment-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.attachment-menu-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.attachment-menu-header .close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.attachment-options {
+  display: flex; /* Changed to flex for horizontal layout */
+  gap: 24px; /* Increased gap */
+  justify-content: center; /* Center the items */
+}
+
+.attachment-option {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 12px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: background-color 0.2s;
+  text-align: center;
+  width: 100px; /* Give a fixed width */
 }
 
-.attachment-item:active {
-  transform: scale(0.9); /* Click effect */
+.attachment-option:hover {
+  background-color: var(--bg-color);
 }
 
-/* --- CIRCLE ICON WRAPPER --- */
-.icon-circle {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%; /* Ekdum Gol */
+.attachment-option .icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  color: #fff;
 }
 
-.icon-circle ion-icon {
-  font-size: 26px;
-  color: white; /* Icons hamesha white rahenge */
+.icon-wrapper.photo-option {
+  background: linear-gradient(135deg, #a860ff, #3f8cff);
 }
 
-/* --- TEXT LABEL --- */
-.icon-label {
-  color: #8696a0; /* Grey text */
-  font-size: 13px;
+.icon-wrapper.video-option {
+  background: linear-gradient(135deg, #ff5b5b, #ff8c5b);
+}
+
+.attachment-option span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
-/* Desktop specific adjustments */
-@media (min-width: 769px) {
-  .attachment-overlay {
-    position: absolute; /* Change from fixed to absolute for desktop */
-    width: 100%; /* Full width of chat container */
-    height: 100%; /* Full height of chat container */
-    top: 0;
-    left: 0;
-    z-index: 999;
-  }
+/* Quick Replies Menu adjustments */
+.quick-replies-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+}
 
-  .attachment-card {
-    bottom: 80px;
-    left: 10px;
-    width: calc(100% - 20px); /* Adjust for padding */
-    max-width: 350px;
-  }
+.quick-reply-option {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.quick-reply-option:hover {
+  background-color: var(--brand-primary);
+  color: white;
+  border-color: var(--brand-primary);
 }

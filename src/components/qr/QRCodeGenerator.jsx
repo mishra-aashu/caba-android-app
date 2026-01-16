@@ -1,54 +1,89 @@
 import React, { useEffect, useState } from 'react';
-import QRCode from 'qrcode';
+import QRCode from 'react-qrcode-logo';
 import './QRCodeGenerator.css';
 
 const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) => {
-  const [qrDataURL, setQrDataURL] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedStyle, setSelectedStyle] = useState('classic');
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
 
-  useEffect(() => {
-    generateQRCode();
-  }, [userId, userName, userPhone]);
+  const qrStyles = {
+    classic: { fgColor: '#000000', bgColor: '#FFFFFF', eyeRadius: 0 },
+    blue: { fgColor: '#0066CC', bgColor: '#FFFFFF', eyeRadius: 5 },
+    green: { fgColor: '#00AA00', bgColor: '#FFFFFF', eyeRadius: 5 },
+    purple: { fgColor: '#6600CC', bgColor: '#FFFFFF', eyeRadius: 5 },
+    red: { fgColor: '#CC0000', bgColor: '#FFFFFF', eyeRadius: 5 },
+    dark: { fgColor: '#FFFFFF', bgColor: '#000000', eyeRadius: 3 }
+  };
 
-  const generateQRCode = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const userData = {
+    id: userId,
+    name: userName || 'User',
+    phone: userPhone || '',
+    type: 'caba-user'
+  };
 
-      if (!userId) {
-        throw new Error('User ID is required');
-      }
+  const qrData = JSON.stringify(userData);
 
-      const profileUrl = `https://mishra-aashu.github.io/CaBa/shared-profile.html?userId=${userId}`;
+  // Swipe functionality
+  const minSwipeDistance = 50;
 
-      console.log('Generating QR code with URL:', profileUrl);
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
 
-      const dataURL = await QRCode.toDataURL(profileUrl, {
-        width: 256,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
 
-      setQrDataURL(dataURL);
-      setLoading(false);
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
 
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-      setError('Failed to generate QR code. Please try again.');
-      setLoading(false);
+    if (isLeftSwipe) {
+      // Swipe left - next style
+      const styles = Object.keys(qrStyles);
+      const currentIndex = styles.indexOf(selectedStyle);
+      const nextIndex = currentIndex < styles.length - 1 ? currentIndex + 1 : 0;
+      setSelectedStyle(styles[nextIndex]);
+    }
+    if (isRightSwipe) {
+      // Swipe right - previous style
+      const styles = Object.keys(qrStyles);
+      const currentIndex = styles.indexOf(selectedStyle);
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : styles.length - 1;
+      setSelectedStyle(styles[prevIndex]);
+    }
+  };
+
+  // Keyboard navigation
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const styles = Object.keys(qrStyles);
+      const currentIndex = styles.indexOf(selectedStyle);
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : styles.length - 1;
+      setSelectedStyle(styles[prevIndex]);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const styles = Object.keys(qrStyles);
+      const currentIndex = styles.indexOf(selectedStyle);
+      const nextIndex = currentIndex < styles.length - 1 ? currentIndex + 1 : 0;
+      setSelectedStyle(styles[nextIndex]);
     }
   };
 
   const handleDownload = () => {
     try {
-      if (qrDataURL) {
+      // Create a canvas from the QR swiper and download it
+      const canvas = document.querySelector('.qr-swiper-container canvas');
+      if (canvas) {
         const link = document.createElement('a');
-        link.download = `${userName || 'User'}-CaBa-QR.png`;
-        link.href = qrDataURL;
+        link.download = `${userName || 'User'}-CaBa-QR-${selectedStyle}.png`;
+        link.href = canvas.toDataURL();
         link.click();
 
         if (onDownload) {
@@ -72,33 +107,65 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
         </div>
 
         <div className="qr-generator-body">
-          {loading ? (
-            <div className="qr-loading">
-              <div className="spinner"></div>
-              <p>Generating QR Code...</p>
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="qr-error">
               <p>{error}</p>
-              <button onClick={generateQRCode}>Try Again</button>
+              <button onClick={() => setError(null)}>Try Again</button>
             </div>
           ) : (
             <>
-              <div className="qr-canvas-container">
-                <img
-                  src={qrDataURL}
-                  alt="QR Code"
-                  className="qr-canvas"
-                  style={{ width: '256px', height: '256px' }}
-                />
-              </div>
+              <div className="qr-style-selector">
+                <h4>Swipe for different styles</h4>
+                <div className="qr-swiper">
+                  <button className="swiper-arrow swiper-prev" onClick={() => {
+                    const styles = Object.keys(qrStyles);
+                    const currentIndex = styles.indexOf(selectedStyle);
+                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : styles.length - 1;
+                    setSelectedStyle(styles[prevIndex]);
+                  }}>
+                    ‹
+                  </button>
 
-              <div className="qr-info">
-                <p className="qr-title">{userName}</p>
-                {userPhone && <p className="qr-phone">📱 {userPhone}</p>}
-                <p className="qr-description">
-                  Scan this QR code to view my CaBa profile
-                </p>
+                  <div
+                    className="qr-swiper-container"
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                    onKeyDown={handleKeyDown}
+                    tabIndex={0}
+                  >
+                    <div className="qr-swiper-content">
+                      <QRCode
+                        value={qrData}
+                        size={160}
+                        fgColor={qrStyles[selectedStyle].fgColor}
+                        bgColor={qrStyles[selectedStyle].bgColor}
+                        qrStyle="squares"
+                        eyeRadius={qrStyles[selectedStyle].eyeRadius}
+                        eyeColor={qrStyles[selectedStyle].fgColor}
+                        logoImage=""
+                        logoWidth={30}
+                        logoHeight={30}
+                        logoOpacity={0.8}
+                        removeQrCodeBehindLogo={true}
+                        logoPadding={3}
+                        logoPaddingStyle="circle"
+                      />
+                      <div className="qr-style-name">
+                        {selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button className="swiper-arrow swiper-next" onClick={() => {
+                    const styles = Object.keys(qrStyles);
+                    const currentIndex = styles.indexOf(selectedStyle);
+                    const nextIndex = currentIndex < styles.length - 1 ? currentIndex + 1 : 0;
+                    setSelectedStyle(styles[nextIndex]);
+                  }}>
+                    ›
+                  </button>
+                </div>
               </div>
 
               <div className="qr-actions">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import { QRCodeGenerator, QRCodeScanner } from './index';
 import BottomNavigation from '../common/BottomNavigation';
 import './QRPage.css';
@@ -8,63 +9,124 @@ import './QRPage.css';
 const QRPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { supabase } = useSupabase();
   const [showGenerator, setShowGenerator] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [scannedUser, setScannedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleScan = (scannedData) => {
+  const handleScan = async (scannedData) => {
     setShowScanner(false);
 
-    try {
-      const userData = JSON.parse(scannedData);
-      if (userData.id && userData.name) {
-        setScannedUser(userData);
-        setShowUserModal(true);
-      } else if (userData.url) {
-        // Handle URL QR codes
-        window.open(userData.url, '_blank');
+    if (scannedData.type === 'url') {
+      // Handle URL QR codes
+      window.open(scannedData.url, '_blank');
+    } else if (scannedData.id && scannedData.type === 'caba-user') {
+      // Handle user data QR codes - fetch latest data from database
+      setLoading(true);
+      try {
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', scannedData.id)
+          .single();
+
+        if (error) throw error;
+
+        if (userData) {
+          setScannedUser(userData);
+          setShowUserModal(true);
+        } else {
+          alert('User not found');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        alert('Failed to load user information');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      // Handle plain URL QR codes
-      if (scannedData.startsWith('http')) {
-        window.open(scannedData, '_blank');
-      } else {
-        alert('Invalid QR code format');
-      }
-    }
-  };
-
-  const addToContacts = () => {
-    if (!scannedUser) return;
-
-    let contacts = JSON.parse(localStorage.getItem('CaBa_contacts') || '[]');
-
-    if (!contacts.some(c => c.id === scannedUser.id)) {
-      contacts.push({
-        id: scannedUser.id,
-        name: scannedUser.name,
-        phone: scannedUser.phone,
-        about: scannedUser.about,
-        addedAt: new Date().toISOString()
-      });
-      localStorage.setItem('CaBa_contacts', JSON.stringify(contacts));
-      alert(`${scannedUser.name} added to contacts!`);
     } else {
-      alert('User already in contacts');
+      alert('Invalid QR code format');
     }
-
-    setShowUserModal(false);
-    setScannedUser(null);
   };
 
-  const startChat = () => {
-    if (!scannedUser) return;
+  const addToContacts = async () => {
+    if (!scannedUser || !user) return;
 
-    // Navigate to chat with the scanned user
-    navigate(`/chat/new/${scannedUser.id}`);
-    setShowUserModal(false);
-    setScannedUser(null);
+    setLoading(true);
+    try {
+      // Check if already in contacts
+      const { data: existing, error: checkError } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('contact_user_id', scannedUser.id)
+        .single();
+
+      if (existing) {
+        alert('User already in contacts');
+        return;
+      }
+
+      // Add to contacts
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert([{
+          user_id: user.id,
+          contact_user_id: scannedUser.id,
+          contact_name: scannedUser.name
+        }])
+        .select();
+
+      if (error) throw error;
+
+      alert(`${scannedUser.name} added to contacts!`);
+      setShowUserModal(false);
+      setScannedUser(null);
+    } catch (error) {
+      console.error('Error adding to contacts:', error);
+      alert('Failed to add contact');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startChat = async () => {
+    if (!scannedUser || !user) return;
+
+    setLoading(true);
+    try {
+      // Check if chat already exists
+      const { data: existingChat, error: chatError } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${scannedUser.id}),and(user1_id.eq.${scannedUser.id},user2_id.eq.${user.id})`)
+        .single();
+
+      if (existingChat) {
+        navigate(`/chat/${existingChat.id}/${scannedUser.id}`);
+      } else {
+        // Create new chat
+        const { data: newChat, error: newChatError } = await supabase
+          .from('chats')
+          .insert([{ user1_id: user.id, user2_id: scannedUser.id }])
+          .select()
+          .single();
+
+        if (newChatError) throw newChatError;
+
+        navigate(`/chat/${newChat.id}/${scannedUser.id}`);
+      }
+
+      setShowUserModal(false);
+      setScannedUser(null);
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      alert('Failed to start chat');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user) {
@@ -205,13 +267,13 @@ const QRPage = () => {
                 </div>
               </div>
               <div className="action-buttons" style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                <button className="btn-primary" onClick={addToContacts}>
+                <button className="btn-primary" onClick={addToContacts} disabled={loading}>
                   <i className="fas fa-user-plus"></i>
-                  Add to Contacts
+                  {loading ? 'Adding...' : 'Add to Contacts'}
                 </button>
-                <button className="btn-secondary" onClick={startChat}>
+                <button className="btn-secondary" onClick={startChat} disabled={loading}>
                   <i className="fas fa-comments"></i>
-                  Start Chat
+                  {loading ? 'Starting...' : 'Start Chat'}
                 </button>
               </div>
             </div>

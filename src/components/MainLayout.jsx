@@ -35,6 +35,8 @@ const MainLayout = () => {
 
     const chatListRef = useRef();
 
+    const currentChatId = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
+
     useEffect(() => {
         setIsChatViewActive(location.pathname.startsWith('/chat/'));
     }, [location]);
@@ -305,6 +307,7 @@ const MainLayout = () => {
         handleDeleteContact: () => {},
         handleStartChatWithContact,
         isDesktop,
+        currentChatId,
     };
 
     if (loading) {

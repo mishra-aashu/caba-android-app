@@ -8,6 +8,7 @@ const MessageList = ({
   isSelectionMode,
   onMessageSelect,
   onReply,
+  onForward,
   onDelete,
   onMediaView,
   onMediaDownload
@@ -57,20 +58,27 @@ const MessageList = ({
           </div>
 
           {/* Messages for this date */}
-          {dateMessages.map(message => (
-            <MessageItem
-              key={message.id}
-              message={message}
-              currentUser={currentUser}
-              isSelected={selectedMessages.has(message.id)}
-              isSelectionMode={isSelectionMode}
-              onSelect={() => onMessageSelect(message.id)}
-              onReply={() => onReply(message)}
-              onDelete={onDelete}
-              onMediaView={onMediaView}
-              onMediaDownload={onMediaDownload}
-            />
-          ))}
+          {dateMessages.map(message => {
+            // Find the replied message if reply_to exists
+            const repliedMsg = message.reply_to ? messages.find(m => m.id === message.reply_to) : null;
+
+            return (
+              <MessageItem
+                key={message.id}
+                message={message}
+                repliedMsg={repliedMsg}
+                currentUser={currentUser}
+                isSelected={selectedMessages.has(message.id)}
+                isSelectionMode={isSelectionMode}
+                onSelect={() => onMessageSelect(message.id)}
+                onReply={() => onReply(message)}
+                onForward={() => onForward(message)}
+                onDelete={onDelete}
+                onMediaView={onMediaView}
+                onMediaDownload={onMediaDownload}
+              />
+            );
+          })}
         </React.Fragment>
       ))}
     </div>

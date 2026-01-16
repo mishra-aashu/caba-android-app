@@ -1,0 +1,206 @@
+/* Forward Modal Styles - Theme Aware */
+
+.forward-modal-content {
+  padding: 16px 0;
+}
+
+/* Light Theme */
+[data-theme='light'] .forward-modal-content {
+  background: var(--surface, #ffffff);
+  color: var(--text-primary, #333333);
+}
+
+/* Dark Theme */
+[data-theme='dark'] .forward-modal-content {
+  background: var(--surface, #1f2c34);
+  color: var(--text-primary, #e9edef);
+}
+
+.forward-modal-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.forward-modal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+
+[data-theme='light'] .forward-modal-item:hover {
+  background-color: var(--hover-color, rgba(0, 0, 0, 0.05));
+}
+
+[data-theme='dark'] .forward-modal-item:hover {
+  background-color: var(--hover-color, rgba(255, 255, 255, 0.05));
+}
+
+[data-theme='dark'] .forward-modal-item {
+  border-bottom-color: var(--border-color, #374045);
+}
+
+.forward-modal-item:last-child {
+  border-bottom: none;
+}
+
+.forward-modal-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.forward-modal-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-color, #25d366);
+  color: var(--text-on-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.forward-modal-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.forward-modal-online-status {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--surface, #ffffff);
+  background-color: #cccccc;
+}
+
+[data-theme='dark'] .forward-modal-online-status {
+  border-color: var(--surface, #1f2c34);
+}
+
+.forward-modal-online-status.online {
+  background-color: #00d4aa;
+}
+
+.forward-modal-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.forward-modal-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary, #333333);
+}
+
+[data-theme='dark'] .forward-modal-name {
+  color: var(--text-primary, #e9edef);
+}
+
+.forward-modal-last-message {
+  font-size: 14px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary, #666666);
+}
+
+[data-theme='dark'] .forward-modal-last-message {
+  color: var(--text-secondary, #8696a0);
+}
+
+.forward-modal-btn {
+  background: var(--brand-primary, #25d366);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.forward-modal-btn:hover {
+  background: var(--brand-primary-hover, #128c7e);
+  transform: scale(1.1);
+}
+
+.forward-modal-no-chats {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary, #666666);
+}
+
+[data-theme='dark'] .forward-modal-no-chats {
+  color: var(--text-secondary, #8696a0);
+}
+
+.forward-modal-no-chats-icon {
+  margin-bottom: 16px;
+  opacity: 0.5;
+  width: 48px;
+  height: 48px;
+  color: var(--text-secondary, #666666);
+}
+
+[data-theme='dark'] .forward-modal-no-chats-icon {
+  color: var(--text-secondary, #8696a0);
+}
+
+.forward-modal-no-chats-text {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-secondary, #666666);
+}
+
+[data-theme='dark'] .forward-modal-no-chats-text {
+  color: var(--text-secondary, #8696a0);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .forward-modal-item {
+    padding: 10px 16px;
+  }
+
+  .forward-modal-avatar {
+    width: 36px;
+    height: 36px;
+    margin-right: 10px;
+  }
+
+  .forward-modal-name {
+    font-size: 14px;
+  }
+
+  .forward-modal-last-message {
+    font-size: 13px;
+  }
+
+  .forward-modal-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
