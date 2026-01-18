@@ -18,6 +18,11 @@
     transition: background-color 0.3s, color 0.3s;
 }
 
+.user-details-screen.user-details-modal {
+    min-height: auto;
+    background-color: transparent;
+}
+
 /* Dark mode overrides */
 .dark-mode .user-details-screen, body.dark .user-details-screen {
     --bg-color: var(--bg-1, #121722);

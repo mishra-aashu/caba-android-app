@@ -14,6 +14,8 @@ DROP POLICY IF EXISTS "media_bucket_delete" ON "storage"."objects";
 DROP POLICY IF EXISTS "media_bucket_select" ON "storage"."objects";
 DROP POLICY IF EXISTS "media_bucket_update" ON "storage"."objects";
 DROP POLICY IF EXISTS "media_bucket_upload" ON "storage"."objects";
+DROP POLICY IF EXISTS "allow_authenticated_uploads" ON "storage"."objects";
+DROP POLICY IF EXISTS "allow_user_self_management" ON "storage"."objects";
 
 -- Step 3: Drop Functions
 DROP FUNCTION IF EXISTS is_user_online(UUID);
@@ -68,11 +70,11 @@ CREATE POLICY "allow_user_self_management"
 ON "storage"."objects" FOR ALL
 TO authenticated
 USING (
-    bucket_id = 'chat-media'
+   bucket_id = 'media'
     AND (storage.foldername(name))[1] = auth.uid()::text
 )
 WITH CHECK (
-    bucket_id = 'chat-media'
+   bucket_id = 'media'
     AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
@@ -84,7 +86,7 @@ WITH CHECK (
 
 ALTER TABLE "public"."messages"
 ADD COLUMN IF NOT EXISTS "media_path" TEXT,
-ADD COLUMN IF NOT EXISTS "media_type" TEXT CHECK (media_type IN ('image', 'video')),
+ADD COLUMN IF NOT EXISTS "media_type" TEXT CHECK (media_type IN ('image', 'video', 'voice')),
 ADD COLUMN IF NOT EXISTS "is_viewed" BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS "duration" INTEGER DEFAULT 10;
 

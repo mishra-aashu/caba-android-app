@@ -319,7 +319,9 @@ const Chat = () => {
     if (!mediaPath || !currentUser) return;
 
     try {
-      const content = mediaType === 'image' ? '📷 Photo' : '🎥 Video';
+      const content = mediaType === 'image' ? '📷 Photo'
+        : mediaType === 'video' ? '🎥 Video'
+        : '🎤 Voice Message';
       
       const newMessage = {
         chat_id: validChatId,

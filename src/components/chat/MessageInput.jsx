@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import AttachmentMenu from './AttachmentMenu';
-import { Paperclip, MessageSquarePlus, Send, LoaderCircle, X, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
-import { uploadMedia } from '../../services/mediaService';
+import VoiceRecorder from './VoiceRecorder';
+import { Paperclip, MessageSquarePlus, Send, LoaderCircle, X, Image as ImageIcon, Video as VideoIcon, Mic } from 'lucide-react';
+import { uploadMedia, uploadVoiceMessage } from '../../services/mediaService';
 import { compressImage, handleVideo } from '../../utils/mediaCompressor';
 
 const MessageInput = ({
@@ -15,10 +16,12 @@ const MessageInput = ({
   const [message, setMessage] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const [filePreview, setFilePreview] = useState(null); // { url: '...', file: File }
   const [imageQuality, setImageQuality] = useState('standard'); // 'standard' or 'high'
+  const [voiceBlob, setVoiceBlob] = useState(null);
 
   const textareaRef = useRef(null);
   const containerRef = useRef(null);
@@ -64,8 +67,23 @@ const MessageInput = ({
   };
 
   const handleSend = async () => {
-    // Prioritize sending media if a file is selected
-    if (filePreview) {
+    // Prioritize sending voice if available
+    if (voiceBlob) {
+      setIsUploading(true);
+      // Convert blob to file
+      const voiceFile = new File([voiceBlob], "voice.webm", { type: "audio/webm" });
+      const mediaPath = await uploadVoiceMessage(voiceFile, currentUser.id);
+      setIsUploading(false);
+
+      if (mediaPath) {
+        onSendMedia(mediaPath, 'voice');
+      } else {
+        alert('Voice upload failed. Please try again.');
+      }
+      setVoiceBlob(null);
+    }
+    // Then media if a file is selected
+    else if (filePreview) {
       const { file } = filePreview;
       setIsUploading(true);
 
@@ -128,12 +146,27 @@ const MessageInput = ({
     setShowQuickReplies(false);
   };
 
+  const handleVoiceRecord = () => {
+    setShowVoiceRecorder(true);
+  };
+
+  const handleVoiceSend = (blob) => {
+    setVoiceBlob(blob);
+    setShowVoiceRecorder(false);
+  };
+
   return (
     <div className="chat-input-container" ref={containerRef} style={{ position: 'relative' }}>
       <AttachmentMenu
         isOpen={showAttachmentMenu}
         onClose={() => setShowAttachmentMenu(false)}
         onFileSelect={handleFileSelect}
+      />
+
+      <VoiceRecorder
+        isOpen={showVoiceRecorder}
+        onClose={() => setShowVoiceRecorder(false)}
+        onSend={handleVoiceSend}
       />
 
       {/* Quick Replies Menu */}
@@ -216,7 +249,7 @@ const MessageInput = ({
               <span className="reply-title">Replying to {replyingTo.sender_id === currentUser?.id ? 'You' : 'Them'}</span>
               <p className="reply-message">
                 {/* Agar text lamba ho to cut jayega */}
-                {replyingTo.content.substring(0, 60)}...
+                {replyingTo.media_type === 'voice' ? '🎤 Voice Message' : replyingTo.content.substring(0, 60) + '...'}
               </p>
             </div>
           </div>
@@ -246,6 +279,14 @@ const MessageInput = ({
           >
             <Paperclip size={22} />
           </button>
+          <button
+            className="btn-mic"
+            onClick={handleVoiceRecord}
+            title="Record Voice"
+            disabled={isUploading}
+          >
+            <Mic size={22} />
+          </button>
         </div>
 
         <textarea
@@ -262,7 +303,7 @@ const MessageInput = ({
         <button
           className="btn-send"
           onClick={handleSend}
-          disabled={(!message.trim() && !filePreview) || isUploading}
+          disabled={(!message.trim() && !filePreview && !voiceBlob) || isUploading}
         >
           {isUploading ? <LoaderCircle size={24} className="animate-spin" /> : <Send size={22} />}
         </button>

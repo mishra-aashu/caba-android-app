@@ -42,6 +42,7 @@ const CallScreen = lazy(() => import('./components/CallScreen'));
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
 const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
 import DesktopNavbar from './components/common/DesktopNavbar';
+import Modal from './components/common/Modal';
 import useIsDesktop from './hooks/useIsDesktop';
 // AuthDebug is intentionally not imported or rendered
 
@@ -56,6 +57,7 @@ if (Capacitor.isNativePlatform()) {
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
+  const isDesktop = useIsDesktop();
   useOnlineStatus(); // Initialize online status tracking
   useOnlineStatus(); // Initialize online status tracking
 
@@ -70,8 +72,8 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="loading">
+        <div className="loading-spinner"></div>
       </div>
     );
   }
@@ -94,7 +96,7 @@ const AppContent = () => {
         <Route path="chat/:chatId/:otherUserId" element={<Chat />} />
       </Route>
       
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute>{isDesktop ? <Modal isOpen={true} onClose={() => window.location.href = '/'} className='sidebar-modal'><Profile isModal={true} /></Modal> : <Profile />}</ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
@@ -105,7 +107,7 @@ const AppContent = () => {
       <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
       <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-      <Route path="/user-details/:id" element={<ProtectedRoute><UserDetails /></ProtectedRoute>} />
+      <Route path="/user-details/:id" element={<ProtectedRoute>{isDesktop ? <Modal isOpen={true} onClose={() => window.location.href = '/'} className='sidebar-modal'><UserDetails isModal={true} /></Modal> : <UserDetails />}</ProtectedRoute>} />
       <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
 
       {/* 404 route */}
@@ -211,8 +213,8 @@ const App = () => {
 
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="loading">
+        <div className="loading-spinner"></div>
       </div>
     }>
       {/* AuthProvider is provided in main.jsx */}

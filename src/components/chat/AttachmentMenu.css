@@ -89,6 +89,10 @@
   background: linear-gradient(135deg, #ff5b5b, #ff8c5b);
 }
 
+.icon-wrapper.voice-option {
+  background: linear-gradient(135deg, #25d366, #128c7e);
+}
+
 .attachment-option span {
   font-size: 0.85rem;
   color: var(--text-secondary);

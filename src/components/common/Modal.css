@@ -74,6 +74,27 @@
     height: 90vh;
 }
 
+.sidebar-modal .modal-container {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    width: 400px;
+    max-width: none;
+    border-radius: 0;
+    transform: none;
+    animation: slideFromRight 0.3s ease-out;
+}
+
+@keyframes slideFromRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
 .modal-header {
     display: flex;
     align-items: center;

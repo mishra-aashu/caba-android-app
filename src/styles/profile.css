@@ -11,6 +11,11 @@
   overflow-x: hidden; /* Hide horizontal overflow */
 }
 
+.profile-screen.profile-modal {
+  min-height: auto;
+  background: transparent;
+}
+
 .profile-header {
   display: flex;
   align-items: center;

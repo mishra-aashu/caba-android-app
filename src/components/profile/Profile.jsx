@@ -9,7 +9,7 @@ import '../qr/QRCodeScanner.css';
 import FullscreenImageModal from './FullscreenImageModal';
 import toast from 'react-hot-toast';
 
-const Profile = () => {
+const Profile = ({ isModal = false }) => {
   const { supabase } = useSupabase();
   const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState(null);
@@ -196,8 +196,9 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="profile-screen">
-        <div className="profile-loading-message">Loading...</div>
+      <div className="loading">
+        <div className="loading-spinner"></div>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -211,9 +212,9 @@ const Profile = () => {
   }
 
   return (
-    <div className="profile-screen">
+    <div className={`profile-screen ${isModal ? 'profile-modal' : ''}`}>
       <header className="profile-header">
-        <button className="back-btn" onClick={() => window.history.back()}>
+        <button className="back-btn" onClick={isModal ? () => navigate('/') : () => window.history.back()}>
           <span className="icon">←</span>
         </button>
         <h1>Profile</h1>

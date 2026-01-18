@@ -43,6 +43,7 @@ const AttachmentMenu = ({ isOpen, onClose, onFileSelect }) => {
           </div>
           <span>Video</span>
         </div>
+
       </div>
       <input
         type="file"

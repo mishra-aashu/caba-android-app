@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../utils/supabase';
 import MediaMessage from './MediaMessage';
+import VoiceMessage from './VoiceMessage';
 import {
   Calendar,
   Check,
@@ -198,6 +199,19 @@ const MessageItem = ({
     if (message.media_path && (message.media_type === 'image' || message.media_type === 'video')) {
       return (
         <MediaMessage
+          message={message}
+          repliedMsg={repliedMsg}
+          currentUserId={currentUser?.id}
+          isSender={isSent}
+          time={formatTime(message.created_at)}
+          status={message.is_read ? 'read' : 'sent'}
+        />
+      );
+    }
+
+    if (message.media_path && message.media_type === 'voice') {
+      return (
+        <VoiceMessage
           message={message}
           repliedMsg={repliedMsg}
           currentUserId={currentUser?.id}

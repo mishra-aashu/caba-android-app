@@ -10,7 +10,7 @@ import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import './user-details/UserDetails.css';
 
-const UserDetails = () => {
+const UserDetails = ({ isModal = false }) => {
     const { id: userId } = useParams();
     const navigate = useNavigate();
     const { supabase } = useSupabase();
@@ -671,9 +671,9 @@ const UserDetails = () => {
     }
 
     return (
-        <div className="user-details-screen">
+        <div className={`user-details-screen ${isModal ? 'user-details-modal' : ''}`}>
             <header className="user-details-header">
-                <button className="back-btn" onClick={() => navigate(-1)}>
+                <button className="back-btn" onClick={isModal ? () => navigate('/') : () => navigate(-1)}>
                     <ArrowLeft size={24} />
                 </button>
                 <h1>Contact Info</h1>
