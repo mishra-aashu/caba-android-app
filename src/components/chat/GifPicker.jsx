@@ -1,90 +1,93 @@
 import React, { useState, useEffect } from 'react';
 
-// 👇 Aapki Personal Details (Jo apne di hain)
-const API_KEY = "xPPmDczWG59pEi8piP0khLhqbGvDuGUDWstVefb5ZPl4UamEy9DhHSAiKGPP7Kz7";
-const APP_NAME = "dzsgggzs";
-
-// Klipy Base URL (Confirm this from their docs, mostly it is this or similar)
-const BASE_URL = "https://api.klipy.com/api/v1";
+// Tenor API Configuration (Google's GIF service, used by WhatsApp)
+const TENOR_API_KEY = "LIVDSRZULELA";
+const CLIENT_KEY = "CaBa_App";
 
 const KlipyGifPicker = ({ onSelectGif }) => {
   const [gifs, setGifs] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
-  // --- 1. Fetch Function ---
+  // Fetch GIFs from Tenor API
   const fetchGifs = async (query) => {
     setLoading(true);
+    setError(false);
     try {
-      // Agar search hai to 'search' endpoint, warna 'trending'
-      const endpoint = query ? `/stickers/search` : `/stickers/trending`;
-
-      const url = `${BASE_URL}${endpoint}?key=${API_KEY}&app_name=${APP_NAME}&q=${query}&limit=20`;
+      let url = "";
+      if (query) {
+        url = `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&client_key=${CLIENT_KEY}&limit=20`;
+      } else {
+        url = `https://g.tenor.com/v1/trending?key=${TENOR_API_KEY}&client_key=${CLIENT_KEY}&limit=20`;
+      }
 
       const res = await fetch(url);
       const data = await res.json();
 
-      // Klipy ka response structure check karke ye adjust karna pad sakta hai
-      // Usually data.data ya data.results me hota hai
-      if (data && data.data) {
-        setGifs(data.data);
+      if (data.results) {
+        setGifs(data.results);
+      } else {
+        setGifs([]);
       }
-    } catch (error) {
-      console.error("Klipy Error:", error);
+    } catch (err) {
+      console.error("Tenor GIF Error:", err);
+      setError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- 2. Initial Load & Search ---
+  // Initial load and search with debounce
   useEffect(() => {
-    // Debounce: User ke rukne ke 500ms baad search karega
     const timer = setTimeout(() => {
       fetchGifs(search);
-    }, 500);
+    }, 600); // Slightly longer debounce for better UX
 
     return () => clearTimeout(timer);
   }, [search]);
 
-  // --- 3. Handle Select (For Earning Tracking) ---
+  // Handle GIF selection
   const handleSelect = (gif) => {
-    // ⚠️ IMP FOR EARNING:
-    // Klipy aksar ek 'impression_url' deta hai jisko ping karna padta hai jab GIF use ho.
-    // Agar response me 'impression_url' ho to usko fetch kar lena.
-    if (gif.impression_url) {
-      fetch(gif.impression_url, { mode: 'no-cors' });
-    }
-
-    // Chat me bhejo
-    onSelectGif(gif.url || gif.images.fixed_height.url);
+    // Tenor structure: gif.media[0].gif.url for full GIF
+    const gifUrl = gif.media[0].gif.url;
+    onSelectGif(gifUrl);
   };
 
   return (
     <div className="gif-picker-container">
-      
+
       {/* Search Bar */}
       <div className="gif-search-bar">
-        <input 
-          type="text" 
-          placeholder="Search GIFs via Klipy..." 
+        <input
+          type="text"
+          placeholder="Search Tenor GIFs..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           autoFocus
         />
-        <span className="search-icon">🔍</span>
+        {loading && <div className="search-spinner"></div>}
+        {!loading && <span className="search-icon">🔍</span>}
       </div>
 
-      {/* GIF Grid (Masonry Style) */}
+      {/* GIF Grid */}
       <div className="gif-grid-scroll">
-        {loading ? (
-          <div className="gif-loading">Loading magic... ✨</div>
+        {loading && gifs.length === 0 ? (
+          <div className="loading-container">
+            <div className="spinner-big"></div>
+            <p>Searching...</p>
+          </div>
+        ) : error ? (
+          <div className="empty-state">❌ Failed to load GIFs. Check connection.</div>
+        ) : gifs.length === 0 && !loading ? (
+          <div className="empty-state">No GIFs found for "{search}"</div>
         ) : (
           <div className="gif-masonry">
             {gifs.map((gif) => (
               <div key={gif.id} className="gif-item" onClick={() => handleSelect(gif)}>
-                <img 
-                  src={gif.preview_url || gif.url} // Preview URL (Low quality for fast load)
-                  alt="gif" 
+                <img
+                  src={gif.media[0].nanogif.url} // Nano GIF for fast preview
+                  alt="gif"
                   loading="lazy"
                 />
               </div>
@@ -93,7 +96,7 @@ const KlipyGifPicker = ({ onSelectGif }) => {
         )}
       </div>
 
-      <div className="tenor-branding">Powered by Klipy</div>
+      {!loading && <div className="tenor-branding">Via Tenor</div>}
     </div>
   );
 };

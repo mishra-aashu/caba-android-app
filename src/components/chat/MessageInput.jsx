@@ -159,7 +159,14 @@ const MessageInput = ({
   };
 
   const handleEmojiSelect = (emoji) => {
-    setMessage(prev => prev + emoji);
+    // Check if it's a GIF URL (starts with http)
+    if (emoji.startsWith('http')) {
+      // Send GIF as media message directly
+      onSendMedia(emoji, 'image');
+    } else {
+      // Regular emoji - append to message
+      setMessage(prev => prev + emoji);
+    }
     setShowEmojiPicker(false);
   };
 

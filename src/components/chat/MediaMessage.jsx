@@ -10,12 +10,20 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
   const handleViewMedia = () => {
     if (!imageLoaded) {
       setIsLoading(true);
-      const url = getPublicMediaUrl(message.media_path);
+      // Check if media_path is already a full URL (for GIFs from Tenor)
+      const url = message.media_path.startsWith('http') ? message.media_path : getPublicMediaUrl(message.media_path);
       setMediaUrl(url);
       setImageLoaded(true);
       setIsLoading(false);
     }
   };
+
+  // Auto-load for external GIFs
+  useEffect(() => {
+    if (message.media_path.startsWith('http')) {
+      handleViewMedia();
+    }
+  }, [message.media_path]);
 
   // Render the message
   return (
@@ -59,12 +67,17 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
               <span className="text">Click to view</span>
             </div>
           ) : (
-            <img
-              src={mediaUrl}
-              alt="sent-media"
-              className="actual-image"
-              onLoad={() => setIsLoading(false)}
-            />
+            <>
+              <img
+                src={mediaUrl}
+                alt="sent-media"
+                className="actual-image"
+                onLoad={() => setIsLoading(false)}
+              />
+              {message.media_path.startsWith('http') && (
+                <span className="gif-badge">GIF</span>
+              )}
+            </>
           )}
           {imageLoaded && (
             <div className="media-time-overlay">
