@@ -327,7 +327,7 @@ const Calls = () => {
               filteredContacts.map(contact => (
                 <div key={contact.id} className="contact-item">
                   <div className="call-avatar">
-                    <div className="avatar-circle">
+                    <div className="avatar">
                       {contact.avatar ? (
                         parseInt(contact.avatar) ? (
                           <img src={dpOptions.find(dp => dp.id === parseInt(contact.avatar))?.path || contact.avatar} alt={contact.name} />

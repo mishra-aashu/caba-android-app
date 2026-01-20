@@ -247,7 +247,7 @@
   border-color: transparent;
 }
 
-.btn-attach, .btn-send, .btn-quick-reply {
+.btn-attach, .btn-send, .btn-quick-reply, .btn-mic, .btn-emoji {
   width: 40px; /* Slightly smaller buttons */
   height: 40px;
   background: transparent;
@@ -260,7 +260,7 @@
   border: none;
   cursor: pointer;
 }
-.btn-attach:hover, .btn-quick-reply:hover {
+.btn-attach:hover, .btn-quick-reply:hover, .btn-mic:hover, .btn-emoji:hover {
     background-color: var(--hover-color);
 }
 
@@ -298,6 +298,68 @@
 [data-theme='dark'] .date-pill {
     background-color: #1f2c34;
     color: #8696a0;
+}
+
+[data-theme='dark'] .btn-mic {
+    color: #e0e0e0; /* Light color for better visibility in dark mode */
+}
+
+/* Inline Recording UI */
+.recording-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--surface-color);
+  border-radius: 30px;
+  box-shadow: var(--shadow-md);
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.recording-waveform {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.recording-waveform canvas {
+  width: 100%;
+  max-width: 250px;
+  height: 40px;
+  border-radius: 4px;
+  background-color: var(--bg-color);
+}
+
+.recording-timer {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.recording-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-stop-recording {
+  width: 36px;
+  height: 36px;
+  background-color: var(--error-color, #ff4444);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-stop-recording:hover {
+  background-color: var(--error-color, #cc0000);
+  transform: scale(1.1);
 }
 
 /* --- Quick Replies Menu --- */
@@ -1124,4 +1186,29 @@
   gap: 5px;
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+/* --- Emoji Picker Overlay --- */
+.emoji-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.emoji-picker-overlay .emoji-picker-container {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow-lg);
+  max-width: 400px;
+  width: 100%;
+  animation: slideUp 0.2s ease-out;
 }

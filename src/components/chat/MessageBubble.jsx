@@ -1,4 +1,5 @@
 import React from 'react';
+import EmojiRenderer from '../common/EmojiRenderer';
 import './MessageBubble.css'; // CSS file import
 
 // Icon ke liye (agar aapke paas icon library nahi hai to ye SVG use karein)
@@ -13,6 +14,7 @@ const BlockIcon = () => (
 );
 
 const MessageBubble = ({ text, repliedMsg, currentUserId, time, isMine, isDeleted }) => {
+
   return (
     <div className={`message-container ${isMine ? 'mine' : 'theirs'}`}>
       
@@ -44,8 +46,8 @@ const MessageBubble = ({ text, repliedMsg, currentUserId, time, isMine, isDelete
               {/* Content Logic: Image hai ya text? */}
               <p className="reply-quote-text">
                 {repliedMsg.message_type === 'image'
-                  ? "📷 Photo"
-                  : repliedMsg.content?.substring(0, 60) || "..."}
+                  ? <EmojiRenderer text="📷 Photo" />
+                  : <EmojiRenderer text={repliedMsg.content?.substring(0, 60) || "..."} />}
               </p>
             </div>
           </div>
@@ -57,7 +59,7 @@ const MessageBubble = ({ text, repliedMsg, currentUserId, time, isMine, isDelete
           {/* Text Area */}
           <span className={`text ${isDeleted ? 'deleted-text' : ''}`}>
             {isDeleted && <BlockIcon />}
-            {text}
+            <EmojiRenderer text={text} />
           </span>
 
           {/* Time Area (Ye Float karke end me adjust hoga) */}

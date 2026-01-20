@@ -222,14 +222,13 @@
 /* 7. Call Avatar */
 .call-avatar {
   position: relative;
-  width: 50px;
-  height: 50px;
-  flex-shrink: 0;
+  margin-right: 15px; /* Spacing from text */
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
-.call-avatar .avatar-circle {
-  width: 100%;
-  height: 100%;
+.call-avatar .avatar {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background-color: var(--brand-secondary);
   color: white;
@@ -240,12 +239,18 @@
   font-size: 1.2rem;
   text-transform: uppercase;
   overflow: hidden;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
 }
 
-.call-avatar .avatar-circle img {
+.call-avatar .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.contact-item:hover .call-avatar .avatar {
+  border-color: rgba(255, 255, 255, 0.2); /* Ring effect on hover */
 }
 
 /* 9. Call Buttons */

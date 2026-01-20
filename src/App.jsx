@@ -25,6 +25,7 @@ const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
 const Profile = lazy(() => import('./components/profile/Profile'));
 const Settings = lazy(() => import('./components/settings'));
+const EmojiSettings = lazy(() => import('./components/settings/EmojiSettings'));
 const News = lazy(() => import('./components/news'));
 const Reminders = lazy(() => import('./components/reminders'));
 const CreateReminder = lazy(() => import('./components/reminders/CreateReminder'));
@@ -98,6 +99,7 @@ const AppContent = () => {
       
       <Route path="/profile" element={<ProtectedRoute>{isDesktop ? <Modal isOpen={true} onClose={() => window.location.href = '/'} className='sidebar-modal'><Profile isModal={true} /></Modal> : <Profile />}</ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/emoji-settings" element={<ProtectedRoute><EmojiSettings /></ProtectedRoute>} />
       <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
       <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />

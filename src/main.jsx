@@ -6,6 +6,7 @@ import './styles/app.css';
 import App from './App.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { ChatThemeProvider } from './contexts/ChatThemeContext.jsx'
+import { EmojiStyleProvider } from './contexts/EmojiStyleContext.jsx'
 import { SupabaseProvider } from './contexts/SupabaseContext.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 import { CallProvider } from './context/CallContext.jsx' // Import CallProvider
@@ -33,7 +34,9 @@ createRoot(document.getElementById('root')).render(
         <AuthProvider>
           <ThemeProvider>
             <ChatThemeProvider>
-              <AppWrapper />
+              <EmojiStyleProvider>
+                <AppWrapper />
+              </EmojiStyleProvider>
             </ChatThemeProvider>
           </ThemeProvider>
         </AuthProvider>

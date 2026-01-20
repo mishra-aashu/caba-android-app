@@ -1,4 +1,4 @@
-.emoji-picker-container {
+  k.emoji-picker-container {
     position: relative;
     display: inline-block;
 }
@@ -21,71 +21,205 @@
     color: var(--primary-color, #007bff);
 }
 
+/* Premium Glassy Emoji Picker Popup - Wider & Perfect Layout */
 .emoji-picker-popup {
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    margin-bottom: 8px;
-    background: var(--bg-primary, #fff);
-    border: 1px solid var(--border-color, #e0e0e0);
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    width: 320px;
-    max-height: 400px;
-    overflow: hidden;
-    z-index: 1000;
-    animation: emojiPickerFadeIn 0.2s ease-out;
+    position: fixed; /* Fixed positioning for viewport */
+    bottom: 70px; /* Input se thoda aur upar */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%) translateZ(0); /* Perfect center + hardware acceleration */
+
+    /* 👇 WIDTH INCREASED: Ab sare icons ek line me aayenge */
+    width: 440px; /* Slightly wider to ensure all categories fit */
+    max-width: 90vw; /* Mobile pe screen se bahar na jaye */
+    height: 480px; /* Height bhi badha di */
+
+    /* Enhanced Glassmorphism Effect */
+    background: rgba(30, 40, 45, 0.98); /* Solid Dark Theme */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); /* Strong Shadow */
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Button bahar na nikle */
+    z-index: 9999; /* Above everything */
+    will-change: transform; /* Hardware acceleration */
+
+    /* Pop Animation */
+    animation: popUp 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    transform-origin: center bottom;
 }
 
-@keyframes emojiPickerFadeIn {
+/* Triangle Pointer Arrow */
+.picker-arrow {
+    position: absolute;
+    bottom: -8px;
+    left: 20px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid rgba(30, 40, 45, 0.85);
+    filter: drop-shadow(0 4px 2px rgba(0,0,0,0.2));
+}
+
+/* Pop Animation */
+@keyframes popUp {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: scale(0.8) translateY(10px);
     }
-
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(1) translateY(0);
     }
 }
 
-.emoji-picker-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color, #e0e0e0);
-    font-size: 14px;
+/* Top Category Bar (Full Width Evenly Spaced - No Scroll) */
+.emoji-category-bar {
+    display: flex;
+    align-items: center;
+    /* 👇 MAGIC: Icons ko barabar jagah milegi */
+    justify-content: space-evenly;
+
+    padding: 12px 20px; /* Reduced padding since close button is outside */
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    /* Removed horizontal scroll - categories must fit */
+}
+
+/* Hide scrollbar for Webkit browsers */
+.emoji-category-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.cat-btn {
+    background: transparent;
+    border: none;
+    font-size: 22px; /* Thoda bada icon */
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: transform 0.2s, opacity 0.2s;
+    opacity: 0.4;
+    filter: grayscale(100%);
+}
+
+.cat-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    opacity: 0.8;
+    transform: scale(1.1);
+}
+
+.cat-btn.active {
+    opacity: 1;
+    filter: grayscale(0%);
+    transform: scale(1.2);
+    /* Green dot indicator niche */
+    box-shadow: 0 4px 0 -2px #00a884;
+}
+
+/* Fixed Close Button (Inside Top Right Corner) */
+.picker-close-btn {
+    position: absolute;
+    top: 8px; /* Inside the popup */
+    right: 8px; /* Inside the popup */
+
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 15; /* Above everything */
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.picker-close-btn:hover {
+    background: #ff5f5f; /* Red on hover */
+    transform: rotate(90deg); /* Mast animation */
+}
+
+/* Emoji Grid Adjustment */
+.emoji-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    position: relative; /* For sticky positioning */
+}
+
+.category-title {
+    font-size: 13px;
+    color: #e9edef;
     font-weight: 600;
-    color: var(--text-primary, #333);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    background: rgba(30, 40, 45, 0.98);
+    padding: 8px 0;
+    z-index: 10;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    width: 100%;
+    text-align: center;
 }
 
 .emoji-grid {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    /* Width badhai hai to columns bhi badha do */
+    grid-template-columns: repeat(9, 1fr);
     gap: 4px;
-    padding: 12px;
-    max-height: 340px;
-    overflow-y: auto;
 }
 
+/* Scrollbar Styling */
+.emoji-grid::-webkit-scrollbar {
+    width: 5px;
+}
+.emoji-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+/* Individual Emoji Items */
 .emoji-item {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
     font-size: 24px;
+    cursor: pointer;
+    text-align: center;
+    padding: 6px;
     border-radius: 8px;
-    transition: background-color 0.2s, transform 0.1s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    transition: transform 0.1s, background 0.2s;
+    user-select: none;
 }
 
+/* Hover Effect: Bigger and Highlighted */
 .emoji-item:hover {
-    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
-    transform: scale(1.2);
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: scale(1.25);
 }
 
+/* Active Click Effect */
 .emoji-item:active {
-    transform: scale(1.1);
+    transform: scale(0.95);
+}
+
+.no-recent {
+    text-align: center;
+    color: #8696a0;
+    font-size: 13px;
+    padding: 20px;
+    grid-column: span 8;
 }
 
 /* Scrollbar styling */
@@ -138,20 +272,44 @@
     background: var(--border-color, #444);
 }
 
-/* Mobile responsive */
-@media (max-width: 768px) {
+/* Mobile Responsive Check */
+@media (max-width: 450px) {
     .emoji-picker-popup {
-        width: 280px;
-        max-height: 350px;
+        width: 100%; /* Mobile par full width */
+        left: 0;
+        bottom: 0;
+        border-radius: 16px 16px 0 0; /* Sirf upar round */
+        height: 50vh;
+    }
+
+    .emoji-category-bar {
+        padding: 10px 50px 10px 10px; /* Less right padding on mobile */
+    }
+
+    .cat-btn {
+        font-size: 20px;
+        padding: 6px;
+    }
+
+    .picker-close-btn {
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+    }
+
+    .emoji-scroll-area {
+        padding: 10px;
     }
 
     .emoji-grid {
-        grid-template-columns: repeat(7, 1fr);
-        max-height: 290px;
+        grid-template-columns: repeat(6, 1fr); /* 6 columns on mobile */
+        gap: 3px;
     }
 
     .emoji-item {
         font-size: 20px;
-        padding: 6px;
+        padding: 4px;
     }
 }

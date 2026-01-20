@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import AttachmentMenu from './AttachmentMenu';
-import VoiceRecorder from './VoiceRecorder';
-import { Paperclip, MessageSquarePlus, Send, LoaderCircle, X, Image as ImageIcon, Video as VideoIcon, Mic } from 'lucide-react';
+import EmojiPicker from '../common/EmojiPicker';
+import { Paperclip, MessageSquarePlus, Send, LoaderCircle, X, Image as ImageIcon, Video as VideoIcon, Mic, Square, Trash2, Smile } from 'lucide-react';
 import { uploadMedia, uploadVoiceMessage } from '../../services/mediaService';
 import { compressImage, handleVideo } from '../../utils/mediaCompressor';
+import useIsDesktop from '../../hooks/useIsDesktop';
 
 const MessageInput = ({
   onSendMessage,
@@ -16,15 +17,26 @@ const MessageInput = ({
   const [message, setMessage] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
-  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const [filePreview, setFilePreview] = useState(null); // { url: '...', file: File }
   const [imageQuality, setImageQuality] = useState('standard'); // 'standard' or 'high'
   const [voiceBlob, setVoiceBlob] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [hasPermission, setHasPermission] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  const isDesktop = useIsDesktop();
   const textareaRef = useRef(null);
   const containerRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const timerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -146,13 +158,137 @@ const MessageInput = ({
     setShowQuickReplies(false);
   };
 
-  const handleVoiceRecord = () => {
-    setShowVoiceRecorder(true);
+  const handleEmojiSelect = (emoji) => {
+    setMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
   };
 
-  const handleVoiceSend = (blob) => {
-    setVoiceBlob(blob);
-    setShowVoiceRecorder(false);
+  const handleVoiceRecord = () => {
+    if (!isRecording) {
+      startRecording();
+    } else {
+      stopRecording();
+    }
+  };
+
+
+
+  const resetRecordingState = useCallback(() => {
+    setIsRecording(false);
+    setRecordingTime(0);
+    setVoiceBlob(null);
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const context = canvas.getContext('2d');
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }, []);
+
+  const requestMicrophonePermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      setHasPermission(true);
+      return true;
+    } catch (err) {
+      setHasPermission(false);
+      alert('Microphone access is required to record audio.');
+      return false;
+    }
+  };
+
+  const visualize = () => {
+    if (!analyserRef.current || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const canvasCtx = canvas.getContext('2d');
+    const bufferLength = analyserRef.current.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const draw = () => {
+      animationFrameRef.current = requestAnimationFrame(draw);
+      analyserRef.current.getByteTimeDomainData(dataArray);
+
+      canvasCtx.fillStyle = 'var(--surface-color, #fff)';
+      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = 'var(--brand-primary, #128c7e)';
+      canvasCtx.beginPath();
+
+      const sliceWidth = canvas.width * 1.0 / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * canvas.height / 2;
+
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+        x += sliceWidth;
+      }
+      canvasCtx.lineTo(canvas.width, canvas.height / 2);
+      canvasCtx.stroke();
+    };
+    draw();
+  };
+
+  const startRecording = async () => {
+    const hasPermission = await requestMicrophonePermission();
+    if (!hasPermission) return;
+
+    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    analyserRef.current = audioContextRef.current.createAnalyser();
+    const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
+    source.connect(analyserRef.current);
+
+    const mediaRecorder = new MediaRecorder(streamRef.current);
+    mediaRecorderRef.current = mediaRecorder;
+    const chunks = [];
+    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      const completeBlob = new Blob(chunks, { type: 'audio/webm' });
+      setVoiceBlob(completeBlob);
+    };
+    mediaRecorder.start();
+    setIsRecording(true);
+    setRecordingTime(0);
+    visualize();
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+  };
+
+  const deleteRecording = () => {
+    setVoiceBlob(null);
+    setRecordingTime(0);
+    setIsRecording(false);
+    resetRecordingState();
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   return (
@@ -163,11 +299,7 @@ const MessageInput = ({
         onFileSelect={handleFileSelect}
       />
 
-      <VoiceRecorder
-        isOpen={showVoiceRecorder}
-        onClose={() => setShowVoiceRecorder(false)}
-        onSend={handleVoiceSend}
-      />
+
 
       {/* Quick Replies Menu */}
       {showQuickReplies && (
@@ -261,6 +393,21 @@ const MessageInput = ({
         </div>
       )}
 
+      {isRecording && (
+        <div className="recording-row">
+          <div className="recording-waveform">
+            <canvas ref={canvasRef} width={300} height={60}></canvas>
+            <div className="recording-timer">{formatTime(recordingTime)}</div>
+          </div>
+          <div className="recording-controls">
+            <button onClick={stopRecording} className="btn-stop-recording" title="Stop Recording">
+              <Square size={24} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isRecording && (
       <div className="input-row">
         <div className="left-buttons">
           <button
@@ -280,12 +427,20 @@ const MessageInput = ({
             <Paperclip size={22} />
           </button>
           <button
-            className="btn-mic"
-            onClick={handleVoiceRecord}
-            title="Record Voice"
+            className="btn-emoji"
+            onClick={() => setShowEmojiPicker(true)}
+            title="Add emoji"
             disabled={isUploading}
           >
-            <Mic size={22} />
+            <Smile size={22} />
+          </button>
+          <button
+            className="btn-mic"
+            onClick={handleVoiceRecord}
+            title={isRecording ? "Stop Recording" : "Record Voice"}
+            disabled={isUploading}
+          >
+            {isRecording ? <Square size={22} /> : <Mic size={22} />}
           </button>
         </div>
 
@@ -296,6 +451,10 @@ const MessageInput = ({
           value={message}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
+          onContextMenu={isDesktop ? (e) => {
+            e.preventDefault();
+            setShowEmojiPicker(true);
+          } : undefined}
           rows={1}
           disabled={isUploading}
         />
@@ -308,6 +467,23 @@ const MessageInput = ({
           {isUploading ? <LoaderCircle size={24} className="animate-spin" /> : <Send size={22} />}
         </button>
       </div>
+      )}
+
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <div className="emoji-picker-overlay" onClick={() => setShowEmojiPicker(false)}>
+          <div className="emoji-picker-container" onClick={(e) => e.stopPropagation()}>
+            <EmojiPicker
+              isOpen={true}
+              onEmojiSelect={handleEmojiSelect}
+              onClose={() => setShowEmojiPicker(false)}
+              showHeader={true}
+              showArrow={true}
+              showCloseButton={true}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,0 +1,81 @@
+/* Container */
+.gif-picker-container {
+  display: flex;
+  flex-direction: column;
+  height: 450px; /* Fixed height */
+  background-color: #17212b; /* Dark Theme */
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Search Bar */
+.gif-search-bar {
+  padding: 10px;
+  background-color: #242f3d;
+  position: relative;
+}
+
+.gif-search-bar input {
+  width: 100%;
+  background-color: #0e1621;
+  border: none;
+  padding: 10px 35px 10px 12px;
+  border-radius: 20px;
+  color: #fff;
+  outline: none;
+}
+
+.search-icon {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #aaa;
+}
+
+/* Grid Area */
+.gif-grid-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* Masonry Layout (Eeton ki tarah fit) */
+.gif-masonry {
+  column-count: 2; /* 2 Columns */
+  column-gap: 8px;
+}
+
+.gif-item {
+  margin-bottom: 8px;
+  break-inside: avoid;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #242f3d;
+  transition: transform 0.2s;
+}
+
+.gif-item:hover {
+  transform: scale(1.02);
+}
+
+.gif-item img {
+  width: 100%;
+  display: block;
+}
+
+/* Branding Footer */
+.tenor-branding {
+  text-align: center;
+  font-size: 10px;
+  color: #555;
+  padding: 5px;
+  background: #0e1621;
+}
+
+.gif-loading {
+  text-align: center;
+  padding: 20px;
+  color: #fff;
+}

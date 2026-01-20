@@ -554,6 +554,14 @@ const Settings = () => {
             </div>
             <span className="icon arrow">›</span>
           </div>
+
+          <div className="settings-item" onClick={() => navigate('/emoji-settings')}>
+            <div className="item-left">
+              <i className="fas fa-smile"></i>
+              <span className="label">Emoji Style</span>
+            </div>
+            <span className="icon arrow">›</span>
+          </div>
         </div>
 
         {/* Storage Section */}

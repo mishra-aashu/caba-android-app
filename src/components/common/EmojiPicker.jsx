@@ -1,27 +1,41 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Smile } from 'lucide-react';
+import { init } from 'emoji-mart';
+import data from '@emoji-mart/data';
+import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import './EmojiPicker.css';
 
-const EmojiPicker = ({ onEmojiSelect, buttonClassName = '' }) => {
-    const [isOpen, setIsOpen] = useState(false);
+// Lazy load emoji-mart Picker to avoid SSR issues
+const Picker = lazy(() =>
+  import('@emoji-mart/react').then(module => ({ default: module.default }))
+);
+
+// Initialize emoji-mart data
+init({ data });
+
+const EmojiPicker = ({
+    onEmojiSelect,
+    onClose,
+    buttonClassName = '',
+    showCloseButton = true,
+    isOpen: controlledIsOpen,
+    onOpenChange,
+    showHeader = true,
+    showArrow = false
+}) => {
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    const { emojiStyle } = useEmojiStyle();
+
+    // Use controlled or internal state
+    const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+    const setIsOpen = onOpenChange || setInternalIsOpen;
     const pickerRef = useRef(null);
 
-    const emojis = [
-        '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
-        '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
-        '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
-        '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥',
-        '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮',
-        '🤧', '🥵', '🥶', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐',
-        '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦',
-        '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞',
-        '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉',
-        '👆', '👇', '☝️', '👋', '🤚', '🖐', '✋', '🖖', '👏', '🙌',
-        '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
-        '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '🔥', '✨',
-        '⭐', '🌟', '💫', '💥', '💢', '💦', '💨', '🕊️', '🦋', '🌸',
-        '💐', '🌹', '🥀', '🌺', '🌻', '🌼', '🌷', '🎉', '🎊', '🎈'
-    ];
+    // Handle emoji selection - don't close automatically to allow multiple selections
+    const handleEmojiSelect = (emoji) => {
+        onEmojiSelect(emoji.native);
+        // Note: Not closing automatically to allow multiple selections
+    };
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -39,11 +53,6 @@ const EmojiPicker = ({ onEmojiSelect, buttonClassName = '' }) => {
         };
     }, [isOpen]);
 
-    const handleEmojiClick = (emoji) => {
-        onEmojiSelect(emoji);
-        setIsOpen(false);
-    };
-
     return (
         <div className="emoji-picker-container" ref={pickerRef}>
             <button
@@ -57,21 +66,37 @@ const EmojiPicker = ({ onEmojiSelect, buttonClassName = '' }) => {
 
             {isOpen && (
                 <div className="emoji-picker-popup">
-                    <div className="emoji-picker-header">
-                        <span>Emojis</span>
-                    </div>
-                    <div className="emoji-grid">
-                        {emojis.map((emoji, index) => (
-                            <button
-                                key={index}
-                                type="button"
-                                className="emoji-item"
-                                onClick={() => handleEmojiClick(emoji)}
-                            >
-                                {emoji}
-                            </button>
-                        ))}
-                    </div>
+                    {/* CLOSE BUTTON */}
+                    {showCloseButton && (
+                        <button
+                            className="picker-close-btn"
+                            onClick={() => {
+                                setIsOpen(false);
+                                onClose && onClose();
+                            }}
+                            title="Close"
+                        >
+                            ✕
+                        </button>
+                    )}
+
+                    {/* Emoji Mart Picker */}
+                    <Suspense fallback={<div className="emoji-loading">Loading emojis...</div>}>
+                        <Picker
+                            data={data}
+                            theme="dark"
+                            set="native"  // Use native emojis by default for best performance and compatibility
+                            onEmojiSelect={handleEmojiSelect}
+                            previewPosition="none"
+                            skinTonePosition="none"
+                            emojiSize={24}
+                            emojiButtonSize={32}
+                            maxFrequentRows={1}
+                            perLine={8}
+                            defaultSkinTone="neutral"
+                            categories={['frequent', 'smileys', 'people', 'animals', 'food', 'activity', 'travel', 'objects', 'symbols']}
+                        />
+                    </Suspense>
                 </div>
             )}
         </div>
