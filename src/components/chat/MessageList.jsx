@@ -11,7 +11,8 @@ const MessageList = ({
   onForward,
   onDelete,
   onMediaView,
-  onMediaDownload
+  onMediaDownload,
+  isLoading
 }) => {
   // Group messages by date
   const groupMessagesByDate = (messages) => {
@@ -33,6 +34,20 @@ const MessageList = ({
   const groupedMessages = groupMessagesByDate(messages);
 
   if (!messages || messages.length === 0) {
+    if (isLoading) {
+      return (
+        <div className="messages-wrapper">
+          <div className="skeleton-messages">
+            <div className="skeleton-message received"></div>
+            <div className="skeleton-message sent"></div>
+            <div className="skeleton-message received"></div>
+            <div className="skeleton-message sent"></div>
+            <div className="skeleton-message received"></div>
+            <div className="skeleton-message sent"></div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="messages-wrapper">
         <div className="no-messages-placeholder">

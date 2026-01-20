@@ -911,6 +911,7 @@ const Chat = () => {
           onDelete={(messageId) => setMessages(prev => prev.filter(m => m.id !== messageId))}
           onMediaView={handleMediaView}
           onMediaDownload={handleMediaDownload}
+          isLoading={loading}
         />
 
         <TypingIndicator isVisible={isOtherUserTyping} />

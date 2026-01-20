@@ -30,6 +30,7 @@ const MessageItem = ({
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [isUpwards, setIsUpwards] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [touchStartTime, setTouchStartTime] = useState(0);
@@ -253,7 +254,29 @@ const MessageItem = ({
           if (!isTouchDevice) {
             e.preventDefault();
             if (!isSelectionMode) {
-              setMenuPos({ x: e.clientX, y: e.clientY });
+              // Smart positioning logic
+              const menuHeight = 220; // Estimated menu height
+              const menuWidth = 180;
+              const screenH = window.innerHeight;
+              const screenW = window.innerWidth;
+
+              let x = e.clientX;
+              let y = e.clientY;
+
+              // Vertical logic (upwards or downwards)
+              const openUpwards = (screenH - y) < menuHeight;
+              setIsUpwards(openUpwards);
+
+              if (openUpwards) {
+                y = y - menuHeight; // Shift up
+              }
+
+              // Horizontal logic (left or right)
+              if ((screenW - x) < menuWidth) {
+                x = x - menuWidth;
+              }
+
+              setMenuPos({ x, y });
               setShowActions(true);
             }
           }
@@ -263,6 +286,14 @@ const MessageItem = ({
           {renderMessageContent()}
         </div>
       </div>
+
+      {/* Menu Overlay - Click to close */}
+      {showActions && !isSelectionMode && !isTouchDevice && (
+        <div
+          className="menu-overlay"
+          onClick={() => setShowActions(false)}
+        />
+      )}
 
       {/* Desktop Context Menu - Rendered outside message item to avoid click conflicts */}
       <DesktopContextMenu
