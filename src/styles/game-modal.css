@@ -1,0 +1,84 @@
+/* Game Overlay - Fullscreen background */
+.game-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+}
+
+/* Game Card - Main modal box */
+.game-card {
+  background: linear-gradient(145deg, #1e1e1e, #2d2d2d);
+  width: 90%;
+  max-width: 400px;
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  text-align: center;
+  color: white;
+  position: relative;
+  animation: popIn 0.3s ease-out;
+}
+
+/* Close Button */
+.close-game-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.close-game-btn:hover { color: white; }
+
+/* Game Actions - Truth/Dare buttons container */
+.game-actions {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Action Buttons */
+.action-btn {
+  padding: 12px 30px;
+  border-radius: 12px;
+  border: none;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-truth { 
+  background: white; 
+  color: black; 
+}
+.btn-dare { 
+  background: transparent; 
+  border: 2px solid white; 
+  color: white; 
+}
+
+.btn-truth:hover, .btn-dare:hover { 
+  transform: scale(1.05); 
+}
+
+/* Animation Keyframes */
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

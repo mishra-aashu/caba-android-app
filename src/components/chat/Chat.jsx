@@ -6,7 +6,7 @@ import { useCall } from '../../context/CallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
 import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
-import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply } from 'lucide-react';
+import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2 } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
 import MessageList from './MessageList';
@@ -14,14 +14,19 @@ import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import MediaViewer from '../media/MediaViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
-import { useTypingIndicator } from '../../hooks/useRealtimeTyping';
+import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
 import { useMessageStatusUpdates } from '../../hooks/useMessageStatusUpdates';
 import { useChatListRealtime } from '../../hooks/useChatListRealtime';
+import { useTruthDareGame } from '../../hooks/useTruthDareGame';
+import TruthDareModal from './TruthDareModal';
+import GameRoom from './GameRoom';
 import ForwardModal from './ForwardModal';
 import { formatLastSeen, isUserOnline } from '../../utils/timeUtils';
 import NotificationSound from '../../utils/notificationSound';
 import toast from 'react-hot-toast';
+import { debounce } from 'lodash';
 import '../../styles/chat.css';
+import '../../styles/game-modal.css';
 
 import './AttachmentMenu.css';
 
@@ -64,6 +69,7 @@ const Chat = () => {
    const [replyingTo, setReplyingTo] = useState(null);
    const [showForwardModal, setShowForwardModal] = useState(false);
    const [messagesToForward, setMessagesToForward] = useState([]);
+   const [showGameRoom, setShowGameRoom] = useState(false);
 
    const messagesEndRef = useRef(null);
    const messagesContainerRef = useRef(null);
@@ -76,6 +82,21 @@ const Chat = () => {
       // Check if message already exists to prevent duplicates
       const exists = prev.some(msg => msg.id === newMessage.id);
       if (exists) return prev;
+      
+      // Check if this is replacing a temporary message
+      const hasTempMessage = prev.some(msg => 
+        msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at
+      );
+      
+      if (hasTempMessage) {
+        // Replace temporary message with real message
+        return prev.map(msg => 
+          (msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at) 
+            ? newMessage 
+            : msg
+        );
+      }
+      
       return [...prev, newMessage];
     });
 
@@ -90,11 +111,17 @@ const Chat = () => {
     } else {
       markMessagesAsRead();
     }
+
+    // Check if this is a game invite acceptance that should open the game room
+    if (newMessage.type === 'game_invite' && newMessage.status === 'accepted') {
+      setGameRoomId(newMessage.game_room_id);
+      setIsGameRoomOpen(true);
+    }
   }, [isScrolledToBottom, currentUser?.id, isMuted]);
 
   useRealtimeMessages(validChatId, handleNewMessage, currentUser?.id);
 
-  const { isOtherUserTyping, sendTypingStatus } = useTypingIndicator(validChatId, currentUser?.id);
+  const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
 
   const handleStatusUpdate = useCallback((updatedMessage) => {
     setMessages(prev => prev.map(msg =>
@@ -105,6 +132,18 @@ const Chat = () => {
   useMessageStatusUpdates(validChatId, handleStatusUpdate);
 
   const { chats: allChats } = useChatListRealtime(currentUser?.id);
+
+  // Truth or Dare Game Hook
+  const { 
+    isOpen: isGameOpen, 
+    gameState, 
+    startGame, 
+    pickType, 
+    sendChallenge, 
+    completeTurn, 
+    closeGame 
+  } = useTruthDareGame(chatId, currentUser?.id);
+
 
   // Initialize chat when auth is ready
   useEffect(() => {
@@ -172,9 +211,26 @@ const Chat = () => {
     }
 
     try {
+      // OPTIMIZED QUERY: Use joins to fetch user data in single query
       let query = supabase
         .from('messages')
-        .select('*')
+        .select(`
+          *,
+          sender:sender_id (
+            id,
+            name,
+            avatar,
+            is_online,
+            last_seen
+          ),
+          receiver:receiver_id (
+            id,
+            name,
+            avatar,
+            is_online,
+            last_seen
+          )
+        `)
         .eq('chat_id', chatId)
         .order('created_at', { ascending: false }); // Load latest first for pagination
 
@@ -283,35 +339,57 @@ const Chat = () => {
   const sendMessage = async (content) => {
     if (!content.trim() || !currentUser) return;
 
-    try {
-      const newMessage = {
-        chat_id: validChatId,
-        sender_id: currentUser.id,
-        receiver_id: otherUserId,
-        content: content.trim(),
-        // All media-related columns will be null for text messages
-        media_path: null,
-        media_type: null,
-        reply_to: replyingTo ? replyingTo.id : null,
-      };
+    // 1. Optimistic Update - Show message immediately
+    const tempId = Date.now();
+    const optimisticMsg = {
+      id: tempId,
+      chat_id: validChatId,
+      sender_id: currentUser.id,
+      receiver_id: otherUserId,
+      content: content.trim(),
+      media_path: null,
+      media_type: null,
+      reply_to: replyingTo ? replyingTo.id : null,
+      created_at: new Date().toISOString(),
+      tempId: tempId, // Mark as temporary
+      status: 'sending'
+    };
 
+    // Add to messages state immediately
+    setMessages(prev => [...prev, optimisticMsg]);
+    setReplyingTo(null);
+
+    try {
+      // 2. Background Database Call
       const { data, error } = await supabase
         .from('messages')
-        .insert(newMessage)
+        .insert({
+          chat_id: validChatId,
+          sender_id: currentUser.id,
+          receiver_id: otherUserId,
+          content: content.trim(),
+          media_path: null,
+          media_type: null,
+          reply_to: replyingTo ? replyingTo.id : null,
+        })
         .select()
         .single();
 
       if (error) throw error;
 
-      // No need to manually add to state, realtime subscription will handle it.
-      // setMessages(prev => [...prev, data]);
-      
-      setReplyingTo(null);
+      // 3. Replace temporary message with real message
+      setMessages(prev => prev.map(msg => 
+        msg.tempId === tempId ? { ...data, status: 'sent' } : msg
+      ));
+
       NotificationSound.playMessageNotification();
 
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message.');
+      
+      // 4. Rollback on error - Remove temporary message
+      setMessages(prev => prev.filter(msg => msg.tempId !== tempId));
     }
   };
 
@@ -350,14 +428,14 @@ const Chat = () => {
 
 
   const handleTyping = () => {
-    sendTypingStatus(true);
+    sendTyping();
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
     typingTimeoutRef.current = setTimeout(() => {
-      sendTypingStatus(false);
+      sendTyping();
     }, 3000);
   };
 
@@ -534,6 +612,37 @@ const Chat = () => {
     setShowSearchModal(true);
   };
 
+  // Debounced search function - waits 500ms after user stops typing
+  const debouncedSearch = useCallback(
+    debounce((query) => {
+      if (!query.trim() || !chatId) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .ilike('content', `%${query}%`)
+        .order('created_at', { ascending: false })
+        .limit(50)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          setSearchResults(data || []);
+        })
+        .catch((error) => {
+          console.error('Error searching messages:', error);
+          setSearchResults([]);
+        })
+        .finally(() => {
+          setIsSearching(false);
+        });
+    }, 500), // 500ms delay
+    [chatId]
+  );
+
   const performMessageSearch = async (query) => {
     if (!query.trim() || !chatId) return;
 
@@ -560,11 +669,14 @@ const Chat = () => {
   const handleSearchQueryChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    if (query.trim()) {
-      performMessageSearch(query);
-    } else {
+    
+    // Update UI immediately for responsiveness
+    if (!query.trim()) {
       setSearchResults([]);
     }
+    
+    // Debounced API call
+    debouncedSearch(query);
   };
 
   const scrollToMessage = (messageId) => {
@@ -659,6 +771,7 @@ const Chat = () => {
       alert('Failed to start call: ' + error.message);
     }
   };
+
 
   const handleScroll = (e) => {
     const container = e.target;
@@ -760,7 +873,7 @@ const Chat = () => {
           <div className="user-details">
             <h3 className="user-name">{otherUser.contact_name || otherUser.name}</h3>
             <p className="user-status">
-              {isOtherUserTyping ? 'typing...' : isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen) ? 'Online' : `Last seen ${formatLastSeen(otherUser.last_seen)}`}
+              {Object.keys(typingUsers).length > 0 ? 'typing...' : isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen) ? 'Online' : `Last seen ${formatLastSeen(otherUser.last_seen)}`}
             </p>
           </div>
         </div>
@@ -772,7 +885,6 @@ const Chat = () => {
           <button className="icon-btn" onClick={handleVideoCall} title="Video Call">
             <Video size={20} />
           </button>
-
           <DropdownMenu
             items={[
               {
@@ -799,6 +911,11 @@ const Chat = () => {
                 icon: <Palette size={16} />,
                 label: 'Themes',
                 onClick: handleChangeTheme
+              },
+              {
+                icon: <Gamepad2 size={16} />,
+                label: 'Game Room',
+                onClick: () => setShowGameRoom(true)
               },
               { divider: true },
               {
@@ -914,7 +1031,7 @@ const Chat = () => {
           isLoading={loading}
         />
 
-        <TypingIndicator isVisible={isOtherUserTyping} />
+        <TypingIndicator isVisible={Object.keys(typingUsers).length > 0} />
 
         <div ref={messagesEndRef} />
 
@@ -1150,6 +1267,27 @@ const Chat = () => {
         onForward={handleForwardMessages}
         currentUser={currentUser}
       />
+
+      {/* Truth or Dare Game Modal */}
+      <TruthDareModal
+        isOpen={isGameOpen}
+        gameState={gameState}
+        userId={currentUser?.id}
+        partnerId={otherUser?.id}
+        onPick={pickType}
+        onSend={sendChallenge}
+        onComplete={completeTurn}
+        onClose={closeGame}
+        chatId={chatId}
+      />
+
+      {/* Game Room */}
+      <GameRoom
+        isOpen={showGameRoom}
+        onClose={() => setShowGameRoom(false)}
+        chatId={chatId}
+      />
+
 
     </div>
   );

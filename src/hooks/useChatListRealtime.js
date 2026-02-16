@@ -155,26 +155,55 @@ export const useChatListRealtime = (currentUserId) => {
         }
     }, [currentUserId, supabase]);
 
-    // Real-time channels effect
+    // Real-time channels effect - FIXED: No re-fetching
     useEffect(() => {
         if (!currentUserId) return;
 
         const messagesChannel = supabase
             .channel(`chat_list_messages_for_${currentUserId}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-                const message = payload.new;
-                if (message.sender_id === currentUserId || message.receiver_id === currentUserId) {
-                    updateChatInList(message.chat_id);
-                }
+                const newMessage = payload.new;
+                
+                // BAD CODE (Jo tum kar rahe the):
+                // updateChatInList(message.chat_id);  <-- Ye DB call hai, ise hatao!
+
+                // GOOD CODE (Local Update):
+                setChats((prevChats) => {
+                    return prevChats.map((chat) => {
+                        if (chat.id === newMessage.chat_id) {
+                            // Sirf uss chat ka last message update karo
+                            return {
+                                ...chat,
+                                last_message: newMessage.content,
+                                last_message_time: newMessage.created_at,
+                                unreadCount: chat.unreadCount + 1 // Optional logic
+                            };
+                        }
+                        return chat;
+                    })
+                    // Sort bhi kar do taaki nayi chat upar aa jaye
+                    .sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time));
+                });
             })
             .subscribe();
 
         const chatsChannel = supabase
             .channel(`chat_list_chats_for_${currentUserId}`)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chats' }, payload => {
-                if (payload.new.user1_id === currentUserId || payload.new.user2_id === currentUserId) {
-                    updateChatInList(payload.new.id);
-                }
+                // Handle chat updates locally without re-fetching
+                const updatedChat = payload.new;
+                setChats((prevChats) => {
+                    return prevChats.map((chat) => {
+                        if (chat.id === updatedChat.id) {
+                            return {
+                                ...chat,
+                                last_message: updatedChat.last_message,
+                                last_message_time: updatedChat.last_message_time
+                            };
+                        }
+                        return chat;
+                    });
+                });
             })
             .subscribe();
 
@@ -205,7 +234,7 @@ export const useChatListRealtime = (currentUserId) => {
             supabase.removeChannel(chatsChannel);
             supabase.removeChannel(usersChannel);
         };
-    }, [currentUserId, supabase, updateChatInList]);
+    }, [currentUserId, supabase]);
 
     const loadMoreChats = useCallback(() => {
         if (currentUserId && hasMoreChats && !loadingMore) {

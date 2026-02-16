@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
 const Intro = ({ onComplete }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isDark } = useTheme();
 
   const darkMode = isDark;
@@ -13,8 +14,7 @@ const Intro = ({ onComplete }) => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirectTo = urlParams.get('redirect');
+      const redirectTo = searchParams.get('redirect');
 
       if (redirectTo === 'login') {
         navigate('/login');

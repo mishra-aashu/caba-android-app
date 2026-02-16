@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 import './QRCodeScanner.css';
 
 const QRCodeScanner = ({ onScan, onClose, onError }) => {
@@ -103,9 +103,6 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
       try {
         setError('');
         setIsScanning(true);
-
-        // Import html5-qrcode for file scanning
-        const { Html5Qrcode } = await import('html5-qrcode');
 
         const html5QrCode = new Html5Qrcode("hidden-qr-reader");
 

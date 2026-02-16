@@ -325,14 +325,43 @@
 }
 
 /* Modal Specific Styles for Profile.jsx */
-/* Overriding base modal styles from global.css for specific needs */
+/* Using Overlay + Modal Pattern for Professional Look */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* 70% opacity black overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px); /* Blur background content */
+}
+
+.modal-content {
+  background-color: #1e1e1e; /* Solid dark grey - NO TRANSPARENCY */
+  color: white;
+  width: 90%;
+  max-width: 500px;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  position: relative;
+  border: 1px solid #333;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Legacy modal support - keep for backward compatibility */
 .modal[style*="display: flex"] { /* Targeting the inline display flex */
   display: flex; /* Ensure it's always flex when visible */
   align-items: center;
   justify-content: center;
 }
 
-.modal-content {
+.modal[style*="display: flex"] .modal-content {
   background: var(--surface);
   border-radius: var(--radius-lg);
   padding: 25px;
@@ -344,15 +373,32 @@
   position: relative;
 }
 
+/* Modal Header Styling */
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
 }
 
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.close-btn:hover { color: white; }
+
+/* Legacy modal header support */
 .modal-header h2 {
   margin: 0;
   font-size: 22px;
@@ -434,6 +480,29 @@
 }
 
 /* DP Options Grid */
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 images per row */
+  gap: 15px;
+  max-height: 400px; /* If list is long, allow scrolling */
+  overflow-y: auto;
+}
+
+.avatar-item {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.avatar-item:hover {
+  transform: scale(1.1);
+  border-color: #667eea; /* Highlight color on hover */
+}
+
+/* Legacy DP Options Grid support */
 .dp-options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { QRCodeGenerator, QRCodeScanner } from '../qr';
@@ -10,6 +12,7 @@ import FullscreenImageModal from './FullscreenImageModal';
 import toast from 'react-hot-toast';
 
 const Profile = ({ isModal = false }) => {
+  const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState(null);
@@ -25,24 +28,13 @@ const Profile = ({ isModal = false }) => {
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [fullscreenImageUrl, setFullscreenImageUrl] = useState('');
 
-  useEffect(() => {
-    if (!authLoading) {
-      loadProfileData();
-    }
-  }, [authUser, authLoading]);
+  // NEW: Use React Query for efficient caching
+  const { data: userProfile, isLoading: profileLoading, error: profileError } = useQuery({
+    queryKey: ['userProfile', authUser?.id],
+    queryFn: async () => {
+      if (!authUser) return null;
 
-  const loadProfileData = async () => {
-    try {
-      if (!authUser) return;
-
-      const cachedProfile = localStorage.getItem(`digidad_profile_${authUser.id}`);
-      if (cachedProfile) {
-        const profile = JSON.parse(cachedProfile);
-        setUser(profile);
-        loadProfileStats();
-      }
-
-      const { data: userProfile, error } = await supabase
+      const { data: existingUser, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
@@ -50,6 +42,7 @@ const Profile = ({ isModal = false }) => {
 
       let currentUser;
       if (error && error.code === 'PGRST116') {
+        // User doesn't exist, create new profile
         const { data: newProfile, error: createError } = await supabase
           .from('users')
           .insert([{
@@ -72,19 +65,30 @@ const Profile = ({ isModal = false }) => {
       } else if (error) {
         throw error;
       } else {
-        currentUser = userProfile;
+        currentUser = existingUser;
       }
 
+      // Cache the profile locally for offline access
       localStorage.setItem(`digidad_profile_${authUser.id}`, JSON.stringify(currentUser));
-      setUser(currentUser);
-      loadProfileStats();
+      return currentUser;
+    },
+    enabled: !!authUser && !authLoading, // Only run when user is authenticated and auth is loaded
+    staleTime: 1000 * 60 * 5, // 5 minutes - don't refetch within this time
+    cacheTime: 1000 * 60 * 10, // 10 minutes - keep in cache for this time
+  });
 
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
+  // Update local state when query data changes
+  useEffect(() => {
+    if (userProfile) {
+      setUser(userProfile);
+      loadProfileStats();
     }
-  };
+  }, [userProfile]);
+
+  // Set loading state based on both auth and profile loading
+  useEffect(() => {
+    setLoading(authLoading || profileLoading);
+  }, [authLoading, profileLoading]);
 
   const loadProfileStats = () => {
     const contacts = JSON.parse(localStorage.getItem('CaBa_contacts') || '[]');
@@ -219,7 +223,7 @@ const Profile = ({ isModal = false }) => {
         </button>
         <h1>Profile</h1>
         <button className="icon-btn" onClick={handleEditProfile}>
-          <i className="fas fa-edit"></i>
+          <i className="fas fa-ellipsis-v"></i>
         </button>
       </header>
 
@@ -375,22 +379,20 @@ const Profile = ({ isModal = false }) => {
 
       {/* Choose DP Modal */}
       {showDpModal && (
-        <div className="modal">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowDpModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Choose Profile Picture</h2>
-              <button className="close-modal" onClick={() => setShowDpModal(false)}>
-                <i className="fas fa-times"></i>
-              </button>
+              <span className="modal-title">Choose Profile Picture</span>
+              <button className="close-btn" onClick={() => setShowDpModal(false)}>&times;</button>
             </div>
             <div className="modal-body">
-              <div className="dp-options-grid">
+              <div className="avatar-grid">
                 {dpOptions.map(option => (
                   <img
                     key={option.id}
                     src={option.path}
-                    alt={`DP ${option.id}`}
-
+                    alt={`Avatar ${option.id}`}
+                    className="avatar-item"
                     onClick={() => selectDp(option.id)}
                   />
                 ))}

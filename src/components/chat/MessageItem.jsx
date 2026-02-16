@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../utils/supabase';
+import { useSupabase } from '../../contexts/SupabaseContext';
+import { useAuth } from '../../hooks/useAuth';
 import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
 import {
@@ -11,9 +13,16 @@ import {
   Bell,
   Clock,
   MapPin,
+  Play,
+  XCircle,
+  CheckCircle,
+  Send,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import DesktopContextMenu from './DesktopContextMenu';
+import toast from 'react-hot-toast';
 
 const MessageItem = ({
   message,
@@ -27,6 +36,8 @@ const MessageItem = ({
   onDelete,
   onMediaView,
   onMediaDownload,
+  onAcceptGame,
+  onRejectGame,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -126,28 +137,46 @@ const MessageItem = ({
 
   const handleDelete = async () => {
     setShowActions(false);
+    
+    // OPTIMISTIC UPDATE: Remove message from UI immediately
+    const previousMessage = message;
+    if (onDelete) {
+      onDelete(message.id);
+    }
+    
     try {
+      // Now make the API call
       const { error } = await supabase
         .from('messages')
         .delete()
         .eq('id', message.id);
 
       if (error) throw error;
-
-      // Remove the message from the UI instantly
-      if (onDelete) {
-        onDelete(message.id);
-      }
+      
+      toast.success('Message deleted');
+      
     } catch (error) {
       console.error('Error deleting message:', error);
+      
+      // ROLLBACK: If deletion fails, show error but don't restore message
+      // (since we already removed it from UI for better UX)
+      toast.error('Failed to delete message');
     }
   };
 
   const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    try {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
   };
 
   const handleTouchStart = (e) => {
@@ -195,6 +224,122 @@ const MessageItem = ({
       onMediaView(mediaUrl, mediaType, message);
     }
   };
+
+  // Agar message type 'game_invite' hai, toh ye Special Card dikhao
+  if (message.type === 'game_invite') {
+    const handleAcceptInvitation = async () => {
+      try {
+        // Update invitation status to accepted
+        const { error: inviteError } = await supabase
+          .from('game_invitations')
+          .update({ status: 'accepted' })
+          .eq('id', message.game_invitation_id);
+
+        if (inviteError) throw inviteError;
+
+        // Update message status to accepted
+        const { error: messageError } = await supabase
+          .from('messages')
+          .update({ status: 'accepted' })
+          .eq('id', message.id);
+
+        if (messageError) throw messageError;
+
+        toast.success('Game invitation accepted!');
+      } catch (error) {
+        console.error('Error accepting invitation:', error);
+        toast.error('Failed to accept invitation');
+      }
+    };
+
+    const handleRejectInvitation = async () => {
+      try {
+        // Update invitation status to rejected
+        const { error: inviteError } = await supabase
+          .from('game_invitations')
+          .update({ status: 'rejected' })
+          .eq('id', message.game_invitation_id);
+
+        if (inviteError) throw inviteError;
+
+        // Update message status to rejected
+        const { error: messageError } = await supabase
+          .from('messages')
+          .update({ status: 'rejected' })
+          .eq('id', message.id);
+
+        if (messageError) throw messageError;
+
+        toast.success('Game invitation rejected');
+      } catch (error) {
+        console.error('Error rejecting invitation:', error);
+        toast.error('Failed to reject invitation');
+      }
+    };
+
+    return (
+      <div className={`flex ${isSent ? 'justify-end' : 'justify-start'} mb-4`}>
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 w-64 shadow-lg">
+          
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-3 border-b border-gray-700 pb-2">
+            <span className="text-2xl">🎮</span>
+            <div>
+              <h3 className="font-bold text-white text-sm">Truth or Dare</h3>
+              <p className="text-xs text-gray-400">
+                {message.status === 'pending' ? 'Game invitation' : 'Game started!'}
+              </p>
+            </div>
+          </div>
+
+          {/* Invitation Content */}
+          <div className="text-xs text-gray-300 mb-3">
+            {message.content}
+          </div>
+
+          {/* Actions - Logic:
+              1. Agar status 'pending' hai aur main receiver hu -> Accept/Reject buttons.
+              2. Agar status 'accepted' hai -> 'Join Game' button.
+          */}
+          {message.status === 'pending' ? (
+            isSent ? (
+              <div className="text-xs text-yellow-500 italic">Waiting for response...</div>
+            ) : (
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleAcceptInvitation}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1"
+                >
+                  <UserCheck size={14} /> Accept
+                </button>
+                <button 
+                  onClick={handleRejectInvitation}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1"
+                >
+                  <UserX size={14} /> Reject
+                </button>
+              </div>
+            )
+          ) : message.status === 'accepted' ? (
+             <button 
+               onClick={() => {
+                 // Start the game
+                 if (onAcceptGame) {
+                   onAcceptGame(message.id, message.game_room_id);
+                 }
+               }}
+               className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold animate-pulse"
+             >
+               Start Game 🚀
+             </button>
+          ) : (
+             <div className="text-red-400 text-xs">Invitation rejected</div>
+          )}
+
+        </div>
+      </div>
+    );
+  }
 
   const renderMessageContent = () => {
     if (message.media_path && (message.media_type === 'image' || message.media_type === 'video')) {

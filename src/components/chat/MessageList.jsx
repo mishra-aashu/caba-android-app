@@ -14,13 +14,27 @@ const MessageList = ({
   onMediaDownload,
   isLoading
 }) => {
+  // Helper function to safely parse dates
+  const isValidDate = (d) => d instanceof Date && !isNaN(d);
+
+  const formatDateSafe = (dateString) => {
+    if (!dateString) return null;
+    
+    const date = new Date(dateString);
+    if (!isValidDate(date)) return null;
+    
+    return date.toDateString();
+  };
+
   // Group messages by date
   const groupMessagesByDate = (messages) => {
     const groups = {};
 
     messages.forEach(message => {
-      const date = new Date(message.created_at);
-      const dateKey = date.toDateString();
+      const dateKey = formatDateSafe(message.created_at);
+      
+      // Skip messages with invalid dates
+      if (!dateKey) return;
 
       if (!groups[dateKey]) {
         groups[dateKey] = [];

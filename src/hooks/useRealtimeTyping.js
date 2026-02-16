@@ -1,71 +1,60 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSupabase } from '../contexts/SupabaseContext';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../config/supabase';
+import { throttle } from 'lodash';
 
-export const useTypingIndicator = (chatId, currentUserId) => {
-    const { supabase, session } = useSupabase();
-    const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
-    const channelRef = useRef(null);
+export const useRealtimeTyping = (chatId, currentUserId) => {
+  const [typingUsers, setTypingUsers] = useState({});
 
-    useEffect(() => {
-        // Channel Start karne ka function
-        const startChannel = () => {
-            // Agar purana channel zinda hai, toh pehle usse maaro (Cleanup)
-            if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
-            }
+  useEffect(() => {
+    if (!chatId) return;
 
-            if (!chatId) return;
+    // 1. Channel Create karo (Sirf ek baar)
+    const channel = supabase.channel(`typing_room_${chatId}`);
 
-            console.log(`🔌 Connecting to typing indicators for chat: ${chatId}...`);
+    channel
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        // Khud ka typing status ignore karo
+        if (payload.payload.userId === currentUserId) return;
 
-            // Naya channel banao
-            const channel = supabase
-                .channel(`typing_${chatId}`)
-                .on('broadcast', { event: 'typing' }, (payload) => {
-                    if (payload.payload.userId !== currentUserId) {
-                        setIsOtherUserTyping(payload.payload.isTyping);
+        // User ko "Typing..." list mein daalo
+        setTypingUsers((prev) => ({
+          ...prev,
+          [payload.payload.userId]: Date.now(),
+        }));
 
-                        if (payload.payload.isTyping) {
-                            setTimeout(() => setIsOtherUserTyping(false), 3000);
-                        }
-                    }
-                })
-                .subscribe((status) => {
-                    console.log(`Typing indicators status: ${status}`);
+        // 3 second baad auto-remove kar do (agar user ruk gaya)
+        setTimeout(() => {
+          setTypingUsers((prev) => {
+            const newState = { ...prev };
+            delete newState[payload.payload.userId];
+            return newState;
+          });
+        }, 3000);
+      })
+      .subscribe();
 
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ Typing indicators connected!');
-                    }
+    // CLEANUP: Jab chat change ho, channel band karo
+    return () => {
+      // Safe cleanup: Check if channel exists before removing
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [chatId, currentUserId]);
 
-                    // Agar error aaye ya time out ho jaye, toh turant restart karo
-                    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                        console.log('❌ Typing indicators connection died. Retrying in 1s...');
-                        setTimeout(startChannel, 1000);
-                    }
-                });
+  // 2. Typing Signal bhejne ka function (Throttled: Max 1 call per 500ms)
+  // Isse network spam nahi hoga
+  const sendTyping = useCallback(
+    throttle(() => {
+      const channel = supabase.channel(`typing_room_${chatId}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { userId: currentUserId },
+      });
+    }, 500),
+    [chatId, currentUserId]
+  );
 
-            channelRef.current = channel;
-        };
-
-        // Initial Start
-        startChannel();
-
-        // Cleanup when component unmounts
-        return () => {
-            if (channelRef.current) supabase.removeChannel(channelRef.current);
-        };
-    }, [chatId, currentUserId, supabase, session]);
-
-    const sendTypingStatus = useCallback((isTyping) => {
-        if (!supabase || !chatId) return;
-
-        const channel = supabase.channel(`typing_${chatId}`);
-        channel.send({
-            type: 'broadcast',
-            event: 'typing',
-            payload: { userId: currentUserId, isTyping }
-        });
-    }, [supabase, chatId, currentUserId]);
-
-    return { isOtherUserTyping, sendTypingStatus };
+  return { typingUsers, sendTyping };
 };
