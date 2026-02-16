@@ -4,12 +4,12 @@ importScripts('./firebase-messaging-compat.js');
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBempZtw6tr9_Vnospj3zmyiYiPlIf3HSY",
-  authDomain: "caba-13cf1.firebaseapp.com",
-  projectId: "caba-13cf1",
-  storageBucket: "caba-13cf1.firebasestorage.app",
-  messagingSenderId: "71167429712",
-  appId: "1:71167429712:web:08986006d3241943b91555"
+  apiKey: "__VITE_FIREBASE_API_KEY__",
+  authDomain: "__VITE_FIREBASE_AUTH_DOMAIN__",
+  projectId: "__VITE_FIREBASE_PROJECT_ID__",
+  storageBucket: "__VITE_FIREBASE_STORAGE_BUCKET__",
+  messagingSenderId: "__VITE_FIREBASE_MESSAGING_SENDER_ID__",
+  appId: "__VITE_FIREBASE_APP_ID__"
 };
 
 // Initialize Firebase

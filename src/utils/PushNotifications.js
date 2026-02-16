@@ -6,12 +6,12 @@ import { supabase } from '../config/supabase';
 
 // Firebase Config (Apna wala use karein)
 const firebaseConfig = {
-  apiKey: "AIzaSyBempZtw6tr9_Vnospj3zmyiYiPlIf3HSY",
-  authDomain: "caba-13cf1.firebaseapp.com",
-  projectId: "caba-13cf1",
-  storageBucket: "caba-13cf1.firebasestorage.app",
-  messagingSenderId: "71167429712",
-  appId: "1:71167429712:web:08986006d3241943b91555"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 async function saveTokenToSupabase(token) {
@@ -79,7 +79,7 @@ export const initializePushNotifications = async () => {
       if (permission === 'granted') {
         // VAPID KEY ZAROORI HAI (Firebase Console > Cloud Messaging > Web Config se milti hai)
         const currentToken = await getToken(messaging, { 
-          vapidKey: "BBbzXiSR_Vju17IWSPuZLrhCiwdc3uQywEIbGXlRUh_KhJim-J-VBHoJgUkvhBTPgokAgIPFaUhJcEyVZGFIYF4"
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
         });
         
         if (currentToken) {

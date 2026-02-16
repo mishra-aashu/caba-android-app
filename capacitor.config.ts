@@ -1,4 +1,5 @@
 import { CapacitorConfig } from '@capacitor/cli';
+import 'dotenv/config';
 
 const config: CapacitorConfig = {
   appId: 'com.caba.app', // Ye sahi hona chahiye
@@ -8,7 +9,7 @@ const config: CapacitorConfig = {
     extConfig: {},
     GoogleAuth: {
       scopes: ['profile', 'email'],
-      serverClientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com', // <--- Yahan WEB Client ID aayega
+      serverClientId: process.env.GOOGLE_SERVER_CLIENT_ID, // <--- Yahan WEB Client ID aayega
       forceCodeForRefreshToken: true,
     },
     CapacitorUpdater: {
