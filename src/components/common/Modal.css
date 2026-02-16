@@ -11,6 +11,8 @@
     z-index: 9999;
     padding: 20px;
     animation: modalOverlayFadeIn 0.3s ease-out;
+    transform: translateZ(0); /* Hardware acceleration */
+    will-change: opacity;
 }
 
 @keyframes modalOverlayFadeIn {
@@ -34,6 +36,8 @@
     flex-direction: column;
     animation: modalSlideIn 0.3s ease-out;
     color: var(--text-primary, #333333);
+    transform: translateZ(0); /* Hardware acceleration */
+    will-change: transform, opacity;
 }
 
 [data-theme='dark'] .modal-container {
@@ -84,6 +88,8 @@
     border-radius: 0;
     transform: none;
     animation: slideFromRight 0.3s ease-out;
+    transform: translateZ(0); /* Hardware acceleration */
+    will-change: transform;
 }
 
 @keyframes slideFromRight {

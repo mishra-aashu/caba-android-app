@@ -36,10 +36,13 @@
     animation: dropdownFadeIn 0.2s ease-out;
     color: var(--text-0) !important;
     display: none; /* Hide by default */
+    transform: translateZ(0); /* Hardware acceleration */
+    will-change: transform, opacity;
 }
 
 .dropdown.is-open .dropdown-menu {
     display: block !important; /* Force display when open */
+    transform: translateZ(0); /* Hardware acceleration */
 }
 
 .dropdown-menu-left {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
@@ -77,6 +77,16 @@ const Chat = () => {
 
    const validChatId = chatId === 'new' ? null : chatId;
 
+  const { 
+    isOpen: isGameOpen, 
+    gameState, 
+    startGame, 
+    pickType, 
+    sendChallenge, 
+    completeTurn, 
+    closeGame 
+  } = useTruthDareGame(chatId, currentUser?.id);
+
    const handleNewMessage = useCallback((newMessage) => {
     setMessages(prev => {
       // Check if message already exists to prevent duplicates
@@ -114,10 +124,11 @@ const Chat = () => {
 
     // Check if this is a game invite acceptance that should open the game room
     if (newMessage.type === 'game_invite' && newMessage.status === 'accepted') {
-      setGameRoomId(newMessage.game_room_id);
-      setIsGameRoomOpen(true);
+      if (newMessage.receiver_id === currentUser?.id) {
+        startGame();
+      }
     }
-  }, [isScrolledToBottom, currentUser?.id, isMuted]);
+   }, [isScrolledToBottom, currentUser?.id, isMuted, startGame]);
 
   useRealtimeMessages(validChatId, handleNewMessage, currentUser?.id);
 
@@ -132,17 +143,6 @@ const Chat = () => {
   useMessageStatusUpdates(validChatId, handleStatusUpdate);
 
   const { chats: allChats } = useChatListRealtime(currentUser?.id);
-
-  // Truth or Dare Game Hook
-  const { 
-    isOpen: isGameOpen, 
-    gameState, 
-    startGame, 
-    pickType, 
-    sendChallenge, 
-    completeTurn, 
-    closeGame 
-  } = useTruthDareGame(chatId, currentUser?.id);
 
 
   // Initialize chat when auth is ready
@@ -850,8 +850,11 @@ const Chat = () => {
     );
   }
 
+  // Memoize the Chat component to prevent unnecessary re-renders
+  const MemoizedChat = memo(Chat);
+
   return (
-    <div className="chat-screen">
+    <div className="chat-screen" style={{ transform: 'translateZ(0)' }}>
       {/* Chat Header */}
       <header className="chat-header">
         <button className="back-btn" onClick={() => navigate('/')}>
@@ -1008,6 +1011,7 @@ const Chat = () => {
         className="messages-container"
         onScroll={handleScroll}
         ref={messagesContainerRef}
+        style={{ transform: 'translateZ(0)' }}
       >
         {/* Load More Indicator */}
         {loadingMore && (
@@ -1286,6 +1290,7 @@ const Chat = () => {
         isOpen={showGameRoom}
         onClose={() => setShowGameRoom(false)}
         chatId={chatId}
+        otherUserId={otherUserId}
       />
 
 

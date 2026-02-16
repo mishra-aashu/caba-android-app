@@ -227,7 +227,7 @@ const MessageItem = ({
 
   // Agar message type 'game_invite' hai, toh ye Special Card dikhao
   if (message.type === 'game_invite') {
-    const handleAcceptInvitation = async () => {
+      const handleAcceptInvitation = async () => {
       try {
         // Update invitation status to accepted
         const { error: inviteError } = await supabase
@@ -246,6 +246,11 @@ const MessageItem = ({
         if (messageError) throw messageError;
 
         toast.success('Game invitation accepted!');
+        
+        // Immediately open the game with the partner
+        if (onAcceptGame) {
+          onAcceptGame(message.id, message.game_room_id);
+        }
       } catch (error) {
         console.error('Error accepting invitation:', error);
         toast.error('Failed to accept invitation');
@@ -330,7 +335,7 @@ const MessageItem = ({
                }}
                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold animate-pulse"
              >
-               Start Game 🚀
+               Start Truth or Dare 🚀
              </button>
           ) : (
              <div className="text-red-400 text-xs">Invitation rejected</div>

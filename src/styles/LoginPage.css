@@ -1,0 +1,390 @@
+/* --- 1. Fonts Import (Premium Feel ke liye) --- */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap');
+
+/* --- 2. Global Container (The Canvas) --- */
+.art-login-container {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #050a0e; /* Deepest Dark */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  color: #e9edef;
+  transform: translateZ(0); /* Hardware acceleration */
+}
+
+/* --- 3. Ambient Background (Painting Blobs) --- */
+.art-login-container .ambient-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  opacity: 0.6;
+  will-change: transform;
+}
+
+.art-login-container .glow-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #005c4b 0%, transparent 70%);
+  top: -100px;
+  left: -100px;
+  animation: float 10s infinite ease-in-out;
+  will-change: transform;
+}
+
+.art-login-container .glow-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #0b3d36 0%, transparent 70%);
+  bottom: -50px;
+  right: -50px;
+  animation: float 12s infinite ease-in-out reverse;
+  will-change: transform;
+}
+
+/* Noise Texture (Paper Feel) */
+.art-login-container .noise-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: url("https://grainy-gradients.vercel.app/noise.svg");
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* --- 4. Main Content Layout (Split Screen Fixed) --- */
+.art-login-container .art-content {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center me lao */
+  gap: 80px; /* Thoda gap kam kiya (pehle space-between tha) */
+  width: 90%;
+  max-width: 1100px; /* Thoda compact kiya */
+  z-index: 5;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeInUp 1s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* --- 5. Left Side: Typography Art --- */
+.art-login-container .art-hero-section {
+  flex: 1;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 1s ease-out 0.2s forwards;
+  will-change: transform, opacity;
+}
+
+.art-login-container .brand-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.art-login-container .art-hero-headline {
+  font-family: 'Playfair Display', serif; /* Painting type font */
+  font-size: 4.5rem;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  color: #e2e8f0;
+}
+
+.art-login-container .italic-text {
+  font-style: italic;
+  color: #00a884; /* Signature Green */
+  font-weight: 400;
+}
+
+.art-login-container .art-desc {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  max-width: 450px;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.art-login-container .art-features {
+  display: flex;
+  gap: 20px;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.art-login-container .feat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --- 6. Right Side: The Paper Card --- */
+.art-login-container .login-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.art-login-container .paper-card {
+  width: 100%;
+  max-width: 400px;
+  
+  /* Paper Texture Background */
+  background: linear-gradient(135deg, rgba(32, 44, 51, 0.9), rgba(11, 20, 26, 0.95));
+  backdrop-filter: blur(20px);
+  
+  /* Subtle Border Glow */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 20px 40px -10px rgba(0, 0, 0, 0.6), /* Deep Shadow */
+    inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Top Highlight */
+    
+  padding: 45px;
+  border-radius: 24px;
+  position: relative;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 1s ease-out 0.4s forwards;
+  will-change: transform, opacity;
+}
+
+/* Isse card ke upar ek halka sa grain aayega */
+.art-login-container .paper-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url("https://grainy-gradients.vercel.app/noise.svg");
+  opacity: 0.05;
+  pointer-events: none;
+  border-radius: 24px;
+}
+
+.art-login-container .card-header h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  margin: 0 0 8px 0;
+  color: #fff;
+}
+
+.art-login-container .card-header p {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin-bottom: 30px;
+}
+
+/* Artistic Button */
+.art-login-container .google-art-btn {
+  width: 100%;
+  padding: 16px;
+  background: #e2e8f0; /* Off-white paper color */
+  color: #0f172a;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.art-login-container .google-art-btn:hover {
+  background: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+}
+
+.art-login-container .card-footer {
+  margin-top: 25px;
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+}
+
+.art-login-container .link {
+  color: #00a884;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.art-login-container .checkbox-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.art-login-container .checkbox-container .link {
+    margin: 0 4px;
+}
+.art-login-container .checkbox-container input {
+    display: none;
+}
+.art-login-container .checkbox-container .checkmark {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #64748b;
+    border-radius: 4px;
+    margin-right: 10px;
+    position: relative;
+}
+.art-login-container .checkbox-container input:checked + .checkmark {
+    background-color: #00a884;
+    border-color: #00a884;
+}
+.art-login-container .checkbox-container input:checked + .checkmark::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.art-login-container .error-message {
+    background-color: rgba(211, 47, 47, 0.1);
+    color: #D32F2F;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-align: center;
+    border: 1px solid #D32F2F;
+    margin-bottom: 1rem;
+}
+.art-login-container .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* --- Animations --- */
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, 20px); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile Fixes */
+@media (max-width: 900px) {
+  .art-login-container .art-content {
+    flex-direction: column;
+    text-align: center;
+    padding-top: 50px;
+    gap: 40px; /* Reduced gap for mobile */
+  }
+  
+  .art-login-container .art-hero-section { margin-bottom: 40px; }
+  .art-login-container .brand-badge {
+    font-size: 16px; /* Increased for better visibility */
+    padding: 10px 20px;
+  }
+  .art-login-container .art-hero-headline {
+    font-size: 3rem; /* Reduced from 4.5rem */
+    line-height: 1.1;
+  }
+  .art-login-container .art-desc {
+    font-size: 1rem; /* Reduced from 1.1rem */
+    max-width: 100%; /* Full width */
+    padding: 0 20px; /* Add padding to prevent text touching edges */
+  }
+  .art-login-container .art-features { justify-content: center; }
+  .art-login-container .login-wrapper { justify-content: center; width: 100%; }
+}
+
+/* Tablet Fixes */
+@media (max-width: 768px) {
+  .art-login-container .art-hero-headline {
+    font-size: 2.5rem; /* Further reduced for tablets */
+  }
+  .art-login-container .brand-badge {
+    font-size: 15px; /* Slightly smaller for tablets */
+    padding: 9px 18px;
+  }
+  .art-login-container .art-desc {
+    font-size: 0.95rem;
+    padding: 0 15px;
+  }
+  .art-login-container .paper-card {
+    padding: 35px 25px; /* Reduced padding */
+    max-width: 90%; /* Slightly smaller width */
+  }
+}
+
+/* Small Mobile Fixes */
+@media (max-width: 480px) {
+  .art-login-container .art-hero-headline {
+    font-size: 2rem; /* Further reduced for small screens */
+    line-height: 1.2;
+  }
+  .art-login-container .brand-badge {
+    font-size: 14px; /* Smaller for small mobile */
+    padding: 8px 16px;
+  }
+  .art-login-container .art-desc {
+    font-size: 0.9rem;
+    padding: 0 10px;
+    line-height: 1.5;
+  }
+  .art-login-container .paper-card {
+    padding: 30px 20px;
+    max-width: 95%;
+  }
+  .art-login-container .google-art-btn {
+    padding: 14px;
+    font-size: 15px;
+  }
+}
+
+/* Extra Small Mobile Fixes */
+@media (max-width: 360px) {
+  .art-login-container .art-hero-headline {
+    font-size: 1.75rem;
+    line-height: 1.3;
+  }
+  .art-login-container .brand-badge {
+    font-size: 12px; /* Smallest size for extra small screens */
+    padding: 6px 12px;
+  }
+  .art-login-container .art-desc {
+    font-size: 0.85rem;
+    padding: 0 8px;
+  }
+  .art-login-container .paper-card {
+    padding: 25px 15px;
+  }
+}
