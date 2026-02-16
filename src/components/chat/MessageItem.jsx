@@ -71,10 +71,33 @@ const MessageItem = ({
   // Better touch device detection - check if device primarily uses touch
   const isTouchDevice = window.matchMedia && window.matchMedia('(hover: none)').matches;
 
-  const handleLongPress = (e) => {
+  const handleLongPress = (e, touchX, touchY) => {
     e.preventDefault();
     if (!isSelectionMode) {
-      onSelect();
+      // Show context menu at touch position for mobile
+      const menuHeight = 220; // Estimated menu height
+      const menuWidth = 180;
+      const screenH = window.innerHeight;
+      const screenW = window.innerWidth;
+
+      let x = touchX || e.clientX;
+      let y = touchY || e.clientY;
+
+      // Vertical logic (upwards or downwards)
+      const openUpwards = (screenH - y) < menuHeight;
+      setIsUpwards(openUpwards);
+
+      if (openUpwards) {
+        y = y - menuHeight; // Shift up
+      }
+
+      // Horizontal logic (left or right)
+      if ((screenW - x) < menuWidth) {
+        x = x - menuWidth;
+      }
+
+      setMenuPos({ x, y });
+      setShowActions(true);
     }
   };
 
@@ -208,8 +231,8 @@ const MessageItem = ({
     }
 
     if (touchDuration > 500 && !isSelectionMode) {
-      // Long press
-      handleLongPress(e);
+      // Long press - show context menu at the initial touch position
+      handleLongPress(e, touchStartX, touchStartY);
     }
   };
 
@@ -438,17 +461,18 @@ const MessageItem = ({
       </div>
 
       {/* Menu Overlay - Click to close */}
-      {showActions && !isSelectionMode && !isTouchDevice && (
+      {showActions && !isSelectionMode && (
         <div
           className="menu-overlay"
           onClick={() => setShowActions(false)}
         />
       )}
 
-      {/* Desktop Context Menu - Rendered outside message item to avoid click conflicts */}
+      {/* Context Menu - Shown on both desktop and mobile (long press) */}
       <DesktopContextMenu
         position={menuPos}
-        isVisible={showActions && !isSelectionMode && !isTouchDevice}
+        isVisible={showActions && !isSelectionMode}
+        isUpwards={isUpwards}
         onReply={handleReply}
         onCopy={handleCopy}
         onForward={handleForward}

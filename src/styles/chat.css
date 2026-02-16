@@ -232,6 +232,8 @@ body.light-mode .chat-loading p {
 .messages-container {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
   padding: 1rem;
   background:
     /* Top layer: Doodle pattern */
@@ -362,6 +364,7 @@ body.light-mode .chat-loading p {
 
 .message-bubble {
   max-width: 75%;
+  overflow-x: hidden;
   padding: 0.6rem 1rem; /* Increased padding */
   border-radius: 12px; /* Base radius */
   font-size: 0.9rem;
@@ -387,6 +390,7 @@ body.light-mode .chat-loading p {
   display: flex;
   flex-direction: column;
   flex-grow: 1; /* Allow it to fill the available space */
+  overflow-x: hidden;
   position: relative; /* Establish positioning context for sticky children */
 }
 
@@ -784,11 +788,22 @@ body.light-mode .chat-loading p {
   /* Deep Shadow taaki background doodle se alag dikhe */
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle border */
-  z-index: 1000; /* Sabse upar dikhe */
+  z-index: 10000; /* Sabse upar dikhe - interface ke andar */
 
   /* Animation: Smoothly pop open */
   animation: menuPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transform-origin: top left;
+}
+
+/* Menu Overlay - Click outside to close */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998; /* Context menu se thoda kam */
+  background: transparent;
 }
 
 /* Menu Items */
