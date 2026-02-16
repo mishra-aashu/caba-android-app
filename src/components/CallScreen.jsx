@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCall } from '../context/CallContext';
-// import '../../styles/call-screen.css';
+import '../styles/call-screen.css';
 import { dpOptions } from '../utils/dpOptions';
 import {
   Phone,
@@ -14,6 +14,7 @@ import {
   Volume2,
   VolumeX,
   ArrowLeft,
+  ArrowDown,
   Monitor
 } from 'lucide-react';
 
@@ -51,6 +52,7 @@ function CallScreen() {
   const [showDeepAR, setShowDeepAR] = useState(false);
   const [deepARStream, setDeepARStream] = useState(null);
   const [isDeepARLoading, setIsDeepARLoading] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const handleDeepARStream = useCallback((stream) => {
     setDeepARStream(stream);
@@ -132,28 +134,49 @@ function CallScreen() {
     }
   };
 
+  const handleMinimize = () => {
+    setIsMinimized(!isMinimized);
+  };
+
   return (
-    <div className="call-screen-container">
+    <div className={`call-screen-container ${isMinimized ? 'minimized' : ''}`}>
       {/* Header */}
       <div className={`call-screen-header ${showControls ? 'controls-visible' : 'controls-hidden'}`}>
-        <div className="header-content">
-          <button
-            onClick={() => navigate(-1)}
-            className="back-button"
-          >
-            <ArrowLeft className="back-icon" />
-          </button>
+        <div className="header-content-with-minimize">
+          <div className="header-left">
+            <button
+              onClick={() => isMinimized ? handleMinimize() : navigate(-1)}
+              className="minimize-button"
+              title={isMinimized ? 'Expand' : 'Back'}
+            >
+              {isMinimized ? (
+                <ArrowDown className="minimize-icon" />
+              ) : (
+                <ArrowLeft className="back-icon" />
+              )}
+            </button>
+          </div>
           <div className="header-center">
             <p className="call-status-text">
               {callState === 'calling' && '📞 Calling...'}
-              {callState === 'connecting' && '🔄 Connecting...'}
+              {callState === 'connecting' && 'Connecting...'}
               {callState === 'connected' && formatDuration(callDuration)}
             </p>
             <h3 className="caller-name">
               {otherUser?.name || 'Unknown'}
             </h3>
           </div>
-          <div className="header-spacer" />
+          <div className="header-right">
+            {!isMinimized && (
+              <button
+                onClick={handleMinimize}
+                className="minimize-button"
+                title="Minimize"
+              >
+                <ArrowDown className="minimize-icon" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -161,13 +184,37 @@ function CallScreen() {
       <div className="main-call-area">
         {/* Remote Video (Full Screen) */}
         {isVideoCall && (
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            muted={isSwapped ? true : false}
-            className="remote-video"
-          />
+          <>
+            {remoteStream ? (
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                muted={isSwapped ? true : false}
+                className="remote-video"
+              />
+            ) : (
+              <div className="call-avatar">
+                {otherUser?.avatar ? (
+                  parseInt(otherUser.avatar) ? (
+                    <img
+                      src={dpOptions.find(dp => dp.id === parseInt(otherUser.avatar))?.path || otherUser.avatar}
+                      alt={otherUser.name}
+                    />
+                  ) : (
+                    <img
+                      src={otherUser.avatar}
+                      alt={otherUser.name}
+                    />
+                  )
+                ) : (
+                  <div className="call-avatar-placeholder">
+                    {otherUser?.name?.charAt(0) || '?'}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {/* Remote Audio (for audio calls) */}

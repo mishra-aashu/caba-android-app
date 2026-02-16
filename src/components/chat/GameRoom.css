@@ -13,6 +13,127 @@
   padding: 20px;
 }
 
+/* --- Light Mode Support (.light-mode class) --- */
+body.light-mode .game-room-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+body.light-mode .game-room-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .game-room-header {
+  border-bottom-color: #e0e0e0;
+}
+
+body.light-mode .room-title-text h2 {
+  color: #1a1a1a;
+}
+
+body.light-mode .room-subtitle {
+  color: #667781;
+}
+
+body.light-mode .close-room-btn {
+  color: #667781;
+}
+
+body.light-mode .close-room-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1a1a1a;
+}
+
+body.light-mode .loading-games {
+  color: #667781;
+}
+
+body.light-mode .loading-spinner {
+  border-color: rgba(0, 0, 0, 0.1);
+  border-top-color: #128c7e;
+}
+
+body.light-mode .no-games {
+  color: #667781;
+}
+
+body.light-mode .no-games-icon {
+  background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+  border-color: #e0e0e0;
+}
+
+body.light-mode .no-games h3 {
+  color: #1a1a1a;
+}
+
+body.light-mode .game-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  border-color: #e0e0e0;
+}
+
+body.light-mode .game-card:hover {
+  border-color: rgba(18, 140, 126, 0.3);
+  box-shadow: 0 8px 25px rgba(18, 140, 126, 0.1);
+}
+
+body.light-mode .game-message {
+  color: #54656f;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .participant span {
+  color: #1a1a1a;
+}
+
+body.light-mode .vs-separator {
+  color: #667781;
+}
+
+body.light-mode .back-btn {
+  border-color: #e0e0e0;
+  color: #54656f;
+}
+
+body.light-mode .back-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #128c7e;
+  color: #128c7e;
+}
+
+body.light-mode .game-detail-title h3 {
+  color: #1a1a1a;
+}
+
+body.light-mode .game-info {
+  background: #ffffff;
+  border-color: #e0e0e0;
+}
+
+body.light-mode .game-message-detail h4 {
+  color: #667781;
+}
+
+body.light-mode .game-message-detail p {
+  color: #1a1a1a;
+}
+
+body.light-mode .game-timestamp {
+  color: #667781;
+  border-top-color: #e0e0e0;
+}
+
+body.light-mode .game-actions {
+  background: #ffffff;
+  border-color: #e0e0e0;
+}
+
+body.light-mode .game-ended-btn {
+  border-color: #e0e0e0;
+  background: #f5f5f5;
+  color: #667781;
+}
+
 .game-room-container {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   border-radius: 20px;

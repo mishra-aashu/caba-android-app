@@ -285,7 +285,7 @@ const MainLayout = () => {
         setShowNewContactModal,
         currentUser: user,
         handleNavigation,
-        handleAboutApp: () => alert('About App'),
+        handleAboutApp: () => navigate('/about'),
         handleHelp: () => alert('Help'),
         handleLogout,
         isAdmin: false,

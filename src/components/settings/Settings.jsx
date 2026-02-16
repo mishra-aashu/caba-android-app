@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -38,8 +38,12 @@ const Settings = () => {
   const [showPrivacyOptions, setShowPrivacyOptions] = useState(false);
   const [showStorageDetails, setShowStorageDetails] = useState(false);
   const [showRingtoneModal, setShowRingtoneModal] = useState(false);
-  const [currentPlayingAudio, setCurrentPlayingAudio] = useState(null);
   const [selectedRingtone, setSelectedRingtone] = useState('fm-freemusic-give-me-a-smile(chosic.com).mp3');
+  
+  // Audio state management
+  const currentAudioRef = useRef(null);
+  const [playingId, setPlayingId] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Ringtone data
   const ringtones = [
@@ -61,13 +65,24 @@ const Settings = () => {
 
   useEffect(() => {
     loadSettings();
+    // Cleanup audio on unmount
     return () => {
-      // Cleanup audio on unmount
-      if (currentPlayingAudio) {
-        currentPlayingAudio.pause();
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
       }
     };
   }, []);
+
+  // Stop audio when modal is closed
+  useEffect(() => {
+    if (!showRingtoneModal && currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+      setIsPlaying(false);
+      setPlayingId(null);
+    }
+  }, [showRingtoneModal]);
 
   // Load settings from localStorage
   const loadSettings = () => {
@@ -165,33 +180,53 @@ const Settings = () => {
     setShowRingtoneModal(true);
   };
 
-  // Play ringtone
-  const playRingtone = (file) => {
-    // Stop current playing audio
-    if (currentPlayingAudio) {
-      currentPlayingAudio.pause();
-      currentPlayingAudio.currentTime = 0;
+  // Handle Play/Pause with proper state management
+  const handlePlayPause = (ringtone) => {
+    const ringtoneId = ringtone.file;
+    
+    // Scenario A: Pause - clicked ringtone is currently playing
+    if (playingId === ringtoneId && isPlaying) {
+      currentAudioRef.current.pause();
+      setIsPlaying(false);
+      return;
     }
-
-    // Play new audio
-    const audio = new Audio(`${baseUrl}assets/audio/${file}`);
+    
+    // Scenario B: Resume - clicked ringtone is paused
+    if (playingId === ringtoneId && !isPlaying) {
+      currentAudioRef.current.play().catch(e => console.log('Could not play ringtone:', e));
+      setIsPlaying(true);
+      return;
+    }
+    
+    // Scenario C: New Track - different ringtone clicked
+    // First, pause the current audio (if any)
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+    
+    // Create new Audio instance
+    const audio = new Audio(`${baseUrl}assets/audio/${ringtoneId}`);
     audio.volume = 0.7;
+    
+    // Set up onended event listener for auto-end handling
+    audio.onended = () => {
+      setIsPlaying(false);
+      setPlayingId(null);
+      currentAudioRef.current = null;
+    };
+    
+    // Store audio in ref and play
+    currentAudioRef.current = audio;
     audio.play().catch(e => {
       console.log('Could not play ringtone:', e);
       alert('Could not play ringtone');
       return;
     });
-
-    setCurrentPlayingAudio(audio);
-
-    // Auto-stop after 10 seconds
-    setTimeout(() => {
-      if (currentPlayingAudio === audio) {
-        audio.pause();
-        audio.currentTime = 0;
-        setCurrentPlayingAudio(null);
-      }
-    }, 10000);
+    
+    // Update state
+    setPlayingId(ringtoneId);
+    setIsPlaying(true);
   };
 
   // Confirm ringtone selection
@@ -201,10 +236,14 @@ const Settings = () => {
     setSelectedRingtone(file);
 
     // Stop playing audio
-    if (currentPlayingAudio) {
-      currentPlayingAudio.pause();
-      setCurrentPlayingAudio(null);
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
     }
+    
+    // Reset playing state
+    setIsPlaying(false);
+    setPlayingId(null);
 
     setShowRingtoneModal(false);
     toast.success('Call ringtone updated');
@@ -694,21 +733,21 @@ const Settings = () => {
             <div className="modal-body">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {ringtones.map(ringtone => (
-                  <div key={ringtone.file} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', border: '1px solid #ddd', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div key={ringtone.file} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', border: '1px solid #3a4a54', borderRadius: '8px', background: '#2a3a44' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#e9edf0' }}>
                       <i className="fas fa-music"></i>
                       <span>{ringtone.name}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button
-                        onClick={() => playRingtone(ringtone.file)}
-                        style={{ padding: '5px 10px', border: 'none', borderRadius: '4px', background: '#007bff', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handlePlayPause(ringtone)}
+                        style={{ padding: '5px 10px', border: 'none', borderRadius: '4px', background: playingId === ringtone.file && isPlaying ? '#e53935' : '#00a884', color: 'white', cursor: 'pointer' }}
                       >
-                        <i className="fas fa-play"></i>
+                        <i className={playingId === ringtone.file && isPlaying ? 'fas fa-pause' : 'fas fa-play'}></i>
                       </button>
                       <button
                         onClick={() => confirmRingtone(ringtone.file)}
-                        style={{ padding: '5px 10px', border: 'none', borderRadius: '4px', background: '#28a745', color: 'white', cursor: 'pointer' }}
+                        style={{ padding: '5px 10px', border: 'none', borderRadius: '4px', background: '#00a884', color: 'white', cursor: 'pointer' }}
                       >
                         Confirm
                       </button>

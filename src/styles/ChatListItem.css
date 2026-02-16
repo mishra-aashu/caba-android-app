@@ -7,6 +7,54 @@
   margin: 0;
 }
 
+/* --- Light Mode Support (.light-mode class) --- */
+body.light-mode .chat-list-container {
+  background-color: #ffffff;
+}
+
+body.light-mode .chat-item {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .chat-item:hover {
+  background-color: #f0f2f5;
+}
+
+body.light-mode .chat-item.active {
+  background-color: #e1f5fe;
+  border-left-color: #128c7e;
+}
+
+body.light-mode .chat-item:hover .chat-avatar {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .chat-name {
+  color: #111b21 !important;
+}
+
+body.light-mode .chat-time {
+  color: #54656f !important;
+  opacity: 1 !important;
+}
+
+body.light-mode .chat-last-message {
+  color: #54656f !important;
+  opacity: 1 !important;
+}
+
+body.light-mode .chat-item.active .chat-last-message {
+  color: #111b21 !important;
+}
+
+body.light-mode .online-dot {
+  border-color: #ffffff;
+}
+
+body.light-mode .typing {
+  color: #128c7e;
+}
+
 /* --- 1. Main Chat Item (Outer Box) --- */
 .chat-item {
   display: flex; /* Row me rakhega (Avatar | Text) */

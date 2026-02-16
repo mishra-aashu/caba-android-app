@@ -6,9 +6,9 @@
 }
 
 .about-header {
-  background: var(--home-surface, #fff);
+  background: #202c33;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--home-border, #ddd);
+  border-bottom: 1px solid #3d4a50;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -38,7 +38,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: var(--home-text, #333);
+  color: #ffffff;
 }
 
 .about-content {
@@ -353,22 +353,73 @@
 
 /* Dark theme support */
 [data-theme="dark"] .about-container {
-  background: #1a1a1a;
+  background: #0d1117;
+}
+
+[data-theme="dark"] .about-header {
+  background: #202c33;
+  border-bottom-color: #3d4a50;
+}
+
+[data-theme="dark"] .about-header .back-btn {
+  color: #e9edef;
+}
+
+[data-theme="dark"] .about-header h1 {
+  color: #ffffff;
 }
 
 [data-theme="dark"] .about-section,
 [data-theme="dark"] .about-hero,
 [data-theme="dark"] .about-footer {
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: #202c33;
+  border: 1px solid #3d4a50;
 }
 
-[data-theme="dark"] .feature-item,
+[data-theme="dark"] .about-hero h2,
+[data-theme="dark"] .about-section h3,
+[data-theme="dark"] .security-item h4,
+[data-theme="dark"] .privacy-point h4,
+[data-theme="dark"] .feature-card h4 {
+  color: #e9edef;
+}
+
+[data-theme="dark"] .about-hero p,
+[data-theme="dark"] .about-section p,
+[data-theme="dark"] .security-item p,
+[data-theme="dark"] .privacy-point p,
+[data-theme="dark"] .feature-card p,
+[data-theme="dark"] .about-footer p {
+  color: #e9edef;
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .version {
+  color: #e9edef;
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .tagline {
+  color: #22d3ee;
+}
+
+[data-theme="dark"] .feature-item {
+  background: #2d3a44;
+  color: #e9edef;
+}
+
 [data-theme="dark"] .privacy-point {
-  background: #333;
+  background: #2d3a44;
+  border-left-color: #22d3ee;
 }
 
 [data-theme="dark"] .security-item,
 [data-theme="dark"] .feature-card {
-  border-color: #444;
+  border-color: #3d4a50;
+  background: #202c33;
+}
+
+[data-theme="dark"] .security-item:hover,
+[data-theme="dark"] .feature-card:hover {
+  border-color: #22d3ee;
 }

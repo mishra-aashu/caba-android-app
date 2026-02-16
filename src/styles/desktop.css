@@ -1,4 +1,19 @@
 @media (min-width: 769px) {
+  /* --- Light Mode Support (.light-mode class) --- */
+  body.light-mode .desktop-navbar {
+    background-color: #ffffff;
+    color: #1a1a1a;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  body.light-mode .desktop-nav-link {
+    color: #54656f;
+  }
+  
+  body.light-mode .desktop-nav-link:hover {
+    background-color: #f5f5f5;
+  }
+
   .desktop-navbar {
     width: 80px; /* Reduced width */
     background-color: var(--sidebar-background-color);

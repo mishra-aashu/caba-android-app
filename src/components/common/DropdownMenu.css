@@ -3,6 +3,47 @@
     display: inline-block;
 }
 
+/* --- Light Mode Support (.light-mode class) --- */
+body.light-mode .dropdown .icon-btn {
+    color: #54656f !important;
+}
+
+body.light-mode .dropdown .icon-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .dropdown-menu {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    color: #111b21 !important;
+}
+
+body.light-mode .dropdown-item {
+    color: #111b21 !important;
+}
+
+body.light-mode .dropdown-item:hover:not(:disabled) {
+    background-color: #f5f6f6 !important;
+}
+
+body.light-mode .dropdown-item-icon {
+    color: #54656f !important;
+}
+
+body.light-mode .dropdown-item-label {
+    color: #111b21 !important;
+}
+
+body.light-mode .dropdown-item-badge {
+    background: #128c7e;
+    color: #ffffff;
+}
+
+body.light-mode .dropdown-divider {
+    background-color: #e0e0e0;
+}
+
 .dropdown .icon-btn {
     background: none;
     border: none;
@@ -25,9 +66,9 @@
     top: calc(100% + 8px); /* Use calc to maintain spacing without a physical gap */
     right: 0;
     /* margin-top: 8px; Removed to fix premature closing */
-    background: #0F172A !important;
+    background: var(--bg-1) !important;
     backdrop-filter: none;
-    border: 1px solid var(--glass-stroke);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
     box-shadow: var(--shadow-1);
     min-width: 200px;

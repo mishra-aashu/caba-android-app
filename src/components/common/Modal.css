@@ -15,6 +15,41 @@
     will-change: opacity;
 }
 
+/* --- Light Mode Support (.light-mode class) --- */
+body.light-mode .modal-overlay {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+body.light-mode .modal-container {
+    background: #ffffff;
+    color: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .modal-header {
+    border-bottom-color: #e0e0e0;
+}
+
+body.light-mode .modal-close-btn {
+    color: #54656f;
+}
+
+body.light-mode .modal-close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .modal-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .modal-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .modal-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
 @keyframes modalOverlayFadeIn {
     from {
         opacity: 0;
