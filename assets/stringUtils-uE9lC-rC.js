@@ -1,0 +1,1 @@
+import{e as r}from"./index-CQXsiwsi.js";const s=[["path",{d:"M5 12h14",key:"1ays0h"}],["path",{d:"M12 5v14",key:"s699le"}]],o=r("plus",s),c=e=>{if(!e)return"";const t=e.split(" ");return t.length===1?t[0].charAt(0).toUpperCase():(t[0].charAt(0)+t[1].charAt(0)).toUpperCase()};export{o as P,c as g};
