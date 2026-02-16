@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import '../../styles/auth.css';
+import '../../styles/LoginPage.css';
 
 const Signup = () => {
   const { signUpWithGoogle } = useAuth();

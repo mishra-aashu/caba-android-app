@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useNavigate, Link } from 'react-router-dom';
-import '../../styles/auth.css';
+import '../../styles/LoginPage.css';
 
 const ResetPassword = () => {
   const { supabase } = useSupabase();
