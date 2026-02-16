@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
-import '../../styles/auth.css';
+import '../../styles/LoginPage.css';
 
 const ForgotPassword = () => {
   const { supabase } = useSupabase();
