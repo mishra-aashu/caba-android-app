@@ -1,1 +1,0 @@
-import{t as e,v as s,d as a}from"./index-DxJQywjG.js";var o=e();const n=s(o);const c=[["path",{d:"M5 12h14",key:"1ays0h"}],["path",{d:"M12 5v14",key:"s699le"}]],i=a("plus",c),h=r=>{if(!r)return"";const t=r.split(" ");return t.length===1?t[0].charAt(0).toUpperCase():(t[0].charAt(0)+t[1].charAt(0)).toUpperCase()};export{i as P,n as R,h as g,o as r};
