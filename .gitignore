@@ -33,3 +33,7 @@ android/app/google-services.json
 # Capgo keys (private)
 .capgo_key_v2
 .capgo_key_v2.pub
+
+# Firebase
+firebase-debug.log
+firebase-debug.log.*
