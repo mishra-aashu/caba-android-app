@@ -1,16 +1,13 @@
 // components/TruthDareModal.jsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Flame, MessageCircle, Send, SendToBack } from 'lucide-react';
+import { X, Check, Flame, MessageCircle, Send, SendToBack, Gamepad2 } from 'lucide-react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 
-const TruthDareModal = ({ isOpen, onClose, gameState, userId, partnerId, onPick, onSend, onComplete, onCloseModal, chatId }) => {
+const TruthDareModal = ({ isOpen, onClose, gameState, userId, partnerId, onPick, onSend, onComplete, onCloseModal, chatId, onStart }) => {
   const { supabase } = useSupabase();
   const { user } = useAuth();
-  const [invitationMessage, setInvitationMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [invitationSent, setInvitationSent] = useState(false);
   const [challengeText, setChallengeText] = useState('');
 
 
@@ -18,62 +15,6 @@ const TruthDareModal = ({ isOpen, onClose, gameState, userId, partnerId, onPick,
   const actualUserId = userId || user?.id;
   const actualPartnerId = partnerId || (gameState?.partnerId);
   const actualChatId = chatId || (gameState?.chatId);
-
-  const handleSendInvitation = async () => {
-    if (!actualUserId || !actualPartnerId || !actualChatId) return;
-
-    setIsSending(true);
-    try {
-      // 1. Create game invitation in the database
-      const { data: invitation, error: inviteError } = await supabase
-        .from('game_invitations')
-        .insert({
-          chat_id: actualChatId,
-          sender_id: actualUserId,
-          receiver_id: actualPartnerId,
-          game_type: 'truth_or_dare',
-          status: 'pending',
-          invitation_message: invitationMessage || `Let's play Truth or Dare! Pick your choice.`
-        })
-        .select()
-        .single();
-
-      if (inviteError) throw inviteError;
-
-      // 2. Send invitation message to chat
-      const { error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          chat_id: actualChatId,
-          sender_id: actualUserId,
-          receiver_id: actualPartnerId,
-          content: invitationMessage || `Let's play Truth or Dare! Pick your choice.`,
-          media_path: null,
-          media_type: null,
-          reply_to: null,
-          type: 'game_invite',
-          status: 'pending',
-          game_invitation_id: invitation.id
-        });
-
-      if (messageError) throw messageError;
-
-      setInvitationSent(true);
-      setInvitationMessage('');
-      
-      // Close modal after sending invitation
-      if (onCloseModal) {
-        onCloseModal();
-      } else {
-        onClose();
-      }
-    } catch (error) {
-      console.error('Error sending invitation:', error);
-      alert('Failed to send game invitation. Please try again.');
-    } finally {
-      setIsSending(false);
-    }
-  };
 
   const handleSendChallenge = () => {
     if (!challengeText.trim()) return;
@@ -96,46 +37,16 @@ const TruthDareModal = ({ isOpen, onClose, gameState, userId, partnerId, onPick,
     if (!gameState || gameState.stage === 'idle') {
       return (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold mb-4">🎮 Play Games</h2>
-          <p className="text-lg mb-6">Send game invitation to your friend</p>
+          <h2 className="text-2xl font-bold mb-4">🎮 Play Truth or Dare</h2>
+          <p className="text-lg mb-6">Challenge your friend!</p>
           
-          <div className="invitation-form space-y-4">
-            <div className="invitation-message">
-              <label htmlFor="invitation-message" className="block text-sm font-medium text-gray-300 mb-2">
-                Invitation Message
-              </label>
-              <textarea
-                id="invitation-message"
-                value={invitationMessage}
-                onChange={(e) => setInvitationMessage(e.target.value)}
-                placeholder="Let's play Truth or Dare! Pick your choice..."
-                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-pink-500 outline-none resize-none h-24"
-              />
-            </div>
-            
-            <button
-              onClick={handleSendInvitation}
-              disabled={isSending || invitationSent}
-              className="w-full py-3 bg-gradient-to-r from-pink-600 to-violet-600 rounded-lg font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isSending ? (
-                <>
-                  <SendToBack size={18} className="animate-spin" />
-                  Sending...
-                </>
-              ) : invitationSent ? (
-                <>
-                  <Check size={18} />
-                  Sent!
-                </>
-              ) : (
-                <>
-                  <SendToBack size={18} />
-                  Send Invitation
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            onClick={() => onStart && onStart()}
+            className="w-full py-4 bg-gradient-to-r from-pink-600 to-violet-600 rounded-lg font-bold flex items-center justify-center gap-2"
+          >
+            <Gamepad2 size={20} />
+            Start Game
+          </button>
         </div>
       );
     }

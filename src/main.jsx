@@ -9,9 +9,23 @@ import { EmojiStyleProvider } from './contexts/EmojiStyleContext.jsx'
 import { SupabaseProvider } from './contexts/SupabaseContext.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import { CallProvider } from './context/CallContext.jsx' // Import CallProvider
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createIDBPersister } from './utils/persister';
 
-const queryClient = new QueryClient();
+// Create the IndexedDB persister
+const persister = createIDBPersister('reactQueryClient');
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 Minutes (Data stays 'fresh', no refetch on tab switch)
+      gcTime: 1000 * 60 * 60 * 24, // 24 Hours (Keep data in cache/memory for a day)
+      refetchOnWindowFocus: false, // Don't refetch just because I clicked the window
+      retry: 1,
+    },
+  },
+});
 
 // Create a component to wrap CallProvider and pass user
 const AppWithCallProvider = () => {
@@ -25,7 +39,14 @@ const AppWithCallProvider = () => {
 
 createRoot(document.getElementById('root')).render(
     <HashRouter>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister }}
+        onSuccess={() => {
+          // Optional: Log when hydration is complete
+          console.log('Query client restored from IndexedDB');
+        }}
+      >
         <SupabaseProvider>
           <AuthProvider>
             <ThemeProvider>
@@ -37,6 +58,6 @@ createRoot(document.getElementById('root')).render(
             </ThemeProvider>
           </AuthProvider>
         </SupabaseProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </HashRouter>
 )

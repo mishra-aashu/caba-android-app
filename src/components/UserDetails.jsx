@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useData } from '../contexts/DataContext';
 import { useCall } from '../context/CallContext';
 import { dpOptions } from '../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../utils/timeUtils';
-import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical, X } from 'lucide-react';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
+import toast from 'react-hot-toast';
 import './user-details/UserDetails.css';
 
-const UserDetails = ({ isModal = false }) => {
-    const { id: userId } = useParams();
+const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onClose }) => {
+    const { id: paramUserId } = useParams();
+    const userId = propUserId || paramUserId;
     const navigate = useNavigate();
     const { supabase } = useSupabase();
     const { refreshContacts } = useData();
     const { startCall } = useCall();
+    const queryClient = useQueryClient();
 
     // State
     const [user, setUser] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(false);
     const [isContact, setIsContact] = useState(false);
     const [isBlocked, setIsBlocked] = useState(false);
@@ -40,16 +43,68 @@ const UserDetails = ({ isModal = false }) => {
     const [reportReason, setReportReason] = useState('');
     const [reportDetails, setReportDetails] = useState('');
 
-    // Real-time online status
-    const [currentOnlineStatus, setCurrentOnlineStatus] = useState(null);
+    // Fetch user details with caching (30 minutes) - using TanStack Query
+    const { data: cachedUser, isLoading: isQueryLoading, isError, error } = useQuery({
+        queryKey: ['userDetails', userId],
+        queryFn: async () => {
+            if (!userId) return null;
+            
+            // Get current user from localStorage
+            const userStr = localStorage.getItem('currentUser');
+            if (!userStr) {
+                navigate('/login');
+                return null;
+            }
+            const current = JSON.parse(userStr);
+            setCurrentUser(current);
 
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
+            
+            if (error) throw error;
+            
+            // Check if contact name exists for this user
+            if (current.id !== userId) {
+                const { data: contact } = await supabase
+                    .from('contacts')
+                    .select('contact_name')
+                    .eq('user_id', current.id)
+                    .eq('contact_user_id', userId)
+                    .maybeSingle();
+
+                if (contact) {
+                    return { ...data, contact_name: contact.contact_name };
+                }
+            }
+            
+            return data;
+        },
+        staleTime: 1000 * 60 * 30, // 30 minutes
+        enabled: !!userId,
+    });
+
+    // Update user state when cached data changes
+    useEffect(() => {
+        if (cachedUser) {
+            setUser(cachedUser);
+        }
+    }, [cachedUser]);
+
+    // Redirect if userId is invalid
     useEffect(() => {
         if (!userId || userId === 'undefined' || userId === 'null') {
             navigate('/');
-            return;
         }
-        loadUserDetails();
-    }, [userId]);
+    }, [userId, navigate]);
+
+    // Load additional data after user is loaded
+    useEffect(() => {
+        if (!user || !currentUser) return;
+        loadAdditionalData(currentUser, userId);
+    }, [user, currentUser, userId]);
 
     // Subscribe to real-time updates for user's online status
     useEffect(() => {
@@ -64,9 +119,10 @@ const UserDetails = ({ isModal = false }) => {
                 filter: `id=eq.${userId}`
             }, (payload) => {
                 const updatedUser = payload.new;
-                setCurrentOnlineStatus({
-                    is_online: updatedUser.is_online,
-                    last_seen: updatedUser.last_seen
+                setUser(prev => ({ ...prev, ...updatedUser }));
+                // Update the cached data as well
+                queryClient.setQueryData(['userDetails', userId], (oldData) => {
+                    return oldData ? { ...oldData, ...updatedUser } : oldData;
                 });
             })
             .subscribe();
@@ -74,83 +130,20 @@ const UserDetails = ({ isModal = false }) => {
         return () => {
             supabase.removeChannel(subscription);
         };
-    }, [userId]);
+    }, [userId, supabase, queryClient]);
 
-    const loadUserDetails = async () => {
-        try {
-            const userStr = localStorage.getItem('currentUser');
-            if (!userStr) {
-                navigate('/login');
-                return;
-            }
-            const current = JSON.parse(userStr);
-            setCurrentUser(current);
+    // Real-time online status
+    const [currentOnlineStatus, setCurrentOnlineStatus] = useState(null);
 
-            // Load other user details with caching
-            const cacheKey = `digidad_user_${userId}`;
-            let cachedUser = localStorage.getItem(cacheKey);
-            let freshUserData;
-
-            if (cachedUser) {
-                cachedUser = JSON.parse(cachedUser);
-                setUser(cachedUser);
-                await loadAdditionalData(current, userId);
-            }
-
-            // Always try to fetch fresh data
-            try {
-                const { data: userData, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', userId)
-                    .single();
-
-                if (error) throw error;
-                freshUserData = userData;
-
-                // Cache the fresh data
-                localStorage.setItem(cacheKey, JSON.stringify(freshUserData));
-
-                // Update UI if data changed
-                if (!cachedUser || JSON.stringify(cachedUser) !== JSON.stringify(freshUserData)) {
-                    setUser(freshUserData);
-                    await loadAdditionalData(current, userId);
-                }
-
-                // Load contact name if viewing another user
-                if (current.id !== userId) {
-                    const { data: contact } = await supabase
-                        .from('contacts')
-                        .select('contact_name')
-                        .eq('user_id', current.id)
-                        .eq('contact_user_id', userId)
-                        .maybeSingle();
-
-                    if (contact) {
-                        setUser(prev => ({ ...prev, contact_name: contact.contact_name }));
-                    }
-                }
-            } catch (networkError) {
-                console.warn('Network error loading user details:', networkError);
-                if (!cachedUser) {
-                    // Set fallback data
-                    const fallbackUser = {
-                        id: userId,
-                        name: 'Unknown User',
-                        phone: 'N/A',
-                        avatar: null,
-                        about: 'User information not available'
-                    };
-                    setUser(fallbackUser);
-                }
-            }
-
-            setLoading(false);
-        } catch (error) {
-            console.error('Error loading user details:', error);
-            setLoading(false);
+    // Update online status from user data
+    useEffect(() => {
+        if (user) {
+            setCurrentOnlineStatus({
+                is_online: user.is_online,
+                last_seen: user.last_seen
+            });
         }
-    };
+    }, [user]);
 
     const loadAdditionalData = async (currentUser, userId) => {
         try {
@@ -300,7 +293,7 @@ const UserDetails = ({ isModal = false }) => {
             }
         } catch (error) {
             console.error('Error navigating to chat:', error);
-            alert('Failed to open chat');
+            toast.error('Failed to open chat');
         }
     };
 
@@ -310,7 +303,7 @@ const UserDetails = ({ isModal = false }) => {
             navigate(`/call/${callId}`);
         } catch (error) {
             console.error('Failed to start voice call:', error);
-            alert('Failed to start call: ' + error.message);
+            toast.error('Failed to start call: ' + error.message);
         }
     };
 
@@ -320,7 +313,7 @@ const UserDetails = ({ isModal = false }) => {
             navigate(`/call/${callId}`);
         } catch (error) {
             console.error('Failed to start video call:', error);
-            alert('Failed to start call: ' + error.message);
+            toast.error('Failed to start call: ' + error.message);
         }
     };
 
@@ -355,7 +348,7 @@ const UserDetails = ({ isModal = false }) => {
             }
 
             if (existingContact) {
-                alert('Contact already exists');
+                toast.error('Contact already exists');
                 return;
             }
 
@@ -372,10 +365,10 @@ const UserDetails = ({ isModal = false }) => {
 
             setIsContact(true);
             refreshContacts();
-            alert('Contact added successfully');
+            toast.success('Contact added successfully');
         } catch (error) {
             console.error('Error adding contact:', error);
-            alert('Failed to add contact');
+            toast.error('Failed to add contact');
         }
     };
 
@@ -388,7 +381,7 @@ const UserDetails = ({ isModal = false }) => {
             });
         } else {
             navigator.clipboard.writeText(shareText).then(() => {
-                alert('Contact info copied');
+                toast.success('Contact info copied');
             });
         }
     };
@@ -405,7 +398,7 @@ const UserDetails = ({ isModal = false }) => {
                 .single();
 
             if (chatError || !chat) {
-                alert('No chat history found with this user');
+                toast.error('No chat history found with this user');
                 return;
             }
 
@@ -419,7 +412,7 @@ const UserDetails = ({ isModal = false }) => {
             if (messagesError) throw messagesError;
 
             if (!messages || messages.length === 0) {
-                alert('No messages to export');
+                toast.error('No messages to export');
                 return;
             }
 
@@ -447,17 +440,17 @@ const UserDetails = ({ isModal = false }) => {
             link.click();
             document.body.removeChild(link);
 
-            alert('Chat exported successfully!');
+            toast.success('Chat exported successfully!');
         } catch (error) {
             console.error('Error exporting chat:', error);
-            alert('Failed to export chat');
+            toast.error('Failed to export chat');
         }
     };
 
     const handleEditContact = () => {
         // Check if user is in contacts
         if (!isContact) {
-            alert('Please add this user to contacts first');
+            toast.error('Please add this user to contacts first');
             return;
         }
 
@@ -471,7 +464,7 @@ const UserDetails = ({ isModal = false }) => {
             .then(({ data: contact, error }) => {
                 if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
                     console.error('Error fetching contact:', error);
-                    alert('Failed to load contact info');
+                    toast.error('Failed to load contact info');
                     return;
                 }
 
@@ -489,7 +482,7 @@ const UserDetails = ({ isModal = false }) => {
 
     const saveContactEdit = async () => {
         if (!contactName.trim()) {
-            alert('Name is required');
+            toast.error('Name is required');
             return;
         }
 
@@ -525,10 +518,10 @@ const UserDetails = ({ isModal = false }) => {
 
             setShowEditContactModal(false);
             refreshContacts();
-            alert('Contact updated successfully');
+            toast.success('Contact updated successfully');
         } catch (error) {
             console.error('Error saving contact:', error);
-            alert('Failed to update contact.');
+            toast.error('Failed to update contact.');
         }
     };
 
@@ -556,10 +549,10 @@ const UserDetails = ({ isModal = false }) => {
 
             setIsBlocked(true);
             setShowBlockModal(false);
-            alert('Contact blocked');
+            toast.success('Contact blocked');
         } catch (error) {
             console.error('Error blocking contact:', error);
-            alert('Failed to block contact');
+            toast.error('Failed to block contact');
         }
     };
 
@@ -574,10 +567,10 @@ const UserDetails = ({ isModal = false }) => {
             if (error) throw error;
 
             setIsBlocked(false);
-            alert('Contact unblocked');
+            toast.success('Contact unblocked');
         } catch (error) {
             console.error('Error unblocking contact:', error);
-            alert('Failed to unblock contact');
+            toast.error('Failed to unblock contact');
         }
     };
 
@@ -588,7 +581,7 @@ const UserDetails = ({ isModal = false }) => {
     const submitReport = async () => {
         try {
             if (!reportReason.trim()) {
-                alert('Please select a reason');
+                toast.error('Please select a reason');
                 return;
             }
 
@@ -609,10 +602,10 @@ const UserDetails = ({ isModal = false }) => {
             setShowReportModal(false);
             setReportReason('');
             setReportDetails('');
-            alert('Report submitted');
+            toast.success('Report submitted');
         } catch (error) {
             console.error('Error submitting report:', error);
-            alert('Failed to submit report');
+            toast.error('Failed to submit report');
         }
     };
 
@@ -644,19 +637,32 @@ const UserDetails = ({ isModal = false }) => {
             }
 
             setShowDeleteModal(false);
-            alert('Contact deleted');
+            toast.success('Contact deleted');
             navigate('/');
         } catch (error) {
             console.error('Error deleting contact:', error);
-            alert('Failed to delete contact');
+            toast.error('Failed to delete contact');
         }
     };
 
-    if (loading) {
+    // Loading state - only show loading if query is loading AND no cached data exists yet
+    // When data comes from cache (cachedUser exists), don't show loading
+    const isLoading = isQueryLoading && !cachedUser && !user;
+
+    if (isLoading) {
         return (
             <div className="user-details-loading">
                 <div className="loading-spinner"></div>
                 <p>Loading user details...</p>
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="user-details-error">
+                <p>Error loading user: {error?.message || 'User not found'}</p>
+                <button onClick={() => navigate('/')}>Go Back</button>
             </div>
         );
     }
@@ -671,11 +677,17 @@ const UserDetails = ({ isModal = false }) => {
     }
 
     return (
-        <div className={`user-details-screen ${isModal ? 'user-details-modal' : ''}`}>
+        <div className={`user-details-screen ${isModal ? 'user-details-modal' : ''} ${isPanel ? 'user-details-panel-view' : ''} ${isPanel ? 'panel-slide-in' : ''}`}>
             <header className="user-details-header">
-                <button className="back-btn" onClick={isModal ? () => navigate('/') : () => navigate(-1)}>
-                    <ArrowLeft size={24} />
-                </button>
+                {isPanel ? (
+                    <button className="close-panel-btn" onClick={onClose || (() => navigate(-1))}>
+                        <X size={24} />
+                    </button>
+                ) : (
+                    <button className="back-btn" onClick={isModal ? () => navigate('/') : () => navigate(-1)}>
+                        <ArrowLeft size={24} />
+                    </button>
+                )}
                 <h1>Contact Info</h1>
                 <DropdownMenu
                     trigger={<MoreVertical size={24} />}

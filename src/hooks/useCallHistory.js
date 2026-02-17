@@ -12,10 +12,12 @@ export function useCallHistory(userId) {
 
     try {
       setLoading(true);
-      const data = await callService.getCallHistory(userId);
-      setHistory(data || []);
+      // getCallHistory returns { calls: [], hasMore, lastCallId }
+      const result = await callService.getCallHistory(userId, 20, null);
+      setHistory(result.calls || []);
     } catch (err) {
       setError(err.message);
+      setHistory([]);
     } finally {
       setLoading(false);
     }

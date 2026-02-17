@@ -532,3 +532,32 @@
   border-left: 4px solid #44ff44 !important;
   background: linear-gradient(135deg, rgba(68, 255, 68, 0.1) 0%, transparent 100%), var(--sent-message-bg) !important;
 }
+
+/* ============================================
+   PERFORMANCE OPTIMIZATION: Mobile Backdrop-Filter
+   =============================================
+   backdrop-filter is very expensive on mobile devices.
+   Disable it and use solid backgrounds instead.
+*/
+@media (max-width: 768px) {
+  .chat-header,
+  [class*="header"],
+  .chat-input-area,
+  [class*="input-area"],
+  .message,
+  [class*="message"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  /* Use solid backgrounds instead of blur on mobile */
+  .chat-header,
+  [class*="header"] {
+    background: var(--chat-header-bg, #128c7e) !important;
+  }
+  
+  .chat-input-area,
+  [class*="input-area"] {
+    background: var(--surface, #ffffff) !important;
+  }
+}

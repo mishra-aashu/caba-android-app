@@ -25,7 +25,7 @@ import './GameRoom.css';
 const GameRoom = ({ isOpen, onClose, chatId, otherUserId }) => {
   const { supabase } = useSupabase();
   const { user } = useAuth();
-  const { startGame } = useTruthDareGame(chatId, user?.id);
+  const { startGame, sendChallenge } = useTruthDareGame(chatId, user?.id);
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
@@ -383,9 +383,10 @@ const GameRoom = ({ isOpen, onClose, chatId, otherUserId }) => {
           userId={user?.id}
           partnerId={otherUserId}
           onPick={() => {}}
-          onSend={() => {}}
+          onSend={sendChallenge}
           onComplete={() => {}}
           onCloseModal={() => setShowTruthDareModal(false)}
+          onStart={startGame}
           chatId={chatId}
         />
       )}

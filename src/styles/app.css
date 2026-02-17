@@ -215,10 +215,44 @@ body.light-mode .chat-list-panel {
     width: 380px;
     min-width: 320px;
     max-width: 450px;
+    /* Removed width transition to prevent layout thrashing */
+    /* Width changes are instant but layout-stable */
   }
 
   .chat-detail {
     flex-grow: 1;
+    min-width: 0;
+    /* Removed flex/min-width transition to prevent layout thrashing */
+  }
+
+  .desktop-layout.show-user-details .chat-list-panel {
+    width: 320px;
+    min-width: 280px;
+  }
+
+  .desktop-layout.show-user-details .chat-detail {
+    flex: 1;
+    min-width: 400px;
+  }
+
+  .user-details-panel {
+    width: 380px;
+    min-width: 320px;
+    max-width: 450px;
+    border-left: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    overflow-y: auto;
+    /* GPU-accelerated slide-in: transform + opacity (no layout reflow) */
+    transform: translate3d(100%, 0, 0);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+  }
+
+  /* Animate to visible state */
+  .desktop-layout.show-user-details .user-details-panel {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
   }
 
   .mobile-layout {

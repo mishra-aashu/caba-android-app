@@ -26,12 +26,24 @@ const EmojiPicker = ({
 }) => {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('emoji');
+    const [isVisible, setIsVisible] = useState(false);
     const { emojiStyle } = useEmojiStyle();
 
     // Use controlled or internal state
     const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
     const setIsOpen = onOpenChange || setInternalIsOpen;
     const pickerRef = useRef(null);
+
+    // Handle visibility - add 'visible' class after mount to trigger animation
+    useEffect(() => {
+        if (isOpen) {
+            // Small delay to ensure DOM is ready, then show with animation
+            const timer = setTimeout(() => setIsVisible(true), 10);
+            return () => clearTimeout(timer);
+        } else {
+            setIsVisible(false);
+        }
+    }, [isOpen]);
 
     // Handle emoji selection - don't close automatically to allow multiple selections
     const handleEmojiSelect = (emoji) => {
@@ -53,7 +65,7 @@ const EmojiPicker = ({
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isOpen]);
+    }, [isOpen, setIsOpen]);
 
     return (
         <div className="emoji-picker-container" ref={pickerRef}>
@@ -67,7 +79,7 @@ const EmojiPicker = ({
             </button>
 
             {isOpen && (
-                <div className="emoji-picker-popup">
+                <div className={`emoji-picker-popup ${isVisible ? 'visible' : ''}`}>
                     {/* HEADER WITH TABS AND CLOSE */}
                     <div className="picker-header">
                         <div className="picker-tabs">

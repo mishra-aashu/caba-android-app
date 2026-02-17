@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -9,23 +10,143 @@ import { CallButton } from '../CallButton';
 import { IncomingCallModal } from '../IncomingCallModal';
 import BottomNavigation from '../common/BottomNavigation';
 import { isUserOnline } from '../../utils/timeUtils';
+import useAuthStore from '../../store/authStore';
 import '../../styles/calls.css';
 
 const Calls = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { startCall, answerCall } = useCall();
-  const [currentUser, setCurrentUser] = useState(null);
-  const [contacts, setContacts] = useState([]);
-  const [callHistory, setCallHistory] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
   const [incomingCall, setIncomingCall] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [callType, setCallType] = useState('video');
 
+  // Get current user from auth store
+  const authState = useAuthStore.getState();
+  const { dbUser, isAuthenticated } = authState;
+  const userId = dbUser?.id;
+
+  // React Query for contacts - cached for 10 minutes
+  const { 
+    data: contactsData, 
+    isLoading: contactsLoading,
+    refetch: refetchContacts 
+  } = useQuery({
+    queryKey: ['callContacts', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      return await fetchContacts(userId);
+    },
+    enabled: !!userId && !!isAuthenticated,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 60, // 1 hour
+  });
+
+  // React Query for call history - cached for 10 minutes
+  const { 
+    data: callHistoryData, 
+    isLoading: historyLoading,
+    refetch: refetchHistory 
+  } = useQuery({
+    queryKey: ['callHistoryList', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      return await fetchCallHistory(userId);
+    },
+    enabled: !!userId && !!isAuthenticated,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 60, // 1 hour
+  });
+
+  // Helper function to fetch contacts
+  const fetchContacts = async (userId) => {
+    try {
+      // Load contacts with explicit user fetching to handle data type issues
+      const { data: contactsList, error: contactsError } = await supabase
+        .from('contacts')
+        .select('contact_user_id, contact_name')
+        .eq('user_id', userId);
+
+      if (contactsError) throw contactsError;
+
+      let contactsData = [];
+      if (contactsList && contactsList.length > 0) {
+        // Fetch user details for each contact
+        const userIds = contactsList.map(c => c.contact_user_id).filter(id => id);
+        if (userIds.length > 0) {
+          const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('*')
+            .in('id', userIds);
+
+          if (!usersError && users) {
+            contactsData = users.map(u => {
+              const contact = contactsList.find(c => c.contact_user_id === u.id);
+              return { ...u, contact_name: contact?.contact_name };
+            });
+          }
+        }
+      }
+
+      // Also load from chats
+      const { data: chats } = await supabase
+        .from('chats')
+        .select(`
+          user1:users!chats_user1_id_fkey(*),
+          user2:users!chats_user2_id_fkey(*)
+        `)
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+
+      if (chats) {
+        chats.forEach(chat => {
+          const otherUser = chat.user1.id === userId ? chat.user2 : chat.user1;
+          if (otherUser && otherUser.id && !contactsData.find(c => c.id === otherUser.id)) {
+            contactsData.push(otherUser);
+          }
+        });
+      }
+
+      return contactsData;
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+      return [];
+    }
+  };
+
+  // Helper function to fetch call history
+  const fetchCallHistory = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('call_history')
+        .select(`
+          *,
+          caller:users!call_history_caller_id_fkey(name, avatar),
+          receiver:users!call_history_receiver_id_fkey(name, avatar)
+        `)
+        .or(`caller_id.eq.${userId},receiver_id.eq.${userId}`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      const historyData = data.map(call => ({
+        ...call,
+        otherUser: call.caller_id === userId ? call.receiver : call.caller
+      })).filter(call => call.otherUser && call.otherUser.id); // Filter out calls with invalid otherUser
+
+      return historyData;
+    } catch (error) {
+      console.error('Error loading call history:', error);
+      return [];
+    }
+  };
+
+  const contacts = contactsData || [];
+  const callHistory = callHistoryData || [];
+  const loading = contactsLoading || historyLoading || !isAuthenticated;
+
   useEffect(() => {
-    initializeCalls();
     checkPendingCall();
   }, []);
 
@@ -33,33 +154,32 @@ const Calls = () => {
 
   const initializeCalls = async () => {
     try {
-      const userStr = localStorage.getItem('currentUser');
-      if (!userStr) {
+      // Get user from auth store
+      const authState = useAuthStore.getState();
+      const { dbUser, isAuthenticated } = authState;
+      
+      if (!isAuthenticated || !dbUser) {
         alert('No user logged in');
         setLoading(false);
         return;
       }
-      const user = JSON.parse(userStr);
-
-      // Add default DP if user doesn't have one - use same logic as Home component
 
       // Handle DP assignment same as Home component
-      if (!user.avatar) {
-        // Assign a random DP ID (1-46)
-        user.avatar = Math.floor(Math.random() * 46) + 1;
-      } else if (typeof user.avatar === 'string' && !user.avatar.startsWith('http')) {
+      if (!dbUser.avatar) {
+        dbUser.avatar = Math.floor(Math.random() * 46) + 1;
+      } else if (typeof dbUser.avatar === 'string' && !dbUser.avatar.startsWith('http')) {
         // If avatar is a string but not a URL, try to parse as number
-        const avatarId = parseInt(user.avatar);
+        const avatarId = parseInt(dbUser.avatar);
         if (isNaN(avatarId)) {
-          user.avatar = Math.floor(Math.random() * 46) + 1;
+          dbUser.avatar = Math.floor(Math.random() * 46) + 1;
         }
       }
 
-      setCurrentUser(user);
+      setCurrentUser(dbUser);
 
       await Promise.all([
-        loadContacts(user),
-        loadCallHistory(user)
+        loadContacts(dbUser),
+        loadCallHistory(dbUser)
       ]);
       setLoading(false);
     } catch (error) {
@@ -175,6 +295,8 @@ const Calls = () => {
 
   // Incoming call listener moved to global SupabaseContext
 
+  // Incoming call listener moved to global SupabaseContext
+
   const filteredContacts = contacts.filter(contact => {
     // First ensure contact has valid ID
     if (!contact || !contact.id) return false;
@@ -232,10 +354,8 @@ const Calls = () => {
 
   const handleCallEnd = () => {
     setActiveCall(null);
-    // Reload call history
-    if (currentUser) {
-      loadCallHistory(currentUser);
-    }
+    // Refetch call history
+    refetchHistory();
   };
 
   const getInitials = (name) => {

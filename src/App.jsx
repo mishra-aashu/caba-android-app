@@ -30,6 +30,7 @@ const News = lazy(() => import('./components/news'));
 const Reminders = lazy(() => import('./components/reminders'));
 const CreateReminder = lazy(() => import('./components/reminders/CreateReminder'));
 const Calls = lazy(() => import('./components/calls'));
+const History = lazy(() => import('./components/History'));
 const Blocked = lazy(() => import('./components/blocked'));
 const UserDetails = lazy(() => import('./components/UserDetails'));
 const SharedProfile = lazy(() => import('./components/shared-profile'));
@@ -95,6 +96,7 @@ const AppContent = () => {
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<ChatPlaceholder />} />
         <Route path="chat/:chatId/:otherUserId" element={<Chat />} />
+        <Route path="user-details/:id" element={<UserDetails />} />
       </Route>
       
       <Route path="/profile" element={<ProtectedRoute>{isDesktop ? <Modal isOpen={true} onClose={() => window.location.href = '/'} className='sidebar-modal'><Profile isModal={true} /></Modal> : <Profile />}</ProtectedRoute>} />
@@ -104,12 +106,12 @@ const AppContent = () => {
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
       <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
       <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
+      <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
       <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
       <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
       <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
       <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-      <Route path="/user-details/:id" element={<ProtectedRoute>{isDesktop ? <Modal isOpen={true} onClose={() => window.location.href = '/'} className='sidebar-modal'><UserDetails isModal={true} /></Modal> : <UserDetails />}</ProtectedRoute>} />
       <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
 
       {/* 404 route */}
@@ -208,10 +210,10 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const App = () => {
-  // useEffect(() => {
-  //   // App khulte hi notification system start karo
-  //   initializePushNotifications();
-  // }, []);
+  useEffect(() => {
+    // App khulte hi notification system start karo
+    initializePushNotifications();
+  }, []);
 
   return (
     <Suspense fallback={
@@ -242,5 +244,3 @@ const App = () => {
 };
 
 export default App;
-
-

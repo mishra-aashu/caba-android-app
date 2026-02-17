@@ -4,12 +4,25 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--bg-2); /* Solid background from theme */
-  border-top: 1px solid var(--glass-stroke);
+  background: var(--bg-2, #ffffff) !important; /* Solid background from theme */
+  border-top: 1px solid var(--glass-stroke, #e0e0e0);
   padding: 8px 4px;
   justify-content: space-around;
   z-index: 1000;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile specific - ensure solid background */
+@media (max-width: 768px) {
+  .bottom-nav {
+    background: #ffffff !important;
+  }
+}
+
+/* Dark mode for mobile */
+[data-theme="dark"] .bottom-nav,
+.dark .bottom-nav {
+  background: #111b21 !important;
 }
 
 .nav-item {

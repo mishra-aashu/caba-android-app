@@ -18,9 +18,123 @@
     transition: background-color 0.3s, color 0.3s;
 }
 
+/* Loading state - centered */
+.user-details-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    background-color: var(--bg-color);
+}
+
+.user-details-loading .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-action);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.user-details-loading p {
+    margin-top: 1rem;
+    color: var(--muted-text);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Error state */
+.user-details-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    background-color: var(--bg-color);
+    text-align: center;
+}
+
+.user-details-error p {
+    color: var(--danger-action);
+    margin-bottom: 1rem;
+}
+
+.user-details-error button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--primary-action);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
 .user-details-screen.user-details-modal {
     min-height: auto;
     background-color: transparent;
+}
+
+/* Panel view for desktop side panel */
+.user-details-screen.user-details-panel-view {
+    min-height: 100vh;
+    background-color: var(--bg-color);
+}
+
+/* Slide-in animation for panel view */
+.user-details-screen.panel-slide-in {
+    /* Initial state: off-screen to the right */
+    transform: translate3d(100%, 0, 0);
+    opacity: 0;
+}
+
+/* Active state when parent container is visible - trigger animation */
+.user-details-panel .user-details-screen.panel-slide-in {
+    /* Animate to visible position */
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Ensure solid background during animation */
+    background-color: var(--bg-color);
+    /* GPU optimization hints */
+    will-change: transform, opacity;
+    /* Force hardware acceleration */
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+.user-details-screen.user-details-panel-view .user-details-header {
+    padding: 0.75rem 1rem;
+}
+
+.user-details-screen.user-details-panel-view .user-profile-section {
+    padding: 1.5rem 1rem;
+}
+
+.user-details-screen.user-details-panel-view .user-details-avatar {
+    width: 100px;
+    height: 100px;
+}
+
+.close-panel-btn {
+    background: none;
+    border: none;
+    color: var(--icon-color);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-panel-btn:hover {
+    background-color: var(--header-bg);
 }
 
 /* Dark mode overrides */

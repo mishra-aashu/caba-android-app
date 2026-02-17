@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken } from 'firebase/messaging';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { supabase } from '../config/supabase';
 
 // Firebase Config (Apna wala use karein)
@@ -19,7 +20,7 @@ async function saveTokenToSupabase(token) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.log("User not logged in, cannot save FCM token.");
-      return;
+      return null;
     }
 
     const platform = Capacitor.getPlatform(); // 'web', 'ios', or 'android'
@@ -43,8 +44,35 @@ async function saveTokenToSupabase(token) {
     
     console.log(`✅ FCM Token saved to ${columnToUpdate} in Supabase!`);
     
+    // Return user ID for Firestore sync
+    return user.id;
+    
   } catch (error) {
     console.error("❌ Error saving FCM token to Supabase:", error.message);
+    return null;
+  }
+}
+
+// ✅ NEW: Save token to Firebase Firestore (for Cloud Functions)
+async function saveTokenToFirestore(token, userId) {
+  try {
+    const platform = Capacitor.getPlatform();
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getFirestore(firebaseApp);
+
+    // Determine which token field to update
+    const tokenField = platform === 'web' ? 'fcm_token_web' : 'fcm_token_android';
+
+    // Save to Firestore users collection (Cloud Function reads from here)
+    await setDoc(doc(db, "users", userId), {
+      [tokenField]: token,
+      lastTokenUpdate: new Date().toISOString()
+    }, { merge: true });
+
+    console.log(`✅ FCM Token saved to Firestore (${tokenField})!`);
+    
+  } catch (error) {
+    console.error("❌ Error saving FCM token to Firestore:", error.message);
   }
 }
 
@@ -60,9 +88,16 @@ export const initializePushNotifications = async () => {
       await PushNotifications.register();
 
       // TOKEN LISTENER
-      PushNotifications.addListener('registration', (token) => {
+      PushNotifications.addListener('registration', async (token) => {
         console.log('🔥🔥 MY ANDROID/iOS TOKEN:', token.value);
-        saveTokenToSupabase(token.value);
+        
+        // Save to Supabase
+        const userId = await saveTokenToSupabase(token.value);
+        
+        // ✅ ALSO save to Firestore for Cloud Function
+        if (userId) {
+          await saveTokenToFirestore(token.value, userId);
+        }
       });
 
       PushNotifications.addListener('registrationError', (error) => {
@@ -84,7 +119,14 @@ export const initializePushNotifications = async () => {
         
         if (currentToken) {
           console.log('🔥🔥 MY WEB TOKEN:', currentToken);
-          saveTokenToSupabase(currentToken);
+          
+          // Save to Supabase
+          const userId = await saveTokenToSupabase(currentToken);
+          
+          // ✅ ALSO save to Firestore for Cloud Function
+          if (userId) {
+            await saveTokenToFirestore(currentToken, userId);
+          }
         } else {
           console.log('❌ No registration token available. Request permission to generate one.');
         }

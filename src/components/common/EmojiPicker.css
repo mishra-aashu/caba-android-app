@@ -21,7 +21,7 @@
     color: var(--primary-color, #007bff);
 }
 
-/* Premium Glassy Emoji Picker Popup - Stable Positioning */
+/* Premium Glassy Emoji Picker Popup - Stable Positioning with Smooth Animation */
 .emoji-picker-popup {
     position: fixed;
     bottom: 70px;
@@ -46,9 +46,20 @@
     overflow: hidden;
     z-index: 9999;
 
-    /* Smooth fade in/out */
+    /* FIX: Hidden initially to prevent jump */
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.95) translateY(10px);
+    
+    /* Smooth transition for open/close */
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
+}
+
+/* When popup is visible (applied via JS class or when loaded) */
+.emoji-picker-popup.visible {
     opacity: 1;
-    transition: opacity 0.2s ease-in-out;
+    visibility: visible;
+    transform: scale(1) translateY(0);
 }
 
 /* Header with Tabs and Close */

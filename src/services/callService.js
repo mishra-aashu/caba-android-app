@@ -77,30 +77,128 @@ class CallService {
   }
 
   /**
-   * Get call history for user
+   * Get all call history (for debugging)
    */
-  async getCallHistory(userId, limit = 50) {
+  async getAllCallHistory() {
     const { data, error } = await supabase
-      .rpc('get_user_call_history', {
-        user_id_param: userId,
-        limit_count: limit
+      .from('call_history')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('Error fetching all call history:', error);
+      throw error;
+    }
+    return data;
+  }
+
+  /**
+   * Get call history for user with pagination
+   */
+  async getCallHistory(userId, limit = 20, lastCallId = null) {
+    try {
+      console.log('getCallHistory called with userId:', userId, 'limit:', limit, 'lastCallId:', lastCallId);
+      
+      let query = supabase
+        .from('call_history')
+        .select('*')
+        .or(`caller_id.eq.${userId},receiver_id.eq.${userId}`)
+        .order('started_at', { ascending: false })
+        .limit(limit);
+
+      // If we have a lastCallId, fetch calls older than that
+      if (lastCallId) {
+        // Get the last call to use its timestamp for pagination
+        const { data: lastCall } = await supabase
+          .from('call_history')
+          .select('started_at')
+          .eq('id', lastCallId)
+          .single();
+        
+        if (lastCall) {
+          query = query.lt('started_at', lastCall.started_at);
+        }
+      }
+
+      const { data: calls, error: callsError } = await query;
+
+      if (callsError) {
+        console.error('Error fetching calls:', callsError);
+        throw callsError;
+      }
+
+      console.log('Raw calls from DB:', calls);
+
+      if (!calls || calls.length === 0) {
+        console.log('No calls found for user');
+        return { calls: [], hasMore: false };
+      }
+
+      // Get all unique user IDs
+      const userIds = [...new Set(calls.flatMap(call => [call.caller_id, call.receiver_id]))];
+      
+      // Fetch user details
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, avatar')
+        .in('id', userIds);
+
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+      }
+
+      // Create a map of user details
+      const userMap = {};
+      if (users) {
+        users.forEach(user => {
+          userMap[user.id] = user;
+        });
+      }
+
+      // Transform data to include other_user info
+      const transformedData = calls.map(call => {
+        const otherUserId = call.caller_id === userId ? call.receiver_id : call.caller_id;
+        const otherUser = userMap[otherUserId] || {};
+        
+        return {
+          ...call,
+          other_user_id: otherUserId,
+          other_user_name: otherUser.name || 'Unknown',
+          other_user_avatar: otherUser.avatar || null
+        };
       });
 
-    if (error) throw error;
-    return data;
+      console.log('Transformed data:', transformedData);
+      
+      // Return the calls and whether there are more
+      const hasMore = calls.length === limit;
+      const newLastCallId = calls.length > 0 ? calls[calls.length - 1].id : null;
+      
+      return { 
+        calls: transformedData, 
+        hasMore,
+        lastCallId: newLastCallId
+      };
+    } catch (error) {
+      console.error('Error in getCallHistory:', error);
+      throw error;
+    }
   }
 
   /**
    * Get missed calls count
    */
   async getMissedCallsCount(userId) {
+    // Direct query instead of RPC function
     const { data, error } = await supabase
-      .rpc('get_missed_calls_count', {
-        user_uuid: userId
-      });
+      .from('call_history')
+      .select('id', { count: 'exact' })
+      .eq('receiver_id', userId)
+      .eq('call_status', 'missed');
 
     if (error) throw error;
-    return data;
+    return data?.length || 0;
   }
 
   /**

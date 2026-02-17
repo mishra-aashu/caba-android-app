@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, Suspense, lazy, createContext, useContext } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useChatListRealtime } from '../hooks/useChatListRealtime';
@@ -10,7 +10,14 @@ import { dpOptions } from '../utils/dpOptions';
 import { getInitials } from '../utils/stringUtils';
 import toast from 'react-hot-toast';
 import BottomNavigation from './common/BottomNavigation';
+import ChatPlaceholder from './common/ChatPlaceholder';
 import '../styles/theme.css';
+
+// Create context for user-details panel
+export const UserDetailsContext = createContext(null);
+
+// Lazy load UserDetails for desktop side panel
+const UserDetails = lazy(() => import('./UserDetails'));
 
 const MainLayout = () => {
     const { user, session } = useAuth();
@@ -32,13 +39,17 @@ const MainLayout = () => {
     const [contactPhone, setContactPhone] = useState('');
     const [contactMenuOpen, setContactMenuOpen] = useState(null);
     const [isChatViewActive, setIsChatViewActive] = useState(false);
+    
+    // State for user-details panel - keeps Chat mounted!
+    const [showUserDetailsPanel, setShowUserDetailsPanel] = useState(false);
+    const [userDetailsTargetId, setUserDetailsTargetId] = useState(null);
 
     const chatListRef = useRef();
 
     const currentChatId = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
 
     useEffect(() => {
-        setIsChatViewActive(location.pathname.startsWith('/chat/'));
+        setIsChatViewActive(location.pathname.startsWith('/chat/') || location.pathname.startsWith('/user-details/'));
     }, [location]);
 
     const fetchContacts = useCallback(async () => {
@@ -333,10 +344,54 @@ const MainLayout = () => {
         )
     }
 
+    // Callback function to show user-details panel - keeps Chat mounted!
+    const handleShowUserDetails = (userId) => {
+        if (isDesktop) {
+            setUserDetailsTargetId(userId);
+            setShowUserDetailsPanel(true);
+        } else {
+            // Mobile: navigate to full page
+            navigate(`/user-details/${userId}`);
+        }
+    };
+
+    const handleCloseUserDetails = () => {
+        setShowUserDetailsPanel(false);
+        setUserDetailsTargetId(null);
+    };
+
+    // Check if user-details route is active (for mobile)
+    const isUserDetailsRoute = location.pathname.startsWith('/user-details/');
+    const userDetailsUserId = isUserDetailsRoute ? location.pathname.split('/user-details/')[1] : null;
+
+    // Desktop: use state-based panel (Chat stays mounted)
+    // Mobile: use route-based full page
+    const userDetailsPanel = isDesktop && showUserDetailsPanel && userDetailsTargetId ? (
+        <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
+            <UserDetails userId={userDetailsTargetId} isPanel={true} onClose={handleCloseUserDetails} />
+        </Suspense>
+    ) : null;
+
+    // For mobile, render UserDetails in Outlet when on user-details route
+    const mobileUserDetails = !isDesktop && isUserDetailsRoute && userDetailsUserId ? (
+        <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
+            <UserDetails userId={userDetailsUserId} />
+        </Suspense>
+    ) : null;
+
+    // Always render Outlet - Chat component stays mounted on desktop!
+    // On mobile, Outlet renders Chat or UserDetails based on route
+    const chatComponent = mobileUserDetails || (
+        <UserDetailsContext.Provider value={handleShowUserDetails}>
+            <Outlet />
+        </UserDetailsContext.Provider>
+    );
+
     return (
         <DesktopLayout 
             chatListPanel={<ChatListPanel {...chatListPanelProps} />}
-            chatComponent={<Outlet />}
+            chatComponent={chatComponent}
+            userDetailsPanel={userDetailsPanel}
         />
     );
 };

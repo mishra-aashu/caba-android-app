@@ -3,6 +3,8 @@
   display: flex;
   margin-bottom: 4px;
   width: 100%;
+  /* PERFORMANCE: CSS Containment - isolates rendering for better scroll performance */
+  contain: content;
 }
 
 .message-container.mine {

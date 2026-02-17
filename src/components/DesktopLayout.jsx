@@ -4,15 +4,22 @@ import { useAuth } from '../hooks/useAuth';
 import DropdownMenu from './common/DropdownMenu';
 import { MessageCircle, Phone, Newspaper, Settings, User, Search, MoreVertical, Plus, Bell, Info, HelpCircle, LogOut, Crown, X, Eye, EyeOff, ShieldCheck, Edit, Trash2, QrCode } from 'lucide-react';
 
-const DesktopLayout = ({ chatListPanel, chatComponent }) => {
+const DesktopLayout = ({ chatListPanel, chatComponent, userDetailsPanel }) => {
+  const hasUserDetails = Boolean(userDetailsPanel);
+  
   return (
-    <div className="desktop-layout">
+    <div className={`desktop-layout ${hasUserDetails ? 'show-user-details' : ''}`}>
       <div className="chat-list-panel">
         {chatListPanel}
       </div>
       <div className="chat-detail">
         {chatComponent}
       </div>
+      {hasUserDetails && (
+        <div className="user-details-panel">
+          {userDetailsPanel}
+        </div>
+      )}
     </div>
   );
 };

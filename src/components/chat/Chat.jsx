@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useCall } from '../../context/CallContext';
@@ -25,6 +26,8 @@ import { formatLastSeen, isUserOnline } from '../../utils/timeUtils';
 import NotificationSound from '../../utils/notificationSound';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
+import { UserDetailsContext } from '../MainLayout';
+import { fetchChatMessages } from '../../services/messageService';
 import '../../styles/chat.css';
 import '../../styles/game-modal.css';
 
@@ -38,6 +41,7 @@ const Chat = () => {
     const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
     const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
     const { startCall } = useCall();
+    const showUserDetails = React.useContext(UserDetailsContext);
 
    // Initialize chat theme when chatId changes
    useEffect(() => {
@@ -45,10 +49,13 @@ const Chat = () => {
        setChatId(chatId);
      }
    }, [chatId, setChatId]);
+
+   // Define validChatId early so it can be used in useQuery
+   const validChatId = chatId === 'new' ? null : chatId;
+
    // State
    const [messages, setMessages] = useState([]);
    const [otherUser, setOtherUser] = useState(null);
-   const [loading, setLoading] = useState(true);
    const [hasMoreMessages, setHasMoreMessages] = useState(true);
    const [loadingMore, setLoadingMore] = useState(false);
    const [isMuted, setIsMuted] = useState(false);
@@ -56,6 +63,48 @@ const Chat = () => {
    const [showScrollButton, setShowScrollButton] = useState(false);
    const [unreadCount, setUnreadCount] = useState(0);
    const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+
+   // React Query for message caching - provides instant loading from cache
+   // Use initialData to show cached data immediately while fetching
+   const { data: queryData, isLoading, isFetching, dataUpdatedAt } = useQuery({
+     queryKey: ['chatMessages', validChatId],
+     queryFn: () => fetchChatMessages({ chatId: validChatId, supabase }),
+     enabled: !!validChatId && !!supabase,
+     staleTime: 1000 * 60 * 5, // 5 minutes - data stays fresh
+     gcTime: 1000 * 60 * 60 * 24, // 24 hours - keep in cache
+     refetchOnWindowFocus: false,
+   });
+   
+   // Check if we have cached data - if yes, never show loading
+   const hasCachedData = queryData && queryData.length > 0;
+   
+   // isLoading from React Query is only true on FIRST load (no cache)
+   // So we show loading ONLY if there's no cached data at all
+   const showLoading = isLoading && !hasCachedData;
+
+   // CRITICAL: Clear otherUser when chatId changes (messages are handled by React Query cache)
+   // React Query automatically switches cache based on queryKey, no manual clearing needed!
+   useEffect(() => {
+     setOtherUser(null);
+   }, [chatId]);
+
+   // CRITICAL: DO NOT clear messages when switching chats!
+   // Let React Query handle cache switching automatically via queryKey
+   // We only update messages when we have new data from queryData
+   useEffect(() => {
+     if (queryData && queryData.length > 0) {
+       setMessages(queryData);
+     }
+     // Don't clear messages here - let cached data persist!
+   }, [queryData]);
+
+   // Auto-scroll to bottom when chat switches or new messages arrive
+   useEffect(() => {
+     if (messages.length > 0 && messagesEndRef.current) {
+       messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+       setIsScrolledToBottom(true);
+     }
+   }, [chatId, messages.length]);
    const [showSearchModal, setShowSearchModal] = useState(false);
    const [searchQuery, setSearchQuery] = useState('');
    const [searchResults, setSearchResults] = useState([]);
@@ -74,8 +123,6 @@ const Chat = () => {
    const messagesEndRef = useRef(null);
    const messagesContainerRef = useRef(null);
    const typingTimeoutRef = useRef(null);
-
-   const validChatId = chatId === 'new' ? null : chatId;
 
   const { 
     isOpen: isGameOpen, 
@@ -123,14 +170,15 @@ const Chat = () => {
     }
 
     // Check if this is a game invite acceptance that should open the game room
+    // When user accepts an invitation, they become the sender of the 'accepted' message
     if (newMessage.type === 'game_invite' && newMessage.status === 'accepted') {
-      if (newMessage.receiver_id === currentUser?.id) {
+      if (newMessage.sender_id === currentUser?.id) {
         startGame();
       }
     }
    }, [isScrolledToBottom, currentUser?.id, isMuted, startGame]);
 
-  useRealtimeMessages(validChatId, handleNewMessage, currentUser?.id);
+  useRealtimeMessages(validChatId, setMessages, currentUser?.id);
 
   const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
 
@@ -261,7 +309,6 @@ const Chat = () => {
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
-      setLoading(false);
       setLoadingMore(false);
     }
   };
@@ -275,7 +322,7 @@ const Chat = () => {
   const initializeChat = async () => {
     if (chatId && otherUserId) {
       await loadOtherUserInfo(otherUserId);
-      await loadMessages();
+      // Messages are now loaded via useQuery - no need to call loadMessages here
     }
   };
 
@@ -585,7 +632,12 @@ const Chat = () => {
       alert('User information not available');
       return;
     }
-    navigate(`/user-details/${otherUserId}`);
+    // Use context callback if available (desktop - keeps Chat mounted), otherwise navigate (mobile)
+    if (showUserDetails) {
+      showUserDetails(otherUserId);
+    } else {
+      navigate(`/user-details/${otherUserId}`);
+    }
   };
 
   const handleCreateReminder = () => {
@@ -841,42 +893,39 @@ const Chat = () => {
     }
   };
 
-  if (!otherUser || !currentUser) {
-    return (
-      <div className="chat-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading chat...</p>
-      </div>
-    );
-  }
+  // Don't return early - let the UI render with cached messages!
+  // Only show loading if we have no cached messages AND no otherUser yet
+  const showInitialLoading = !otherUser && !messages.length && !queryData;
 
   // Memoize the Chat component to prevent unnecessary re-renders
   const MemoizedChat = memo(Chat);
 
   return (
     <div className="chat-screen" style={{ transform: 'translateZ(0)' }}>
-      {/* Chat Header */}
+      {/* Chat Header - always render, even if otherUser is loading */}
       <header className="chat-header">
         <button className="back-btn" onClick={() => navigate('/')}>
           <ArrowLeft size={20} />
         </button>
 
-        <div className="chat-user-info" onClick={handleViewContact} style={{ cursor: 'pointer' }}>
+        <div className="chat-user-info" onClick={handleViewContact} style={{ cursor: otherUser ? 'pointer' : 'default' }}>
           <div className="user-avatar">
-            {otherUser.avatar ? (
+            {otherUser?.avatar ? (
               parseInt(otherUser.avatar) ? (
                 <img src={dpOptions.find(dp => dp.id === parseInt(otherUser.avatar))?.path || otherUser.avatar} alt={otherUser.name} />
               ) : (
                 <img src={otherUser.avatar} alt={otherUser.name} />
               )
             ) : (
-              otherUser.name.charAt(0).toUpperCase()
+              <div className="user-avatar-loading"></div>
             )}
           </div>
           <div className="user-details">
-            <h3 className="user-name">{otherUser.contact_name || otherUser.name}</h3>
+            <h3 className="user-name">{otherUser ? (otherUser.contact_name || otherUser.name) : 'Loading...'}</h3>
             <p className="user-status">
-              {Object.keys(typingUsers).length > 0 ? 'typing...' : isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen) ? 'Online' : `Last seen ${formatLastSeen(otherUser.last_seen)}`}
+              {otherUser ? (
+                Object.keys(typingUsers).length > 0 ? 'typing...' : isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen) ? 'Online' : `Last seen ${formatLastSeen(otherUser.last_seen)}`
+              ) : 'Loading...'}
             </p>
           </div>
         </div>
@@ -1032,7 +1081,7 @@ const Chat = () => {
           onDelete={(messageId) => setMessages(prev => prev.filter(m => m.id !== messageId))}
           onMediaView={handleMediaView}
           onMediaDownload={handleMediaDownload}
-          isLoading={loading}
+          isLoading={showLoading}
         />
 
         <TypingIndicator isVisible={Object.keys(typingUsers).length > 0} />
@@ -1282,6 +1331,7 @@ const Chat = () => {
         onSend={sendChallenge}
         onComplete={completeTurn}
         onClose={closeGame}
+        onStart={startGame}
         chatId={chatId}
       />
 
