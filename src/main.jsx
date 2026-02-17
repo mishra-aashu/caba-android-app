@@ -20,9 +20,16 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 Minutes (Data stays 'fresh', no refetch on tab switch)
-      gcTime: 1000 * 60 * 60 * 24, // 24 Hours (Keep data in cache/memory for a day)
-      refetchOnWindowFocus: false, // Don't refetch just because I clicked the window
+      gcTime: 1000 * 60 * 30, // 30 Minutes (Keep unused data in cache)
+      refetchOnWindowFocus: false, // Do NOT refetch when switching tabs/windows
+      refetchOnMount: false, // If data is in cache and fresh, use it - no fetch again
+      retry: 1, // Retry failed requests only once
+      // Network error handling - don't show error immediately, allow offline
+      networkMode: 'offlineFirst', // Only make requests when online
+    },
+    mutations: {
       retry: 1,
+      networkMode: 'offlineFirst',
     },
   },
 });

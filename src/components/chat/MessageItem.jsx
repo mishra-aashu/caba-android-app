@@ -407,6 +407,8 @@ const MessageItem = ({
         isDeleted={message.is_deleted}
         status={message.is_read ? 'read' : 'sent'}
         edited={!!message.edited_at}
+        sender={message.sender} // Pass sender for group message sender names
+        message={message} // Pass full message for group message detection
       />
     );
   };

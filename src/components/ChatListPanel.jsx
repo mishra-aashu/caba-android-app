@@ -1,11 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
-import { MessageCircle, Phone, Newspaper, Settings, User, Search, MoreVertical, Plus, Bell, Info, HelpCircle, LogOut, Crown, X, Eye, EyeOff, ShieldCheck, Edit, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, QrCode, MessageSquarePlus } from 'lucide-react';
+import { MessageCircle, Phone, Newspaper, Settings, User, Search, MoreVertical, Plus, Bell, Info, HelpCircle, LogOut, Crown, X, Eye, EyeOff, ShieldCheck, Edit, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, QrCode, MessageSquarePlus, Users } from 'lucide-react';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import ChatListItem from './chat/ChatListItem';
 import { getInitials } from '../utils/stringUtils';
 import { isUserOnline } from '../utils/timeUtils';
+import CreateGroupModal from './groups/CreateGroupModal';
 
 const ChatListPanel = ({
   searchTerm,
@@ -52,7 +53,10 @@ const ChatListPanel = ({
   isDesktop,
   currentChatId,
 }) => {
-  const { supabase } = useSupabase(); // This hook is now correctly imported and used
+  const { supabase } = useSupabase();
+  
+  // State for Create Group Modal
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
 
   const dropdownItems = [
     {
@@ -103,6 +107,13 @@ const ChatListPanel = ({
           <h1 className="chats-title">Chats</h1>
         </div>
         <div className="header-right">
+           <button
+             className="icon-btn"
+             onClick={() => setShowCreateGroupModal(true)}
+             title="Create Group"
+           >
+             <Users size={20} className="create-group-icon" />
+           </button>
            <button
              className="icon-btn"
              onClick={() => setShowNewContactModal(true)}
@@ -202,7 +213,10 @@ const ChatListPanel = ({
                   last_seen: chat.otherUser?.last_seen,
                   isMyMessage: false, // Placeholder: need logic to determine
                   status: null, // Placeholder: need logic to determine
-                  type: 'text' // Placeholder: need logic to determine
+                  type: 'text', // Placeholder: need logic to determine
+                  isGroup: chat.isGroup || chat.chatType === 'group' || false,
+                  member_count: chat.member_count,
+                  member_preview: chat.member_preview
                 }}
                 onClick={() => handleChatClick(chat)}
                 isActive={chat.id == currentChatId}
@@ -407,6 +421,17 @@ const ChatListPanel = ({
           )}
         </div>
       </Modal>
+
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        isOpen={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onSuccess={() => {
+          // Refresh chat list after creating group
+          console.log('Group created successfully');
+        }}
+        savedContacts={savedContacts}
+      />
     </main>
   );
 };

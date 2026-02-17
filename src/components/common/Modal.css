@@ -13,6 +13,7 @@
     animation: modalOverlayFadeIn 0.3s ease-out;
     transform: translateZ(0); /* Hardware acceleration */
     will-change: opacity;
+    backface-visibility: hidden;
 }
 
 /* --- Light Mode Support (.light-mode class) --- */
@@ -73,6 +74,7 @@ body.light-mode .modal-body::-webkit-scrollbar-thumb:hover {
     color: var(--text-primary, #333333);
     transform: translateZ(0); /* Hardware acceleration */
     will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
 [data-theme='dark'] .modal-container {
@@ -83,12 +85,12 @@ body.light-mode .modal-body::-webkit-scrollbar-thumb:hover {
 @keyframes modalSlideIn {
     from {
         opacity: 0;
-        transform: scale(0.9) translateY(-20px);
+        transform: scale(0.9) translateY(-20px) translateZ(0);
     }
 
     to {
         opacity: 1;
-        transform: scale(1) translateY(0);
+        transform: scale(1) translateY(0) translateZ(0);
     }
 }
 
@@ -125,14 +127,15 @@ body.light-mode .modal-body::-webkit-scrollbar-thumb:hover {
     animation: slideFromRight 0.3s ease-out;
     transform: translateZ(0); /* Hardware acceleration */
     will-change: transform;
+    backface-visibility: hidden;
 }
 
 @keyframes slideFromRight {
     from {
-        transform: translateX(100%);
+        transform: translateX(100%) translateZ(0);
     }
     to {
-        transform: translateX(0);
+        transform: translateX(0) translateZ(0);
     }
 }
 

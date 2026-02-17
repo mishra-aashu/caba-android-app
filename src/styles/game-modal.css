@@ -6,11 +6,14 @@
   width: 100vw;
   height: 100vh;
   background: rgba(0, 0, 0, 0.75);
+  /* backdrop-filter removed - causes lag, use solid background instead */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  backdrop-filter: blur(5px);
+  transform: translateZ(0); /* Hardware acceleration */
+  will-change: opacity;
+  backface-visibility: hidden;
 }
 
 /* Game Card - Main modal box */
@@ -26,6 +29,9 @@
   color: white;
   position: relative;
   animation: popIn 0.3s ease-out;
+  transform: translateZ(0); /* Hardware acceleration */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 /* Close Button */
@@ -79,6 +85,6 @@
 
 /* Animation Keyframes */
 @keyframes popIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from { transform: scale(0.8) translateZ(0); opacity: 0; }
+  to { transform: scale(1) translateZ(0); opacity: 1; }
 }

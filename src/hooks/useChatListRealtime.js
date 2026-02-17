@@ -1,13 +1,88 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { initializeFileSystem, loadChatsFromDevice, saveChatsToDevice } from '../utils/FileSystemManager';
 import { isUserOnline } from '../utils/timeUtils';
+import { normalizeChat, isGroupChat } from '../utils/chatHelpers';
 
-// Fetch chat list function for React Query
+// Fetch chat list function for React Query - Unified (chats + groups)
 const fetchChatList = async ({ supabase, userId }) => {
     if (!userId) return [];
     
+    try {
+        // Try the RPC function first (more reliable for unified view)
+        const { data: rpcData, error: rpcError } = await supabase
+            .rpc('get_unified_chat_list', { user_id: userId });
+        
+        if (!rpcError && rpcData && rpcData.length > 0) {
+            // Use normalizeChat helper to create unified data structure
+            const formattedChats = rpcData.map(rawItem => {
+                const normalized = normalizeChat(rawItem);
+                
+                return {
+                    id: normalized.id,
+                    chatType: normalized.type, // 'chat' or 'group'
+                    otherUser: {
+                        id: normalized.metadata.otherUserId || normalized.id,
+                        name: normalized.displayName,
+                        phone: normalized.metadata.otherUserPhone || null,
+                        avatar: normalized.displayAvatar,
+                        is_online: normalized.isOnline,
+                        last_seen: normalized.lastSeen
+                    },
+                    last_message: normalized.displaySubtitle,
+                    last_message_time: normalized.timestamp,
+                    unreadCount: normalized.unreadCount,
+                    isGroup: normalized.isGroup
+                };
+            });
+            
+            // Save to device for offline access
+            await saveChatsToDevice(formattedChats);
+            return formattedChats;
+        }
+    } catch (rpcErr) {
+        console.log('RPC function not available, falling back to view:', rpcErr);
+    }
+    
+    // Fallback: Try unified_chat_list view
+    try {
+        const { data: viewData, error: viewError } = await supabase
+            .from('unified_chat_list')
+            .select('*')
+            .order('last_message_time', { ascending: false })
+            .limit(20);
+
+        if (!viewError && viewData && viewData.length > 0) {
+            // Use normalizeChat helper for consistent data structure
+            const formattedChats = viewData.map(rawItem => {
+                const normalized = normalizeChat(rawItem);
+                return {
+                    id: normalized.id,
+                    chatType: normalized.type,
+                    otherUser: {
+                        id: normalized.metadata.otherUserId || normalized.id,
+                        name: normalized.displayName,
+                        phone: normalized.metadata.otherUserPhone || null,
+                        avatar: normalized.displayAvatar,
+                        is_online: normalized.isOnline,
+                        last_seen: normalized.lastSeen
+                    },
+                    last_message: normalized.displaySubtitle,
+                    last_message_time: normalized.timestamp,
+                    unreadCount: normalized.unreadCount,
+                    isGroup: normalized.isGroup
+                };
+            });
+            
+            await saveChatsToDevice(formattedChats);
+            return formattedChats;
+        }
+    } catch (viewErr) {
+        console.log('View not available:', viewErr);
+    }
+    
+    // Final fallback: Original chat_list_view
     let query = supabase
         .from('chat_list_view')
         .select('*')
@@ -38,7 +113,8 @@ const fetchChatList = async ({ supabase, userId }) => {
             otherUser,
             last_message: chat.last_message,
             last_message_time: chat.last_message_time,
-            unreadCount: parseInt(chat.unread_count) || 0
+            unreadCount: parseInt(chat.unread_count) || 0,
+            isGroup: false
         };
     });
 
@@ -50,6 +126,7 @@ const fetchChatList = async ({ supabase, userId }) => {
 
 export const useChatListRealtime = (currentUserId) => {
     const { supabase, session } = useSupabase();
+    const queryClient = useQueryClient();
     const [chats, setChats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [hasMoreChats, setHasMoreChats] = useState(true);
@@ -177,29 +254,30 @@ export const useChatListRealtime = (currentUserId) => {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
                 const newMessage = payload.new;
                 
-                // BAD CODE (Jo tum kar rahe the):
-                // updateChatInList(message.chat_id);  <-- Ye DB call hai, ise hatao!
-
-                // GOOD CODE (Local Update):
+                // Update chat list locally for both regular chats and groups
                 setChats((prevChats) => {
                     return prevChats.map((chat) => {
                         if (chat.id === newMessage.chat_id) {
-                            // Sirf uss chat ka last message update karo
+                            // For group messages, show sender name in preview
+                            const senderPrefix = newMessage.is_group_message && newMessage.sender_id !== currentUserId 
+                                ? `${newMessage.sender_name || 'Someone'}: ` 
+                                : '';
                             return {
                                 ...chat,
-                                last_message: newMessage.content,
+                                last_message: senderPrefix + (newMessage.content || ''),
                                 last_message_time: newMessage.created_at,
-                                unreadCount: chat.unreadCount + 1 // Optional logic
+                                unreadCount: chat.unreadCount + 1
                             };
                         }
                         return chat;
                     })
-                    // Sort bhi kar do taaki nayi chat upar aa jaye
+                    // Sort so newest is on top
                     .sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time));
                 });
             })
             .subscribe();
 
+        // Subscribe to chats table updates (only for regular 1-on-1 chats)
         const chatsChannel = supabase
             .channel(`chat_list_chats_for_${currentUserId}`)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chats' }, payload => {
@@ -207,7 +285,8 @@ export const useChatListRealtime = (currentUserId) => {
                 const updatedChat = payload.new;
                 setChats((prevChats) => {
                     return prevChats.map((chat) => {
-                        if (chat.id === updatedChat.id) {
+                        // Only update non-group chats
+                        if (chat.id === updatedChat.id && !chat.isGroup) {
                             return {
                                 ...chat,
                                 last_message: updatedChat.last_message,
@@ -227,7 +306,7 @@ export const useChatListRealtime = (currentUserId) => {
                 const updatedUser = payload.new;
                 // Update any chat where this user is the otherUser
                 setChats(prevChats => prevChats.map(chat => {
-                    if (chat.otherUser.id === updatedUser.id) {
+                    if (chat.otherUser?.id === updatedUser.id) {
                         return {
                             ...chat,
                             otherUser: {
@@ -242,12 +321,46 @@ export const useChatListRealtime = (currentUserId) => {
             })
             .subscribe();
 
+        // Subscribe to group_members - when user is added to a group
+        const groupMembersChannel = supabase
+            .channel(`chat_list_group_members_${currentUserId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_members' }, payload => {
+                const newMember = payload.new;
+                // If current user was added to a group
+                if (newMember.user_id === currentUserId) {
+                    // Refetch chat list to get the new group
+                    queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                }
+            })
+            .subscribe();
+
+        // Subscribe to groups - when a new group is created
+        const groupsChannel = supabase
+            .channel(`chat_list_groups_${currentUserId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'groups' }, payload => {
+                // When a group is created, refresh the chat list
+                queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+            })
+            .subscribe();
+
+        // Subscribe to group_members updates (for member count changes)
+        const groupMembersUpdateChannel = supabase
+            .channel(`chat_list_group_members_update_${currentUserId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => {
+                // Refetch chat list when group membership changes
+                queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+            })
+            .subscribe();
+
         return () => {
             supabase.removeChannel(messagesChannel);
             supabase.removeChannel(chatsChannel);
             supabase.removeChannel(usersChannel);
+            supabase.removeChannel(groupMembersChannel);
+            supabase.removeChannel(groupsChannel);
+            supabase.removeChannel(groupMembersUpdateChannel);
         };
-    }, [currentUserId, supabase]);
+    }, [currentUserId, supabase, queryClient]);
 
     return { chats, setChats, loading, hasMoreChats, loadingMore, loadMoreChats };
 };

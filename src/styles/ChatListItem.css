@@ -226,3 +226,118 @@ body.light-mode .typing {
   background-color: rgba(var(--text-secondary), 0.3);
   border-radius: 4px;
 }
+
+/* --- Group List Item Styles --- */
+.member-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-right: 6px;
+  padding: 2px 6px;
+  background: var(--border-color);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.chat-item-preview {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.chat-item-preview .chat-item-message {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Group Chat Indicators --- */
+.chat-item.group-item {
+  /* Subtle background for groups to differentiate */
+  background-color: rgba(100, 108, 255, 0.03);
+}
+
+.chat-item.group-item:hover {
+  background-color: rgba(100, 108, 255, 0.08);
+}
+
+.chat-item.group-item.active {
+  background-color: rgba(100, 108, 255, 0.12);
+  border-left-color: #6468f3;
+}
+
+/* Group badge on avatar */
+.group-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #6468f3, #8b5cf6);
+  border: 2px solid var(--surface-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Group indicator icon next to name */
+.group-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  color: #6468f3;
+}
+
+.group-indicator .group-icon {
+  opacity: 0.9;
+}
+
+/* Member preview in last message */
+.member-preview {
+  font-weight: 500;
+  color: #6468f3;
+  margin-right: 2px;
+}
+
+.preview-name {
+  color: inherit;
+}
+
+.more-members {
+  color: #888;
+  font-size: 12px;
+}
+
+/* Light mode support for groups */
+body.light-mode .chat-item.group-item {
+  background-color: rgba(100, 108, 255, 0.03);
+}
+
+body.light-mode .chat-item.group-item:hover {
+  background-color: rgba(100, 108, 255, 0.08);
+}
+
+body.light-mode .chat-item.group-item.active {
+  background-color: rgba(100, 108, 255, 0.12);
+  border-left-color: #6468f3;
+}
+
+body.light-mode .group-indicator {
+  color: #6468f3;
+}
+
+body.light-mode .member-preview {
+  color: #6468f3;
+}
+
+body.light-mode .group-badge {
+  border-color: #ffffff;
+  background: linear-gradient(135deg, #6468f3, #8b5cf6);
+}

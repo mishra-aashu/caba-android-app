@@ -2,45 +2,62 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { JWT } from "https://esm.sh/google-auth-library@9"
 
-const serviceAccount = {
-  project_id: "caba-13cf1",
-  client_email: "firebase-adminsdk-fbsvc@caba-13cf1.iam.gserviceaccount.com",
-  private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDTiuvNEnLIibAB\nFszin4vVh1hViXESCgu1yyhygrEvHFBCBnrp/GtoBvIUhqYm6K6qLYGRvDSgdr1U\nIQpXo3ByM9eohLsny9JwsQuvwFcN07if4PMHfW6a6VzWomJInGlK9cXdm97/dtpD\nmlVMxBM65wL0MPYuXVJi4PmosQb4wsY7VBgXe539uXXepN0N9TMxceI5JUjDg1Bu\nu9yw/9aTtbsygA8UCLsr0C+2HcbepIP1AScj3mhxSVNL5YUdyLIFIDvAcAhFMhMh\nxLMXPSwdUnS26o1GWpqk0kFIrM8V3TUG/FBZ7KOcwup6PRzhMgggw1/Q+lpVL+7e\nBftP88fxAgMBAAECggEALBI9pPgqdLAGvHtZDP+rPL2ZQBzFsznnjaS5FP44VrXB\n3LeH5PaDE+Wain8w31tLhEW9wDRjDGkgcYX+pxp0Qz6ct82LRjO28GZaJm/eUxGg\nXaKaTx2pLNngTxD+g90eLJE+ezhNgZBr0Xi2O6t/zB4zpdcLesZTcykmqifTaYCd\nM9R7SYaLFe0k7kg77jx2ChEgbzhfUfebySl1daDYLFTszxpbTIKqAJElYR9GS0Cl\nB+czS4S6O9SobSQUv5n+qlnLWsakq+NPzQeFjS5sIOq/l8TkaL0/3fYdQj0IQCLE\nOxjB7f7H3Xr3+icJcFcZ0Z9LIRdxJsrGIZ8QZ5fVPwKBgQD/eBw6OGwGBL7HGU1L\nrVDT5uX2ItMb5SaXjuYakCRn9HvfMc7a98NPLb86Gh17Pw9HqF6gE3U/wRTV8CQO\n/qhu9A4zsVCHna6YKkmttpvToYdDYGT5YHB1YaH5gHMJerMaZj4H58C37YKK/jhM\noUtHqMFgk/l+RLmkxSL8n8fRawKBgQDT+3IB7VBc1hwWjV7ziHpeGZ2toA0SfZ1d\n257/UQw5Bb93tavXzGXZbjcY8pp8WBnA7MqEY15kT71PsnbBSTb2g6aqm+CsTaCk\nXoOM9m6aWsJJUZAQnBgDzxS7nJIclUk9khcvPdZGOOpXKENoamptsZh6XF7RzcVB\nawQzQnP3EwKBgQC0zR69HZ1mDQmwAvovavPfZHSv5Cmgfmb3sEyt1AHQCLl6Vtfd\nJKh3axsBVeYziYeY4VJG3D6I5m+GkbQTYKt4CwXaE824jSI50wPeC3TxLEp8psYP\nr+8nQ/fMitnfhZUoQ9/23FAKW++dyxmxMh4DEy342gEjGiSAtnxyaeqTDQKBgEIs\n7dNSLVM99/jGW0z1XxX/My0fmNUb58OEKyeTOpiWhcYuLZ4pjeYJtSORoM6OhkOm\n6DXZ+36fMf8uPEpsu77LLH14OfQwK6UEaFbaG38ONDbFQo8c25Zc0CEdaLOJmxqg\nf6Jc0IaNgAKDbD+tcNobpfkU2vjuHtUkPmRuK1uHAoGAVkCwHRVbVPCh/tdpo2TU\nuGMT7SfuI67i4Vl/8JoF+FD0FQ/aYLuPctjQGejCdGFkps+cXvB54I3zR7Gmk2V0\nwhG8v/uI5xH48krIfgrdp0RjP0ScN8/Kp2eoy2DJb36o9ZzZkpQq1TdgIZ63Gi/W\nKDZYsgrcJfIp+z0+VXoVd2U=\n-----END PRIVATE KEY-----\n".replace(/\\n/g, '\n'),
+// 🔒 SECRETS ab Environment Variables se aayenge (Secure!)
+const SERVICE_ACCOUNT = {
+  project_id: Deno.env.get('FIREBASE_PROJECT_ID'),
+  client_email: Deno.env.get('FIREBASE_CLIENT_EMAIL'),
+  private_key: Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n'),
 };
 
 serve(async (req: Request) => {
   try {
+    // 1. Check Payload
     const payload = await req.json();
     const record = payload.record;
-    
+
+    if (!record) {
+      return new Response("No record found", { status: 400 });
+    }
+
+    // 💡 NOTE: Rate Limiting yahan hatani hai!
+    // Kyunki ye function tabhi call hoga jab Message DB me save ho chuka hai.
+    // Humne SQL Policy me already INSERT par Rate Limit laga diya hai.
+    // Agar user block hai, to Message save hi nahi hoga, aur ye function call hi nahi hoga.
+    // So, Double Rate Limiting is not needed here.
+
     const receiverId = record.receiver_id;
+    // const senderId = record.sender_id; // Agar limit lagani hi hai, to senderId par lagao, IP par nahi.
     const messageText = record.content || record.text || "New Message";
 
+    // 2. Setup Supabase Client
     const supabase = createClient(
-      Deno.env.get('MY_SUPABASE_URL') ?? '',
-      Deno.env.get('MY_SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '' // Service Role chahiye Users table read karne ke liye
     );
 
+    // 3. Get Receiver's FCM Token
     const { data: userData, error: userError } = await supabase
-      .from('users')
+      .from('users') // Apni table ka naam check karlena 'profiles' ya 'users'
       .select('fcm_token_android, fcm_token_web')
       .eq('id', receiverId)
       .single();
 
     if (userError || !userData?.fcm_token_android) {
-      console.error("Token Error:", userError);
-      return new Response("No token found", { status: 200 });
+      console.log("No token found for user:", receiverId);
+      return new Response("User has no token", { status: 200 }); // 200 OK return karo taaki Webhook retry na kare
     }
 
+    // 4. Authenticate with Google (Firebase)
     const jwtClient = new JWT(
-      serviceAccount.client_email,
+      SERVICE_ACCOUNT.client_email,
       undefined,
-      serviceAccount.private_key,
+      SERVICE_ACCOUNT.private_key,
       ['https://www.googleapis.com/auth/cloud-platform']
     );
     const authTokens = await jwtClient.authorize();
 
-    const fcmRes = await fetch(`https://fcm.googleapis.com/v1/projects/${serviceAccount.project_id}/messages:send`, {
+    // 5. Send Notification
+    const fcmRes = await fetch(`https://fcm.googleapis.com/v1/projects/${SERVICE_ACCOUNT.project_id}/messages:send`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authTokens.access_token}`,
@@ -54,7 +71,8 @@ serve(async (req: Request) => {
             body: messageText
           },
           data: {
-            chatId: String(record.chat_id || "")
+            chatId: String(record.chat_id || ""),
+            type: "chat_message"
           }
         }
       })
@@ -65,7 +83,9 @@ serve(async (req: Request) => {
       headers: { "Content-Type": "application/json" },
       status: 200,
     });
+
   } catch (err) {
-    return new Response(err.message, { status: 500 });
+    console.error("Function Error:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 });

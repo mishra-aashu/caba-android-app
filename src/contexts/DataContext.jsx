@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { useSupabase } from './SupabaseContext';
 import { useAuth } from '../hooks/useAuth';
 import { useChatListRealtime } from '../hooks/useChatListRealtime';
+import { handleSupabaseError } from '../utils/rlsErrorHandler';
 
 const DataContext = createContext();
 
@@ -24,7 +25,18 @@ export const DataProvider = ({ children }) => {
         .select('*, contact_user:users!contacts_contact_user_id_fkey(*)')
         .eq('user_id', userId);
 
-      if (error) throw error;
+      if (error) {
+        const handled = handleSupabaseError(error, { operation: 'select', silent: true });
+        
+        // If RLS error, user is trying to access unauthorized contacts
+        if (handled.isRLS) {
+          console.warn('RLS: Cannot access contacts - not authorized');
+          setContacts([]);
+          return;
+        }
+        
+        throw error;
+      }
 
       const contactUsers = data ? data.map(c => ({ ...c.contact_user, contact_name: c.contact_name })) : [];
       setContacts(contactUsers);

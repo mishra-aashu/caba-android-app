@@ -1,50 +1,52 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { callService } from '../services/callService';
 
+/**
+ * Hook for fetching call history using TanStack Query
+ * Provides caching, automatic refetching, and offline support
+ */
 export function useCallHistory(userId) {
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [missedCount, setMissedCount] = useState(0);
-
-  const fetchHistory = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
-      // getCallHistory returns { calls: [], hasMore, lastCallId }
+  // Query for call history with caching
+  const { 
+    data: historyData, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useQuery({
+    queryKey: ['callHistory', userId],
+    queryFn: async () => {
+      if (!userId) return { calls: [], hasMore: false };
       const result = await callService.getCallHistory(userId, 20, null);
-      setHistory(result.calls || []);
-    } catch (err) {
-      setError(err.message);
-      setHistory([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+      return result;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2, // 2 minutes - data stays fresh
+    gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
 
-  const fetchMissedCount = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      const count = await callService.getMissedCallsCount(userId);
-      setMissedCount(count || 0);
-    } catch (err) {
-      console.error('Error fetching missed count:', err);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchHistory();
-    fetchMissedCount();
-  }, [fetchHistory, fetchMissedCount]);
+  // Separate query for missed calls count
+  const {
+    data: missedData,
+  } = useQuery({
+    queryKey: ['missedCallsCount', userId],
+    queryFn: async () => {
+      if (!userId) return 0;
+      return await callService.getMissedCallsCount(userId);
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 1, // 1 minute
+    gcTime: 1000 * 60 * 10, // 10 minutes
+  });
 
   return {
-    history,
-    loading,
-    error,
-    missedCount,
-    refetch: fetchHistory
+    history: historyData?.calls || [],
+    loading: isLoading,
+    error: error?.message || null,
+    missedCount: missedData || 0,
+    refetch,
+    hasMore: historyData?.hasMore || false,
   };
 }
 

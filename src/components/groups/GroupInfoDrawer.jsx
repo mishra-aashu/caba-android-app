@@ -1,0 +1,233 @@
+/**
+ * GroupInfoDrawer - Right sidebar showing group members & settings
+ */
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { useGroupActions } from '../../hooks/useGroupActions';
+import MemberItem from './MemberItem';
+import AddMembersModal from './AddMembersModal';
+import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown } from 'lucide-react';
+import toast from 'react-hot-toast';
+import './GroupInfoDrawer.css';
+
+const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
+  const { user } = useAuth();
+  const { useGroupMembers, useIsAdmin, useLeaveGroup, useUpdateGroup } = useGroupActions();
+  
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [isMuted, setIsMuted] = useState(false);
+
+  const groupId = group?.id;
+  
+  const { data: members = [], isLoading: loadingMembers, refetch: refetchMembers } = useGroupMembers(groupId);
+  const { data: isAdmin = false } = useIsAdmin(groupId, user?.id);
+  const leaveGroupMutation = useLeaveGroup();
+  const updateGroupMutation = useUpdateGroup();
+
+  // Load mute state
+  useEffect(() => {
+    if (groupId) {
+      const mutedGroups = JSON.parse(localStorage.getItem('mutedGroups') || '{}');
+      setIsMuted(!!mutedGroups[groupId]);
+    }
+  }, [groupId]);
+
+  // Update edit fields when group changes
+  useEffect(() => {
+    if (group) {
+      setEditName(group.name || '');
+      setEditDescription(group.description || '');
+    }
+  }, [group]);
+
+  // Handle leave group
+  const handleLeaveGroup = async () => {
+    if (!window.confirm('Are you sure you want to leave this group?')) return;
+
+    try {
+      await leaveGroupMutation.mutateAsync({ groupId, userId: user.id });
+      onClose();
+    } catch (error) {
+      console.error('Error leaving group:', error);
+    }
+  };
+
+  // Handle mute toggle
+  const handleMuteToggle = () => {
+    const mutedGroups = JSON.parse(localStorage.getItem('mutedGroups') || '{}');
+    const newMutedState = !isMuted;
+    
+    if (newMutedState) {
+      mutedGroups[groupId] = true;
+    } else {
+      delete mutedGroups[groupId];
+    }
+    
+    localStorage.setItem('mutedGroups', JSON.stringify(mutedGroups));
+    setIsMuted(newMutedState);
+    toast.success(newMutedState ? 'Notifications muted' : 'Notifications unmuted');
+  };
+
+  // Handle save edits
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) {
+      toast.error('Group name cannot be empty');
+      return;
+    }
+
+    try {
+      await updateGroupMutation.mutateAsync({
+        groupId,
+        updates: {
+          name: editName.trim(),
+          description: editDescription.trim() || null,
+        },
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating group:', error);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="group-info-drawer-overlay" onClick={onClose}>
+      <div className="group-info-drawer" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="drawer-header">
+          <h2>Group Info</h2>
+          <button className="close-btn" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Group Info */}
+        <div className="group-info-section">
+          <div className="group-avatar-large">
+            {group?.avatar_url ? (
+              <img src={group.avatar_url} alt={group.name} />
+            ) : (
+              <div className="avatar-placeholder">
+                {group?.name?.charAt(0)?.toUpperCase() || 'G'}
+              </div>
+            )}
+          </div>
+
+          {isEditing ? (
+            <div className="edit-form">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Group name"
+                maxLength={50}
+              />
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Group description (optional)"
+                maxLength={100}
+              />
+              <div className="edit-actions">
+                <button className="btn-cancel" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </button>
+                <button className="btn-save" onClick={handleSaveEdit}>
+                  Save
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="group-details">
+              <h3 className="group-name">{group?.name}</h3>
+              {group?.description && (
+                <p className="group-description">{group.description}</p>
+              )}
+              <p className="member-count">
+                <Users size={14} />
+                {members.length} members
+              </p>
+              {isAdmin && (
+                <button className="edit-group-btn" onClick={() => setIsEditing(true)}>
+                  <Edit size={14} />
+                  Edit Group
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="quick-actions">
+          <button className="action-btn" onClick={() => onCallStart?.('voice')}>
+            <Phone size={18} />
+            <span>Voice Call</span>
+          </button>
+          <button className="action-btn" onClick={() => onCallStart?.('video')}>
+            <Video size={18} />
+            <span>Video Call</span>
+          </button>
+          <button className="action-btn" onClick={handleMuteToggle}>
+            {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
+            <span>{isMuted ? 'Unmute' : 'Mute'}</span>
+          </button>
+        </div>
+
+        {/* Members List */}
+        <div className="members-section">
+          <div className="section-header">
+            <h3>Participants</h3>
+            {isAdmin && (
+              <button className="add-member-btn" onClick={() => setShowAddMembers(true)}>
+                Add Member
+              </button>
+            )}
+          </div>
+
+          <div className="members-list">
+            {loadingMembers ? (
+              <div className="loading">Loading members...</div>
+            ) : (
+              members.map((member) => (
+                <MemberItem
+                  key={member.user_id}
+                  member={member}
+                  groupId={groupId}
+                  currentUserId={user?.id}
+                  isCurrentUserAdmin={isAdmin}
+                />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Leave Group */}
+        <div className="leave-section">
+          <button className="leave-btn" onClick={handleLeaveGroup}>
+            <LogOut size={18} />
+            Leave Group
+          </button>
+        </div>
+      </div>
+
+      {/* Add Members Modal */}
+      <AddMembersModal
+        isOpen={showAddMembers}
+        onClose={() => setShowAddMembers(false)}
+        groupId={groupId}
+        existingMemberIds={members.map(m => m.user_id)}
+        onSuccess={() => {
+          refetchMembers();
+          setShowAddMembers(false);
+        }}
+      />
+    </div>
+  );
+};
+
+export default GroupInfoDrawer;

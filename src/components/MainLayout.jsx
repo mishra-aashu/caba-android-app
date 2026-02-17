@@ -245,7 +245,14 @@ const MainLayout = () => {
 
     const handleChatClick = (chat) => {
         if (!chat || !chat.otherUser) return;
-        navigate(`/chat/${chat.id}/${chat.otherUser.id}`);
+        
+        // If it's a group, navigate to group chat
+        if (chat.isGroup || chat.chatType === 'group') {
+            navigate(`/chat/${chat.id}/group`);
+        } else {
+            // Regular 1-on-1 chat
+            navigate(`/chat/${chat.id}/${chat.otherUser.id}`);
+        }
     };
 
     const handleLogout = async () => {

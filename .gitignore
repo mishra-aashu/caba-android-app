@@ -26,5 +26,10 @@ dist-ssr
 # Database setup files
 database-setup.sql
 .env
+.env.example
 \n# Google services JSON
 android/app/google-services.json
+
+# Capgo keys (private)
+.capgo_key_v2
+.capgo_key_v2.pub

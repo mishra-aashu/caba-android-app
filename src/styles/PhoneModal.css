@@ -8,12 +8,15 @@
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.65); /* Darker dim */
-  backdrop-filter: blur(8px); /* Professional Glass blur effect */
+  /* backdrop-filter removed - extremely expensive on mobile, causes lag */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   animation: fadeIn 0.3s ease-out;
+  transform: translateZ(0); /* Hardware acceleration */
+  will-change: opacity;
+  backface-visibility: hidden;
 }
 
 /* 2. Main Card Design */
@@ -28,6 +31,9 @@
   position: relative;
   text-align: center;
   animation: slideUp 0.3s ease-out;
+  transform: translateZ(0); /* Hardware acceleration */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 /* 3. Typography */
@@ -143,8 +149,8 @@
   to { opacity: 1; }
 }
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(20px) translateZ(0); }
+  to { opacity: 1; transform: translateY(0) translateZ(0); }
 }
 
 /* Back to Login Link */

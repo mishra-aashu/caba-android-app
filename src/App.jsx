@@ -50,6 +50,8 @@ import useIsDesktop from './hooks/useIsDesktop';
 
 import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
+import OfflineIndicator from './components/common/OfflineIndicator';
+import './styles/offline-indicator.css';
 
 // Initialize Capacitor Updater
 if (Capacitor.isNativePlatform()) {
@@ -96,6 +98,8 @@ const AppContent = () => {
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<ChatPlaceholder />} />
         <Route path="chat/:chatId/:otherUserId" element={<Chat />} />
+        {/* Group chat route - uses same Chat component but detects group */}
+        <Route path="chat/:chatId/group" element={<Chat />} />
         <Route path="user-details/:id" element={<UserDetails />} />
       </Route>
       
@@ -226,7 +230,10 @@ const App = () => {
       {/* ThemeProvider is provided in main.jsx */}
         <DataProvider>
         <ChatThemeProvider>
-          <AppContent />
+          {/* 🎯 Offline Indicator - Shows network status to users */}
+          <OfflineIndicator>
+            <AppContent />
+          </OfflineIndicator>
           {/* Global Components */}
           <CallStatusIndicator />
           <IncomingCallModal />

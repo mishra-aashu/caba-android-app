@@ -22,6 +22,7 @@ import { useTruthDareGame } from '../../hooks/useTruthDareGame';
 import TruthDareModal from './TruthDareModal';
 import GameRoom from './GameRoom';
 import ForwardModal from './ForwardModal';
+import GroupInfoDrawer from '../groups/GroupInfoDrawer';
 import { formatLastSeen, isUserOnline } from '../../utils/timeUtils';
 import NotificationSound from '../../utils/notificationSound';
 import toast from 'react-hot-toast';
@@ -42,6 +43,9 @@ const Chat = () => {
     const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
     const { startCall } = useCall();
     const showUserDetails = React.useContext(UserDetailsContext);
+    
+    // Check if this is a group chat (route: /chat/:chatId/group)
+    const isGroupChat = otherUserId === 'group';
 
    // Initialize chat theme when chatId changes
    useEffect(() => {
@@ -119,6 +123,7 @@ const Chat = () => {
    const [showForwardModal, setShowForwardModal] = useState(false);
    const [messagesToForward, setMessagesToForward] = useState([]);
    const [showGameRoom, setShowGameRoom] = useState(false);
+   const [showGroupInfoDrawer, setShowGroupInfoDrawer] = useState(false);
 
    const messagesEndRef = useRef(null);
    const messagesContainerRef = useRef(null);
@@ -192,6 +197,105 @@ const Chat = () => {
 
   const { chats: allChats } = useChatListRealtime(currentUser?.id);
 
+  // Load group info for group chats - MUST BE DEFINED BEFORE initializeChat
+  const loadGroupInfo = async (groupId) => {
+    try {
+      // Get group details
+      const { data: group, error } = await supabase
+        .from('groups')
+        .select('*')
+        .eq('id', groupId)
+        .single();
+
+      if (error) throw error;
+      
+      // Get member count and member previews
+      const { count: memberCount } = await supabase
+        .from('group_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('group_id', groupId);
+      
+      // Get member details for preview
+      const { data: members } = await supabase
+        .from('group_members')
+        .select('user_id, role, users!inner(id, name, avatar)')
+        .eq('group_id', groupId)
+        .limit(5);
+
+      const memberPreviews = members?.map(m => ({
+        id: m.users?.id,
+        name: m.users?.name || 'Unknown',
+        avatar: m.users?.avatar,
+        role: m.role
+      })) || [];
+      
+      // Get current user's role in the group
+      const { data: currentMember } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', groupId)
+        .eq('user_id', currentUser?.id)
+        .single();
+      
+      // Set as otherUser for display (group name as "name")
+      setOtherUser({
+        ...group,
+        name: group.name,
+        is_group: true,
+        member_count: memberCount || 0,
+        member_previews: memberPreviews,
+        my_role: currentMember?.role || 'member',
+        description: group.description
+      });
+    } catch (error) {
+      console.error('Error loading group info:', error);
+      // Even on error, set a basic structure so UI doesn't show "Loading..."
+      setOtherUser({
+        id: groupId,
+        name: 'Loading...',
+        is_group: true
+      });
+    }
+  };
+
+  const loadOtherUserInfo = async (userId) => {
+    try {
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      setOtherUser(user);
+
+      // Load contact name
+      const { data: contact } = await supabase
+        .from('contacts')
+        .select('contact_name')
+        .eq('user_id', currentUser.id)
+        .eq('contact_user_id', userId)
+        .maybeSingle();
+
+      if (contact) {
+        setOtherUser(prev => ({ ...prev, contact_name: contact.contact_name }));
+      }
+    } catch (error) {
+      console.error('Error loading user info:', error);
+    }
+  };
+
+  // Initialize chat function - MUST BE DEFINED BEFORE useEffect that calls it
+  const initializeChat = async () => {
+    if (chatId && otherUserId) {
+      // If this is a group chat, load group info instead of user info
+      if (isGroupChat) {
+        await loadGroupInfo(chatId);
+      } else {
+        await loadOtherUserInfo(otherUserId);
+      }
+    }
+  };
 
   // Initialize chat when auth is ready
   useEffect(() => {
@@ -319,48 +423,11 @@ const Chat = () => {
     }
   };
 
-  const initializeChat = async () => {
-    if (chatId && otherUserId) {
-      await loadOtherUserInfo(otherUserId);
-      // Messages are now loaded via useQuery - no need to call loadMessages here
-    }
-  };
-
   const cleanup = () => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
   };
-
-  const loadOtherUserInfo = async (userId) => {
-    try {
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-      setOtherUser(user);
-
-      // Load contact name
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('contact_name')
-        .eq('user_id', currentUser.id)
-        .eq('contact_user_id', userId)
-        .maybeSingle();
-
-      if (contact) {
-        setOtherUser(prev => ({ ...prev, contact_name: contact.contact_name }));
-      }
-    } catch (error) {
-      console.error('Error loading user info:', error);
-    }
-  };
-
-
-
 
   const handleBlockUser = async () => {
     const confirmed = window.confirm(`Block ${otherUser.name}? They won't be able to message or call you.`);
@@ -804,7 +871,18 @@ const Chat = () => {
     }
   };
 
+  // State for group call modal
+  const [showGroupCallModal, setShowGroupCallModal] = useState(false);
+  const [selectedCallType, setSelectedCallType] = useState('voice');
+
   const handleVoiceCall = async () => {
+    if (isGroupChat) {
+      // Show group call modal for groups
+      setSelectedCallType('voice');
+      setShowGroupCallModal(true);
+      return;
+    }
+    
     try {
       const { callId } = await startCall(otherUser.id, 'voice');
       navigate(`/call/${callId}`);
@@ -815,12 +893,40 @@ const Chat = () => {
   };
 
   const handleVideoCall = async () => {
+    if (isGroupChat) {
+      // Show group call modal for groups
+      setSelectedCallType('video');
+      setShowGroupCallModal(true);
+      return;
+    }
+    
     try {
       const { callId } = await startCall(otherUser.id, 'video');
       navigate(`/call/${callId}`);
     } catch (error) {
       console.error('Failed to start video call:', error);
       alert('Failed to start call: ' + error.message);
+    }
+  };
+
+  const handleStartGroupCall = async () => {
+    try {
+      // For now, start a direct call (group calling requires more complex setup)
+      // In future, this can trigger a group call feature
+      const { data: members } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', chatId);
+
+      if (members && members.length > 0) {
+        // Start call with first member as a workaround
+        const { callId } = await startCall(members[0].user_id, selectedCallType);
+        navigate(`/call/${callId}`);
+      }
+      setShowGroupCallModal(false);
+    } catch (error) {
+      console.error('Failed to start group call:', error);
+      toast.error('Failed to start call');
     }
   };
 
@@ -908,7 +1014,7 @@ const Chat = () => {
           <ArrowLeft size={20} />
         </button>
 
-        <div className="chat-user-info" onClick={handleViewContact} style={{ cursor: otherUser ? 'pointer' : 'default' }}>
+        <div className="chat-user-info" onClick={() => isGroupChat ? setShowGroupInfoDrawer(true) : handleViewContact()} style={{ cursor: otherUser ? 'pointer' : 'default' }}>
           <div className="user-avatar">
             {otherUser?.avatar ? (
               parseInt(otherUser.avatar) ? (
@@ -923,9 +1029,15 @@ const Chat = () => {
           <div className="user-details">
             <h3 className="user-name">{otherUser ? (otherUser.contact_name || otherUser.name) : 'Loading...'}</h3>
             <p className="user-status">
-              {otherUser ? (
-                Object.keys(typingUsers).length > 0 ? 'typing...' : isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen) ? 'Online' : `Last seen ${formatLastSeen(otherUser.last_seen)}`
-              ) : 'Loading...'}
+              {otherUser?.is_group ? (
+                // Group-specific status: show member count
+                otherUser.member_count ? `${otherUser.member_count} members` : 'Loading members...'
+              ) : (
+                // Regular user status
+                otherUser ? (
+                  Object.keys(typingUsers).length > 0 ? 'typing...' : isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen) ? 'Online' : `Last seen ${formatLastSeen(otherUser.last_seen)}`
+                ) : 'Loading...'
+              )}
             </p>
           </div>
         </div>
@@ -939,11 +1051,20 @@ const Chat = () => {
           </button>
           <DropdownMenu
             items={[
-              {
-                icon: <User size={16} />,
-                label: 'View Contact',
-                onClick: handleViewContact
-              },
+              // Show "View Group Info" for groups, "View Contact" for regular users
+              ...(isGroupChat ? [
+                {
+                  icon: <User size={16} />,
+                  label: 'View Group Info',
+                  onClick: () => setShowGroupInfoDrawer(true)
+                }
+              ] : [
+                {
+                  icon: <User size={16} />,
+                  label: 'View Contact',
+                  onClick: handleViewContact
+                }
+              ]),
               {
                 icon: <Bell size={16} />,
                 label: 'Create Reminder',
@@ -954,11 +1075,12 @@ const Chat = () => {
                 label: isMuted ? 'Unmute Notifications' : 'Mute Notifications',
                 onClick: handleMuteToggle
               },
-              {
+              // Show Search only for non-group chats (groups can have their own search)
+              ...(!isGroupChat ? [{
                 icon: <Search size={16} />,
                 label: 'Search Messages',
                 onClick: handleSearchMessages
-              },
+              }] : []),
               {
                 icon: <Palette size={16} />,
                 label: 'Themes',
@@ -970,29 +1092,43 @@ const Chat = () => {
                 onClick: () => setShowGameRoom(true)
               },
               { divider: true },
-              {
-                icon: <Clock size={16} />,
-                label: isTempChat ? 'Disable Temporary Chat' : 'Enable Temporary Chat',
-                onClick: handleTempChatToggle
-              },
-              {
-                icon: <SettingsIcon size={16} />,
-                label: 'Temp Chat Settings',
-                onClick: handleTempChatSettings,
-                disabled: !isTempChat
-              },
-              {
-                icon: <Trash2 size={16} />,
-                label: 'Clear Chat',
-                onClick: handleClearChat
-              },
-              { divider: true },
-              {
-                icon: <Ban size={16} />,
-                label: 'Block User',
-                onClick: handleBlockUser,
-                danger: true
-              }
+              // Show "Clear Chat" only for non-group chats
+              ...(!isGroupChat ? [
+                {
+                  icon: <Clock size={16} />,
+                  label: isTempChat ? 'Disable Temporary Chat' : 'Enable Temporary Chat',
+                  onClick: handleTempChatToggle
+                },
+                {
+                  icon: <SettingsIcon size={16} />,
+                  label: 'Temp Chat Settings',
+                  onClick: handleTempChatSettings,
+                  disabled: !isTempChat
+                },
+                {
+                  icon: <Trash2 size={16} />,
+                  label: 'Clear Chat',
+                  onClick: handleClearChat
+                }
+              ] : []),
+              // Show "Leave Group" option for group chats (opens drawer with leave option)
+              ...(isGroupChat ? [
+                { divider: true },
+                {
+                  icon: <Ban size={16} />,
+                  label: 'Leave Group',
+                  onClick: () => setShowGroupInfoDrawer(true),
+                  danger: true
+                }
+              ] : [
+                { divider: true },
+                {
+                  icon: <Ban size={16} />,
+                  label: 'Block User',
+                  onClick: handleBlockUser,
+                  danger: true
+                }
+              ])
             ]}
           />
         </div>
@@ -1343,6 +1479,55 @@ const Chat = () => {
         otherUserId={otherUserId}
       />
 
+      {/* Group Call Modal */}
+      <Modal
+        isOpen={showGroupCallModal}
+        onClose={() => setShowGroupCallModal(false)}
+        title="Start Group Call"
+        size="small"
+      >
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <p style={{ marginBottom: '20px', color: '#666' }}>
+            Group calls will notify all members. This feature is coming soon!
+          </p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              className="btn-primary"
+              onClick={handleStartGroupCall}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Phone size={18} />
+              Start {selectedCallType === 'voice' ? 'Voice' : 'Video'} Call
+            </button>
+          </div>
+          <button
+            className="btn-secondary"
+            onClick={() => setShowGroupCallModal(false)}
+            style={{ marginTop: '15px' }}
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
+
+      {/* Group Info Drawer - for group chats */}
+      {isGroupChat && (
+        <GroupInfoDrawer
+          isOpen={showGroupInfoDrawer}
+          onClose={() => {
+            setShowGroupInfoDrawer(false);
+            // Reload group info to check if user is still a member
+            if (chatId && isGroupChat) {
+              loadGroupInfo(chatId);
+            }
+          }}
+          group={otherUser}
+          onCallStart={(type) => {
+            setSelectedCallType(type);
+            setShowGroupCallModal(true);
+          }}
+        />
+      )}
 
     </div>
   );

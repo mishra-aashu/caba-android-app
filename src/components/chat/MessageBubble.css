@@ -172,3 +172,95 @@
   transition: background-color 0.3s ease;
 }
 
+/* --- ANONYMOUS MESSAGE STYLES --- */
+.message-container.anonymous .bubble {
+  background: var(--bg-1, #1a1a1a);
+  color: var(--brand-primary, #00ff00);
+  border: 1px solid var(--brand-primary);
+}
+
+.message-container.anonymous .theirs .bubble {
+  background: var(--bg-1, #1a1a1a);
+  border: 1px solid var(--brand-primary);
+}
+
+.message-container.anonymous .sender-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.message-container.anonymous .sender-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary);
+}
+
+.message-container.anonymous .sender-name.anonymous-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* --- TIME CAPSULE MESSAGE STYLES --- */
+.message-container.locked .bubble {
+  background: linear-gradient(135deg, var(--text-secondary) 0%, var(--border-color) 100%);
+  opacity: 0.9;
+}
+
+.message-container.locked .text.blurred {
+  filter: blur(4px);
+  user-select: none;
+}
+
+.time-capsule-locked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--border-color);
+  border-radius: 8px;
+  color: var(--accent-0, #fbbf24);
+}
+
+.time-capsule-locked .lock-text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* --- GROUP MESSAGE SENDER INFO --- */
+.sender-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sender-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.sender-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sender-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-primary);
+}
