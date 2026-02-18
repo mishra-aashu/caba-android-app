@@ -24,7 +24,6 @@ dist-ssr
 *.sw?
 
 # Database setup files
-database-setup.sql
 .env
 .env.example
 \n# Google services JSON
