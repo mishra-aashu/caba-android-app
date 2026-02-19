@@ -1,0 +1,114 @@
+.error-boundary-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 2rem;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 500px;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.error-icon {
+  color: #ef4444;
+  margin-bottom: 1rem;
+}
+
+.error-content h2 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.error-content p {
+  margin: 0 0 1.5rem 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.error-details {
+  text-align: left;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.error-details pre {
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.reset-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.reset-button:hover {
+  background: #2563eb;
+}
+
+.reset-button:active {
+  background: #1d4ed8;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .error-content {
+    background: #1f2937;
+    border-color: #374151;
+  }
+  
+  .error-content h2 {
+    color: #f9fafb;
+  }
+  
+  .error-content p {
+    color: #d1d5db;
+  }
+  
+  .error-details {
+    background: #111827;
+    border-color: #374151;
+  }
+  
+  .error-details summary {
+    color: #f9fafb;
+  }
+}

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
 import { useMediaDownload } from './useMediaDownload';
 
 /**

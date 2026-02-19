@@ -11,15 +11,15 @@ import toast from 'react-hot-toast';
 
 const MemberItem = ({ member, groupId, currentUserId, isCurrentUserAdmin }) => {
   const { useRemoveMember, useMakeAdmin, useDemoteAdmin } = useGroupActions();
-  
+
   const [showMenu, setShowMenu] = useState(false);
-  
-  const memberUserId = member.user?.id || member.user_id;
-  const memberName = member.user?.name || 'Unknown';
-  const memberAvatar = member.user?.avatar;
+
+  const memberUserId = member.users?.id || member.user_id;
+  const memberName = member.users?.name || 'Unknown';
+  const memberAvatar = member.users?.avatar;
   const memberRole = member.role;
-  const memberPhone = member.user?.phone;
-  const isOnline = isUserOnline(Boolean(member.user?.is_online), member.user?.last_seen);
+  const memberPhone = member.users?.phone;
+  const isOnline = isUserOnline(Boolean(member.users?.is_online), member.users?.last_seen);
   const isCurrentUser = memberUserId === currentUserId;
 
   const removeMemberMutation = useRemoveMember();
@@ -95,8 +95,8 @@ const MemberItem = ({ member, groupId, currentUserId, isCurrentUserAdmin }) => {
 
       {showAdminMenu && (
         <div className="member-actions">
-          <button 
-            className="menu-trigger" 
+          <button
+            className="menu-trigger"
             onClick={() => setShowMenu(!showMenu)}
           >
             <MoreVertical size={18} />

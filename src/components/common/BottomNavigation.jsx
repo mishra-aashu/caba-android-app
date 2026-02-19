@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MessageCircle, Phone, Newspaper, Settings, QrCode } from 'lucide-react';
+import { MessageCircle, Phone, Settings, QrCode, Users } from 'lucide-react';
 import './BottomNavigation.css';
 
 const BottomNavigation = () => {
@@ -9,8 +9,8 @@ const BottomNavigation = () => {
 
   const navItems = [
     { path: '/', icon: MessageCircle, label: 'Chats' },
+    { path: '/groups', icon: Users, label: 'Groups' },
     { path: '/calls', icon: Phone, label: 'Calls' },
-    { path: '/news', icon: Newspaper, label: 'News' },
     { path: '/settings', icon: Settings, label: 'Settings' }
   ];
 

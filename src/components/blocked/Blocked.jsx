@@ -1,50 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../utils/supabase';
+import { useSupabase } from '../../contexts/SupabaseContext';
+import useAuthStore from '../../store/authStore';
 import './Blocked.css';
 
 const Blocked = ({ onBack }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const { supabase } = useSupabase();
+  const currentUser = useAuthStore((state) => state.dbUser);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unblockModal, setUnblockModal] = useState(null);
 
   useEffect(() => {
-    initializeBlocked();
-  }, []);
-
-  const initializeBlocked = async () => {
-    try {
-      const userStr = localStorage.getItem('currentUser');
-      if (!userStr) {
-        alert('No user logged in');
-        setLoading(false);
-        return;
-      }
-      const user = JSON.parse(userStr);
-      setCurrentUser(user);
-
-      await loadBlockedUsers(user);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error initializing blocked:', error);
-      setLoading(false);
+    if (currentUser) {
+      loadBlockedUsers(currentUser).then(() => setLoading(false));
     }
-  };
+  }, [currentUser]);
 
   const loadBlockedUsers = async (user) => {
     try {
       const { data, error } = await supabase
         .from('blocked_users')
         .select(`
-          id,
-          blocked_id,
-          created_at,
-          users!blocked_users_blocked_id_fkey (
+          *,
+          blocked_user:users!blocked_users_blocked_id_fkey(
             id,
             name,
-            phone,
             avatar,
-            about
+            is_online,
+            last_seen
           )
         `)
         .eq('blocker_id', user.id)
@@ -115,7 +98,7 @@ const Blocked = ({ onBack }) => {
         {blockedUsers.length > 0 ? (
           <div className="blocked-users-list">
             {blockedUsers.map(block => {
-              const user = block.users;
+              const user = block.blocked_user;
               if (!user) return null;
 
               return (

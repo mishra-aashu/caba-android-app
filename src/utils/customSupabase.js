@@ -1,14 +1,15 @@
 import { supabase } from './supabase.js';
 import { createClient } from '@supabase/supabase-js';
+import useAuthStore from '../store/authStore';
 
 // Singleton service role client
 let serviceRoleClient = null;
 
 // Custom Supabase wrapper that handles both authenticated and custom users
 export const createCustomSupabaseClient = () => {
-  const customUser = localStorage.getItem('currentUser');
+  const customUser = useAuthStore.getState().dbUser;
   const sessionPermanent = localStorage.getItem('sessionPermanent');
-  
+
   // If custom auth user, use service role to bypass RLS
   if (customUser && sessionPermanent === 'true') {
     const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
@@ -26,6 +27,6 @@ export const createCustomSupabaseClient = () => {
     }
     return serviceRoleClient || supabase;
   }
-  
+
   return supabase;
 };

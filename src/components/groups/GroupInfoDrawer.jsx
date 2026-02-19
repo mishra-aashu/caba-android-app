@@ -13,18 +13,23 @@ import './GroupInfoDrawer.css';
 
 const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
   const { user } = useAuth();
-  const { useGroupMembers, useIsAdmin, useLeaveGroup, useUpdateGroup } = useGroupActions();
-  
+  const { useGroup, useGroupMembers, useIsAdmin, useLeaveGroup, useUpdateGroup } = useGroupActions();
+
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [isMuted, setIsMuted] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const groupId = group?.id;
-  
+
+  const { data: fetchedGroup, isLoading: loadingGroup } = useGroup(groupId);
   const { data: members = [], isLoading: loadingMembers, refetch: refetchMembers } = useGroupMembers(groupId);
   const { data: isAdmin = false } = useIsAdmin(groupId, user?.id);
+
+  const activeGroup = fetchedGroup || group;
+
   const leaveGroupMutation = useLeaveGroup();
   const updateGroupMutation = useUpdateGroup();
 
@@ -38,11 +43,11 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
 
   // Update edit fields when group changes
   useEffect(() => {
-    if (group) {
-      setEditName(group.name || '');
-      setEditDescription(group.description || '');
+    if (activeGroup) {
+      setEditName(activeGroup.name || '');
+      setEditDescription(activeGroup.description || '');
     }
-  }, [group]);
+  }, [activeGroup]);
 
   // Handle leave group
   const handleLeaveGroup = async () => {
@@ -60,13 +65,13 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
   const handleMuteToggle = () => {
     const mutedGroups = JSON.parse(localStorage.getItem('mutedGroups') || '{}');
     const newMutedState = !isMuted;
-    
+
     if (newMutedState) {
       mutedGroups[groupId] = true;
     } else {
       delete mutedGroups[groupId];
     }
-    
+
     localStorage.setItem('mutedGroups', JSON.stringify(mutedGroups));
     setIsMuted(newMutedState);
     toast.success(newMutedState ? 'Notifications muted' : 'Notifications unmuted');
@@ -108,15 +113,19 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
 
         {/* Group Info */}
         <div className="group-info-section">
-          <div className="group-avatar-large">
-            {group?.avatar_url ? (
-              <img src={group.avatar_url} alt={group.name} />
-            ) : (
-              <div className="avatar-placeholder">
-                {group?.name?.charAt(0)?.toUpperCase() || 'G'}
-              </div>
-            )}
-          </div>
+          {loadingGroup ? (
+            <div className="loading">Updating...</div>
+          ) : (
+            <div className="group-avatar-large">
+              {activeGroup?.avatar_url ? (
+                <img src={activeGroup.avatar_url} alt={activeGroup.name} />
+              ) : (
+                <div className="avatar-placeholder">
+                  {activeGroup?.name?.charAt(0)?.toUpperCase() || 'G'}
+                </div>
+              )}
+            </div>
+          )}
 
           {isEditing ? (
             <div className="edit-form">
@@ -144,9 +153,9 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
             </div>
           ) : (
             <div className="group-details">
-              <h3 className="group-name">{group?.name}</h3>
-              {group?.description && (
-                <p className="group-description">{group.description}</p>
+              <h3 className="group-name">{activeGroup?.name}</h3>
+              {activeGroup?.description && (
+                <p className="group-description">{activeGroup.description}</p>
               )}
               <p className="member-count">
                 <Users size={14} />

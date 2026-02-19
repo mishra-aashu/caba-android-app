@@ -3,7 +3,8 @@
  * Select multiple contacts -> Name Group -> Upload Avatar -> Create
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import Modal from '../common/Modal';
@@ -14,12 +15,14 @@ import { dpOptions } from '../../utils/dpOptions';
 import { getInitials } from '../../utils/stringUtils';
 import './CreateGroupModal.css';
 
-const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts = [] }) => {
+const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propContacts = [] }) => {
+  const { supabase } = useSupabase();
   const { user } = useAuth();
   const { useCreateGroup } = useGroupActions();
-  
+
   const createGroupMutation = useCreateGroup();
 
+  const [savedContacts, setSavedContacts] = useState(propContacts);
   const [step, setStep] = useState(1); // 1: Select members, 2: Group info
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState([]);
@@ -30,6 +33,34 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts = [] }) =>
   const [selectedDp, setSelectedDp] = useState(null); // For DP picker
   const [showDpPicker, setShowDpPicker] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Fetch contacts if not provided
+  useEffect(() => {
+    if (isOpen && propContacts.length === 0 && user?.id) {
+      const fetchContacts = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('contacts')
+            .select(`
+              id,
+              user_id,
+              contact_user_id,
+              contact_name,
+              otherUser:users!contacts_contact_user_id_fkey(id, name, phone, avatar, is_online)
+            `)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+          setSavedContacts(data || []);
+        } catch (error) {
+          console.error('Error fetching contacts in modal:', error);
+        }
+      };
+      fetchContacts();
+    } else if (propContacts.length > 0) {
+      setSavedContacts(propContacts);
+    }
+  }, [isOpen, propContacts, user?.id, supabase]);
 
   // Transform savedContacts to contact format
   const contacts = savedContacts.map(contact => {
@@ -106,7 +137,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts = [] }) =>
 
     try {
       const memberIds = selectedContacts.map(c => c.id);
-      
+
       // If selectedDp is set, use it as avatar; otherwise use avatarFile
       await createGroupMutation.mutateAsync({
         name: groupName.trim(),
@@ -262,8 +293,8 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts = [] }) =>
                 style={{ display: 'none' }}
               />
               <div className="avatar-buttons">
-                <button 
-                  className="btn-secondary avatar-btn" 
+                <button
+                  className="btn-secondary avatar-btn"
                   onClick={() => setShowDpPicker(true)}
                 >
                   <Image size={16} />
@@ -281,7 +312,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts = [] }) =>
                 className="group-name-input"
                 maxLength={50}
               />
-              
+
               <input
                 type="text"
                 placeholder="Group Description (optional)"
@@ -327,8 +358,8 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts = [] }) =>
               <button className="btn-secondary" onClick={() => setStep(1)}>
                 Back
               </button>
-              <button 
-                className="btn-primary" 
+              <button
+                className="btn-primary"
                 onClick={handleCreate}
                 disabled={loading || !groupName.trim()}
               >

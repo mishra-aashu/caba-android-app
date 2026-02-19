@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../config/supabase';
 import { throttle } from 'lodash';
 
 export const useRealtimeTyping = (chatId, currentUserId) => {
   const [typingUsers, setTypingUsers] = useState({});
+  const timeoutRefs = useRef({}); // Track timeouts for cleanup
 
   useEffect(() => {
     if (!chatId) return;
@@ -16,6 +17,11 @@ export const useRealtimeTyping = (chatId, currentUserId) => {
         // Khud ka typing status ignore karo
         if (payload.payload.userId === currentUserId) return;
 
+        // Clear existing timeout for this user
+        if (timeoutRefs.current[payload.payload.userId]) {
+          clearTimeout(timeoutRefs.current[payload.payload.userId]);
+        }
+
         // User ko "Typing..." list mein daalo
         setTypingUsers((prev) => ({
           ...prev,
@@ -23,18 +29,25 @@ export const useRealtimeTyping = (chatId, currentUserId) => {
         }));
 
         // 3 second baad auto-remove kar do (agar user ruk gaya)
-        setTimeout(() => {
+        timeoutRefs.current[payload.payload.userId] = setTimeout(() => {
           setTypingUsers((prev) => {
             const newState = { ...prev };
             delete newState[payload.payload.userId];
             return newState;
           });
+          delete timeoutRefs.current[payload.payload.userId];
         }, 3000);
       })
       .subscribe();
 
-    // CLEANUP: Jab chat change ho, channel band karo
+    // CLEANUP: Jab chat change ho, channel band karo aur timeouts clear karo
     return () => {
+      // Clear all pending timeouts
+      Object.values(timeoutRefs.current).forEach(timeoutId => {
+        clearTimeout(timeoutId);
+      });
+      timeoutRefs.current = {};
+      
       // Safe cleanup: Check if channel exists before removing
       if (channel) {
         supabase.removeChannel(channel);

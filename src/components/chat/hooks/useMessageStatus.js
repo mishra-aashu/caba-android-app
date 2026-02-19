@@ -4,31 +4,10 @@ import { useSupabase } from '../../../contexts/SupabaseContext';
 export const useMessageStatus = (chatId, currentUserId) => {
   const { supabase } = useSupabase();
   
-  // Mark messages as read
+  // Mark messages as read - DISABLED until message_reads table is created
   const markAsRead = useCallback(async (messageIds) => {
-    if (!messageIds || !messageIds.length || !currentUserId) return [];
-    
-    try {
-      // Prepare read receipts
-      const readReceipts = messageIds.map(messageId => ({
-        message_id: messageId,
-        user_id: currentUserId,
-        read_at: new Date().toISOString(),
-      }));
-      
-      // Upsert read receipts
-      const { data, error } = await supabase
-        .from('message_reads')
-        .upsert(readReceipts, { onConflict: 'message_id,user_id' })
-        .select();
-      
-      if (error) throw error;
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-      throw error;
-    }
+    console.warn('markAsRead functionality disabled - message_reads table not implemented');
+    return [];
   }, [currentUserId, supabase]);
   
   // Update message status (sent, delivered, read)
@@ -79,26 +58,13 @@ export const useMessageStatus = (chatId, currentUserId) => {
     };
   }, [chatId, supabase]);
   
-  // Set up real-time subscription for read receipts
+  // DISABLED: Set up real-time subscription for read receipts
   useEffect(() => {
     if (!chatId) return;
+    console.warn('Read receipts subscription disabled - message_reads table not implemented');
     
     const channel = supabase
-      .channel(`read_receipts:${chatId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'message_reads',
-          filter: `message_id=in.(${chatId})`
-        },
-        (payload) => {
-          // Handle read receipts
-          console.log('Message read receipt:', payload);
-          // You can add custom logic here to handle read receipts
-        }
-      )
+      .channel(`read_receipts_disabled:${chatId}`)
       .subscribe();
     
     return () => {
@@ -106,57 +72,16 @@ export const useMessageStatus = (chatId, currentUserId) => {
     };
   }, [chatId, supabase]);
   
-  // Mark all messages in chat as read
+  // Mark all messages in chat as read - DISABLED
   const markAllAsRead = useCallback(async () => {
-    if (!chatId || !currentUserId) return false;
-    
-    try {
-      // Get all unread messages in the chat
-      const { data: unreadMessages, error: fetchError } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('chat_id', chatId)
-        .neq('sender_id', currentUserId)
-        .filter('read_by', 'not.cs', `{${currentUserId}}`);
-      
-      if (fetchError) throw fetchError;
-      
-      if (!unreadMessages.length) return true;
-      
-      // Mark all as read
-      await markAsRead(unreadMessages.map(msg => msg.id));
-      
-      return true;
-    } catch (error) {
-      console.error('Error marking all messages as read:', error);
-      return false;
-    }
+    console.warn('markAllAsRead functionality disabled - message_reads table not implemented');
+    return false;
   }, [chatId, currentUserId, markAsRead]);
   
-  // Get read status for messages
+  // Get read status for messages - DISABLED
   const getReadStatus = useCallback(async (messageIds) => {
-    if (!messageIds || !messageIds.length) return {};
-    
-    try {
-      const { data, error } = await supabase
-        .from('message_reads')
-        .select('message_id, user_id, read_at, user:profiles!user_id(id, name, avatar_url)')
-        .in('message_id', messageIds);
-      
-      if (error) throw error;
-      
-      // Group by message_id
-      return (data || []).reduce((acc, receipt) => {
-        if (!acc[receipt.message_id]) {
-          acc[receipt.message_id] = [];
-        }
-        acc[receipt.message_id].push(receipt);
-        return acc;
-      }, {});
-    } catch (error) {
-      console.error('Error fetching read status:', error);
-      return {};
-    }
+    console.warn('getReadStatus functionality disabled - message_reads table not implemented');
+    return {};
   }, [supabase]);
   
   return {

@@ -10,6 +10,7 @@ import { Toaster } from 'react-hot-toast';
 import PhoneAuthModal from './components/auth/PhoneAuthModal';
 import { supabase } from './config/supabase';
 import useAuthStore from './store/authStore';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import '../src/styles/desktop.css';
 import '../src/styles/call-screen.css';
 
@@ -26,7 +27,7 @@ const Privacy = lazy(() => import('./components/legal/Privacy'));
 const Profile = lazy(() => import('./components/profile/Profile'));
 const Settings = lazy(() => import('./components/settings'));
 const EmojiSettings = lazy(() => import('./components/settings/EmojiSettings'));
-const News = lazy(() => import('./components/news'));
+
 const Reminders = lazy(() => import('./components/reminders'));
 const CreateReminder = lazy(() => import('./components/reminders/CreateReminder'));
 const Calls = lazy(() => import('./components/calls'));
@@ -39,6 +40,7 @@ const SupportChat = lazy(() => import('./components/SupportChat'));
 const Admin = lazy(() => import('./components/Admin'));
 const QRPage = lazy(() => import('./components/qr'));
 const Intro = lazy(() => import('./components/Intro'));
+const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 // import CallScreen from './components/CallScreen';
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
@@ -62,7 +64,6 @@ const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
   const isDesktop = useIsDesktop();
-  useOnlineStatus(); // Initialize online status tracking
   useOnlineStatus(); // Initialize online status tracking
 
   // Handle deep linking for OAuth callbacks
@@ -101,12 +102,13 @@ const AppContent = () => {
         {/* Group chat route - uses same Chat component but detects group */}
         <Route path="chat/:chatId/group" element={<Chat />} />
         <Route path="user-details/:id" element={<UserDetails />} />
+        <Route path="groups" element={<GroupsPage />} />
       </Route>
-      
+
       <Route path="/profile" element={<ProtectedRoute>{isDesktop ? <Modal isOpen={true} onClose={() => window.location.href = '/'} className='sidebar-modal'><Profile isModal={true} /></Modal> : <Profile />}</ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/emoji-settings" element={<ProtectedRoute><EmojiSettings /></ProtectedRoute>} />
-      <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
       <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
       <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
@@ -228,24 +230,26 @@ const App = () => {
       {/* AuthProvider is provided in main.jsx */}
       {/* SupabaseProvider is provided in main.jsx */}
       {/* ThemeProvider is provided in main.jsx */}
+      <ErrorBoundary>
         <DataProvider>
-        <ChatThemeProvider>
-          {/* 🎯 Offline Indicator - Shows network status to users */}
-          <OfflineIndicator>
-            <AppContent />
-          </OfflineIndicator>
-          {/* Global Components */}
-          <CallStatusIndicator />
-          <IncomingCallModal />
-          <Toaster
-             position="bottom"
-             containerStyle={{
-               left: '62%',
-               top: '70%',
-               transform: 'translate(-50%, -50%)'
-             }} />
-        </ChatThemeProvider>
-      </DataProvider>
+          <ChatThemeProvider>
+            {/* 🎯 Offline Indicator - Shows network status to users */}
+            <OfflineIndicator>
+              <AppContent />
+            </OfflineIndicator>
+            {/* Global Components */}
+            <CallStatusIndicator />
+            <IncomingCallModal />
+            <Toaster
+              position="bottom"
+              containerStyle={{
+                left: '62%',
+                top: '70%',
+                transform: 'translate(-50%, -50%)'
+              }} />
+          </ChatThemeProvider>
+        </DataProvider>
+      </ErrorBoundary>
     </Suspense>
   );
 };

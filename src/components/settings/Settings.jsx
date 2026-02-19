@@ -4,6 +4,7 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useData } from '../../contexts/DataContext';
+import useAuthStore from '../../store/authStore';
 import { clearAllCachedData } from '../../utils/FileSystemManager';
 import { MoreVertical } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
@@ -39,7 +40,7 @@ const Settings = () => {
   const [showStorageDetails, setShowStorageDetails] = useState(false);
   const [showRingtoneModal, setShowRingtoneModal] = useState(false);
   const [selectedRingtone, setSelectedRingtone] = useState('fm-freemusic-give-me-a-smile(chosic.com).mp3');
-  
+
   // Audio state management
   const currentAudioRef = useRef(null);
   const [playingId, setPlayingId] = useState(null);
@@ -166,7 +167,7 @@ const Settings = () => {
   };
 
 
-  
+
   // Handle setting toggle
   const handleSettingToggle = (settingKey) => {
     const newValue = !settings[settingKey];
@@ -183,39 +184,39 @@ const Settings = () => {
   // Handle Play/Pause with proper state management
   const handlePlayPause = (ringtone) => {
     const ringtoneId = ringtone.file;
-    
+
     // Scenario A: Pause - clicked ringtone is currently playing
     if (playingId === ringtoneId && isPlaying) {
       currentAudioRef.current.pause();
       setIsPlaying(false);
       return;
     }
-    
+
     // Scenario B: Resume - clicked ringtone is paused
     if (playingId === ringtoneId && !isPlaying) {
       currentAudioRef.current.play().catch(e => console.log('Could not play ringtone:', e));
       setIsPlaying(true);
       return;
     }
-    
+
     // Scenario C: New Track - different ringtone clicked
     // First, pause the current audio (if any)
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
     }
-    
+
     // Create new Audio instance
     const audio = new Audio(`${baseUrl}assets/audio/${ringtoneId}`);
     audio.volume = 0.7;
-    
+
     // Set up onended event listener for auto-end handling
     audio.onended = () => {
       setIsPlaying(false);
       setPlayingId(null);
       currentAudioRef.current = null;
     };
-    
+
     // Store audio in ref and play
     currentAudioRef.current = audio;
     audio.play().catch(e => {
@@ -223,7 +224,7 @@ const Settings = () => {
       alert('Could not play ringtone');
       return;
     });
-    
+
     // Update state
     setPlayingId(ringtoneId);
     setIsPlaying(true);
@@ -240,7 +241,7 @@ const Settings = () => {
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
     }
-    
+
     // Reset playing state
     setIsPlaying(false);
     setPlayingId(null);
@@ -287,21 +288,19 @@ const Settings = () => {
     if (!confirm('This will permanently delete all your messages, calls, and data. Continue?')) return;
 
     try {
-      // Get current user from the authentication system
-      const currentUser = localStorage.getItem('currentUser');
+      // Get current user from the auth store
+      const currentUser = useAuthStore.getState().dbUser;
       if (!currentUser) {
         alert('No user session found');
         navigate('/login');
         return;
       }
 
-      const userData = JSON.parse(currentUser);
-      
       // Delete user profile data from database
       const { error } = await supabase
         .from('users')
         .delete()
-        .eq('id', userData.id);
+        .eq('id', currentUser.id);
 
       if (error) {
         console.error('Error deleting user data:', error);
@@ -458,7 +457,7 @@ const Settings = () => {
             </div>
           </div>
 
-          
+
         </div>
 
         {/* Notifications Section */}
@@ -760,8 +759,8 @@ const Settings = () => {
         </div>
       )}
 
-      
-      
+
+
       {/* Bottom Navigation */}
       <BottomNavigation />
     </div>

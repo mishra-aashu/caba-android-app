@@ -1,49 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
+import useAuthStore from '../../store/authStore';
 import { X } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import './News.css';
 
 const News = () => {
   const { supabase } = useSupabase();
-  const [currentUser, setCurrentUser] = useState(null);
+  const currentUser = useAuthStore((state) => state.dbUser);
   const [myStatuses, setMyStatuses] = useState([]);
   const [recentStatuses, setRecentStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    initializeNews();
-  }, []);
+    if (currentUser) {
+      initializeNews(currentUser);
+    }
+  }, [currentUser]);
 
-  const initializeNews = async () => {
+  const initializeNews = async (user) => {
     try {
-      // Get current user from localStorage
-      const userStr = localStorage.getItem('currentUser');
-      if (!userStr) {
-        setError('No user logged in');
-        setLoading(false);
-        return;
-      }
-      let user;
-      try {
-        user = JSON.parse(userStr);
-        if (!user || !user.id) {
-          setError('Invalid user data');
-          setLoading(false);
-          return;
-        }
-      } catch {
-        setError('Invalid user data');
-        setLoading(false);
-        return;
-      }
-      setCurrentUser(user);
-
-      // Load statuses
       await loadMyStatus(user);
       await loadRecentStatuses(user);
-
       setLoading(false);
     } catch (error) {
       console.error('Error initializing news:', error);
@@ -248,7 +227,7 @@ const News = () => {
           )}
         </div>
       </div>
-      
+
       {/* Bottom Navigation */}
       <BottomNavigation />
     </div>

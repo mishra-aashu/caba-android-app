@@ -11,10 +11,10 @@ export const useData = () => useContext(DataContext);
 export const DataProvider = ({ children }) => {
   const { supabase } = useSupabase();
   const { user, loading: authLoading } = useAuth();
-  
+
   const [loading, setLoading] = useState(true);
   const [contacts, setContacts] = useState([]);
-  
+
   // The useChatListRealtime hook will manage the chats list
   const { chats, loading: chatsLoading, hasMoreChats, loadMoreChats, loadingMore } = useChatListRealtime(user?.id);
 
@@ -22,19 +22,19 @@ export const DataProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('contacts')
-        .select('*, contact_user:users!contacts_contact_user_id_fkey(*)')
+        .select('*, contact_user:users!contacts_contact_user_id_fkey(id, name, avatar, is_online, last_seen)')
         .eq('user_id', userId);
 
       if (error) {
         const handled = handleSupabaseError(error, { operation: 'select', silent: true });
-        
+
         // If RLS error, user is trying to access unauthorized contacts
         if (handled.isRLS) {
           console.warn('RLS: Cannot access contacts - not authorized');
           setContacts([]);
           return;
         }
-        
+
         throw error;
       }
 

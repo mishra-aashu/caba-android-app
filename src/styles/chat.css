@@ -12,7 +12,7 @@ body.light-mode .chat-header {
   border-bottom-color: #e0e0e0;
 }
 
-body.light-mode .back-btn, 
+body.light-mode .back-btn,
 body.light-mode .icon-btn {
   color: #54656f !important;
 }
@@ -36,19 +36,20 @@ body.light-mode .messages-container {
     url("/assets/images/Gemini_Generated_Image_v2m4e5v2m4e5v2m4.png");
   background-size: 300px 300px, cover, cover;
   background-repeat: repeat, no-repeat, no-repeat;
-  padding-bottom: 40px; /* Space for the input */
+  padding-bottom: 40px;
+  /* Space for the input */
   transition: background 0.3s ease;
 }
 
 /* Fix Input Container Icons */
 body.light-mode .input-row {
   background-color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
 }
 
-body.light-mode .btn-attach, 
-body.light-mode .btn-emoji, 
-body.light-mode .btn-mic, 
+body.light-mode .btn-attach,
+body.light-mode .btn-emoji,
+body.light-mode .btn-mic,
 body.light-mode .btn-quick-reply {
   color: #54656f !important;
 }
@@ -99,7 +100,7 @@ body.light-mode .typing-indicator {
 /* Fix Recording UI */
 body.light-mode .recording-row {
   background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 body.light-mode .recording-timer {
@@ -111,13 +112,13 @@ body.light-mode .scroll-bottom-btn {
   background-color: #ffffff;
   color: #54656f;
   border-color: #e0e0e0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Fix Quick Replies Menu */
 body.light-mode .quick-replies-menu {
   background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 body.light-mode .quick-reply-option {
@@ -207,9 +208,12 @@ body.light-mode .chat-loading p {
 .chat-screen {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background: var(--background);
-  position: relative; /* For absolute positioning of selection toolbar */
+  position: relative;
+  /* For absolute positioning of selection toolbar */
+  overflow: hidden;
+  /* Prevent content from escaping container */
 }
 
 .chat-loading {
@@ -242,7 +246,8 @@ body.light-mode .chat-loading p {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  position: relative; /* Important for scroll-bottom-btn absolute positioning */
+  position: relative;
+  /* Important for scroll-bottom-btn absolute positioning */
   padding: 1rem;
   background:
     /* Top layer: Doodle pattern */
@@ -252,7 +257,8 @@ body.light-mode .chat-loading p {
     url("/assets/images/Gemini_Generated_Image_v2m4e5v2m4e5v2m4.png");
   background-size: 300px 300px, cover, cover;
   background-repeat: repeat, no-repeat, no-repeat;
-  padding-bottom: 40px; /* Space for the input */
+  padding-bottom: 40px;
+  /* Space for the input */
   transition: background 0.3s ease;
 }
 
@@ -266,7 +272,8 @@ body.light-mode .chat-loading p {
   box-shadow: var(--shadow-sm);
 }
 
-.back-btn, .icon-btn {
+.back-btn,
+.icon-btn {
   background: none;
   border: none;
   color: var(--icon-primary);
@@ -276,7 +283,8 @@ body.light-mode .chat-loading p {
   transition: background var(--transition-fast);
 }
 
-.back-btn:hover, .icon-btn:hover {
+.back-btn:hover,
+.icon-btn:hover {
   background: var(--hover-color);
 }
 
@@ -347,6 +355,7 @@ body.light-mode .chat-loading p {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -354,16 +363,20 @@ body.light-mode .chat-loading p {
 }
 
 .message-item.highlighted {
-  background-color: rgba(0, 123, 255, 0.1); /* Light blue highlight */
+  background-color: rgba(0, 123, 255, 0.1);
+  /* Light blue highlight */
   border-radius: 8px;
   padding: 4px;
 }
 
 .message-item.selected {
-  background-color: rgba(37, 211, 102, 0.08); /* Subtle green highlight */
-  border-left: 3px solid #25d366; /* Thin green accent border on left */
+  background-color: rgba(37, 211, 102, 0.08);
+  /* Subtle green highlight */
+  border-left: 3px solid #25d366;
+  /* Thin green accent border on left */
   border-radius: 8px;
-  padding: 6px 8px 6px 12px; /* Extra left padding for border */
+  padding: 6px 8px 6px 12px;
+  /* Extra left padding for border */
   box-shadow: 0 1px 3px rgba(37, 211, 102, 0.2);
   transition: all 0.2s ease;
 }
@@ -375,46 +388,57 @@ body.light-mode .chat-loading p {
 .message-bubble {
   max-width: 75%;
   overflow-x: hidden;
-  padding: 0.6rem 1rem; /* Increased padding */
-  border-radius: 12px; /* Base radius */
+  padding: 0.6rem 1rem;
+  /* Increased padding */
+  border-radius: 12px;
+  /* Base radius */
   font-size: 0.9rem;
   line-height: 1.4;
   word-wrap: break-word;
   position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  /* Subtle shadow */
 }
 
 .message.received .message-bubble {
   background: var(--received-message-background);
   color: var(--text-primary);
-  border-radius: 12px 12px 12px 0; /* Asymmetrical radius */
+  border-radius: 12px 12px 12px 0;
+  /* Asymmetrical radius */
 }
 
 .message.sent .message-bubble {
   background: var(--sent-message-background);
-  color: var(--text-on-primary, #fff); /* Default to white if not set */
-  border-radius: 12px 12px 0 12px; /* Asymmetrical radius */
+  color: var(--text-on-primary, #fff);
+  /* Default to white if not set */
+  border-radius: 12px 12px 0 12px;
+  /* Asymmetrical radius */
 }
 
 .messages-wrapper {
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Allow it to fill the available space */
+  flex-grow: 1;
+  /* Allow it to fill the available space */
   overflow-x: hidden;
-  position: relative; /* Establish positioning context for sticky children */
+  position: relative;
+  /* Establish positioning context for sticky children */
 }
 
 .message-time {
-  font-size: 11px; /* Smaller font size */
+  font-size: 11px;
+  /* Smaller font size */
   color: var(--text-secondary);
   margin-top: 0.25rem;
   text-align: right;
-  opacity: 0.8; /* Less prominent */
+  opacity: 0.8;
+  /* Less prominent */
 }
 
 /* Chat Input Area */
 .chat-input-container {
-  padding: 0.5rem 1rem; /* Added vertical padding */
+  padding: 0.5rem 1rem;
+  /* Added vertical padding */
   background: transparent;
   position: sticky;
   bottom: 0;
@@ -423,18 +447,22 @@ body.light-mode .chat-loading p {
 
 .input-row {
   display: flex;
-  align-items: center; /* Vertically center align items */
-  background-color: var(--surface, rgba(255,255,255,0.1)); /* Soft background */
+  align-items: center;
+  /* Vertically center align items */
+  background-color: var(--surface, rgba(255, 255, 255, 0.1));
+  /* Soft background */
   padding: 8px 12px;
-  border-radius: 30px; /* More pronounced capsule shape */
+  border-radius: 30px;
+  /* More pronounced capsule shape */
   box-shadow: var(--shadow-md);
-  gap: 0.5rem; /* Use gap for spacing */
+  gap: 0.5rem;
+  /* Use gap for spacing */
 }
 
 /* This class is no longer needed with the new gap property on input-row */
 .left-buttons {
-    display: flex;
-    gap: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .chat-input {
@@ -454,8 +482,13 @@ body.light-mode .chat-loading p {
   border-color: transparent;
 }
 
-.btn-attach, .btn-send, .btn-quick-reply, .btn-mic, .btn-emoji {
-  width: 40px; /* Slightly smaller buttons */
+.btn-attach,
+.btn-send,
+.btn-quick-reply,
+.btn-mic,
+.btn-emoji {
+  width: 40px;
+  /* Slightly smaller buttons */
   height: 40px;
   background: transparent;
   color: var(--text-secondary);
@@ -467,16 +500,21 @@ body.light-mode .chat-loading p {
   border: none;
   cursor: pointer;
 }
-.btn-attach:hover, .btn-quick-reply:hover, .btn-mic:hover, .btn-emoji:hover {
-    background-color: var(--hover-color);
+
+.btn-attach:hover,
+.btn-quick-reply:hover,
+.btn-mic:hover,
+.btn-emoji:hover {
+  background-color: var(--hover-color);
 }
 
 .btn-send {
-    background-color: var(--brand-primary);
-    color: white;
+  background-color: var(--brand-primary);
+  color: white;
 }
+
 .btn-send:hover {
-    filter: brightness(1.1);
+  filter: brightness(1.1);
 }
 
 .btn-send:disabled {
@@ -499,40 +537,42 @@ body.light-mode .chat-loading p {
   padding: 5px 12px;
   border-radius: 8px;
   font-size: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme='dark'] .date-pill {
-    background-color: #1f2c34;
-    color: #8696a0;
+  background-color: #1f2c34;
+  color: #8696a0;
 }
 
 [data-theme='dark'] .btn-mic {
-    color: #e0e0e0; /* Light color for better visibility in dark mode */
+  color: #e0e0e0;
+  /* Light color for better visibility in dark mode */
 }
 
 /* Light Mode - Chat Input Icons Fix */
-[data-theme='light'] .btn-attach, 
-[data-theme='light'] .btn-emoji, 
-[data-theme='light'] .btn-mic, 
+[data-theme='light'] .btn-attach,
+[data-theme='light'] .btn-emoji,
+[data-theme='light'] .btn-mic,
 [data-theme='light'] .btn-quick-reply {
-    color: #54656f !important; /* WhatsApp standard dark grey */
+  color: #54656f !important;
+  /* WhatsApp standard dark grey */
 }
 
 [data-theme='light'] .input-row {
-    background-color: #ffffff !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Message Timestamp - Better Contrast */
 [data-theme='light'] .message-time {
-    color: #54656f !important;
-    opacity: 1 !important;
+  color: #54656f !important;
+  opacity: 1 !important;
 }
 
 [data-theme='dark'] .message-time {
-    color: #9cabbb !important;
-    opacity: 1 !important;
+  color: #9cabbb !important;
+  opacity: 1 !important;
 }
 
 /* Inline Recording UI */
@@ -596,14 +636,16 @@ body.light-mode .chat-loading p {
 /* --- Quick Replies Menu --- */
 .quick-replies-menu {
   position: absolute;
-  bottom: 80px; /* Position above input bar */
+  bottom: 80px;
+  /* Position above input bar */
   left: 10px;
   right: 10px;
   background-color: var(--surface-color);
   border-radius: 16px;
   padding: 1rem;
   box-shadow: var(--shadow-md);
-  z-index: 998; /* Below attachment menu but above other content */
+  z-index: 998;
+  /* Below attachment menu but above other content */
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
@@ -634,6 +676,7 @@ body.light-mode .chat-loading p {
     opacity: 0;
     transform: translateY(20px) scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -643,7 +686,8 @@ body.light-mode .chat-loading p {
 /* --- Scroll To Bottom Button --- */
 .scroll-bottom-btn {
   position: absolute;
-  bottom: 90px; /* Position above the input container */
+  bottom: 90px;
+  /* Position above the input container */
   right: 20px;
   width: 40px;
   height: 40px;
@@ -739,10 +783,14 @@ body.light-mode .chat-loading p {
 }
 
 @keyframes typingBounce {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: scale(0.8);
     opacity: 0.5;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;
@@ -754,6 +802,7 @@ body.light-mode .chat-loading p {
     opacity: 0;
     transform: translateY(5px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -787,18 +836,22 @@ body.light-mode .chat-loading p {
 /* The Main Box */
 .context-menu {
   position: fixed;
-  background-color: #233138; /* WhatsApp Web Dark Grey */
+  background-color: #233138;
+  /* WhatsApp Web Dark Grey */
   /* Agar Glass effect chahiye to niche wali line use karein: */
   /* background: rgba(35, 49, 56, 0.95); backdrop-filter: blur(10px); */
 
   min-width: 180px;
-  border-radius: 12px; /* Smooth rounded corners */
+  border-radius: 12px;
+  /* Smooth rounded corners */
   padding: 8px 0;
 
   /* Deep Shadow taaki background doodle se alag dikhe */
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle border */
-  z-index: 10000; /* Sabse upar dikhe - interface ke andar */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Subtle border */
+  z-index: 10000;
+  /* Sabse upar dikhe - interface ke andar */
 
   /* Animation: Smoothly pop open */
   animation: menuPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -812,7 +865,8 @@ body.light-mode .chat-loading p {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9998; /* Context menu se thoda kam */
+  z-index: 9998;
+  /* Context menu se thoda kam */
   background: transparent;
 }
 
@@ -820,38 +874,45 @@ body.light-mode .chat-loading p {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 12px; /* Icon aur text ke beech gap */
+  gap: 12px;
+  /* Icon aur text ke beech gap */
   padding: 10px 20px;
 
   font-size: 14px;
   font-weight: 500;
-  color: #e9edef; /* Off-white text */
+  color: #e9edef;
+  /* Off-white text */
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 /* Hover Effect: Mouse upar jane par light grey ho */
 .menu-item:hover {
-  background-color: #182229; /* Thoda darker background */
-  transform: translateX(4px); /* Thoda sa right slide ho */
+  background-color: #182229;
+  /* Thoda darker background */
+  transform: translateX(4px);
+  /* Thoda sa right slide ho */
 }
 
 /* Icons styling */
 .menu-item .icon {
   font-size: 16px;
   opacity: 0.8;
-  width: 20px; /* Fixed width taaki text align rahe */
+  width: 20px;
+  /* Fixed width taaki text align rahe */
   text-align: center;
 }
 
 /* Delete Button (Special Styling) */
 /* Delete ko alag dikhana zaroori hai */
 .menu-item.delete {
-  color: #ff5f5f; /* Red color */
+  color: #ff5f5f;
+  /* Red color */
 }
 
 .menu-item.delete:hover {
-  background-color: rgba(255, 95, 95, 0.1); /* Red Tint on hover */
+  background-color: rgba(255, 95, 95, 0.1);
+  /* Red Tint on hover */
 }
 
 .menu-item.delete .icon {
@@ -871,6 +932,7 @@ body.light-mode .chat-loading p {
     opacity: 0;
     transform: scale(0.9) translateY(-10px);
   }
+
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -890,30 +952,39 @@ body.light-mode .chat-loading p {
   /* background-color: rgba(31, 44, 52, 0.95); backdrop-filter: blur(5px); */
 
   padding: 8px 12px;
-  margin: 0 10px; /* Thoda side gap */
-  border-radius: 8px 8px 0 0; /* Sirf upar se round */
-  margin-bottom: 0; /* Input ke saath gap na rahe */
+  margin: 0 10px;
+  /* Thoda side gap */
+  border-radius: 8px 8px 0 0;
+  /* Sirf upar se round */
+  margin-bottom: 0;
+  /* Input ke saath gap na rahe */
 
   /* Animation: Slide Up Effect */
   animation: slideUp 0.2s ease-out;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Divider line input se alag karne ke liye */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  /* Divider line input se alag karne ke liye */
 }
 
 /* Content Wrapper */
 .reply-content {
   display: flex;
-  flex: 1; /* Jagah le le */
-  background-color: rgba(0, 0, 0, 0.2); /* Thoda darker inner box */
+  flex: 1;
+  /* Jagah le le */
+  background-color: rgba(0, 0, 0, 0.2);
+  /* Thoda darker inner box */
   border-radius: 6px;
-  overflow: hidden; /* Border radius maintain rakhne ke liye */
+  overflow: hidden;
+  /* Border radius maintain rakhne ke liye */
   position: relative;
 }
 
 /* The Green Accent Line (Left Side) */
 .reply-border {
   width: 4px;
-  background-color: #00a884; /* WhatsApp Green Accent */
-  height: auto; /* Pura stretch karega */
+  background-color: #00a884;
+  /* WhatsApp Green Accent */
+  height: auto;
+  /* Pura stretch karega */
 }
 
 /* Text Details */
@@ -925,26 +996,32 @@ body.light-mode .chat-loading p {
 }
 
 .reply-title {
-  color: #00a884; /* Same as border color */
+  color: #00a884;
+  /* Same as border color */
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 2px;
 }
 
 .reply-message {
-  color: #cfd7df; /* Off-white/Grey text */
+  color: #cfd7df;
+  /* Off-white/Grey text */
   font-size: 13px;
-  white-space: nowrap; /* Ek line me text rakhe */
+  white-space: nowrap;
+  /* Ek line me text rakhe */
   overflow: hidden;
-  text-overflow: ellipsis; /* Text zyada ho to '...' dikhaye */
-  max-width: 250px; /* Mobile par text cut jaye agar zyada ho */
+  text-overflow: ellipsis;
+  /* Text zyada ho to '...' dikhaye */
+  max-width: 250px;
+  /* Mobile par text cut jaye agar zyada ho */
 }
 
 /* Close Button (X) */
 .close-reply-btn {
   background: none;
   border: none;
-  color: #8696a0; /* Muted Grey */
+  color: #8696a0;
+  /* Muted Grey */
   font-size: 20px;
   margin-left: 12px;
   cursor: pointer;
@@ -958,18 +1035,22 @@ body.light-mode .chat-loading p {
 
 .close-reply-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
-  color: #ff5f5f; /* Red on hover */
+  color: #ff5f5f;
+  /* Red on hover */
 }
 
 /* Desktop Tweaks (Responsive) */
 @media (min-width: 768px) {
   .reply-message {
-    max-width: 500px; /* Desktop par zyada text dikhaye */
+    max-width: 500px;
+    /* Desktop par zyada text dikhaye */
   }
 
   .reply-preview-container {
-    margin: 0; /* Desktop par full width accha lagta hai agar sidebar ke bagal me ho */
-    border-radius: 0; /* Desktop par flat look */
+    margin: 0;
+    /* Desktop par full width accha lagta hai agar sidebar ke bagal me ho */
+    border-radius: 0;
+    /* Desktop par flat look */
   }
 }
 
@@ -1046,6 +1127,7 @@ body.light-mode .chat-loading p {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1055,7 +1137,8 @@ body.light-mode .chat-loading p {
 /* Mobile adjustments */
 @media (max-width: 767px) {
   .chat-screen .messages-container {
-    padding-top: 70px; /* Always reserve space for potential toolbar on mobile */
+    padding-top: 70px;
+    /* Always reserve space for potential toolbar on mobile */
   }
 }
 
@@ -1297,6 +1380,7 @@ body.light-mode .chat-loading p {
   align-items: center;
   gap: 15px;
 }
+
 .media-thumbnail {
   width: 60px;
   height: 60px;
@@ -1304,17 +1388,19 @@ body.light-mode .chat-loading p {
   object-fit: cover;
   background-color: var(--border-color);
 }
+
 .media-thumbnail.video {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
 }
+
 .cancel-preview-btn {
   position: absolute;
   top: 0px;
   left: 0px;
-  background-color: rgba(0,0,0,0.6);
+  background-color: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
   border-radius: 50%;
@@ -1326,11 +1412,13 @@ body.light-mode .chat-loading p {
   cursor: pointer;
   transform: translate(-50%, -50%);
 }
+
 .quality-selector {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
+
 .quality-selector label {
   display: flex;
   align-items: center;
@@ -1388,6 +1476,7 @@ body.light-mode .chat-loading p {
   align-items: center;
   gap: 15px;
 }
+
 .media-thumbnail {
   width: 60px;
   height: 60px;
@@ -1395,17 +1484,19 @@ body.light-mode .chat-loading p {
   object-fit: cover;
   background-color: var(--border-color);
 }
+
 .media-thumbnail.video {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
 }
+
 .cancel-preview-btn {
   position: absolute;
   top: 0px;
   left: 0px;
-  background-color: rgba(0,0,0,0.6);
+  background-color: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
   border-radius: 50%;
@@ -1417,11 +1508,13 @@ body.light-mode .chat-loading p {
   cursor: pointer;
   transform: translate(-50%, -50%);
 }
+
 .quality-selector {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
+
 .quality-selector label {
   display: flex;
   align-items: center;
@@ -1488,18 +1581,21 @@ body.light-mode .chat-loading p {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.05),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.05),
+      transparent);
   animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* Light theme adjustments for skeleton */
@@ -1508,10 +1604,8 @@ body.light-mode .chat-loading p {
 }
 
 [data-theme='light'] .skeleton-message::after {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(0, 0, 0, 0.05),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(0, 0, 0, 0.05),
+      transparent);
 }

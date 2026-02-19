@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabase';
+import useAuthStore from '../../store/authStore';
 import '../../styles/reminders.css';
 
 const CreateReminder = ({ onBack }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const currentUser = useAuthStore((state) => state.dbUser);
   const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [contacts, setContacts] = useState([]);
   const [formData, setFormData] = useState({
@@ -22,24 +23,10 @@ const CreateReminder = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    initializeCreateReminder();
-  }, []);
-
-  const initializeCreateReminder = async () => {
-    try {
-      const userStr = localStorage.getItem('currentUser');
-      if (!userStr) {
-        alert('No user logged in');
-        return;
-      }
-      const user = JSON.parse(userStr);
-      setCurrentUser(user);
-
-      await loadContacts(user);
-    } catch (error) {
-      console.error('Error initializing create reminder:', error);
+    if (currentUser) {
+      loadContacts(currentUser);
     }
-  };
+  }, [currentUser]);
 
   const loadContacts = async (user) => {
     try {

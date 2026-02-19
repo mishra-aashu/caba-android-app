@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useData } from '../contexts/DataContext';
 import { useCall } from '../context/CallContext';
+import useAuthStore from '../store/authStore';
 import { dpOptions } from '../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../utils/timeUtils';
 import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical, X } from 'lucide-react';
@@ -20,10 +21,10 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     const { refreshContacts } = useData();
     const { startCall } = useCall();
     const queryClient = useQueryClient();
+    const currentUser = useAuthStore((state) => state.dbUser);
 
     // State
     const [user, setUser] = useState(null);
-    const [currentUser, setCurrentUser] = useState(null);
     const [isMuted, setIsMuted] = useState(false);
     const [isContact, setIsContact] = useState(false);
     const [isBlocked, setIsBlocked] = useState(false);
@@ -45,33 +46,24 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
     // Fetch user details with caching (30 minutes) - using TanStack Query
     const { data: cachedUser, isLoading: isQueryLoading, isError, error } = useQuery({
-        queryKey: ['userDetails', userId],
+        queryKey: ['userDetails', userId, currentUser?.id],
         queryFn: async () => {
-            if (!userId) return null;
-            
-            // Get current user from localStorage
-            const userStr = localStorage.getItem('currentUser');
-            if (!userStr) {
-                navigate('/login');
-                return null;
-            }
-            const current = JSON.parse(userStr);
-            setCurrentUser(current);
+            if (!userId || !currentUser) return null;
 
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
                 .eq('id', userId)
                 .single();
-            
+
             if (error) throw error;
-            
+
             // Check if contact name exists for this user
-            if (current.id !== userId) {
+            if (currentUser.id !== userId) {
                 const { data: contact } = await supabase
                     .from('contacts')
                     .select('contact_name')
-                    .eq('user_id', current.id)
+                    .eq('user_id', currentUser.id)
                     .eq('contact_user_id', userId)
                     .maybeSingle();
 
@@ -79,11 +71,11 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     return { ...data, contact_name: contact.contact_name };
                 }
             }
-            
+
             return data;
         },
         staleTime: 1000 * 60 * 30, // 30 minutes
-        enabled: !!userId,
+        enabled: !!userId && !!currentUser,
     });
 
     // Update user state when cached data changes
@@ -160,6 +152,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
             // Load media count
             await loadMediaCount(currentUser.id, userId);
+
+            // Load common groups
+            await loadCommonGroups(currentUser.id, userId);
         } catch (error) {
             console.error('Error loading additional data:', error);
         }
@@ -201,7 +196,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 .eq('blocker_id', currentUserId)
                 .eq('blocked_id', targetUserId)
                 .limit(1);
-            
+
             if (error) {
                 console.error('Error checking block status:', error);
                 setIsBlocked(false); // Assume not blocked on error
@@ -248,6 +243,54 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         } catch (error) {
             console.error('Error loading media count:', error);
             setMediaCount({ images: 0, links: 0, docs: 0 });
+        }
+    };
+
+    const loadCommonGroups = async (currentUserId, targetUserId) => {
+        try {
+            // Get groups the current user is in
+            const { data: myGroups, error: myError } = await supabase
+                .from('group_members')
+                .select('group_id')
+                .eq('user_id', currentUserId);
+
+            if (myError) throw myError;
+
+            if (!myGroups || myGroups.length === 0) {
+                setCommonGroups([]);
+                return;
+            }
+
+            const myGroupIds = myGroups.map(g => g.group_id);
+
+            // Get groups the target user is in that overlap with ours
+            const { data: theirGroups, error: theirError } = await supabase
+                .from('group_members')
+                .select('group_id')
+                .eq('user_id', targetUserId)
+                .in('group_id', myGroupIds);
+
+            if (theirError) throw theirError;
+
+            if (!theirGroups || theirGroups.length === 0) {
+                setCommonGroups([]);
+                return;
+            }
+
+            const commonGroupIds = theirGroups.map(g => g.group_id);
+
+            // Fetch group details
+            const { data: groups, error: groupsError } = await supabase
+                .from('groups')
+                .select('id, name, avatar')
+                .in('id', commonGroupIds);
+
+            if (groupsError) throw groupsError;
+
+            setCommonGroups(groups || []);
+        } catch (error) {
+            console.error('Error loading common groups:', error);
+            setCommonGroups([]);
         }
     };
 
@@ -343,7 +386,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 .eq('contact_user_id', user.id)
                 .maybeSingle();
 
-            if(existingContactError && existingContactError.code !== 'PGRST116') { // PGRST116 is 'Not a single row'
+            if (existingContactError && existingContactError.code !== 'PGRST116') { // PGRST116 is 'Not a single row'
                 throw existingContactError;
             }
 
@@ -355,7 +398,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             // Add to contacts
             const { error } = await supabase
                 .from('contacts')
-                .insert([{ 
+                .insert([{
                     user_id: currentUser.id,
                     contact_user_id: user.id,
                     contact_name: user.name
@@ -509,12 +552,19 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 if (userError) throw userError;
             }
 
-            // Update local UI state
+            // Update local UI state — only update contact_name, not the actual user.name
             setUser(prevUser => ({
                 ...prevUser,
-                name: contactName.trim(),
-                about: currentUser.id === userId ? contactAbout.trim() : prevUser.about
+                contact_name: contactName.trim(),
+                // Only update actual name/about if editing own profile
+                ...(currentUser.id === userId ? {
+                    name: contactName.trim(),
+                    about: contactAbout.trim()
+                } : {})
             }));
+
+            // Invalidate cached query so it re-fetches with new contact_name
+            queryClient.invalidateQueries({ queryKey: ['userDetails', userId, currentUser?.id] });
 
             setShowEditContactModal(false);
             refreshContacts();
@@ -615,21 +665,31 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
     const confirmDelete = async () => {
         try {
-            // Get chat
+            // 1. Remove from contacts table
+            if (isContact) {
+                await supabase
+                    .from('contacts')
+                    .delete()
+                    .eq('user_id', currentUser.id)
+                    .eq('contact_user_id', user.id);
+            }
+
+            // 2. Get chat
             const { data: chat } = await supabase
                 .from('chats')
                 .select('id')
                 .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${user.id}),and(user1_id.eq.${user.id},user2_id.eq.${currentUser.id})`)
-                .single();
+                .maybeSingle();
 
             if (chat) {
-                // Delete messages
+                // 3. Delete only our own messages (RLS only allows sender to delete)
                 await supabase
                     .from('messages')
                     .delete()
-                    .eq('chat_id', chat.id);
+                    .eq('chat_id', chat.id)
+                    .eq('sender_id', currentUser.id);
 
-                // Delete chat
+                // 4. Delete the chat
                 await supabase
                     .from('chats')
                     .delete()
@@ -637,7 +697,10 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             }
 
             setShowDeleteModal(false);
-            toast.success('Contact deleted');
+            setIsContact(false);
+            setContactId(null);
+            refreshContacts();
+            toast.success('Contact and chat deleted');
             navigate('/');
         } catch (error) {
             console.error('Error deleting contact:', error);
@@ -705,13 +768,13 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             <div className="user-profile-section">
                 <div className="user-details-avatar" id="userDetailAvatar" onClick={() => user.avatar && setShowImageModal(true)} style={{ cursor: user.avatar ? 'pointer' : 'default' }}>
                     {user.avatar ? (
-                      parseInt(user.avatar) ? (
-                        <img id="userDetailImg" src={dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path} alt={user.name} />
-                      ) : (
-                        <img id="userDetailImg" src={user.avatar} alt={user.name} />
-                      )
+                        parseInt(user.avatar) ? (
+                            <img id="userDetailImg" src={dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path} alt={user.name} />
+                        ) : (
+                            <img id="userDetailImg" src={user.avatar} alt={user.name} />
+                        )
                     ) : (
-                      <div className="dp-preview-initials" id="userDetailInitials">{getInitials(user.name)}</div>
+                        <div className="dp-preview-initials" id="userDetailInitials">{getInitials(user.name)}</div>
                     )}
                 </div>
                 <h2 className="user-detail-name" id="userDetailName">{user.contact_name || user.name}</h2>
@@ -796,7 +859,24 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 <div className="info-section" id="groupsSection">
                     <h3 className="section-header">Groups in Common</h3>
                     <div id="commonGroups">
-                        <p className="no-data">No groups in common</p>
+                        {commonGroups.length > 0 ? (
+                            commonGroups.map(group => (
+                                <div key={group.id} className="settings-item" onClick={() => navigate(`/group/${group.id}`)}>
+                                    <div className="item-left">
+                                        <div className="group-avatar-small">
+                                            {group.avatar ? (
+                                                <img src={group.avatar} alt={group.name} />
+                                            ) : (
+                                                <span>{getInitials(group.name)}</span>
+                                            )}
+                                        </div>
+                                        <span className="label">{group.name}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="no-data">No groups in common</p>
+                        )}
                     </div>
                 </div>
 
@@ -818,7 +898,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     <div className="settings-item danger" id="deleteContactBtn" onClick={handleDeleteContact}>
                         <div className="item-left">
                             <Trash2 className="icon" size={20} />
-                            <span className="label">Delete Contact</span>
+                            <span className="label">Delete Chat & Contact</span>
                         </div>
                     </div>
                 </div>
@@ -959,8 +1039,8 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 size="small"
             >
                 <div className="modal-content-text">
-                    <p>Delete chat with {user.name}?</p>
-                    <p className="warning-text">This will delete all messages and cannot be undone.</p>
+                    <p>Delete chat and contact with {user.name}?</p>
+                    <p className="warning-text">This will remove this contact and delete your messages. This cannot be undone.</p>
                     <div className="modal-actions">
                         <button className="btn-secondary" onClick={() => setShowDeleteModal(false)}>
                             Cancel

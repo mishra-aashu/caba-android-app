@@ -2,8 +2,10 @@
 
 /* Main container for the user details screen */
 .user-details-screen {
-    --bg-color: #fff; /* Default light mode background */
-    --text-color: #111b21; /* Default light mode text */
+    --bg-color: #fff;
+    /* Default light mode background */
+    --text-color: #111b21;
+    /* Default light mode text */
     --header-bg: #f0f2f5;
     --border-color: #e9edef;
     --card-bg: #fff;
@@ -12,7 +14,9 @@
     --danger-action: #dc3545;
     --icon-color: #54656f;
 
-    min-height: 100vh;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     background-color: var(--bg-color);
     color: var(--text-color);
     transition: background-color 0.3s, color 0.3s;
@@ -24,7 +28,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
+    height: 100%;
     padding: 2rem;
     background-color: var(--bg-color);
 }
@@ -55,7 +59,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
+    height: 100%;
     padding: 2rem;
     background-color: var(--bg-color);
     text-align: center;
@@ -82,7 +86,7 @@
 
 /* Panel view for desktop side panel */
 .user-details-screen.user-details-panel-view {
-    min-height: 100vh;
+    height: 100%;
     background-color: var(--bg-color);
 }
 
@@ -138,7 +142,8 @@
 }
 
 /* Dark mode overrides */
-.dark-mode .user-details-screen, body.dark .user-details-screen {
+.dark-mode .user-details-screen,
+body.dark .user-details-screen {
     --bg-color: var(--bg-1, #121722);
     --text-color: var(--text-0, #eef2ff);
     --header-bg: var(--bg-2, #1a2030);
@@ -283,7 +288,8 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-.info-section p, .settings-item {
+.info-section p,
+.settings-item {
     padding: 1rem;
     margin: 0;
 }
@@ -293,9 +299,11 @@
     color: var(--danger-action);
     cursor: pointer;
 }
+
 .danger-section .icon {
     color: var(--danger-action);
 }
+
 .danger-section .settings-item:hover {
     background-color: rgba(var(--danger-action), 0.1);
 }
@@ -341,7 +349,8 @@
     margin-top: 1rem;
 }
 
-.btn-secondary, .btn-primary {
+.btn-secondary,
+.btn-primary {
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 8px;
@@ -370,21 +379,25 @@
 }
 
 /* Dark mode for buttons */
-.dark-mode .btn-secondary, body.dark .btn-secondary {
+.dark-mode .btn-secondary,
+body.dark .btn-secondary {
     background-color: var(--bg-3, #2a3441);
     color: var(--text-0);
 }
 
-.dark-mode .btn-secondary:hover, body.dark .btn-secondary:hover {
+.dark-mode .btn-secondary:hover,
+body.dark .btn-secondary:hover {
     background-color: var(--bg-4, #3a4551);
 }
 
-.dark-mode .btn-primary, body.dark .btn-primary {
+.dark-mode .btn-primary,
+body.dark .btn-primary {
     background-color: var(--primary-1, #22d3ee);
     color: var(--bg-1, #121722);
 }
 
-.dark-mode .btn-primary:hover, body.dark .btn-primary:hover {
+.dark-mode .btn-primary:hover,
+body.dark .btn-primary:hover {
     background-color: var(--primary-2, #06b6d4);
 }
 
@@ -422,12 +435,14 @@
 }
 
 /* Dark mode for danger button */
-.dark-mode .btn-danger, body.dark .btn-danger {
+.dark-mode .btn-danger,
+body.dark .btn-danger {
     background-color: var(--accent-0, #f472b6);
     color: var(--bg-1, #121722);
 }
 
-.dark-mode .btn-danger:hover, body.dark .btn-danger:hover {
+.dark-mode .btn-danger:hover,
+body.dark .btn-danger:hover {
     background-color: var(--accent-1, #f9a8d4);
 }
 
@@ -471,4 +486,28 @@
 .report-reason-item span {
     font-size: 0.9rem;
     color: var(--text-color);
+}
+
+/* Common Groups avatar */
+.group-avatar-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--primary-action);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    overflow: hidden;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.group-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }

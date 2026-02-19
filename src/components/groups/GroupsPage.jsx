@@ -4,20 +4,24 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import GroupInfoDrawer from './GroupInfoDrawer';
+import CreateGroupModal from './CreateGroupModal';
 import { Users, Search, Plus, MoreVertical, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import './GroupsPage.css';
 
 const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { useUserGroups } = useGroupActions();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(null);
 
   const { data: groupsData = [], isLoading, refetch } = useUserGroups(user?.id);
@@ -42,6 +46,10 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
   const handleGroupClick = (group) => {
     if (onGroupClick) {
       onGroupClick(group);
+    } else {
+      // Navigate to chat
+      navigate(`/chat/${group.id}/group`);
+      if (onClose) onClose();
     }
   };
 
@@ -124,7 +132,7 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
                     <span>{group.member_count} members</span>
                   </div>
                 </div>
-                <button 
+                <button
                   className="group-info-btn"
                   onClick={(e) => handleGroupInfoClick(group, e)}
                   title="Group Info"
@@ -144,7 +152,10 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
 
         {/* Create Group Button */}
         <div className="groups-footer">
-          <button className="create-group-btn">
+          <button
+            className="create-group-btn"
+            onClick={() => setShowCreateModal(true)}
+          >
             <Plus size={20} />
             Create New Group
           </button>
@@ -162,6 +173,15 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
           group={selectedGroup}
         />
       )}
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          refetch();
+          setShowCreateModal(false);
+        }}
+      />
     </>
   );
 };

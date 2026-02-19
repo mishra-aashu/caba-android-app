@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSupabase } from '../../../contexts/SupabaseContext';
+import { prepareDataForDB, handleDatabaseError } from '../../../utils/dbSchemaCompatibility';
 
 const MESSAGES_PER_PAGE = 20;
 
@@ -27,11 +28,19 @@ export const useChatMessages = (chatId, currentUserId) => {
         .from('messages')
         .select(`
           *,
-          sender:profiles!sender_id(*),
-          read_by:message_reads(
-            user_id,
-            read_at,
-            user:profiles!user_id(*)
+          sender:users!sender_id(
+            id, 
+            name, 
+            avatar, 
+            is_online, 
+            last_seen
+          ),
+          receiver:users!receiver_id(
+            id, 
+            name, 
+            avatar, 
+            is_online, 
+            last_seen
           )
         `)
         .eq('chat_id', chatId)
@@ -105,10 +114,10 @@ export const useChatMessages = (chatId, currentUserId) => {
           const newMessage = processMessages([payload.new])[0];
           setMessages(prev => [...prev, newMessage]);
           
-          // Mark as read if it's a new message from the other user
-          if (newMessage.sender_id !== currentUserId) {
-            markAsRead(newMessage.id);
-          }
+          // TODO: Implement read receipts after message_reads table is created
+          // if (newMessage.sender_id !== currentUserId) {
+          //   markAsRead(newMessage.id);
+          // }
         }
       )
       .subscribe();
@@ -124,7 +133,7 @@ export const useChatMessages = (chatId, currentUserId) => {
     return messages.map(msg => ({
       ...msg,
       isOwn: msg.sender_id === currentUserId,
-      isRead: msg.read_by?.some(read => read.user_id === currentUserId) || false,
+      isRead: false, // TODO: Implement proper read receipts after message_reads table is created
       timestamp: new Date(msg.created_at).getTime(),
       formattedTime: formatMessageTime(msg.created_at)
     }));
@@ -134,8 +143,8 @@ export const useChatMessages = (chatId, currentUserId) => {
   const fetchUserProfile = async (userId) => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
+        .from('users')
+        .select('id, name, avatar, is_online, last_seen')
         .eq('id', userId)
         .single();
       
@@ -149,56 +158,26 @@ export const useChatMessages = (chatId, currentUserId) => {
     }
   };
   
-  // Mark message as read
-  const markAsRead = async (messageId) => {
-    try {
-      const { error } = await supabase
-        .from('message_reads')
-        .upsert({
-          message_id: messageId,
-          user_id: currentUserId,
-          read_at: new Date().toISOString()
-        });
-      
-      if (error) throw error;
-      
-      // Update local state
-      setMessages(prev => prev.map(msg => 
-        msg.id === messageId 
-          ? { 
-              ...msg, 
-              isRead: true,
-              read_by: [...(msg.read_by || []), { user_id: currentUserId }] 
-            } 
-          : msg
-      ));
-      
-      return true;
-    } catch (err) {
-      console.error('Error marking message as read:', err);
-      return false;
-    }
-  };
-  
   // Send a new message
   const sendMessage = async ({ content, attachments = [], replyTo = null }) => {
     if (!chatId || !currentUserId) return null;
     
     try {
-      const newMessage = {
+      const messageData = {
         chat_id: chatId,
         sender_id: currentUserId,
         content,
         reply_to: replyTo,
-        created_at: new Date().toISOString(),
-        status: 'sent',
         attachments: attachments.length > 0 ? attachments : null
       };
+
+      // Prepare data for database (filter non-existent fields, add defaults)
+      const preparedData = prepareDataForDB(messageData, 'messages');
       
       // Optimistic update
       const tempId = `temp-${Date.now()}`;
       const optimisticMessage = {
-        ...newMessage,
+        ...preparedData,
         id: tempId,
         isOwn: true,
         isRead: false,
@@ -212,17 +191,20 @@ export const useChatMessages = (chatId, currentUserId) => {
       // Send to server
       const { data, error } = await supabase
         .from('messages')
-        .insert([{
-          chat_id: chatId,
-          sender_id: currentUserId,
-          content,
-          reply_to: replyTo,
-          attachments: attachments.length > 0 ? attachments : null
-        }])
+        .insert([preparedData])
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        const errorInfo = handleDatabaseError(error, 'messages');
+        if (errorInfo.isSchemaError) {
+          console.warn('Schema error in sendMessage:', errorInfo.message);
+          // Still remove optimistic update but don't crash
+          setMessages(prev => prev.filter(m => m.id !== tempId));
+          return null;
+        }
+        throw error;
+      }
       
       // Replace temp message with server response
       setMessages(prev => {
@@ -235,7 +217,7 @@ export const useChatMessages = (chatId, currentUserId) => {
       console.error('Error sending message:', err);
       
       // Revert optimistic update on error
-      setMessages(prev => prev.filter(m => m.id !== `temp-${Date.now()}`));
+      setMessages(prev => prev.filter(m => !m.id.startsWith('temp-')));
       
       throw err;
     }
@@ -280,8 +262,7 @@ export const useChatMessages = (chatId, currentUserId) => {
     otherUser,
     sendMessage,
     deleteMessages,
-    loadMoreMessages,
-    markAsRead
+    loadMoreMessages
   };
 };
 

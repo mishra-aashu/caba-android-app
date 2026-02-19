@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../config/supabase';
+import useAuthStore from '../store/authStore';
 
 // ✨ Polished & Premium Chat Themes
 const chatThemes = {
@@ -322,7 +324,7 @@ const chatThemes = {
       iconColor: '#ffffff'
     }
   },
-  
+
   custom_background: {
     name: 'Custom Background',
     category: 'Custom',
@@ -359,7 +361,7 @@ const ChatThemeContext = createContext();
 
 // Chat Theme Provider Component
 export const ChatThemeProvider = ({ children }) => {
-  
+
   // State
   const [currentChatTheme, setCurrentChatTheme] = useState('classic_purple');
   const [currentChatId, setCurrentChatId] = useState(null);
@@ -371,7 +373,7 @@ export const ChatThemeProvider = ({ children }) => {
     root.style.setProperty('--scroll-percentage', scrollPercentage);
   }, [scrollPercentage]);
 
-  // Load chat theme logic
+  // Load chat theme logic — check localStorage cache first, then DB
   const loadChatTheme = async (chatId) => {
     if (!chatId) {
       setCurrentChatTheme('classic_purple');
@@ -382,18 +384,37 @@ export const ChatThemeProvider = ({ children }) => {
     const debounceKey = `digidad_theme_debounce_${chatId}`;
     const now = Date.now();
     const lastCall = parseInt(localStorage.getItem(debounceKey) || '0');
-    
-    if (now - lastCall < 500) { // Reduced debounce for snappier feel
+
+    if (now - lastCall < 500) {
       setLoading(false);
       return;
     }
     localStorage.setItem(debounceKey, now.toString());
 
+    // 1. Check localStorage cache first (fast)
     const cachedTheme = localStorage.getItem(`digidad_chat_theme_${chatId}`);
     if (cachedTheme && chatThemes[cachedTheme]) {
       setCurrentChatTheme(cachedTheme);
-    } else {
-      // Default fallback
+      setLoading(false);
+      return;
+    }
+
+    // 2. Fallback: query chat_themes DB table
+    try {
+      const { data, error } = await supabase
+        .from('chat_themes')
+        .select('theme_name')
+        .eq('chat_id', chatId)
+        .maybeSingle();
+
+      if (!error && data?.theme_name && chatThemes[data.theme_name]) {
+        setCurrentChatTheme(data.theme_name);
+        localStorage.setItem(`digidad_chat_theme_${chatId}`, data.theme_name);
+      } else {
+        setCurrentChatTheme('classic_purple');
+      }
+    } catch (e) {
+      console.error('Error loading theme from DB:', e);
       setCurrentChatTheme('classic_purple');
     }
     setLoading(false);
@@ -402,9 +423,27 @@ export const ChatThemeProvider = ({ children }) => {
   const saveChatTheme = async (themeKey, chatId) => {
     if (!chatId) return;
     try {
+      // Save to localStorage (fast cache)
       localStorage.setItem(`digidad_chat_theme_${chatId}`, themeKey);
+
+      // Save to DB for cross-device sync
+      const currentUser = useAuthStore.getState().dbUser;
+      if (currentUser) {
+        await supabase
+          .from('chat_themes')
+          .upsert(
+            {
+              chat_id: chatId,
+              theme_name: themeKey,
+              theme_config: chatThemes[themeKey] || {},
+              set_by: currentUser.id,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'chat_id,set_by' }
+          );
+      }
     } catch (e) {
-      console.error("Theme save failed", e);
+      console.error('Theme save failed', e);
     }
   };
 
@@ -417,7 +456,7 @@ export const ChatThemeProvider = ({ children }) => {
   const selectTheme = async (themeKey, chatIdOverride) => {
     if (!chatThemes[themeKey]) return;
     const chatIdToUse = chatIdOverride || currentChatId;
-    
+
     if (!chatIdToUse) {
       console.error('No chat ID available for theme selection');
       return;
@@ -434,35 +473,35 @@ export const ChatThemeProvider = ({ children }) => {
 
     const root = document.documentElement;
     const setProp = (name, value) => {
-      if(value) root.style.setProperty(name, value);
+      if (value) root.style.setProperty(name, value);
     };
 
     setProp('--chat-bg-gradient', theme.background);
-    
+
     setProp('--sent-message-bg', theme.sentMessage.background);
     setProp('--sent-message-text', theme.sentMessage.text);
     setProp('--sent-message-shadow', theme.sentMessage.shadow || 'none');
     setProp('--sent-message-border', theme.sentMessage.border || 'none');
-    
+
     setProp('--received-message-bg', theme.receivedMessage.background);
     setProp('--received-message-text', theme.receivedMessage.text);
     setProp('--received-message-shadow', theme.receivedMessage.shadow || 'none');
     setProp('--received-message-border', theme.receivedMessage.border || 'none');
-    
+
     setProp('--chat-header-bg', theme.header.background);
     setProp('--chat-header-text', theme.header.text);
     setProp('--chat-header-icon-color', theme.header.iconColor);
     setProp('--chat-header-border', theme.header.border || 'none');
-    
+
     setProp('--chat-input-bg', theme.input.background);
     setProp('--chat-input-text', theme.input.text);
     setProp('--chat-input-icon-color', theme.input.iconColor);
     setProp('--chat-input-border', theme.input.border || 'none');
-    
+
     setProp('--chat-buttons-bg', theme.buttons.background);
     setProp('--chat-buttons-text', theme.buttons.text);
     setProp('--chat-buttons-icon-color', theme.buttons.iconColor);
-    
+
     document.body.className = document.body.className.replace(/theme-\w+/g, '');
     document.body.classList.add(`theme-${themeKey.replace(/_/, '-')}`);
   };

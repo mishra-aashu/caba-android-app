@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import MediaMessage from './MediaMessage';

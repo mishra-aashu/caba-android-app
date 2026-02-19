@@ -54,7 +54,7 @@ const ChatListPanel = ({
   currentChatId,
 }) => {
   const { supabase } = useSupabase();
-  
+
   // State for Create Group Modal
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
 
@@ -70,11 +70,16 @@ const ChatListPanel = ({
       onClick: () => handleNavigation('/settings')
     },
     {
+      icon: <Users size={16} className="groups-icon" />,
+      label: 'Groups',
+      onClick: () => handleNavigation('/groups')
+    },
+    {
       icon: <Bell size={16} className="reminders-icon" />,
       label: 'Check Reminders',
       onClick: () => handleNavigation('/reminders')
     },
-    
+
     ,
     ...(isAdmin ? [{
       icon: <Crown size={16} className="admin-icon" />,
@@ -107,32 +112,32 @@ const ChatListPanel = ({
           <h1 className="chats-title">Chats</h1>
         </div>
         <div className="header-right">
-           <button
-             className="icon-btn"
-             onClick={() => setShowCreateGroupModal(true)}
-             title="Create Group"
-           >
-             <Users size={20} className="create-group-icon" />
-           </button>
-           <button
-             className="icon-btn"
-             onClick={() => setShowNewContactModal(true)}
-             title="Contacts"
-           >
-             <User size={20} className="contacts-icon" />
-           </button>
-           <button
-             className="icon-btn"
-             onClick={() => setShowSearch(!showSearch)}
-             title="Search"
-           >
-             <Search size={20} className="search-toggle-icon" />
-           </button>
+          <button
+            className="icon-btn"
+            onClick={() => setShowCreateGroupModal(true)}
+            title="Create Group"
+          >
+            <Users size={20} className="create-group-icon" />
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => setShowNewContactModal(true)}
+            title="Contacts"
+          >
+            <User size={20} className="contacts-icon" />
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => setShowSearch(!showSearch)}
+            title="Search"
+          >
+            <Search size={20} className="search-toggle-icon" />
+          </button>
 
-           <DropdownMenu
-             items={dropdownItems}
-           />
-         </div>
+          <DropdownMenu
+            items={dropdownItems}
+          />
+        </div>
       </header>
 
       {showSearch && (
@@ -203,8 +208,8 @@ const ChatListPanel = ({
                   name: displayName,
                   avatar: chat.otherUser?.avatar
                     ? (parseInt(chat.otherUser.avatar)
-                        ? dpOptions.find(dp => dp.id === parseInt(chat.otherUser.avatar))?.path
-                        : chat.otherUser.avatar)
+                      ? dpOptions.find(dp => dp.id === parseInt(chat.otherUser.avatar))?.path
+                      : chat.otherUser.avatar)
                     : null, // Pass null to ChatListItem to use its internal default
                   lastMessage: chat.last_message || 'No messages yet',
                   time: formatTime(chat.last_message_time),
@@ -239,7 +244,7 @@ const ChatListPanel = ({
         )}
       </div>
 
-      
+
 
       <Modal
         isOpen={showNewContactModal}
@@ -265,7 +270,7 @@ const ChatListPanel = ({
               className={`mode-btn ${showSelectContact ? 'active' : ''}`}
               onClick={() => setShowSelectContact(true)}
             >
-            Select Contact
+              Select Contact
             </button>
           </div>
 

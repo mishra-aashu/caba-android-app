@@ -24,7 +24,7 @@ export const createGroup = async ({ name, description, avatarFile, avatarUrl: av
 
     // Step 1: Insert group into groups table
     console.log('Creating group with:', { name, description, avatarUrl, createdBy });
-    
+
     const { data: group, error: groupError } = await supabase
       .from('groups')
       .insert({
@@ -40,7 +40,7 @@ export const createGroup = async ({ name, description, avatarFile, avatarUrl: av
       console.error('Group insert error:', groupError);
       throw groupError;
     }
-    
+
     console.log('Group created:', group);
 
     // Step 2: Add all members (including creator)
@@ -122,7 +122,7 @@ export const getGroupMembers = async (groupId) => {
       .from('group_members')
       .select(`
         *,
-        user:user_id (
+        users (
           id,
           name,
           avatar,
@@ -454,7 +454,7 @@ export const reportScreenshot = async (groupId, senderId, messageId) => {
 export const uploadGroupAvatar = async (file, groupId) => {
   try {
     const fileName = `${groupId}_${Date.now()}.${file.name.split('.').pop()}`;
-    
+
     const { data, error } = await supabase.storage
       .from('group-avatars')
       .upload(fileName, file, {

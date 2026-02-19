@@ -1,53 +1,54 @@
-/* Calls Page Styles - Glassmorphism UI for CaBa */
+/* =============================================
+   CALLS PAGE — WhatsApp-style layout
+   ============================================= */
 
-/* 1. Main Container */
+/* 1. Main Container — fills parent, no 100vh */
 .calls-container {
-  min-height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg-color);
   color: var(--text-primary);
-  padding-bottom: 80px; /* Space for bottom navigation */
+  overflow: hidden;
 }
 
-/* 2. Header */
-.app-header {
+/* 2. Header — sticky at top, scoped class to avoid conflicts */
+.calls-container .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  position: sticky;
-  top: 0;
+  padding: 0.75rem 1rem;
+  background-color: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
   z-index: 10;
 }
 
-[data-theme='dark'] .app-header {
-  background: rgba(30, 30, 30, 0.5);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+[data-theme='dark'] .calls-container .app-header {
+  background-color: #1e1e1e;
+  border-bottom-color: #2d2d2d;
 }
 
-.header-left,
-.header-center,
-.header-right {
+.calls-container .header-left,
+.calls-container .header-center,
+.calls-container .header-right {
   display: flex;
   align-items: center;
 }
 
-.header-center {
+.calls-container .header-center {
   flex: 1;
   justify-content: center;
 }
 
-.header-center h1 {
+.calls-container .header-center h1 {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-.back-btn {
+.calls-container .back-btn {
   width: 40px;
   height: 40px;
   border: none;
@@ -61,471 +62,444 @@
   transition: background-color 0.2s;
 }
 
-.back-btn:hover {
+.calls-container .back-btn:hover {
   background: rgba(0, 0, 0, 0.05);
 }
 
-[data-theme='dark'] .back-btn:hover {
+[data-theme='dark'] .calls-container .back-btn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
 /* 3. Search Container */
-.search-container {
-  padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.calls-container .search-container {
+  padding: 0.75rem 1rem;
+  background-color: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
-[data-theme='dark'] .search-container {
-  background: rgba(30, 30, 30, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+[data-theme='dark'] .calls-container .search-container {
+  background-color: #1e1e1e;
+  border-bottom-color: #2d2d2d;
 }
 
-.search-box {
+.calls-container .search-box {
   position: relative;
-  max-width: 400px;
+  max-width: 500px;
   margin: 0 auto;
 }
 
-.search-box i {
+.calls-container .search-box i {
   position: absolute;
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-secondary);
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
-.search-box input {
+.calls-container .search-box input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 3rem;
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
   border: none;
-  border-radius: 25px;
-  background: rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  background: var(--bg-color);
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 0.95rem;
   outline: none;
-  transition: all 0.2s;
+  transition: box-shadow 0.2s;
 }
 
-[data-theme='dark'] .search-box input {
-  background: rgba(30, 30, 30, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.search-box input:focus {
-  background: rgba(255, 255, 255, 0.15);
+.calls-container .search-box input:focus {
   box-shadow: 0 0 0 2px var(--brand-primary);
 }
 
-[data-theme='dark'] .search-box input:focus {
-  background: rgba(30, 30, 30, 0.7);
+[data-theme='dark'] .calls-container .search-box input {
+  background: #2a2a2a;
 }
 
-/* 4. Call History Section */
-.call-history-section {
-  padding: 1rem 2rem;
+/* 4. Scrollable Content Area */
+.calls-container .call-history-section,
+.calls-container .contacts-section {
+  padding: 0;
 }
 
-/* 5. Contacts Section */
-.contacts-section {
-  padding: 1rem 2rem;
+/* This makes the area below the header+search scrollable */
+.calls-container .call-history-section {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.contacts-section h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
+.calls-container .contacts-section {
+  flex-shrink: 0;
+  padding-bottom: 60px;
+  /* Space for BottomNavigation */
 }
 
-.contacts-list {
+.calls-container .contacts-section h3 {
+  margin: 0;
+  padding: 0.75rem 1rem 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--brand-primary);
+}
+
+/* 5. Contact Item — WhatsApp-style row */
+.calls-container .contacts-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
-/* 6. Contact Item */
-.contact-item {
+.calls-container .contact-item {
   display: flex;
   align-items: center;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.15s;
   cursor: pointer;
-  /* PERFORMANCE: CSS Containment - isolates rendering for better scroll performance */
-  contain: content;
 }
 
-/* PERFORMANCE: Disable expensive backdrop-filter on mobile */
-@media (max-width: 768px) {
-  .contact-item {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+.calls-container .contact-item:last-child {
+  border-bottom: none;
 }
 
-[data-theme='dark'] .contact-item {
-  background: rgba(30, 30, 30, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.calls-container .contact-item:hover {
+  background-color: var(--bg-color);
 }
 
-.contact-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+[data-theme='dark'] .calls-container .contact-item {
+  border-bottom-color: #2d2d2d;
 }
 
-[data-theme='dark'] .contact-item:hover {
-  background: rgba(30, 30, 30, 0.5);
+[data-theme='dark'] .calls-container .contact-item:hover {
+  background-color: #2a2a2a;
 }
 
-
-
-
-.online-status {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ccc;
-  border: 2px solid var(--bg-color);
-}
-
-.online-status.online {
-  background: #4CAF50;
-}
-
-/* 8. Contact Info */
-.contact-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.contact-info h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.contact-info p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 7. Call Avatar */
-.call-avatar {
+/* 6. Avatar */
+.calls-container .call-avatar {
   position: relative;
-  margin-right: 15px; /* Spacing from text */
-  flex-shrink: 0; /* Prevent shrinking */
+  margin-right: 12px;
+  flex-shrink: 0;
 }
 
-.call-avatar .avatar {
-  width: 50px;
-  height: 50px;
+.calls-container .call-avatar .avatar {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background-color: var(--brand-secondary);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 500;
-  font-size: 1.2rem;
+  font-weight: 600;
+  font-size: 1.1rem;
   text-transform: uppercase;
   overflow: hidden;
-  border: 2px solid transparent;
-  transition: border-color 0.2s;
 }
 
-.call-avatar .avatar img {
+.calls-container .call-avatar .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.contact-item:hover .call-avatar .avatar {
-  border-color: rgba(255, 255, 255, 0.2); /* Ring effect on hover */
+.calls-container .call-avatar .online-status {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #9E9E9E;
+  border: 2px solid var(--surface-color);
 }
 
-/* 9. Call Buttons */
-.call-buttons {
+.calls-container .call-avatar .online-status.online {
+  background: #4CAF50;
+}
+
+/* 7. Contact Info */
+.calls-container .contact-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.calls-container .contact-info h4 {
+  margin: 0 0 2px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calls-container .contact-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 8. Call Action Buttons */
+.calls-container .call-buttons {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
+  flex-shrink: 0;
 }
 
-/* 10. Empty State */
-.empty-state {
+/* 9. Empty State */
+.calls-container .empty-state {
   text-align: center;
   padding: 3rem 2rem;
   color: var(--text-secondary);
 }
 
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+.calls-container .empty-state i,
+.calls-container .empty-state svg {
+  margin-bottom: 0.75rem;
+  opacity: 0.4;
+  color: var(--text-secondary);
 }
 
-.empty-state h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+.calls-container .empty-state h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
   color: var(--text-primary);
 }
 
-.empty-state p {
+.calls-container .empty-state p {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
-/* 11. Loading State */
+/* 10. Loading State */
 .calls-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
+  height: 100%;
   color: var(--text-secondary);
+  background-color: var(--bg-color);
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top: 3px solid var(--brand-primary);
+.calls-loading .loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-color, #E0E0E0);
+  border-top: 3px solid var(--brand-primary, #00BFA5);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+  animation: calls-spin 0.8s linear infinite;
+  margin-bottom: 0.75rem;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes calls-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .calls-loading p {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
-/* 12. Responsive Design */
-@media (max-width: 768px) {
-  .calls-container {
-    padding-bottom: 100px; /* More space for mobile bottom nav */
-  }
+/* =============================================
+   CALL HISTORY COMPONENT (CallHistory.jsx)
+   ============================================= */
 
-  .app-header {
-    padding: 1rem;
-  }
-
-  .header-center h1 {
-    font-size: 1.25rem;
-  }
-
-  .search-container,
-  .call-history-section,
-  .contacts-section {
-    padding: 1rem;
-  }
-
-  .contact-item {
-    padding: 0.75rem;
-  }
-
-
-
-  .contact-info h4 {
-    font-size: 0.95rem;
-  }
-
-  .contact-info p {
-    font-size: 0.85rem;
-  }
-
-  .empty-state {
-    padding: 2rem 1rem;
-  }
-
-  .empty-state i {
-    font-size: 2.5rem;
-  }
-
-  .empty-state h3 {
-    font-size: 1.1rem;
-  }
-
-  .empty-state p {
-    font-size: 0.9rem;
-  }
+.call-history-wrapper {
+  padding: 0;
 }
 
-@media (max-width: 480px) {
-  .app-header {
-    padding: 0.75rem;
-  }
-
-  .search-container,
-  .call-history-section,
-  .contacts-section {
-    padding: 0.75rem;
-  }
-
-  .contact-item {
-    padding: 0.5rem;
-  }
-
-
-  .contact-info h4 {
-    font-size: 0.9rem;
-  }
-
-  .contact-info p {
-    font-size: 0.8rem;
-  }
+.call-history-card {
+  background: transparent;
 }
 
-/* 13. Dark Theme Adjustments */
-[data-theme='dark'] .contact-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+/* Call History Header */
+.call-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem 0.5rem;
 }
 
-/* 14. Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .contact-item,
-  .back-btn,
-  .search-box input,
-  .loading-spinner {
-    transition: none;
-    animation: none;
-  }
+.call-history-header .header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-/* 15. High Contrast Mode */
-@media (prefers-contrast: high) {
-  .contact-item {
-    border: 2px solid var(--text-primary);
-  }
-
-  .avatar-circle {
-    border: 2px solid var(--text-primary);
-  }
+.call-history-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--brand-primary);
 }
 
-/* Active Call Notification */
-.active-call-notification {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 50;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+.missed-calls-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #FFEBEE;
+  color: #D32F2F;
+}
+
+[data-theme='dark'] .missed-calls-badge {
+  background: rgba(211, 47, 47, 0.2);
+  color: #EF5350;
+}
+
+.user-avatar-header {
+  display: none;
+  /* hide in calls page, user avatar is redundant */
+}
+
+/* Individual Call Item — same row style as contacts */
+.call-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.15s;
+  cursor: pointer;
+}
+
+.call-item:last-child {
+  border-bottom: none;
+}
+
+.call-item:hover {
+  background-color: var(--bg-color);
+}
+
+[data-theme='dark'] .call-item {
+  border-bottom-color: #2d2d2d;
+}
+
+[data-theme='dark'] .call-item:hover {
+  background-color: #2a2a2a;
+}
+
+/* Call Item Avatar */
+.call-item .call-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--brand-secondary);
   color: white;
-  padding: 0.75rem 1.25rem;
-  border-radius: 9999px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-}
-
-.active-call-notification:hover {
-  background-color: #059669; /* green-600 */
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.active-call-notification .call-info {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.active-call-notification .call-icon {
-  width: 1rem;
-  height: 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.active-call-notification .call-text {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.active-call-notification .caller-name {
-  font-size: 0.875rem;
-  max-width: 6rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.active-call-notification .end-call-btn {
-  margin-left: 0.5rem;
-  background-color: #ef4444; /* red-500 */
-  border: none;
-  border-radius: 9999px;
-  padding: 0.25rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  overflow: hidden;
+  margin-right: 12px;
+  flex-shrink: 0;
 }
 
-.active-call-notification .end-call-btn:hover {
-  background-color: #dc2626; /* red-600 */
+.call-item .call-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.active-call-notification .end-call-icon {
-  width: 0.875rem;
-  height: 0.875rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+/* Call Item Details */
+.call-details {
+  flex: 1;
+  min-width: 0;
 }
 
-/* Header Call Notification */
+.call-name {
+  margin: 0 0 2px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.call-status-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-icon {
+  flex-shrink: 0;
+}
+
+.status-icon.missed {
+  color: #D32F2F;
+}
+
+.status-icon.outgoing {
+  color: #4CAF50;
+}
+
+.status-icon.incoming {
+  color: #2196F3;
+}
+
+.call-time-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Call Action Button */
+.call-action-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--brand-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.call-action-btn:hover {
+  background: rgba(0, 191, 165, 0.1);
+}
+
+.call-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* =============================================
+   HEADER CALL NOTIFICATION (green pill)
+   ============================================= */
+
 .header-call-notification {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -534,7 +508,7 @@
 }
 
 .header-call-notification:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, #059669, #047857);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
@@ -548,20 +522,15 @@
 .header-call-notification .call-icon {
   width: 1rem;
   height: 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .header-call-notification .call-text {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .header-call-notification .caller-name {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   max-width: 4rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -590,9 +559,78 @@
 .header-call-notification .end-call-icon {
   width: 0.75rem;
   height: 0.75rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+}
+
+/* =============================================
+   RESPONSIVE — Mobile
+   ============================================= */
+
+@media (max-width: 768px) {
+  .calls-container .app-header {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .calls-container .header-center h1 {
+    font-size: 1.1rem;
+  }
+
+  .calls-container .search-container {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .calls-container .contact-item,
+  .call-item {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .calls-container .contacts-section {
+    padding-bottom: 70px;
+    /* More space on mobile for BottomNav */
+  }
+}
+
+@media (max-width: 480px) {
+
+  .calls-container .call-avatar .avatar,
+  .call-item .call-avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 1rem;
+  }
+
+  .calls-container .contact-info h4,
+  .call-name {
+    font-size: 0.95rem;
+  }
+}
+
+/* =============================================
+   DESKTOP — wider layout
+   ============================================= */
+
+@media (min-width: 769px) {
+
+  .calls-container .call-history-section,
+  .calls-container .contacts-section {
+    max-width: 700px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .calls-container .contacts-section {
+    padding-bottom: 1rem;
+    /* No BottomNav on desktop */
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+
+  .calls-container .contact-item,
+  .call-item,
+  .call-action-btn,
+  .calls-loading .loading-spinner {
+    transition: none;
+    animation: none;
+  }
 }

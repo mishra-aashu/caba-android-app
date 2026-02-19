@@ -60,16 +60,16 @@ export function CallHistory({ userId, userAvatar, userName }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+      <div className="calls-loading" style={{ height: 'auto', padding: '2rem' }}>
+        <div className="loading-spinner"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center p-8 text-red-500">
-        Error loading call history
+      <div className="empty-state">
+        <p style={{ color: '#D32F2F' }}>Error loading call history</p>
       </div>
     );
   }

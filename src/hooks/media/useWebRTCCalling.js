@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { supabase } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
 import { useTURNConfig } from './useTURNConfig';
 
 /**

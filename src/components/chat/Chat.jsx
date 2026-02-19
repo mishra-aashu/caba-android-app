@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useCall } from '../../context/CallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
 import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
+import { safeDbConversion, frontendToDb } from '../../utils/dbFieldMapping';
+import { validateEntity, Message } from '../../types/database';
 import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2 } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
@@ -28,137 +29,228 @@ import NotificationSound from '../../utils/notificationSound';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import { UserDetailsContext } from '../MainLayout';
-import { fetchChatMessages } from '../../services/messageService';
 import '../../styles/chat.css';
 import '../../styles/game-modal.css';
 
 import './AttachmentMenu.css';
 
 const Chat = () => {
-    const { chatId, otherUserId } = useParams();
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { supabase } = useSupabase();
-    const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
-    const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
-    const { startCall } = useCall();
-    const showUserDetails = React.useContext(UserDetailsContext);
-    
-    // Check if this is a group chat (route: /chat/:chatId/group)
-    const isGroupChat = otherUserId === 'group';
+  const { chatId, otherUserId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { supabase } = useSupabase();
+  const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
+  const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
+  const { startCall } = useCall();
+  const showUserDetails = React.useContext(UserDetailsContext);
 
-   // Initialize chat theme when chatId changes
-   useEffect(() => {
-     if (chatId) {
-       setChatId(chatId);
-     }
-   }, [chatId, setChatId]);
+  // Check if this is a group chat (route: /chat/:chatId/group)
+  const isGroupChat = otherUserId === 'group' || location.pathname.endsWith('/group');
 
-   // Define validChatId early so it can be used in useQuery
-   const validChatId = chatId === 'new' ? null : chatId;
+  // Initialize chat theme when chatId changes
+  useEffect(() => {
+    if (chatId) {
+      setChatId(chatId);
+    }
+  }, [chatId, setChatId]);
 
-   // State
-   const [messages, setMessages] = useState([]);
-   const [otherUser, setOtherUser] = useState(null);
-   const [hasMoreMessages, setHasMoreMessages] = useState(true);
-   const [loadingMore, setLoadingMore] = useState(false);
-   const [isMuted, setIsMuted] = useState(false);
-   const [isTempChat, setIsTempChat] = useState(false);
-   const [showScrollButton, setShowScrollButton] = useState(false);
-   const [unreadCount, setUnreadCount] = useState(0);
-   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+  // Define validChatId early so it can be used in useQuery
+  const validChatId = chatId === 'new' ? null : chatId;
 
-   // React Query for message caching - provides instant loading from cache
-   // Use initialData to show cached data immediately while fetching
-   const { data: queryData, isLoading, isFetching, dataUpdatedAt } = useQuery({
-     queryKey: ['chatMessages', validChatId],
-     queryFn: () => fetchChatMessages({ chatId: validChatId, supabase }),
-     enabled: !!validChatId && !!supabase,
-     staleTime: 1000 * 60 * 5, // 5 minutes - data stays fresh
-     gcTime: 1000 * 60 * 60 * 24, // 24 hours - keep in cache
-     refetchOnWindowFocus: false,
-   });
-   
-   // Check if we have cached data - if yes, never show loading
-   const hasCachedData = queryData && queryData.length > 0;
-   
-   // isLoading from React Query is only true on FIRST load (no cache)
-   // So we show loading ONLY if there's no cached data at all
-   const showLoading = isLoading && !hasCachedData;
+  // State
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [otherUser, setOtherUser] = useState(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isTempChat, setIsTempChat] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
 
-   // CRITICAL: Clear otherUser when chatId changes (messages are handled by React Query cache)
-   // React Query automatically switches cache based on queryKey, no manual clearing needed!
-   useEffect(() => {
-     setOtherUser(null);
-   }, [chatId]);
+  // ─── IN-MEMORY MESSAGE CACHE ────────────────────────────────────────────────
+  // A Map<chatId, Message[]> that lives for the lifetime of the Chat component.
+  // This is the same pattern used by WhatsApp Web / Telegram Web:
+  //   • Switch to a chat → show cached messages INSTANTLY (0 ms, no spinner)
+  //   • Silently re-fetch in the background → merge new messages into cache
+  //   • Realtime events also write into the cache so it stays up-to-date
+  // The cache is a ref (not state) so updating it never triggers a re-render.
+  const messageCacheRef = useRef(new Map()); // Map<chatId, Message[]>
 
-   // CRITICAL: DO NOT clear messages when switching chats!
-   // Let React Query handle cache switching automatically via queryKey
-   // We only update messages when we have new data from queryData
-   useEffect(() => {
-     if (queryData && queryData.length > 0) {
-       setMessages(queryData);
-     }
-     // Don't clear messages here - let cached data persist!
-   }, [queryData]);
+  // Helper: write the current messages array back into the cache for this chat
+  const updateCache = useCallback((cid, msgs) => {
+    messageCacheRef.current.set(cid, msgs);
+  }, []);
 
-   // Auto-scroll to bottom when chat switches or new messages arrive
-   useEffect(() => {
-     if (messages.length > 0 && messagesEndRef.current) {
-       messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
-       setIsScrolledToBottom(true);
-     }
-   }, [chatId, messages.length]);
-   const [showSearchModal, setShowSearchModal] = useState(false);
-   const [searchQuery, setSearchQuery] = useState('');
-   const [searchResults, setSearchResults] = useState([]);
-   const [isSearching, setIsSearching] = useState(false);
-   const [showDeleteModal, setShowDeleteModal] = useState(false);
-   const [selectedMessages, setSelectedMessages] = useState(new Set());
-   const [isSelectionMode, setIsSelectionMode] = useState(false);
-   const [showThemeModal, setShowThemeModal] = useState(false);
-   const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
-   const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
-   const [replyingTo, setReplyingTo] = useState(null);
-   const [showForwardModal, setShowForwardModal] = useState(false);
-   const [messagesToForward, setMessagesToForward] = useState([]);
-   const [showGameRoom, setShowGameRoom] = useState(false);
-   const [showGroupInfoDrawer, setShowGroupInfoDrawer] = useState(false);
+  // showLoading: only show the full-screen spinner when we have NO cached data
+  // AND a network fetch is in-flight. If cache has data, we show it immediately.
+  const showLoading = messagesLoading && messages.length === 0;
 
-   const messagesEndRef = useRef(null);
-   const messagesContainerRef = useRef(null);
-   const typingTimeoutRef = useRef(null);
+  // ─── MAIN MESSAGE FETCH EFFECT ───────────────────────────────────────────────
+  // Runs every time the user opens a different chat (validChatId changes).
+  //
+  // Step 1 – INSTANT: If the cache already has messages for this chat, show them
+  //          right away. The user sees content immediately with zero loading.
+  //
+  // Step 2 – BACKGROUND: Always fire a fresh DB fetch regardless of cache.
+  //          When it resolves, merge any new messages (sent while away, or
+  //          messages from the other user) into the cache and update the UI.
+  //          The `cancelled` flag ensures a stale response from a previous chat
+  //          can never overwrite the current chat's messages.
+  useEffect(() => {
+    if (!validChatId || !supabase) {
+      setMessages([]);
+      setOtherUser(null);
+      return;
+    }
 
-  const { 
-    isOpen: isGameOpen, 
-    gameState, 
-    startGame, 
-    pickType, 
-    sendChallenge, 
-    completeTurn, 
-    closeGame 
+    let cancelled = false;
+
+    // ── Step 1: Show cached messages instantly ──
+    const cached = messageCacheRef.current.get(validChatId);
+    if (cached && cached.length > 0) {
+      setMessages(cached);
+      setMessagesLoading(false); // cache hit → no spinner
+    } else {
+      setMessages([]);
+      setMessagesLoading(true);  // no cache → show spinner until fetch completes
+    }
+    setOtherUser(null);
+    setHasMoreMessages(true);
+
+    // ── Step 2: Background fetch to get fresh / missing messages ──
+    const fetchFreshMessages = async () => {
+      try {
+        if (!validChatId) {
+          console.warn('fetchFreshMessages called with invalid chatId');
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('messages')
+          .select(`
+             *,
+             sender:sender_id (
+               id,
+               name,
+               avatar,
+               is_online,
+               last_seen
+             ),
+             receiver:receiver_id (
+               id,
+               name,
+               avatar,
+               is_online,
+               last_seen
+             )
+           `)
+          .eq('chat_id', validChatId)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+        if (cancelled) return; // user already switched to another chat
+
+        // Add null safety for sender/receiver data
+        const freshMessages = (data || []).map(msg => ({
+          ...msg,
+          sender: msg.sender || { id: msg.sender_id, name: 'Unknown', avatar: null },
+          receiver: msg.receiver || { id: msg.receiver_id, name: 'Unknown', avatar: null }
+        })).reverse(); // ascending order
+
+        // Merge: keep any optimistic / realtime messages that arrived after the
+        // DB snapshot (identified by tempId or a created_at newer than the last
+        // DB message), then append the authoritative DB list.
+        setMessages(prev => {
+          const dbIds = new Set(freshMessages.map(m => m.id));
+          // Preserve temp messages (optimistic sends) not yet confirmed by DB
+          const pendingOptimistic = prev.filter(m => m.tempId && !dbIds.has(m.id));
+          const merged = [...freshMessages, ...pendingOptimistic];
+          updateCache(validChatId, merged);
+          return merged;
+        });
+
+        setHasMoreMessages((data || []).length === 50);
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Error fetching messages:', err);
+      } finally {
+        if (!cancelled) setMessagesLoading(false);
+      }
+    };
+
+    fetchFreshMessages();
+
+    return () => { cancelled = true; };
+  }, [validChatId, supabase, updateCache]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the cache in sync whenever messages state changes (realtime updates,
+  // optimistic sends, deletes, etc.) so the next cache-hit is always fresh.
+  useEffect(() => {
+    if (validChatId && messages.length > 0) {
+      updateCache(validChatId, messages);
+    }
+  }, [messages, validChatId, updateCache]);
+
+  // Auto-scroll to bottom when chat switches or new messages arrive
+  useEffect(() => {
+    if (messages.length > 0 && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+      setIsScrolledToBottom(true);
+    }
+  }, [chatId, messages.length]);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
+  const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [messagesToForward, setMessagesToForward] = useState([]);
+  const [showGameRoom, setShowGameRoom] = useState(false);
+  const [showGroupInfoDrawer, setShowGroupInfoDrawer] = useState(false);
+
+  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+
+  const {
+    isOpen: isGameOpen,
+    gameState,
+    startGame,
+    pickType,
+    sendChallenge,
+    completeTurn,
+    closeGame
   } = useTruthDareGame(chatId, currentUser?.id);
 
-   const handleNewMessage = useCallback((newMessage) => {
+  const handleNewMessage = useCallback((newMessage) => {
     setMessages(prev => {
       // Check if message already exists to prevent duplicates
       const exists = prev.some(msg => msg.id === newMessage.id);
       if (exists) return prev;
-      
+
       // Check if this is replacing a temporary message
-      const hasTempMessage = prev.some(msg => 
+      const hasTempMessage = prev.some(msg =>
         msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at
       );
-      
+
       if (hasTempMessage) {
         // Replace temporary message with real message
-        return prev.map(msg => 
-          (msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at) 
-            ? newMessage 
+        return prev.map(msg =>
+          (msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at)
+            ? newMessage
             : msg
         );
       }
-      
+
       return [...prev, newMessage];
     });
 
@@ -181,7 +273,7 @@ const Chat = () => {
         startGame();
       }
     }
-   }, [isScrolledToBottom, currentUser?.id, isMuted, startGame]);
+  }, [isScrolledToBottom, currentUser?.id, isMuted, startGame]);
 
   useRealtimeMessages(validChatId, setMessages, currentUser?.id);
 
@@ -208,13 +300,13 @@ const Chat = () => {
         .single();
 
       if (error) throw error;
-      
+
       // Get member count and member previews
       const { count: memberCount } = await supabase
         .from('group_members')
         .select('*', { count: 'exact', head: true })
         .eq('group_id', groupId);
-      
+
       // Get member details for preview
       const { data: members } = await supabase
         .from('group_members')
@@ -228,7 +320,7 @@ const Chat = () => {
         avatar: m.users?.avatar,
         role: m.role
       })) || [];
-      
+
       // Get current user's role in the group
       const { data: currentMember } = await supabase
         .from('group_members')
@@ -236,7 +328,7 @@ const Chat = () => {
         .eq('group_id', groupId)
         .eq('user_id', currentUser?.id)
         .single();
-      
+
       // Set as otherUser for display (group name as "name")
       setOtherUser({
         ...group,
@@ -260,6 +352,11 @@ const Chat = () => {
 
   const loadOtherUserInfo = async (userId) => {
     try {
+      if (!userId) {
+        console.warn('loadOtherUserInfo called with null userId');
+        return;
+      }
+
       const { data: user, error } = await supabase
         .from('users')
         .select('*')
@@ -269,19 +366,27 @@ const Chat = () => {
       if (error) throw error;
       setOtherUser(user);
 
-      // Load contact name
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('contact_name')
-        .eq('user_id', currentUser.id)
-        .eq('contact_user_id', userId)
-        .maybeSingle();
+      // Load contact name - only if we have currentUser
+      if (currentUser?.id) {
+        const { data: contact } = await supabase
+          .from('contacts')
+          .select('contact_name')
+          .eq('user_id', currentUser.id)
+          .eq('contact_user_id', userId)
+          .maybeSingle();
 
-      if (contact) {
-        setOtherUser(prev => ({ ...prev, contact_name: contact.contact_name }));
+        if (contact) {
+          setOtherUser(prev => ({ ...prev, contact_name: contact.contact_name }));
+        }
       }
     } catch (error) {
       console.error('Error loading user info:', error);
+      // Set fallback user data to prevent crashes
+      setOtherUser({
+        id: userId,
+        name: 'Unknown User',
+        avatar: null
+      });
     }
   };
 
@@ -325,8 +430,24 @@ const Chat = () => {
     const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
     setIsMuted(!!mutedChats[chatId]);
 
-    const tempChats = JSON.parse(localStorage.getItem('tempChats') || '{}');
-    setIsTempChat(!!tempChats[chatId]);
+    // Load temp chat state from DB
+    const loadTempChatState = async () => {
+      if (!chatId || !currentUser?.id) return;
+      try {
+        const { data } = await supabase
+          .from('temporary_chat_settings')
+          .select('is_enabled')
+          .eq('chat_id', chatId)
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+        setIsTempChat(data?.is_enabled || false);
+      } catch (e) {
+        // Fallback to localStorage
+        const tempChats = JSON.parse(localStorage.getItem('tempChats') || '{}');
+        setIsTempChat(!!tempChats[chatId]);
+      }
+    };
+    loadTempChatState();
   }, [chatId, currentUser]);
 
   // Subscribe to real-time updates for other user's online status
@@ -438,9 +559,9 @@ const Chat = () => {
         .from('blocked_users')
         .insert([
           {
-          blocker_id: currentUser.id,
-          blocked_id: otherUser.id
-        }]);
+            blocker_id: currentUser.id,
+            blocked_id: otherUser.id
+          }]);
 
       if (error) throw error;
       navigate('/');
@@ -455,18 +576,35 @@ const Chat = () => {
 
     // 1. Optimistic Update - Show message immediately
     const tempId = Date.now();
-    const optimisticMsg = {
-      id: tempId,
-      chat_id: validChatId,
-      sender_id: currentUser.id,
-      receiver_id: otherUserId,
+    const messageData = {
+      chatId: validChatId,
+      senderId: currentUser.id,
+      // For groups, otherUserId might be the string 'group'. 
+      // We use currentUser.id as a placeholder receiverId specifically for group messages 
+      // to satisfy the foreign key constraint on the receiver_id column in the messages table.
+      receiverId: isGroupChat ? currentUser.id : otherUserId,
       content: content.trim(),
-      media_path: null,
-      media_type: null,
-      reply_to: replyingTo ? replyingTo.id : null,
-      created_at: new Date().toISOString(),
+      mediaPath: null,
+      mediaType: null,
+      isGroupMessage: isGroupChat,
+      replyTo: replyingTo ? replyingTo.id : null,
+      createdAt: new Date().toISOString(),
       tempId: tempId, // Mark as temporary
       status: 'sending'
+    };
+
+    // Validate message data
+    const validationErrors = validateEntity(messageData, Message, 'message');
+    if (validationErrors.length > 0) {
+      console.error('Message validation failed:', validationErrors);
+      toast.error('Invalid message data');
+      return;
+    }
+
+    const optimisticMsg = {
+      ...messageData,
+      // Convert to database format for insertion
+      ...frontendToDb(messageData)
     };
 
     // Add to messages state immediately
@@ -475,24 +613,27 @@ const Chat = () => {
 
     try {
       // 2. Background Database Call
+      const dbMessage = frontendToDb({
+        chatId: validChatId,
+        senderId: currentUser.id,
+        receiverId: isGroupChat ? currentUser.id : otherUserId,
+        content: content.trim(),
+        mediaPath: null,
+        mediaType: null,
+        isGroupMessage: isGroupChat,
+        replyTo: replyingTo ? replyingTo.id : null,
+      });
+
       const { data, error } = await supabase
         .from('messages')
-        .insert({
-          chat_id: validChatId,
-          sender_id: currentUser.id,
-          receiver_id: otherUserId,
-          content: content.trim(),
-          media_path: null,
-          media_type: null,
-          reply_to: replyingTo ? replyingTo.id : null,
-        })
+        .insert(dbMessage)
         .select()
         .single();
 
       if (error) throw error;
 
       // 3. Replace temporary message with real message
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.tempId === tempId ? { ...data, status: 'sent' } : msg
       ));
 
@@ -501,7 +642,7 @@ const Chat = () => {
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message.');
-      
+
       // 4. Rollback on error - Remove temporary message
       setMessages(prev => prev.filter(msg => msg.tempId !== tempId));
     }
@@ -513,8 +654,8 @@ const Chat = () => {
     try {
       const content = mediaType === 'image' ? '📷 Photo'
         : mediaType === 'video' ? '🎥 Video'
-        : '🎤 Voice Message';
-      
+          : '🎤 Voice Message';
+
       const newMessage = {
         chat_id: validChatId,
         sender_id: currentUser.id,
@@ -530,7 +671,7 @@ const Chat = () => {
         .insert(newMessage);
 
       if (error) throw error;
-      
+
       setReplyingTo(null);
       NotificationSound.playMessageNotification();
 
@@ -788,12 +929,12 @@ const Chat = () => {
   const handleSearchQueryChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    
+
     // Update UI immediately for responsiveness
     if (!query.trim()) {
       setSearchResults([]);
     }
-    
+
     // Debounced API call
     debouncedSearch(query);
   };
@@ -824,19 +965,44 @@ const Chat = () => {
   const handleTempChatToggle = async () => {
     try {
       const newTempChatState = !isTempChat;
+
+      if (newTempChatState) {
+        // Enable vanish mode: upsert into temporary_chat_settings
+        await supabase
+          .from('temporary_chat_settings')
+          .upsert(
+            {
+              chat_id: chatId,
+              user_id: currentUser.id,
+              is_enabled: true,
+              vanish_duration: 86400, // 24 hours default
+              auto_delete_media: false,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'chat_id,user_id' }
+          );
+      } else {
+        // Disable vanish mode: update is_enabled to false
+        await supabase
+          .from('temporary_chat_settings')
+          .update({ is_enabled: false, updated_at: new Date().toISOString() })
+          .eq('chat_id', chatId)
+          .eq('user_id', currentUser.id);
+      }
+
+      // Also update localStorage cache
       const tempChats = JSON.parse(localStorage.getItem('tempChats') || '{}');
       if (newTempChatState) {
-        tempChats[chatId] = {
-          enabled: true,
-          duration: 24 * 60 * 60 * 1000
-        };
+        tempChats[chatId] = { enabled: true, duration: 86400 };
       } else {
         delete tempChats[chatId];
       }
       localStorage.setItem('tempChats', JSON.stringify(tempChats));
+
       setIsTempChat(newTempChatState);
     } catch (error) {
       console.error('Error toggling temp chat:', error);
+      toast.error('Failed to toggle vanish mode');
     }
   };
 
@@ -882,7 +1048,7 @@ const Chat = () => {
       setShowGroupCallModal(true);
       return;
     }
-    
+
     try {
       const { callId } = await startCall(otherUser.id, 'voice');
       navigate(`/call/${callId}`);
@@ -899,7 +1065,7 @@ const Chat = () => {
       setShowGroupCallModal(true);
       return;
     }
-    
+
     try {
       const { callId } = await startCall(otherUser.id, 'video');
       navigate(`/call/${callId}`);
@@ -998,10 +1164,6 @@ const Chat = () => {
       alert('Failed to download media');
     }
   };
-
-  // Don't return early - let the UI render with cached messages!
-  // Only show loading if we have no cached messages AND no otherUser yet
-  const showInitialLoading = !otherUser && !messages.length && !queryData;
 
   // Memoize the Chat component to prevent unnecessary re-renders
   const MemoizedChat = memo(Chat);
@@ -1168,10 +1330,10 @@ const Chat = () => {
                   const message = messages.find(msg => msg.id === messageId);
                   return message && message.sender_id === currentUser?.id;
                 }) && (
-                  <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
-                    <Trash2 size={16} />
-                  </button>
-                )}
+                    <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
+                      <Trash2 size={16} />
+                    </button>
+                  )}
               </>
             )}
             {selectedMessages.size > 1 && (
@@ -1358,14 +1520,14 @@ const Chat = () => {
                     background: 'white'
                   }}
                 >
-                  <div style={{ 
+                  <div style={{
                     width: '100%',
                     height: '65%',
                     background: theme.background,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}></div>
-                  <div style={{ 
+                  <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -1374,14 +1536,14 @@ const Chat = () => {
                     background: 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(10px)'
                   }}>
-                    <div style={{ 
+                    <div style={{
                       width: '32px',
                       height: '10px',
                       borderRadius: '6px',
                       background: theme.sentMessage.background,
                       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}></div>
-                    <div style={{ 
+                    <div style={{
                       width: '32px',
                       height: '10px',
                       borderRadius: '6px',
@@ -1390,7 +1552,7 @@ const Chat = () => {
                     }}></div>
                   </div>
                   {chatTheme === key && (
-                    <div style={{ 
+                    <div style={{
                       position: 'absolute',
                       top: '8px',
                       right: '8px',
@@ -1532,5 +1694,5 @@ const Chat = () => {
     </div>
   );
 };
- 
+
 export default Chat;

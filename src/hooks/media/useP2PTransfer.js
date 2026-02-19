@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
 
 /**
  * React hook for P2P file transfer functionality

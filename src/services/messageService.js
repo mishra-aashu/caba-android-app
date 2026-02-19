@@ -1,3 +1,6 @@
+import { dbToFrontend, safeDbConversion } from '../utils/dbFieldMapping';
+import { validateAndSanitize, coerceDataTypes } from '../utils/dataValidation';
+
 /**
  * Service function to fetch chat messages from Supabase
  * Returns the array of messages directly for use with React Query
@@ -41,7 +44,11 @@ export const fetchChatMessages = async ({ chatId, supabase }) => {
     throw error;
   }
 
-  return data || [];
+  // Convert database field names to frontend format with null safety
+  const convertedData = safeDbConversion(data || []);
+  
+  // Coerce data types to ensure consistency
+  return convertedData.map(message => coerceDataTypes(message, 'messages'));
 };
 
 /**
@@ -87,7 +94,11 @@ export const fetchOlderMessages = async ({ chatId, supabase, beforeTimestamp }) 
     throw error;
   }
 
-  return data || [];
+  // Convert database field names to frontend format with null safety
+  const convertedData = safeDbConversion(data || []);
+  
+  // Coerce data types to ensure consistency
+  return convertedData.map(message => coerceDataTypes(message, 'messages'));
 };
 
 export default fetchChatMessages;

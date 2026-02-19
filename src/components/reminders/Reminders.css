@@ -1,6 +1,15 @@
 .reminders-container {
-  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+@media (max-width: 768px) {
+  .reminders-container {
+    padding-bottom: 60px;
+    /* Space for BottomNavigation */
+  }
 }
 
 .app-header {
@@ -9,10 +18,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.header-left, .header-center, .header-right {
+.header-left,
+.header-center,
+.header-right {
   display: flex;
   align-items: center;
 }
@@ -28,7 +39,8 @@
   font-weight: 600;
 }
 
-.back-btn, .icon-btn {
+.back-btn,
+.icon-btn {
   background: none;
   border: none;
   font-size: 1.2rem;
@@ -38,7 +50,8 @@
   transition: background 0.3s;
 }
 
-.back-btn:hover, .icon-btn:hover {
+.back-btn:hover,
+.icon-btn:hover {
   background: #f0f0f0;
 }
 
@@ -123,12 +136,12 @@
   border-left: 4px solid #4CAF50;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .reminder-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .reminder-card.priority-low {
@@ -232,7 +245,8 @@
   margin-bottom: 12px;
 }
 
-.reminder-time, .reminder-location {
+.reminder-time,
+.reminder-location {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -418,7 +432,8 @@
   font-size: 24px;
 }
 
-.reminders-loading, .reminders-error {
+.reminders-loading,
+.reminders-error {
   text-align: center;
   padding: 50px;
 }
@@ -434,8 +449,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .reminders-error button {

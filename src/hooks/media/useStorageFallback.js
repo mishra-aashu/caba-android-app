@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { supabase } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
 
 /**
  * React hook for Supabase Storage fallback functionality

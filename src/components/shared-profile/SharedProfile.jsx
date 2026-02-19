@@ -1,33 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabase';
+import useAuthStore from '../../store/authStore';
 import { dpOptions } from '../../utils/dpOptions';
 import { X } from 'lucide-react';
 import './SharedProfile.css';
 
 const SharedProfile = ({ userId, onBack }) => {
   const [user, setUser] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
+  const currentUser = useAuthStore((state) => state.dbUser);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    initializeSharedProfile();
+    loadSharedProfile(userId).then(() => setLoading(false));
   }, [userId]);
-
-  const initializeSharedProfile = async () => {
-    try {
-      // Check if user is logged in
-      const userStr = localStorage.getItem('currentUser');
-      if (userStr) {
-        setCurrentUser(JSON.parse(userStr));
-      }
-
-      await loadSharedProfile(userId);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error initializing shared profile:', error);
-      setLoading(false);
-    }
-  };
 
   const loadSharedProfile = async (id) => {
     try {

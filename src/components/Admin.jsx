@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useAuth } from '../hooks/useAuth';
+import { isAdmin, verifyAdminTableAccess, fetchAdminData } from '../utils/adminVerification';
 import { dpOptions } from '../utils/dpOptions';
 import { isUserOnline } from '../utils/timeUtils';
 import {
@@ -16,6 +17,7 @@ import './admin/Admin.css';
 
 // Helper function to get avatar URL
 const getAvatarUrl = (avatar) => {
+  const baseUrl = import.meta.env.BASE_URL || '/';
   if (!avatar) return `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`; // Default to first DP
   if (parseInt(avatar)) {
     const dp = dpOptions.find(dp => dp.id === parseInt(avatar));
@@ -98,27 +100,20 @@ const Admin = () => {
         return;
       }
 
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error || !userData || !userData.is_admin) {
-        // Silent redirect for non-admin users - no console logs
+      // Verify admin access
+      const adminStatus = await isAdmin(user.id);
+      if (!adminStatus) {
+        console.log('🔧 User is not an admin, redirecting to home');
         navigate('/');
         return;
       }
 
-      // Only log for admin users
-      if (userData.is_admin) {
-        console.log('Admin access granted for user:', userData.name);
-      }
-
-      setCurrentUser(userData);
+      console.log('✅ Admin access verified');
+      setCurrentUser(user);
+      setLoading(false);
     } catch (error) {
-      // Silent error handling for non-admin users
-      navigate('/');
+      console.error('Error checking admin access:', error);
+      navigate('/login');
     }
   };
 

@@ -1,47 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
+import useAuthStore from '../store/authStore';
 import IncomingCall from './calls/IncomingCall';
 
 const IncomingCallContext = createContext();
 
 export const IncomingCallProvider = ({ children }) => {
   const [incomingCall, setIncomingCall] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  useEffect(() => {
-    // Get current user
-    const userStr = localStorage.getItem('currentUser');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setCurrentUser(user);
-      } catch (error) {
-        console.error('Error parsing current user:', error);
-      }
-    }
-
-    // Listen for auth changes to update current user
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          const userData = {
-            id: session.user.id,
-            name: session.user.user_metadata?.name || 'User',
-            email: session.user.email,
-            phone: session.user.user_metadata?.phone || '',
-            avatar: session.user.user_metadata?.avatar || null
-          };
-          setCurrentUser(userData);
-          localStorage.setItem('currentUser', JSON.stringify(userData));
-        } else {
-          setCurrentUser(null);
-          localStorage.removeItem('currentUser');
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const currentUser = useAuthStore((state) => state.dbUser);
 
   useEffect(() => {
     if (currentUser) {

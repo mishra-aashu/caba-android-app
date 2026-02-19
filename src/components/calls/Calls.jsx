@@ -28,10 +28,10 @@ const Calls = () => {
   const userId = dbUser?.id;
 
   // React Query for contacts - cached for 10 minutes
-  const { 
-    data: contactsData, 
+  const {
+    data: contactsData,
     isLoading: contactsLoading,
-    refetch: refetchContacts 
+    refetch: refetchContacts
   } = useQuery({
     queryKey: ['callContacts', userId],
     queryFn: async () => {
@@ -44,10 +44,10 @@ const Calls = () => {
   });
 
   // React Query for call history - cached for 10 minutes
-  const { 
-    data: callHistoryData, 
+  const {
+    data: callHistoryData,
     isLoading: historyLoading,
-    refetch: refetchHistory 
+    refetch: refetchHistory
   } = useQuery({
     queryKey: ['callHistoryList', userId],
     queryFn: async () => {
@@ -152,120 +152,7 @@ const Calls = () => {
 
   // Note: Incoming call listener is now global in SupabaseContext
 
-  const initializeCalls = async () => {
-    try {
-      // Get user from auth store
-      const authState = useAuthStore.getState();
-      const { dbUser, isAuthenticated } = authState;
-      
-      if (!isAuthenticated || !dbUser) {
-        alert('No user logged in');
-        setLoading(false);
-        return;
-      }
 
-      // Handle DP assignment same as Home component
-      if (!dbUser.avatar) {
-        dbUser.avatar = Math.floor(Math.random() * 46) + 1;
-      } else if (typeof dbUser.avatar === 'string' && !dbUser.avatar.startsWith('http')) {
-        // If avatar is a string but not a URL, try to parse as number
-        const avatarId = parseInt(dbUser.avatar);
-        if (isNaN(avatarId)) {
-          dbUser.avatar = Math.floor(Math.random() * 46) + 1;
-        }
-      }
-
-      setCurrentUser(dbUser);
-
-      await Promise.all([
-        loadContacts(dbUser),
-        loadCallHistory(dbUser)
-      ]);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error initializing calls:', error);
-      setLoading(false);
-    }
-  };
-
-  const loadContacts = async (user) => {
-    try {
-      // Load contacts with explicit user fetching to handle data type issues
-      const { data: contactsList, error: contactsError } = await supabase
-        .from('contacts')
-        .select('contact_user_id, contact_name')
-        .eq('user_id', user.id);
-
-      if (contactsError) throw contactsError;
-
-      let contactsData = [];
-      if (contactsList && contactsList.length > 0) {
-        // Fetch user details for each contact
-        const userIds = contactsList.map(c => c.contact_user_id).filter(id => id);
-        if (userIds.length > 0) {
-          const { data: users, error: usersError } = await supabase
-            .from('users')
-            .select('*')
-            .in('id', userIds);
-
-          if (!usersError && users) {
-            contactsData = users.map(u => {
-              const contact = contactsList.find(c => c.contact_user_id === u.id);
-              return { ...u, contact_name: contact?.contact_name };
-            });
-          }
-        }
-      }
-
-      // Also load from chats
-      const { data: chats } = await supabase
-        .from('chats')
-        .select(`
-          user1:users!chats_user1_id_fkey(*),
-          user2:users!chats_user2_id_fkey(*)
-        `)
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
-
-      if (chats) {
-        chats.forEach(chat => {
-          const otherUser = chat.user1.id === user.id ? chat.user2 : chat.user1;
-          if (otherUser && otherUser.id && !contactsData.find(c => c.id === otherUser.id)) {
-            contactsData.push(otherUser);
-          }
-        });
-      }
-
-      setContacts(contactsData);
-    } catch (error) {
-      console.error('Error loading contacts:', error);
-    }
-  };
-
-  const loadCallHistory = async (user) => {
-    try {
-      const { data, error } = await supabase
-        .from('call_history')
-        .select(`
-          *,
-          caller:users!call_history_caller_id_fkey(name, avatar),
-          receiver:users!call_history_receiver_id_fkey(name, avatar)
-        `)
-        .or(`caller_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-
-      const historyData = data.map(call => ({
-        ...call,
-        otherUser: call.caller_id === user.id ? call.receiver : call.caller
-      })).filter(call => call.otherUser && call.otherUser.id); // Filter out calls with invalid otherUser
-
-      setCallHistory(historyData);
-    } catch (error) {
-      console.error('Error loading call history:', error);
-    }
-  };
 
   const checkPendingCall = async () => {
     // Check for regular pending calls
@@ -304,7 +191,7 @@ const Calls = () => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (contact.contact_name || contact.name).toLowerCase().includes(search) ||
-            (contact.phone && contact.phone.includes(search));
+      (contact.phone && contact.phone.includes(search));
   });
 
   const handleCall = async (contact, type = 'video') => {
@@ -398,7 +285,7 @@ const Calls = () => {
             {activeCall && (
               <div className="header-call-notification" title="Click to view active call">
                 <div className="call-info">
-                  <svg className="call-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <svg className="call-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"></path>
                     <rect x="2" y="6" width="14" height="12" rx="2"></rect>
                   </svg>
@@ -406,7 +293,7 @@ const Calls = () => {
                 </div>
                 <span className="caller-name">{activeCall.caller_name || 'Unknown'}</span>
                 <button className="end-call-btn" title="End Call" onClick={handleCallEnd}>
-                  <svg className="end-call-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <svg className="end-call-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M10.1 13.9a14 14 0 0 0 3.732 2.668 1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2 18 18 0 0 1-12.728-5.272"></path>
                     <path d="M22 2 2 22"></path>
                     <path d="M4.76 13.582A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 .244.473"></path>
@@ -430,61 +317,14 @@ const Calls = () => {
           </div>
         </div>
 
-        {/* Call History */}
-        <div className="call-history-section">
-          <CallHistory
-            userId={currentUser?.id}
-            userAvatar={currentUser?.avatar}
-            userName={currentUser?.name}
-          />
-        </div>
-
-        {/* Contacts List */}
-        <div className="contacts-section">
-          <h3>Contacts</h3>
-          <div className="contacts-list">
-            {filteredContacts.length > 0 ? (
-              filteredContacts.map(contact => (
-                <div key={contact.id} className="contact-item">
-                  <div className="call-avatar">
-                    <div className="avatar">
-                      {contact.avatar ? (
-                        parseInt(contact.avatar) ? (
-                          <img src={dpOptions.find(dp => dp.id === parseInt(contact.avatar))?.path || contact.avatar} alt={contact.name} />
-                        ) : (
-                          <img src={contact.avatar} alt={contact.name} />
-                        )
-                      ) : (
-                        getInitials(contact.name)
-                      )}
-                    </div>
-                    <span className={`online-status ${isUserOnline(Boolean(contact.is_online), contact.last_seen) ? 'online' : ''}`}></span>
-                  </div>
-                  <div className="contact-info">
-                    <h4>{contact.contact_name || contact.name}</h4>
-                    <p>{contact.phone || 'No phone'}</p>
-                  </div>
-                  <div className="call-buttons">
-                    <CallButton
-                      receiverId={contact.id}
-                      callType="voice"
-                      size="md"
-                    />
-                    <CallButton
-                      receiverId={contact.id}
-                      callType="video"
-                      size="md"
-                    />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="empty-state">
-                <i className="fas fa-user-slash"></i>
-                <h3>No contacts found</h3>
-                <p>Add contacts to start making calls</p>
-              </div>
-            )}
+        {/* Scrollable Content: Call History */}
+        <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div className="call-history-section">
+            <CallHistory
+              userId={dbUser?.id}
+              userAvatar={dbUser?.avatar}
+              userName={dbUser?.name}
+            />
           </div>
         </div>
       </div>
@@ -492,7 +332,7 @@ const Calls = () => {
 
       {/* Incoming Call Modal */}
       <IncomingCallModal />
-      
+
       {/* Bottom Navigation */}
       <BottomNavigation />
     </>

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import useAuthStore from '../../store/authStore';
 import { X } from 'lucide-react';
 import '../../styles/reminders.css';
 
 const Reminders = () => {
   const { supabase } = useSupabase();
   const { theme } = useTheme();
-  const [currentUser, setCurrentUser] = useState(null);
+  const currentUser = useAuthStore((state) => state.dbUser);
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,29 +16,34 @@ const Reminders = () => {
   const [currentTab, setCurrentTab] = useState('upcoming');
 
   useEffect(() => {
-    initializeReminders();
-  }, []);
-
-  const initializeReminders = async () => {
-    try {
-      // Get current user
-      const userStr = localStorage.getItem('currentUser');
-      if (!userStr) {
-        setError('No user logged in');
-        setLoading(false);
-        return;
-      }
-      const user = JSON.parse(userStr);
-      setCurrentUser(user);
-
-      await loadReminders(user);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error initializing reminders:', error);
-      setError('Failed to load reminders');
-      setLoading(false);
+    if (currentUser) {
+      loadReminders(currentUser).then(() => setLoading(false));
     }
-  };
+  }, [currentUser]);
+
+  // Real-time subscription for incoming reminders
+  useEffect(() => {
+    if (!currentUser) return;
+    const channel = supabase
+      .channel(`reminders_${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reminders',
+        },
+        () => {
+          // Reload reminders on any change
+          loadReminders(currentUser);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser, supabase]);
 
   const loadReminders = async (user) => {
     try {
@@ -124,7 +130,7 @@ const Reminders = () => {
         .from('reminders')
         .update({
           status: 'completed',
-          completed_at: new Date().toISOString()
+          updated_at: new Date().toISOString()
         })
         .eq('id', id);
 

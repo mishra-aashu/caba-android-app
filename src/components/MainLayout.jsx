@@ -39,7 +39,7 @@ const MainLayout = () => {
     const [contactPhone, setContactPhone] = useState('');
     const [contactMenuOpen, setContactMenuOpen] = useState(null);
     const [isChatViewActive, setIsChatViewActive] = useState(false);
-    
+
     // State for user-details panel - keeps Chat mounted!
     const [showUserDetailsPanel, setShowUserDetailsPanel] = useState(false);
     const [userDetailsTargetId, setUserDetailsTargetId] = useState(null);
@@ -49,8 +49,13 @@ const MainLayout = () => {
     const currentChatId = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
 
     useEffect(() => {
-        setIsChatViewActive(location.pathname.startsWith('/chat/') || location.pathname.startsWith('/user-details/'));
+        setIsChatViewActive(
+            location.pathname.startsWith('/chat/') ||
+            location.pathname.startsWith('/user-details/') ||
+            location.pathname === '/groups'
+        );
     }, [location]);
+
 
     const fetchContacts = useCallback(async () => {
         if (!user) return;
@@ -64,7 +69,7 @@ const MainLayout = () => {
                     contact_name,
                     is_favorite,
                     created_at,
-                    otherUser:contact_user_id (id, name, phone, avatar, is_online)
+                    otherUser:users!contacts_contact_user_id_fkey(id, name, phone, avatar, is_online)
                 `)
                 .eq('user_id', user.id);
             if (error) throw error;
@@ -84,7 +89,7 @@ const MainLayout = () => {
             return toast.error('Name and phone are required.');
         }
         if (!/^\d{10}$/.test(contactPhone)) {
-             return toast.error('Please enter a valid 10-digit phone number.');
+            return toast.error('Please enter a valid 10-digit phone number.');
         }
 
         try {
@@ -124,23 +129,23 @@ const MainLayout = () => {
             }
         }
     };
-    
+
     const handleStartChatWithContact = async (contact) => {
         if (!contact.contact_user_id) {
             return toast.error("This contact can't be messaged.");
         }
-        
+
         try {
             const { data: chat, error: chatError } = await supabase
                 .from('chats')
                 .select('id')
                 .or(`and(user1_id.eq.${user.id},user2_id.eq.${contact.contact_user_id}),and(user1_id.eq.${contact.contact_user_id},user2_id.eq.${user.id})`)
                 .single();
-    
+
             if (chatError && chatError.code !== 'PGRST116') { // PGRST116 means no rows found
                 throw chatError;
             }
-            
+
             if (chat) {
                 setShowNewContactModal(false);
                 navigate(`/chat/${chat.id}/${contact.contact_user_id}`);
@@ -151,9 +156,9 @@ const MainLayout = () => {
                     .insert([newChat])
                     .select()
                     .single();
-    
+
                 if (newChatError) throw newChatError;
-    
+
                 if (newChatData) {
                     setShowNewContactModal(false);
                     navigate(`/chat/${newChatData.id}/${contact.contact_user_id}`);
@@ -161,7 +166,7 @@ const MainLayout = () => {
                     throw new Error('Failed to create chat');
                 }
             }
-        } catch(error) {
+        } catch (error) {
             console.error('Error starting chat:', error);
             toast.error('Could not start chat.');
         }
@@ -207,37 +212,37 @@ const MainLayout = () => {
         setSearchTerm('');
         setShowSuggestions(false);
         setShowSearch(false);
-        
+
         try {
             const { data: chat, error: chatError } = await supabase
                 .from('chats')
                 .select('id')
                 .or(`and(user1_id.eq.${user.id},user2_id.eq.${suggestedUser.id}),and(user1_id.eq.${suggestedUser.id},user2_id.eq.${user.id})`)
                 .single();
-            
+
             if (chatError && chatError.code !== 'PGRST116') {
                 throw chatError;
             }
-    
+
             if (chat) {
                 navigate(`/chat/${chat.id}/${suggestedUser.id}`);
             } else {
-                 const newChat = { user1_id: user.id, user2_id: suggestedUser.id };
+                const newChat = { user1_id: user.id, user2_id: suggestedUser.id };
                 const { data: newChatData, error: newChatError } = await supabase
                     .from('chats')
                     .insert([newChat])
                     .select()
                     .single();
-    
+
                 if (newChatError) throw newChatError;
-    
+
                 if (newChatData) {
                     navigate(`/chat/${newChatData.id}/${suggestedUser.id}`);
                 } else {
                     throw new Error('Failed to create chat');
                 }
             }
-        } catch(error) {
+        } catch (error) {
             console.error('Error starting chat from suggestion:', error);
             toast.error('Could not start chat.');
         }
@@ -245,7 +250,7 @@ const MainLayout = () => {
 
     const handleChatClick = (chat) => {
         if (!chat || !chat.otherUser) return;
-        
+
         // If it's a group, navigate to group chat
         if (chat.isGroup || chat.chatType === 'group') {
             navigate(`/chat/${chat.id}/group`);
@@ -263,7 +268,7 @@ const MainLayout = () => {
             navigate('/login');
         }
     };
-    
+
     const handleNavigation = (path) => navigate(path);
 
     const handleChatListScroll = () => {
@@ -275,10 +280,10 @@ const MainLayout = () => {
         }
     };
 
-    const filteredChats = showSearch 
-      ? chats 
-      : chats.filter(chat =>
-          chat.otherUser?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredChats = showSearch
+        ? chats
+        : chats.filter(chat =>
+            chat.otherUser?.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
     const chatListPanelProps = {
@@ -319,10 +324,10 @@ const MainLayout = () => {
         setContactPhone,
         handleSaveContact,
         contactMenuOpen,
-        handleContactMenuToggle: () => {},
-        handleContactClick: () => {},
-        handleEditContact: () => {}, // Placeholder
-        handleDeleteContact: () => {},
+        handleContactMenuToggle: () => { },
+        handleContactClick: () => { },
+        handleEditContact: () => { }, // Placeholder
+        handleDeleteContact: () => { },
         handleStartChatWithContact,
         isDesktop,
         currentChatId,
@@ -336,12 +341,12 @@ const MainLayout = () => {
             </div>
         );
     }
-    
+
     if (!isDesktop) {
         return (
-             <div className={`mobile-layout ${isChatViewActive ? 'show-chat' : ''}`}>
+            <div className={`mobile-layout ${isChatViewActive ? 'show-chat' : ''}`}>
                 <div className="list-view">
-                   <ChatListPanel {...chatListPanelProps} />
+                    <ChatListPanel {...chatListPanelProps} />
                 </div>
                 <div className="chat-view">
                     <Outlet />
@@ -395,7 +400,7 @@ const MainLayout = () => {
     );
 
     return (
-        <DesktopLayout 
+        <DesktopLayout
             chatListPanel={<ChatListPanel {...chatListPanelProps} />}
             chatComponent={chatComponent}
             userDetailsPanel={userDetailsPanel}
