@@ -16,7 +16,7 @@ export const DataProvider = ({ children }) => {
   const [contacts, setContacts] = useState([]);
 
   // The useChatListRealtime hook will manage the chats list
-  const { chats, loading: chatsLoading, hasMoreChats, loadMoreChats, loadingMore } = useChatListRealtime(user?.id);
+  const { chats, setChats, loading: chatsLoading, hasMoreChats, loadMoreChats, loadingMore } = useChatListRealtime(user?.id);
 
   const loadSavedContacts = useCallback(async (userId) => {
     try {
@@ -43,6 +43,8 @@ export const DataProvider = ({ children }) => {
     } catch (error) {
       console.error('Error loading saved contacts:', error);
       setContacts([]);
+      // Show user-friendly error message (optional - can be added to UI)
+      // toast.error('Failed to load contacts. Please try again.');
     }
   }, [supabase]);
 
@@ -75,10 +77,12 @@ export const DataProvider = ({ children }) => {
   }, [user?.id, loadSavedContacts]);
 
   const clearInMemoryCache = useCallback(() => {
-    setChats([]);
+    if (setChats) {
+      setChats([]);
+    }
     setContacts([]);
     console.log('In-memory state cleared.');
-  }, []);
+  }, [setChats]);
 
   const value = useMemo(() => ({
     chats,

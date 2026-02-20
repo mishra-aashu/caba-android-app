@@ -19,6 +19,7 @@ import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
 import { useMessageStatusUpdates } from '../../hooks/useMessageStatusUpdates';
 import { useData } from '../../contexts/DataContext';
+import { messageReadsService } from '../../services/messageReadsService';
 import { useTruthDareGame } from '../../hooks/useTruthDareGame';
 import TruthDareModal from './TruthDareModal';
 import GameRoom from './GameRoom';
@@ -49,11 +50,9 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
 
-
-  // isGroupChat is derived ONLY from the route param — stable, immediate, never stale.
-  // DM route:    /chat/:chatId/:otherUserId   → otherUserId = real UUID
-  // Group route: /chat/:chatId/group          → otherUserId = literal "group"
-  const isGroupChat = otherUserId === 'group';
+  // isGroupChat: Route "chat/:chatId/group" has NO :otherUserId param, so otherUserId is undefined.
+  // We must detect group by pathname. DM route gives otherUserId = UUID; group route gives path ending in /group.
+  const isGroupChat = otherUserId === 'group' || location.pathname.endsWith('/group');
 
   // Initialise otherUser synchronously from router state (passed by GroupsPage on navigate).
   // This means the header renders the real group name on frame 1 — zero Loading flash.
@@ -921,16 +920,12 @@ const Chat = () => {
     try {
       if (!currentUser || !chatId || chatId === 'new') return;
 
-      await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('chat_id', chatId)
-        .eq('receiver_id', currentUser.id)
-        .eq('is_read', false);
+      // Use messageReadsService for consistent read receipt tracking
+      await messageReadsService.markAllAsRead(chatId, currentUser.id);
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
-  }, [currentUser, chatId, supabase]);
+  }, [currentUser, chatId]);
 
   const handleReply = (message) => {
     setReplyingTo(message);
@@ -993,15 +988,18 @@ const Chat = () => {
 
   const handleForwardMessages = async (messages, targetChat) => {
     try {
+      const isGroupTarget = targetChat.isGroup || targetChat.is_group || false;
+      
       for (const message of messages) {
         const forwardMessage = {
           chat_id: targetChat.id,
           sender_id: currentUser.id,
-          receiver_id: targetChat.otherUser.id,
+          receiver_id: isGroupTarget ? null : (targetChat.otherUser?.id || null),
           content: `Forwarded: ${message.content}`,
           media_path: message.media_path,
           media_type: message.media_type,
           reply_to: null,
+          is_group_message: Boolean(isGroupTarget),
         };
 
         const { error } = await supabase

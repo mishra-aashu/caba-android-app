@@ -94,7 +94,9 @@ const fetchChatList = async ({ supabase, userId }) => {
 
     if (error) {
         console.error('Error fetching chat list:', error);
-        throw error;
+        // Return empty array instead of throwing to prevent app crash
+        // The UI should handle empty chat list gracefully
+        return [];
     }
 
     const formattedChats = (data || []).map(chat => {
@@ -191,14 +193,65 @@ export const useChatListRealtime = (currentUserId) => {
         }
     }, [queryChats, queryLoading, isFetching]);
 
-    // Handle load more with React Query
-    const loadMoreChats = useCallback(() => {
-        // With React Query, we can use refetch or implement cursor-based pagination
-        // For now, let's keep the existing sync logic for load more
-        if (currentUserId && hasMoreChats && !loadingMore) {
-            setLoadingMore(true);
+    // Handle load more with pagination
+    const loadMoreChats = useCallback(async () => {
+        if (!currentUserId || !hasMoreChats || loadingMore || !supabase) return;
+        
+        setLoadingMore(true);
+        try {
+            // Get the last chat's timestamp for pagination
+            const lastChat = chats[chats.length - 1];
+            const lastTimestamp = lastChat?.last_message_time;
+            
+            let query = supabase
+                .from('chat_list_view')
+                .select('*')
+                .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
+                .order('last_message_time', { ascending: false })
+                .limit(20);
+            
+            if (lastTimestamp) {
+                query = query.lt('last_message_time', lastTimestamp);
+            }
+            
+            const { data, error } = await query;
+            
+            if (error) throw error;
+            
+            if (data && data.length > 0) {
+                const formattedChats = data.map(chat => {
+                    const isUser1 = chat.user1_id === currentUserId;
+                    const otherUser = {
+                        id: isUser1 ? chat.user2_id : chat.user1_id,
+                        name: isUser1 ? chat.user2_name : chat.user1_name,
+                        phone: isUser1 ? chat.user2_id : chat.user1_id,
+                        avatar: isUser1 ? chat.user2_avatar : chat.user1_avatar,
+                        is_online: isUserOnline(Boolean(isUser1 ? chat.user2_online : chat.user1_online), isUser1 ? chat.user2_last_seen : chat.user1_last_seen),
+                        last_seen: isUser1 ? chat.user2_last_seen : chat.user1_last_seen
+                    };
+                    
+                    return {
+                        id: chat.chat_id,
+                        otherUser,
+                        last_message: chat.last_message,
+                        last_message_time: chat.last_message_time,
+                        unreadCount: parseInt(chat.unread_count) || 0,
+                        isGroup: false
+                    };
+                });
+                
+                setChats(prev => [...prev, ...formattedChats]);
+                setHasMoreChats(data.length === 20);
+                await saveChatsToDevice([...chats, ...formattedChats]);
+            } else {
+                setHasMoreChats(false);
+            }
+        } catch (error) {
+            console.error('Error loading more chats:', error);
+        } finally {
+            setLoadingMore(false);
         }
-    }, [currentUserId, hasMoreChats, loadingMore]);
+    }, [currentUserId, hasMoreChats, loadingMore, chats, supabase]);
 
 
     const updateChatInList = useCallback(async (chatId) => {
@@ -270,20 +323,78 @@ export const useChatListRealtime = (currentUserId) => {
                                 if (isCancelled) return;
                                 if (payload.eventType === 'INSERT') {
                                     const newMessage = payload.new;
-                                    // Only update locally if we are the receiver
-                                    if (newMessage.receiver_id === currentUserId) {
+                                    const isGroupMessage = newMessage.is_group_message === true;
+                                    const isReceiver = !isGroupMessage && newMessage.receiver_id === currentUserId;
+                                    
+                                    // For 1:1 messages: only update if we're the receiver
+                                    // For group messages: update if chat exists in our list (we're a member)
+                                    if (isReceiver || isGroupMessage) {
+                                        // Check if this chat exists in our current list
                                         setChats((prevChats) => {
+                                            const chatExists = prevChats.some(chat => chat.id === newMessage.chat_id);
+                                            
+                                            // If chat doesn't exist in list, invalidate query to refetch
+                                            if (!chatExists && isGroupMessage) {
+                                                queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                                return prevChats;
+                                            }
+                                            
+                                            // Update existing chat in list
                                             return prevChats.map((chat) => {
                                                 if (chat.id === newMessage.chat_id) {
-                                                    const senderPrefix = newMessage.is_group_message && newMessage.sender_id !== currentUserId
-                                                        ? `${newMessage.sender_name || 'Someone'}: `
-                                                        : '';
-                                                    return {
-                                                        ...chat,
-                                                        last_message: senderPrefix + (newMessage.content || ''),
-                                                        last_message_time: newMessage.created_at,
-                                                        unreadCount: chat.unreadCount + 1
-                                                    };
+                                                    // For group messages, fetch sender name if not from current user
+                                                    if (isGroupMessage && newMessage.sender_id !== currentUserId) {
+                                                        // Fetch sender name asynchronously
+                                                        supabase
+                                                            .from('users')
+                                                            .select('name')
+                                                            .eq('id', newMessage.sender_id)
+                                                            .single()
+                                                            .then(({ data: senderData }) => {
+                                                                const senderName = senderData?.name || 'Someone';
+                                                                setChats((prev) => prev.map((c) => {
+                                                                    if (c.id === newMessage.chat_id) {
+                                                                        return {
+                                                                            ...c,
+                                                                            last_message: `${senderName}: ${newMessage.content || ''}`,
+                                                                            last_message_time: newMessage.created_at,
+                                                                            unreadCount: c.unreadCount + (newMessage.sender_id !== currentUserId ? 1 : 0)
+                                                                        };
+                                                                    }
+                                                                    return c;
+                                                                }).sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time)));
+                                                            })
+                                                            .catch(() => {
+                                                                // Fallback: use "Someone" if fetch fails
+                                                                setChats((prev) => prev.map((c) => {
+                                                                    if (c.id === newMessage.chat_id) {
+                                                                        return {
+                                                                            ...c,
+                                                                            last_message: `Someone: ${newMessage.content || ''}`,
+                                                                            last_message_time: newMessage.created_at,
+                                                                            unreadCount: c.unreadCount + (newMessage.sender_id !== currentUserId ? 1 : 0)
+                                                                        };
+                                                                    }
+                                                                    return c;
+                                                                }).sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time)));
+                                                            });
+                                                        
+                                                        // Return immediately with "Someone" placeholder
+                                                        return {
+                                                            ...chat,
+                                                            last_message: `Someone: ${newMessage.content || ''}`,
+                                                            last_message_time: newMessage.created_at,
+                                                            unreadCount: chat.unreadCount + (newMessage.sender_id !== currentUserId ? 1 : 0)
+                                                        };
+                                                    } else {
+                                                        // For 1:1 messages or own group messages
+                                                        return {
+                                                            ...chat,
+                                                            last_message: newMessage.content || '',
+                                                            last_message_time: newMessage.created_at,
+                                                            unreadCount: chat.unreadCount + (newMessage.sender_id !== currentUserId ? 1 : 0)
+                                                        };
+                                                    }
                                                 }
                                                 return chat;
                                             }).sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time));

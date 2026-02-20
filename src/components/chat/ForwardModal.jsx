@@ -31,29 +31,49 @@ const ForwardModal = ({
           {chats.length > 0 ? (
             chats.map(chat => {
               const contact = null; // We'll need to pass savedContacts if we want contact names
-              const displayName = contact?.contact_name || chat.otherUser?.name || 'Unknown';
+              const isGroup = chat.isGroup || chat.is_group || false;
+              const displayName = isGroup 
+                ? (chat.name || chat.groupName || 'Group Chat')
+                : (contact?.contact_name || chat.otherUser?.name || 'Unknown');
 
               return (
                 <div key={chat.id} className="forward-modal-item">
                   <div className="forward-modal-info">
                     <div className="forward-modal-avatar">
-                      {chat.otherUser?.avatar ? (
-                        parseInt(chat.otherUser.avatar) ? (
+                      {isGroup ? (
+                        chat.avatar || chat.groupAvatar || chat.avatar_url ? (
                           <img
-                            src={dpOptions.find(dp => dp.id === parseInt(chat.otherUser.avatar))?.path || chat.otherUser.avatar}
+                            src={chat.avatar || chat.groupAvatar || chat.avatar_url}
                             alt={displayName}
                             className="forward-modal-avatar-img"
                           />
                         ) : (
-                          <img src={chat.otherUser.avatar} alt={displayName} className="forward-modal-avatar-img" />
+                          <div>{getInitials(displayName)}</div>
                         )
                       ) : (
-                        <div>{getInitials(displayName)}</div>
+                        <>
+                          {chat.otherUser?.avatar ? (
+                            parseInt(chat.otherUser.avatar) ? (
+                              <img
+                                src={dpOptions.find(dp => dp.id === parseInt(chat.otherUser.avatar))?.path || chat.otherUser.avatar}
+                                alt={displayName}
+                                className="forward-modal-avatar-img"
+                              />
+                            ) : (
+                              <img src={chat.otherUser.avatar} alt={displayName} className="forward-modal-avatar-img" />
+                            )
+                          ) : (
+                            <div>{getInitials(displayName)}</div>
+                          )}
+                          <span className={`forward-modal-online-status ${isUserOnline(Boolean(chat.otherUser?.is_online), chat.otherUser?.last_seen) ? 'online' : ''}`}></span>
+                        </>
                       )}
-                      <span className={`forward-modal-online-status ${isUserOnline(Boolean(chat.otherUser?.is_online), chat.otherUser?.last_seen) ? 'online' : ''}`}></span>
                     </div>
                     <div className="forward-modal-details">
-                      <div className="forward-modal-name">{displayName}</div>
+                      <div className="forward-modal-name">
+                        {displayName}
+                        {isGroup && <span className="forward-modal-group-badge">Group</span>}
+                      </div>
                       <div className="forward-modal-last-message">
                         {chat.last_message || 'No messages yet'}
                       </div>
