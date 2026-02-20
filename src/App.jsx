@@ -54,6 +54,7 @@ import useIsDesktop from './hooks/useIsDesktop';
 import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import OfflineIndicator from './components/common/OfflineIndicator';
+import ViewportManager from './components/layout/ViewportManager';
 import './styles/offline-indicator.css';
 
 // Initialize Capacitor Updater
@@ -235,6 +236,8 @@ const App = () => {
       <ErrorBoundary>
         <DataProvider>
           <ChatThemeProvider>
+            {/* Universal Layout Logic */}
+            <ViewportManager />
             {/* 🎯 Offline Indicator - Shows network status to users */}
             <OfflineIndicator>
               <AppContent />

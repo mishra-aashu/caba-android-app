@@ -351,7 +351,7 @@ const MainLayout = () => {
 
     if (!isDesktop) {
         return (
-            <div className={`mobile-layout ${isChatViewActive ? 'show-chat' : ''}`}>
+            <div className={`mobile-layout ${isChatViewActive ? 'show-chat' : ''} pb-safe`}>
                 <div className="list-view">
                     <ChatListPanel {...chatListPanelProps} />
                 </div>

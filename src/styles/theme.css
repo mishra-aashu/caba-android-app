@@ -1,3 +1,5 @@
+@import './layout-utils.css';
+
 :root {
   /* Palette */
   --bg-0: #0b0f14;
@@ -58,8 +60,11 @@
 html,
 body,
 #root {
-  height: 100%;
+  height: var(--app-height);
   background: var(--bg-0);
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 
 body {

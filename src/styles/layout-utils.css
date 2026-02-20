@@ -1,0 +1,67 @@
+/* =============================================
+   UNIVERSAL LAYOUT UTILITIES
+   ============================================= */
+
+:root {
+    /* Dynamic Viewport Height - fallback to 1vh if --vh is not yet set */
+    --vh-unit: var(--vh, 1vh);
+    --app-height: calc(var(--vh-unit) * 100);
+
+    /* Safe Area Insets - handled by env() but we provide variables for easier usage */
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+
+    /* Design Tokens for Layout */
+    --header-height: 64px;
+    --bottom-nav-height: 60px;
+
+    /* Content height calculation */
+    --content-height: calc(var(--app-height) - var(--sab));
+    --content-height-with-nav: calc(var(--app-height) - var(--bottom-nav-height) - var(--sab));
+}
+
+/* Base resets for full-screen layout */
+html,
+body,
+#root {
+    height: var(--app-height);
+    width: 100vw;
+    overflow: hidden;
+    position: fixed;
+    /* Prevent momentum scrolling overflow on iOS */
+    top: 0;
+    left: 0;
+}
+
+/* Layout Utilities */
+.h-full-dynamic {
+    height: var(--app-height);
+}
+
+.pt-safe {
+    padding-top: var(--sat);
+}
+
+.pb-safe {
+    padding-bottom: var(--sab);
+}
+
+.px-safe {
+    padding-left: var(--sal);
+    padding-right: var(--sar);
+}
+
+/* Safe area containers */
+.safe-container {
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    padding-right: var(--sar);
+}
+
+/* Standalone adjustments if needed */
+[data-standalone="true"] .standalone-margin {
+    margin-top: 10px;
+}
