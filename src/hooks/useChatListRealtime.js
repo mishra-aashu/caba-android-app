@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { realtimeManager } from '../utils/realtimeManager';
+import useUserStore from '../store/userStore';
 import { initializeFileSystem, loadChatsFromDevice, saveChatsToDevice } from '../utils/FileSystemManager';
 import { isUserOnline } from '../utils/timeUtils';
 import { normalizeChat, isGroupChat } from '../utils/chatHelpers';
@@ -159,10 +160,15 @@ export const useChatListRealtime = (currentUserId) => {
                         ...chat,
                         otherUser: {
                             ...chat.otherUser,
-                            is_online: isUserOnline(Boolean(chat.otherUser.is_online), chat.otherUser.last_seen)
                         }
                     }));
                     setChats(updatedChats);
+
+                    // Populate user store with otherUsers
+                    updatedChats.forEach(chat => {
+                        if (chat.otherUser) useUserStore.getState().setUser(chat.otherUser);
+                    });
+
                     setLoading(false);
                 }
             } catch (error) {
@@ -196,28 +202,28 @@ export const useChatListRealtime = (currentUserId) => {
     // Handle load more with pagination
     const loadMoreChats = useCallback(async () => {
         if (!currentUserId || !hasMoreChats || loadingMore || !supabase) return;
-        
+
         setLoadingMore(true);
         try {
             // Get the last chat's timestamp for pagination
             const lastChat = chats[chats.length - 1];
             const lastTimestamp = lastChat?.last_message_time;
-            
+
             let query = supabase
                 .from('chat_list_view')
                 .select('*')
                 .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
                 .order('last_message_time', { ascending: false })
                 .limit(20);
-            
+
             if (lastTimestamp) {
                 query = query.lt('last_message_time', lastTimestamp);
             }
-            
+
             const { data, error } = await query;
-            
+
             if (error) throw error;
-            
+
             if (data && data.length > 0) {
                 const formattedChats = data.map(chat => {
                     const isUser1 = chat.user1_id === currentUserId;
@@ -229,7 +235,7 @@ export const useChatListRealtime = (currentUserId) => {
                         is_online: isUserOnline(Boolean(isUser1 ? chat.user2_online : chat.user1_online), isUser1 ? chat.user2_last_seen : chat.user1_last_seen),
                         last_seen: isUser1 ? chat.user2_last_seen : chat.user1_last_seen
                     };
-                    
+
                     return {
                         id: chat.chat_id,
                         otherUser,
@@ -239,7 +245,7 @@ export const useChatListRealtime = (currentUserId) => {
                         isGroup: false
                     };
                 });
-                
+
                 setChats(prev => [...prev, ...formattedChats]);
                 setHasMoreChats(data.length === 20);
                 await saveChatsToDevice([...chats, ...formattedChats]);
@@ -325,20 +331,20 @@ export const useChatListRealtime = (currentUserId) => {
                                     const newMessage = payload.new;
                                     const isGroupMessage = newMessage.is_group_message === true;
                                     const isReceiver = !isGroupMessage && newMessage.receiver_id === currentUserId;
-                                    
+
                                     // For 1:1 messages: only update if we're the receiver
                                     // For group messages: update if chat exists in our list (we're a member)
                                     if (isReceiver || isGroupMessage) {
                                         // Check if this chat exists in our current list
                                         setChats((prevChats) => {
                                             const chatExists = prevChats.some(chat => chat.id === newMessage.chat_id);
-                                            
+
                                             // If chat doesn't exist in list, invalidate query to refetch
                                             if (!chatExists && isGroupMessage) {
                                                 queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
                                                 return prevChats;
                                             }
-                                            
+
                                             // Update existing chat in list
                                             return prevChats.map((chat) => {
                                                 if (chat.id === newMessage.chat_id) {
@@ -378,7 +384,7 @@ export const useChatListRealtime = (currentUserId) => {
                                                                     return c;
                                                                 }).sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time)));
                                                             });
-                                                        
+
                                                         // Return immediately with "Someone" placeholder
                                                         return {
                                                             ...chat,
@@ -437,6 +443,8 @@ export const useChatListRealtime = (currentUserId) => {
                                 const updatedUser = payload.new;
                                 setChats(prevChats => prevChats.map(chat => {
                                     if (chat.otherUser?.id === updatedUser.id) {
+                                        // Update store as well
+                                        useUserStore.getState().setUser(updatedUser);
                                         return {
                                             ...chat,
                                             otherUser: {

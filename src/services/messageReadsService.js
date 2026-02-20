@@ -17,6 +17,19 @@ class MessageReadsService {
     if (!messageIds?.length || !userId) return [];
 
     try {
+      // DEBUG: Check if we actually have a session - prevents 403 if auth state is lost
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session && !localStorage.getItem('phoneAuthToken')) {
+        console.warn('MessageReadsService.markAsRead: No active session found.');
+      }
+
+      if (session && session.user.id !== userId) {
+        console.warn('MessageReadsService.markAsRead: Session user ID mismatch.', {
+          sessionUserId: session.user.id,
+          providedUserId: userId
+        });
+      }
+
       const rows = messageIds.map((messageId) => ({
         message_id: messageId,
         user_id: userId,
@@ -28,14 +41,17 @@ class MessageReadsService {
         .upsert(rows, { onConflict: 'message_id,user_id', ignoreDuplicates: true })
         .select();
 
-      if (error) throw error;
+      if (error) {
+        // Specifically log 403 which often indicates RLS or Auth issues
+        if (error.code === '42501' || error.status === 403) {
+          console.error('MessageReadsService: RLS/Auth Error (403) - Verify message_reads policies or user session.', error);
+        }
+        throw error;
+      }
 
-      // Also update the legacy is_read flag on the messages table
-      await supabase
-        .from('messages')
-        .update({ is_read: true, status: 'read' })
-        .in('id', messageIds)
-        .neq('sender_id', userId);
+      // NOTE: We no longer manually update the 'messages' table here.
+      // A database trigger 'on_message_read_inserted' now handles this automatically
+      // with SECURITY DEFINER privileges to bypass RLS restrictions on the messages table.
 
       return data || [];
     } catch (error) {

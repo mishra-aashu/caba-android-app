@@ -3,7 +3,9 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import useAuthStore from '../../store/authStore';
 import { X, ArrowLeft, Plus, Settings, Clock, Check, CheckCircle, Timer, Ban, Bell, Pill, Users, CalendarCheck, Cake, ClipboardList, MoreHorizontal, List, Send, Inbox, Repeat, MapPin, BellOff, AlertCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { realtimeManager } from '../../utils/realtimeManager';
+import { safeDbConversion } from '../../utils/dbFieldMapping';
+import { toast } from 'react-hot-toast';
 import '../../styles/reminders.css';
 
 const Reminders = () => {
@@ -25,26 +27,30 @@ const Reminders = () => {
   // Real-time subscription for incoming reminders
   useEffect(() => {
     if (!currentUser) return;
-    const channel = supabase
-      .channel(`reminders_${currentUser.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reminders',
-        },
-        () => {
-          // Reload reminders on any change
-          loadReminders(currentUser);
-        }
-      )
-      .subscribe();
+
+    const channelName = `reminders_${currentUser.id}`;
+    realtimeManager.subscribe(
+      channelName,
+      {},
+      {
+        postgres_changes: [
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reminders',
+            handler: () => {
+              // Reload reminders on any change
+              loadReminders(currentUser);
+            }
+          }
+        ]
+      }
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      realtimeManager.unsubscribe(channelName);
     };
-  }, [currentUser, supabase]);
+  }, [currentUser]);
 
   const loadReminders = async (user) => {
     try {
@@ -72,7 +78,7 @@ const Reminders = () => {
       const { data, error } = await query.order('reminder_time', { ascending: true });
 
       if (error) throw error;
-      setReminders(data || []);
+      setReminders(safeDbConversion(data) || []);
     } catch (error) {
       console.error('Error loading reminders:', error);
       setError('Failed to load reminders');
@@ -152,12 +158,21 @@ const Reminders = () => {
       const snoozeUntil = new Date();
       snoozeUntil.setMinutes(snoozeUntil.getMinutes() + snoozeMinutes);
 
+      // Fetch current snooze count first to increment safely without supabase.sql
+      const { data: currentReminder } = await supabase
+        .from('reminders')
+        .select('snooze_count')
+        .eq('id', id)
+        .single();
+
+      const newSnoozeCount = (currentReminder?.snooze_count || 0) + 1;
+
       const { error } = await supabase
         .from('reminders')
         .update({
           status: 'snoozed',
           snooze_until: snoozeUntil.toISOString(),
-          snooze_count: supabase.sql`snooze_count + 1`
+          snooze_count: newSnoozeCount
         })
         .eq('id', id);
 
@@ -229,16 +244,16 @@ const Reminders = () => {
   // Categorize reminders
   const now = new Date();
   const upcoming = reminders.filter(r => {
-    const reminderTime = new Date(r.reminder_time);
+    const reminderTime = new Date(r.reminderTime);
     return reminderTime > now && !['completed', 'cancelled'].includes(r.status);
   });
 
   const past = reminders.filter(r => {
-    const reminderTime = new Date(r.reminder_time);
+    const reminderTime = new Date(r.reminderTime);
     return reminderTime <= now || ['completed', 'cancelled'].includes(r.status);
   });
 
-  const recurring = reminders.filter(r => r.is_recurring);
+  const recurring = reminders.filter(r => r.isRecurring);
 
   const getCurrentReminders = () => {
     switch (currentTab) {
@@ -323,9 +338,9 @@ const Reminders = () => {
       <main className="reminders-list">
         {getCurrentReminders().length > 0 ? (
           getCurrentReminders().map(reminder => {
-            const isSent = reminder.sender_id === currentUser.id;
+            const isSent = reminder.senderId === currentUser.id;
             const otherUser = isSent ? reminder.receiver : reminder.sender;
-            const reminderTime = new Date(reminder.reminder_time);
+            const reminderTime = new Date(reminder.reminderTime);
             const canAccept = !isSent && reminder.status === 'pending';
             const canComplete = reminder.status === 'accepted';
             const canSnooze = reminder.status === 'accepted';
@@ -376,10 +391,10 @@ const Reminders = () => {
                     {getCategoryIcon(reminder.category)}
                     {reminder.category}
                   </span>
-                  {reminder.is_recurring && (
+                  {reminder.isRecurring && (
                     <span className="reminder-category">
                       <Repeat size={14} />
-                      {reminder.recurring_type}
+                      {reminder.recurringType}
                     </span>
                   )}
                 </div>

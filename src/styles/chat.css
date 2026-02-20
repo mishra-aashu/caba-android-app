@@ -1644,7 +1644,8 @@ body.light-mode .chat-loading p {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
-  gap: 8px;
+  gap: 5px;
+  /* Reduced gap for tighter look */
 }
 
 /* Sent group messages: avatar goes to the right naturally
@@ -1690,10 +1691,10 @@ body.light-mode .chat-loading p {
   transform: scale(0.95);
 }
 
-/* Own (sent) avatar — not interactive */
+/* Own (sent) avatar — now interactive too */
 .group-sender-avatar--self {
-  cursor: default;
-  pointer-events: none;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .group-sender-avatar--self:hover {
@@ -1744,6 +1745,7 @@ body.light-mode .chat-loading p {
   /* tight gap between name and bubble */
   max-width: calc(100% - 50px);
   /* leave room for avatar */
+  flex-grow: 1;
 }
 
 /* ── Sender Name Label ── */

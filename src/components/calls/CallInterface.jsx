@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
 import '../../styles/call-interface.css';
 

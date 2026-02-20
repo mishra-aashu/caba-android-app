@@ -58,6 +58,17 @@ const Admin = () => {
   const [reminders, setReminders] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [mediaTransfers, setMediaTransfers] = useState([]);
+  const [usersPage, setUsersPage] = useState(0);
+  const [messagesPage, setMessagesPage] = useState(0);
+  const [reportsPage, setReportsPage] = useState(0);
+  const [groupsPage, setGroupsPage] = useState(0);
+  const [logsPage, setLogsPage] = useState(0);
+  const [newsPage, setNewsPage] = useState(0);
+  const [blockedPage, setBlockedPage] = useState(0);
+  const [statusesPage, setStatusesPage] = useState(0);
+  const [remindersPage, setRemindersPage] = useState(0);
+  const [mediaPage, setMediaPage] = useState(0);
+  const PAGE_SIZE = 20;
 
   // UI states
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,11 +113,15 @@ const Admin = () => {
     if (currentUser) {
       loadDashboardData();
     }
-  }, [currentUser, activeTab]);
+  }, [
+    currentUser, activeTab, usersPage, messagesPage, reportsPage,
+    groupsPage, logsPage, newsPage, blockedPage, statusesPage,
+    remindersPage, mediaPage, searchTerm
+  ]);
 
   // Real-time subscriptions for Admin: new reports and support messages
   useEffect(() => {
-    if (!currentUser?.is_admin) return;
+    if (!currentUser?.isAdmin) return;
 
     const channelKey = `admin_realtime_${currentUser.id}`;
 
@@ -165,6 +180,18 @@ const Admin = () => {
     setActiveTab(tabId);
     if (tabId === 'reports') setNewReportCount(0);
     if (tabId === 'support') setNewSupportCount(0);
+
+    // Reset pages when switching tabs to ensure we start from the beginning
+    setUsersPage(0);
+    setMessagesPage(0);
+    setReportsPage(0);
+    setGroupsPage(0);
+    setLogsPage(0);
+    setNewsPage(0);
+    setBlockedPage(0);
+    setStatusesPage(0);
+    setRemindersPage(0);
+    setMediaPage(0);
   };
 
   const checkAdminAccess = async () => {
@@ -239,7 +266,7 @@ const Admin = () => {
       }
     } catch (error) {
       // Only log errors for admin users
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading data:', error);
       }
     } finally {
@@ -269,7 +296,8 @@ const Admin = () => {
         supabase.from('call_history').select('*', { count: 'exact', head: true })
       ]);
 
-      const onlineUsers = usersResult.data?.filter(u => isUserOnline(Boolean(u.is_online), u.last_seen)).length || 0;
+      const convertedUsers = safeDbConversion(usersResult.data);
+      const onlineUsers = convertedUsers?.filter(u => isUserOnline(Boolean(u.isOnline), u.lastSeen)).length || 0;
 
       setStats({
         totalUsers: usersResult.data?.length || 0,
@@ -288,65 +316,43 @@ const Admin = () => {
 
   const loadUsers = async () => {
     try {
-      // First, try to load basic user data
-      const { data: usersData, error: usersError } = await supabase
+      const from = usersPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      let query = supabase
         .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' });
 
-      if (usersError) {
-        console.error('Error loading users:', usersError);
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
+      }
 
-        // If the main query fails, try a simpler approach
-        try {
-          const { data: simpleUsers, error: simpleError } = await supabase
-            .from('users')
-            .select('id, name, email, phone, avatar, is_admin, is_online, last_seen, created_at')
-            .order('created_at', { ascending: false });
+      const { data: usersData, error: usersError, count } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-          if (simpleError) {
-            console.error('Error with simple user query:', simpleError);
-            setUsers([]);
-            return;
-          }
+      if (usersError) throw usersError;
 
-          setUsers(simpleUsers || []);
-        } catch (simpleErr) {
-          console.error('Simple user query failed:', simpleErr);
-          setUsers([]);
-        }
+      if (usersData && usersData.length > 0) {
+        const userIds = usersData.map(user => user.id);
+        const { data: messageCounts } = await supabase
+          .from('messages')
+          .select('sender_id')
+          .in('sender_id', userIds);
+
+        const messageCountMap = {};
+        messageCounts?.forEach(msg => {
+          messageCountMap[msg.sender_id] = (messageCountMap[msg.sender_id] || 0) + 1;
+        });
+
+        const usersWithCounts = usersData.map(user => ({
+          ...user,
+          message_count: messageCountMap[user.id] || 0
+        }));
+
+        setUsers(safeDbConversion(usersWithCounts));
       } else {
-        // If basic query succeeds, try to load additional data separately
-        if (usersData && usersData.length > 0) {
-          try {
-            // Load message counts for each user
-            const userIds = usersData.map(user => user.id);
-            const { data: messageCounts } = await supabase
-              .from('messages')
-              .select('sender_id')
-              .in('sender_id', userIds);
-
-            // Count messages per user
-            const messageCountMap = {};
-            messageCounts?.forEach(msg => {
-              messageCountMap[msg.sender_id] = (messageCountMap[msg.sender_id] || 0) + 1;
-            });
-
-            // Add message counts to user data
-            const usersWithCounts = usersData.map(user => ({
-              ...user,
-              message_count: messageCountMap[user.id] || 0
-            }));
-
-            setUsers(usersWithCounts);
-          } catch (additionalError) {
-            console.warn('Could not load additional user data:', additionalError);
-            // Still show basic user data even if additional data fails
-            setUsers(usersData);
-          }
-        } else {
-          setUsers([]);
-        }
+        setUsers([]);
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -356,51 +362,41 @@ const Admin = () => {
 
   const loadMessages = async () => {
     try {
-      // First try to load basic messages
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const from = messagesPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
 
-      if (messagesError) {
-        console.error('Error loading messages:', messagesError);
-        setMessages([]);
-        return;
+      let query = supabase
+        .from('messages')
+        .select('*', { count: 'exact' });
+
+      if (searchTerm) {
+        query = query.ilike('content', `%${searchTerm}%`);
       }
 
+      const { data: messagesData, error: messagesError } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (messagesError) throw messagesError;
+
       if (messagesData && messagesData.length > 0) {
-        try {
-          // Get unique sender IDs
-          const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+        const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+        const { data: senderUsers } = await supabase
+          .from('users')
+          .select('id, name, avatar')
+          .in('id', senderIds);
 
-          // Load sender user details
-          const { data: senderUsers } = await supabase
-            .from('users')
-            .select('id, name, avatar')
-            .in('id', senderIds);
+        const userMap = {};
+        senderUsers?.forEach(user => {
+          userMap[user.id] = user;
+        });
 
-          // Create a map of user data
-          const userMap = {};
-          senderUsers?.forEach(user => {
-            userMap[user.id] = user;
-          });
+        const messagesWithUsers = messagesData.map(message => ({
+          ...message,
+          users: userMap[message.sender_id] || { name: 'Unknown User', avatar: null }
+        }));
 
-          // Add user data to messages
-          const messagesWithUsers = messagesData.map(message => ({
-            ...message,
-            users: userMap[message.sender_id] || { name: 'Unknown User', avatar: null }
-          }));
-
-          setMessages(messagesWithUsers);
-        } catch (additionalError) {
-          console.warn('Could not load additional message data:', additionalError);
-          // Still show basic message data
-          setMessages(messagesData.map(msg => ({
-            ...msg,
-            users: { name: 'Unknown User', avatar: null }
-          })));
-        }
+        setMessages(safeDbConversion(messagesWithUsers));
       } else {
         setMessages([]);
       }
@@ -412,16 +408,20 @@ const Admin = () => {
 
   const loadNews = async () => {
     try {
+      const from = newsPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('news_articles')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (!error && data) {
-        setNewsArticles(data);
+        setNewsArticles(safeDbConversion(data));
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading news:', error);
       }
     }
@@ -429,6 +429,9 @@ const Admin = () => {
 
   const loadReports = async () => {
     try {
+      const from = reportsPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('reports')
         .select(`
@@ -436,13 +439,14 @@ const Admin = () => {
           users!reporter_id(name),
           messages(content)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (!error && data) {
-        setReports(data);
+        setReports(safeDbConversion(data));
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading reports:', error);
       }
     }
@@ -450,6 +454,9 @@ const Admin = () => {
 
   const loadAdminLogs = async () => {
     try {
+      const from = logsPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('admin_logs')
         .select(`
@@ -457,13 +464,13 @@ const Admin = () => {
           users!admin_id(name)
         `)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (!error && data) {
-        setAdminLogs(data);
+        setAdminLogs(safeDbConversion(data));
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading admin logs:', error);
       }
     }
@@ -472,18 +479,20 @@ const Admin = () => {
   const loadSupportMessages = async () => {
     setSupportLoading(true);
     try {
+      // RPC doesn't support built-in pagination as easily as tables, 
+      // but let's assume it handles its own internal limit or we'll need a different RPC
       const { data, error } = await supabase.rpc('get_support_messages_for_admin');
 
       if (!error && data) {
-        setSupportMessages(data);
+        setSupportMessages(safeDbConversion(data));
       } else {
-        if (currentUser?.is_admin) {
+        if (currentUser?.isAdmin) {
           console.error('Error loading support messages:', error);
         }
         setSupportMessages([]);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading support messages:', error);
       }
       setSupportMessages([]);
@@ -494,6 +503,9 @@ const Admin = () => {
 
   const loadBlockedUsers = async () => {
     try {
+      const from = blockedPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('blocked_users')
         .select(`
@@ -501,13 +513,14 @@ const Admin = () => {
           blocker:users!blocker_id(name, email),
           blocked:users!blocked_id(name, email)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (!error && data) {
-        setBlockedUsers(data);
+        setBlockedUsers(safeDbConversion(data));
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading blocked users:', error);
       }
     }
@@ -515,6 +528,9 @@ const Admin = () => {
 
   const loadGroups = async () => {
     try {
+      const from = groupsPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('groups')
         .select(`
@@ -522,13 +538,14 @@ const Admin = () => {
           creator:users!created_by(name),
           members:group_members(count)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (!error && data) {
-        setGroups(data);
+        setGroups(safeDbConversion(data));
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading groups:', error);
       }
     }
@@ -536,6 +553,9 @@ const Admin = () => {
 
   const loadReminders = async () => {
     try {
+      const from = remindersPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('reminders')
         .select(`
@@ -544,13 +564,13 @@ const Admin = () => {
           receiver:users!receiver_id(name)
         `)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (!error && data) {
-        setReminders(data);
+        setReminders(safeDbConversion(data));
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading reminders:', error);
       }
     }
@@ -558,6 +578,9 @@ const Admin = () => {
 
   const loadStatuses = async () => {
     try {
+      const from = statusesPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('statuses')
         .select(`
@@ -565,13 +588,13 @@ const Admin = () => {
           user:users(name, avatar)
         `)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (!error && data) {
-        setStatuses(data);
+        setStatuses(safeDbConversion(data));
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading statuses:', error);
       }
     }
@@ -579,6 +602,9 @@ const Admin = () => {
 
   const loadMediaTransfers = async () => {
     try {
+      const from = mediaPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('media_transfers')
         .select(`
@@ -587,13 +613,13 @@ const Admin = () => {
           receiver:users!receiver_id(name)
         `)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (!error && data) {
-        setMediaTransfers(data);
+        setMediaTransfers(safeDbConversion(data));
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error loading media transfers:', error);
       }
     }
@@ -617,7 +643,7 @@ const Admin = () => {
         alert('Error removing admin privileges: ' + error.message);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error demoting admin:', error);
       }
       alert('Error removing admin privileges');
@@ -641,7 +667,7 @@ const Admin = () => {
         alert('Error granting admin privileges: ' + error.message);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error promoting to admin:', error);
       }
       alert('Error granting admin privileges');
@@ -663,7 +689,7 @@ const Admin = () => {
         alert('Message deleted successfully');
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error deleting message:', error);
       }
       alert('Error deleting message');
@@ -685,7 +711,7 @@ const Admin = () => {
         alert('Article deleted successfully');
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error deleting article:', error);
       }
       alert('Error deleting article');
@@ -708,7 +734,7 @@ const Admin = () => {
         loadReports();
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error resolving report:', error);
       }
     }
@@ -726,7 +752,7 @@ const Admin = () => {
           user_agent: navigator.userAgent
         });
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error logging admin action:', error);
       }
     }
@@ -744,7 +770,7 @@ const Admin = () => {
         alert(`Error running ${functionName}: ${error.message}`);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error(`Error running ${functionName}:`, error);
       }
       alert(`Error running ${functionName}`);
@@ -786,7 +812,7 @@ const Admin = () => {
         alert('Error sending response');
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error responding to support message:', error);
       }
       alert('Error sending response');
@@ -803,7 +829,7 @@ const Admin = () => {
         loadSupportMessages();
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error marking message as read:', error);
       }
     }
@@ -825,7 +851,7 @@ const Admin = () => {
         alert('Error unblocking users: ' + error.message);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error unblocking users:', error);
       }
       alert('Error unblocking users');
@@ -847,7 +873,7 @@ const Admin = () => {
         alert('Error deleting group: ' + error.message);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error deleting group:', error);
       }
       alert('Error deleting group');
@@ -869,7 +895,7 @@ const Admin = () => {
         alert('Error deleting reminder: ' + error.message);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error deleting reminder:', error);
       }
       alert('Error deleting reminder');
@@ -891,7 +917,7 @@ const Admin = () => {
         alert('Error deleting status: ' + error.message);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error deleting status:', error);
       }
       alert('Error deleting status');
@@ -913,7 +939,7 @@ const Admin = () => {
         alert('Error deleting media transfer: ' + error.message);
       }
     } catch (error) {
-      if (currentUser?.is_admin) {
+      if (currentUser?.isAdmin) {
         console.error('Error deleting media transfer:', error);
       }
       alert('Error deleting media transfer');
@@ -952,16 +978,7 @@ const Admin = () => {
     console.log('setCallType called with:', type);
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone?.includes(searchTerm)
-  );
-
-  const filteredMessages = messages.filter(msg =>
-    msg.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    msg.users?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filters are now handled server-side for better performance with large datasets
 
   if (loading && !currentUser) {
     return (
@@ -973,7 +990,7 @@ const Admin = () => {
   }
 
   // If user is not admin, show blank/empty panel
-  if (!currentUser?.is_admin) {
+  if (!currentUser?.isAdmin) {
     return (
       <div className="admin-container">
         <div className="admin-blank">
@@ -1159,8 +1176,8 @@ const Admin = () => {
                 </div>
               ) : (
                 <div className="users-list">
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map(user => (
+                  {users.length > 0 ? (
+                    users.map(user => (
                       <div key={user.id} className="user-item">
                         <div className="user-info">
                           <img
@@ -1168,24 +1185,25 @@ const Admin = () => {
                             alt={user.name || 'User'}
                             className="user-avatar"
                             onError={(e) => {
+                              const baseUrl = import.meta.env.BASE_URL || '/';
                               e.target.src = `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`;
                             }}
                           />
                           <div className="user-details">
                             <h4>{user.name || 'Unknown User'}</h4>
                             <p>{user.email || 'No email'} • {user.phone || 'No phone'}</p>
-                            <small>Joined: {user.created_at ? formatTime(user.created_at) : 'Unknown'}</small>
-                            {user.message_count !== undefined && (
-                              <small>Messages: {user.message_count}</small>
+                            <small>Joined: {user.createdAt ? formatTime(user.createdAt) : 'Unknown'}</small>
+                            {user.messageCount !== undefined && (
+                              <small>Messages: {user.messageCount}</small>
                             )}
                           </div>
                         </div>
 
                         <div className="user-status">
-                          <span className={`status ${isUserOnline(Boolean(user.is_online), user.last_seen) ? 'online' : 'offline'}`}>
-                            {isUserOnline(Boolean(user.is_online), user.last_seen) ? 'Online' : 'Offline'}
+                          <span className={`status ${isUserOnline(Boolean(user.isOnline), user.lastSeen) ? 'online' : 'offline'}`}>
+                            {isUserOnline(Boolean(user.isOnline), user.lastSeen) ? 'Online' : 'Offline'}
                           </span>
-                          {user.is_admin && <span className="admin-tag">Admin</span>}
+                          {user.isAdmin && <span className="admin-tag">Admin</span>}
                         </div>
 
                         <div className="user-actions">
@@ -1199,7 +1217,7 @@ const Admin = () => {
                           >
                             <Eye size={16} />
                           </button>
-                          {user.is_admin ? (
+                          {user.isAdmin ? (
                             <button
                               className="action-btn small danger"
                               onClick={() => demoteAdmin(user.id)}
@@ -1235,6 +1253,23 @@ const Admin = () => {
                       )}
                     </div>
                   )}
+                  <div className="pagination-controls">
+                    <button
+                      disabled={usersPage === 0}
+                      onClick={() => setUsersPage(prev => prev - 1)}
+                      className="nav-btn"
+                    >
+                      Previous
+                    </button>
+                    <span>Page {usersPage + 1}</span>
+                    <button
+                      disabled={users.length < PAGE_SIZE}
+                      onClick={() => setUsersPage(prev => prev + 1)}
+                      className="nav-btn"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1257,7 +1292,7 @@ const Admin = () => {
               </div>
 
               <div className="messages-list">
-                {filteredMessages.map(message => (
+                {messages.map(message => (
                   <div key={message.id} className="message-item">
                     <div className="message-header">
                       <div className="sender-info">
@@ -1266,14 +1301,15 @@ const Admin = () => {
                           alt={message.users?.name}
                           className="sender-avatar"
                           onError={(e) => {
+                            const baseUrl = import.meta.env.BASE_URL || '/';
                             e.target.src = `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`;
                           }}
                         />
                         <span className="sender-name">{message.users?.name}</span>
                       </div>
                       <div className="message-meta">
-                        {getMessageTypeIcon(message.message_type)}
-                        <span className="message-time">{formatTime(message.created_at)}</span>
+                        {getMessageTypeIcon(message.messageType)}
+                        <span className="message-time">{formatTime(message.createdAt)}</span>
                       </div>
                     </div>
 
@@ -1300,6 +1336,23 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={messagesPage === 0}
+                    onClick={() => setMessagesPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {messagesPage + 1}</span>
+                  <button
+                    disabled={messages.length < PAGE_SIZE}
+                    onClick={() => setMessagesPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1322,9 +1375,9 @@ const Admin = () => {
                       <h4>{article.title}</h4>
                       <p>{article.summary}</p>
                       <div className="news-meta">
-                        <span>Views: {article.view_count}</span>
-                        <span>Shares: {article.share_count}</span>
-                        <span>Published: {formatTime(article.published_at)}</span>
+                        <span>Views: {article.viewCount}</span>
+                        <span>Shares: {article.shareCount}</span>
+                        <span>Published: {formatTime(article.publishedAt)}</span>
                       </div>
                     </div>
 
@@ -1341,6 +1394,23 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={newsPage === 0}
+                    onClick={() => setNewsPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {newsPage + 1}</span>
+                  <button
+                    disabled={newsArticles.length < PAGE_SIZE}
+                    onClick={() => setNewsPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1356,11 +1426,11 @@ const Admin = () => {
                 {reports.map(report => (
                   <div key={report.id} className="report-item">
                     <div className="report-info">
-                      <h4>{report.report_type} Report</h4>
+                      <h4>{report.reportType} Report</h4>
                       <p><strong>Reporter:</strong> {report.users?.name}</p>
                       <p><strong>Reason:</strong> {report.reason}</p>
                       <p><strong>Description:</strong> {report.description}</p>
-                      <small>Reported: {formatTime(report.created_at)}</small>
+                      <small>Reported: {formatTime(report.createdAt)}</small>
                     </div>
 
                     <div className="report-status">
@@ -1389,6 +1459,23 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={reportsPage === 0}
+                    onClick={() => setReportsPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {reportsPage + 1}</span>
+                  <button
+                    disabled={reports.length < PAGE_SIZE}
+                    onClick={() => setReportsPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1407,10 +1494,27 @@ const Admin = () => {
                       <h4>{log.action}</h4>
                       <p><strong>Admin:</strong> {log.users?.name}</p>
                       <p><strong>Details:</strong> {log.details?.description}</p>
-                      <small>{formatTime(log.created_at)}</small>
+                      <small>{formatTime(log.createdAt)}</small>
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={logsPage === 0}
+                    onClick={() => setLogsPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {logsPage + 1}</span>
+                  <button
+                    disabled={adminLogs.length < PAGE_SIZE}
+                    onClick={() => setLogsPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1431,40 +1535,40 @@ const Admin = () => {
                   supportMessages.map(message => (
                     <div
                       key={message.id}
-                      className={`support-message-item ${message.is_read ? 'read' : 'unread'}`}
+                      className={`support-message-item ${message.isRead ? 'read' : 'unread'}`}
                     >
                       <div className="message-header">
                         <div className="user-info">
                           <div className="user-avatar">
-                            {message.user_name ? (
-                              <div>{getInitials(message.user_name)}</div>
+                            {message.userName ? (
+                              <div>{getInitials(message.userName)}</div>
                             ) : (
                               <User size={20} />
                             )}
                           </div>
                           <div>
-                            <span className="user-name">{message.user_name || 'Unknown User'}</span>
-                            <span className="user-phone">({message.user_phone || 'N/A'})</span>
-                            <div className="user-email">{message.user_email}</div>
+                            <span className="user-name">{message.userName || 'Unknown User'}</span>
+                            <span className="user-phone">({message.userPhone || 'N/A'})</span>
+                            <div className="user-email">{message.userEmail}</div>
                           </div>
                         </div>
                         <div className="message-meta">
-                          <span className="message-time">{formatTime(message.created_at)}</span>
-                          {!message.is_read && <span className="unread-indicator">New</span>}
+                          <span className="message-time">{formatTime(message.createdAt)}</span>
+                          {!message.isRead && <span className="unread-indicator">New</span>}
                         </div>
                       </div>
                       <div className="message-content">
                         <div className="user-message">
                           <strong>User:</strong> {message.message}
                         </div>
-                        {message.admin_response && (
+                        {message.adminResponse && (
                           <div className="admin-response">
-                            <strong>Admin ({message.admin_name}):</strong> {message.admin_response}
-                            <small>Responded: {formatTime(message.responded_at)}</small>
+                            <strong>Admin ({message.adminName}):</strong> {message.adminResponse}
+                            <small>Responded: {formatTime(message.respondedAt)}</small>
                           </div>
                         )}
                       </div>
-                      {!message.admin_response && (
+                      {!message.adminResponse && (
                         <div className="message-actions">
                           <button
                             className="action-btn small success"
@@ -1508,7 +1612,7 @@ const Admin = () => {
                       <h4>Block Relationship</h4>
                       <p><strong>Blocker:</strong> {block.blocker?.name} ({block.blocker?.email})</p>
                       <p><strong>Blocked:</strong> {block.blocked?.name} ({block.blocked?.email})</p>
-                      <small>Blocked: {formatTime(block.created_at)}</small>
+                      <small>Blocked: {formatTime(block.createdAt)}</small>
                     </div>
 
                     <div className="blocked-actions">
@@ -1516,7 +1620,7 @@ const Admin = () => {
                         className="action-btn small danger"
                         onClick={() => {
                           if (confirm('Are you sure you want to unblock this user?')) {
-                            unblockUsers(block.blocker_id, block.blocked_id);
+                            unblockUsers(block.blockerId, block.blockedId);
                           }
                         }}
                       >
@@ -1526,6 +1630,23 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={blockedPage === 0}
+                    onClick={() => setBlockedPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {blockedPage + 1}</span>
+                  <button
+                    disabled={blockedUsers.length < PAGE_SIZE}
+                    onClick={() => setBlockedPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
                 {blockedUsers.length === 0 && (
                   <div className="no-data">
                     <Ban size={48} />
@@ -1552,7 +1673,7 @@ const Admin = () => {
                       <div className="group-meta">
                         <span>Created by: {group.creator?.name}</span>
                         <span>Members: {group.members?.[0]?.count || 0}</span>
-                        <span>Created: {formatTime(group.created_at)}</span>
+                        <span>Created: {formatTime(group.createdAt)}</span>
                       </div>
                     </div>
 
@@ -1574,6 +1695,23 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={groupsPage === 0}
+                    onClick={() => setGroupsPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {groupsPage + 1}</span>
+                  <button
+                    disabled={groups.length < PAGE_SIZE}
+                    onClick={() => setGroupsPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
                 {groups.length === 0 && (
                   <div className="no-data">
                     <Users size={48} />
@@ -1600,7 +1738,7 @@ const Admin = () => {
                       <div className="reminder-meta">
                         <span>From: {reminder.sender?.name}</span>
                         <span>To: {reminder.receiver?.name}</span>
-                        <span>Due: {formatTime(reminder.reminder_time)}</span>
+                        <span>Due: {formatTime(reminder.reminderTime)}</span>
                         <span>Status: {reminder.status}</span>
                         <span>Priority: {reminder.priority}</span>
                       </div>
@@ -1620,6 +1758,23 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={remindersPage === 0}
+                    onClick={() => setRemindersPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {remindersPage + 1}</span>
+                  <button
+                    disabled={reminders.length < PAGE_SIZE}
+                    onClick={() => setRemindersPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
                 {reminders.length === 0 && (
                   <div className="no-data">
                     <Calendar size={48} />
@@ -1647,6 +1802,7 @@ const Admin = () => {
                           alt={status.user?.name}
                           className="status-avatar"
                           onError={(e) => {
+                            const baseUrl = import.meta.env.BASE_URL || '/';
                             e.target.src = `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`;
                           }}
                         />
@@ -1654,9 +1810,9 @@ const Admin = () => {
                       </div>
                       <p>{status.content}</p>
                       <div className="status-meta">
-                        <span>Views: {status.view_count}</span>
-                        <span>Expires: {formatTime(status.expires_at)}</span>
-                        <span>Posted: {formatTime(status.created_at)}</span>
+                        <span>Views: {status.viewCount}</span>
+                        <span>Expires: {formatTime(status.expiresAt)}</span>
+                        <span>Posted: {formatTime(status.createdAt)}</span>
                       </div>
                     </div>
 
@@ -1674,6 +1830,23 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={statusesPage === 0}
+                    onClick={() => setStatusesPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {statusesPage + 1}</span>
+                  <button
+                    disabled={statuses.length < PAGE_SIZE}
+                    onClick={() => setStatusesPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
                 {statuses.length === 0 && (
                   <div className="no-data">
                     <Activity size={48} />
@@ -1696,13 +1869,13 @@ const Admin = () => {
                   <div key={transfer.id} className="transfer-item">
                     <div className="transfer-info">
                       <h4>{transfer.filename}</h4>
-                      <p>Original: {transfer.original_filename}</p>
+                      <p>Original: {transfer.originalFilename}</p>
                       <div className="transfer-meta">
                         <span>From: {transfer.sender?.name}</span>
                         <span>To: {transfer.receiver?.name}</span>
-                        <span>Size: {(transfer.file_size / 1024 / 1024).toFixed(2)} MB</span>
+                        <span>Size: {(transfer.fileSize / 1024 / 1024).toFixed(2)} MB</span>
                         <span>Status: {transfer.status}</span>
-                        <span>Downloads: {transfer.download_count}/{transfer.max_downloads}</span>
+                        <span>Downloads: {transfer.downloadCount}/{transfer.maxDownloads}</span>
                       </div>
                     </div>
 
@@ -1720,6 +1893,23 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+                <div className="pagination-controls">
+                  <button
+                    disabled={mediaPage === 0}
+                    onClick={() => setMediaPage(prev => prev - 1)}
+                    className="nav-btn"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {mediaPage + 1}</span>
+                  <button
+                    disabled={mediaTransfers.length < PAGE_SIZE}
+                    onClick={() => setMediaPage(prev => prev + 1)}
+                    className="nav-btn"
+                  >
+                    Next
+                  </button>
+                </div>
                 {mediaTransfers.length === 0 && (
                   <div className="no-data">
                     <Archive size={48} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
 import useAuthStore from '../../store/authStore';
 import '../../styles/reminders.css';
 

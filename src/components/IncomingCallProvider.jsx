@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase } from '../config/supabase.js';
 import useAuthStore from '../store/authStore';
 import IncomingCall from './calls/IncomingCall';
 

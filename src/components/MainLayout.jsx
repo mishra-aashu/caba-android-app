@@ -11,6 +11,7 @@ import { getInitials } from '../utils/stringUtils';
 import toast from 'react-hot-toast';
 import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
+import ParticleOverlay from './chat/ParticleOverlay';
 import '../styles/theme.css';
 
 // Create context for user-details panel
@@ -410,6 +411,7 @@ const MainLayout = () => {
             chatListPanel={<ChatListPanel {...chatListPanelProps} />}
             chatComponent={chatComponent}
             userDetailsPanel={userDetailsPanel}
+            particleOverlay={<ParticleOverlay />}
         />
     );
 };

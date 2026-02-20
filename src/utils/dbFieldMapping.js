@@ -54,17 +54,26 @@ export const DB_TO_FRONTEND_MAP = {
   'reminder_time': 'reminderTime',
   'is_completed': 'isCompleted',
   'accepted_at': 'acceptedAt',
+  'snooze_until': 'snoozeUntil',
+  'snooze_count': 'snoozeCount',
+  'is_recurring': 'isRecurring',
+  'recurring_type': 'recurringType',
+  'priority': 'priority',
+  'category': 'category',
+  'location': 'location',
+  'description': 'description',
 
   // Support Message fields
   'message_type': 'messageType',
   'responded_by': 'respondedBy',
   'responded_at': 'respondedAt',
 
-  // Report fields
+  'report_type': 'reportType',
   'reporter_id': 'reporterId',
   'reported_id': 'reportedId',
   'admin_notes': 'adminNotes',
   'resolved_at': 'resolvedAt',
+  'report_status': 'reportStatus',
 
   // Admin Log fields
   'admin_id': 'adminId',
@@ -143,20 +152,20 @@ export const convertFrontendField = (frontendField) => {
  */
 export const safeDbConversion = (data) => {
   if (Array.isArray(data)) {
-    return data.map(item => {
-      const converted = dbToFrontend(item);
-      // Convert nested objects too
-      if (item.sender) converted.sender = dbToFrontend(item.sender);
-      if (item.receiver) converted.receiver = dbToFrontend(item.receiver);
-      if (item.other_user) converted.otherUser = dbToFrontend(item.other_user);
-      return converted;
-    });
+    return data.map(item => safeDbConversion(item));
   } else if (data && typeof data === 'object') {
     const converted = dbToFrontend(data);
-    // Convert nested objects
-    if (data.sender) converted.sender = dbToFrontend(data.sender);
-    if (data.receiver) converted.receiver = dbToFrontend(data.receiver);
-    if (data.other_user) converted.otherUser = dbToFrontend(data.other_user);
+    // Convert all values: if they are objects or arrays, convert them too
+    for (const [key, value] of Object.entries(converted)) {
+      if (value && typeof value === 'object') {
+        // Special case for Supabase count joins which are often [ { count: 123 } ] or { count: 123 }
+        if (Array.isArray(value) && value.length === 1 && value[0]?.count !== undefined) {
+          converted[key] = value[0].count;
+        } else {
+          converted[key] = safeDbConversion(value);
+        }
+      }
+    }
     return converted;
   }
   return data;

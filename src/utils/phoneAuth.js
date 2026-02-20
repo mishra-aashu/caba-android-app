@@ -3,7 +3,7 @@
  * Handles phone login without JWT conflicts
  */
 
-import { supabase } from './supabase.js';
+import { supabase } from '../config/supabase.js';
 
 class PhoneAuth {
   constructor() {

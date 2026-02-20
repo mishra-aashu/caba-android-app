@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../config/supabase';
+import { dbToFrontend } from '../utils/dbFieldMapping';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
@@ -249,7 +250,7 @@ const useAuthStore = create((set, get) => ({
         dbUser = existingUser;
       }
 
-      set({ dbUser });
+      set({ dbUser: dbToFrontend(dbUser) });
     } catch (error) {
       console.error("Error handling user session:", error);
     } finally {
@@ -294,7 +295,7 @@ const useAuthStore = create((set, get) => ({
     localStorage.setItem('phoneAuthToken', 'phone_auth_' + user.id);
     set({
       user,
-      dbUser: user,
+      dbUser: dbToFrontend(user),
       isAuthenticated: true,
       isPhoneAuth: true
     });

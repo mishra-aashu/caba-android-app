@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { realtimeManager } from '../utils/realtimeManager';
 import { supabase } from '../config/supabase';
+import useUserStore from '../store/userStore';
+import { safeDbConversion, dbToFrontend } from '../utils/dbFieldMapping';
 
-export const useRealtimeMessages = (chatId, setMessages, currentUserId) => {
+export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
   const processedMessageIds = useRef(new Set());
+  const { onNewMessage, onUpdateMessage, onDeleteMessage } = handlers;
 
   useEffect(() => {
     if (!chatId) return;
 
-    console.log(`🔌 Subscribing to messages for chat: ${chatId}`);
+    console.log(`🔌 [SyncFix] Subscribing to messages for chat: ${chatId}`);
     processedMessageIds.current.clear();
 
     const channel = realtimeManager.subscribe(
@@ -21,59 +24,71 @@ export const useRealtimeMessages = (chatId, setMessages, currentUserId) => {
           table: 'messages',
           filter: `chat_id=eq.${chatId}`,
           handler: async (payload) => {
-            console.log(`📨 Real-time message event [${payload.eventType}]:`, payload);
+            const { eventType, new: newRecord, old: oldRecord } = payload;
+            console.log(`📨 [SyncFix] Real-time [${eventType}] event:`, {
+              id: newRecord?.id || oldRecord?.id,
+              chat_id: newRecord?.chat_id || oldRecord?.chat_id,
+              payload
+            });
 
-            if (payload.eventType === 'INSERT') {
-              const newMsg = payload.new;
-
-              // Skip our own messages — already shown via optimistic update
-              if (newMsg.sender_id === currentUserId) return;
-
+            if (eventType === 'INSERT') {
               // Prevent duplicate processing
-              if (processedMessageIds.current.has(newMsg.id)) return;
-              processedMessageIds.current.add(newMsg.id);
+              if (processedMessageIds.current.has(newRecord.id)) {
+                console.log(`⏭️ [SyncFix] Skipping already processed message: ${newRecord.id}`);
+                return;
+              }
+              processedMessageIds.current.add(newRecord.id);
 
-              // postgres_changes payloads don't include joins.
-              // Fetch the full message row with the sender profile so
-              // group chat avatars and sender names are available.
-              let enrichedMsg = newMsg;
-              try {
-                const { data, error } = await supabase
-                  .from('messages')
-                  .select(`
-                    *,
-                    sender:sender_id (
-                      id,
-                      name,
-                      avatar,
-                      is_online,
-                      last_seen
-                    )
-                  `)
-                  .eq('id', newMsg.id)
-                  .single();
+              // Enrich message with sender details
+              let enrichedMsg = safeDbConversion(newRecord);
+              const cachedUser = useUserStore.getState().getUser(newRecord.sender_id);
 
-                if (!error && data) {
-                  enrichedMsg = data;
+              if (cachedUser) {
+                enrichedMsg.sender = cachedUser;
+              } else {
+                try {
+                  const { data, error } = await supabase
+                    .from('users')
+                    .select('id, name, avatar, is_online, last_seen')
+                    .eq('id', newRecord.sender_id)
+                    .single();
+
+                  if (!error && data) {
+                    enrichedMsg.sender = dbToFrontend(data);
+                    useUserStore.getState().setUser(data);
+                  }
+                } catch (err) {
+                  console.warn('Could not enrich realtime message with sender profile:', err);
                 }
-              } catch (err) {
-                // Non-fatal — fall back to raw payload
-                console.warn('Could not enrich realtime message with sender profile:', err);
               }
 
-              setMessages((prev) => {
-                if (prev.find(m => m.id === enrichedMsg.id)) return prev;
-                return [...prev, enrichedMsg];
-              });
+              if (onNewMessage) {
+                onNewMessage(enrichedMsg);
+              }
 
-            } else if (payload.eventType === 'UPDATE') {
-              const updatedMsg = payload.new;
-              setMessages((prev) =>
-                prev.map(m => m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m)
-              );
-            } else if (payload.eventType === 'DELETE') {
-              const deletedId = payload.old.id;
-              setMessages((prev) => prev.filter(m => m.id !== deletedId));
+            } else if (eventType === 'UPDATE') {
+              if (onUpdateMessage) {
+                onUpdateMessage(safeDbConversion(newRecord));
+              }
+            } else if (eventType === 'DELETE') {
+              const deletedId = oldRecord.id;
+
+              // Trigger particle effect before removing from state
+              const element = document.getElementById(`message-${deletedId}`);
+              if (element) {
+                const rect = element.getBoundingClientRect();
+                const x = rect.left + rect.width / 2;
+                const y = rect.top + rect.height / 2;
+                const color = element.classList.contains('sent') ? '#7c3aed' : '#555555';
+
+                import('../utils/particleManager').then(m => {
+                  m.default.spawn(x, y, color, rect.width, rect.height);
+                });
+              }
+
+              if (onDeleteMessage) {
+                onDeleteMessage(deletedId);
+              }
             }
           }
         }]
@@ -81,10 +96,10 @@ export const useRealtimeMessages = (chatId, setMessages, currentUserId) => {
     );
 
     return () => {
-      console.log(`🔌 Unsubscribing from chat: ${chatId}`);
+      console.log(`🔌 [SyncFix] Unsubscribing from chat: ${chatId}`);
       realtimeManager.unsubscribe(`chat_messages_${chatId}`);
       processedMessageIds.current.clear();
     };
 
-  }, [chatId, currentUserId, setMessages]);
+  }, [chatId, currentUserId, onNewMessage, onUpdateMessage, onDeleteMessage]);
 };

@@ -4,6 +4,7 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
+import { getValidAvatarUrl } from '../../utils/avatarUtils';
 import {
   Calendar,
   Check,
@@ -75,11 +76,11 @@ const MessageItem = ({
   // Sender info for received messages (group chat avatar on left)
   const sender = message.sender || {};
   const senderName = sender.name || sender.username || 'User';
-  const senderAvatar = sender.avatar || sender.profile_image || null;
+  const senderAvatar = getValidAvatarUrl(sender.avatar || sender.profile_image);
   const senderInitial = senderName.charAt(0).toUpperCase();
 
   // Current user info for sent messages (group chat avatar on right)
-  const myAvatar = currentUser?.avatar || currentUser?.profile_image || null;
+  const myAvatar = getValidAvatarUrl(currentUser?.avatar || currentUser?.profile_image);
   const myName = currentUser?.name || currentUser?.username || 'Me';
   const myInitial = myName.charAt(0).toUpperCase();
 
@@ -156,6 +157,20 @@ const MessageItem = ({
 
   const handleDelete = async () => {
     setShowActions(false);
+
+    // Trigger particle effect locally for instant feedback
+    const element = document.getElementById(`message-${message.id}`);
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const color = isSent ? '#7c3aed' : '#555555';
+
+      import('../../utils/particleManager').then(m => {
+        m.default.spawn(x, y, color, rect.width, rect.height);
+      });
+    }
+
     if (onDelete) onDelete(message.id);
     try {
       const { error } = await supabase.from('messages').delete().eq('id', message.id);
@@ -288,7 +303,7 @@ const MessageItem = ({
       <div
         ref={messageRef}
         id={`message-${message.id}`}
-        className={`message-item ${isSent ? 'sent' : 'received'} ${isSelected ? 'selected' : ''} ${showActions ? 'highlighted' : ''} ${isGroupChat ? 'group-message' : ''}`}
+        className={`message-item ${isSent ? 'sent' : 'received'} ${isSelected ? 'selected' : ''} ${showActions ? 'highlighted' : ''} ${isGroupChat ? 'group-message' : ''} ${message.isDeleting ? 'is-deleting' : ''}`}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -355,7 +370,15 @@ const MessageItem = ({
 
         {/* RIGHT avatar — sent group messages (own DP) */}
         {showSentAvatar && (
-          <div className="group-sender-avatar group-sender-avatar--self" aria-hidden="true">
+          <button
+            className="group-sender-avatar group-sender-avatar--self"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSenderClick && onSenderClick(currentUser.id);
+            }}
+            title="View your profile"
+            aria-label="View your profile"
+          >
             {myAvatar ? (
               <img
                 src={myAvatar}
@@ -363,7 +386,11 @@ const MessageItem = ({
                 className="group-sender-avatar-img"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.parentElement.querySelector('.group-sender-avatar-initial').style.display = 'flex';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    const initial = parent.querySelector('.group-sender-avatar-initial');
+                    if (initial) initial.style.display = 'flex';
+                  }
                 }}
               />
             ) : null}
@@ -373,7 +400,7 @@ const MessageItem = ({
             >
               {myInitial}
             </span>
-          </div>
+          </button>
         )}
       </div>
 

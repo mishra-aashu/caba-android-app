@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCall } from '../../context/CallContext';
 import { dpOptions } from '../../utils/dpOptions';

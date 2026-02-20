@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase, getValidAvatarUrl } from '../../utils/supabase';
+import { supabase } from '../../config/supabase';
+import { getValidAvatarUrl } from '../../utils/avatarUtils';
 
 const IncomingCall = ({ callData, onAccept, onReject, onClose }) => {
   const [caller, setCaller] = useState(null);

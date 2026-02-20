@@ -2,7 +2,7 @@
  * Activity Logging Utility
  * Logs user and admin actions to the database
  */
-import { supabase } from './supabase';
+import { supabase } from '../config/supabase.js';
 
 /**
  * Log a user activity

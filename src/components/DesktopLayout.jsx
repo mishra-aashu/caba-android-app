@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import DropdownMenu from './common/DropdownMenu';
 import { MessageCircle, Phone, Settings, User, Search, MoreVertical, Plus, Bell, Info, HelpCircle, LogOut, Crown, X, Eye, EyeOff, ShieldCheck, Edit, Trash2, QrCode } from 'lucide-react';
 
-const DesktopLayout = ({ chatListPanel, chatComponent, userDetailsPanel }) => {
+const DesktopLayout = ({ chatListPanel, chatComponent, userDetailsPanel, particleOverlay }) => {
   const hasUserDetails = Boolean(userDetailsPanel);
 
   return (
@@ -20,6 +20,7 @@ const DesktopLayout = ({ chatListPanel, chatComponent, userDetailsPanel }) => {
           {userDetailsPanel}
         </div>
       )}
+      {particleOverlay}
     </div>
   );
 };

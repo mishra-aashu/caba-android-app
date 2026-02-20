@@ -17,7 +17,6 @@ import TypingIndicator from './TypingIndicator';
 import MediaViewer from '../media/MediaViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
-import { useMessageStatusUpdates } from '../../hooks/useMessageStatusUpdates';
 import { useData } from '../../contexts/DataContext';
 import { messageReadsService } from '../../services/messageReadsService';
 import { useTruthDareGame } from '../../hooks/useTruthDareGame';
@@ -30,6 +29,7 @@ import NotificationSound from '../../utils/notificationSound';
 import { realtimeManager } from '../../utils/realtimeManager';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
+import useUserStore from '../../store/userStore';
 import { UserDetailsContext } from '../MainLayout';
 import '../../styles/chat.css';
 import '../../styles/game-modal.css';
@@ -105,13 +105,13 @@ const Chat = () => {
           return prev;
         }
         // Otherwise set placeholder to prevent "Loading..." state
-        return { 
-          id: chatId, 
-          name: 'Group Chat', 
-          avatar: null, 
-          is_group: true, 
-          isGroup: true, 
-          member_count: 0 
+        return {
+          id: chatId,
+          name: 'Group Chat',
+          avatar: null,
+          is_group: true,
+          isGroup: true,
+          member_count: 0
         };
       });
     }
@@ -231,6 +231,13 @@ const Chat = () => {
           // Preserve temp messages (optimistic sends) not yet confirmed by DB
           const pendingOptimistic = prev.filter(m => m.tempId && !dbIds.has(m.id));
           const merged = [...freshMessages, ...pendingOptimistic];
+
+          // Populate user store
+          freshMessages.forEach(msg => {
+            if (msg.sender) useUserStore.getState().setUser(msg.sender);
+            if (msg.receiver) useUserStore.getState().setUser(msg.receiver);
+          });
+
           updateCache(validChatId, merged);
           return merged;
         });
@@ -342,9 +349,15 @@ const Chat = () => {
     }
   }, [isScrolledToBottom, currentUser?.id, isMuted, startGame]);
 
-  useRealtimeMessages(validChatId, setMessages, currentUser?.id);
+  const handleDeleteMessage = useCallback((deletedId) => {
+    // Mark as deleting first to trigger CSS animation
+    setMessages((prev) => prev.map(m => m.id === deletedId ? { ...m, isDeleting: true } : m));
 
-  const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
+    // Remove from state after animation finishes
+    setTimeout(() => {
+      setMessages((prev) => prev.filter(m => m.id !== deletedId));
+    }, 450);
+  }, []);
 
   const handleStatusUpdate = useCallback((updatedMessage) => {
     setMessages(prev => prev.map(msg =>
@@ -352,7 +365,14 @@ const Chat = () => {
     ));
   }, []);
 
-  useMessageStatusUpdates(validChatId, handleStatusUpdate);
+  useRealtimeMessages(validChatId, {
+    onNewMessage: handleNewMessage,
+    onUpdateMessage: handleStatusUpdate,
+    onDeleteMessage: handleDeleteMessage
+  }, currentUser?.id);
+
+  const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
+
   const { chats: allChats } = useData();
 
   // Load group info for group chats - MUST BE DEFINED BEFORE initializeChat
@@ -436,6 +456,7 @@ const Chat = () => {
 
       if (error) throw error;
       setOtherUser(user);
+      useUserStore.getState().setUser(user);
 
       // Load contact name - only if we have currentUser
       if (currentUser?.id) {
@@ -989,7 +1010,7 @@ const Chat = () => {
   const handleForwardMessages = async (messages, targetChat) => {
     try {
       const isGroupTarget = targetChat.isGroup || targetChat.is_group || false;
-      
+
       for (const message of messages) {
         const forwardMessage = {
           chat_id: targetChat.id,
@@ -1410,8 +1431,8 @@ const Chat = () => {
             </div>
             <div className="user-details">
               <h3 className="user-name">
-                {isGroupChat 
-                  ? (otherUser?.name || 'Group Chat') 
+                {isGroupChat
+                  ? (otherUser?.name || 'Group Chat')
                   : (otherUser ? (otherUser.contact_name || otherUser.name) : 'Loading...')
                 }
               </h3>
@@ -1601,7 +1622,12 @@ const Chat = () => {
             onMessageSelect={handleMessageSelect}
             onReply={handleReply}
             onForward={handleForwardMessage}
-            onDelete={(messageId) => setMessages(prev => prev.filter(m => m.id !== messageId))}
+            onDelete={(messageId) => {
+              setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isDeleting: true } : m));
+              setTimeout(() => {
+                setMessages(prev => prev.filter(m => m.id !== messageId));
+              }, 450);
+            }}
             onMediaView={handleMediaView}
             onMediaDownload={handleMediaDownload}
             isLoading={showLoading}
