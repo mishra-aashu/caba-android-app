@@ -38,6 +38,7 @@ const SharedProfile = lazy(() => import('./components/shared-profile'));
 const About = lazy(() => import('./components/About'));
 const SupportChat = lazy(() => import('./components/SupportChat'));
 const Admin = lazy(() => import('./components/Admin'));
+const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
 const QRPage = lazy(() => import('./components/qr'));
 const Intro = lazy(() => import('./components/Intro'));
 const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
@@ -94,6 +95,7 @@ const AppContent = () => {
       <Route path="/shared-profile/:userId" element={<SharedProfile />} />
       <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
       <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
+      <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
 
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
@@ -115,9 +117,9 @@ const AppContent = () => {
       <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
       <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
       <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
-      <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
       <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+      <Route path="/admin-about" element={<div className="legal-page-wrapper"><AdminAbout /></div>} />
       <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
 
       {/* 404 route */}

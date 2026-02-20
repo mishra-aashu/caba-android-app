@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../config/supabase';
 import { dbToFrontend } from '../utils/dbFieldMapping';
+import { getRedirectUrl } from '../utils/authUtils';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
@@ -269,12 +270,14 @@ const useAuthStore = create((set, get) => ({
         if (error) throw error;
         return { success: true };
       } else {
-        const redirectUrl = window.location.origin
-          + window.location.pathname;
+        const redirectUrl = getRedirectUrl();
+        console.log('🔗 Redirecting to:', redirectUrl);
+
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: redirectUrl,
+            flowType: 'pkce', // ✅ Use PKCE flow for better mobile compatibility
             queryParams: {
               access_type: 'offline',
               prompt: 'consent',

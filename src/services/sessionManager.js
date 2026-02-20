@@ -1,4 +1,5 @@
 import { logUserActivity } from '../utils/activityLogger';
+import { getRedirectUrl } from '../utils/authUtils';
 
 class SessionManager {
   constructor(supabase) {
@@ -133,7 +134,8 @@ class SessionManager {
       const { data, error } = await this.supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/CaBa/auth-callback.html`
+          redirectTo: getRedirectUrl(),
+          flowType: 'pkce'
         }
       });
 

@@ -617,6 +617,36 @@ body.light-mode .art-login-container .checkbox-container .checkmark {
   }
 }
 
+/* --- About Button - Top Right --- */
+.about-btn-top-right {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  background: var(--brand-gradient);
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  font-size: 1.2rem;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+}
+
+.about-btn-top-right:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.about-btn-top-right:active {
+  transform: scale(0.95);
+}
+
 /* --- FORCED GPU LAYER PROMOTION CLASS --- */
 /* Add this class to any element that needs maximum GPU acceleration */
 .gpu-max {

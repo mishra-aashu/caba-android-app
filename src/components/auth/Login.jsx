@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { FaGoogle, FaCheckCircle } from 'react-icons/fa';
+import { FaGoogle, FaCheckCircle, FaInfoCircle } from 'react-icons/fa';
 import '../../styles/LoginPage.css'; // Correctly import the dedicated CSS file
 
 const Login = () => {
@@ -40,9 +40,19 @@ const Login = () => {
     navigate('/privacy');
   };
 
+  const handleAboutClick = (e) => {
+    e.preventDefault();
+    navigate('/admin-about');
+  };
+
   return (
     <div className="art-login-container gpu-max">
       
+      {/* About Button - Top Right */}
+      <button className="about-btn-top-right" onClick={handleAboutClick} title="About">
+        <FaInfoCircle />
+      </button>
+
       {/* Background Ambience (Painting Effects) - GPU Accelerated */}
       <div className="ambient-glow glow-1 gpu-accelerated"></div>
       <div className="ambient-glow glow-2 gpu-accelerated"></div>
