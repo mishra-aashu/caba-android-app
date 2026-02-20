@@ -24,7 +24,7 @@ async function saveTokenToSupabase(token) {
     }
 
     const platform = Capacitor.getPlatform(); // 'web', 'ios', or 'android'
-    
+
     // Decide which column to update
     let columnToUpdate;
     if (platform === 'web') {
@@ -41,12 +41,12 @@ async function saveTokenToSupabase(token) {
       .eq('id', user.id);
 
     if (error) throw error;
-    
+
     console.log(`✅ FCM Token saved to ${columnToUpdate} in Supabase!`);
-    
+
     // Return user ID for Firestore sync
     return user.id;
-    
+
   } catch (error) {
     console.error("❌ Error saving FCM token to Supabase:", error.message);
     return null;
@@ -70,7 +70,7 @@ async function saveTokenToFirestore(token, userId) {
     }, { merge: true });
 
     console.log(`✅ FCM Token saved to Firestore (${tokenField})!`);
-    
+
   } catch (error) {
     console.error("❌ Error saving FCM token to Firestore:", error.message);
   }
@@ -90,10 +90,10 @@ export const initializePushNotifications = async () => {
       // TOKEN LISTENER
       PushNotifications.addListener('registration', async (token) => {
         console.log('🔥🔥 MY ANDROID/iOS TOKEN:', token.value);
-        
+
         // Save to Supabase
         const userId = await saveTokenToSupabase(token.value);
-        
+
         // ✅ ALSO save to Firestore for Cloud Function
         if (userId) {
           await saveTokenToFirestore(token.value, userId);
@@ -103,8 +103,8 @@ export const initializePushNotifications = async () => {
       PushNotifications.addListener('registrationError', (error) => {
         console.error('❌ Error on registration: ', error);
       });
-    } 
-    
+    }
+
     // --- WEB LOGIC ---
     else {
       const app = initializeApp(firebaseConfig);
@@ -113,16 +113,22 @@ export const initializePushNotifications = async () => {
 
       if (permission === 'granted') {
         // VAPID KEY ZAROORI HAI (Firebase Console > Cloud Messaging > Web Config se milti hai)
-        const currentToken = await getToken(messaging, { 
-          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+        // Correct path for Service Worker to avoid 404 on GitHub Pages
+        const swPath = window.location.pathname.startsWith('/caba-android-app')
+          ? '/caba-android-app/firebase-messaging-sw.js'
+          : '/firebase-messaging-sw.js';
+
+        const currentToken = await getToken(messaging, {
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+          serviceWorkerRegistration: await navigator.serviceWorker.register(swPath)
         });
-        
+
         if (currentToken) {
           console.log('🔥🔥 MY WEB TOKEN:', currentToken);
-          
+
           // Save to Supabase
           const userId = await saveTokenToSupabase(currentToken);
-          
+
           // ✅ ALSO save to Firestore for Cloud Function
           if (userId) {
             await saveTokenToFirestore(currentToken, userId);

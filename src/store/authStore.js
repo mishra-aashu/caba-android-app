@@ -36,10 +36,11 @@ const useAuthStore = create((set, get) => ({
         });
         return;
       }
-
       // ✅ Get initial session
       const { data: { session } } = await supabase.auth.getSession();
+
       if (session?.user) {
+        console.log('✅ Initial session found:', session.user.email);
         set({
           user: session.user,
           session,
@@ -48,6 +49,7 @@ const useAuthStore = create((set, get) => ({
         });
         await get().handleUserSession(session.user);
       } else {
+        console.log('ℹ️ No initial session found');
         set({ loading: false });
       }
 
@@ -252,8 +254,9 @@ const useAuthStore = create((set, get) => ({
       }
 
       set({ dbUser: dbToFrontend(dbUser) });
+      console.log('✅ User session handled successfully for:', authUser.email);
     } catch (error) {
-      console.error("Error handling user session:", error);
+      console.error("❌ Error handling user session:", error);
     } finally {
       isHandlingSession = false;
     }
