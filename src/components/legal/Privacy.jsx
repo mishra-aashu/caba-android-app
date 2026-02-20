@@ -5,23 +5,21 @@ import { FaArrowLeft } from 'react-icons/fa';
 const LegalPlaceholder = ({ title, children }) => {
   const navigate = useNavigate();
   return (
-    <div className="legal-page-wrapper">
-      <div className="legal-page-container">
-        {/* Header with Back Button */}
-        <div className="legal-page-header">
-          <button className="legal-back-btn" onClick={() => navigate(-1)}>
-            <FaArrowLeft />
-          </button>
-        </div>
-        
-        <div className="disclaimer-box">
-          <p>DISCLAIMER: This is a placeholder document.</p>
-          <p>The text below is not legally binding. You MUST replace it with your own official Privacy Policy, drafted by a legal professional.</p>
-        </div>
-        <h1>{title} for CaBa Chat</h1>
-        <p><em>Last updated: December 28, 2025</em></p>
-        {children}
+    <div className="legal-page-container">
+      {/* Header with Back Button */}
+      <div className="legal-page-header">
+        <button className="legal-back-btn" onClick={() => navigate(-1)}>
+          <FaArrowLeft />
+        </button>
       </div>
+      
+      <div className="disclaimer-box">
+        <p>DISCLAIMER: This is a placeholder document.</p>
+        <p>The text below is not legally binding. You MUST replace it with your own official Privacy Policy, drafted by a legal professional.</p>
+      </div>
+      <h1>{title} for CaBa Chat</h1>
+      <p><em>Last updated: December 28, 2025</em></p>
+      {children}
     </div>
   );
 };

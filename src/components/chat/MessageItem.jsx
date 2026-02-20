@@ -69,7 +69,7 @@ const MessageItem = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showActions]);
 
-  const isSent = message.sender_id === currentUser.id;
+  const isSent = message.sender_id === currentUser?.id;
   const isReplied = message.reply_to;
   const isTouchDevice = window.matchMedia && window.matchMedia('(hover: none)').matches;
 
@@ -189,7 +189,7 @@ const MessageItem = ({
     }
     try {
       const { error } = await supabase.from('reports').insert({
-        reporter_id: currentUser.id,
+        reporter_id: currentUser?.id,
         reported_id: message.sender_id,
         reason: reportReason,
         details: `Reported message (ID: ${message.id}): "${message.content?.slice(0, 100)}"`

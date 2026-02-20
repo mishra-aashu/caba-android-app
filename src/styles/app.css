@@ -1245,10 +1245,12 @@ body.light-mode .no-contacts {
 /* Legal page wrapper for standalone routes */
 .legal-page-wrapper {
   min-height: 100vh;
+  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--bg-color);
   padding: 1rem;
+  box-sizing: border-box;
 }
 
 .legal-page-container {

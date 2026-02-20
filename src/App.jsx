@@ -92,8 +92,8 @@ const AppContent = () => {
       <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
       <Route path="/intro" element={<PublicRoute><Intro /></PublicRoute>} />
       <Route path="/shared-profile/:userId" element={<SharedProfile />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
+      <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
 
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
