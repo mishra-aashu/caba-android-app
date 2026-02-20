@@ -22,7 +22,7 @@ export const DataProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('contacts')
-        .select('*, contact_user:users!contacts_contact_user_id_fkey(id, name, avatar, is_online, last_seen)')
+        .select('*, contact_user:users!contacts_contact_user_id_fkey(id, name, avatar, phone, is_online, last_seen)')
         .eq('user_id', userId);
 
       if (error) {
@@ -38,7 +38,10 @@ export const DataProvider = ({ children }) => {
         throw error;
       }
 
-      const contactUsers = data ? data.map(c => ({ ...c.contact_user, contact_name: c.contact_name })) : [];
+      const contactUsers = data ? data.map(c => ({
+        ...c,
+        otherUser: c.contact_user
+      })) : [];
       setContacts(contactUsers);
     } catch (error) {
       console.error('Error loading saved contacts:', error);

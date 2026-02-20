@@ -1,5 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect, Suspense, lazy, createContext, useContext } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo, Suspense, lazy, createContext, useContext } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { useData } from '../contexts/DataContext';
 import useIsDesktop from '../hooks/useIsDesktop';
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast';
 import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
 import ParticleOverlay from './chat/ParticleOverlay';
+import { formatTime } from '../utils/timeUtils';
 import '../styles/theme.css';
 
 // Create context for user-details panel
@@ -19,6 +21,7 @@ export const UserDetailsContext = createContext(null);
 
 // Lazy load UserDetails for desktop side panel
 const UserDetails = lazy(() => import('./UserDetails'));
+import ContactsPage from './contacts/ContactsPage';
 
 const MainLayout = () => {
     const { user, session } = useAuth();
@@ -26,14 +29,21 @@ const MainLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isDesktop = useIsDesktop();
-    const { chats, loading, hasMoreChats, loadingMore, loadMoreChats, setChats } = useData();
+    const {
+        chats,
+        loading,
+        hasMoreChats,
+        loadingMore,
+        loadMoreChats,
+        refreshContacts,
+        contacts: savedContacts
+    } = useData();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
     const [searchSuggestions, setSearchSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [showNewContactModal, setShowNewContactModal] = useState(false);
-    const [savedContacts, setSavedContacts] = useState([]);
     const [showContactForm, setShowContactForm] = useState(false);
     const [showSelectContact, setShowSelectContact] = useState(false);
     const [contactName, setContactName] = useState('');
@@ -53,37 +63,16 @@ const MainLayout = () => {
         setIsChatViewActive(
             location.pathname.startsWith('/chat/') ||
             location.pathname.startsWith('/user-details/') ||
-            location.pathname === '/groups'
+            location.pathname === '/groups' ||
+            location.pathname === '/contacts'
         );
     }, [location]);
 
 
-    const fetchContacts = useCallback(async () => {
-        if (!user) return;
-        try {
-            const { data, error } = await supabase
-                .from('contacts')
-                .select(`
-                    id,
-                    user_id,
-                    contact_user_id,
-                    contact_name,
-                    is_favorite,
-                    created_at,
-                    otherUser:users!contacts_contact_user_id_fkey(id, name, phone, avatar, is_online)
-                `)
-                .eq('user_id', user.id);
-            if (error) throw error;
-            setSavedContacts(data || []);
-        } catch (error) {
-            console.error('Error fetching contacts:', error);
-            toast.error('Could not fetch contacts.');
-        }
-    }, [supabase, user]);
-
+    // Contacts are now managed by DataContext
     useEffect(() => {
-        fetchContacts();
-    }, [fetchContacts]);
+        if (user) refreshContacts();
+    }, [user, refreshContacts]);
 
     const handleSaveContact = async () => {
         if (!contactName.trim() || !contactPhone.trim()) {
@@ -116,7 +105,7 @@ const MainLayout = () => {
             if (error) throw error;
 
             toast.success('Contact saved!');
-            setSavedContacts(prev => [...prev, data[0]]);
+            refreshContacts(); // Refresh global contacts
             setContactName('');
             setContactPhone('');
             setShowContactForm(false);
@@ -287,11 +276,25 @@ const MainLayout = () => {
         }
     };
 
-    const filteredChats = showSearch
-        ? chats
-        : chats.filter(chat =>
-            chat.otherUser?.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+    // Filter and sort chats for the list
+    const filteredChats = useMemo(() => {
+        let result = chats;
+
+        // Apply search if active
+        if (searchTerm.trim()) {
+            result = chats.filter(chat =>
+                chat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                chat.metadata?.otherUserPhone?.includes(searchTerm)
+            );
+        }
+
+        // Always sort by timestamp (newest first)
+        return [...result].sort((a, b) => {
+            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return timeB - timeA;
+        });
+    }, [chats, searchTerm]);
 
     const chatListPanelProps = {
         searchTerm,
@@ -311,8 +314,8 @@ const MainLayout = () => {
         hasMoreChats,
         dpOptions,
         getInitials,
-        formatTime: (time) => new Date(time).toLocaleTimeString(),
-        setShowNewContactModal,
+        formatTime: formatTime,
+        setShowNewContactModal: (val) => val ? navigate('/contacts') : navigate('/'),
         currentUser: user,
         handleNavigation,
         handleAboutApp: () => navigate('/about'),
@@ -340,11 +343,12 @@ const MainLayout = () => {
         currentChatId,
     };
 
-    if (loading) {
+    // Only show full-screen loader on initial data fetch to prevent blinking during route changes
+    if (loading && chats.length === 0 && !isChatViewActive) {
         return (
-            <div className="loading">
+            <div className="loading-container glass" style={{ backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}>
                 <div className="loading-spinner"></div>
-                <p>Loading Chats...</p>
+                <p>Loading Your Experience...</p>
             </div>
         );
     }
@@ -398,17 +402,66 @@ const MainLayout = () => {
         </Suspense>
     ) : null;
 
+    // Desktop: If on contacts route, don't show ContactsPage in the main area (it's in the sidebar)
+    const isContactsRoute = location.pathname === '/contacts';
+
     // Always render Outlet - Chat component stays mounted on desktop!
     // On mobile, Outlet renders Chat or UserDetails based on route
     const chatComponent = mobileUserDetails || (
         <UserDetailsContext.Provider value={handleShowUserDetails}>
-            <Outlet />
+            {isDesktop && isContactsRoute ? <ChatPlaceholder /> : <Outlet />}
         </UserDetailsContext.Provider>
+    );
+
+    const sidebarPanel = (
+        <div style={{ position: 'relative', height: '100%', width: '100%', overflow: 'hidden' }}>
+            <AnimatePresence>
+                {isDesktop && isContactsRoute ? (
+                    <motion.div
+                        key="contacts"
+                        initial={{ x: -30, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -30, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            willChange: 'transform, opacity',
+                            transform: 'translateZ(0)'
+                        }}
+                    >
+                        <ContactsPage isDesktop={true} onClose={() => navigate('/')} />
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="chatlist"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            willChange: 'opacity',
+                            transform: 'translateZ(0)'
+                        }}
+                    >
+                        <ChatListPanel {...chatListPanelProps} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 
     return (
         <DesktopLayout
-            chatListPanel={<ChatListPanel {...chatListPanelProps} />}
+            chatListPanel={sidebarPanel}
             chatComponent={chatComponent}
             userDetailsPanel={userDetailsPanel}
             particleOverlay={<ParticleOverlay />}

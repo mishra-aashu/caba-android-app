@@ -16,27 +16,9 @@ const fetchChatList = async ({ supabase, userId }) => {
         const { data: rpcData, error: rpcError } = await supabase
             .rpc('get_unified_chat_list', { user_id: userId });
 
-        if (!rpcError && rpcData && rpcData.length > 0) {
+        if (!rpcError && rpcData) {
             // Use normalizeChat helper to create unified data structure
-            const formattedChats = rpcData.map(rawItem => {
-                const normalized = normalizeChat(rawItem);
-
-                return {
-                    ...normalized,
-                    otherUser: {
-                        id: normalized.metadata.otherUserId || normalized.id,
-                        name: normalized.name,
-                        phone: normalized.metadata.otherUserPhone || null,
-                        avatar: normalized.avatar,
-                        is_online: normalized.is_online,
-                        last_seen: normalized.last_seen
-                    },
-                    last_message: normalized.lastMessage,
-                    last_message_time: normalized.timestamp,
-                    unreadCount: normalized.unreadCount,
-                    isGroup: normalized.isGroup
-                };
-            });
+            const formattedChats = rpcData.map(rawItem => normalizeChat(rawItem, userId));
 
             // Save to device for offline access
             await saveChatsToDevice(formattedChats);
@@ -54,27 +36,8 @@ const fetchChatList = async ({ supabase, userId }) => {
             .order('last_message_time', { ascending: false })
             .limit(20);
 
-        if (!viewError && viewData && viewData.length > 0) {
-            // Use normalizeChat helper for consistent data structure
-            const formattedChats = viewData.map(rawItem => {
-                const normalized = normalizeChat(rawItem);
-                return {
-                    ...normalized,
-                    otherUser: {
-                        id: normalized.metadata.otherUserId || normalized.id,
-                        name: normalized.name,
-                        phone: normalized.metadata.otherUserPhone || null,
-                        avatar: normalized.avatar,
-                        is_online: normalized.is_online,
-                        last_seen: normalized.last_seen
-                    },
-                    last_message: normalized.lastMessage,
-                    last_message_time: normalized.timestamp,
-                    unreadCount: normalized.unreadCount,
-                    isGroup: normalized.isGroup
-                };
-            });
-
+        if (!viewError && viewData) {
+            const formattedChats = viewData.map(rawItem => normalizeChat(rawItem, userId));
             await saveChatsToDevice(formattedChats);
             return formattedChats;
         }
@@ -82,137 +45,72 @@ const fetchChatList = async ({ supabase, userId }) => {
         console.log('View not available:', viewErr);
     }
 
-
-    // Final fallback: Original chat_list_view
-    let query = supabase
-        .from('chat_list_view')
-        .select('*')
-        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
-        .order('last_message_time', { ascending: false })
-        .limit(20);
-
-    const { data, error } = await query;
-
-    if (error) {
-        console.error('Error fetching chat list:', error);
-        // Return empty array instead of throwing to prevent app crash
-        // The UI should handle empty chat list gracefully
-        return [];
-    }
-
-    const formattedChats = (data || []).map(chat => {
-        const isUser1 = chat.user1_id === userId;
-        const otherUser = {
-            id: isUser1 ? chat.user2_id : chat.user1_id,
-            name: isUser1 ? chat.user2_name : chat.user1_name,
-            phone: isUser1 ? chat.user2_id : chat.user1_id,
-            avatar: isUser1 ? chat.user2_avatar : chat.user1_avatar,
-            is_online: isUserOnline(Boolean(isUser1 ? chat.user2_online : chat.user1_online), isUser1 ? chat.user2_last_seen : chat.user1_last_seen),
-            last_seen: isUser1 ? chat.user2_last_seen : chat.user1_last_seen
-        };
-
-        return {
-            id: chat.chat_id,
-            otherUser,
-            last_message: chat.last_message,
-            last_message_time: chat.last_message_time,
-            unreadCount: parseInt(chat.unread_count) || 0,
-            isGroup: false
-        };
-    });
-
-    // Save to device for offline access
-    await saveChatsToDevice(formattedChats);
-
-    return formattedChats;
+    return [];
 };
 
 export const useChatListRealtime = (currentUserId) => {
-    const { supabase, session } = useSupabase();
+    const { supabase } = useSupabase();
     const queryClient = useQueryClient();
     const [chats, setChats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [hasMoreChats, setHasMoreChats] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
 
-    // TanStack Query for chat list caching - provides instant loading from cache
+    // TanStack Query for chat list caching
     const { data: queryChats, isLoading: queryLoading, isFetching } = useQuery({
         queryKey: ['chatList', currentUserId],
         queryFn: () => fetchChatList({ supabase, userId: currentUserId }),
         enabled: !!currentUserId && !!supabase,
-        staleTime: 1000 * 60 * 3, // 3 minutes - data stays fresh
-        gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
+        staleTime: 1000 * 60 * 3,
+        gcTime: 1000 * 60 * 30,
         refetchOnWindowFocus: false,
     });
 
-    // Initial load from device storage - runs once on mount
+    // Initial load from device storage
     useEffect(() => {
         const loadInitialData = async () => {
             if (!currentUserId) return;
-
             try {
                 await initializeFileSystem();
                 const localChats = await loadChatsFromDevice();
-
                 if (localChats && localChats.length > 0) {
-                    // Apply online status logic
-                    const updatedChats = localChats.map(chat => ({
-                        ...chat,
-                        otherUser: {
-                            ...chat.otherUser,
-                        }
-                    }));
-                    setChats(updatedChats);
-
-                    // Populate user store with otherUsers
-                    updatedChats.forEach(chat => {
-                        if (chat.otherUser) useUserStore.getState().setUser(chat.otherUser);
-                    });
-
+                    setChats(localChats);
                     setLoading(false);
                 }
             } catch (error) {
                 console.error('Error loading initial chats:', error);
             }
         };
-
         loadInitialData();
     }, [currentUserId]);
 
-    // Sync query data to chats state - shows fresh data from server
+    // Sync query data to chats state
     useEffect(() => {
-        if (queryChats && queryChats.length > 0) {
-            // Apply online status logic
+        if (queryChats) {
             const updatedChats = queryChats.map(chat => ({
                 ...chat,
-                otherUser: {
-                    ...chat.otherUser,
-                    is_online: isUserOnline(Boolean(chat.otherUser.is_online), chat.otherUser.last_seen)
-                }
+                is_online: isUserOnline(Boolean(chat.is_online), chat.last_seen)
             }));
             setChats(updatedChats);
-            setHasMoreChats(queryChats.length === 20);
+            setHasMoreChats(queryChats.length >= 20);
         }
-        // Only set loading false after query has loaded
         if (!queryLoading && !isFetching) {
             setLoading(false);
         }
     }, [queryChats, queryLoading, isFetching]);
 
-    // Handle load more with pagination
+    // Handle load more with pagination - Unified
     const loadMoreChats = useCallback(async () => {
         if (!currentUserId || !hasMoreChats || loadingMore || !supabase) return;
 
         setLoadingMore(true);
         try {
-            // Get the last chat's timestamp for pagination
             const lastChat = chats[chats.length - 1];
-            const lastTimestamp = lastChat?.last_message_time;
+            const lastTimestamp = lastChat?.timestamp;
 
             let query = supabase
-                .from('chat_list_view')
+                .from('unified_chat_list')
                 .select('*')
-                .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
                 .order('last_message_time', { ascending: false })
                 .limit(20);
 
@@ -221,34 +119,16 @@ export const useChatListRealtime = (currentUserId) => {
             }
 
             const { data, error } = await query;
-
             if (error) throw error;
 
             if (data && data.length > 0) {
-                const formattedChats = data.map(chat => {
-                    const isUser1 = chat.user1_id === currentUserId;
-                    const otherUser = {
-                        id: isUser1 ? chat.user2_id : chat.user1_id,
-                        name: isUser1 ? chat.user2_name : chat.user1_name,
-                        phone: isUser1 ? chat.user2_id : chat.user1_id,
-                        avatar: isUser1 ? chat.user2_avatar : chat.user1_avatar,
-                        is_online: isUserOnline(Boolean(isUser1 ? chat.user2_online : chat.user1_online), isUser1 ? chat.user2_last_seen : chat.user1_last_seen),
-                        last_seen: isUser1 ? chat.user2_last_seen : chat.user1_last_seen
-                    };
-
-                    return {
-                        id: chat.chat_id,
-                        otherUser,
-                        last_message: chat.last_message,
-                        last_message_time: chat.last_message_time,
-                        unreadCount: parseInt(chat.unread_count) || 0,
-                        isGroup: false
-                    };
+                const formattedChats = data.map(rawItem => normalizeChat(rawItem, currentUserId));
+                setChats(prev => {
+                    const combined = [...prev, ...formattedChats];
+                    saveChatsToDevice(combined);
+                    return combined;
                 });
-
-                setChats(prev => [...prev, ...formattedChats]);
                 setHasMoreChats(data.length === 20);
-                await saveChatsToDevice([...chats, ...formattedChats]);
             } else {
                 setHasMoreChats(false);
             }
@@ -259,181 +139,80 @@ export const useChatListRealtime = (currentUserId) => {
         }
     }, [currentUserId, hasMoreChats, loadingMore, chats, supabase]);
 
-
-    const updateChatInList = useCallback(async (chatId) => {
-        const { data } = await supabase
-            .from('chat_list_view')
-            .select('*')
-            .eq('chat_id', chatId)
-            .single();
-
-        if (data && (data.user1_id === currentUserId || data.user2_id === currentUserId)) {
-            const isUser1 = data.user1_id === currentUserId;
-            const otherUser = {
-                id: isUser1 ? data.user2_id : data.user1_id,
-                name: isUser1 ? data.user2_name : data.user1_name,
-                phone: isUser1 ? data.user2_id : data.user1_id,
-                avatar: isUser1 ? data.user2_avatar : data.user1_avatar,
-                is_online: isUserOnline(Boolean(isUser1 ? data.user2_online : data.user1_online), isUser1 ? data.user2_last_seen : data.user1_last_seen),
-                last_seen: isUser1 ? data.user2_last_seen : data.user1_last_seen
-            };
-
-            const updatedChat = {
-                id: data.chat_id,
-                otherUser,
-                last_message: data.last_message,
-                last_message_time: data.last_message_time,
-                unreadCount: parseInt(data.unread_count) || 0
-            };
-
-            const updatedList = (prev) => {
-                const index = prev.findIndex(c => c.id === chatId);
-                let newChats;
-                if (index >= 0) {
-                    const updated = [...prev];
-                    updated[index] = updatedChat;
-                    newChats = updated;
-                } else {
-                    newChats = [updatedChat, ...prev];
-                }
-                const sorted = newChats.sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time));
-                saveChatsToDevice(sorted); // Save after update
-                return sorted;
-            };
-            setChats(updatedList);
-        }
-    }, [currentUserId, supabase]);
-
-    // Real-time channels effect - OPTIMIZED: Uses a SINGLE channel with consolidated table listeners
+    // Real-time channels effect - Consolidated
     useEffect(() => {
         if (!currentUserId) return;
 
-        console.log(`🔌 Setting up consolidated real-time subscription for user: ${currentUserId}`);
-
         const channelName = `chat_list_updates_${currentUserId}`;
-
         let isCancelled = false;
 
         const setupSubscription = async () => {
-            const channel = await realtimeManager.subscribe(
+            await realtimeManager.subscribe(
                 channelName,
                 {},
                 {
                     postgres_changes: [
-                        // 1. Messages listener (handles INSERT and DELETE)
                         {
                             event: '*',
                             schema: 'public',
                             table: 'messages',
                             handler: (payload) => {
                                 if (isCancelled) return;
+
+                                // Invalidate query for structural changes or deletions
+                                if (payload.eventType === 'DELETE' || payload.eventType === 'UPDATE') {
+                                    queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                    return;
+                                }
+
                                 if (payload.eventType === 'INSERT') {
                                     const newMessage = payload.new;
-                                    const isGroupMessage = newMessage.is_group_message === true;
-                                    const isReceiver = !isGroupMessage && newMessage.receiver_id === currentUserId;
 
-                                    // For 1:1 messages: only update if we're the receiver
-                                    // For group messages: update if chat exists in our list (we're a member)
-                                    if (isReceiver || isGroupMessage) {
-                                        // Check if this chat exists in our current list
-                                        setChats((prevChats) => {
-                                            const chatExists = prevChats.some(chat => chat.id === newMessage.chat_id);
+                                    // Optimization: Move the chat to top and update preview
+                                    setChats(prev => {
+                                        const chatIndex = prev.findIndex(c => c.id === newMessage.chat_id);
 
-                                            // If chat doesn't exist in list, invalidate query to refetch
-                                            if (!chatExists && isGroupMessage) {
-                                                queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                                                return prevChats;
-                                            }
+                                        if (chatIndex === -1) {
+                                            // New chat, refetch list
+                                            queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                            return prev;
+                                        }
 
-                                            // Update existing chat in list
-                                            return prevChats.map((chat) => {
-                                                if (chat.id === newMessage.chat_id) {
-                                                    // For group messages, fetch sender name if not from current user
-                                                    if (isGroupMessage && newMessage.sender_id !== currentUserId) {
-                                                        // Fetch sender name asynchronously
-                                                        supabase
-                                                            .from('users')
-                                                            .select('name')
-                                                            .eq('id', newMessage.sender_id)
-                                                            .single()
-                                                            .then(({ data: senderData }) => {
-                                                                const senderName = senderData?.name || 'Someone';
-                                                                setChats((prev) => prev.map((c) => {
-                                                                    if (c.id === newMessage.chat_id) {
-                                                                        return {
-                                                                            ...c,
-                                                                            last_message: `${senderName}: ${newMessage.content || ''}`,
-                                                                            last_message_time: newMessage.created_at,
-                                                                            unreadCount: c.unreadCount + (newMessage.sender_id !== currentUserId ? 1 : 0)
-                                                                        };
-                                                                    }
-                                                                    return c;
-                                                                }).sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time)));
-                                                            })
-                                                            .catch(() => {
-                                                                // Fallback: use "Someone" if fetch fails
-                                                                setChats((prev) => prev.map((c) => {
-                                                                    if (c.id === newMessage.chat_id) {
-                                                                        return {
-                                                                            ...c,
-                                                                            last_message: `Someone: ${newMessage.content || ''}`,
-                                                                            last_message_time: newMessage.created_at,
-                                                                            unreadCount: c.unreadCount + (newMessage.sender_id !== currentUserId ? 1 : 0)
-                                                                        };
-                                                                    }
-                                                                    return c;
-                                                                }).sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time)));
-                                                            });
+                                        const updatedChats = [...prev];
+                                        const chat = { ...updatedChats[chatIndex] };
 
-                                                        // Return immediately with "Someone" placeholder
-                                                        return {
-                                                            ...chat,
-                                                            last_message: `Someone: ${newMessage.content || ''}`,
-                                                            last_message_time: newMessage.created_at,
-                                                            unreadCount: chat.unreadCount + (newMessage.sender_id !== currentUserId ? 1 : 0)
-                                                        };
-                                                    } else {
-                                                        // For 1:1 messages or own group messages
-                                                        return {
-                                                            ...chat,
-                                                            last_message: newMessage.content || '',
-                                                            last_message_time: newMessage.created_at,
-                                                            unreadCount: chat.unreadCount + (newMessage.sender_id !== currentUserId ? 1 : 0)
-                                                        };
-                                                    }
-                                                }
-                                                return chat;
-                                            }).sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time));
-                                        });
-                                    }
-                                } else if (payload.eventType === 'DELETE') {
-                                    queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                        chat.lastMessage = newMessage.content || (newMessage.message_type !== 'text' ? `[${newMessage.message_type}]` : '');
+                                        chat.timestamp = newMessage.created_at;
+
+                                        // Update unread count if we're not the sender
+                                        if (newMessage.sender_id !== currentUserId) {
+                                            chat.unreadCount = (chat.unreadCount || 0) + 1;
+                                        }
+
+                                        updatedChats.splice(chatIndex, 1);
+                                        updatedChats.unshift(chat);
+
+                                        return updatedChats;
+                                    });
                                 }
                             }
                         },
-                        // 2. Chats listener
                         {
-                            event: 'UPDATE',
+                            event: '*',
                             schema: 'public',
                             table: 'chats',
-                            handler: (payload) => {
-                                if (isCancelled) return;
-                                const updatedChat = payload.new;
-                                setChats((prevChats) => {
-                                    return prevChats.map((chat) => {
-                                        if (chat.id === updatedChat.id && !chat.isGroup) {
-                                            return {
-                                                ...chat,
-                                                last_message: updatedChat.last_message,
-                                                last_message_time: updatedChat.last_message_time
-                                            };
-                                        }
-                                        return chat;
-                                    });
-                                });
+                            handler: () => {
+                                if (!isCancelled) queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
                             }
                         },
-                        // 3. Users listener
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'groups',
+                            handler: () => {
+                                if (!isCancelled) queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                            }
+                        },
                         {
                             event: 'UPDATE',
                             schema: 'public',
@@ -441,63 +220,39 @@ export const useChatListRealtime = (currentUserId) => {
                             handler: (payload) => {
                                 if (isCancelled) return;
                                 const updatedUser = payload.new;
-                                setChats(prevChats => prevChats.map(chat => {
-                                    if (chat.otherUser?.id === updatedUser.id) {
-                                        // Update store as well
-                                        useUserStore.getState().setUser(updatedUser);
+                                setChats(prev => prev.map(chat => {
+                                    // otherUserId is stored in metadata for chats
+                                    if (chat.metadata?.otherUserId === updatedUser.id) {
                                         return {
                                             ...chat,
-                                            otherUser: {
-                                                ...chat.otherUser,
-                                                is_online: isUserOnline(Boolean(updatedUser.is_online), updatedUser.last_seen),
-                                                last_seen: updatedUser.last_seen
-                                            }
+                                            is_online: isUserOnline(Boolean(updatedUser.is_online), updatedUser.last_seen),
+                                            last_seen: updatedUser.last_seen
                                         };
                                     }
                                     return chat;
                                 }));
                             }
                         },
-                        // 4. Group Members listener (handles all membership changes)
                         {
                             event: '*',
                             schema: 'public',
                             table: 'group_members',
                             handler: (payload) => {
                                 if (isCancelled) return;
-                                if (payload.eventType === 'INSERT') {
-                                    if (payload.new.user_id === currentUserId) {
-                                        queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                                    }
-                                } else {
+                                if (payload.new?.user_id === currentUserId || payload.old?.user_id === currentUserId) {
                                     queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
                                 }
-                            }
-                        },
-                        // 5. Groups listener
-                        {
-                            event: 'INSERT',
-                            schema: 'public',
-                            table: 'groups',
-                            handler: () => {
-                                if (isCancelled) return;
-                                queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
                             }
                         }
                     ]
                 }
             );
-
-            if (isCancelled && channel) {
-                realtimeManager.unsubscribe(channelName);
-            }
         };
 
         setupSubscription();
 
         return () => {
             isCancelled = true;
-            console.log(`🔌 Cleaning up consolidated real-time subscription for user: ${currentUserId}`);
             realtimeManager.unsubscribe(channelName);
         };
     }, [currentUserId, supabase, queryClient]);

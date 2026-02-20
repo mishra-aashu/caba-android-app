@@ -48,9 +48,7 @@
   --bubble-out: linear-gradient(180deg, rgba(26, 32, 48, 0.9), rgba(18, 23, 34, 0.9));
 }
 
-.theme-dark {
-  /* Optional dark-mode overrides if you add the class to <body> */
-}
+
 
 /* Reset + base */
 * {

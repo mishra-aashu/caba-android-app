@@ -42,6 +42,7 @@ const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
 const QRPage = lazy(() => import('./components/qr'));
 const Intro = lazy(() => import('./components/Intro'));
 const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
+const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 // import CallScreen from './components/CallScreen';
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
@@ -106,6 +107,7 @@ const AppContent = () => {
         <Route path="chat/:chatId/group" element={<Chat />} />
         <Route path="user-details/:id" element={<UserDetails />} />
         <Route path="groups" element={<GroupsPage />} />
+        <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
       </Route>
 
       <Route path="/profile" element={<ProtectedRoute>{isDesktop ? <Modal isOpen={true} onClose={() => window.location.href = '/'} className='sidebar-modal'><Profile isModal={true} /></Modal> : <Profile />}</ProtectedRoute>} />

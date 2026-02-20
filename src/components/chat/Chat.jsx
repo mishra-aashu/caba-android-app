@@ -31,6 +31,7 @@ import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import useUserStore from '../../store/userStore';
 import { UserDetailsContext } from '../MainLayout';
+import WallpaperPicker from './WallpaperPicker';
 import '../../styles/chat.css';
 import '../../styles/game-modal.css';
 
@@ -279,6 +280,7 @@ const Chat = () => {
   const [selectedMessages, setSelectedMessages] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
   const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
   const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
@@ -1495,6 +1497,11 @@ const Chat = () => {
                   onClick: handleChangeTheme
                 },
                 {
+                  icon: <Image size={16} />,
+                  label: 'Chat Wallpaper',
+                  onClick: () => setShowWallpaperPicker(true)
+                },
+                {
                   icon: <Gamepad2 size={16} />,
                   label: 'Game Room',
                   onClick: () => setShowGameRoom(true)
@@ -2011,6 +2018,10 @@ const Chat = () => {
             </div>
           </div>
         </Modal>
+
+        {showWallpaperPicker && (
+          <WallpaperPicker onClose={() => setShowWallpaperPicker(false)} />
+        )}
       </div>
 
       {/* Group Info Drawer - for group chats */}

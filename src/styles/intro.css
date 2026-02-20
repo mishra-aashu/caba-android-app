@@ -3,14 +3,15 @@
 body {
     font-family: 'Outfit', sans-serif;
     margin: 0;
-    overflow: hidden; /* Prevents scroll during intro */
+    overflow: hidden;
+    /* Prevents scroll during intro */
     background-color: #0f172a;
 }
 
 /* Background similar to the first blue image */
 .bg-main {
     background: radial-gradient(circle at center, #0e7490 0%, #0f172a 100%);
-    height: 100vh;
+    height: var(--app-height);
     width: 100vw;
     display: flex;
     align-items: center;
@@ -25,7 +26,8 @@ body {
     width: clamp(140px, 30vw, 180px);
     height: clamp(140px, 30vw, 180px);
     background: linear-gradient(180deg, #22d3ee 0%, #0284c7 100%);
-    border-radius: 22%; /* Squircle */
+    border-radius: 22%;
+    /* Squircle */
     position: relative;
     box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
     overflow: hidden;
@@ -46,7 +48,7 @@ body {
     left: 0;
     width: 100%;
     height: 55%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.05) 100%);
     border-radius: 22% 22% 100% 100% / 22% 22% 20% 20%;
     z-index: 20;
     pointer-events: none;
@@ -79,12 +81,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 2px 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* The Text 'C' inside the bubble */
 .icon-text {
-    font-size: clamp(40px, 8vw, 60px); /* Responsive Font Size */
+    font-size: clamp(40px, 8vw, 60px);
+    /* Responsive Font Size */
     font-weight: 900;
     color: #0369a1;
     margin-top: -4%;
@@ -105,8 +108,15 @@ body {
 
 /* ANIMATIONS */
 @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 .floating {
@@ -130,6 +140,9 @@ body {
     justify-content: center;
     transition: opacity 0.8s ease-in-out, visibility 0.8s;
     z-index: 50;
-    background: inherit; /* Match parent bg */
+    background: inherit;
+    /* Match parent bg */
     padding: 20px;
+    padding-top: calc(20px + var(--sat));
+    padding-bottom: calc(20px + var(--sab));
 }

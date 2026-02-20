@@ -1,10 +1,14 @@
 /* --- LIST CONTAINER (Pura List Area) --- */
 .chat-list-container {
   background-color: var(--surface-color);
-  height: 100%;
+  flex: 1;
+  /* Key for scrolling in a flex container */
+  min-height: 0;
+  /* Ensures it can shrink and scroll */
   overflow-y: auto;
   padding: 0;
   margin: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* --- Light Mode Support (.light-mode class) --- */
@@ -57,20 +61,26 @@ body.light-mode .typing {
 
 /* --- 1. Main Chat Item (Outer Box) --- */
 .chat-item {
-  display: flex; /* Row me rakhega (Avatar | Text) */
-  align-items: center; /* Vertical Center */
-  justify-content: flex-start; /* Hamesha Left se start ho (Center nahi) */
+  display: flex;
+  /* Row me rakhega (Avatar | Text) */
+  align-items: center;
+  /* Vertical Center */
+  justify-content: flex-start;
+  /* Hamesha Left se start ho (Center nahi) */
   padding: 12px 16px;
-  width: 100%; /* Full width */
+  width: 100%;
+  /* Full width */
   cursor: pointer;
-  box-sizing: border-box; /* Padding width me count ho */
+  box-sizing: border-box;
+  /* Padding width me count ho */
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   transition: background-color 0.2s ease;
 
   /* Reset any default button styles if you use <button> */
   background: transparent;
   border: none;
-  text-align: left; /* Text hamesha left rahe */
+  text-align: left;
+  /* Text hamesha left rahe */
 }
 
 /* Hover Effect: Smooth Glow */
@@ -82,7 +92,8 @@ body.light-mode .typing {
 .chat-item.active {
   background-color: rgba(0, 168, 132, 0.1);
   border-left: 4px solid #00a884;
-  padding-left: 12px; /* Border ke liye adjust */
+  padding-left: 12px;
+  /* Border ke liye adjust */
 }
 
 /* Last item ki border hata do */
@@ -93,21 +104,26 @@ body.light-mode .typing {
 /* --- 2. Avatar Styling --- */
 .chat-avatar-container {
   position: relative;
-  margin-right: 15px; /* Text se doori */
-  flex-shrink: 0; /* Avatar shrink na ho */
+  margin-right: 15px;
+  /* Text se doori */
+  flex-shrink: 0;
+  /* Avatar shrink na ho */
 }
 
 .chat-avatar {
   width: 50px;
   height: 50px;
-  border-radius: 50%; /* Gol Avatar */
+  border-radius: 50%;
+  /* Gol Avatar */
   object-fit: cover;
-  border: 2px solid transparent; /* Border space maintain karne ke liye */
+  border: 2px solid transparent;
+  /* Border space maintain karne ke liye */
   transition: border-color 0.2s;
 }
 
 .chat-item:hover .chat-avatar {
-  border-color: rgba(255, 255, 255, 0.2); /* Hover par ring */
+  border-color: rgba(255, 255, 255, 0.2);
+  /* Hover par ring */
 }
 
 /* Online Dot with Pulse Animation */
@@ -126,23 +142,31 @@ body.light-mode .typing {
 
 /* --- 3. Text Info Area (Sabse Zaruri Part) --- */
 .chat-info {
-  flex: 1; /* Bachi hui jagah le */
+  flex: 1;
+  /* Bachi hui jagah le */
   display: flex;
-  flex-direction: column; /* Upar Name, Niche Message */
-  justify-content: center; /* Box ke vertical center me rahe */
+  flex-direction: column;
+  /* Upar Name, Niche Message */
+  justify-content: center;
+  /* Box ke vertical center me rahe */
 
   /* 👇 YE LINE ADD KARO (Jisse center problem solve hogi) 👇 */
   align-items: flex-start;
-  min-width: 0; /* Text truncation ke liye zaroori */
+  min-width: 0;
+  /* Text truncation ke liye zaroori */
 }
 
 /* --- 4. Top Row (Name + Time) --- */
 .chat-header-row {
   display: flex;
-  justify-content: space-between; /* Name Left, Time Right */
-  align-items: baseline; /* Text base line match kare */
-  width: 100%; /* Pura faila do */
-  margin-bottom: 4px; /* Name aur message ke beech gap */
+  justify-content: space-between;
+  /* Name Left, Time Right */
+  align-items: baseline;
+  /* Text base line match kare */
+  width: 100%;
+  /* Pura faila do */
+  margin-bottom: 4px;
+  /* Name aur message ke beech gap */
 }
 
 .chat-name {
@@ -153,7 +177,8 @@ body.light-mode .typing {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: left; /* Force Left */
+  text-align: left;
+  /* Force Left */
 }
 
 .chat-time {
@@ -161,7 +186,8 @@ body.light-mode .typing {
   color: #8696a0;
   white-space: nowrap;
   margin-left: 8px;
-  flex-shrink: 0; /* Time shrink na ho */
+  flex-shrink: 0;
+  /* Time shrink na ho */
 }
 
 /* --- 5. Bottom Row (Message + Badge) --- */
@@ -169,7 +195,8 @@ body.light-mode .typing {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%; /* Pura faila do */
+  width: 100%;
+  /* Pura faila do */
 }
 
 .chat-last-message {
@@ -179,8 +206,19 @@ body.light-mode .typing {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: left; /* Force Left */
+  text-align: left;
+  /* Force Left */
   max-width: 85%;
+}
+
+.message-sender-prefix {
+  font-weight: 500;
+  color: var(--brand-primary);
+  margin-right: 2px;
+}
+
+.message-sender-prefix.me {
+  color: #00a884;
 }
 
 /* Active ya Unread message ka color alag ho */
@@ -213,15 +251,24 @@ body.light-mode .typing {
 
 /* --- 7. Animations --- */
 @keyframes pulse-green {
-  0% { box-shadow: 0 0 0 0 rgba(var(--brand-primary), 0.7); }
-  70% { box-shadow: 0 0 0 6px rgba(var(--brand-primary), 0); }
-  100% { box-shadow: 0 0 0 0 rgba(var(--brand-primary), 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--brand-primary), 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(var(--brand-primary), 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--brand-primary), 0);
+  }
 }
 
 /* Mobile Scrollbar Hide (Optional) */
 .chat-list::-webkit-scrollbar {
   width: 4px;
 }
+
 .chat-list::-webkit-scrollbar-thumb {
   background-color: rgba(var(--text-secondary), 0.3);
   border-radius: 4px;

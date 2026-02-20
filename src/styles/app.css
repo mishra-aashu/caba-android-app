@@ -176,8 +176,8 @@ body {
 .app-content {
   flex-grow: 1;
   height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  /* Changed from auto to prevent nested scroll conflicts */
   position: relative;
 }
 
@@ -318,11 +318,17 @@ body.light-mode .chat-list-panel {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    right: 0;
+    bottom: 0;
+    /* Changed from height 100% to respect parent padding/pb-safe */
     transition: transform 0.4s cubic-bezier(0.45, 0, 0.2, 1);
     backface-visibility: hidden;
     will-change: transform;
+  }
+
+  /* When on list view (bottom nav is shown), add padding to list-view */
+  .mobile-layout:not(.show-chat) .list-view {
+    bottom: calc(var(--bottom-nav-height) + var(--sab));
   }
 
   .list-view {
@@ -577,6 +583,8 @@ body.light-mode .chat-list-panel {
   flex-grow: 1;
 }
 
+@import './sidebar-groups.css';
+
 .suggestion-name {
   font-weight: 600;
   color: var(--text-primary);
@@ -610,9 +618,7 @@ body.light-mode .chat-list-panel {
   padding: 0;
 }
 
-.chat-list-container {
-  /* Inherits styles from chat-list-wrapper */
-}
+
 
 /* --- Chat Item Card --- */
 .chat-item-card {
@@ -1135,7 +1141,7 @@ body.light-mode .no-contacts {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  height: var(--app-height);
   background: #FFFDD0;
   padding: 1rem;
 }
@@ -1287,8 +1293,7 @@ body.light-mode .no-contacts {
     ============================================= */
 /* Legal page wrapper for standalone routes */
 .legal-page-wrapper {
-  min-height: 100vh;
-  height: 100%;
+  height: var(--app-height);
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--bg-color);
@@ -1448,7 +1453,7 @@ body.light-mode .no-contacts {
     margin-top: 1rem;
     margin-bottom: 1rem;
     border-radius: 0;
-    min-height: 100vh;
+    height: var(--app-height);
   }
 
   .legal-page-container h1 {

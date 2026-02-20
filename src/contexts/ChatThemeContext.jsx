@@ -364,6 +364,7 @@ export const ChatThemeProvider = ({ children }) => {
 
   // State
   const [currentChatTheme, setCurrentChatTheme] = useState('classic_purple');
+  const [currentWallpaper, setCurrentWallpaper] = useState(null);
   const [currentChatId, setCurrentChatId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scrollPercentage, setScrollPercentage] = useState(0);
@@ -377,6 +378,7 @@ export const ChatThemeProvider = ({ children }) => {
   const loadChatTheme = async (chatId) => {
     if (!chatId) {
       setCurrentChatTheme('classic_purple');
+      setCurrentWallpaper(null);
       setLoading(false);
       return;
     }
@@ -393,29 +395,49 @@ export const ChatThemeProvider = ({ children }) => {
 
     // 1. Check localStorage cache first (fast)
     const cachedTheme = localStorage.getItem(`digidad_chat_theme_${chatId}`);
+    const cachedWallpaper = localStorage.getItem(`digidad_chat_wallpaper_${chatId}`);
+
     if (cachedTheme && chatThemes[cachedTheme]) {
       setCurrentChatTheme(cachedTheme);
-      setLoading(false);
-      return;
+    }
+    if (cachedWallpaper) {
+      setCurrentWallpaper(cachedWallpaper);
     }
 
-    // 2. Fallback: query chat_themes DB table
+    // 2. Fallback: query DB tables
     try {
-      const { data, error } = await supabase
+      // Load Theme
+      const { data: themeData } = await supabase
         .from('chat_themes')
         .select('theme_name')
         .eq('chat_id', chatId)
         .maybeSingle();
 
-      if (!error && data?.theme_name && chatThemes[data.theme_name]) {
-        setCurrentChatTheme(data.theme_name);
-        localStorage.setItem(`digidad_chat_theme_${chatId}`, data.theme_name);
+      if (themeData?.theme_name && chatThemes[themeData.theme_name]) {
+        setCurrentChatTheme(themeData.theme_name);
+        localStorage.setItem(`digidad_chat_theme_${chatId}`, themeData.theme_name);
+      }
+
+      // Load Wallpaper
+      const { data: wallpaperData } = await supabase
+        .from('chat_wallpapers')
+        .select(`
+          custom_url,
+          wallpaper:wallpapers(url)
+        `)
+        .eq('chat_id', chatId)
+        .maybeSingle();
+
+      if (wallpaperData) {
+        const url = wallpaperData.custom_url || wallpaperData.wallpaper?.url;
+        setCurrentWallpaper(url);
+        if (url) localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, url);
       } else {
-        setCurrentChatTheme('classic_purple');
+        setCurrentWallpaper(null);
+        localStorage.removeItem(`digidad_chat_wallpaper_${chatId}`);
       }
     } catch (e) {
-      console.error('Error loading theme from DB:', e);
-      setCurrentChatTheme('classic_purple');
+      console.error('Error loading theme/wallpaper from DB:', e);
     }
     setLoading(false);
   };
@@ -447,6 +469,51 @@ export const ChatThemeProvider = ({ children }) => {
     }
   };
 
+  const saveChatWallpaper = async (wallpaperId, chatId, customUrl = null) => {
+    if (!chatId) return;
+    try {
+      const currentUser = useAuthStore.getState().dbUser;
+      if (!currentUser) return;
+
+      const upsertData = {
+        chat_id: chatId,
+        user_id: currentUser.id,
+        updated_at: new Date().toISOString()
+      };
+
+      if (customUrl) {
+        upsertData.custom_url = customUrl;
+        upsertData.wallpaper_id = null;
+      } else {
+        upsertData.wallpaper_id = wallpaperId;
+        upsertData.custom_url = null;
+      }
+
+      const { error } = await supabase
+        .from('chat_wallpapers')
+        .upsert(upsertData, { onConflict: 'chat_id,user_id' });
+
+      if (error) throw error;
+
+      // Update local state if it's the current chat
+      if (chatId === currentChatId) {
+        // If it's a predefined wallpaper, we need to find its URL
+        if (wallpaperId && !customUrl) {
+          const { data } = await supabase.from('wallpapers').select('url').eq('id', wallpaperId).single();
+          if (data?.url) {
+            setCurrentWallpaper(data.url);
+            localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, data.url);
+          }
+        } else if (customUrl) {
+          setCurrentWallpaper(customUrl);
+          localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, customUrl);
+        }
+      }
+    } catch (e) {
+      console.error('Wallpaper save failed', e);
+    }
+  };
+
   const setChatId = (chatId) => {
     setCurrentChatId(chatId);
     setLoading(true);
@@ -464,19 +531,25 @@ export const ChatThemeProvider = ({ children }) => {
 
     setCurrentChatTheme(themeKey);
     await saveChatTheme(themeKey, chatIdToUse);
-    applyTheme(themeKey);
+    applyTheme(themeKey, currentWallpaper);
   };
 
-  const applyTheme = (themeKey) => {
+  const selectWallpaper = async (wallpaperId, customUrl = null) => {
+    if (!currentChatId) return;
+    await saveChatWallpaper(wallpaperId, currentChatId, customUrl);
+  };
+
+  const applyTheme = (themeKey, wallpaperUrl) => {
     const theme = chatThemes[themeKey];
     if (!theme) return;
 
     const root = document.documentElement;
     const setProp = (name, value) => {
-      if (value) root.style.setProperty(name, value);
+      if (value !== undefined) root.style.setProperty(name, value);
     };
 
     setProp('--chat-bg-gradient', theme.background);
+    setProp('--chat-bg-image', wallpaperUrl ? `url("${wallpaperUrl}")` : 'none');
 
     setProp('--sent-message-bg', theme.sentMessage.background);
     setProp('--sent-message-text', theme.sentMessage.text);
@@ -508,14 +581,16 @@ export const ChatThemeProvider = ({ children }) => {
 
   useEffect(() => {
     if (!loading && currentChatId) {
-      applyTheme(currentChatTheme);
+      applyTheme(currentChatTheme, currentWallpaper);
     }
-  }, [currentChatTheme, currentChatId, loading]);
+  }, [currentChatTheme, currentWallpaper, currentChatId, loading]);
 
   const value = {
     chatTheme: currentChatTheme,
+    chatWallpaper: currentWallpaper,
     chatThemes,
     selectTheme,
+    selectWallpaper,
     setChatId,
     loading,
     currentThemeData: chatThemes[currentChatTheme] || chatThemes.classic_purple,

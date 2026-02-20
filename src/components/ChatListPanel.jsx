@@ -1,12 +1,30 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
-import { MessageCircle, Phone, Newspaper, Settings, User, Search, MoreVertical, Plus, Bell, Info, HelpCircle, LogOut, Crown, X, Eye, EyeOff, ShieldCheck, Edit, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, QrCode, MessageSquarePlus, Users } from 'lucide-react';
+import {
+  MessageCircle,
+  User,
+  Search,
+  MoreVertical,
+  Plus,
+  Bell,
+  Info,
+  HelpCircle,
+  LogOut,
+  Crown,
+  Users,
+  Settings,
+  MessageSquarePlus,
+  Edit,
+  Trash2,
+  X
+} from 'lucide-react';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import ChatListItem from './chat/ChatListItem';
 import { getInitials } from '../utils/stringUtils';
 import { isUserOnline } from '../utils/timeUtils';
 import CreateGroupModal from './groups/CreateGroupModal';
+import { useGroupActions } from '../hooks/useGroupActions';
 
 const ChatListPanel = ({
   searchTerm,
@@ -19,7 +37,7 @@ const ChatListPanel = ({
   handleSearchChange,
   handleSuggestionClick,
   handleChatClick,
-  filteredChats,
+  filteredChats, // These are passed from MainLayout, but we'll use 'chats' from hook or props
   handleChatListScroll,
   chatListRef,
   loadingMore,
@@ -27,86 +45,111 @@ const ChatListPanel = ({
   dpOptions,
   formatTime,
   setShowNewContactModal,
-  currentUser,
   handleNavigation,
   handleAboutApp,
   handleHelp,
   handleLogout,
   isAdmin,
   savedContacts,
-  showNewContactModal,
-  showContactForm,
-  setShowContactForm,
-  showSelectContact,
-  setShowSelectContact,
-  contactName,
-  setContactName,
-  contactPhone,
-  setContactPhone,
-  handleSaveContact,
-  contactMenuOpen,
-  handleContactMenuToggle,
-  handleContactClick,
-  handleEditContact,
-  handleDeleteContact,
-  handleStartChatWithContact,
   isDesktop,
   currentChatId,
 }) => {
   const { supabase } = useSupabase();
+  const { useUserGroups } = useGroupActions();
 
   // State for Create Group Modal
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
 
+  // Separate DMs and Groups for specific layouts
+  const { dmChats, groupChats } = useMemo(() => {
+    const dms = filteredChats.filter(chat => !chat.isGroup);
+    const groups = filteredChats.filter(chat => chat.isGroup);
+    return { dmChats: dms, groupChats: groups };
+  }, [filteredChats]);
+
   const dropdownItems = [
     {
-      icon: <User size={16} className="profile-icon" />,
+      icon: <User size={16} />,
       label: 'Profile',
       onClick: () => handleNavigation('/profile')
     },
     {
-      icon: <Settings size={16} className="settings-icon" />,
+      icon: <Settings size={16} />,
       label: 'Settings',
       onClick: () => handleNavigation('/settings')
     },
     {
-      icon: <Users size={16} className="groups-icon" />,
+      icon: <Users size={16} />,
       label: 'Groups',
       onClick: () => handleNavigation('/groups')
     },
     {
-      icon: <Bell size={16} className="reminders-icon" />,
+      icon: <Bell size={16} />,
       label: 'Check Reminders',
       onClick: () => handleNavigation('/reminders')
     },
-
-    ,
     ...(isAdmin ? [{
-      icon: <Crown size={16} className="admin-icon" />,
+      icon: <Crown size={16} />,
       label: 'Admin Panel',
       onClick: () => handleNavigation('/admin')
     }] : []),
     { divider: true },
     {
-      icon: <Info size={16} className="about-icon" />,
+      icon: <Info size={16} />,
       label: 'About App',
       onClick: handleAboutApp
     },
     {
-      icon: <HelpCircle size={16} className="help-icon" />,
+      icon: <HelpCircle size={16} />,
       label: 'Help',
       onClick: handleHelp
     },
     { divider: true },
     {
-      icon: <LogOut size={16} className="logout-icon" />,
+      icon: <LogOut size={16} />,
       label: 'Logout',
       onClick: handleLogout
     }
   ];
 
+  // Helper for rendering chat list items
+  const renderChatItem = (chat) => {
+    // 1. Resolve contact
+    const otherUserId = chat.metadata?.otherUserId || chat.otherUser_id || chat.otherUser?.id || chat.id;
+    const contact = savedContacts.find(c => c.contact_user_id === otherUserId || c.id === otherUserId);
+
+    // 2. Resolve display name with fallbacks
+    const displayName = contact?.contact_name || chat.name;
+
+    // 3. Process avatar
+    // Try to get avatar from chat object, fallback to contact or otherUser
+    let rawAvatar = chat.avatar || contact?.otherUser?.avatar || chat.otherUser?.avatar;
+
+    let avatar = rawAvatar;
+    if (avatar && !isNaN(parseInt(avatar)) && avatar.toString().length < 5) {
+      const dp = dpOptions.find(dp => dp.id === parseInt(avatar));
+      if (dp) avatar = dp.path;
+    }
+
+    // Merge everything into a clean object for ChatListItem
+    const chatListItemProps = {
+      ...chat,
+      name: displayName,
+      avatar: avatar
+    };
+
+    return (
+      <ChatListItem
+        key={chat.id}
+        chat={chatListItemProps}
+        onClick={() => handleChatClick(chat)}
+        isActive={chat.id == currentChatId}
+      />
+    );
+  };
+
   return (
-    <main className="main-content">
+    <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <header className="top-header">
         <div className="header-left">
           <h1 className="chats-title">Chats</h1>
@@ -117,26 +160,24 @@ const ChatListPanel = ({
             onClick={() => setShowCreateGroupModal(true)}
             title="Create Group"
           >
-            <Users size={20} className="create-group-icon" />
+            <Users size={20} />
           </button>
           <button
             className="icon-btn"
             onClick={() => setShowNewContactModal(true)}
             title="Contacts"
           >
-            <User size={20} className="contacts-icon" />
+            <User size={20} />
           </button>
           <button
             className="icon-btn"
             onClick={() => setShowSearch(!showSearch)}
             title="Search"
           >
-            <Search size={20} className="search-toggle-icon" />
+            <Search size={20} />
           </button>
 
-          <DropdownMenu
-            items={dropdownItems}
-          />
+          <DropdownMenu items={dropdownItems} />
         </div>
       </header>
 
@@ -148,6 +189,7 @@ const ChatListPanel = ({
             placeholder="Search by phone number..."
             value={searchTerm}
             onChange={handleSearchChange}
+            autoFocus
           />
           <button
             className="close-search"
@@ -158,7 +200,7 @@ const ChatListPanel = ({
               setShowSuggestions(false);
             }}
           >
-            ×
+            <X size={18} />
           </button>
         </div>
       )}
@@ -172,15 +214,12 @@ const ChatListPanel = ({
               onClick={() => handleSuggestionClick(user)}
             >
               <div className="suggestion-avatar">
-                {user.avatar ? (
-                  parseInt(user.avatar) ? (
-                    <img src={dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path || user.avatar} alt={user.name} />
-                  ) : (
-                    <img src={user.avatar} alt={user.name} />
-                  )
-                ) : (
-                  <div>{getInitials(user.name)}</div>
-                )}
+                <img
+                  src={user.avatar && parseInt(user.avatar)
+                    ? dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path
+                    : (user.avatar || "https://ionicframework.com/docs/img/demos/avatar.svg")}
+                  alt={user.name}
+                />
                 <span className={`online-status ${isUserOnline(Boolean(user.is_online), user.last_seen) ? 'online' : ''}`}></span>
               </div>
               <div className="suggestion-info">
@@ -197,44 +236,64 @@ const ChatListPanel = ({
         onScroll={handleChatListScroll}
         ref={chatListRef}
       >
-        {filteredChats.length > 0 ? (
-          filteredChats.map(chat => {
-            const contact = savedContacts.find(c => c.contact_user_id === chat.otherUser?.id);
-            const displayName = contact?.contact_name || chat.otherUser?.name || 'Unknown';
-            return (
-              <ChatListItem
-                key={chat.id}
-                chat={{
-                  name: displayName,
-                  avatar: chat.otherUser?.avatar
-                    ? (parseInt(chat.otherUser.avatar)
-                      ? dpOptions.find(dp => dp.id === parseInt(chat.otherUser.avatar))?.path
-                      : chat.otherUser.avatar)
-                    : null, // Pass null to ChatListItem to use its internal default
-                  lastMessage: chat.last_message || 'No messages yet',
-                  time: formatTime(chat.last_message_time),
-                  unreadCount: chat.unreadCount,
-                  is_online: chat.otherUser?.is_online,
-                  last_seen: chat.otherUser?.last_seen,
-                  isMyMessage: false, // Placeholder: need logic to determine
-                  status: null, // Placeholder: need logic to determine
-                  type: 'text', // Placeholder: need logic to determine
-                  isGroup: chat.isGroup || chat.chatType === 'group' || false,
-                  member_count: chat.member_count,
-                  member_preview: chat.member_preview
-                }}
-                onClick={() => handleChatClick(chat)}
-                isActive={chat.id == currentChatId}
-              />
-            );
-          })
-        ) : (
-          <div className="empty-state">
-            <MessageCircle size={48} className="empty-state-icon" />
-            <h3>No conversations yet</h3>
-            <p>Start messaging your contacts</p>
+        {/* Desktop Groups Sidebar Section - Integrated above chats as requested */}
+        {isDesktop && groupChats.length > 0 && !searchTerm && (
+          <div className="sidebar-groups-section">
+            <div className="sidebar-section-header">
+              <h3>Groups</h3>
+              <button className="create-group-icon-btn" onClick={() => setShowCreateGroupModal(true)}>
+                <Plus size={16} />
+              </button>
+            </div>
+            <div className="sidebar-groups-list">
+              {groupChats.map(group => (
+                <div
+                  key={group.id}
+                  className={`sidebar-group-item ${currentChatId === group.id ? 'active' : ''}`}
+                  onClick={() => handleChatClick(group)}
+                >
+                  <div className="sidebar-group-avatar">
+                    <img
+                      src={group.avatar || "/group-avatar-placeholder.png"}
+                      alt={group.name}
+                      onError={(e) => { e.target.src = "/group-avatar-placeholder.png"; }}
+                    />
+                  </div>
+                  <div className="sidebar-group-info">
+                    <span className="sidebar-group-name">{group.name}</span>
+                    {group.unreadCount > 0 && <span className="unread-dot"></span>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
+
+        {/* Main Chat List (DMs on Desktop, Unified on Mobile) */}
+        <div className="chat-items-section">
+          {isDesktop && !searchTerm && <div className="sidebar-section-header"><h3>Messages</h3></div>}
+
+          {(isDesktop ? dmChats : filteredChats).length > 0 ? (
+            (isDesktop ? dmChats : filteredChats).map(renderChatItem)
+          ) : (
+            !isDesktop && groupChats.length === 0 && (
+              <div className="empty-state">
+                <MessageCircle size={48} className="empty-state-icon" />
+                <h3>No conversations yet</h3>
+                <p>Start messaging your contacts</p>
+              </div>
+            )
+          )}
+
+          {/* Search results placeholder when searching */}
+          {searchTerm && filteredChats.length === 0 && (
+            <div className="empty-state">
+              <Search size={48} className="empty-state-icon" />
+              <h3>No results found</h3>
+              <p>Try searching with another name or phone</p>
+            </div>
+          )}
+        </div>
 
         {loadingMore && (
           <div className="load-more-chats">
@@ -244,197 +303,10 @@ const ChatListPanel = ({
         )}
       </div>
 
-
-
-      <Modal
-        isOpen={showNewContactModal}
-        onClose={() => {
-          setShowNewContactModal(false);
-          setShowContactForm(false);
-          setShowSelectContact(false);
-          setContactName('');
-          setContactPhone('');
-        }}
-        title={showSelectContact ? "Select Contact" : "New Contact"}
-        size="medium"
-      >
-        <div className="new-contact-modal">
-          <div className="modal-mode-toggle">
-            <button
-              className={`mode-btn ${!showSelectContact ? 'active' : ''}`}
-              onClick={() => setShowSelectContact(false)}
-            >
-              Manage Contacts
-            </button>
-            <button
-              className={`mode-btn ${showSelectContact ? 'active' : ''}`}
-              onClick={() => setShowSelectContact(true)}
-            >
-              Select Contact
-            </button>
-          </div>
-
-          {showSelectContact ? (
-            <div className="select-contact-section">
-              <h3>Start Chat With</h3>
-              <div className="saved-contacts-list">
-                {savedContacts.length > 0 ? (
-                  savedContacts.map(contact => (
-                    <div key={contact.id} className="saved-contact-item">
-                      <div className="contact-info">
-                        <div className="contact-avatar">
-                          {contact.otherUser?.avatar ? (
-                            parseInt(contact.otherUser.avatar) ? (
-                              <img src={dpOptions.find(dp => dp.id === parseInt(contact.otherUser.avatar))?.path || contact.otherUser.avatar} alt={contact.contact_name || contact.otherUser?.name} />
-                            ) : (
-                              <img src={contact.otherUser.avatar} alt={contact.contact_name || contact.otherUser?.name} />
-                            )
-                          ) : (
-                            <div>{getInitials(contact.contact_name || contact.otherUser?.name)}</div>
-                          )}
-                        </div>
-                        <div>
-                          <div className="contact-name">{contact.contact_name || contact.otherUser?.name || 'Unknown'}</div>
-                          <div className="contact-phone">{contact.otherUser?.phone || 'N/A'}</div>
-                        </div>
-                      </div>
-                      <button
-                        className="start-chat-btn"
-                        onClick={() => handleStartChatWithContact(contact)}
-                        title="Start Chat"
-                      >
-                        <MessageCircle size={16} className="start-chat-icon" />
-                        Chat
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="no-contacts">No saved contacts yet. Add contacts first.</p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              <button
-                className="add-contact-btn"
-                onClick={() => setShowContactForm(!showContactForm)}
-              >
-                <Plus size={20} className="add-contact-icon" />
-                Add New Contact
-              </button>
-
-              {showContactForm && (
-                <div className="contact-form">
-                  <input
-                    type="text"
-                    placeholder="Contact name"
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    className="contact-input"
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Phone number (10 digits)"
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    className="contact-input"
-                  />
-                  <div className="contact-form-actions">
-                    <button className="btn-primary" onClick={handleSaveContact}>
-                      Save Contact
-                    </button>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => {
-                        setShowContactForm(false);
-                        setContactName('');
-                        setContactPhone('');
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="saved-contacts-section">
-                <h3>Saved Contacts</h3>
-                <div className="saved-contacts-list">
-                  {savedContacts.length > 0 ? (
-                    savedContacts.map((contact, index) => (
-                      <div
-                        key={contact.id}
-                        className={`saved-contact-item ${contactMenuOpen?.id === contact.id ? 'menu-open' : ''}`}
-                        onClick={() => handleContactClick(contact)}
-                      >
-                        <div className="contact-info">
-                          <div className="contact-avatar">
-                            {contact.otherUser?.avatar ? (
-                              parseInt(contact.otherUser.avatar) ? (
-                                <img src={dpOptions.find(dp => dp.id === parseInt(contact.otherUser.avatar))?.path || contact.otherUser.avatar} alt={contact.contact_name || contact.otherUser?.name} />
-                              ) : (
-                                <img src={contact.otherUser.avatar} alt={contact.contact_name || contact.otherUser?.name} />
-                              )
-                            ) : (
-                              <div>{getInitials(contact.contact_name || contact.otherUser?.name)}</div>
-                            )}
-                          </div>
-                          <div className="contact-details">
-                            <div className="contact-name">{contact.contact_name || contact.otherUser?.name || 'Unknown'}</div>
-                            <div className="contact-phone">{contact.otherUser?.phone || 'N/A'}</div>
-                          </div>
-                        </div>
-                        <button
-                          className="contact-menu-btn"
-                          onClick={(e) => handleContactMenuToggle(contact.id, e, index)}
-                          title="Options"
-                        >
-                          <MoreVertical size={18} className="contact-menu-icon" />
-                        </button>
-                        {contactMenuOpen?.id === contact.id && (
-                          <div className={`contact-menu ${contactMenuOpen.showAbove ? 'show-above' : 'show-below'}`}>
-                            <button
-                              className="menu-item edit-item"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditContact(contact);
-                              }}
-                            >
-                              <Edit size={16} className="edit-contact-icon" />
-                              Edit
-                            </button>
-                            <button
-                              className="menu-item delete-item"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteContact(contact.id);
-                              }}
-                            >
-                              <Trash2 size={16} className="delete-contact-icon" />
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="no-contacts">No saved contacts yet</p>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </Modal>
-
-      {/* Create Group Modal */}
       <CreateGroupModal
         isOpen={showCreateGroupModal}
         onClose={() => setShowCreateGroupModal(false)}
-        onSuccess={() => {
-          // Refresh chat list after creating group
-          console.log('Group created successfully');
-        }}
+        onSuccess={() => setShowCreateGroupModal(false)}
         savedContacts={savedContacts}
       />
     </main>

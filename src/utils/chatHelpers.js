@@ -7,7 +7,7 @@
  * The UI should use these normalized properties instead of conditional logic.
  */
 
-import { isUserOnline } from './timeUtils';
+import { isUserOnline, formatTime } from './timeUtils';
 
 /**
  * Normalize chat data from the RPC function or database
@@ -29,46 +29,100 @@ import { isUserOnline } from './timeUtils';
  * 
  * @returns {Object} Normalized chat object with unified properties
  */
-export const normalizeChat = (rawChat) => {
-  const isGroup = rawChat.chat_type === 'group';
+export const normalizeChat = (rawChat, currentUserId = null) => {
+  if (!rawChat) return null;
+
+  // 1. Identify Type (support variants)
+  const chatType = rawChat.chat_type || rawChat.type || (rawChat.group_id ? 'group' : 'chat');
+  const isGroup = chatType === 'group' || (rawChat.is_group === true);
+
+  // 2. Resolve Name with multiple fallbacks
+  // Check common variants for user/group names
+  const rawName =
+    rawChat.name ||
+    rawChat.other_user_name ||
+    rawChat.full_name ||
+    rawChat.display_name ||
+    rawChat.group_name ||
+    rawChat.user_name ||
+    (rawChat.other_user && (rawChat.other_user.name || rawChat.other_user.full_name)) ||
+    (rawChat.sender && rawChat.sender.name) ||
+    (rawChat.receiver && rawChat.receiver.name);
+
+  // Resolve ID for fallback display
+  const idForFallback = rawChat.chat_id || rawChat.id || rawChat.group_id || 'unknown';
+
+  // Final Name Resolution
+  const finalName = rawName ||
+    rawChat.other_user_phone ||
+    rawChat.phone ||
+    rawChat.phone_number ||
+    ((rawChat.other_user && (rawChat.other_user.phone || rawChat.other_user.phone_number))) ||
+    (isGroup ? 'Unnamed Group' : `User ${idForFallback.toString().slice(0, 4)}`);
+
+  // 3. Resolve Avatar
+  const avatar =
+    rawChat.avatar ||
+    rawChat.other_user_avatar ||
+    rawChat.avatar_url ||
+    rawChat.profile_image ||
+    rawChat.group_avatar ||
+    (rawChat.other_user && (rawChat.other_user.avatar || rawChat.other_user.avatar_url || rawChat.other_user.profile_image)) ||
+    (rawChat.sender && rawChat.sender.avatar) ||
+    (rawChat.receiver && rawChat.receiver.avatar);
+
+  // 4. Last Message Info
+  const lastMessageContent = rawChat.last_message || rawChat.last_message_content || (isGroup ? "No messages yet" : "");
+  const lastMessageSenderId = rawChat.last_message_sender_id || rawChat.sender_id;
+  const lastMessageSenderName = rawChat.last_message_sender_name || (rawChat.sender && rawChat.sender.name);
+  const isMyMessage = lastMessageSenderId === currentUserId;
+
+  // 5. Unread Count
+  const unreadCount = parseInt(rawChat.unread_count || rawChat.unread_messages_count || 0) || 0;
+
+  // 6. Online Status
+  const isOnline = !isGroup && (
+    rawChat.other_user_online === true ||
+    rawChat.is_online === true ||
+    (rawChat.other_user && rawChat.other_user.is_online) ||
+    isUserOnline(Boolean(rawChat.is_online || rawChat.other_user_online || (rawChat.other_user && rawChat.other_user.is_online)),
+      rawChat.last_seen || rawChat.other_user_last_seen || (rawChat.other_user && rawChat.other_user.last_seen))
+  );
 
   return {
-    // Common ID - use chat_id for both
-    id: rawChat.chat_id,
-
-    // Type indicator - 'chat' or 'group'
-    type: rawChat.chat_type,
-
-    // Unified Display Properties (The UI only cares about these)
-    name: isGroup
-      ? (rawChat.group_name || rawChat.other_user_name || 'Unnamed Group')
-      : (rawChat.other_user_name || 'Unknown'),
-
-    avatar: isGroup
-      ? rawChat.group_avatar
-      : rawChat.other_user_avatar,
-
-    lastMessage: rawChat.last_message || (isGroup ? "No messages yet" : ""),
-
-    // Meta Data
-    timestamp: rawChat.last_message_time,
-    unreadCount: parseInt(rawChat.unread_count) || 0,
-    is_online: !isGroup && rawChat.other_user_online === true,
-    last_seen: !isGroup ? rawChat.other_user_last_seen : null,
-
-    // Original Data (Keep for specific logic that needs raw data)
-    metadata: {
-      otherUserId: rawChat.other_user_id,
-      otherUserName: rawChat.other_user_name,
-      otherUserAvatar: rawChat.other_user_avatar,
-      otherUserPhone: rawChat.other_user_phone,
-      groupName: rawChat.group_name,
-      groupAvatar: rawChat.group_avatar,
-    },
-
-    // Convenience flags
+    id: idForFallback,
+    type: chatType,
     isGroup,
     isChat: !isGroup,
+
+    // Core Display Properties
+    name: finalName,
+    avatar: avatar,
+    lastMessage: lastMessageContent,
+    timestamp: rawChat.last_message_time || rawChat.last_message_at || rawChat.created_at || rawChat.updated_at,
+    unreadCount: unreadCount,
+
+    // Last Message Metadata
+    lastMessageSenderId,
+    lastMessageSenderName,
+    isMyMessage,
+
+    // Status
+    is_online: isOnline,
+    last_seen: rawChat.other_user_last_seen || rawChat.last_seen || (rawChat.other_user && rawChat.other_user.last_seen),
+
+    // Original Data for metadata lookups
+    metadata: {
+      otherUserId: rawChat.other_user_id || rawChat.user1_id || rawChat.user2_id || rawChat.user_id || (rawChat.other_user && rawChat.other_user.id),
+      otherUserName: rawName,
+      otherUserAvatar: avatar,
+      otherUserPhone: rawChat.other_user_phone || rawChat.phone || rawChat.phone_number || (rawChat.other_user && rawChat.other_user.phone),
+    },
+
+    // Extras
+    member_count: rawChat.member_count || 0,
+    member_preview: rawChat.member_preview || [],
+    is_vanish_enabled: rawChat.is_vanish_enabled || false,
   };
 };
 
@@ -101,32 +155,8 @@ export const formatChatForList = (chat, contactName = null) => {
  * @param {string|Date} timestamp - Timestamp to format
  * @returns {string} Formatted time string
  */
-export const formatTime = (timestamp) => {
-  if (!timestamp) return '';
-
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  // If today, show time
-  if (diffDays === 0) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-
-  // If yesterday, show "Yesterday"
-  if (diffDays === 1) {
-    return 'Yesterday';
-  }
-
-  // If this week, show day name
-  if (diffDays < 7) {
-    return date.toLocaleDateString([], { weekday: 'short' });
-  }
-
-  // Otherwise show date
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-};
+// formatTime is now imported from timeUtils and re-exported
+export { formatTime };
 
 /**
  * Get chat route path based on chat type
@@ -148,7 +178,8 @@ export const getChatRoute = (chat) => {
  * @returns {boolean} True if group chat
  */
 export const isGroupChat = (chat) => {
-  return chat.isGroup === true || chat.chatType === 'group' || chat.type === 'group';
+  if (!chat) return false;
+  return chat.isGroup === true || chat.chatType === 'group' || chat.type === 'group' || chat.chat_type === 'group';
 };
 
 /**

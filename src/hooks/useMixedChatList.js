@@ -23,7 +23,7 @@ const fetchGroupList = async ({ supabase, userId }) => {
                     last_message: group.last_message_content,
                     last_message_time: group.last_message_time,
                     unread_count: 0
-                });
+                }, userId);
 
                 return {
                     ...normalized,
@@ -82,7 +82,7 @@ const fetchGroupList = async ({ supabase, userId }) => {
             last_message: lastMsg?.content,
             last_message_time: group.last_message_at || lastMsg?.created_at || group.created_at,
             unread_count: 0
-        });
+        }, userId);
 
         return {
             ...normalized,
@@ -147,7 +147,7 @@ export const useMixedChatList = (currentUserId, dmChats, setDmChats, dmLoading) 
             group_avatar: group.avatar_url,
             last_message: 'Group created',
             last_message_time: new Date().toISOString(),
-        });
+        }, currentUserId);
 
         setMixedList(prev => {
             const updated = [normalized, ...prev];
