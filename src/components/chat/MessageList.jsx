@@ -77,7 +77,10 @@ const MessageList = ({
           </div>
 
           {dateMessages.map(message => {
-            const repliedMsg = message.reply_to ? messages.find(m => m.id === message.reply_to) : null;
+            // Safely get repliedMsg - only pass if it exists and has an id
+            const repliedMsg = message.reply_to 
+              ? messages.find(m => m && m.id === message.reply_to) 
+              : null;
 
             return (
               <MessageItem

@@ -120,15 +120,17 @@ const MessageBubble = ({
         )}
 
         {/* Reply Block */}
-        {repliedMsg && !isLocked && (
+        {repliedMsg && !isLocked && repliedMsg.id && (
           <div
             className="reply-quote-container"
             onClick={() => {
-              const element = document.getElementById(`message-${repliedMsg.id}`);
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                element.classList.add('highlight');
-                setTimeout(() => element.classList.remove('highlight'), 2000);
+              if (repliedMsg?.id) {
+                const element = document.getElementById(`message-${repliedMsg.id}`);
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  element.classList.add('highlight');
+                  setTimeout(() => element.classList.remove('highlight'), 2000);
+                }
               }
             }}
           >
