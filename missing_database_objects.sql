@@ -250,8 +250,18 @@ ORDER BY last_message_time DESC NULLS LAST;
 -- 4. MISSING RPC FUNCTIONS
 -- ============================================================================
 
+-- Drop existing RPC functions if they exist (to avoid return type conflicts)
+DROP FUNCTION IF EXISTS public.get_unified_chat_list(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.get_group_list_v2(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.get_support_messages_for_admin() CASCADE;
+DROP FUNCTION IF EXISTS public.respond_to_support_message(UUID, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS public.mark_support_message_read(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.cleanup_expired_transfers() CASCADE;
+DROP FUNCTION IF EXISTS public.cleanup_old_signals() CASCADE;
+DROP FUNCTION IF EXISTS public.mark_inactive_users_offline() CASCADE;
+
 -- RPC: get_unified_chat_list
-CREATE OR REPLACE FUNCTION public.get_unified_chat_list(user_id UUID)
+CREATE FUNCTION public.get_unified_chat_list(user_id UUID)
 RETURNS TABLE (
     chat_id TEXT,
     chat_type TEXT,
@@ -359,7 +369,7 @@ END;
 $$;
 
 -- RPC: get_group_list_v2
-CREATE OR REPLACE FUNCTION public.get_group_list_v2(user_id_param UUID)
+CREATE FUNCTION public.get_group_list_v2(user_id_param UUID)
 RETURNS TABLE (
     id UUID,
     name TEXT,
@@ -398,7 +408,7 @@ END;
 $$;
 
 -- RPC: get_support_messages_for_admin
-CREATE OR REPLACE FUNCTION public.get_support_messages_for_admin()
+CREATE FUNCTION public.get_support_messages_for_admin()
 RETURNS TABLE (
     id UUID,
     user_id UUID,
@@ -442,7 +452,7 @@ END;
 $$;
 
 -- RPC: respond_to_support_message
-CREATE OR REPLACE FUNCTION public.respond_to_support_message(
+CREATE FUNCTION public.respond_to_support_message(
     message_id UUID,
     response_text TEXT
 )
@@ -477,7 +487,7 @@ END;
 $$;
 
 -- RPC: mark_support_message_read
-CREATE OR REPLACE FUNCTION public.mark_support_message_read(message_id UUID)
+CREATE FUNCTION public.mark_support_message_read(message_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -496,7 +506,7 @@ END;
 $$;
 
 -- RPC: cleanup_expired_transfers
-CREATE OR REPLACE FUNCTION public.cleanup_expired_transfers()
+CREATE FUNCTION public.cleanup_expired_transfers()
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -514,7 +524,7 @@ END;
 $$;
 
 -- RPC: cleanup_old_signals
-CREATE OR REPLACE FUNCTION public.cleanup_old_signals()
+CREATE FUNCTION public.cleanup_old_signals()
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -531,7 +541,7 @@ END;
 $$;
 
 -- RPC: mark_inactive_users_offline
-CREATE OR REPLACE FUNCTION public.mark_inactive_users_offline()
+CREATE FUNCTION public.mark_inactive_users_offline()
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
