@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, Check, CheckCheck } from 'lucide-react';
 import { useSupabase } from '../contexts/SupabaseContext';
+import { realtimeManager } from '../utils/realtimeManager';
 import useAuthStore from '../store/authStore';
 import './support/SupportChat.css';
 
@@ -70,37 +71,37 @@ const SupportChat = () => {
 
     loadMessages();
 
-    // Real-time subscription for admin responses
-    const channel = supabase
-      .channel(`support_${currentUser.id}`)
-      .on(
-        'postgres_changes',
-        {
+    // Real-time subscription for admin responses using centralized realtimeManager
+    const channel = realtimeManager.subscribe(
+      `support_${currentUser.id}`,
+      {},
+      {
+        postgres_changes: [{
           event: '*',
           schema: 'public',
           table: 'support_messages',
           filter: `user_id=eq.${currentUser.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'UPDATE' && payload.new.response) {
-            // Admin responded
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `response-${payload.new.id}`,
-                text: payload.new.response,
-                sender: 'support',
-                timestamp: new Date(payload.new.responded_at || Date.now()),
-                status: 'read',
-              },
-            ]);
+          handler: (payload) => {
+            if (payload.eventType === 'UPDATE' && payload.new.response) {
+              // Admin responded
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `response-${payload.new.id}`,
+                  text: payload.new.response,
+                  sender: 'support',
+                  timestamp: new Date(payload.new.responded_at || Date.now()),
+                  status: 'read',
+                },
+              ]);
+            }
           }
-        }
-      )
-      .subscribe();
+        }]
+      }
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      realtimeManager.unsubscribe(`support_${currentUser.id}`);
     };
   }, [currentUser, supabase]);
 

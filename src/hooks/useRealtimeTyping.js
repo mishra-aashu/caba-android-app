@@ -1,73 +1,83 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../config/supabase';
+import { realtimeManager } from '../utils/realtimeManager';
 import { throttle } from 'lodash';
 
 export const useRealtimeTyping = (chatId, currentUserId) => {
   const [typingUsers, setTypingUsers] = useState({});
-  const timeoutRefs = useRef({}); // Track timeouts for cleanup
+  const timeoutRefs = useRef({});
 
   useEffect(() => {
     if (!chatId) return;
 
-    // 1. Channel Create karo (Sirf ek baar)
-    const channel = supabase.channel(`typing_room_${chatId}`);
+    const channelName = `typing_room_${chatId}`;
+    console.log(`🔌 Consolidating typing indicator hook for: ${chatId}`);
 
-    channel
-      .on('broadcast', { event: 'typing' }, (payload) => {
-        // Khud ka typing status ignore karo
-        if (payload.payload.userId === currentUserId) return;
+    realtimeManager.subscribe(
+      channelName,
+      {},
+      {
+        broadcast: ({ event, payload }) => {
+          if (event === 'typing') {
+            if (payload.userId === currentUserId) return;
 
-        // Clear existing timeout for this user
-        if (timeoutRefs.current[payload.payload.userId]) {
-          clearTimeout(timeoutRefs.current[payload.payload.userId]);
+            // Clear existing timeout for this user
+            if (timeoutRefs.current[payload.userId]) {
+              clearTimeout(timeoutRefs.current[payload.userId]);
+            }
+
+            // User ko "Typing..." list mein daalo
+            setTypingUsers((prev) => ({
+              ...prev,
+              [payload.userId]: Date.now(),
+            }));
+
+            // 3 second baad auto-remove kar do
+            timeoutRefs.current[payload.userId] = setTimeout(() => {
+              setTypingUsers((prev) => {
+                const newState = { ...prev };
+                delete newState[payload.userId];
+                return newState;
+              });
+              delete timeoutRefs.current[payload.userId];
+            }, 3000);
+          }
         }
+      }
+    );
 
-        // User ko "Typing..." list mein daalo
-        setTypingUsers((prev) => ({
-          ...prev,
-          [payload.payload.userId]: Date.now(),
-        }));
-
-        // 3 second baad auto-remove kar do (agar user ruk gaya)
-        timeoutRefs.current[payload.payload.userId] = setTimeout(() => {
-          setTypingUsers((prev) => {
-            const newState = { ...prev };
-            delete newState[payload.payload.userId];
-            return newState;
-          });
-          delete timeoutRefs.current[payload.payload.userId];
-        }, 3000);
-      })
-      .subscribe();
-
-    // CLEANUP: Jab chat change ho, channel band karo aur timeouts clear karo
     return () => {
       // Clear all pending timeouts
       Object.values(timeoutRefs.current).forEach(timeoutId => {
         clearTimeout(timeoutId);
       });
       timeoutRefs.current = {};
-      
-      // Safe cleanup: Check if channel exists before removing
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+
+      realtimeManager.unsubscribe(channelName);
     };
   }, [chatId, currentUserId]);
 
-  // 2. Typing Signal bhejne ka function (Throttled: Max 1 call per 500ms)
-  // Isse network spam nahi hoga
   const sendTyping = useCallback(
-    throttle(() => {
-      const channel = supabase.channel(`typing_room_${chatId}`);
-      channel.send({
+    throttle(async () => {
+      const channelName = `typing_room_${chatId}`;
+      const channel = supabase.channel(channelName);
+
+      // Use direct supabase channel for transient broadcast to avoid singleton tracking overhead
+      // but ensure it's lightweight. Actually, let's just use the existing channel if possible.
+      // But broadcast needs a subscribed channel. 
+      // The singleton manages subscriptions, so we can't easily "broadcast" without a tracked channel.
+
+      await channel.send({
         type: 'broadcast',
         event: 'typing',
         payload: { userId: currentUserId },
       });
+
+      // Since it's throttled and transient, we don't necessarily need to track it in singleton if we cleanup.
     }, 500),
     [chatId, currentUserId]
   );
 
   return { typingUsers, sendTyping };
 };
+

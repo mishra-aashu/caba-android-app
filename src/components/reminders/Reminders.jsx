@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import useAuthStore from '../../store/authStore';
-import { X } from 'lucide-react';
+import { X, ArrowLeft, Plus, Settings, Clock, Check, CheckCircle, Timer, Ban, Bell, Pill, Users, CalendarCheck, Cake, ClipboardList, MoreHorizontal, List, Send, Inbox, Repeat, MapPin, BellOff, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import '../../styles/reminders.css';
 
 const Reminders = () => {
@@ -100,11 +101,11 @@ const Reminders = () => {
         .eq('id', id);
 
       if (error) throw error;
-      alert('Reminder accepted');
+      toast.success('Reminder accepted');
       loadReminders(currentUser);
     } catch (error) {
       console.error('Error accepting reminder:', error);
-      alert('Failed to accept reminder');
+      toast.error('Failed to accept reminder');
     }
   };
 
@@ -116,11 +117,11 @@ const Reminders = () => {
         .eq('id', id);
 
       if (error) throw error;
-      alert('Reminder rejected');
+      toast.success('Reminder rejected');
       loadReminders(currentUser);
     } catch (error) {
       console.error('Error rejecting reminder:', error);
-      alert('Failed to reject reminder');
+      toast.error('Failed to reject reminder');
     }
   };
 
@@ -135,11 +136,11 @@ const Reminders = () => {
         .eq('id', id);
 
       if (error) throw error;
-      alert('Reminder completed');
+      toast.success('Reminder completed');
       loadReminders(currentUser);
     } catch (error) {
       console.error('Error completing reminder:', error);
-      alert('Failed to complete reminder');
+      toast.error('Failed to complete reminder');
     }
   };
 
@@ -161,11 +162,11 @@ const Reminders = () => {
         .eq('id', id);
 
       if (error) throw error;
-      alert(`Snoozed for ${snoozeMinutes} minutes`);
+      toast.success(`Snoozed for ${snoozeMinutes} minutes`);
       loadReminders(currentUser);
     } catch (error) {
       console.error('Error snoozing reminder:', error);
-      alert('Failed to snooze reminder');
+      toast.error('Failed to snooze reminder');
     }
   };
 
@@ -199,28 +200,26 @@ const Reminders = () => {
   };
 
   const getStatusIcon = (status) => {
-    const icons = {
-      pending: 'fa-clock',
-      accepted: 'fa-check',
-      rejected: 'fa-times',
-      completed: 'fa-check-circle',
-      snoozed: 'fa-hourglass-half',
-      cancelled: 'fa-ban'
-    };
-    return icons[status] || 'fa-circle';
+    switch (status) {
+      case 'pending': return <Clock size={16} />;
+      case 'accepted': return <Check size={16} />;
+      case 'rejected': return <X size={16} />;
+      case 'completed': return <CheckCircle size={16} />;
+      case 'snoozed': return <Timer size={16} />;
+      case 'cancelled': return <Ban size={16} />;
+      default: return <Clock size={16} />;
+    }
   };
 
   const getCategoryIcon = (category) => {
-    const icons = {
-      general: 'fa-bell',
-      medicine: 'fa-pills',
-      meeting: 'fa-users',
-      appointment: 'fa-calendar-check',
-      birthday: 'fa-birthday-cake',
-      task: 'fa-tasks',
-      other: 'fa-ellipsis-h'
-    };
-    return icons[category] || 'fa-bell';
+    switch (category) {
+      case 'medicine': return <Pill size={16} />;
+      case 'meeting': return <Users size={16} />;
+      case 'appointment': return <CalendarCheck size={16} />;
+      case 'birthday': return <Cake size={16} />;
+      case 'task': return <ClipboardList size={16} />;
+      default: return <Bell size={16} />;
+    }
   };
 
   const getInitials = (name) => {
@@ -273,7 +272,7 @@ const Reminders = () => {
       <header className="app-header">
         <div className="header-left">
           <button className="back-btn" onClick={() => window.history.back()}>
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft size={24} />
           </button>
         </div>
         <div className="header-center">
@@ -281,10 +280,10 @@ const Reminders = () => {
         </div>
         <div className="header-right">
           <button className="icon-btn" onClick={() => alert('Create reminder')}>
-            <i className="fas fa-plus"></i>
+            <Plus size={24} />
           </button>
           <button className="icon-btn" onClick={() => alert('Settings')}>
-            <i className="fas fa-cog"></i>
+            <Settings size={24} />
           </button>
         </div>
       </header>
@@ -297,7 +296,11 @@ const Reminders = () => {
             className={`chip ${currentFilter === filter ? 'active' : ''}`}
             onClick={() => filterReminders(filter)}
           >
-            <i className={`fas fa-${filter === 'all' ? 'list' : filter === 'pending' ? 'clock' : filter === 'accepted' ? 'check' : filter === 'sent' ? 'paper-plane' : 'inbox'}`}></i>
+            {filter === 'all' ? <List size={16} /> :
+              filter === 'pending' ? <Clock size={16} /> :
+                filter === 'accepted' ? <Check size={16} /> :
+                  filter === 'sent' ? <Send size={16} /> :
+                    <Inbox size={16} />}
             {filter.charAt(0).toUpperCase() + filter.slice(1)}
           </button>
         ))}
@@ -340,24 +343,24 @@ const Reminders = () => {
                           getInitials(otherUser.name)
                         )}
                       </div>
-                      <i className={`fas fa-${isSent ? 'paper-plane' : 'inbox'}`}></i>
+                      {isSent ? <Send size={14} /> : <Inbox size={14} />}
                       {isSent ? 'To' : 'From'}: {otherUser.name}
                     </div>
                   </div>
                   <span className={`reminder-status status-${reminder.status}`}>
-                    <i className={`fas ${getStatusIcon(reminder.status)}`}></i>
+                    {getStatusIcon(reminder.status)}
                     {reminder.status}
                   </span>
                 </div>
 
                 <div className="reminder-details">
                   <div className="reminder-time">
-                    <i className="fas fa-clock"></i>
+                    <Clock size={16} />
                     {formatReminderTime(reminderTime)}
                   </div>
                   {reminder.location && (
                     <div className="reminder-location">
-                      <i className="fas fa-map-marker-alt"></i>
+                      <MapPin size={16} />
                       {reminder.location}
                     </div>
                   )}
@@ -370,12 +373,12 @@ const Reminders = () => {
 
                 <div className="reminder-meta">
                   <span className={`reminder-category category-${reminder.category}`}>
-                    <i className={`fas ${getCategoryIcon(reminder.category)}`}></i>
+                    {getCategoryIcon(reminder.category)}
                     {reminder.category}
                   </span>
                   {reminder.is_recurring && (
                     <span className="reminder-category">
-                      <i className="fas fa-redo"></i>
+                      <Repeat size={14} />
                       {reminder.recurring_type}
                     </span>
                   )}
@@ -386,24 +389,24 @@ const Reminders = () => {
                     {canAccept && (
                       <>
                         <button className="btn-action btn-accept" onClick={() => acceptReminder(reminder.id)}>
-                          <i className="fas fa-check"></i>
+                          <Check size={16} />
                           Accept
                         </button>
                         <button className="btn-action btn-reject" onClick={() => rejectReminder(reminder.id)}>
-                          <i className="fas fa-times"></i>
+                          <X size={16} />
                           Reject
                         </button>
                       </>
                     )}
                     {canComplete && (
                       <button className="btn-action btn-complete" onClick={() => completeReminder(reminder.id)}>
-                        <i className="fas fa-check-circle"></i>
+                        <CheckCircle size={16} />
                         Complete
                       </button>
                     )}
                     {canSnooze && (
                       <button className="btn-action btn-snooze" onClick={() => snoozeReminder(reminder.id)}>
-                        <i className="fas fa-clock"></i>
+                        <Clock size={16} />
                         Snooze
                       </button>
                     )}
@@ -414,11 +417,11 @@ const Reminders = () => {
           })
         ) : (
           <div className="empty-state">
-            <i className="fas fa-bell-slash"></i>
+            <BellOff size={64} />
             <h3>No Reminders</h3>
             <p>You don't have any reminders in this category</p>
             <button className="btn-primary" onClick={() => alert('Create reminder')}>
-              <i className="fas fa-plus"></i> Create Reminder
+              <Plus size={16} /> Create Reminder
             </button>
           </div>
         )}
@@ -426,7 +429,7 @@ const Reminders = () => {
 
       {/* FAB */}
       <button className="fab" onClick={() => alert('Create reminder')}>
-        <i className="fas fa-plus"></i>
+        <Plus size={28} />
       </button>
     </div>
   );

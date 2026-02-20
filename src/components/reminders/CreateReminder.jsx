@@ -21,6 +21,7 @@ const CreateReminder = ({ onBack }) => {
     vibrationEnabled: true
   });
   const [loading, setLoading] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -168,7 +169,7 @@ const CreateReminder = ({ onBack }) => {
             <i className="fas fa-user"></i>
             Remind To *
           </label>
-          <div className="recipient-selector" onClick={() => alert('Select contact - feature not implemented')}>
+          <div className="recipient-selector" onClick={() => setShowContactPicker(true)}>
             <div className="selected-recipient">
               {selectedRecipient ? (
                 <>
@@ -377,6 +378,50 @@ const CreateReminder = ({ onBack }) => {
           {loading ? 'Creating...' : 'Create Reminder'}
         </button>
       </form>
+
+      {/* Contact Picker Modal */}
+      {showContactPicker && (
+        <div className="modal-overlay" onClick={() => setShowContactPicker(false)}>
+          <div className="contact-picker-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Select Contact</h2>
+              <button className="close-btn" onClick={() => setShowContactPicker(false)}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="contact-list">
+              {contacts.length > 0 ? (
+                contacts.map(contact => (
+                  <div
+                    key={contact.id}
+                    className="contact-item"
+                    onClick={() => {
+                      setSelectedRecipient(contact);
+                      setShowContactPicker(false);
+                    }}
+                  >
+                    <div className="avatar-placeholder">
+                      {contact.avatar ? (
+                        <img src={contact.avatar} alt={contact.name} />
+                      ) : (
+                        getInitials(contact.name)
+                      )}
+                    </div>
+                    <div className="contact-info">
+                      <span className="contact-name">{contact.name}</span>
+                      <span className="contact-phone">{contact.phone}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-contacts">
+                  <p>No contacts found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

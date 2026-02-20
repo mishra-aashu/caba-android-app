@@ -48,7 +48,14 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
       onGroupClick(group);
     } else {
       // Navigate to chat
-      navigate(`/chat/${group.id}/group`);
+      // Navigate to chat, passing group info as router state for instant header display
+      navigate(`/chat/${group.id}/group`, {
+        state: {
+          groupName: group.name,
+          groupAvatar: group.avatar_url || null,
+          memberCount: group.member_count || 0,
+        }
+      });
       if (onClose) onClose();
     }
   };

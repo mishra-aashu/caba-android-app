@@ -7,7 +7,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import MemberItem from './MemberItem';
 import AddMembersModal from './AddMembersModal';
-import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown } from 'lucide-react';
+import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown, Calendar, User as UserIcon, Camera, Shield, Lock, MessageSquare } from 'lucide-react';
+import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import './GroupInfoDrawer.css';
 
@@ -21,6 +22,8 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
   const [editDescription, setEditDescription] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = React.useRef(null);
 
   const groupId = group?.id;
 
@@ -98,25 +101,62 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
     }
   };
 
-  if (!isOpen) return null;
+  // Handle avatar change
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const { uploadGroupAvatar } = await import('../../services/groupService');
+      const avatarUrl = await uploadGroupAvatar(file, groupId);
+
+      await updateGroupMutation.mutateAsync({
+        groupId,
+        updates: { avatar_url: avatarUrl },
+      });
+
+      toast.success('Group avatar updated!');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to update avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Handle toggle settings
+  const handleToggleSetting = async (settingName, currentValue) => {
+    try {
+      await updateGroupMutation.mutateAsync({
+        groupId,
+        updates: { [settingName]: !currentValue },
+      });
+      toast.success('Group setting updated');
+    } catch (error) {
+      console.error('Error updating setting:', error);
+      toast.error('Failed to update setting');
+    }
+  };
 
   return (
-    <div className="group-info-drawer-overlay" onClick={onClose}>
-      <div className="group-info-drawer" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="drawer-header">
-          <h2>Group Info</h2>
-          <button className="close-btn" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+    <div className={`group-info-drawer ${isOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+      {/* Header */}
+      <div className="drawer-header">
+        <h2>Group Info</h2>
+        <button className="close-btn" onClick={onClose}>
+          <X size={20} />
+        </button>
+      </div>
 
+      {/* Scrollable Content Area */}
+      <div className="drawer-content">
         {/* Group Info */}
         <div className="group-info-section">
           {loadingGroup ? (
             <div className="loading">Updating...</div>
           ) : (
-            <div className="group-avatar-large">
+            <div className={`group-avatar-large ${isAdmin ? 'editable' : ''}`} onClick={() => isAdmin && avatarInputRef.current?.click()}>
               {activeGroup?.avatar_url ? (
                 <img src={activeGroup.avatar_url} alt={activeGroup.name} />
               ) : (
@@ -124,6 +164,18 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
                   {activeGroup?.name?.charAt(0)?.toUpperCase() || 'G'}
                 </div>
               )}
+              {isAdmin && (
+                <div className="avatar-edit-overlay">
+                  {isUploadingAvatar ? <LoaderCircle className="animate-spin" /> : <Camera size={24} />}
+                </div>
+              )}
+              <input
+                type="file"
+                ref={avatarInputRef}
+                onChange={handleAvatarChange}
+                accept="image/*"
+                style={{ display: 'none' }}
+              />
             </div>
           )}
 
@@ -157,11 +209,27 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
               {activeGroup?.description && (
                 <p className="group-description">{activeGroup.description}</p>
               )}
-              <p className="member-count">
-                <Users size={14} />
-                {members.length} members
-              </p>
-              {isAdmin && (
+
+              <div className="group-meta-info">
+                <p className="member-count">
+                  <Users size={14} />
+                  {members.length} members
+                </p>
+                {activeGroup?.created_at && (
+                  <p className="creation-date">
+                    <Calendar size={14} />
+                    Created on {format(new Date(activeGroup.created_at), 'MMM d, yyyy')}
+                  </p>
+                )}
+                {activeGroup?.creator?.name && (
+                  <p className="creator-info">
+                    <UserIcon size={14} />
+                    Created by {activeGroup.creator.name}
+                  </p>
+                )}
+              </div>
+
+              {(isAdmin || !activeGroup?.admins_only_edit_info) && (
                 <button className="edit-group-btn" onClick={() => setIsEditing(true)}>
                   <Edit size={14} />
                   Edit Group
@@ -187,11 +255,75 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
           </button>
         </div>
 
+        {/* Group Settings Section (Group Admins Only) */}
+        {isAdmin && (
+          <div className="settings-section">
+            <div className="section-header">
+              <h3>Group Settings</h3>
+            </div>
+            <div className="settings-list">
+              <div className="setting-item">
+                <div className="setting-info">
+                  <div className="setting-label">
+                    <Edit size={16} />
+                    <span>Edit Group Info</span>
+                  </div>
+                  <p className="setting-desc">Only admins can change group name, description and image</p>
+                </div>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={!!activeGroup?.admins_only_edit_info}
+                    onChange={() => handleToggleSetting('admins_only_edit_info', activeGroup?.admins_only_edit_info)}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+
+              <div className="setting-item">
+                <div className="setting-info">
+                  <div className="setting-label">
+                    <Users size={16} />
+                    <span>Add Participants</span>
+                  </div>
+                  <p className="setting-desc">Only admins can add new members to this group</p>
+                </div>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={!!activeGroup?.admins_only_add_members}
+                    onChange={() => handleToggleSetting('admins_only_add_members', activeGroup?.admins_only_add_members)}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+
+              <div className="setting-item">
+                <div className="setting-info">
+                  <div className="setting-label">
+                    <MessageSquare size={16} />
+                    <span>Send Messages</span>
+                  </div>
+                  <p className="setting-desc">Only admins can send messages (Members will be read-only)</p>
+                </div>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={!!activeGroup?.admins_only_messages}
+                    onChange={() => handleToggleSetting('admins_only_messages', activeGroup?.admins_only_messages)}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Members List */}
         <div className="members-section">
           <div className="section-header">
             <h3>Participants</h3>
-            {isAdmin && (
+            {(isAdmin || !activeGroup?.admins_only_add_members) && (
               <button className="add-member-btn" onClick={() => setShowAddMembers(true)}>
                 Add Member
               </button>
@@ -209,19 +341,20 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
                   groupId={groupId}
                   currentUserId={user?.id}
                   isCurrentUserAdmin={isAdmin}
+                  creatorId={activeGroup?.created_by || activeGroup?.creator?.id}
                 />
               ))
             )}
           </div>
         </div>
+      </div>
 
-        {/* Leave Group */}
-        <div className="leave-section">
-          <button className="leave-btn" onClick={handleLeaveGroup}>
-            <LogOut size={18} />
-            Leave Group
-          </button>
-        </div>
+      {/* Leave Group */}
+      <div className="leave-section">
+        <button className="leave-btn" onClick={handleLeaveGroup}>
+          <LogOut size={18} />
+          Leave Group
+        </button>
       </div>
 
       {/* Add Members Modal */}

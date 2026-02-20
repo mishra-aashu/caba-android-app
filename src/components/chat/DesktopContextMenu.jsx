@@ -1,5 +1,5 @@
 import React from 'react';
-import { Reply, Copy, Share2, Edit, Trash2, MousePointer } from 'lucide-react';
+import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 const DesktopContextMenu = ({
@@ -12,6 +12,7 @@ const DesktopContextMenu = ({
   onEdit,
   onDelete,
   onSelect,
+  onReport,
   isSent,
   onClose
 }) => {
@@ -59,6 +60,16 @@ const DesktopContextMenu = ({
           <div className="menu-item delete" onClick={() => { onDelete(); onClose(); }}>
             <span className="icon"><Trash2 size={16} /></span>
             <span>Delete</span>
+          </div>
+        </>
+      )}
+
+      {!isSent && onReport && (
+        <>
+          <div className="menu-divider"></div>
+          <div className="menu-item" onClick={() => { onReport(); onClose(); }}>
+            <span className="icon"><Flag size={16} /></span>
+            <span>Report</span>
           </div>
         </>
       )}

@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useAuth } from '../hooks/useAuth';
 import { isAdmin, verifyAdminTableAccess, fetchAdminData } from '../utils/adminVerification';
 import { dpOptions } from '../utils/dpOptions';
 import { isUserOnline } from '../utils/timeUtils';
+import { realtimeManager } from '../utils/realtimeManager';
+import toast from 'react-hot-toast';
 import {
   ArrowLeft, MessageSquare, Users, Settings, BarChart3, Shield,
   UserCheck, UserX, User, MessageCircle, Newspaper, Flag, Activity,
   Database, Trash2, Edit, Eye, Ban, CheckCircle, XCircle,
   Search, Filter, Download, Upload, RefreshCw, AlertTriangle,
   Calendar, Clock, Phone, Mail, MapPin, FileText, Image,
-  Video, Music, Archive, MoreHorizontal, ChevronDown, ChevronRight
+  Video, Music, Archive, MoreHorizontal, ChevronDown, ChevronRight, Bell
 } from 'lucide-react';
 import './admin/Admin.css';
 
@@ -67,6 +69,11 @@ const Admin = () => {
   const [responseModal, setResponseModal] = useState({ open: false, messageId: null, userName: '', message: '' });
   const [responseText, setResponseText] = useState('');
 
+  // Real-time notification badge counts
+  const [newReportCount, setNewReportCount] = useState(0);
+  const [newSupportCount, setNewSupportCount] = useState(0);
+  const activeTabRef = useRef(activeTab);
+
   // Loading states for each tab
   const [tabLoading, setTabLoading] = useState({
     users: false,
@@ -82,6 +89,11 @@ const Admin = () => {
     'media-transfers': false
   });
 
+  // Keep activeTabRef in sync for use inside closures
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
   useEffect(() => {
     checkAdminAccess();
   }, []);
@@ -91,6 +103,69 @@ const Admin = () => {
       loadDashboardData();
     }
   }, [currentUser, activeTab]);
+
+  // Real-time subscriptions for Admin: new reports and support messages
+  useEffect(() => {
+    if (!currentUser?.is_admin) return;
+
+    const channelKey = `admin_realtime_${currentUser.id}`;
+
+    realtimeManager.subscribe(
+      channelKey,
+      {},
+      {
+        postgres_changes: [
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'reports',
+            handler: (payload) => {
+              if (activeTabRef.current === 'reports') {
+                // Refresh the list if the admin is already on the reports tab
+                loadReports();
+              } else {
+                setNewReportCount(prev => prev + 1);
+                toast(`⚠️ New report filed`, {
+                  icon: '🚨',
+                  duration: 4000,
+                });
+              }
+            }
+          },
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'support_messages',
+            handler: (payload) => {
+              // Only notify for user messages, not admin responses
+              if (payload.new?.message_type === 'user') {
+                if (activeTabRef.current === 'support') {
+                  loadSupportMessages();
+                } else {
+                  setNewSupportCount(prev => prev + 1);
+                  toast(`💬 New support message from ${payload.new?.user_name || 'user'}`, {
+                    icon: '📩',
+                    duration: 4000,
+                  });
+                }
+              }
+            }
+          }
+        ]
+      }
+    );
+
+    return () => {
+      realtimeManager.unsubscribe(channelKey);
+    };
+  }, [currentUser]);
+
+  // Clear badge when admin clicks into the tab
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'reports') setNewReportCount(0);
+    if (tabId === 'support') setNewSupportCount(0);
+  };
 
   const checkAdminAccess = async () => {
     try {
@@ -221,20 +296,20 @@ const Admin = () => {
 
       if (usersError) {
         console.error('Error loading users:', usersError);
-        
+
         // If the main query fails, try a simpler approach
         try {
           const { data: simpleUsers, error: simpleError } = await supabase
             .from('users')
             .select('id, name, email, phone, avatar, is_admin, is_online, last_seen, created_at')
             .order('created_at', { ascending: false });
-          
+
           if (simpleError) {
             console.error('Error with simple user query:', simpleError);
             setUsers([]);
             return;
           }
-          
+
           setUsers(simpleUsers || []);
         } catch (simpleErr) {
           console.error('Simple user query failed:', simpleErr);
@@ -298,7 +373,7 @@ const Admin = () => {
         try {
           // Get unique sender IDs
           const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
-          
+
           // Load sender user details
           const { data: senderUsers } = await supabase
             .from('users')
@@ -388,9 +463,9 @@ const Admin = () => {
         setAdminLogs(data);
       }
     } catch (error) {
-        if (currentUser?.is_admin) {
-          console.error('Error loading admin logs:', error);
-        }
+      if (currentUser?.is_admin) {
+        console.error('Error loading admin logs:', error);
+      }
     }
   };
 
@@ -946,18 +1021,21 @@ const Admin = () => {
               { id: 'statuses', label: 'Statuses', icon: Activity },
               { id: 'media-transfers', label: 'Media Transfers', icon: Archive },
               { id: 'news', label: 'News', icon: Newspaper },
-              { id: 'reports', label: 'Reports', icon: Flag },
+              { id: 'reports', label: 'Reports', icon: Flag, badge: newReportCount },
               { id: 'logs', label: 'Admin Logs', icon: Activity },
-              { id: 'support', label: 'Support', icon: MessageCircle },
+              { id: 'support', label: 'Support', icon: MessageCircle, badge: newSupportCount },
               { id: 'maintenance', label: 'Maintenance', icon: Database }
             ].map(tab => (
               <button
                 key={tab.id}
                 className={`nav-item ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
               >
                 <tab.icon size={20} />
                 <span>{tab.label}</span>
+                {tab.badge > 0 && (
+                  <span className="nav-badge">{tab.badge > 99 ? '99+' : tab.badge}</span>
+                )}
               </button>
             ))}
           </nav>
@@ -966,769 +1044,769 @@ const Admin = () => {
         {/* Main Content Area */}
         <div className="main-content">
           {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && (
-          <div className="dashboard-content">
-            <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-icon"><Users size={24} /></div>
-                <div className="stat-info">
-                  <h3>{stats.totalUsers}</h3>
-                  <p>Total Users</p>
+          {activeTab === 'dashboard' && (
+            <div className="dashboard-content">
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <div className="stat-icon"><Users size={24} /></div>
+                  <div className="stat-info">
+                    <h3>{stats.totalUsers}</h3>
+                    <p>Total Users</p>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon"><MessageSquare size={24} /></div>
+                  <div className="stat-info">
+                    <h3>{stats.totalMessages}</h3>
+                    <p>Total Messages</p>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon"><BarChart3 size={24} /></div>
+                  <div className="stat-info">
+                    <h3>{stats.onlineUsers}</h3>
+                    <p>Online Users</p>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon"><MessageCircle size={24} /></div>
+                  <div className="stat-info">
+                    <h3>{stats.totalChats}</h3>
+                    <p>Total Chats</p>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon"><Newspaper size={24} /></div>
+                  <div className="stat-info">
+                    <h3>{stats.totalNews}</h3>
+                    <p>News Articles</p>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon"><Flag size={24} /></div>
+                  <div className="stat-info">
+                    <h3>{stats.totalReports}</h3>
+                    <p>Pending Reports</p>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon"><Phone size={24} /></div>
+                  <div className="stat-info">
+                    <h3>{stats.totalCalls}</h3>
+                    <p>Total Calls</p>
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-icon"><Archive size={24} /></div>
+                  <div className="stat-info">
+                    <h3>{stats.totalMedia}</h3>
+                    <p>Media Files</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="stat-card">
-                <div className="stat-icon"><MessageSquare size={24} /></div>
-                <div className="stat-info">
-                  <h3>{stats.totalMessages}</h3>
-                  <p>Total Messages</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon"><BarChart3 size={24} /></div>
-                <div className="stat-info">
-                  <h3>{stats.onlineUsers}</h3>
-                  <p>Online Users</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon"><MessageCircle size={24} /></div>
-                <div className="stat-info">
-                  <h3>{stats.totalChats}</h3>
-                  <p>Total Chats</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon"><Newspaper size={24} /></div>
-                <div className="stat-info">
-                  <h3>{stats.totalNews}</h3>
-                  <p>News Articles</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon"><Flag size={24} /></div>
-                <div className="stat-info">
-                  <h3>{stats.totalReports}</h3>
-                  <p>Pending Reports</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon"><Phone size={24} /></div>
-                <div className="stat-info">
-                  <h3>{stats.totalCalls}</h3>
-                  <p>Total Calls</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-icon"><Archive size={24} /></div>
-                <div className="stat-info">
-                  <h3>{stats.totalMedia}</h3>
-                  <p>Media Files</p>
+              <div className="quick-actions">
+                <h3>Quick Actions</h3>
+                <div className="actions-grid">
+                  <button className="action-btn" onClick={() => runMaintenance('cleanup_expired_sessions')}>
+                    <RefreshCw size={20} />
+                    Clean Sessions
+                  </button>
+                  <button className="action-btn" onClick={() => runMaintenance('cleanup_expired_signaling')}>
+                    <RefreshCw size={20} />
+                    Clean Signaling
+                  </button>
+                  <button className="action-btn" onClick={() => runMaintenance('vanish_expired_messages')}>
+                    <Trash2 size={20} />
+                    Clean Messages
+                  </button>
+                  <button className="action-btn" onClick={() => runMaintenance('cleanup_old_news_articles')}>
+                    <Newspaper size={20} />
+                    Clean News
+                  </button>
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="quick-actions">
-              <h3>Quick Actions</h3>
-              <div className="actions-grid">
-                <button className="action-btn" onClick={() => runMaintenance('cleanup_expired_sessions')}>
-                  <RefreshCw size={20} />
-                  Clean Sessions
-                </button>
-                <button className="action-btn" onClick={() => runMaintenance('cleanup_expired_signaling')}>
-                  <RefreshCw size={20} />
-                  Clean Signaling
-                </button>
-                <button className="action-btn" onClick={() => runMaintenance('vanish_expired_messages')}>
-                  <Trash2 size={20} />
-                  Clean Messages
-                </button>
-                <button className="action-btn" onClick={() => runMaintenance('cleanup_old_news_articles')}>
-                  <Newspaper size={20} />
-                  Clean News
-                </button>
+          {/* Users Tab */}
+          {activeTab === 'users' && (
+            <div className="users-content">
+              <div className="section-header">
+                <h2>User Management</h2>
+                <div className="search-bar">
+                  <Search size={20} />
+                  <input
+                    type="text"
+                    placeholder="Search users..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
+
+              {tabLoading.users ? (
+                <div className="loading-container">
+                  <div className="loading-spinner"></div>
+                  <p>Loading users...</p>
+                </div>
+              ) : (
+                <div className="users-list">
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map(user => (
+                      <div key={user.id} className="user-item">
+                        <div className="user-info">
+                          <img
+                            src={getAvatarUrl(user.avatar)}
+                            alt={user.name || 'User'}
+                            className="user-avatar"
+                            onError={(e) => {
+                              e.target.src = `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`;
+                            }}
+                          />
+                          <div className="user-details">
+                            <h4>{user.name || 'Unknown User'}</h4>
+                            <p>{user.email || 'No email'} • {user.phone || 'No phone'}</p>
+                            <small>Joined: {user.created_at ? formatTime(user.created_at) : 'Unknown'}</small>
+                            {user.message_count !== undefined && (
+                              <small>Messages: {user.message_count}</small>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="user-status">
+                          <span className={`status ${isUserOnline(Boolean(user.is_online), user.last_seen) ? 'online' : 'offline'}`}>
+                            {isUserOnline(Boolean(user.is_online), user.last_seen) ? 'Online' : 'Offline'}
+                          </span>
+                          {user.is_admin && <span className="admin-tag">Admin</span>}
+                        </div>
+
+                        <div className="user-actions">
+                          <button
+                            className="action-btn small"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowUserModal(true);
+                            }}
+                            title="View Details"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          {user.is_admin ? (
+                            <button
+                              className="action-btn small danger"
+                              onClick={() => demoteAdmin(user.id)}
+                              title="Remove Admin"
+                            >
+                              <UserX size={16} />
+                              Demote
+                            </button>
+                          ) : (
+                            <button
+                              className="action-btn small success"
+                              onClick={() => promoteToAdmin(user.id)}
+                              title="Make Admin"
+                            >
+                              <UserCheck size={16} />
+                              Promote
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-data">
+                      <Users size={48} />
+                      <p>{searchTerm ? 'No users found matching your search' : 'No users found'}</p>
+                      {searchTerm && (
+                        <button
+                          className="action-btn"
+                          onClick={() => setSearchTerm('')}
+                        >
+                          Clear Search
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Users Tab */}
-        {activeTab === 'users' && (
-          <div className="users-content">
-            <div className="section-header">
-              <h2>User Management</h2>
-              <div className="search-bar">
-                <Search size={20} />
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+          {/* Messages Tab */}
+          {activeTab === 'messages' && (
+            <div className="messages-content">
+              <div className="section-header">
+                <h2>Message Moderation</h2>
+                <div className="search-bar">
+                  <Search size={20} />
+                  <input
+                    type="text"
+                    placeholder="Search messages..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
 
-            {tabLoading.users ? (
-              <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p>Loading users...</p>
-              </div>
-            ) : (
-              <div className="users-list">
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map(user => (
-                    <div key={user.id} className="user-item">
-                      <div className="user-info">
+              <div className="messages-list">
+                {filteredMessages.map(message => (
+                  <div key={message.id} className="message-item">
+                    <div className="message-header">
+                      <div className="sender-info">
                         <img
-                          src={getAvatarUrl(user.avatar)}
-                          alt={user.name || 'User'}
-                          className="user-avatar"
+                          src={getAvatarUrl(message.users?.avatar)}
+                          alt={message.users?.name}
+                          className="sender-avatar"
                           onError={(e) => {
                             e.target.src = `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`;
                           }}
                         />
-                        <div className="user-details">
-                          <h4>{user.name || 'Unknown User'}</h4>
-                          <p>{user.email || 'No email'} • {user.phone || 'No phone'}</p>
-                          <small>Joined: {user.created_at ? formatTime(user.created_at) : 'Unknown'}</small>
-                          {user.message_count !== undefined && (
-                            <small>Messages: {user.message_count}</small>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="user-status">
-                        <span className={`status ${isUserOnline(Boolean(user.is_online), user.last_seen) ? 'online' : 'offline'}`}>
-                          {isUserOnline(Boolean(user.is_online), user.last_seen) ? 'Online' : 'Offline'}
-                        </span>
-                        {user.is_admin && <span className="admin-tag">Admin</span>}
-                      </div>
-
-                      <div className="user-actions">
-                        <button
-                          className="action-btn small"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowUserModal(true);
-                          }}
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        {user.is_admin ? (
-                          <button
-                            className="action-btn small danger"
-                            onClick={() => demoteAdmin(user.id)}
-                            title="Remove Admin"
-                          >
-                            <UserX size={16} />
-                            Demote
-                          </button>
-                        ) : (
-                          <button
-                            className="action-btn small success"
-                            onClick={() => promoteToAdmin(user.id)}
-                            title="Make Admin"
-                          >
-                            <UserCheck size={16} />
-                            Promote
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-data">
-                    <Users size={48} />
-                    <p>{searchTerm ? 'No users found matching your search' : 'No users found'}</p>
-                    {searchTerm && (
-                      <button 
-                        className="action-btn" 
-                        onClick={() => setSearchTerm('')}
-                      >
-                        Clear Search
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Messages Tab */}
-        {activeTab === 'messages' && (
-          <div className="messages-content">
-            <div className="section-header">
-              <h2>Message Moderation</h2>
-              <div className="search-bar">
-                <Search size={20} />
-                <input
-                  type="text"
-                  placeholder="Search messages..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="messages-list">
-              {filteredMessages.map(message => (
-                <div key={message.id} className="message-item">
-                  <div className="message-header">
-                    <div className="sender-info">
-                      <img
-                        src={getAvatarUrl(message.users?.avatar)}
-                        alt={message.users?.name}
-                        className="sender-avatar"
-                        onError={(e) => {
-                          e.target.src = `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`;
-                        }}
-                      />
-                      <span className="sender-name">{message.users?.name}</span>
-                    </div>
-                    <div className="message-meta">
-                      {getMessageTypeIcon(message.message_type)}
-                      <span className="message-time">{formatTime(message.created_at)}</span>
-                    </div>
-                  </div>
-
-                  <div className="message-content">
-                    <p>{message.content}</p>
-                  </div>
-
-                  <div className="message-actions">
-                    <button
-                      className="action-btn small"
-                      onClick={() => {
-                        setSelectedMessage(message);
-                        setShowMessageModal(true);
-                      }}
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      className="action-btn small danger"
-                      onClick={() => deleteMessage(message.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* News Tab */}
-        {activeTab === 'news' && (
-          <div className="news-content">
-            <div className="section-header">
-              <h2>News Management</h2>
-              <button className="action-btn">
-                <Upload size={20} />
-                Add Article
-              </button>
-            </div>
-
-            <div className="news-list">
-              {newsArticles.map(article => (
-                <div key={article.id} className="news-item">
-                  <div className="news-info">
-                    <h4>{article.title}</h4>
-                    <p>{article.summary}</p>
-                    <div className="news-meta">
-                      <span>Views: {article.view_count}</span>
-                      <span>Shares: {article.share_count}</span>
-                      <span>Published: {formatTime(article.published_at)}</span>
-                    </div>
-                  </div>
-
-                  <div className="news-actions">
-                    <button className="action-btn small">
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      className="action-btn small danger"
-                      onClick={() => deleteNewsArticle(article.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reports Tab */}
-        {activeTab === 'reports' && (
-          <div className="reports-content">
-            <div className="section-header">
-              <h2>Reports Management</h2>
-            </div>
-
-            <div className="reports-list">
-              {reports.map(report => (
-                <div key={report.id} className="report-item">
-                  <div className="report-info">
-                    <h4>{report.report_type} Report</h4>
-                    <p><strong>Reporter:</strong> {report.users?.name}</p>
-                    <p><strong>Reason:</strong> {report.reason}</p>
-                    <p><strong>Description:</strong> {report.description}</p>
-                    <small>Reported: {formatTime(report.created_at)}</small>
-                  </div>
-
-                  <div className="report-status">
-                    <span className={`status ${report.status}`}>
-                      {report.status}
-                    </span>
-                  </div>
-
-                  <div className="report-actions">
-                    {report.status === 'pending' && (
-                      <>
-                        <button
-                          className="action-btn small success"
-                          onClick={() => resolveReport(report.id, 'resolved')}
-                        >
-                          <CheckCircle size={16} />
-                        </button>
-                        <button
-                          className="action-btn small danger"
-                          onClick={() => resolveReport(report.id, 'dismissed')}
-                        >
-                          <XCircle size={16} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Admin Logs Tab */}
-        {activeTab === 'logs' && (
-          <div className="logs-content">
-            <div className="section-header">
-              <h2>Admin Activity Logs</h2>
-            </div>
-
-            <div className="logs-list">
-              {adminLogs.map(log => (
-                <div key={log.id} className="log-item">
-                  <div className="log-info">
-                    <h4>{log.action}</h4>
-                    <p><strong>Admin:</strong> {log.users?.name}</p>
-                    <p><strong>Details:</strong> {log.details?.description}</p>
-                    <small>{formatTime(log.created_at)}</small>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Support Tab */}
-        {activeTab === 'support' && (
-          <div className="support-content">
-            <div className="section-header">
-              <h2>Support Messages</h2>
-              <button className="action-btn" onClick={loadSupportMessages}>
-                <RefreshCw size={20} />
-                Refresh
-              </button>
-            </div>
-
-            <div className="support-messages-list">
-              {supportMessages.length > 0 ? (
-                supportMessages.map(message => (
-                  <div
-                    key={message.id}
-                    className={`support-message-item ${message.is_read ? 'read' : 'unread'}`}
-                  >
-                    <div className="message-header">
-                      <div className="user-info">
-                        <div className="user-avatar">
-                          {message.user_name ? (
-                            <div>{getInitials(message.user_name)}</div>
-                          ) : (
-                            <User size={20} />
-                          )}
-                        </div>
-                        <div>
-                          <span className="user-name">{message.user_name || 'Unknown User'}</span>
-                          <span className="user-phone">({message.user_phone || 'N/A'})</span>
-                          <div className="user-email">{message.user_email}</div>
-                        </div>
+                        <span className="sender-name">{message.users?.name}</span>
                       </div>
                       <div className="message-meta">
+                        {getMessageTypeIcon(message.message_type)}
                         <span className="message-time">{formatTime(message.created_at)}</span>
-                        {!message.is_read && <span className="unread-indicator">New</span>}
                       </div>
                     </div>
+
                     <div className="message-content">
-                      <div className="user-message">
-                        <strong>User:</strong> {message.message}
+                      <p>{message.content}</p>
+                    </div>
+
+                    <div className="message-actions">
+                      <button
+                        className="action-btn small"
+                        onClick={() => {
+                          setSelectedMessage(message);
+                          setShowMessageModal(true);
+                        }}
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        className="action-btn small danger"
+                        onClick={() => deleteMessage(message.id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* News Tab */}
+          {activeTab === 'news' && (
+            <div className="news-content">
+              <div className="section-header">
+                <h2>News Management</h2>
+                <button className="action-btn">
+                  <Upload size={20} />
+                  Add Article
+                </button>
+              </div>
+
+              <div className="news-list">
+                {newsArticles.map(article => (
+                  <div key={article.id} className="news-item">
+                    <div className="news-info">
+                      <h4>{article.title}</h4>
+                      <p>{article.summary}</p>
+                      <div className="news-meta">
+                        <span>Views: {article.view_count}</span>
+                        <span>Shares: {article.share_count}</span>
+                        <span>Published: {formatTime(article.published_at)}</span>
                       </div>
-                      {message.admin_response && (
-                        <div className="admin-response">
-                          <strong>Admin ({message.admin_name}):</strong> {message.admin_response}
-                          <small>Responded: {formatTime(message.responded_at)}</small>
+                    </div>
+
+                    <div className="news-actions">
+                      <button className="action-btn small">
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        className="action-btn small danger"
+                        onClick={() => deleteNewsArticle(article.id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reports Tab */}
+          {activeTab === 'reports' && (
+            <div className="reports-content">
+              <div className="section-header">
+                <h2>Reports Management</h2>
+              </div>
+
+              <div className="reports-list">
+                {reports.map(report => (
+                  <div key={report.id} className="report-item">
+                    <div className="report-info">
+                      <h4>{report.report_type} Report</h4>
+                      <p><strong>Reporter:</strong> {report.users?.name}</p>
+                      <p><strong>Reason:</strong> {report.reason}</p>
+                      <p><strong>Description:</strong> {report.description}</p>
+                      <small>Reported: {formatTime(report.created_at)}</small>
+                    </div>
+
+                    <div className="report-status">
+                      <span className={`status ${report.status}`}>
+                        {report.status}
+                      </span>
+                    </div>
+
+                    <div className="report-actions">
+                      {report.status === 'pending' && (
+                        <>
+                          <button
+                            className="action-btn small success"
+                            onClick={() => resolveReport(report.id, 'resolved')}
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                          <button
+                            className="action-btn small danger"
+                            onClick={() => resolveReport(report.id, 'dismissed')}
+                          >
+                            <XCircle size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Admin Logs Tab */}
+          {activeTab === 'logs' && (
+            <div className="logs-content">
+              <div className="section-header">
+                <h2>Admin Activity Logs</h2>
+              </div>
+
+              <div className="logs-list">
+                {adminLogs.map(log => (
+                  <div key={log.id} className="log-item">
+                    <div className="log-info">
+                      <h4>{log.action}</h4>
+                      <p><strong>Admin:</strong> {log.users?.name}</p>
+                      <p><strong>Details:</strong> {log.details?.description}</p>
+                      <small>{formatTime(log.created_at)}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Support Tab */}
+          {activeTab === 'support' && (
+            <div className="support-content">
+              <div className="section-header">
+                <h2>Support Messages</h2>
+                <button className="action-btn" onClick={loadSupportMessages}>
+                  <RefreshCw size={20} />
+                  Refresh
+                </button>
+              </div>
+
+              <div className="support-messages-list">
+                {supportMessages.length > 0 ? (
+                  supportMessages.map(message => (
+                    <div
+                      key={message.id}
+                      className={`support-message-item ${message.is_read ? 'read' : 'unread'}`}
+                    >
+                      <div className="message-header">
+                        <div className="user-info">
+                          <div className="user-avatar">
+                            {message.user_name ? (
+                              <div>{getInitials(message.user_name)}</div>
+                            ) : (
+                              <User size={20} />
+                            )}
+                          </div>
+                          <div>
+                            <span className="user-name">{message.user_name || 'Unknown User'}</span>
+                            <span className="user-phone">({message.user_phone || 'N/A'})</span>
+                            <div className="user-email">{message.user_email}</div>
+                          </div>
+                        </div>
+                        <div className="message-meta">
+                          <span className="message-time">{formatTime(message.created_at)}</span>
+                          {!message.is_read && <span className="unread-indicator">New</span>}
+                        </div>
+                      </div>
+                      <div className="message-content">
+                        <div className="user-message">
+                          <strong>User:</strong> {message.message}
+                        </div>
+                        {message.admin_response && (
+                          <div className="admin-response">
+                            <strong>Admin ({message.admin_name}):</strong> {message.admin_response}
+                            <small>Responded: {formatTime(message.responded_at)}</small>
+                          </div>
+                        )}
+                      </div>
+                      {!message.admin_response && (
+                        <div className="message-actions">
+                          <button
+                            className="action-btn small success"
+                            onClick={() => respondToSupportMessage(message.id)}
+                          >
+                            <MessageCircle size={16} />
+                            Respond
+                          </button>
+                          <button
+                            className="action-btn small"
+                            onClick={() => markSupportMessageRead(message.id)}
+                          >
+                            <CheckCircle size={16} />
+                            Mark Read
+                          </button>
                         </div>
                       )}
                     </div>
-                    {!message.admin_response && (
-                      <div className="message-actions">
-                        <button
-                          className="action-btn small success"
-                          onClick={() => respondToSupportMessage(message.id)}
-                        >
-                          <MessageCircle size={16} />
-                          Respond
-                        </button>
-                        <button
-                          className="action-btn small"
-                          onClick={() => markSupportMessageRead(message.id)}
-                        >
-                          <CheckCircle size={16} />
-                          Mark Read
-                        </button>
-                      </div>
-                    )}
+                  ))
+                ) : (
+                  <div className="no-messages">
+                    <MessageSquare size={48} />
+                    <p>No support messages yet</p>
                   </div>
-                ))
-              ) : (
-                <div className="no-messages">
-                  <MessageSquare size={48} />
-                  <p>No support messages yet</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Blocked Users Tab */}
-        {activeTab === 'blocked' && (
-          <div className="blocked-content">
-            <div className="section-header">
-              <h2>Blocked Users Management</h2>
-            </div>
+          {/* Blocked Users Tab */}
+          {activeTab === 'blocked' && (
+            <div className="blocked-content">
+              <div className="section-header">
+                <h2>Blocked Users Management</h2>
+              </div>
 
-            <div className="blocked-list">
-              {blockedUsers.map(block => (
-                <div key={block.id} className="blocked-item">
-                  <div className="blocked-info">
-                    <h4>Block Relationship</h4>
-                    <p><strong>Blocker:</strong> {block.blocker?.name} ({block.blocker?.email})</p>
-                    <p><strong>Blocked:</strong> {block.blocked?.name} ({block.blocked?.email})</p>
-                    <small>Blocked: {formatTime(block.created_at)}</small>
-                  </div>
-
-                  <div className="blocked-actions">
-                    <button
-                      className="action-btn small danger"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to unblock this user?')) {
-                          unblockUsers(block.blocker_id, block.blocked_id);
-                        }
-                      }}
-                    >
-                      <CheckCircle size={16} />
-                      Unblock
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {blockedUsers.length === 0 && (
-                <div className="no-data">
-                  <Ban size={48} />
-                  <p>No blocked users found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Groups Tab */}
-        {activeTab === 'groups' && (
-          <div className="groups-content">
-            <div className="section-header">
-              <h2>Groups Management</h2>
-            </div>
-
-            <div className="groups-list">
-              {groups.map(group => (
-                <div key={group.id} className="group-item">
-                  <div className="group-info">
-                    <h4>{group.name}</h4>
-                    <p>{group.description}</p>
-                    <div className="group-meta">
-                      <span>Created by: {group.creator?.name}</span>
-                      <span>Members: {group.members?.[0]?.count || 0}</span>
-                      <span>Created: {formatTime(group.created_at)}</span>
+              <div className="blocked-list">
+                {blockedUsers.map(block => (
+                  <div key={block.id} className="blocked-item">
+                    <div className="blocked-info">
+                      <h4>Block Relationship</h4>
+                      <p><strong>Blocker:</strong> {block.blocker?.name} ({block.blocker?.email})</p>
+                      <p><strong>Blocked:</strong> {block.blocked?.name} ({block.blocked?.email})</p>
+                      <small>Blocked: {formatTime(block.created_at)}</small>
                     </div>
-                  </div>
 
-                  <div className="group-actions">
-                    <button className="action-btn small">
-                      <Eye size={16} />
-                      View
-                    </button>
-                    <button
-                      className="action-btn small danger"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this group?')) {
-                          deleteGroup(group.id);
-                        }
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {groups.length === 0 && (
-                <div className="no-data">
-                  <Users size={48} />
-                  <p>No groups found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Reminders Tab */}
-        {activeTab === 'reminders' && (
-          <div className="reminders-content">
-            <div className="section-header">
-              <h2>Reminders Management</h2>
-            </div>
-
-            <div className="reminders-list">
-              {reminders.map(reminder => (
-                <div key={reminder.id} className="reminder-item">
-                  <div className="reminder-info">
-                    <h4>{reminder.title}</h4>
-                    <p>{reminder.description}</p>
-                    <div className="reminder-meta">
-                      <span>From: {reminder.sender?.name}</span>
-                      <span>To: {reminder.receiver?.name}</span>
-                      <span>Due: {formatTime(reminder.reminder_time)}</span>
-                      <span>Status: {reminder.status}</span>
-                      <span>Priority: {reminder.priority}</span>
-                    </div>
-                  </div>
-
-                  <div className="reminder-actions">
-                    <button
-                      className="action-btn small danger"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this reminder?')) {
-                          deleteReminder(reminder.id);
-                        }
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {reminders.length === 0 && (
-                <div className="no-data">
-                  <Calendar size={48} />
-                  <p>No reminders found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Statuses Tab */}
-        {activeTab === 'statuses' && (
-          <div className="statuses-content">
-            <div className="section-header">
-              <h2>Status Management</h2>
-            </div>
-
-            <div className="statuses-list">
-              {statuses.map(status => (
-                <div key={status.id} className="status-item">
-                  <div className="status-info">
-                    <div className="status-user">
-                      <img
-                        src={getAvatarUrl(status.user?.avatar)}
-                        alt={status.user?.name}
-                        className="status-avatar"
-                        onError={(e) => {
-                          e.target.src = `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`;
+                    <div className="blocked-actions">
+                      <button
+                        className="action-btn small danger"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to unblock this user?')) {
+                            unblockUsers(block.blocker_id, block.blocked_id);
+                          }
                         }}
-                      />
-                      <span>{status.user?.name}</span>
-                    </div>
-                    <p>{status.content}</p>
-                    <div className="status-meta">
-                      <span>Views: {status.view_count}</span>
-                      <span>Expires: {formatTime(status.expires_at)}</span>
-                      <span>Posted: {formatTime(status.created_at)}</span>
+                      >
+                        <CheckCircle size={16} />
+                        Unblock
+                      </button>
                     </div>
                   </div>
+                ))}
+                {blockedUsers.length === 0 && (
+                  <div className="no-data">
+                    <Ban size={48} />
+                    <p>No blocked users found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-                  <div className="status-actions">
+          {/* Groups Tab */}
+          {activeTab === 'groups' && (
+            <div className="groups-content">
+              <div className="section-header">
+                <h2>Groups Management</h2>
+              </div>
+
+              <div className="groups-list">
+                {groups.map(group => (
+                  <div key={group.id} className="group-item">
+                    <div className="group-info">
+                      <h4>{group.name}</h4>
+                      <p>{group.description}</p>
+                      <div className="group-meta">
+                        <span>Created by: {group.creator?.name}</span>
+                        <span>Members: {group.members?.[0]?.count || 0}</span>
+                        <span>Created: {formatTime(group.created_at)}</span>
+                      </div>
+                    </div>
+
+                    <div className="group-actions">
+                      <button className="action-btn small">
+                        <Eye size={16} />
+                        View
+                      </button>
+                      <button
+                        className="action-btn small danger"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this group?')) {
+                            deleteGroup(group.id);
+                          }
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {groups.length === 0 && (
+                  <div className="no-data">
+                    <Users size={48} />
+                    <p>No groups found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Reminders Tab */}
+          {activeTab === 'reminders' && (
+            <div className="reminders-content">
+              <div className="section-header">
+                <h2>Reminders Management</h2>
+              </div>
+
+              <div className="reminders-list">
+                {reminders.map(reminder => (
+                  <div key={reminder.id} className="reminder-item">
+                    <div className="reminder-info">
+                      <h4>{reminder.title}</h4>
+                      <p>{reminder.description}</p>
+                      <div className="reminder-meta">
+                        <span>From: {reminder.sender?.name}</span>
+                        <span>To: {reminder.receiver?.name}</span>
+                        <span>Due: {formatTime(reminder.reminder_time)}</span>
+                        <span>Status: {reminder.status}</span>
+                        <span>Priority: {reminder.priority}</span>
+                      </div>
+                    </div>
+
+                    <div className="reminder-actions">
+                      <button
+                        className="action-btn small danger"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this reminder?')) {
+                            deleteReminder(reminder.id);
+                          }
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {reminders.length === 0 && (
+                  <div className="no-data">
+                    <Calendar size={48} />
+                    <p>No reminders found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Statuses Tab */}
+          {activeTab === 'statuses' && (
+            <div className="statuses-content">
+              <div className="section-header">
+                <h2>Status Management</h2>
+              </div>
+
+              <div className="statuses-list">
+                {statuses.map(status => (
+                  <div key={status.id} className="status-item">
+                    <div className="status-info">
+                      <div className="status-user">
+                        <img
+                          src={getAvatarUrl(status.user?.avatar)}
+                          alt={status.user?.name}
+                          className="status-avatar"
+                          onError={(e) => {
+                            e.target.src = `${baseUrl}assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg`;
+                          }}
+                        />
+                        <span>{status.user?.name}</span>
+                      </div>
+                      <p>{status.content}</p>
+                      <div className="status-meta">
+                        <span>Views: {status.view_count}</span>
+                        <span>Expires: {formatTime(status.expires_at)}</span>
+                        <span>Posted: {formatTime(status.created_at)}</span>
+                      </div>
+                    </div>
+
+                    <div className="status-actions">
+                      <button
+                        className="action-btn small danger"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this status?')) {
+                            deleteStatus(status.id);
+                          }
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {statuses.length === 0 && (
+                  <div className="no-data">
+                    <Activity size={48} />
+                    <p>No statuses found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Media Transfers Tab */}
+          {activeTab === 'media-transfers' && (
+            <div className="media-transfers-content">
+              <div className="section-header">
+                <h2>Media Transfers Management</h2>
+              </div>
+
+              <div className="media-transfers-list">
+                {mediaTransfers.map(transfer => (
+                  <div key={transfer.id} className="transfer-item">
+                    <div className="transfer-info">
+                      <h4>{transfer.filename}</h4>
+                      <p>Original: {transfer.original_filename}</p>
+                      <div className="transfer-meta">
+                        <span>From: {transfer.sender?.name}</span>
+                        <span>To: {transfer.receiver?.name}</span>
+                        <span>Size: {(transfer.file_size / 1024 / 1024).toFixed(2)} MB</span>
+                        <span>Status: {transfer.status}</span>
+                        <span>Downloads: {transfer.download_count}/{transfer.max_downloads}</span>
+                      </div>
+                    </div>
+
+                    <div className="transfer-actions">
+                      <button
+                        className="action-btn small danger"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this transfer?')) {
+                            deleteMediaTransfer(transfer.id);
+                          }
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {mediaTransfers.length === 0 && (
+                  <div className="no-data">
+                    <Archive size={48} />
+                    <p>No media transfers found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Maintenance Tab */}
+          {activeTab === 'maintenance' && (
+            <div className="maintenance-content">
+              <div className="section-header">
+                <h2>Database Maintenance</h2>
+              </div>
+
+              <div className="maintenance-grid">
+                <div className="maintenance-card">
+                  <h3>Cleanup Functions</h3>
+                  <div className="maintenance-actions">
                     <button
-                      className="action-btn small danger"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this status?')) {
-                          deleteStatus(status.id);
-                        }
-                      }}
+                      className="action-btn"
+                      onClick={() => runMaintenance('cleanup_expired_sessions')}
                     >
-                      <Trash2 size={16} />
+                      <RefreshCw size={20} />
+                      Clean Expired Sessions
+                    </button>
+                    <button
+                      className="action-btn"
+                      onClick={() => runMaintenance('cleanup_expired_signaling')}
+                    >
+                      <RefreshCw size={20} />
+                      Clean Expired Signaling
+                    </button>
+                    <button
+                      className="action-btn"
+                      onClick={() => runMaintenance('cleanup_expired_statuses')}
+                    >
+                      <RefreshCw size={20} />
+                      Clean Expired Statuses
+                    </button>
+                    <button
+                      className="action-btn"
+                      onClick={() => runMaintenance('cleanup_expired_reset_tokens')}
+                    >
+                      <RefreshCw size={20} />
+                      Clean Reset Tokens
                     </button>
                   </div>
                 </div>
-              ))}
-              {statuses.length === 0 && (
-                <div className="no-data">
-                  <Activity size={48} />
-                  <p>No statuses found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Media Transfers Tab */}
-        {activeTab === 'media-transfers' && (
-          <div className="media-transfers-content">
-            <div className="section-header">
-              <h2>Media Transfers Management</h2>
-            </div>
-
-            <div className="media-transfers-list">
-              {mediaTransfers.map(transfer => (
-                <div key={transfer.id} className="transfer-item">
-                  <div className="transfer-info">
-                    <h4>{transfer.filename}</h4>
-                    <p>Original: {transfer.original_filename}</p>
-                    <div className="transfer-meta">
-                      <span>From: {transfer.sender?.name}</span>
-                      <span>To: {transfer.receiver?.name}</span>
-                      <span>Size: {(transfer.file_size / 1024 / 1024).toFixed(2)} MB</span>
-                      <span>Status: {transfer.status}</span>
-                      <span>Downloads: {transfer.download_count}/{transfer.max_downloads}</span>
-                    </div>
-                  </div>
-
-                  <div className="transfer-actions">
+                <div className="maintenance-card">
+                  <h3>Message Management</h3>
+                  <div className="maintenance-actions">
                     <button
-                      className="action-btn small danger"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this transfer?')) {
-                          deleteMediaTransfer(transfer.id);
-                        }
-                      }}
+                      className="action-btn"
+                      onClick={() => runMaintenance('vanish_expired_messages')}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={20} />
+                      Vanish Expired Messages
+                    </button>
+                    <button
+                      className="action-btn"
+                      onClick={() => runMaintenance('delete_vanished_messages')}
+                    >
+                      <Trash2 size={20} />
+                      Delete Vanished Messages
                     </button>
                   </div>
                 </div>
-              ))}
-              {mediaTransfers.length === 0 && (
-                <div className="no-data">
-                  <Archive size={48} />
-                  <p>No media transfers found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Maintenance Tab */}
-        {activeTab === 'maintenance' && (
-          <div className="maintenance-content">
-            <div className="section-header">
-              <h2>Database Maintenance</h2>
-            </div>
-
-            <div className="maintenance-grid">
-              <div className="maintenance-card">
-                <h3>Cleanup Functions</h3>
-                <div className="maintenance-actions">
-                  <button
-                    className="action-btn"
-                    onClick={() => runMaintenance('cleanup_expired_sessions')}
-                  >
-                    <RefreshCw size={20} />
-                    Clean Expired Sessions
-                  </button>
-                  <button
-                    className="action-btn"
-                    onClick={() => runMaintenance('cleanup_expired_signaling')}
-                  >
-                    <RefreshCw size={20} />
-                    Clean Expired Signaling
-                  </button>
-                  <button
-                    className="action-btn"
-                    onClick={() => runMaintenance('cleanup_expired_statuses')}
-                  >
-                    <RefreshCw size={20} />
-                    Clean Expired Statuses
-                  </button>
-                  <button
-                    className="action-btn"
-                    onClick={() => runMaintenance('cleanup_expired_reset_tokens')}
-                  >
-                    <RefreshCw size={20} />
-                    Clean Reset Tokens
-                  </button>
-                </div>
-              </div>
-
-              <div className="maintenance-card">
-                <h3>Message Management</h3>
-                <div className="maintenance-actions">
-                  <button
-                    className="action-btn"
-                    onClick={() => runMaintenance('vanish_expired_messages')}
-                  >
-                    <Trash2 size={20} />
-                    Vanish Expired Messages
-                  </button>
-                  <button
-                    className="action-btn"
-                    onClick={() => runMaintenance('delete_vanished_messages')}
-                  >
-                    <Trash2 size={20} />
-                    Delete Vanished Messages
-                  </button>
-                </div>
-              </div>
-
-              <div className="maintenance-card">
-                <h3>Content Management</h3>
-                <div className="maintenance-actions">
-                  <button
-                    className="action-btn"
-                    onClick={() => runMaintenance('cleanup_old_news_articles')}
-                  >
-                    <Newspaper size={20} />
-                    Clean Old News Articles
-                  </button>
+                <div className="maintenance-card">
+                  <h3>Content Management</h3>
+                  <div className="maintenance-actions">
+                    <button
+                      className="action-btn"
+                      onClick={() => runMaintenance('cleanup_old_news_articles')}
+                    >
+                      <Newspaper size={20} />
+                      Clean Old News Articles
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
       </div>
 

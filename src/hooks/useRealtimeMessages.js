@@ -1,65 +1,90 @@
 import { useEffect, useRef } from 'react';
 import { realtimeManager } from '../utils/realtimeManager';
+import { supabase } from '../config/supabase';
 
 export const useRealtimeMessages = (chatId, setMessages, currentUserId) => {
-  // Use ref to track if we've already processed a message
   const processedMessageIds = useRef(new Set());
-  
+
   useEffect(() => {
     if (!chatId) return;
 
     console.log(`🔌 Subscribing to messages for chat: ${chatId}`);
-
-    // Clear processed message IDs when switching chats
     processedMessageIds.current.clear();
 
-    // Create subscription using realtimeManager
     const channel = realtimeManager.subscribe(
       `chat_messages_${chatId}`,
       {},
       {
         postgres_changes: [{
-          event: 'INSERT', // Sirf INSERT events sunenge - naye messages ke liye
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `chat_id=eq.${chatId}`,
-          handler: (payload) => {
-            console.log(`📨 Real-time message received:`, payload);
-            
-            // Handle INSERT Event - Naya message aaya
-            const newMsg = payload.new;
-            
-            // Skip if this is our own message (we already showed it via optimistic update)
-            if (newMsg.sender_id === currentUserId) {
-              console.log(`📨 Skipping own message: ${newMsg.id}`);
-              return;
-            }
+          handler: async (payload) => {
+            console.log(`📨 Real-time message event [${payload.eventType}]:`, payload);
 
-            // Prevent duplicate processing
-            if (processedMessageIds.current.has(newMsg.id)) {
-              console.log(`📨 Duplicate message detected: ${newMsg.id}`);
-              return;
-            }
-            
-            processedMessageIds.current.add(newMsg.id);
+            if (payload.eventType === 'INSERT') {
+              const newMsg = payload.new;
 
-            // Add message to list - with duplicate check
-            setMessages((prev) => {
-              if (prev.find(m => m.id === newMsg.id)) return prev;
-              console.log(`✅ Adding new message to state: ${newMsg.id}`);
-              return [...prev, newMsg];
-            });
+              // Skip our own messages — already shown via optimistic update
+              if (newMsg.sender_id === currentUserId) return;
+
+              // Prevent duplicate processing
+              if (processedMessageIds.current.has(newMsg.id)) return;
+              processedMessageIds.current.add(newMsg.id);
+
+              // postgres_changes payloads don't include joins.
+              // Fetch the full message row with the sender profile so
+              // group chat avatars and sender names are available.
+              let enrichedMsg = newMsg;
+              try {
+                const { data, error } = await supabase
+                  .from('messages')
+                  .select(`
+                    *,
+                    sender:sender_id (
+                      id,
+                      name,
+                      avatar,
+                      is_online,
+                      last_seen
+                    )
+                  `)
+                  .eq('id', newMsg.id)
+                  .single();
+
+                if (!error && data) {
+                  enrichedMsg = data;
+                }
+              } catch (err) {
+                // Non-fatal — fall back to raw payload
+                console.warn('Could not enrich realtime message with sender profile:', err);
+              }
+
+              setMessages((prev) => {
+                if (prev.find(m => m.id === enrichedMsg.id)) return prev;
+                return [...prev, enrichedMsg];
+              });
+
+            } else if (payload.eventType === 'UPDATE') {
+              const updatedMsg = payload.new;
+              setMessages((prev) =>
+                prev.map(m => m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m)
+              );
+            } else if (payload.eventType === 'DELETE') {
+              const deletedId = payload.old.id;
+              setMessages((prev) => prev.filter(m => m.id !== deletedId));
+            }
           }
         }]
       }
     );
 
-    // Cleanup function - uses realtimeManager
     return () => {
       console.log(`🔌 Unsubscribing from chat: ${chatId}`);
       realtimeManager.unsubscribe(`chat_messages_${chatId}`);
       processedMessageIds.current.clear();
     };
 
-  }, [chatId, currentUserId, setMessages]); // Dependencies: chatId, currentUserId, setMessages
+  }, [chatId, currentUserId, setMessages]);
 };

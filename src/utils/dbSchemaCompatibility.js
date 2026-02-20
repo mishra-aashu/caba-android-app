@@ -11,7 +11,7 @@ export const filterNonExistentFields = (data, tableName) => {
 
   // Define existing columns based on database_context.md and database_setup_safe.sql
   const existingColumns = {
-    users: ['id', 'email', 'phone', 'name', 'avatar', 'password', 'is_admin', 'is_online', 'last_seen', 'emoji_style', 'created_at', 'updated_at'],
+    users: ['id', 'email', 'phone', 'name', 'avatar', 'password', 'is_admin', 'is_online', 'last_seen', 'emoji_style', 'login_time', 'token_hash', 'email_confirmed_at', 'phone_number', 'created_at', 'updated_at'],
     messages: ['id', 'chat_id', 'sender_id', 'receiver_id', 'content', 'media_path', 'media_type', 'reply_to', 'is_read', 'is_group_message', 'status', 'emoji_style', 'created_at', 'updated_at'],
     chats: ['id', 'user1_id', 'user2_id', 'last_message', 'last_message_time', 'created_at', 'updated_at'],
     call_history: ['id', 'caller_id', 'receiver_id', 'call_id', 'call_type', 'call_status', 'call_duration', 'started_at', 'answered_at', 'ended_at', 'created_at', 'updated_at'],
@@ -22,7 +22,7 @@ export const filterNonExistentFields = (data, tableName) => {
     support_messages: ['id', 'user_id', 'message', 'message_type', 'is_read', 'responded_by', 'response', 'responded_at', 'created_at', 'updated_at'],
     admin_logs: ['id', 'admin_id', 'target_user_id', 'action', 'details', 'ip_address', 'user_agent', 'created_at', 'updated_at'],
     message_reads: ['id', 'message_id', 'user_id', 'read_at', 'created_at'],
-    groups: ['id', 'name', 'description', 'avatar', 'created_by', 'created_at', 'updated_at'],
+    groups: ['id', 'name', 'description', 'avatar', 'avatar_url', 'created_by', 'created_at', 'updated_at'],
     group_members: ['id', 'group_id', 'user_id', 'role', 'joined_at', 'created_at'],
     game_invitations: ['id', 'chat_id', 'sender_id', 'receiver_id', 'game_type', 'invitation_data', 'status', 'created_at', 'updated_at'],
     temporary_chat_settings: ['id', 'chat_id', 'user_id', 'is_enabled', 'vanish_duration', 'auto_delete_media', 'created_at', 'updated_at'],

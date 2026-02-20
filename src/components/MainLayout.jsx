@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect, Suspense, lazy, createContext, useContext } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useChatListRealtime } from '../hooks/useChatListRealtime';
+import { useData } from '../contexts/DataContext';
 import useIsDesktop from '../hooks/useIsDesktop';
 import DesktopLayout from './DesktopLayout';
 import ChatListPanel from './ChatListPanel';
@@ -25,7 +25,7 @@ const MainLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isDesktop = useIsDesktop();
-    const { chats, loading, hasMoreChats, loadingMore, loadMoreChats, setChats } = useChatListRealtime(user?.id);
+    const { chats, loading, hasMoreChats, loadingMore, loadMoreChats, setChats } = useData();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
@@ -251,9 +251,15 @@ const MainLayout = () => {
     const handleChatClick = (chat) => {
         if (!chat || !chat.otherUser) return;
 
-        // If it's a group, navigate to group chat
+        // If it's a group, navigate to group chat with state for instant header
         if (chat.isGroup || chat.chatType === 'group') {
-            navigate(`/chat/${chat.id}/group`);
+            navigate(`/chat/${chat.id}/group`, {
+                state: {
+                    groupName: chat.otherUser.name || 'Group Chat',
+                    groupAvatar: chat.otherUser.avatar || null,
+                    memberCount: chat.otherUser.member_count || 0,
+                }
+            });
         } else {
             // Regular 1-on-1 chat
             navigate(`/chat/${chat.id}/${chat.otherUser.id}`);

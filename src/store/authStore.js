@@ -2,7 +2,12 @@ import { create } from 'zustand';
 import { supabase } from '../config/supabase';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app'; // Import Capacitor App plugin
+import { App } from '@capacitor/app';
+
+// ✅ Track refresh timing OUTSIDE store to prevent loops
+let lastRefreshTime = 0;
+const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum
+let isHandlingSession = false; // Prevent duplicate handleUserSession calls
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -14,84 +19,175 @@ const useAuthStore = create((set, get) => ({
 
   initializeAuth: async () => {
     try {
-      // if (Capacitor.isNativePlatform()) {
-      //   await GoogleAuth.initialize({
-      //     clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
-      //     scopes: ['profile', 'email'],
-      //     grantOfflineAccess: true,
-      //   });
-      // }
-
       // Check for phone auth first
       const phoneUser = localStorage.getItem('phoneAuthUser');
       const phoneToken = localStorage.getItem('phoneAuthToken');
 
       if (phoneUser && phoneToken) {
         const user = JSON.parse(phoneUser);
-        set({ user, dbUser: user, isAuthenticated: true, isPhoneAuth: true, loading: false });
+        set({
+          user,
+          dbUser: user,
+          isAuthenticated: true,
+          isPhoneAuth: true,
+          loading: false
+        });
         return;
       }
 
+      // ✅ Get initial session
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        set({ user: session.user, session, isAuthenticated: true, loading: false });
-        get().handleUserSession(session.user);
+        set({
+          user: session.user,
+          session,
+          isAuthenticated: true,
+          loading: false
+        });
+        await get().handleUserSession(session.user);
       } else {
         set({ loading: false });
       }
 
+      // ✅ CLEAN auth state listener — no unnecessary side effects
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log('🔐 Auth state changed:', event, session);
-          if (event === 'SIGNED_IN' && session?.user) {
-            set({ user: session.user, session, isAuthenticated: true });
-            get().handleUserSession(session.user);
-          } else if (event === 'SIGNED_OUT') {
-            set({ user: null, session: null, isAuthenticated: false });
-          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            set({ session });
-            supabase.realtime.setAuth(session.access_token);
+          console.log('🔐 Auth event:', event);
+
+          switch (event) {
+            case 'INITIAL_SESSION':
+              // ✅ Already handled above — skip
+              break;
+
+            case 'SIGNED_IN':
+              if (session?.user) {
+                const currentUser = get().user;
+
+                // ✅ Only handle if this is a NEW sign in
+                // Not a sign-in triggered by token refresh
+                if (!currentUser || currentUser.id !== session.user.id) {
+                  set({
+                    user: session.user,
+                    session,
+                    isAuthenticated: true
+                  });
+                  await get().handleUserSession(session.user);
+                } else {
+                  // ✅ Just update session, don't re-handle
+                  set({ session });
+                }
+              }
+              break;
+
+            case 'TOKEN_REFRESHED':
+              if (session) {
+                // ✅ Only update session and realtime token
+                set({ session });
+                supabase.realtime.setAuth(session.access_token);
+                lastRefreshTime = Date.now();
+                console.log('🔄 Token refreshed — realtime updated');
+              }
+              // ❌ DO NOT call handleUserSession here
+              // ❌ DO NOT trigger any DB calls
+              break;
+
+            case 'SIGNED_OUT':
+              set({
+                user: null,
+                session: null,
+                dbUser: null,
+                isAuthenticated: false
+              });
+              break;
+
+            default:
+              break;
           }
         }
       );
 
-        const refreshAuthSession = async (eventName) => {
-            console.log(`Triggering session refresh due to: ${eventName}`);
-            const { data, error } = await supabase.auth.refreshSession();
-            if (error) {
-                console.error(`Error refreshing session on ${eventName}:`, error);
-            } else {
-                console.log(`Session refreshed successfully on ${eventName}:`, data);
-            }
-        };
+      // ✅ SMART refresh — only when needed
+      const smartRefresh = async (eventName) => {
+        const now = Date.now();
+        const timeSinceLastRefresh = now - lastRefreshTime;
 
-        // Web platform listeners
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                refreshAuthSession('visibilitychange');
-            }
-        });
-        window.addEventListener('online', () => refreshAuthSession('online'));
-
-        // Native platform listener (Capacitor)
-        let appStateListener;
-        if (Capacitor.isNativePlatform()) {
-            appStateListener = App.addListener('appStateChange', (state) => {
-                console.log('Capacitor App state changed:', state);
-                if (state.isActive) {
-                    refreshAuthSession('appStateChange - isActive');
-                }
-            });
+        // ✅ CHECK 1: Don't refresh if refreshed recently
+        if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
+          console.log(
+            `⏭️ Skip refresh (${eventName}) — ` +
+            `last refresh ${Math.round(timeSinceLastRefresh / 1000)}s ago`
+          );
+          return;
         }
 
-      return () => {
-        subscription?.unsubscribe();
-        document.removeEventListener('visibilitychange', () => {}); // Empty handler for cleanup
-        window.removeEventListener('online', () => {}); // Empty handler for cleanup
-        if (appStateListener) {
-            appStateListener.remove();
+        // ✅ CHECK 2: Only refresh if token is expiring soon
+        const currentSession = get().session;
+        if (currentSession?.expires_at) {
+          const expiresAt = currentSession.expires_at * 1000;
+          const timeUntilExpiry = expiresAt - now;
+
+          if (timeUntilExpiry > 10 * 60 * 1000) {
+            // Token valid for 10+ minutes — no refresh needed
+            console.log(
+              `⏭️ Skip refresh (${eventName}) — ` +
+              `token valid for ${Math.round(timeUntilExpiry / 60000)} min`
+            );
+            return;
+          }
+        }
+
+        // ✅ Token expiring soon — refresh it
+        console.log(`🔄 Refreshing token (${eventName})`);
+        lastRefreshTime = now;
+
+        const { error } = await supabase.auth.refreshSession();
+        if (error) {
+          console.error(`❌ Refresh failed (${eventName}):`, error);
+          // ✅ If refresh fails, try to re-authenticate
+          if (error.message?.includes('refresh_token')) {
+            console.warn('🔒 Refresh token invalid — signing out');
+            get().signOut();
+          }
         }
       };
+
+      // ✅ PROPER event listeners with real cleanup
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          smartRefresh('visibilitychange');
+        }
+      };
+
+      const handleOnline = () => {
+        smartRefresh('online');
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('online', handleOnline);
+
+      // Native platform listener
+      let appStateListener;
+      if (Capacitor.isNativePlatform()) {
+        appStateListener = App.addListener('appStateChange', (state) => {
+          if (state.isActive) {
+            smartRefresh('appStateChange');
+          }
+        });
+      }
+
+      // ✅ REAL cleanup — removes actual listeners
+      return () => {
+        subscription?.unsubscribe();
+        document.removeEventListener(
+          'visibilitychange',
+          handleVisibilityChange
+        );
+        window.removeEventListener('online', handleOnline);
+        if (appStateListener) {
+          appStateListener.remove();
+        }
+      };
+
     } catch (error) {
       console.error('Auth store initialization error:', error);
       set({ loading: false });
@@ -99,6 +195,13 @@ const useAuthStore = create((set, get) => ({
   },
 
   handleUserSession: async (authUser) => {
+    // ✅ Prevent duplicate calls
+    if (isHandlingSession) {
+      console.log('⏭️ handleUserSession already running — skip');
+      return;
+    }
+    isHandlingSession = true;
+
     try {
       const { data: existingUser, error: dbError } = await supabase
         .from('users')
@@ -106,11 +209,15 @@ const useAuthStore = create((set, get) => ({
         .eq('email', authUser.email)
         .single();
 
-      const metaName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email.split('@')[0];
+      const metaName = authUser.user_metadata?.full_name
+        || authUser.user_metadata?.name
+        || authUser.email.split('@')[0];
       const metaAvatar = authUser.user_metadata?.avatar_url || null;
 
       let dbUser;
+
       if (dbError && dbError.code === 'PGRST116') {
+        // ✅ User doesn't exist — create new
         const { data: newUser, error: insertError } = await supabase
           .from('users')
           .insert([{
@@ -123,18 +230,30 @@ const useAuthStore = create((set, get) => ({
           }])
           .select()
           .single();
+
         if (insertError) throw insertError;
         dbUser = newUser;
+
       } else if (existingUser) {
-        await supabase
-          .from('users')
-          .update({ is_online: true, last_seen: new Date().toISOString() })
-          .eq('id', existingUser.id);
+        // ✅ User exists — update online status
+        // But ONLY if not already online (prevent unnecessary UPDATE)
+        if (!existingUser.is_online) {
+          await supabase
+            .from('users')
+            .update({
+              is_online: true,
+              last_seen: new Date().toISOString()
+            })
+            .eq('id', existingUser.id);
+        }
         dbUser = existingUser;
       }
+
       set({ dbUser });
     } catch (error) {
       console.error("Error handling user session:", error);
+    } finally {
+      isHandlingSession = false;
     }
   },
 
@@ -149,18 +268,18 @@ const useAuthStore = create((set, get) => ({
         if (error) throw error;
         return { success: true };
       } else {
-        const redirectUrl = window.location.origin + window.location.pathname;
+        const redirectUrl = window.location.origin
+          + window.location.pathname;
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: redirectUrl,
             queryParams: {
-                access_type: 'offline',
-                prompt: 'consent',
+              access_type: 'offline',
+              prompt: 'consent',
             }
           }
         });
-
         if (error) throw error;
         return { success: true };
       }
@@ -173,15 +292,43 @@ const useAuthStore = create((set, get) => ({
   signInWithPhone: async (user) => {
     localStorage.setItem('phoneAuthUser', JSON.stringify(user));
     localStorage.setItem('phoneAuthToken', 'phone_auth_' + user.id);
-    set({ user, dbUser: user, isAuthenticated: true, isPhoneAuth: true });
+    set({
+      user,
+      dbUser: user,
+      isAuthenticated: true,
+      isPhoneAuth: true
+    });
   },
 
+  // ✅ Set offline before signing out
   signOut: async () => {
+    try {
+      const currentUser = get().dbUser;
+
+      // ✅ Set user offline in database before logout
+      if (currentUser?.id) {
+        await supabase
+          .from('users')
+          .update({
+            is_online: false,
+            last_seen: new Date().toISOString()
+          })
+          .eq('id', currentUser.id);
+      }
+    } catch (error) {
+      console.error('Error setting offline:', error);
+    }
+
     await supabase.auth.signOut();
-    // Clear phone auth
     localStorage.removeItem('phoneAuthUser');
     localStorage.removeItem('phoneAuthToken');
-    set({ user: null, session: null, dbUser: null, isAuthenticated: false, isPhoneAuth: false });
+    set({
+      user: null,
+      session: null,
+      dbUser: null,
+      isAuthenticated: false,
+      isPhoneAuth: false
+    });
   },
 }));
 

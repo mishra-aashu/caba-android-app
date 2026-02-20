@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../config/supabase';
+import { logUserActivity } from '../utils/activityLogger';
 
 /**
  * Create a new group
@@ -65,7 +66,7 @@ export const createGroup = async ({ name, description, avatarFile, avatarUrl: av
         .insert({
           chat_id: group.id,
           sender_id: createdBy,
-          receiver_id: createdBy, // Use sender as dummy receiver for group messages
+          receiver_id: null,
           content: `Group "${name}" was created`,
           is_group_message: true,
           message_type: 'system',
@@ -75,6 +76,9 @@ export const createGroup = async ({ name, description, avatarFile, avatarUrl: av
     } catch (e) {
       console.warn('System message skipped:', e);
     }
+
+    // Log activity
+    logUserActivity(createdBy, 'create_group', { group_id: group.id, name });
 
     return group;
   } catch (error) {
@@ -92,7 +96,13 @@ export const getGroupById = async (groupId) => {
   try {
     const { data, error } = await supabase
       .from('groups')
-      .select('*')
+      .select(`
+        *,
+        creator:users!groups_created_by_fkey (
+          id,
+          name
+        )
+      `)
       .eq('id', groupId)
       .single();
 
@@ -133,7 +143,7 @@ export const getGroupMembers = async (groupId) => {
       `)
       .eq('group_id', groupId)
       .order('role', { ascending: true }) // Admins first
-      .order('user.name', { ascending: true });
+      .order('name', { referencedTable: 'users', ascending: true });
 
     if (error) throw error;
     return data || [];
@@ -270,6 +280,9 @@ export const leaveGroup = async (groupId, userId) => {
       .eq('user_id', userId);
 
     if (error) throw error;
+
+    // Log activity
+    logUserActivity(userId, 'leave_group', { group_id: groupId });
   } catch (error) {
     console.error('Error leaving group:', error);
     throw error;

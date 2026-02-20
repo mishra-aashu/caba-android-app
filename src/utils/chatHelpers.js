@@ -31,31 +31,31 @@ import { isUserOnline } from './timeUtils';
  */
 export const normalizeChat = (rawChat) => {
   const isGroup = rawChat.chat_type === 'group';
-  
+
   return {
     // Common ID - use chat_id for both
     id: rawChat.chat_id,
-    
+
     // Type indicator - 'chat' or 'group'
     type: rawChat.chat_type,
-    
+
     // Unified Display Properties (The UI only cares about these)
-    displayName: isGroup 
+    name: isGroup
       ? (rawChat.group_name || rawChat.other_user_name || 'Unnamed Group')
       : (rawChat.other_user_name || 'Unknown'),
-    
-    displayAvatar: isGroup 
-      ? rawChat.group_avatar 
+
+    avatar: isGroup
+      ? rawChat.group_avatar
       : rawChat.other_user_avatar,
-    
-    displaySubtitle: rawChat.last_message || (isGroup ? "No messages yet" : ""),
-    
+
+    lastMessage: rawChat.last_message || (isGroup ? "No messages yet" : ""),
+
     // Meta Data
     timestamp: rawChat.last_message_time,
     unreadCount: parseInt(rawChat.unread_count) || 0,
-    isOnline: !isGroup && rawChat.other_user_online === true,
-    lastSeen: !isGroup ? rawChat.other_user_last_seen : null,
-    
+    is_online: !isGroup && rawChat.other_user_online === true,
+    last_seen: !isGroup ? rawChat.other_user_last_seen : null,
+
     // Original Data (Keep for specific logic that needs raw data)
     metadata: {
       otherUserId: rawChat.other_user_id,
@@ -65,12 +65,13 @@ export const normalizeChat = (rawChat) => {
       groupName: rawChat.group_name,
       groupAvatar: rawChat.group_avatar,
     },
-    
+
     // Convenience flags
     isGroup,
     isChat: !isGroup,
   };
 };
+
 
 /**
  * Format chat for display in ChatListItem component
@@ -102,27 +103,27 @@ export const formatChatForList = (chat, contactName = null) => {
  */
 export const formatTime = (timestamp) => {
   if (!timestamp) return '';
-  
+
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now - date;
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
   // If today, show time
   if (diffDays === 0) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
-  
+
   // If yesterday, show "Yesterday"
   if (diffDays === 1) {
     return 'Yesterday';
   }
-  
+
   // If this week, show day name
   if (diffDays < 7) {
     return date.toLocaleDateString([], { weekday: 'short' });
   }
-  
+
   // Otherwise show date
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };

@@ -12,7 +12,9 @@ const MessageInput = ({
   onTyping,
   replyingTo,
   onCancelReply,
-  currentUser
+  currentUser,
+  disabled: externalDisabled = false,
+  disabledPlaceholder = "Only admins can send messages"
 }) => {
   const [message, setMessage] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -51,7 +53,7 @@ const MessageInput = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-  
+
   // Cleanup object URL
   useEffect(() => {
     return () => {
@@ -141,7 +143,7 @@ const MessageInput = ({
   const toggleQuickReplies = () => {
     setShowQuickReplies(prev => !prev);
   };
-  
+
   const handleFileSelect = (file) => {
     if (file) {
       const url = URL.createObjectURL(file);
@@ -353,22 +355,22 @@ const MessageInput = ({
           {filePreview.file.type.startsWith('image/') && (
             <div className="quality-selector">
               <label>
-                <input 
-                  type="radio" 
-                  name="quality" 
+                <input
+                  type="radio"
+                  name="quality"
                   value="standard"
-                  checked={imageQuality === 'standard'} 
-                  onChange={(e) => setImageQuality(e.target.value)} 
+                  checked={imageQuality === 'standard'}
+                  onChange={(e) => setImageQuality(e.target.value)}
                 />
                 Standard
               </label>
               <label>
-                <input 
-                  type="radio" 
-                  name="quality" 
+                <input
+                  type="radio"
+                  name="quality"
                   value="high"
-                  checked={imageQuality === 'high'} 
-                  onChange={(e) => setImageQuality(e.target.value)} 
+                  checked={imageQuality === 'high'}
+                  onChange={(e) => setImageQuality(e.target.value)}
                 />
                 High
               </label>
@@ -415,65 +417,65 @@ const MessageInput = ({
       )}
 
       {!isRecording && (
-      <div className="input-row">
-        <div className="left-buttons">
+        <div className="input-row">
+          <div className="left-buttons">
+            <button
+              className="btn-quick-reply"
+              onClick={toggleQuickReplies}
+              title="Quick Messages"
+              disabled={isUploading || externalDisabled}
+            >
+              <MessageSquarePlus size={22} />
+            </button>
+            <button
+              className="btn-attach"
+              onClick={toggleAttachmentMenu}
+              title="Attach Media"
+              disabled={isUploading || externalDisabled}
+            >
+              <Paperclip size={22} />
+            </button>
+            <button
+              className="btn-emoji"
+              onClick={() => setShowEmojiPicker(true)}
+              title="Add emoji"
+              disabled={isUploading || externalDisabled}
+            >
+              <Smile size={22} />
+            </button>
+            <button
+              className="btn-mic"
+              onClick={handleVoiceRecord}
+              title={isRecording ? "Stop Recording" : "Record Voice"}
+              disabled={isUploading || externalDisabled}
+            >
+              {isRecording ? <Square size={22} /> : <Mic size={22} />}
+            </button>
+          </div>
+
+          <textarea
+            ref={textareaRef}
+            className="chat-input"
+            placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
+            value={message}
+            onChange={handleInputChange}
+            onKeyPress={handleKeyPress}
+            onContextMenu={isDesktop ? (e) => {
+              e.preventDefault();
+              setShowEmojiPicker(true);
+            } : undefined}
+            rows={1}
+            disabled={isUploading || externalDisabled}
+          />
+
           <button
-            className="btn-quick-reply"
-            onClick={toggleQuickReplies}
-            title="Quick Messages"
-            disabled={isUploading}
+            className="btn-send"
+            onClick={handleSend}
+            disabled={(!message.trim() && !filePreview && !voiceBlob) || isUploading || externalDisabled}
           >
-            <MessageSquarePlus size={22} />
-          </button>
-          <button
-            className="btn-attach"
-            onClick={toggleAttachmentMenu}
-            title="Attach Media"
-            disabled={isUploading}
-          >
-            <Paperclip size={22} />
-          </button>
-          <button
-            className="btn-emoji"
-            onClick={() => setShowEmojiPicker(true)}
-            title="Add emoji"
-            disabled={isUploading}
-          >
-            <Smile size={22} />
-          </button>
-          <button
-            className="btn-mic"
-            onClick={handleVoiceRecord}
-            title={isRecording ? "Stop Recording" : "Record Voice"}
-            disabled={isUploading}
-          >
-            {isRecording ? <Square size={22} /> : <Mic size={22} />}
+            {isUploading ? <LoaderCircle size={24} className="animate-spin" /> : <Send size={22} />}
           </button>
         </div>
-
-        <textarea
-          ref={textareaRef}
-          className="chat-input"
-          placeholder={isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message...")}
-          value={message}
-          onChange={handleInputChange}
-          onKeyPress={handleKeyPress}
-          onContextMenu={isDesktop ? (e) => {
-            e.preventDefault();
-            setShowEmojiPicker(true);
-          } : undefined}
-          rows={1}
-          disabled={isUploading}
-        />
-
-        <button
-          className="btn-send"
-          onClick={handleSend}
-          disabled={(!message.trim() && !filePreview && !voiceBlob) || isUploading}
-        >
-          {isUploading ? <LoaderCircle size={24} className="animate-spin" /> : <Send size={22} />}
-        </button>
-      </div>
       )}
 
       {/* Emoji Picker */}

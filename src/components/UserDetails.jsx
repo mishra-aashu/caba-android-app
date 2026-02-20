@@ -282,7 +282,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             // Fetch group details
             const { data: groups, error: groupsError } = await supabase
                 .from('groups')
-                .select('id, name, avatar')
+                .select('id, name, avatar:avatar_url')
                 .in('id', commonGroupIds);
 
             if (groupsError) throw groupsError;
@@ -752,17 +752,19 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     </button>
                 )}
                 <h1>Contact Info</h1>
-                <DropdownMenu
-                    trigger={<MoreVertical size={24} />}
-                    items={[
-                        {
-                            icon: <Edit size={16} />,
-                            label: 'Edit Contact',
-                            onClick: handleEditContact,
-                            disabled: !isContact
-                        }
-                    ]}
-                />
+                <div className="dropdown-trigger">
+                    <DropdownMenu
+                        trigger={<MoreVertical size={24} />}
+                        items={[
+                            {
+                                icon: <Edit size={16} />,
+                                label: 'Edit Contact',
+                                onClick: handleEditContact,
+                                disabled: !isContact
+                            }
+                        ]}
+                    />
+                </div>
             </header>
 
             <div className="user-profile-section">
@@ -861,7 +863,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     <div id="commonGroups">
                         {commonGroups.length > 0 ? (
                             commonGroups.map(group => (
-                                <div key={group.id} className="settings-item" onClick={() => navigate(`/group/${group.id}`)}>
+                                <div key={group.id} className="settings-item" onClick={() => navigate(`/chat/${group.id}/group`, { state: { groupName: group.name, groupAvatar: group.avatar } })}>
                                     <div className="item-left">
                                         <div className="group-avatar-small">
                                             {group.avatar ? (
@@ -912,14 +914,17 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 size="small"
             >
                 <div className="modal-content-text">
-                    <p>Block {user.name}?</p>
-                    <p className="warning-text">Blocked contacts will no longer be able to call you or send you messages.</p>
+                    <p>Are you sure you want to block <strong>{user.name}</strong>?</p>
+                    <p className="warning-text">
+                        <Ban size={14} style={{ marginRight: '6px' }} />
+                        Blocked contacts will no longer be able to call you or send you messages.
+                    </p>
                     <div className="modal-actions">
                         <button className="btn-secondary" onClick={() => setShowBlockModal(false)}>
                             Cancel
                         </button>
                         <button className="btn-danger" onClick={confirmBlock}>
-                            Block
+                            Block User
                         </button>
                     </div>
                 </div>
@@ -932,13 +937,18 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 size="small"
             >
                 <div className="edit-contact-form">
+                    <p className="form-subtitle">Update how this contact appears in your list.</p>
                     <div className="input-group">
-                        <label>Contact Name</label>
+                        <label>
+                            <Edit size={14} style={{ marginRight: '6px' }} />
+                            Display Name
+                        </label>
                         <input
                             type="text"
                             value={contactName}
                             onChange={(e) => setContactName(e.target.value)}
-                            placeholder="Enter name"
+                            placeholder="Enter contact name"
+                            autoFocus
                         />
                     </div>
                     <div className="modal-actions">
@@ -946,7 +956,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             Cancel
                         </button>
                         <button className="btn-primary" onClick={saveContactEdit}>
-                            Save
+                            Save Changes
                         </button>
                     </div>
                 </div>
@@ -1039,14 +1049,17 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 size="small"
             >
                 <div className="modal-content-text">
-                    <p>Delete chat and contact with {user.name}?</p>
-                    <p className="warning-text">This will remove this contact and delete your messages. This cannot be undone.</p>
+                    <p>Delete chat and contact with <strong>{user.name}</strong>?</p>
+                    <p className="warning-text">
+                        <Trash2 size={14} style={{ marginRight: '6px' }} />
+                        This will remove this contact and delete your messages. This cannot be undone.
+                    </p>
                     <div className="modal-actions">
                         <button className="btn-secondary" onClick={() => setShowDeleteModal(false)}>
                             Cancel
                         </button>
                         <button className="btn-danger" onClick={confirmDelete}>
-                            Delete
+                            Delete Everything
                         </button>
                     </div>
                 </div>

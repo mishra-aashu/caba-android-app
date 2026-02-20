@@ -1,3 +1,5 @@
+import { logUserActivity } from '../utils/activityLogger';
+
 class SessionManager {
   constructor(supabase) {
     this.supabase = supabase;
@@ -74,14 +76,17 @@ class SessionManager {
         .eq('id', userData.id)
         .select()
         .single();
-      
+
       if (updateError) {
-          console.error("Error updating user status on sign-in", updateError);
+        console.error("Error updating user status on sign-in", updateError);
       }
 
       this.currentUser = updatedUser || userData;
       this.storeUser(this.currentUser);
       this.notifyListeners();
+
+      // Log activity
+      logUserActivity(this.currentUser.id, 'login', { method: 'phone' });
 
       return { success: true, data: { user: this.currentUser } };
     } catch (error) {
@@ -112,6 +117,9 @@ class SessionManager {
       this.currentUser = dbUser;
       this.storeUser(dbUser);
       this.notifyListeners();
+
+      // Log activity
+      logUserActivity(dbUser.id, 'signup', { method: 'phone' });
 
       return { success: true, data: { user: dbUser } };
     } catch (error) {
@@ -144,7 +152,7 @@ class SessionManager {
   async handleGoogleCallback() {
     try {
       const { data: { user, session }, error } = await this.supabase.auth.getSession();
-      
+
       if (error) {
         console.error('Google callback error:', error);
         return { success: false, error: error.message };
@@ -158,7 +166,7 @@ class SessionManager {
           .single();
 
         let userData;
-        
+
         if (dbError && dbError.code === 'PGRST116') {
           const { data: newUser, error: createError } = await this.supabase
             .from('users')
@@ -202,6 +210,9 @@ class SessionManager {
         this.storeUser(userData);
         this.notifyListeners();
 
+        // Log activity
+        logUserActivity(userData.id, 'login', { method: 'google' });
+
         return { success: true, data: { user: userData, session } };
       }
 
@@ -215,16 +226,21 @@ class SessionManager {
   async signOut() {
     try {
       if (this.currentUser) {
-          await this.supabase
-            .from('users')
-            .update({ is_online: false, last_seen: new Date().toISOString() })
-            .eq('id', this.currentUser.id);
+        await this.supabase
+          .from('users')
+          .update({ is_online: false, last_seen: new Date().toISOString() })
+          .eq('id', this.currentUser.id);
       }
 
+      const userId = this.currentUser?.id;
       await this.supabase.auth.signOut();
       this.currentUser = null;
       this.clearStoredUser();
       this.notifyListeners();
+
+      // Log activity
+      if (userId) logUserActivity(userId, 'logout');
+
       return { success: true };
     } catch (error) {
       console.error('Sign out error:', error);

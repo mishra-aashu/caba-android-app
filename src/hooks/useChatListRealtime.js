@@ -21,17 +21,16 @@ const fetchChatList = async ({ supabase, userId }) => {
                 const normalized = normalizeChat(rawItem);
 
                 return {
-                    id: normalized.id,
-                    chatType: normalized.type, // 'chat' or 'group'
+                    ...normalized,
                     otherUser: {
                         id: normalized.metadata.otherUserId || normalized.id,
-                        name: normalized.displayName,
+                        name: normalized.name,
                         phone: normalized.metadata.otherUserPhone || null,
-                        avatar: normalized.displayAvatar,
-                        is_online: normalized.isOnline,
-                        last_seen: normalized.lastSeen
+                        avatar: normalized.avatar,
+                        is_online: normalized.is_online,
+                        last_seen: normalized.last_seen
                     },
-                    last_message: normalized.displaySubtitle,
+                    last_message: normalized.lastMessage,
                     last_message_time: normalized.timestamp,
                     unreadCount: normalized.unreadCount,
                     isGroup: normalized.isGroup
@@ -59,17 +58,16 @@ const fetchChatList = async ({ supabase, userId }) => {
             const formattedChats = viewData.map(rawItem => {
                 const normalized = normalizeChat(rawItem);
                 return {
-                    id: normalized.id,
-                    chatType: normalized.type,
+                    ...normalized,
                     otherUser: {
                         id: normalized.metadata.otherUserId || normalized.id,
-                        name: normalized.displayName,
+                        name: normalized.name,
                         phone: normalized.metadata.otherUserPhone || null,
-                        avatar: normalized.displayAvatar,
-                        is_online: normalized.isOnline,
-                        last_seen: normalized.lastSeen
+                        avatar: normalized.avatar,
+                        is_online: normalized.is_online,
+                        last_seen: normalized.last_seen
                     },
-                    last_message: normalized.displaySubtitle,
+                    last_message: normalized.lastMessage,
                     last_message_time: normalized.timestamp,
                     unreadCount: normalized.unreadCount,
                     isGroup: normalized.isGroup
@@ -82,6 +80,7 @@ const fetchChatList = async ({ supabase, userId }) => {
     } catch (viewErr) {
         console.log('View not available:', viewErr);
     }
+
 
     // Final fallback: Original chat_list_view
     let query = supabase
@@ -246,174 +245,141 @@ export const useChatListRealtime = (currentUserId) => {
         }
     }, [currentUserId, supabase]);
 
-    // Real-time channels effect - FIXED: Uses realtimeManager for proper cleanup
+    // Real-time channels effect - OPTIMIZED: Uses a SINGLE channel with consolidated table listeners
     useEffect(() => {
         if (!currentUserId) return;
 
-        console.log(`🔌 Setting up real-time subscriptions for user: ${currentUserId}`);
+        console.log(`🔌 Setting up consolidated real-time subscription for user: ${currentUserId}`);
 
-        // Messages subscription
-        const messagesChannel = realtimeManager.subscribe(
-            `chat_list_messages_for_${currentUserId}`,
-            {},
-            {
-                postgres_changes: [{
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages',
-                    filter: `receiver_id=eq.${currentUserId}`,
-                    handler: (payload) => {
-                        const newMessage = payload.new;
+        const channelName = `chat_list_updates_${currentUserId}`;
 
-                        // Update chat list locally for both regular chats and groups
-                        setChats((prevChats) => {
-                            return prevChats.map((chat) => {
-                                if (chat.id === newMessage.chat_id) {
-                                    // For group messages, show sender name in preview
-                                    const senderPrefix = newMessage.is_group_message && newMessage.sender_id !== currentUserId
-                                        ? `${newMessage.sender_name || 'Someone'}: `
-                                        : '';
-                                    return {
-                                        ...chat,
-                                        last_message: senderPrefix + (newMessage.content || ''),
-                                        last_message_time: newMessage.created_at,
-                                        unreadCount: chat.unreadCount + 1
-                                    };
-                                }
-                                return chat;
-                            })
-                                // Sort so newest is on top
-                                .sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time));
-                        });
-                    }
-                }]
-            }
-        );
+        let isCancelled = false;
 
-        // Chats subscription
-        const chatsChannel = realtimeManager.subscribe(
-            `chat_list_chats_for_${currentUserId}`,
-            {},
-            {
-                postgres_changes: [{
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'chats',
-                    handler: (payload) => {
-                        // Handle chat updates locally without re-fetching
-                        const updatedChat = payload.new;
-                        setChats((prevChats) => {
-                            return prevChats.map((chat) => {
-                                // Only update non-group chats
-                                if (chat.id === updatedChat.id && !chat.isGroup) {
-                                    return {
-                                        ...chat,
-                                        last_message: updatedChat.last_message,
-                                        last_message_time: updatedChat.last_message_time
-                                    };
-                                }
-                                return chat;
-                            });
-                        });
-                    }
-                }]
-            }
-        );
-
-        // Users subscription
-        const usersChannel = realtimeManager.subscribe(
-            `chat_list_users_for_${currentUserId}`,
-            {},
-            {
-                postgres_changes: [{
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'users',
-                    handler: (payload) => {
-                        const updatedUser = payload.new;
-                        // Update any chat where this user is the otherUser
-                        setChats(prevChats => prevChats.map(chat => {
-                            if (chat.otherUser?.id === updatedUser.id) {
-                                return {
-                                    ...chat,
-                                    otherUser: {
-                                        ...chat.otherUser,
-                                        is_online: isUserOnline(Boolean(updatedUser.is_online), updatedUser.last_seen),
-                                        last_seen: updatedUser.last_seen
+        const setupSubscription = async () => {
+            const channel = await realtimeManager.subscribe(
+                channelName,
+                {},
+                {
+                    postgres_changes: [
+                        // 1. Messages listener (handles INSERT and DELETE)
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'messages',
+                            handler: (payload) => {
+                                if (isCancelled) return;
+                                if (payload.eventType === 'INSERT') {
+                                    const newMessage = payload.new;
+                                    // Only update locally if we are the receiver
+                                    if (newMessage.receiver_id === currentUserId) {
+                                        setChats((prevChats) => {
+                                            return prevChats.map((chat) => {
+                                                if (chat.id === newMessage.chat_id) {
+                                                    const senderPrefix = newMessage.is_group_message && newMessage.sender_id !== currentUserId
+                                                        ? `${newMessage.sender_name || 'Someone'}: `
+                                                        : '';
+                                                    return {
+                                                        ...chat,
+                                                        last_message: senderPrefix + (newMessage.content || ''),
+                                                        last_message_time: newMessage.created_at,
+                                                        unreadCount: chat.unreadCount + 1
+                                                    };
+                                                }
+                                                return chat;
+                                            }).sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time));
+                                        });
                                     }
-                                };
+                                } else if (payload.eventType === 'DELETE') {
+                                    queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                }
                             }
-                            return chat;
-                        }));
-                    }
-                }]
-            }
-        );
-
-        // Group members subscription
-        const groupMembersChannel = realtimeManager.subscribe(
-            `chat_list_group_members_${currentUserId}`,
-            {},
-            {
-                postgres_changes: [{
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'group_members',
-                    handler: (payload) => {
-                        const newMember = payload.new;
-                        // If current user was added to a group
-                        if (newMember.user_id === currentUserId) {
-                            // Refetch chat list to get the new group
-                            queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                        },
+                        // 2. Chats listener
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'chats',
+                            handler: (payload) => {
+                                if (isCancelled) return;
+                                const updatedChat = payload.new;
+                                setChats((prevChats) => {
+                                    return prevChats.map((chat) => {
+                                        if (chat.id === updatedChat.id && !chat.isGroup) {
+                                            return {
+                                                ...chat,
+                                                last_message: updatedChat.last_message,
+                                                last_message_time: updatedChat.last_message_time
+                                            };
+                                        }
+                                        return chat;
+                                    });
+                                });
+                            }
+                        },
+                        // 3. Users listener
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'users',
+                            handler: (payload) => {
+                                if (isCancelled) return;
+                                const updatedUser = payload.new;
+                                setChats(prevChats => prevChats.map(chat => {
+                                    if (chat.otherUser?.id === updatedUser.id) {
+                                        return {
+                                            ...chat,
+                                            otherUser: {
+                                                ...chat.otherUser,
+                                                is_online: isUserOnline(Boolean(updatedUser.is_online), updatedUser.last_seen),
+                                                last_seen: updatedUser.last_seen
+                                            }
+                                        };
+                                    }
+                                    return chat;
+                                }));
+                            }
+                        },
+                        // 4. Group Members listener (handles all membership changes)
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'group_members',
+                            handler: (payload) => {
+                                if (isCancelled) return;
+                                if (payload.eventType === 'INSERT') {
+                                    if (payload.new.user_id === currentUserId) {
+                                        queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                    }
+                                } else {
+                                    queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                }
+                            }
+                        },
+                        // 5. Groups listener
+                        {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'groups',
+                            handler: () => {
+                                if (isCancelled) return;
+                                queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                            }
                         }
-                    }
-                }]
-            }
-        );
+                    ]
+                }
+            );
 
-        // Groups subscription
-        const groupsChannel = realtimeManager.subscribe(
-            `chat_list_groups_${currentUserId}`,
-            {},
-            {
-                postgres_changes: [{
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'groups',
-                    handler: () => {
-                        // When a group is created, refresh the chat list
-                        queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                    }
-                }]
+            if (isCancelled && channel) {
+                realtimeManager.unsubscribe(channelName);
             }
-        );
+        };
 
-        // Group members update subscription
-        const groupMembersUpdateChannel = realtimeManager.subscribe(
-            `chat_list_group_members_update_${currentUserId}`,
-            {},
-            {
-                postgres_changes: [{
-                    event: '*',
-                    schema: 'public',
-                    table: 'group_members',
-                    handler: () => {
-                        // Refetch chat list when group membership changes
-                        queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                    }
-                }]
-            }
-        );
+        setupSubscription();
 
-        // Cleanup function - uses realtimeManager
         return () => {
-            console.log(`🔌 Cleaning up real-time subscriptions for user: ${currentUserId}`);
-            realtimeManager.unsubscribe(`chat_list_messages_for_${currentUserId}`);
-            realtimeManager.unsubscribe(`chat_list_chats_for_${currentUserId}`);
-            realtimeManager.unsubscribe(`chat_list_users_for_${currentUserId}`);
-            realtimeManager.unsubscribe(`chat_list_group_members_${currentUserId}`);
-            realtimeManager.unsubscribe(`chat_list_groups_${currentUserId}`);
-            realtimeManager.unsubscribe(`chat_list_group_members_update_${currentUserId}`);
+            isCancelled = true;
+            console.log(`🔌 Cleaning up consolidated real-time subscription for user: ${currentUserId}`);
+            realtimeManager.unsubscribe(channelName);
         };
     }, [currentUserId, supabase, queryClient]);
 

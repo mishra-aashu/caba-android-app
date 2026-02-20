@@ -207,13 +207,32 @@ body.light-mode .chat-loading p {
 
 .chat-screen {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
+  width: 100%;
   background: var(--background);
   position: relative;
-  /* For absolute positioning of selection toolbar */
   overflow: hidden;
-  /* Prevent content from escaping container */
+  /* Removed transform: translateZ(0) to avoid breaking fixed modals */
+}
+
+.chat-main-area {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* Important for flex shrink */
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+}
+
+@media (max-width: 768px) {
+  .chat-screen.drawer-open .chat-main-area {
+    display: none;
+    /* Full screen drawer on mobile */
+  }
 }
 
 .chat-loading {
@@ -1523,6 +1542,7 @@ body.light-mode .chat-loading p {
   cursor: pointer;
 }
 
+
 /* --- Emoji Picker Overlay --- */
 .emoji-picker-overlay {
   position: fixed;
@@ -1598,6 +1618,7 @@ body.light-mode .chat-loading p {
   }
 }
 
+
 /* Light theme adjustments for skeleton */
 [data-theme='light'] .skeleton-message {
   background: #e0e0e0;
@@ -1608,4 +1629,212 @@ body.light-mode .chat-loading p {
       transparent,
       rgba(0, 0, 0, 0.05),
       transparent);
+}
+
+/* =============================================
+   GROUP MESSAGE SENDER AVATARS
+   ============================================= */
+
+/* ── GROUP MESSAGE ROW LAYOUT ──
+   Received: [left-avatar]  [name + bubble-wrapper]
+   Sent:     [bubble-wrapper]  [right-avatar]          */
+
+/* Base flex row for all group messages */
+.message-item.group-message {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* Sent group messages: avatar goes to the right naturally
+   (DOM order: content-wrapper first, then avatar div)   */
+.message-item.group-message.sent {
+  justify-content: flex-end;
+}
+
+/* Received group messages: avatar is first in DOM, bubble flows right */
+.message-item.group-message.received {
+  justify-content: flex-start;
+}
+
+
+/* ── Circular Avatar Button ── */
+.group-sender-avatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #128c7e 0%, #25d366 100%);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  /* Align avatar to bottom of message row */
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+
+.group-sender-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.group-sender-avatar:active {
+  transform: scale(0.95);
+}
+
+/* Own (sent) avatar — not interactive */
+.group-sender-avatar--self {
+  cursor: default;
+  pointer-events: none;
+}
+
+.group-sender-avatar--self:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+
+/* Ripple on tap for mobile */
+.group-sender-avatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.group-sender-avatar:active::after {
+  opacity: 1;
+}
+
+/* Avatar image */
+.group-sender-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Initial fallback letter */
+.group-sender-avatar-initial {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Content wrapper (name + bubble) ── */
+.message-content-wrapper.with-avatar {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* tight gap between name and bubble */
+  max-width: calc(100% - 50px);
+  /* leave room for avatar */
+}
+
+/* ── Sender Name Label ── */
+.group-sender-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--brand-primary, #25d366);
+  padding: 0 4px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  transition: opacity 0.15s ease;
+  letter-spacing: 0.01em;
+}
+
+.group-sender-name:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+/* Different accent colors per sender (cycling via nth-of-type)
+   Uses hsl rotation so each sender gets a distinct color            */
+.message-item:nth-child(6n+1) .group-sender-name {
+  color: #25d366;
+}
+
+.message-item:nth-child(6n+2) .group-sender-name {
+  color: #00bcd4;
+}
+
+.message-item:nth-child(6n+3) .group-sender-name {
+  color: #ff7043;
+}
+
+.message-item:nth-child(6n+4) .group-sender-name {
+  color: #ab47bc;
+}
+
+.message-item:nth-child(6n+5) .group-sender-name {
+  color: #ffa726;
+}
+
+.message-item:nth-child(6n+6) .group-sender-name {
+  color: #66bb6a;
+}
+
+/* Matching avatar gradient per sender */
+.message-item:nth-child(6n+2) .group-sender-avatar {
+  background: linear-gradient(135deg, #0097a7, #00bcd4);
+}
+
+.message-item:nth-child(6n+3) .group-sender-avatar {
+  background: linear-gradient(135deg, #bf360c, #ff7043);
+}
+
+.message-item:nth-child(6n+4) .group-sender-avatar {
+  background: linear-gradient(135deg, #6a1b9a, #ab47bc);
+}
+
+.message-item:nth-child(6n+5) .group-sender-avatar {
+  background: linear-gradient(135deg, #e65100, #ffa726);
+}
+
+.message-item:nth-child(6n+6) .group-sender-avatar {
+  background: linear-gradient(135deg, #2e7d32, #66bb6a);
+}
+
+/* Light mode: group-sender-name uses the brand primary color which is already readable. */
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .group-sender-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .group-sender-avatar-initial {
+    font-size: 12px;
+  }
+
+  .group-sender-name {
+    font-size: 11px;
+    max-width: 140px;
+  }
+
+  .message-content-wrapper.with-avatar {
+    max-width: calc(100% - 42px);
+  }
 }

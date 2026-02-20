@@ -1,104 +1,187 @@
 // hooks/useTruthDareGame.js
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../config/supabase';
+import { realtimeManager } from '../utils/realtimeManager';
+import { prepareDataForDB } from '../utils/dbSchemaCompatibility';
 
 export const useTruthDareGame = (roomId, userId) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [gameId, setGameId] = useState(null);
   const [gameState, setGameState] = useState({
     turn: null,
-    stage: 'idle', 
+    stage: 'idle',
     type: null,
     content: '',
   });
 
-  const channelRef = useRef(null);
+  // 1. Initial Load: Fetch active/pending game for this room
+  useEffect(() => {
+    if (!roomId || !userId) return;
 
+    const fetchActiveGame = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('game_invitations')
+          .select('*')
+          .eq('chat_id', roomId)
+          .in('status', ['pending', 'accepted'])
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data && !error) {
+          setGameId(data.id);
+          if (data.invitation_data) {
+            setGameState(data.invitation_data);
+            if (data.status === 'accepted' || data.invitation_data.stage !== 'idle') {
+              // Only auto-open if it's already in progress
+              // setIsOpen(true); 
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching active game:', err);
+      }
+    };
+
+    fetchActiveGame();
+  }, [roomId, userId]);
+
+  // 2. Real-time Subscription
   useEffect(() => {
     if (!roomId) return;
 
-    // Create channel inside useEffect
-    const channel = supabase.channel(`game_room_${roomId}`);
-    channelRef.current = channel;
+    const channelName = `game_room_${roomId}`;
 
-    channel
-      .on('broadcast', { event: 'game_update' }, ({ payload }) => {
-        console.log('Received game update:', payload);
-        setGameState(payload);
-        if (payload.stage !== 'idle') {
-          setIsOpen(true);
-        }
-      })
-      .subscribe((status) => {
-        console.log('Game channel status:', status);
-      });
+    realtimeManager.subscribe(
+      channelName,
+      {},
+      {
+        broadcast: ({ event, payload }) => {
+          if (event === 'game_update') {
+            setGameState(payload.gameState);
+            setGameId(payload.gameId);
+            if (payload.gameState.stage !== 'idle') {
+              setIsOpen(true);
+            }
+          }
+        },
+        postgres_changes: [
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'game_invitations',
+            filter: `chat_id=eq.${roomId}`,
+            handler: (payload) => {
+              if (payload.new.invitation_data) {
+                setGameState(payload.new.invitation_data);
+                setGameId(payload.new.id);
+              }
+            }
+          }
+        ]
+      }
+    );
 
     return () => {
-      supabase.removeChannel(channel);
-      channelRef.current = null;
+      realtimeManager.unsubscribe(channelName);
     };
   }, [roomId]);
 
-  // Update Game State & Broadcast to Partner
-  const updateGame = useCallback(async (newState) => {
+  // Helper: Persist and Broadcast
+  const syncGame = useCallback(async (newId, newState) => {
+    setGameId(newId);
     setGameState(newState);
-    
-    // Create a fresh channel for sending (like typing indicator)
+
+    // 1. Broadcast for instant UI (Transient)
     const channel = supabase.channel(`game_room_${roomId}`);
     await channel.send({
       type: 'broadcast',
       event: 'game_update',
-      payload: newState,
+      payload: { gameId: newId, gameState: newState },
     });
-    // Don't wait for subscribe - send directly
-    // Clean up after a delay
-    setTimeout(() => supabase.removeChannel(channel), 5000);
+
+    // 2. Update DB (Persistent)
+    if (newId) {
+      await supabase
+        .from('game_invitations')
+        .update({
+          invitation_data: newState,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', newId);
+    }
   }, [roomId]);
 
   // Actions
-  const startGame = useCallback(() => {
-    console.log('Starting game with userId:', userId);
+  const startGame = useCallback(async (partnerId) => {
     setIsOpen(true);
     const initialState = { turn: userId, stage: 'picking', type: null, content: '' };
-    setGameState(initialState);
-    
-    // Send update after a short delay
-    setTimeout(() => {
-      updateGame(initialState);
-    }, 100);
-  }, [userId, updateGame]);
+
+    // Create new invitation in DB
+    const invitation = prepareDataForDB({
+      chat_id: roomId,
+      sender_id: userId,
+      receiver_id: partnerId || userId, // Fallback to self for group/testing
+      game_type: 'truth_or_dare',
+      invitation_data: initialState,
+      status: 'pending'
+    }, 'game_invitations');
+
+    const { data, error } = await supabase
+      .from('game_invitations')
+      .insert(invitation)
+      .select()
+      .single();
+
+    if (!error && data) {
+      syncGame(data.id, initialState);
+    } else {
+      console.error('Failed to persist game start:', error);
+      // Fallback to transient only if DB fails
+      syncGame(null, initialState);
+    }
+  }, [userId, roomId, syncGame]);
 
   const pickType = useCallback((type) => {
     const newState = { ...gameState, type, stage: 'writing' };
-    setGameState(newState);
-    updateGame(newState);
-  }, [gameState, updateGame]);
+    syncGame(gameId, newState);
+  }, [gameState, gameId, syncGame]);
 
   const sendChallenge = useCallback((text) => {
     const newState = { ...gameState, content: text, stage: 'performing' };
-    setGameState(newState);
-    updateGame(newState);
-  }, [gameState, updateGame]);
+    syncGame(gameId, newState);
+  }, [gameState, gameId, syncGame]);
 
   const completeTurn = useCallback((partnerId) => {
     const newState = { turn: partnerId, stage: 'picking', type: null, content: '' };
-    setGameState(newState);
-    updateGame(newState);
-  }, [updateGame]);
+    syncGame(gameId, newState);
+  }, [gameId, syncGame]);
 
-  const closeGame = useCallback(() => {
+  const closeGame = useCallback(async () => {
     setIsOpen(false);
     const idleState = { turn: null, stage: 'idle', type: null, content: '' };
-    setGameState(idleState);
-    updateGame(idleState);
-  }, [updateGame]);
+
+    // Mark as completed in DB if it was active
+    if (gameId) {
+      await supabase
+        .from('game_invitations')
+        .update({ status: 'completed' })
+        .eq('id', gameId);
+    }
+
+    syncGame(null, idleState);
+  }, [gameId, syncGame]);
 
   return {
     isOpen,
     gameState,
+    gameId,
     startGame,
     pickType,
     sendChallenge,
     completeTurn,
     closeGame,
+    setIsOpen,
   };
 };

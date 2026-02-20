@@ -30,7 +30,7 @@ export const Message = {
   id: 'string',
   chat_id: 'string',
   sender_id: 'string',
-  receiver_id: 'string',
+  receiver_id: 'string|null',
   content: 'string',
   media_path: 'string|null',
   media_type: 'string|null', // 'image', 'video', 'audio', 'document'
@@ -190,20 +190,20 @@ export const validateType = (value, expectedType, fieldName) => {
 // Validate entity against schema
 export const validateEntity = (entity, schema, entityName) => {
   const errors = [];
-  
+
   for (const [fieldName, expectedType] of Object.entries(schema)) {
     if (!validateType(entity[fieldName], expectedType, fieldName)) {
       errors.push(`${entityName}.${fieldName}: Expected ${expectedType}, got ${typeof entity[fieldName]}`);
     }
   }
-  
+
   return errors;
 };
 
 // Safe entity conversion with validation
 export const safeEntityConvert = (data, schema, entityName) => {
   if (!data) return null;
-  
+
   const errors = validateEntity(data, schema, entityName);
   if (errors.length > 0) {
     console.warn(`Validation errors for ${entityName}:`, errors);
@@ -212,6 +212,6 @@ export const safeEntityConvert = (data, schema, entityName) => {
       throw new Error(`Entity validation failed: ${errors.join(', ')}`);
     }
   }
-  
+
   return data;
 };

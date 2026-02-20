@@ -38,6 +38,8 @@ const MessageItem = ({
   onMediaDownload,
   onAcceptGame,
   onRejectGame,
+  isGroupChat,
+  onSenderClick,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -47,16 +49,16 @@ const MessageItem = ({
   const [touchStartTime, setTouchStartTime] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
   const bubbleRef = useRef(null);
   const messageRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showActions) {
-        // Don't close if clicking on the message item or context menu
         const isClickOnMessage = messageRef.current && messageRef.current.contains(e.target);
         const isClickOnContextMenu = e.target.closest('.context-menu');
-
         if (!isClickOnMessage && !isClickOnContextMenu) {
           setShowActions(false);
         }
@@ -68,14 +70,23 @@ const MessageItem = ({
 
   const isSent = message.sender_id === currentUser.id;
   const isReplied = message.reply_to;
-  // Better touch device detection - check if device primarily uses touch
   const isTouchDevice = window.matchMedia && window.matchMedia('(hover: none)').matches;
+
+  // Sender info for received messages (group chat avatar on left)
+  const sender = message.sender || {};
+  const senderName = sender.name || sender.username || 'User';
+  const senderAvatar = sender.avatar || sender.profile_image || null;
+  const senderInitial = senderName.charAt(0).toUpperCase();
+
+  // Current user info for sent messages (group chat avatar on right)
+  const myAvatar = currentUser?.avatar || currentUser?.profile_image || null;
+  const myName = currentUser?.name || currentUser?.username || 'Me';
+  const myInitial = myName.charAt(0).toUpperCase();
 
   const handleLongPress = (e, touchX, touchY) => {
     e.preventDefault();
     if (!isSelectionMode) {
-      // Show context menu at touch position for mobile
-      const menuHeight = 220; // Estimated menu height
+      const menuHeight = 220;
       const menuWidth = 180;
       const screenH = window.innerHeight;
       const screenW = window.innerWidth;
@@ -83,18 +94,10 @@ const MessageItem = ({
       let x = touchX || e.clientX;
       let y = touchY || e.clientY;
 
-      // Vertical logic (upwards or downwards)
       const openUpwards = (screenH - y) < menuHeight;
       setIsUpwards(openUpwards);
-
-      if (openUpwards) {
-        y = y - menuHeight; // Shift up
-      }
-
-      // Horizontal logic (left or right)
-      if ((screenW - x) < menuWidth) {
-        x = x - menuWidth;
-      }
+      if (openUpwards) y = y - menuHeight;
+      if ((screenW - x) < menuWidth) x = x - menuWidth;
 
       setMenuPos({ x, y });
       setShowActions(true);
@@ -102,9 +105,7 @@ const MessageItem = ({
   };
 
   const handleClick = () => {
-    if (isSelectionMode) {
-      onSelect();
-    }
+    if (isSelectionMode) onSelect();
   };
 
   const handleReply = () => {
@@ -136,14 +137,9 @@ const MessageItem = ({
       try {
         const { error } = await supabase
           .from('messages')
-          .update({
-            content: editContent.trim(),
-            edited_at: new Date().toISOString(),
-          })
+          .update({ content: editContent.trim(), edited_at: new Date().toISOString() })
           .eq('id', message.id);
-
         if (error) throw error;
-
         message.content = editContent.trim();
         message.edited_at = new Date().toISOString();
       } catch (error) {
@@ -160,31 +156,37 @@ const MessageItem = ({
 
   const handleDelete = async () => {
     setShowActions(false);
-    
-    // OPTIMISTIC UPDATE: Remove message from UI immediately
-    const previousMessage = message;
-    if (onDelete) {
-      onDelete(message.id);
-    }
-    
+    if (onDelete) onDelete(message.id);
     try {
-      // Now make the API call
-      const { error } = await supabase
-        .from('messages')
-        .delete()
-        .eq('id', message.id);
-
+      const { error } = await supabase.from('messages').delete().eq('id', message.id);
       if (error) throw error;
-      
       toast.success('Message deleted');
-      
     } catch (error) {
       console.error('Error deleting message:', error);
-      
-      // ROLLBACK: If deletion fails, show error but don't restore message
-      // (since we already removed it from UI for better UX)
       toast.error('Failed to delete message');
     }
+  };
+
+  const handleReport = async () => {
+    if (!reportReason.trim()) {
+      toast.error('Please select a reason');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('reports').insert({
+        reporter_id: currentUser.id,
+        reported_id: message.sender_id,
+        reason: reportReason,
+        details: `Reported message (ID: ${message.id}): "${message.content?.slice(0, 100)}"`
+      });
+      if (error) throw error;
+      toast.success('Report submitted');
+    } catch (err) {
+      console.error('Error submitting report:', err);
+      toast.error('Failed to submit report');
+    }
+    setShowReportModal(false);
+    setReportReason('');
   };
 
   const formatTime = (timestamp) => {
@@ -192,12 +194,8 @@ const MessageItem = ({
       if (!timestamp) return '';
       const date = new Date(timestamp);
       if (isNaN(date.getTime())) return '';
-      return date.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (error) {
-      console.error('Error formatting time:', error);
       return '';
     }
   };
@@ -219,155 +217,24 @@ const MessageItem = ({
     const absDeltaX = Math.abs(deltaX);
     const absDeltaY = Math.abs(deltaY);
 
-    // Check for swipe right (for reply)
-    if (
-      absDeltaX > 50 &&
-      absDeltaX > absDeltaY &&
-      deltaX > 0 &&
-      !isSelectionMode
-    ) {
-      handleReply();
+    // Swipe right → reply
+    if (absDeltaX > 50 && absDeltaX > absDeltaY * 1.5 && deltaX > 0 && !isSelectionMode) {
+      onReply && onReply(message);
       return;
     }
 
-    if (touchDuration > 500 && !isSelectionMode) {
-      // Long press - show context menu at the initial touch position
-      handleLongPress(e, touchStartX, touchStartY);
+    // Long press → context menu
+    if (touchDuration > 500 && absDeltaX < 10 && absDeltaY < 10) {
+      handleLongPress(e, touchEndX, touchEndY);
     }
   };
 
-  const handleDownload = async (mediaUrl, messageId) => {
-    if (onMediaDownload) {
-      await onMediaDownload(mediaUrl, messageId);
+  const handleSenderAvatarClick = (e) => {
+    e.stopPropagation();
+    if (onSenderClick && message.sender_id) {
+      onSenderClick(message.sender_id);
     }
   };
-
-  const handleView = (mediaUrl, mediaType) => {
-    if (onMediaView) {
-      onMediaView(mediaUrl, mediaType, message);
-    }
-  };
-
-  // Agar message type 'game_invite' hai, toh ye Special Card dikhao
-  if (message.type === 'game_invite') {
-      const handleAcceptInvitation = async () => {
-      try {
-        // Update invitation status to accepted
-        const { error: inviteError } = await supabase
-          .from('game_invitations')
-          .update({ status: 'accepted' })
-          .eq('id', message.game_invitation_id);
-
-        if (inviteError) throw inviteError;
-
-        // Update message status to accepted
-        const { error: messageError } = await supabase
-          .from('messages')
-          .update({ status: 'accepted' })
-          .eq('id', message.id);
-
-        if (messageError) throw messageError;
-
-        toast.success('Game invitation accepted!');
-        
-        // Immediately open the game with the partner
-        if (onAcceptGame) {
-          onAcceptGame(message.id, message.game_room_id);
-        }
-      } catch (error) {
-        console.error('Error accepting invitation:', error);
-        toast.error('Failed to accept invitation');
-      }
-    };
-
-    const handleRejectInvitation = async () => {
-      try {
-        // Update invitation status to rejected
-        const { error: inviteError } = await supabase
-          .from('game_invitations')
-          .update({ status: 'rejected' })
-          .eq('id', message.game_invitation_id);
-
-        if (inviteError) throw inviteError;
-
-        // Update message status to rejected
-        const { error: messageError } = await supabase
-          .from('messages')
-          .update({ status: 'rejected' })
-          .eq('id', message.id);
-
-        if (messageError) throw messageError;
-
-        toast.success('Game invitation rejected');
-      } catch (error) {
-        console.error('Error rejecting invitation:', error);
-        toast.error('Failed to reject invitation');
-      }
-    };
-
-    return (
-      <div className={`flex ${isSent ? 'justify-end' : 'justify-start'} mb-4`}>
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 w-64 shadow-lg">
-          
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-3 border-b border-gray-700 pb-2">
-            <span className="text-2xl">🎮</span>
-            <div>
-              <h3 className="font-bold text-white text-sm">Truth or Dare</h3>
-              <p className="text-xs text-gray-400">
-                {message.status === 'pending' ? 'Game invitation' : 'Game started!'}
-              </p>
-            </div>
-          </div>
-
-          {/* Invitation Content */}
-          <div className="text-xs text-gray-300 mb-3">
-            {message.content}
-          </div>
-
-          {/* Actions - Logic:
-              1. Agar status 'pending' hai aur main receiver hu -> Accept/Reject buttons.
-              2. Agar status 'accepted' hai -> 'Join Game' button.
-          */}
-          {message.status === 'pending' ? (
-            isSent ? (
-              <div className="text-xs text-yellow-500 italic">Waiting for response...</div>
-            ) : (
-              <div className="flex gap-2">
-                <button 
-                  onClick={handleAcceptInvitation}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1"
-                >
-                  <UserCheck size={14} /> Accept
-                </button>
-                <button 
-                  onClick={handleRejectInvitation}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1"
-                >
-                  <UserX size={14} /> Reject
-                </button>
-              </div>
-            )
-          ) : message.status === 'accepted' ? (
-             <button 
-               onClick={() => {
-                 // Start the game
-                 if (onAcceptGame) {
-                   onAcceptGame(message.id, message.game_room_id);
-                 }
-               }}
-               className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold animate-pulse"
-             >
-               Start Truth or Dare 🚀
-             </button>
-          ) : (
-             <div className="text-red-400 text-xs">Invitation rejected</div>
-          )}
-
-        </div>
-      </div>
-    );
-  }
 
   const renderMessageContent = () => {
     if (message.media_path && (message.media_type === 'image' || message.media_type === 'video')) {
@@ -396,7 +263,6 @@ const MessageItem = ({
       );
     }
 
-    // Fallback for text messages or other types
     return (
       <MessageBubble
         text={message.content}
@@ -407,30 +273,30 @@ const MessageItem = ({
         isDeleted={message.is_deleted}
         status={message.is_read ? 'read' : 'sent'}
         edited={!!message.edited_at}
-        sender={message.sender} // Pass sender for group message sender names
-        message={message} // Pass full message for group message detection
+        sender={message.sender}
+        message={message}
       />
     );
   };
+
+  // In groups: received messages show sender avatar on left, sent messages show own avatar on right
+  const showReceivedAvatar = isGroupChat && !isSent;
+  const showSentAvatar = isGroupChat && isSent;
 
   return (
     <>
       <div
         ref={messageRef}
         id={`message-${message.id}`}
-        className={`message-item ${isSent ? 'sent' : 'received'} ${
-          isSelected ? 'selected' : ''
-        } ${showActions ? 'highlighted' : ''}`}
+        className={`message-item ${isSent ? 'sent' : 'received'} ${isSelected ? 'selected' : ''} ${showActions ? 'highlighted' : ''} ${isGroupChat ? 'group-message' : ''}`}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => {
-          // Only show context menu on desktop (non-touch devices)
           if (!isTouchDevice) {
             e.preventDefault();
             if (!isSelectionMode) {
-              // Smart positioning logic
-              const menuHeight = 220; // Estimated menu height
+              const menuHeight = 220;
               const menuWidth = 180;
               const screenH = window.innerHeight;
               const screenW = window.innerWidth;
@@ -438,18 +304,10 @@ const MessageItem = ({
               let x = e.clientX;
               let y = e.clientY;
 
-              // Vertical logic (upwards or downwards)
               const openUpwards = (screenH - y) < menuHeight;
               setIsUpwards(openUpwards);
-
-              if (openUpwards) {
-                y = y - menuHeight; // Shift up
-              }
-
-              // Horizontal logic (left or right)
-              if ((screenW - x) < menuWidth) {
-                x = x - menuWidth;
-              }
+              if (openUpwards) y = y - menuHeight;
+              if ((screenW - x) < menuWidth) x = x - menuWidth;
 
               setMenuPos({ x, y });
               setShowActions(true);
@@ -457,20 +315,72 @@ const MessageItem = ({
           }
         }}
       >
-        <div className="message-content-wrapper">
+        {/* LEFT avatar — received group messages */}
+        {showReceivedAvatar && (
+          <button
+            className="group-sender-avatar"
+            onClick={handleSenderAvatarClick}
+            title={`View ${senderName}'s profile`}
+            aria-label={`View ${senderName}'s profile`}
+          >
+            {senderAvatar ? (
+              <img
+                src={senderAvatar}
+                alt={senderName}
+                className="group-sender-avatar-img"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement.querySelector('.group-sender-avatar-initial').style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <span
+              className="group-sender-avatar-initial"
+              style={{ display: senderAvatar ? 'none' : 'flex' }}
+            >
+              {senderInitial}
+            </span>
+          </button>
+        )}
+
+        <div className={`message-content-wrapper ${isGroupChat ? 'with-avatar' : ''}`}>
+          {/* Sender name — received group messages only */}
+          {showReceivedAvatar && (
+            <button className="group-sender-name" onClick={handleSenderAvatarClick}>
+              {senderName}
+            </button>
+          )}
           {renderMessageContent()}
         </div>
+
+        {/* RIGHT avatar — sent group messages (own DP) */}
+        {showSentAvatar && (
+          <div className="group-sender-avatar group-sender-avatar--self" aria-hidden="true">
+            {myAvatar ? (
+              <img
+                src={myAvatar}
+                alt={myName}
+                className="group-sender-avatar-img"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement.querySelector('.group-sender-avatar-initial').style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <span
+              className="group-sender-avatar-initial"
+              style={{ display: myAvatar ? 'none' : 'flex' }}
+            >
+              {myInitial}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Menu Overlay - Click to close */}
       {showActions && !isSelectionMode && (
-        <div
-          className="menu-overlay"
-          onClick={() => setShowActions(false)}
-        />
+        <div className="menu-overlay" onClick={() => setShowActions(false)} />
       )}
 
-      {/* Context Menu - Shown on both desktop and mobile (long press) */}
       <DesktopContextMenu
         position={menuPos}
         isVisible={showActions && !isSelectionMode}
@@ -481,9 +391,35 @@ const MessageItem = ({
         onEdit={handleEdit}
         onDelete={handleDelete}
         onSelect={onSelect}
+        onReport={!isSent ? () => { setShowActions(false); setShowReportModal(true); } : undefined}
         isSent={isSent}
         onClose={() => setShowActions(false)}
       />
+
+      {showReportModal && (
+        <div className="report-modal-overlay" onClick={() => setShowReportModal(false)}>
+          <div className="report-modal" onClick={(e) => e.stopPropagation()}>
+            <h4>Report Message</h4>
+            <p>Choose a reason for your report:</p>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="report-select"
+            >
+              <option value="">Select a reason...</option>
+              <option value="spam">Spam</option>
+              <option value="harassment">Harassment</option>
+              <option value="hate_speech">Hate Speech</option>
+              <option value="inappropriate_content">Inappropriate Content</option>
+              <option value="other">Other</option>
+            </select>
+            <div className="report-modal-actions">
+              <button className="btn-cancel" onClick={() => setShowReportModal(false)}>Cancel</button>
+              <button className="btn-report" onClick={handleReport}>Submit Report</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

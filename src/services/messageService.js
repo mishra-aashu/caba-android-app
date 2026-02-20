@@ -46,7 +46,7 @@ export const fetchChatMessages = async ({ chatId, supabase }) => {
 
   // Convert database field names to frontend format with null safety
   const convertedData = safeDbConversion(data || []);
-  
+
   // Coerce data types to ensure consistency
   return convertedData.map(message => coerceDataTypes(message, 'messages'));
 };
@@ -96,9 +96,39 @@ export const fetchOlderMessages = async ({ chatId, supabase, beforeTimestamp }) 
 
   // Convert database field names to frontend format with null safety
   const convertedData = safeDbConversion(data || []);
-  
+
   // Coerce data types to ensure consistency
   return convertedData.map(message => coerceDataTypes(message, 'messages'));
+};
+
+/**
+ * Edit an existing message
+ */
+export const editMessage = async ({ messageId, newContent, supabase }) => {
+  const { data, error } = await supabase
+    .from('messages')
+    .update({
+      content: newContent,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', messageId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return dbToFrontend(data);
+};
+
+/**
+ * Delete a message
+ */
+export const deleteMessage = async ({ messageId, supabase }) => {
+  const { error } = await supabase
+    .from('messages')
+    .delete()
+    .eq('id', messageId);
+
+  if (error) throw error;
 };
 
 export default fetchChatMessages;
