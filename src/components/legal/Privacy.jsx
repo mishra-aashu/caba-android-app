@@ -1,19 +1,26 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
+import { FaArrowLeft } from 'react-icons/fa';
 
 const LegalPlaceholder = ({ title, children }) => {
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   return (
-    <div className="legal-page-container">
-      <div className="disclaimer-box">
-        <p>DISCLAIMER: This is a placeholder document.</p>
-        <p>The text below is not legally binding. You MUST replace it with your own official Privacy Policy, drafted by a legal professional.</p>
-      </div>
-      <h1>{title} for CaBa Chat</h1>
-      <p><em>Last updated: December 28, 2025</em></p>
-      {children}
-      <div style={{ marginTop: '2rem' }}>
-        <button className="btn" onClick={() => navigate(-1)}>Back</button>
+    <div className="legal-page-wrapper">
+      <div className="legal-page-container">
+        {/* Header with Back Button */}
+        <div className="legal-page-header">
+          <button className="legal-back-btn" onClick={() => navigate(-1)}>
+            <FaArrowLeft />
+          </button>
+        </div>
+        
+        <div className="disclaimer-box">
+          <p>DISCLAIMER: This is a placeholder document.</p>
+          <p>The text below is not legally binding. You MUST replace it with your own official Privacy Policy, drafted by a legal professional.</p>
+        </div>
+        <h1>{title} for CaBa Chat</h1>
+        <p><em>Last updated: December 28, 2025</em></p>
+        {children}
       </div>
     </div>
   );
@@ -34,7 +41,7 @@ const Privacy = () => {
             <li>To run and operate our App: We may need your information to display content on the App correctly.</li>
             <li>To personalize user experience: We may use information in the aggregate to understand how our Users as a group use the services and resources provided on our App.</li>
             <li>To send periodic emails: We may use the email address to send User information and updates pertaining to their order.</li>
-            </ul>
+        </ul>
       </p>
 
       <h2>3. How We Protect Your Information</h2>

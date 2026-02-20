@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { FaGoogle, FaCheckCircle } from 'react-icons/fa';
 import '../../styles/LoginPage.css'; // Correctly import the dedicated CSS file
 
 const Login = () => {
   const { signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [agreed, setAgreed] = useState(true); // Default to checked as in UI
@@ -28,37 +30,47 @@ const Login = () => {
     }
   };
 
+  const handleTermsClick = (e) => {
+    e.preventDefault();
+    navigate('/terms');
+  };
+
+  const handlePrivacyClick = (e) => {
+    e.preventDefault();
+    navigate('/privacy');
+  };
+
   return (
-    <div className="art-login-container">
+    <div className="art-login-container gpu-max">
       
-      {/* Background Ambience (Painting Effects) */}
-      <div className="ambient-glow glow-1"></div>
-      <div className="ambient-glow glow-2"></div>
-      <div className="noise-overlay"></div>
+      {/* Background Ambience (Painting Effects) - GPU Accelerated */}
+      <div className="ambient-glow glow-1 gpu-accelerated"></div>
+      <div className="ambient-glow glow-2 gpu-accelerated"></div>
+      <div className="noise-overlay gpu-accelerated"></div>
 
       <div className="art-content">
         
         {/* --- LEFT SIDE: The Art/Story --- */}
-        <div className="art-hero-section">
-          <div className="brand-badge">CaBa Messenger</div>
-          <h1 className="art-hero-headline">
+        <div className="art-hero-section gpu-accelerated">
+          <div className="brand-badge gpu-accelerated">CaBa Messenger</div>
+          <h1 className="art-hero-headline gpu-accelerated">
             The Art of <br />
-            <span className="italic-text">Conversation.</span>
+            <span className="italic-text gpu-accelerated">Conversation.</span>
           </h1>
-          <p className="art-desc">
+          <p className="art-desc gpu-accelerated">
             Experience messaging that feels as authentic as a handwritten letter. 
             Secure, simple, and beautifully designed for you.
           </p>
           
-          <div className="art-features">
-            <div className="feat-item"><FaCheckCircle /> Private by default</div>
-            <div className="feat-item"><FaCheckCircle /> Infinite history</div>
+          <div className="art-features gpu-accelerated">
+            <div className="feat-item gpu-accelerated"><FaCheckCircle /> Private by default</div>
+            <div className="feat-item gpu-accelerated"><FaCheckCircle /> Infinite history</div>
           </div>
         </div>
 
         {/* --- RIGHT SIDE: The Login Paper --- */}
-        <div className="login-wrapper">
-          <div className="paper-card">
+        <div className="login-wrapper gpu-accelerated">
+          <div className="paper-card gpu-accelerated">
             <div className="card-texture"></div> {/* Paper Grain */}
             
             <div className="card-header">
@@ -68,7 +80,7 @@ const Login = () => {
             
             {error && <div className="error-message">{error}</div>}
 
-            <button className="google-art-btn" onClick={handleGoogleLogin} disabled={loading || !agreed}>
+            <button className="google-art-btn gpu-accelerated" onClick={handleGoogleLogin} disabled={loading || !agreed}>
               {loading ? (
                 <div className="spinner"></div>
               ) : (
@@ -83,7 +95,7 @@ const Login = () => {
               <label className="checkbox-container">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
                 <span className="checkmark"></span>
-                I accept the <span className="link">Terms</span> & <span className="link">Privacy</span>
+                I accept the <a href="/terms" onClick={handleTermsClick} className="link">Terms</a> & <a href="/privacy" onClick={handlePrivacyClick} className="link">Privacy</a>
               </label>
             </div>
           </div>
