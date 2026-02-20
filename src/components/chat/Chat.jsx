@@ -97,6 +97,27 @@ const Chat = () => {
     }
   }, [chatId, setChatId]);
 
+  // Ensure group placeholder is set immediately when chatId changes for groups
+  useEffect(() => {
+    if (isGroupChat && chatId) {
+      setOtherUser(prev => {
+        // If we already have valid data for this group, keep it
+        if (prev?.id === chatId && prev?.is_group && prev?.name) {
+          return prev;
+        }
+        // Otherwise set placeholder to prevent "Loading..." state
+        return { 
+          id: chatId, 
+          name: 'Group Chat', 
+          avatar: null, 
+          is_group: true, 
+          isGroup: true, 
+          member_count: 0 
+        };
+      });
+    }
+  }, [chatId, isGroupChat]);
+
   // Define validChatId early so it can be used in useQuery
   const validChatId = chatId === 'new' ? null : chatId;
 
@@ -142,7 +163,10 @@ const Chat = () => {
   useEffect(() => {
     if (!validChatId || !supabase) {
       setMessages([]);
-      setOtherUser(null);
+      // Don't reset otherUser for groups - preserve the placeholder
+      if (!isGroupChat) {
+        setOtherUser(null);
+      }
       return;
     }
 
@@ -534,18 +558,22 @@ const Chat = () => {
       }
     }
 
-    // 2. If no supabase yet, set placeholder and wait
+    // 2. Ensure placeholder is set if we don't have data yet
+    setOtherUser(prev => {
+      // Keep existing data if it's valid for this group
+      if (prev?.id === chatId && prev?.is_group && prev?.name) {
+        return prev;
+      }
+      // Set placeholder
+      return { id: chatId, name: 'Group Chat', avatar: null, is_group: true, isGroup: true, member_count: 0 };
+    });
+
+    // 3. If no supabase yet, wait for it
     if (!supabase) {
-      setOtherUser(prev => {
-        if (prev?.id === chatId && prev?.is_group && prev?.name && prev.name !== 'Group Chat') {
-          return prev; // already have real data for this group
-        }
-        return { id: chatId, name: 'Group Chat', avatar: null, is_group: true, member_count: 0 };
-      });
       return;
     }
 
-    // 3. Load from database if we don't have data from allChats
+    // 4. Load from database if we don't have data from allChats yet
     let cancelled = false;
     (async () => {
       try {
@@ -1383,7 +1411,12 @@ const Chat = () => {
               )}
             </div>
             <div className="user-details">
-              <h3 className="user-name">{isGroupChat ? (otherUser?.name || 'Group Chat') : (otherUser ? (otherUser.contact_name || otherUser.name) : 'Loading...')}</h3>
+              <h3 className="user-name">
+                {isGroupChat 
+                  ? (otherUser?.name || 'Group Chat') 
+                  : (otherUser ? (otherUser.contact_name || otherUser.name) : 'Loading...')
+                }
+              </h3>
               <p className="user-status">
                 {isGroupChat ? (
                   // Group-specific status: show member count
