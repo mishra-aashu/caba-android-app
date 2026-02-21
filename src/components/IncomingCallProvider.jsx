@@ -10,13 +10,15 @@ export const IncomingCallProvider = ({ children }) => {
   const currentUser = useAuthStore((state) => state.dbUser);
 
   useEffect(() => {
-    if (currentUser) {
-      setupIncomingCallListener();
-    }
+    if (!currentUser) return;
+    const cleanup = setupIncomingCallListener();
+    return () => {
+      if (typeof cleanup === 'function') cleanup();
+    };
   }, [currentUser]);
 
   const setupIncomingCallListener = () => {
-    if (!currentUser) return;
+    if (!currentUser) return () => {};
 
     const channel = supabase
       .channel('global-incoming-calls')
@@ -30,9 +32,8 @@ export const IncomingCallProvider = ({ children }) => {
         },
         (payload) => {
           const call = payload.new;
-          if (call.call_status === 'initiated' && !incomingCall) {
-            console.log('📞 Incoming call detected:', call);
-            setIncomingCall(call);
+          if (call.call_status === 'initiated') {
+            setIncomingCall((prev) => (prev ? prev : call));
           }
         }
       )

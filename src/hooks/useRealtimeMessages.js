@@ -6,7 +6,8 @@ import { safeDbConversion, dbToFrontend } from '../utils/dbFieldMapping';
 
 export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
   const processedMessageIds = useRef(new Set());
-  const { onNewMessage, onUpdateMessage, onDeleteMessage } = handlers;
+  const handlersRef = useRef(handlers);
+  handlersRef.current = handlers;
 
   useEffect(() => {
     if (!chatId) return;
@@ -62,18 +63,20 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                 }
               }
 
+              const { onNewMessage } = handlersRef.current;
               if (onNewMessage) {
                 onNewMessage(enrichedMsg);
               }
 
             } else if (eventType === 'UPDATE') {
+              const { onUpdateMessage } = handlersRef.current;
               if (onUpdateMessage) {
                 onUpdateMessage(safeDbConversion(newRecord));
               }
             } else if (eventType === 'DELETE') {
               const deletedId = oldRecord.id;
+              const { onDeleteMessage } = handlersRef.current;
 
-              // Trigger particle effect before removing from state
               const element = document.getElementById(`message-${deletedId}`);
               if (element) {
                 const rect = element.getBoundingClientRect();
@@ -101,5 +104,5 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
       processedMessageIds.current.clear();
     };
 
-  }, [chatId, currentUserId, onNewMessage, onUpdateMessage, onDeleteMessage]);
+  }, [chatId, currentUserId]);
 };

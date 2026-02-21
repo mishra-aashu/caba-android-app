@@ -224,16 +224,16 @@ const Chat = () => {
           receiver: msg.receiver || { id: msg.receiver_id, name: 'Unknown', avatar: null }
         })).reverse(); // ascending order
 
-        // Merge: keep any optimistic / realtime messages that arrived after the
-        // DB snapshot (identified by tempId or a created_at newer than the last
-        // DB message), then append the authoritative DB list.
+        // Merge: authoritative DB list + realtime-only messages (arrived after fetch
+        // started) + optimistic sends not yet in DB. Prevents race where received
+        // messages are dropped when background fetch completes.
         setMessages(prev => {
           const dbIds = new Set(freshMessages.map(m => m.id));
-          // Preserve temp messages (optimistic sends) not yet confirmed by DB
           const pendingOptimistic = prev.filter(m => m.tempId && !dbIds.has(m.id));
-          const merged = [...freshMessages, ...pendingOptimistic];
+          const realtimeOnly = prev.filter(m => m.id && !m.tempId && !dbIds.has(m.id));
+          const merged = [...freshMessages, ...realtimeOnly, ...pendingOptimistic];
+          merged.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
 
-          // Populate user store
           freshMessages.forEach(msg => {
             if (msg.sender) useUserStore.getState().setUser(msg.sender);
             if (msg.receiver) useUserStore.getState().setUser(msg.receiver);
@@ -1961,7 +1961,7 @@ const Chat = () => {
                     checked={selectedVanishDuration === preset.duration_seconds}
                     onChange={() => setSelectedVanishDuration(preset.duration_seconds)}
                   />
-                  <span>{preset.preset_name}</span>
+                  <span>{preset.display_name || preset.name || 'Custom'}</span>
                 </label>
               ))}
             </div>
