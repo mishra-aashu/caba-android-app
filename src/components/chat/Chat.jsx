@@ -6,7 +6,7 @@ import { useCall } from '../../context/CallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
 import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
-import { safeDbConversion, frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
+import { frontendToDb } from '../../utils/dbFieldMapping';
 import { validateEntity, Message } from '../../types/database';
 import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2 } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
@@ -861,10 +861,12 @@ const Chat = () => {
       return;
     }
 
-    // Create optimistic message for UI (convert back to frontend format)
-    const optimisticMsg = dbToFrontend(dbMessageData);
+    // Optimistic message: keep snake_case so UI has created_at, sender_id (MessageItem uses these)
+    const optimisticMsg = {
+      ...dbMessageData,
+      sender: currentUser,
+    };
 
-    // Add to messages state immediately
     setMessages(prev => [...prev, optimisticMsg]);
     setReplyingTo(null);
 
@@ -881,9 +883,9 @@ const Chat = () => {
 
       if (error) throw error;
 
-      // 3. Replace temporary message with real message
+      // 3. Replace temporary message with real message (snake_case so created_at, sender_id work)
       setMessages(prev => prev.map(msg =>
-        msg.tempId === tempId ? { ...data, status: 'sent' } : msg
+        msg.tempId === tempId ? { ...data, status: 'sent', sender: currentUser } : msg
       ));
 
       NotificationSound.playMessageNotification();
