@@ -69,6 +69,7 @@ class RealtimeManager {
    * Handle subscription errors with retry logic
    */
   async handleSubscriptionError(channelName, failedChannel, config, callbacks) {
+    await this.removeChannel(failedChannel);
     let retryCount = 0;
 
     const retry = async () => {
@@ -76,22 +77,11 @@ class RealtimeManager {
         console.error(`Max retries exceeded for ${channelName}`);
         return;
       }
-
       retryCount++;
       console.log(`Retrying subscription ${channelName} (${retryCount}/${this.maxRetries})`);
-
-      // Wait before retry
       await new Promise(resolve => setTimeout(resolve, this.retryDelay * retryCount));
-
-      // Create new subscription
-      const newChannel = this.subscribe(channelName, config, callbacks);
-      if (newChannel) {
-        // Remove failed channel
-        this.removeChannel(failedChannel);
-      } else {
-        // Retry again
-        retry();
-      }
+      const newChannel = await this.subscribe(channelName, config, callbacks);
+      if (!newChannel) retry();
     };
 
     retry();

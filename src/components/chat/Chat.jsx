@@ -998,22 +998,19 @@ const Chat = () => {
 
   const confirmSelectionDelete = async () => {
     setShowDeleteModal(false);
+    const ids = Array.from(selectedMessages);
+    const prevMessages = messages;
+    setMessages(prev => prev.filter(m => !selectedMessages.has(m.id)));
+    exitSelectionMode();
 
     try {
-      const { error } = await supabase
-        .from('messages')
-        .delete()
-        .in('id', Array.from(selectedMessages));
-
+      const { error } = await supabase.from('messages').delete().in('id', ids);
       if (error) throw error;
-
-      // Remove deleted messages from UI
-      setMessages(prev => prev.filter(m => !selectedMessages.has(m.id)));
-
-      exitSelectionMode();
     } catch (error) {
       console.error('Error deleting messages:', error);
-      alert('Failed to delete messages');
+      toast.error('Failed to delete messages');
+      setMessages(prevMessages);
+      updateCache(validChatId, prevMessages);
     }
   };
 

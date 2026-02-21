@@ -223,26 +223,19 @@ export const useChatMessages = (chatId, currentUserId) => {
     }
   };
   
-  // Delete messages
+  // Delete messages (hard delete; use useRealtimeMessages in parent for live updates)
   const deleteMessages = async (messageIds) => {
     if (!messageIds.length) return false;
-    
+    const ids = Array.from(messageIds);
+    setMessages(prev => prev.filter(msg => !ids.includes(msg.id)));
     try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ deleted_at: new Date().toISOString() })
-        .in('id', Array.from(messageIds));
-      
+      const { error } = await supabase.from('messages').delete().in('id', ids);
       if (error) throw error;
-      
-      // Update local state
-      setMessages(prev => 
-        prev.filter(msg => !messageIds.includes(msg.id))
-      );
-      
       return true;
     } catch (err) {
       console.error('Error deleting messages:', err);
+      setError(err.message);
+      fetchMessages(0);
       return false;
     }
   };

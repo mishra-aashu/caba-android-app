@@ -165,34 +165,23 @@ export const useChatListRealtime = (currentUserId) => {
                                     return;
                                 }
 
-                                if (payload.eventType === 'INSERT') {
+                                if (payload.eventType === 'INSERT' && payload.new) {
                                     const newMessage = payload.new;
-
-                                    // Optimization: Move the chat to top and update preview
+                                    if (isCancelled) return;
                                     setChats(prev => {
                                         const chatIndex = prev.findIndex(c => c.id === newMessage.chat_id);
-
                                         if (chatIndex === -1) {
-                                            // New chat, refetch list
                                             queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
                                             return prev;
                                         }
-
-                                        const updatedChats = [...prev];
-                                        const chat = { ...updatedChats[chatIndex] };
-
+                                        const chat = { ...prev[chatIndex] };
                                         chat.lastMessage = newMessage.content || (newMessage.message_type !== 'text' ? `[${newMessage.message_type}]` : '');
                                         chat.timestamp = newMessage.created_at;
-
-                                        // Update unread count if we're not the sender
-                                        if (newMessage.sender_id !== currentUserId) {
-                                            chat.unreadCount = (chat.unreadCount || 0) + 1;
-                                        }
-
-                                        updatedChats.splice(chatIndex, 1);
-                                        updatedChats.unshift(chat);
-
-                                        return updatedChats;
+                                        if (newMessage.sender_id !== currentUserId) chat.unreadCount = (chat.unreadCount || 0) + 1;
+                                        const next = [...prev];
+                                        next.splice(chatIndex, 1);
+                                        next.unshift(chat);
+                                        return next;
                                     });
                                 }
                             }
@@ -218,7 +207,7 @@ export const useChatListRealtime = (currentUserId) => {
                             schema: 'public',
                             table: 'users',
                             handler: (payload) => {
-                                if (isCancelled) return;
+                                if (isCancelled || !payload?.new) return;
                                 const updatedUser = payload.new;
                                 setChats(prev => prev.map(chat => {
                                     // otherUserId is stored in metadata for chats
@@ -239,7 +228,7 @@ export const useChatListRealtime = (currentUserId) => {
                             table: 'group_members',
                             handler: (payload) => {
                                 if (isCancelled) return;
-                                if (payload.new?.user_id === currentUserId || payload.old?.user_id === currentUserId) {
+                                if (payload?.new?.user_id === currentUserId || payload?.old?.user_id === currentUserId) {
                                     queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
                                 }
                             }
