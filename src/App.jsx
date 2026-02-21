@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth'; // Use the main auth hook
 // import { CallProvider } from './context/CallContext';
 import { ChatThemeProvider } from './contexts/ChatThemeContext';
 import { DataProvider } from './contexts/DataContext';
+import { GroupCallProvider } from './context/GroupCallContext';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
 import { Toaster } from 'react-hot-toast';
@@ -47,6 +48,7 @@ const CallScreen = lazy(() => import('./components/CallScreen'));
 // import CallScreen from './components/CallScreen';
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
 const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
+const GroupIncomingCallNotification = lazy(() => import('./components/group/GroupIncomingCallNotification'));
 import DesktopNavbar from './components/common/DesktopNavbar';
 import Modal from './components/common/Modal';
 import useIsDesktop from './hooks/useIsDesktop';
@@ -108,9 +110,8 @@ const AppContent = () => {
         <Route path="user-details/:id" element={<UserDetails />} />
         <Route path="groups" element={<GroupsPage />} />
         <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
+        <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
       </Route>
-
-      <Route path="/profile" element={<ProtectedRoute>{isDesktop ? <Modal isOpen={true} onClose={() => window.location.href = '/'} className='sidebar-modal'><Profile isModal={true} /></Modal> : <Profile />}</ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/emoji-settings" element={<ProtectedRoute><EmojiSettings /></ProtectedRoute>} />
 
@@ -221,6 +222,8 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const App = () => {
+  const { dbUser } = useAuth(); // Get dbUser from auth hook
+
   useEffect(() => {
     // App khulte hi notification system start karo
     initializePushNotifications();
@@ -237,24 +240,27 @@ const App = () => {
       {/* ThemeProvider is provided in main.jsx */}
       <ErrorBoundary>
         <DataProvider>
-          <ChatThemeProvider>
-            {/* Universal Layout Logic */}
-            <ViewportManager />
-            {/* 🎯 Offline Indicator - Shows network status to users */}
-            <OfflineIndicator>
-              <AppContent />
-            </OfflineIndicator>
-            {/* Global Components */}
-            <CallStatusIndicator />
-            <IncomingCallModal />
-            <Toaster
-              position="bottom"
-              containerStyle={{
-                left: '62%',
-                top: '70%',
-                transform: 'translate(-50%, -50%)'
-              }} />
-          </ChatThemeProvider>
+          <GroupCallProvider currentUser={dbUser}>
+            <ChatThemeProvider>
+              {/* Universal Layout Logic */}
+              <ViewportManager />
+              {/* 🎯 Offline Indicator - Shows network status to users */}
+              <OfflineIndicator>
+                <AppContent />
+              </OfflineIndicator>
+              {/* Global Components */}
+              <CallStatusIndicator />
+              <IncomingCallModal />
+              <GroupIncomingCallNotification />
+              <Toaster
+                position="bottom"
+                containerStyle={{
+                  left: '62%',
+                  top: '70%',
+                  transform: 'translate(-50%, -50%)'
+                }} />
+            </ChatThemeProvider>
+          </GroupCallProvider>
         </DataProvider>
       </ErrorBoundary>
     </Suspense>

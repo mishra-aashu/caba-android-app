@@ -82,6 +82,14 @@
   font-weight: bold;
 }
 
+.edited-indicator {
+  font-size: 10px;
+  color: #667781;
+  margin-left: 4px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
 /* --- TAIL (Poonch) CSS --- */
 /* This is a trick. We can't color a border with a gradient.
    So we create a pseudo-element that is the tail and give it the same background

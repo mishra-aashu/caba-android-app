@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useCall } from '../../context/CallContext';
+import { useGroupCall } from '../../context/GroupCallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
 import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
@@ -23,16 +24,20 @@ import { useTruthDareGame } from '../../hooks/useTruthDareGame';
 import TruthDareModal from './TruthDareModal';
 import GameRoom from './GameRoom';
 import ForwardModal from './ForwardModal';
+import GroupCallScreen from '../group/GroupCallScreen';
+import GroupCallButton from '../group/GroupCallButton';
 import GroupInfoDrawer from '../groups/GroupInfoDrawer';
 import { formatLastSeen, isUserOnline } from '../../utils/timeUtils';
 import NotificationSound from '../../utils/notificationSound';
 import { realtimeManager } from '../../utils/realtimeManager';
+import groupCallService from '../../services/groupCallService';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import useUserStore from '../../store/userStore';
 import { UserDetailsContext } from '../MainLayout';
 import WallpaperPicker from './WallpaperPicker';
 import '../../styles/chat.css';
+
 import '../../styles/game-modal.css';
 
 import './AttachmentMenu.css';
@@ -45,11 +50,15 @@ const Chat = () => {
   const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
   const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
   const { startCall } = useCall();
+  const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
   const showUserDetails = React.useContext(UserDetailsContext);
 
   // State
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [showGroupCallScreen, setShowGroupCallScreen] = useState(false);
+  const [activeCallData, setActiveCallData] = useState(null);
+  const [activeGroupCall, setActiveGroupCall] = useState(null);
 
   // isGroupChat: Route "chat/:chatId/group" has NO :otherUserId param, so otherUserId is undefined.
   // We must detect group by pathname. DM route gives otherUserId = UUID; group route gives path ending in /group.
@@ -721,6 +730,63 @@ const Chat = () => {
     };
   }, [otherUserId]);
 
+  // Handle detecting ongoing group calls
+  useEffect(() => {
+    if (!isGroupChat || !chatId || !supabase) {
+      setActiveCallData(null);
+      return;
+    }
+
+    const checkActiveCall = async () => {
+      const activeCall = await groupCallService.getActiveGroupCall(chatId);
+      // Only show banner if user is NOT in the call already
+      if (activeCall) {
+        const isUserInCall = activeCall.group_call_participants?.some(p => p.user_id === currentUser?.id && !p.left_at);
+        if (!isUserInCall) {
+          setActiveCallData(activeCall);
+        } else {
+          setActiveCallData(null);
+        }
+      } else {
+        setActiveCallData(null);
+      }
+    };
+
+    checkActiveCall();
+
+    // Subscribe to call changes for this group
+    const channelName = `group_calls_${chatId}`;
+    realtimeManager.subscribe(
+      channelName,
+      {},
+      {
+        postgres_changes: [
+          {
+            event: '*',
+            schema: 'public',
+            table: 'calls',
+            filter: `group_id=eq.${chatId}`,
+            handler: () => checkActiveCall()
+          },
+          {
+            event: '*',
+            schema: 'public',
+            table: 'group_call_participants',
+            handler: (payload) => {
+              // Only trigger if it's related to a call in this group
+              // (Simplest is to re-check when any participant changes if we don't have call_id filter easily here)
+              checkActiveCall();
+            }
+          }
+        ]
+      }
+    );
+
+    return () => {
+      realtimeManager.unsubscribe(channelName);
+    };
+  }, [chatId, isGroupChat, supabase, currentUser?.id]);
+
 
   const loadMessages = async (isLoadMore = false) => {
     if (!chatId || chatId === 'new') return;
@@ -914,8 +980,8 @@ const Chat = () => {
         content: content,
         media_path: mediaPath,
         media_type: mediaType,
+        reply_to: null,
         is_group_message: Boolean(isGroupChat),
-        reply_to: replyingTo ? replyingTo.id : null,
       };
 
       const { error } = await supabase
@@ -1078,8 +1144,33 @@ const Chat = () => {
     if (message && message.sender_id === currentUser.id) {
       // Trigger edit mode for that message
       setReplyingTo(null); // Clear reply if any
-      // We'll pass onEdit to MessageList
       exitSelectionMode();
+
+      // Find the MessageItem component and trigger edit mode
+      const messageElement = document.getElementById(`message-${messageId}`);
+      if (messageElement) {
+        // Find the edit button and click it, or trigger edit directly
+        const editBtn = messageElement.querySelector('.menu-item[onclick*="onEdit"]');
+        if (editBtn) {
+          editBtn.click();
+        } else {
+          // Fallback: trigger edit mode directly by finding the MessageItem
+          const messageItem = messageElement.closest('.message-item');
+          if (messageItem) {
+            // Dispatch a custom event to trigger edit mode
+            const editEvent = new CustomEvent('triggerEdit', { detail: { messageId } });
+            messageItem.dispatchEvent(editEvent);
+          }
+        }
+      }
+    }
+  };
+
+  const handleMessageEdit = (message) => {
+    // This function will be passed to MessageItem to handle edit triggers
+    if (message.sender_id === currentUser.id) {
+      // The actual edit logic is handled in MessageItem component
+      // This is just a placeholder for any additional logic needed
     }
   };
 
@@ -1294,9 +1385,7 @@ const Chat = () => {
 
   const handleVoiceCall = async () => {
     if (isGroupChat) {
-      // Show group call modal for groups
-      setSelectedCallType('voice');
-      setShowGroupCallModal(true);
+      await handleStartGroupCall('voice');
       return;
     }
 
@@ -1311,9 +1400,7 @@ const Chat = () => {
 
   const handleVideoCall = async () => {
     if (isGroupChat) {
-      // Show group call modal for groups
-      setSelectedCallType('video');
-      setShowGroupCallModal(true);
+      await handleStartGroupCall('video');
       return;
     }
 
@@ -1326,27 +1413,22 @@ const Chat = () => {
     }
   };
 
-  const handleStartGroupCall = async () => {
+  const handleStartGroupCall = async (callType) => {
     try {
-      // For now, start a direct call (group calling requires more complex setup)
-      // In future, this can trigger a group call feature
-      const { data: members } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', chatId);
-
-      if (members && members.length > 0) {
-        // Start call with first member as a workaround
-        const { callId } = await startCall(members[0].user_id, selectedCallType);
-        navigate(`/call/${callId}`);
-      }
-      setShowGroupCallModal(false);
+      setShowGroupCallScreen(true);
+      await initializeGroupCall(chatId, callType);
     } catch (error) {
       console.error('Failed to start group call:', error);
-      toast.error('Failed to start call');
+      toast.error('Failed to start group call');
+      setShowGroupCallScreen(false);
     }
   };
 
+  const handleEndGroupCall = () => {
+    leaveGroupCall();
+    setShowGroupCallScreen(false);
+    setActiveGroupCall(null);
+  };
 
   const handleScroll = (e) => {
     const container = e.target;
@@ -1558,6 +1640,32 @@ const Chat = () => {
           </div>
         </header>
 
+        {/* Ongoing Call Banner */}
+        {activeCallData && (
+          <div className="active-call-banner">
+            <div className="banner-content">
+              <div className="call-icon">
+                {activeCallData.call_type === 'video' ? <Video size={18} /> : <Phone size={18} />}
+              </div>
+              <div className="call-details">
+                <span className="banner-title">Ongoing Group Call</span>
+                <span className="banner-subtitle">
+                  {activeCallData.group_call_participants?.length || 0} participants calling...
+                </span>
+              </div>
+            </div>
+            <button
+              className="banner-join-btn"
+              onClick={() => {
+                joinGroupCall(activeCallData.id);
+                setShowGroupCallScreen(true);
+              }}
+            >
+              Join
+            </button>
+          </div>
+        )}
+
         {/* Selection Toolbar */}
         {isSelectionMode && (
           <div className="selection-toolbar">
@@ -1644,6 +1752,7 @@ const Chat = () => {
                 setMessages(prev => prev.filter(m => m.id !== messageId));
               }, 450);
             }}
+            onEdit={handleMessageEdit}
             onMediaView={handleMediaView}
             onMediaDownload={handleMediaDownload}
             isLoading={showLoading}
@@ -2032,6 +2141,15 @@ const Chat = () => {
           <WallpaperPicker onClose={() => setShowWallpaperPicker(false)} />
         )}
       </div>
+
+      {/* Group Call Screen - Overlay */}
+      {showGroupCallScreen && (
+        <GroupCallScreen
+          groupId={chatId}
+          callType={selectedCallType || 'video'}
+          onEndCall={handleEndGroupCall}
+        />
+      )}
 
       {/* Group Info Drawer - for group chats */}
       {(isGroupChat || otherUser?.is_group) && (

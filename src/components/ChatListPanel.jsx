@@ -25,6 +25,7 @@ import { getInitials } from '../utils/stringUtils';
 import { isUserOnline } from '../utils/timeUtils';
 import CreateGroupModal from './groups/CreateGroupModal';
 import { useGroupActions } from '../hooks/useGroupActions';
+import ScrollableChatList from './chat/ScrollableChatList';
 
 const ChatListPanel = ({
   searchTerm,
@@ -149,7 +150,7 @@ const ChatListPanel = ({
   };
 
   return (
-    <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <main className="chat-list-panel-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative' }}>
       <header className="top-header">
         <div className="header-left">
           <h1 className="chats-title">Chats</h1>
@@ -231,77 +232,20 @@ const ChatListPanel = ({
         </div>
       )}
 
-      <div
-        className="chat-list-wrapper chat-list-container"
-        onScroll={handleChatListScroll}
-        ref={chatListRef}
-      >
-        {/* Desktop Groups Sidebar Section - Integrated above chats as requested */}
-        {isDesktop && groupChats.length > 0 && !searchTerm && (
-          <div className="sidebar-groups-section">
-            <div className="sidebar-section-header">
-              <h3>Groups</h3>
-              <button className="create-group-icon-btn" onClick={() => setShowCreateGroupModal(true)}>
-                <Plus size={16} />
-              </button>
-            </div>
-            <div className="sidebar-groups-list">
-              {groupChats.map(group => (
-                <div
-                  key={group.id}
-                  className={`sidebar-group-item ${currentChatId === group.id ? 'active' : ''}`}
-                  onClick={() => handleChatClick(group)}
-                >
-                  <div className="sidebar-group-avatar">
-                    <img
-                      src={group.avatar || "/group-avatar-placeholder.png"}
-                      alt={group.name}
-                      onError={(e) => { e.target.src = "/group-avatar-placeholder.png"; }}
-                    />
-                  </div>
-                  <div className="sidebar-group-info">
-                    <span className="sidebar-group-name">{group.name}</span>
-                    {group.unreadCount > 0 && <span className="unread-dot"></span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Main Chat List (DMs on Desktop, Unified on Mobile) */}
-        <div className="chat-items-section">
-          {isDesktop && !searchTerm && <div className="sidebar-section-header"><h3>Messages</h3></div>}
-
-          {(isDesktop ? dmChats : filteredChats).length > 0 ? (
-            (isDesktop ? dmChats : filteredChats).map(renderChatItem)
-          ) : (
-            !isDesktop && groupChats.length === 0 && (
-              <div className="empty-state">
-                <MessageCircle size={48} className="empty-state-icon" />
-                <h3>No conversations yet</h3>
-                <p>Start messaging your contacts</p>
-              </div>
-            )
-          )}
-
-          {/* Search results placeholder when searching */}
-          {searchTerm && filteredChats.length === 0 && (
-            <div className="empty-state">
-              <Search size={48} className="empty-state-icon" />
-              <h3>No results found</h3>
-              <p>Try searching with another name or phone</p>
-            </div>
-          )}
-        </div>
-
-        {loadingMore && (
-          <div className="load-more-chats">
-            <div className="loading-spinner"></div>
-            <p>Loading more chats...</p>
-          </div>
-        )}
-      </div>
+      <ScrollableChatList
+        isDesktop={isDesktop}
+        groupChats={groupChats}
+        dmChats={dmChats}
+        filteredChats={filteredChats}
+        searchTerm={searchTerm}
+        currentChatId={currentChatId}
+        handleChatClick={handleChatClick}
+        handleChatListScroll={handleChatListScroll}
+        chatListRef={chatListRef}
+        loadingMore={loadingMore}
+        renderChatItem={renderChatItem}
+        setShowCreateGroupModal={setShowCreateGroupModal}
+      />
 
       <CreateGroupModal
         isOpen={showCreateGroupModal}

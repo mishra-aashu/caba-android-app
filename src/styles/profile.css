@@ -25,7 +25,7 @@ body.light-mode .profile-header .icon-btn i {
 
 body.light-mode .profile-content {
   background: #f5f5f5;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 body.light-mode .info-item {
@@ -138,9 +138,12 @@ body.light-mode .input-group textarea::placeholder {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--background); /* Use global background variable */
-  color: var(--text-primary); /* Use global text variable */
-  overflow-x: hidden; /* Hide horizontal overflow */
+  background: var(--background);
+  /* Use global background variable */
+  color: var(--text-primary);
+  /* Use global text variable */
+  overflow-x: hidden;
+  /* Hide horizontal overflow */
 }
 
 .profile-screen.profile-modal {
@@ -148,14 +151,37 @@ body.light-mode .input-group textarea::placeholder {
   background: transparent;
 }
 
+.profile-screen.is-sidebar {
+  min-height: 100%;
+  height: 100%;
+  background: var(--surface);
+}
+
+.profile-screen.is-sidebar .profile-content {
+  max-width: 100%;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 15px;
+}
+
+.profile-screen.is-sidebar .profile-header {
+  box-shadow: none;
+  border-bottom: 1px solid var(--border-color);
+}
+
 .profile-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 15px 20px;
-  background: var(--surface); /* Use global surface variable */
-  border-bottom: 1px solid var(--border-color); /* Use global border variable */
-  box-shadow: var(--shadow-sm); /* Use global shadow variable */
+  background: var(--surface);
+  /* Use global surface variable */
+  border-bottom: 1px solid var(--border-color);
+  /* Use global border variable */
+  box-shadow: var(--shadow-sm);
+  /* Use global shadow variable */
   position: sticky;
   top: 0;
   z-index: 10;
@@ -163,10 +189,13 @@ body.light-mode .input-group textarea::placeholder {
 
 .profile-header h1 {
   margin: 0;
-  font-size: 22px; /* Slightly larger for prominence */
-  font-weight: 700; /* Bolder */
+  font-size: 22px;
+  /* Slightly larger for prominence */
+  font-weight: 700;
+  /* Bolder */
   color: var(--text-primary);
-  letter-spacing: -0.5px; /* Tighter for modern feel */
+  letter-spacing: -0.5px;
+  /* Tighter for modern feel */
 }
 
 .profile-header .back-btn {
@@ -202,7 +231,8 @@ body.light-mode .input-group textarea::placeholder {
 }
 
 .profile-header .icon-btn i {
-  color: var(--icon-primary); /* Ensure icon color uses global variable */
+  color: var(--icon-primary);
+  /* Ensure icon color uses global variable */
 }
 
 .profile-header .icon-btn:hover i {
@@ -287,17 +317,23 @@ body.light-mode .input-group textarea::placeholder {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Reduced gap for a tighter, cleaner look */
+  gap: 10px;
+  /* Reduced gap for a tighter, cleaner look */
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  padding: 15px 20px; /* Generous padding for content */
-  background: var(--surface-secondary); /* Use secondary surface for item background */
-  border-radius: var(--radius-md); /* Rounded corners */
-  box-shadow: var(--shadow-sm); /* Subtle shadow */
-  border: 1px solid var(--border-color); /* Light border */
+  padding: 15px 20px;
+  /* Generous padding for content */
+  background: var(--surface-secondary);
+  /* Use secondary surface for item background */
+  border-radius: var(--radius-md);
+  /* Rounded corners */
+  box-shadow: var(--shadow-sm);
+  /* Subtle shadow */
+  border: 1px solid var(--border-color);
+  /* Light border */
   transition: all var(--transition-fast);
 }
 
@@ -308,45 +344,57 @@ body.light-mode .input-group textarea::placeholder {
 }
 
 .info-item:last-child {
-  border-bottom: none; /* No border needed with new styling */
+  border-bottom: none;
+  /* No border needed with new styling */
 }
 
 .info-label {
   display: flex;
   align-items: center;
-  gap: 12px; /* Slightly larger gap for icons */
+  gap: 12px;
+  /* Slightly larger gap for icons */
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
-  margin-bottom: 8px; /* More space below label */
+  margin-bottom: 8px;
+  /* More space below label */
 }
 
 .info-label i {
   color: var(--icon-primary);
   vertical-align: middle;
-  font-size: 18px; /* Slightly larger icons */
+  font-size: 18px;
+  /* Slightly larger icons */
 }
 
 .info-value {
   font-size: 16px;
   color: var(--text-primary);
   font-weight: 400;
-  padding-left: 30px; /* Align with label text */
-  word-break: break-all; /* Prevent overflow for long text */
+  padding-left: 30px;
+  /* Align with label text */
+  word-break: break-all;
+  /* Prevent overflow for long text */
 }
 
 .profile-stats {
   width: 100%;
   display: flex;
   justify-content: space-around;
-  padding: 20px 0; /* Increased vertical padding */
-  margin-top: 20px; /* Add margin to separate from info section */
-  background: var(--surface-secondary); /* Subtle background */
-  border-radius: var(--radius-md); /* Rounded corners */
-  box-shadow: var(--shadow-sm); /* Subtle shadow */
+  padding: 20px 0;
+  /* Increased vertical padding */
+  margin-top: 20px;
+  /* Add margin to separate from info section */
+  background: var(--surface-secondary);
+  /* Subtle background */
+  border-radius: var(--radius-md);
+  /* Rounded corners */
+  box-shadow: var(--shadow-sm);
+  /* Subtle shadow */
   border: 1px solid var(--border-color);
   position: relative;
-  overflow: hidden; /* For pseudo-element */
+  overflow: hidden;
+  /* For pseudo-element */
 }
 
 .profile-stats::before {
@@ -357,7 +405,8 @@ body.light-mode .input-group textarea::placeholder {
   transform: translateX(-50%);
   width: 1px;
   height: 100%;
-  background: var(--border-color); /* Vertical divider */
+  background: var(--border-color);
+  /* Vertical divider */
   opacity: 0.5;
 }
 
@@ -375,13 +424,15 @@ body.light-mode .input-group textarea::placeholder {
 .stat-item {
   text-align: center;
   flex: 1;
-  padding: 0 10px; /* Add horizontal padding to stat items */
+  padding: 0 10px;
+  /* Add horizontal padding to stat items */
   position: relative;
 }
 
 .stat-item h3 {
   margin: 0 0 5px 0;
-  font-size: 26px; /* Slightly larger numbers */
+  font-size: 26px;
+  /* Slightly larger numbers */
   font-weight: 700;
   color: var(--primary-color);
   text-shadow: 0 1px 3px rgba(var(--primary-color-rgb), 0.3);
@@ -390,7 +441,8 @@ body.light-mode .input-group textarea::placeholder {
 
 .stat-item p {
   margin: 0;
-  font-size: 13px; /* Slightly smaller label */
+  font-size: 13px;
+  /* Slightly smaller label */
   color: var(--text-secondary);
   font-weight: 500;
   text-transform: uppercase;
@@ -401,16 +453,20 @@ body.light-mode .input-group textarea::placeholder {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Slightly reduced gap for a tighter look */
-  margin-top: 20px; /* Add some top margin */
+  gap: 10px;
+  /* Slightly reduced gap for a tighter look */
+  margin-top: 20px;
+  /* Add some top margin */
 }
 
 .action-btn {
   width: 100%;
   padding: 15px 20px;
-  background: var(--surface); /* Use primary surface for a cleaner look */
+  background: var(--surface);
+  /* Use primary surface for a cleaner look */
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg); /* More rounded corners */
+  border-radius: var(--radius-lg);
+  /* More rounded corners */
   display: flex;
   align-items: center;
   gap: 15px;
@@ -442,14 +498,17 @@ body.light-mode .input-group textarea::placeholder {
 .action-btn:hover {
   background: var(--hover-color);
   border-color: var(--primary-color);
-  transform: translateY(-3px) scale(1.005); /* Slightly more pronounced lift and slight scale */
-  box-shadow: var(--shadow-lg); /* Larger shadow on hover */
+  transform: translateY(-3px) scale(1.005);
+  /* Slightly more pronounced lift and slight scale */
+  box-shadow: var(--shadow-lg);
+  /* Larger shadow on hover */
 }
 
 .action-btn i {
   color: var(--icon-primary);
   font-size: 20px;
-  vertical-align: middle; /* Ensure vertical alignment */
+  vertical-align: middle;
+  /* Ensure vertical alignment */
 }
 
 .action-btn:hover i {
@@ -464,16 +523,19 @@ body.light-mode .input-group textarea::placeholder {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7); /* 70% opacity black overlay */
+  background-color: rgba(0, 0, 0, 0.7);
+  /* 70% opacity black overlay */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(5px); /* Blur background content */
+  backdrop-filter: blur(5px);
+  /* Blur background content */
 }
 
 .modal-content {
-  background-color: #1e1e1e; /* Solid dark grey - NO TRANSPARENCY */
+  background-color: #1e1e1e;
+  /* Solid dark grey - NO TRANSPARENCY */
   color: white;
   width: 90%;
   max-width: 500px;
@@ -487,8 +549,10 @@ body.light-mode .input-group textarea::placeholder {
 }
 
 /* Legacy modal support - keep for backward compatibility */
-.modal[style*="display: flex"] { /* Targeting the inline display flex */
-  display: flex; /* Ensure it's always flex when visible */
+.modal[style*="display: flex"] {
+  /* Targeting the inline display flex */
+  display: flex;
+  /* Ensure it's always flex when visible */
   align-items: center;
   justify-content: center;
 }
@@ -528,7 +592,10 @@ body.light-mode .input-group textarea::placeholder {
   cursor: pointer;
   transition: color 0.3s;
 }
-.close-btn:hover { color: white; }
+
+.close-btn:hover {
+  color: white;
+}
 
 /* Legacy modal header support */
 .modal-header h2 {
@@ -555,7 +622,8 @@ body.light-mode .input-group textarea::placeholder {
 }
 
 .modal-body {
-  padding: 0; /* Remove default modal body padding if any */
+  padding: 0;
+  /* Remove default modal body padding if any */
 }
 
 /* Edit Form */
@@ -614,9 +682,11 @@ body.light-mode .input-group textarea::placeholder {
 /* DP Options Grid */
 .avatar-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 4 images per row */
+  grid-template-columns: repeat(4, 1fr);
+  /* 4 images per row */
   gap: 15px;
-  max-height: 400px; /* If list is long, allow scrolling */
+  max-height: 400px;
+  /* If list is long, allow scrolling */
   overflow-y: auto;
 }
 
@@ -631,7 +701,8 @@ body.light-mode .input-group textarea::placeholder {
 
 .avatar-item:hover {
   transform: scale(1.1);
-  border-color: #667eea; /* Highlight color on hover */
+  border-color: #667eea;
+  /* Highlight color on hover */
 }
 
 /* Legacy DP Options Grid support */
@@ -646,7 +717,8 @@ body.light-mode .input-group textarea::placeholder {
 .dp-options-grid img {
   width: 80px;
   height: 80px;
-  border-radius: 50%; /* Make them circular */
+  border-radius: 50%;
+  /* Make them circular */
   cursor: pointer;
   object-fit: cover;
   border: 2px solid transparent;
@@ -660,18 +732,21 @@ body.light-mode .input-group textarea::placeholder {
 }
 
 /* User Found Modal (from QR scan) */
-.modal-body > div[style] { /* Targeting the inner div with inline style */
+.modal-body>div[style] {
+  /* Targeting the inner div with inline style */
   margin-bottom: 20px;
 }
 
-.modal-body > div[style] > div[style] { /* Targeting the inner div with display: flex */
+.modal-body>div[style]>div[style] {
+  /* Targeting the inner div with display: flex */
   display: flex;
   align-items: center;
   margin-bottom: 15px;
   gap: 15px;
 }
 
-.modal-body .avatar-circle-small { /* Custom class for found user avatar */
+.modal-body .avatar-circle-small {
+  /* Custom class for found user avatar */
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -734,69 +809,91 @@ body.light-mode .input-group textarea::placeholder {
 }
 
 .profile-screen.profile-scrolled .profile-header {
-  padding-left: 60px; /* Make space for the fixed avatar (40px width + 10px left + 10px margin) */
-  transition: padding-left var(--transition-normal) ease-in-out; /* Smooth transition for padding */
+  padding-left: 60px;
+  /* Make space for the fixed avatar (40px width + 10px left + 10px margin) */
+  transition: padding-left var(--transition-normal) ease-in-out;
+  /* Smooth transition for padding */
 }
 
 
 
 @media (max-width: 480px) {
   .profile-header {
-    padding: 10px 0; /* Remove horizontal padding */
+    padding: 10px 0;
+    /* Remove horizontal padding */
   }
 
   .profile-content {
-    padding: 0 10px; /* Add small horizontal padding */
+    padding: 0 10px;
+    /* Add small horizontal padding */
     gap: 15px;
-    border-radius: 0; /* Full width on small screens */
+    border-radius: 0;
+    /* Full width on small screens */
     box-shadow: none;
-    width: 100%; /* Ensure it takes full width */
+    width: 100%;
+    /* Ensure it takes full width */
   }
 
   .profile-stats {
-    flex-direction: row; /* Keep them horizontal */
-    gap: 5px; /* Reduce gap */
-    padding: 10px 0; /* Adjust vertical padding */
+    flex-direction: row;
+    /* Keep them horizontal */
+    gap: 5px;
+    /* Reduce gap */
+    padding: 10px 0;
+    /* Adjust vertical padding */
   }
 
   .stat-item {
-    padding: 5px; /* Adjust padding for smaller screens */
-    border-bottom: none; /* No border when horizontal */
-    flex: 1; /* Allow them to take equal space */
+    padding: 5px;
+    /* Adjust padding for smaller screens */
+    border-bottom: none;
+    /* No border when horizontal */
+    flex: 1;
+    /* Allow them to take equal space */
   }
 
   .stat-item:last-child {
-    border-bottom: none; /* Remove border from last item */
+    border-bottom: none;
+    /* Remove border from last item */
   }
 
   .info-value {
-    padding-left: 0; /* Remove padding-left on small screens */
-    text-align: left; /* Ensure text aligns correctly */
+    padding-left: 0;
+    /* Remove padding-left on small screens */
+    text-align: left;
+    /* Ensure text aligns correctly */
   }
 
   .profile-info-section {
-    gap: 10px; /* Reduce gap between info items */
+    gap: 10px;
+    /* Reduce gap between info items */
   }
 
   .info-item {
-    padding: 8px 0; /* Adjust vertical padding */
+    padding: 8px 0;
+    /* Adjust vertical padding */
   }
 
   .info-label {
-    font-size: 13px; /* Smaller font size for labels */
+    font-size: 13px;
+    /* Smaller font size for labels */
   }
 
   .info-value {
-    font-size: 15px; /* Smaller font size for values */
+    font-size: 15px;
+    /* Smaller font size for values */
   }
 
   .profile-actions {
-    gap: 10px; /* Reduce gap between action buttons */
+    gap: 10px;
+    /* Reduce gap between action buttons */
   }
 
   .action-btn {
-    padding: 10px 15px; /* Adjust padding for smaller buttons */
-    font-size: 14px; /* Smaller font size for buttons */
+    padding: 10px 15px;
+    /* Adjust padding for smaller buttons */
+    font-size: 14px;
+    /* Smaller font size for buttons */
   }
 
   .modal-content {
@@ -808,34 +905,42 @@ body.light-mode .input-group textarea::placeholder {
 
   .dp-options-grid {
     grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    gap: 10px; /* Adjust gap for smaller items */
+    gap: 10px;
+    /* Adjust gap for smaller items */
   }
 
   .dp-options-grid img {
-    width: 50px; /* Further reduce image size */
+    width: 50px;
+    /* Further reduce image size */
     height: 50px;
   }
 }
 
 /* Custom Scrollbar Styling (for WebKit browsers) */
 ::-webkit-scrollbar {
-  width: 8px; /* Width for vertical scrollbar */
-  height: 8px; /* Height for horizontal scrollbar */
+  width: 8px;
+  /* Width for vertical scrollbar */
+  height: 8px;
+  /* Height for horizontal scrollbar */
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--surface-secondary); /* Color of the track */
+  background: var(--surface-secondary);
+  /* Color of the track */
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--primary-color); /* Color of the scroll thumb */
+  background: var(--primary-color);
+  /* Color of the scroll thumb */
   border-radius: 10px;
-  border: 2px solid var(--surface-secondary); /* Padding around thumb */
+  border: 2px solid var(--surface-secondary);
+  /* Padding around thumb */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-color-dark); /* Color when hovered */
+  background: var(--primary-color-dark);
+  /* Color when hovered */
 }
 
 /* Fullscreen Image Modal */

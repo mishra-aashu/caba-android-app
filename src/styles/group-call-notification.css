@@ -1,0 +1,169 @@
+.group-call-notification-overlay {
+    position: fixed;
+    top: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 9999;
+    pointer-events: none;
+    padding: 0 20px;
+}
+
+.group-call-notification {
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 16px 20px;
+    width: 100%;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    animation: slideDownNotification 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideDownNotification {
+    from {
+        transform: translateY(-150%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.notification-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.caller-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--brand-primary, #00a884);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.caller-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.call-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.caller-name {
+    font-weight: 700;
+    color: #111b21;
+    font-size: 1rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.group-call-label {
+    font-size: 0.85rem;
+    color: #667781;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.group-name-tag {
+    color: var(--brand-primary, #00a884);
+    font-weight: 600;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.notif-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.notif-btn.ignore {
+    background: #f0f2f5;
+    color: #54656f;
+}
+
+.notif-btn.ignore:hover {
+    background: #e1e4e7;
+}
+
+.notif-btn.accept {
+    background: var(--brand-primary, #00a884);
+    color: white;
+    flex: 2;
+}
+
+.notif-btn.accept:hover {
+    background: #008f6f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
+}
+
+.notif-btn.video-toggle {
+    width: 45px;
+    flex: 0 0 45px;
+    background: rgba(0, 0, 0, 0.05);
+    color: #54656f;
+}
+
+.notif-btn.video-toggle.active {
+    background: rgba(0, 168, 132, 0.1);
+    color: var(--brand-primary, #00a884);
+}
+
+/* Dark Mode */
+body.dark-mode .group-call-notification {
+    background: rgba(30, 42, 49, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .caller-name {
+    color: #e9edef;
+}
+
+body.dark-mode .group-call-label {
+    color: #8696a0;
+}
+
+body.dark-mode .notif-btn.ignore {
+    background: #2a3942;
+    color: #aebac1;
+}

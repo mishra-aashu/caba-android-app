@@ -10,6 +10,7 @@ const MessageList = ({
   onReply,
   onForward,
   onDelete,
+  onEdit,
   onMediaView,
   onMediaDownload,
   isLoading,
@@ -95,6 +96,7 @@ const MessageList = ({
                 onReply={() => onReply(message)}
                 onForward={() => onForward(message)}
                 onDelete={onDelete}
+                onEdit={onEdit}
                 onMediaView={onMediaView}
                 onMediaDownload={onMediaDownload}
                 isGroupChat={isGroupChat}

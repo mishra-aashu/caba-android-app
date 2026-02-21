@@ -8,15 +8,21 @@ const DesktopLayout = ({ chatListPanel, chatComponent, userDetailsPanel, particl
   const hasUserDetails = Boolean(userDetailsPanel);
 
   return (
-    <div className={`desktop-layout ${hasUserDetails ? 'show-user-details' : ''}`}>
-      <div className="chat-list-panel">
+    <div className={`desktop-layout ${hasUserDetails ? 'show-user-details' : ''}`} style={{
+      display: 'flex',
+      width: '100%',
+      height: '100%',
+      overflow: 'hidden',
+      position: 'relative'
+    }}>
+      <div className="chat-list-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         {chatListPanel}
       </div>
-      <div className="chat-detail">
+      <div className="chat-detail" style={{ flex: 1, minWidth: 0, height: '100%', position: 'relative' }}>
         {chatComponent}
       </div>
       {hasUserDetails && (
-        <div className="user-details-panel">
+        <div className="user-details-panel" style={{ height: '100%', overflow: 'hidden' }}>
           {userDetailsPanel}
         </div>
       )}

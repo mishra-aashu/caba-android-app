@@ -11,7 +11,8 @@ import '../qr/QRCodeScanner.css';
 import FullscreenImageModal from './FullscreenImageModal';
 import toast from 'react-hot-toast';
 
-const Profile = ({ isModal = false }) => {
+const Profile = ({ isModal = false, isSidebar = false }) => {
+  const isOverlay = isModal || isSidebar;
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { user: authUser, loading: authLoading } = useAuth();
@@ -167,7 +168,7 @@ const Profile = ({ isModal = false }) => {
 
   const handleQrScan = (scannedData) => {
     setShowScanQrModal(false);
-    
+
     try {
       const userData = JSON.parse(scannedData);
       if (userData.id && userData.name) {
@@ -216,9 +217,9 @@ const Profile = ({ isModal = false }) => {
   }
 
   return (
-    <div className={`profile-screen ${isModal ? 'profile-modal' : ''}`}>
+    <div className={`profile-screen ${isOverlay ? 'profile-modal' : ''} ${isSidebar ? 'is-sidebar' : ''}`}>
       <header className="profile-header">
-        <button className="back-btn" onClick={isModal ? () => navigate('/') : () => window.history.back()}>
+        <button className="back-btn" onClick={isOverlay ? () => navigate('/') : () => window.history.back()}>
           <span className="icon">←</span>
         </button>
         <h1>Profile</h1>
@@ -251,11 +252,11 @@ const Profile = ({ isModal = false }) => {
           </button>
         </div>
         {showFullscreenImage && (
-        <FullscreenImageModal
-          src={fullscreenImageUrl}
-          onClose={() => setShowFullscreenImage(false)}
-        />
-      )}
+          <FullscreenImageModal
+            src={fullscreenImageUrl}
+            onClose={() => setShowFullscreenImage(false)}
+          />
+        )}
 
 
 
@@ -439,7 +440,7 @@ const Profile = ({ isModal = false }) => {
                   <div className="user-found-info">
                     <h3>{foundUser.name}</h3>
                     <p>{foundUser.phone}</p>
-                        <p>{foundUser.about}</p>
+                    <p>{foundUser.about}</p>
                   </div>
                 </div>
               </div>

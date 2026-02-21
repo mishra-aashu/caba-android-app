@@ -9,6 +9,7 @@ class RealtimeManager {
   constructor() {
     this.subscriptions = new Map(); // Map<string, Set<Channel>>
     this.globalSubscriptions = new Set(); // Set<Channel>
+    this.pendingSubscriptions = new Map(); // Map<string, Promise<Channel>> to prevent overlapping calls
     this.maxRetries = 5;
     this.retryDelay = 2000;
   }
@@ -17,52 +18,66 @@ class RealtimeManager {
    * Create a new subscription with automatic cleanup
    */
   async subscribe(channelName, config, callbacks = {}) {
-    try {
-      // 1. Root fix: Check if subscription already exists and CLEAN UP FIRST
-      // This prevents "dirty" channels from causing CHANNEL_ERROR on re-subscribe
-      if (this.subscriptions.has(channelName)) {
-        console.log(`🔄 Pre-cleaning existing subscription: ${channelName}`);
-        await this.unsubscribe(channelName);
-      }
-
-      const channel = supabase.channel(channelName);
-
-      // 2. Add event listeners
-      Object.entries(callbacks).forEach(([event, callback]) => {
-        if (event === 'postgres_changes') {
-          // callback is an array of listeners
-          callback.forEach(listenerConfig => {
-            // Root fix: strip 'handler' from the config object passed to Supabase
-            // Supabase expects only valid filter properties (event, schema, table, filter)
-            const { handler, ...supabaseConfig } = listenerConfig;
-            channel.on('postgres_changes', supabaseConfig, handler || (() => { }));
-          });
-        } else {
-          channel.on(event, callback);
-        }
-      });
-
-      // 3. Subscribe with error handling
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`✅ Successfully subscribed to ${channelName}`);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error(`❌ Subscription failed for ${channelName}:`, status);
-          this.handleSubscriptionError(channelName, channel, config, callbacks);
-        }
-      });
-
-      // 4. Store the channel
-      if (!this.subscriptions.has(channelName)) {
-        this.subscriptions.set(channelName, new Set());
-      }
-      this.subscriptions.get(channelName).add(channel);
-
-      return channel;
-    } catch (error) {
-      console.error(`Error creating subscription ${channelName}:`, error);
-      return null;
+    // Root fix: If a subscription is already in progress for this name, return that promise
+    if (this.pendingSubscriptions.has(channelName)) {
+      console.log(`⏳ Subscription already in progress for ${channelName}, joining existing request...`);
+      return this.pendingSubscriptions.get(channelName);
     }
+
+    const subscriptionPromise = (async () => {
+      try {
+        // 1. Root fix: Check if subscription already exists and CLEAN UP FIRST
+        // This prevents "dirty" channels from causing CHANNEL_ERROR on re-subscribe
+        if (this.subscriptions.has(channelName)) {
+          console.log(`🔄 Pre-cleaning existing subscription: ${channelName}`);
+          await this.unsubscribe(channelName);
+        }
+
+        const channel = supabase.channel(channelName);
+
+        // 2. Add event listeners
+        Object.entries(callbacks).forEach(([event, callback]) => {
+          if (event === 'postgres_changes') {
+            // callback is an array of listeners
+            callback.forEach(listenerConfig => {
+              // Root fix: strip 'handler' from the config object passed to Supabase
+              // Supabase expects only valid filter properties (event, schema, table, filter)
+              const { handler, ...supabaseConfig } = listenerConfig;
+              channel.on('postgres_changes', supabaseConfig, handler || (() => { }));
+            });
+          } else {
+            channel.on(event, callback);
+          }
+        });
+
+        // 3. Subscribe with error handling
+        channel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(`✅ Successfully subscribed to ${channelName}`);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error(`❌ Subscription failed for ${channelName}:`, status);
+            this.handleSubscriptionError(channelName, channel, config, callbacks);
+          }
+        });
+
+        // 4. Store the channel
+        if (!this.subscriptions.has(channelName)) {
+          this.subscriptions.set(channelName, new Set());
+        }
+        this.subscriptions.get(channelName).add(channel);
+
+        return channel;
+      } catch (error) {
+        console.error(`Error creating subscription ${channelName}:`, error);
+        return null;
+      } finally {
+        // Clean up pending state
+        this.pendingSubscriptions.delete(channelName);
+      }
+    })();
+
+    this.pendingSubscriptions.set(channelName, subscriptionPromise);
+    return subscriptionPromise;
   }
 
   /**
@@ -121,6 +136,16 @@ class RealtimeManager {
    * Remove all subscriptions for a specific channel name
    */
   async unsubscribe(channelName) {
+    // Root fix: If a subscription is pending, wait for it before unsubscribing
+    if (this.pendingSubscriptions.has(channelName)) {
+      console.log(`⏳ Waiting for pending subscription to ${channelName} before unsubscribing...`);
+      try {
+        await this.pendingSubscriptions.get(channelName);
+      } catch (e) {
+        // Ignore errors as we're unsubscribing anyway
+      }
+    }
+
     const channels = this.subscriptions.get(channelName);
     if (channels) {
       // Use Promise.all to wait for all channels to be removed

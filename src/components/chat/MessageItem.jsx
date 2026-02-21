@@ -55,6 +55,12 @@ const MessageItem = ({
   const bubbleRef = useRef(null);
   const messageRef = useRef(null);
 
+  // Move these declarations before useEffect to fix initialization error
+  const safeMessage = message ?? {};
+  const isSent = safeMessage.sender_id === currentUser?.id;
+  const isReplied = !!safeMessage.reply_to;
+  const isTouchDevice = typeof window !== 'undefined' && window.matchMedia?.('(hover: none)').matches;
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showActions) {
@@ -65,14 +71,21 @@ const MessageItem = ({
         }
       }
     };
+    
+    const handleEditTrigger = (e) => {
+      if (e.detail.messageId === safeMessage.id && isSent) {
+        handleEdit();
+      }
+    };
+    
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showActions]);
-
-  const safeMessage = message ?? {};
-  const isSent = safeMessage.sender_id === currentUser?.id;
-  const isReplied = !!safeMessage.reply_to;
-  const isTouchDevice = typeof window !== 'undefined' && window.matchMedia?.('(hover: none)').matches;
+    messageRef.current?.addEventListener('triggerEdit', handleEditTrigger);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      messageRef.current?.removeEventListener('triggerEdit', handleEditTrigger);
+    };
+  }, [showActions, safeMessage.id, isSent]);
 
   const sender = safeMessage.sender ?? {};
   const senderName = sender.name || sender.username || 'User';
@@ -134,14 +147,33 @@ const MessageItem = ({
   const saveEdit = async () => {
     if (editContent.trim() && editContent !== (safeMessage.content ?? '')) {
       try {
+        const now = new Date().toISOString();
         const { error } = await supabase
           .from('messages')
-          .update({ content: editContent.trim(), updated_at: new Date().toISOString() })
+          .update({ 
+            content: editContent.trim(), 
+            updated_at: now 
+          })
           .eq('id', safeMessage.id);
         if (error) throw error;
+        
+        // Update the local message object to reflect the change immediately
         safeMessage.content = editContent.trim();
+        safeMessage.updated_at = now; // Set updated_at to current time
+        
+        // Force re-render by updating the parent component's state
+        // This will trigger the realtime update and show the "edited" indicator
+        if (window.updateMessageInChat) {
+          window.updateMessageInChat(safeMessage.id, {
+            content: editContent.trim(),
+            updated_at: now
+          });
+        }
+        
+        toast.success('Message edited successfully');
       } catch (error) {
         console.error('Error editing message:', error);
+        toast.error('Failed to edit message');
       }
     }
     setIsEditing(false);
@@ -249,6 +281,63 @@ const MessageItem = ({
   };
 
   const renderMessageContent = () => {
+    if (isEditing) {
+      return (
+        <div className="message-edit-container">
+          <textarea
+            ref={(textarea) => {
+              if (textarea) {
+                // Auto-resize textarea
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+              }
+            }}
+            className="message-edit-input"
+            value={editContent}
+            onChange={(e) => {
+              setEditContent(e.target.value);
+              // Auto-resize
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                saveEdit();
+              } else if (e.key === 'Escape') {
+                cancelEdit();
+              }
+            }}
+            autoFocus
+            rows={1}
+            style={{
+              resize: 'none',
+              minHeight: '30px',
+              maxHeight: '120px',
+              overflowY: 'auto'
+            }}
+          />
+          <div className="message-edit-actions">
+            <button 
+              className="edit-cancel-btn" 
+              onClick={cancelEdit}
+              title="Cancel (Esc)"
+            >
+              ✕
+            </button>
+            <button 
+              className="edit-save-btn" 
+              onClick={saveEdit}
+              title="Save (Enter)"
+              disabled={!editContent.trim() || editContent === (safeMessage.content ?? '')}
+            >
+              ✓
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (safeMessage.media_path && (safeMessage.media_type === 'image' || safeMessage.media_type === 'video')) {
       return (
         <MediaMessage
@@ -286,7 +375,7 @@ const MessageItem = ({
         status={safeMessage.is_read ? 'read' : 'sent'}
         edited={!!safeMessage.updated_at}
         sender={safeMessage.sender}
-        message={safeMessage}
+        message={safeMessage} // Pass the full message object with timestamps
       />
     );
   };

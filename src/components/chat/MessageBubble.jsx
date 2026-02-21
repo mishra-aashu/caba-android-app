@@ -28,6 +28,26 @@ const LockIcon = () => (
   </svg>
 );
 
+// Utility function to check if a message was edited
+const isMessageEdited = (message) => {
+  if (!message?.updated_at || !message?.created_at) return false;
+  
+  const updatedTime = new Date(message.updated_at);
+  const createdTime = new Date(message.created_at);
+  const timeDiff = updatedTime.getTime() - createdTime.getTime();
+  
+  // Very conservative threshold - only show "edited" if time difference is more than 3 seconds
+  // This ensures only truly edited messages show the label, avoiding database precision issues
+  const isTimeEdited = timeDiff > 3000; // 3000ms = 3 seconds
+  
+  // Additional safety check: if the timestamps are exactly the same down to seconds, don't show edited
+  const updatedSeconds = Math.floor(updatedTime.getTime() / 1000);
+  const createdSeconds = Math.floor(createdTime.getTime() / 1000);
+  const isSameSecond = updatedSeconds === createdSeconds;
+  
+  return isTimeEdited && !isSameSecond;
+};
+
 const MessageBubble = ({ 
   text, 
   repliedMsg, 
@@ -35,6 +55,8 @@ const MessageBubble = ({
   time, 
   isMine, 
   isDeleted,
+  status,
+  edited,
   sender,
   message // Full message object for special features
 }) => {
@@ -44,6 +66,9 @@ const MessageBubble = ({
   const isAnonymous = message?.is_anonymous;
   const isTimeCapsule = message?.unlock_at;
   const isLocked = isTimeCapsule && new Date(message.unlock_at) > new Date();
+  
+  // Properly check if message was edited - only show "edited" if updated_at > created_at
+  const isEdited = isMessageEdited(message);
 
   // Calculate time remaining for time capsule
   useEffect(() => {
@@ -161,6 +186,7 @@ const MessageBubble = ({
           <span className="timestamp">
             {isTimeCapsule && !isLocked && '⏰ '}
             {time}
+            {isEdited && <span className="edited-indicator">edited</span>}
             {isMine && <span className="tick">✓✓</span>}
           </span>
         </div>

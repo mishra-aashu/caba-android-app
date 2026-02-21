@@ -104,7 +104,7 @@ export const getGroupById = async (groupId) => {
         )
       `)
       .eq('id', groupId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -166,7 +166,7 @@ export const getUserRole = async (groupId, userId) => {
       .select('role')
       .eq('group_id', groupId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data?.role || null;

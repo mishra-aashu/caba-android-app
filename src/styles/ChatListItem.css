@@ -1,18 +1,47 @@
-/* --- LIST CONTAINER (Pura List Area) --- */
-.chat-list-container {
+/* --- MAIN PANEL CONTENT (Root of ChatListPanel) --- */
+.chat-list-panel-content {
   background-color: var(--surface-color);
-  flex: 1;
-  /* Key for scrolling in a flex container */
-  min-height: 0;
-  /* Ensures it can shrink and scroll */
-  overflow-y: auto;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  width: 100%;
+  overflow: hidden !important;
+  position: relative;
+}
+
+/* Sidebar Wrapper inside Sidebar.jsx */
+.sidebar-root {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* --- LIST CONTAINER (Pura List Area) --- */
+.chat-list-container,
+.scrollable-area {
+  background-color: var(--surface-color);
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   padding: 0;
   margin: 0;
   -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-items-section {
+  flex-shrink: 0;
+  min-height: min-content;
 }
 
 /* --- Light Mode Support (.light-mode class) --- */
-body.light-mode .chat-list-container {
+body.light-mode .chat-list-container,
+body.light-mode .scrollable-area,
+body.light-mode .chat-list-panel-content {
   background-color: #ffffff;
 }
 
