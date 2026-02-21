@@ -1,11 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { realtimeManager } from '../utils/realtimeManager';
-import useUserStore from '../store/userStore';
 import { initializeFileSystem, loadChatsFromDevice, saveChatsToDevice } from '../utils/FileSystemManager';
 import { isUserOnline } from '../utils/timeUtils';
-import { normalizeChat, isGroupChat } from '../utils/chatHelpers';
+import { normalizeChat } from '../utils/chatHelpers';
 
 // Fetch chat list function for React Query - Unified (chats + groups)
 const fetchChatList = async ({ supabase, userId }) => {
@@ -139,112 +138,99 @@ export const useChatListRealtime = (currentUserId) => {
         }
     }, [currentUserId, hasMoreChats, loadingMore, chats, supabase]);
 
-    // Real-time channels effect - Consolidated
+    // Real-time: single channel, strict cleanup to prevent leaks and setState-after-unmount
+    const mountedRef = useRef(true);
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
+
     useEffect(() => {
         if (!currentUserId) return;
 
         const channelName = `chat_list_updates_${currentUserId}`;
-        let isCancelled = false;
 
-        const setupSubscription = async () => {
-            await realtimeManager.subscribe(
-                channelName,
-                {},
-                {
-                    postgres_changes: [
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'messages',
-                            handler: (payload) => {
-                                if (isCancelled) return;
-
-                                // Invalidate query for structural changes or deletions
-                                if (payload.eventType === 'DELETE' || payload.eventType === 'UPDATE') {
-                                    queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                                    return;
-                                }
-
-                                if (payload.eventType === 'INSERT' && payload.new) {
-                                    const newMessage = payload.new;
-                                    if (isCancelled) return;
-                                    setChats(prev => {
-                                        const chatIndex = prev.findIndex(c => c.id === newMessage.chat_id);
-                                        if (chatIndex === -1) {
-                                            queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                                            return prev;
-                                        }
-                                        const chat = { ...prev[chatIndex] };
-                                        chat.lastMessage = newMessage.content || (newMessage.message_type !== 'text' ? `[${newMessage.message_type}]` : '');
-                                        chat.timestamp = newMessage.created_at;
-                                        if (newMessage.sender_id !== currentUserId) chat.unreadCount = (chat.unreadCount || 0) + 1;
-                                        const next = [...prev];
-                                        next.splice(chatIndex, 1);
-                                        next.unshift(chat);
-                                        return next;
-                                    });
-                                }
+        realtimeManager.subscribe(
+            channelName,
+            {},
+            {
+                postgres_changes: [
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'messages',
+                        handler: (payload) => {
+                            if (!mountedRef.current) return;
+                            if (payload.eventType === 'DELETE' || payload.eventType === 'UPDATE') {
+                                queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                return;
                             }
-                        },
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'chats',
-                            handler: () => {
-                                if (!isCancelled) queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                            }
-                        },
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'groups',
-                            handler: () => {
-                                if (!isCancelled) queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                            }
-                        },
-                        {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: 'users',
-                            handler: (payload) => {
-                                if (isCancelled || !payload?.new) return;
-                                const updatedUser = payload.new;
-                                setChats(prev => prev.map(chat => {
-                                    // otherUserId is stored in metadata for chats
-                                    if (chat.metadata?.otherUserId === updatedUser.id) {
-                                        return {
-                                            ...chat,
-                                            is_online: isUserOnline(Boolean(updatedUser.is_online), updatedUser.last_seen),
-                                            last_seen: updatedUser.last_seen
-                                        };
+                            if (payload.eventType === 'INSERT' && payload.new) {
+                                const newMessage = payload.new;
+                                setChats(prev => {
+                                    const chatIndex = prev.findIndex(c => c.id === newMessage.chat_id);
+                                    if (chatIndex === -1) {
+                                        queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                                        return prev;
                                     }
-                                    return chat;
-                                }));
-                            }
-                        },
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'group_members',
-                            handler: (payload) => {
-                                if (isCancelled) return;
-                                if (payload?.new?.user_id === currentUserId || payload?.old?.user_id === currentUserId) {
-                                    queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
-                                }
+                                    const chat = { ...prev[chatIndex] };
+                                    chat.lastMessage = newMessage.content ?? (newMessage.message_type !== 'text' ? `[${newMessage.message_type}]` : '');
+                                    chat.timestamp = newMessage.created_at;
+                                    if (newMessage.sender_id !== currentUserId) chat.unreadCount = (chat.unreadCount || 0) + 1;
+                                    const next = [...prev];
+                                    next.splice(chatIndex, 1);
+                                    next.unshift(chat);
+                                    return next;
+                                });
                             }
                         }
-                    ]
-                }
-            );
-        };
-
-        setupSubscription();
+                    },
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'chats',
+                        handler: () => { if (mountedRef.current) queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] }); }
+                    },
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'groups',
+                        handler: () => { if (mountedRef.current) queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] }); }
+                    },
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'users',
+                        handler: (payload) => {
+                            if (!mountedRef.current || !payload?.new) return;
+                            const updatedUser = payload.new;
+                            setChats(prev => prev.map(chat =>
+                                chat.metadata?.otherUserId === updatedUser.id
+                                    ? { ...chat, is_online: isUserOnline(Boolean(updatedUser.is_online), updatedUser.last_seen), last_seen: updatedUser.last_seen }
+                                    : chat
+                            ));
+                        }
+                    },
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'group_members',
+                        handler: (payload) => {
+                            if (!mountedRef.current) return;
+                            if (payload?.new?.user_id === currentUserId || payload?.old?.user_id === currentUserId) {
+                                queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] });
+                            }
+                        }
+                    }
+                ]
+            }
+        );
 
         return () => {
-            isCancelled = true;
+            mountedRef.current = false;
             realtimeManager.unsubscribe(channelName);
         };
-    }, [currentUserId, supabase, queryClient]);
+    }, [currentUserId, queryClient]);
 
     return { chats, setChats, loading, hasMoreChats, loadingMore, loadMoreChats };
 };

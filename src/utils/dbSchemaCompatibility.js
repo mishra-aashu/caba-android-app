@@ -13,7 +13,7 @@ export const filterNonExistentFields = (data, tableName) => {
   const existingColumns = {
     users: ['id', 'email', 'phone', 'name', 'avatar', 'password', 'is_admin', 'is_online', 'last_seen', 'emoji_style', 'login_time', 'token_hash', 'email_confirmed_at', 'phone_number', 'created_at', 'updated_at'],
     messages: ['id', 'chat_id', 'sender_id', 'receiver_id', 'content', 'message_type', 'media_url', 'media_path', 'media_type', 'reply_to', 'is_read', 'is_delivered', 'is_group_message', 'status', 'emoji_style', 'created_at', 'updated_at', 'vanish_at', 'is_vanished', 'vanish_duration_seconds', 'seen_at', 'is_viewed', 'duration', 'unlock_at', 'is_anonymous', 'anon_name', 'anon_avatar_url'],
-    chats: ['id', 'user1_id', 'user2_id', 'last_message', 'last_message_time', 'created_at', 'updated_at'],
+    chats: ['id', 'user1_id', 'user2_id', 'last_message', 'last_message_time', 'unread_count', 'created_at', 'updated_at'],
     call_history: ['id', 'caller_id', 'receiver_id', 'call_id', 'call_type', 'call_status', 'call_duration', 'started_at', 'answered_at', 'ended_at', 'created_at', 'updated_at'],
     reminders: ['id', 'sender_id', 'receiver_id', 'message', 'title', 'description', 'reminder_time', 'location', 'category', 'priority', 'status', 'accepted_at', 'completed_at', 'is_completed', 'sound_enabled', 'vibration_enabled', 'is_recurring', 'recurring_type', 'requires_acceptance', 'snooze_until', 'snooze_count', 'created_at', 'updated_at'],
     contacts: ['id', 'user_id', 'contact_user_id', 'contact_name', 'created_at', 'updated_at'],

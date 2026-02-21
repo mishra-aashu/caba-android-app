@@ -217,11 +217,11 @@ const Chat = () => {
         if (error) throw error;
         if (cancelled) return; // user already switched to another chat
 
-        // Add null safety for sender/receiver data
+        // Add null safety for sender/receiver (receiver_id is null for group messages)
         const freshMessages = (data || []).map(msg => ({
           ...msg,
           sender: msg.sender || { id: msg.sender_id, name: 'Unknown', avatar: null },
-          receiver: msg.receiver || { id: msg.receiver_id, name: 'Unknown', avatar: null }
+          receiver: msg.receiver || (msg.receiver_id ? { id: msg.receiver_id, name: 'Unknown', avatar: null } : null)
         })).reverse(); // ascending order
 
         // Merge: authoritative DB list + realtime-only messages (arrived after fetch
