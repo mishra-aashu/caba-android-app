@@ -64,7 +64,7 @@ export const validateRequiredFields = (data, tableName) => {
     users: ['id', 'name'],
     chats: ['user1_id', 'user2_id'],
     call_history: ['caller_id', 'receiver_id', 'call_id'],
-    reminders: ['sender_id', 'receiver_id', 'message', 'reminder_time'],
+    reminders: ['sender_id', 'receiver_id', 'title', 'reminder_time'],
     contacts: ['user_id', 'contact_user_id'],
     blocked_users: ['blocker_id', 'blocked_id'],
     reports: ['reporter_id', 'reported_id', 'reason'],

@@ -226,10 +226,7 @@ export const useChatListRealtime = (currentUserId) => {
             }
         );
 
-        return () => {
-            mountedRef.current = false;
-            realtimeManager.unsubscribe(channelName);
-        };
+        return () => realtimeManager.unsubscribe(channelName);
     }, [currentUserId, queryClient]);
 
     return { chats, setChats, loading, hasMoreChats, loadingMore, loadMoreChats };

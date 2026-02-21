@@ -63,10 +63,11 @@ export const DB_TO_FRONTEND_MAP = {
   'location': 'location',
   'description': 'description',
 
-  // Support Message fields
+  // Support Message fields (DB: admin_response)
   'message_type': 'messageType',
   'responded_by': 'respondedBy',
   'responded_at': 'respondedAt',
+  'admin_response': 'adminResponse',
 
   'report_type': 'reportType',
   'reporter_id': 'reporterId',

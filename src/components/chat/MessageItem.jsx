@@ -46,7 +46,7 @@ const MessageItem = ({
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [isUpwards, setIsUpwards] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(message.content);
+  const [editContent, setEditContent] = useState(message?.content ?? '');
   const [touchStartTime, setTouchStartTime] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
@@ -69,40 +69,38 @@ const MessageItem = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showActions]);
 
-  const isSent = message.sender_id === currentUser?.id;
-  const isReplied = message.reply_to;
-  const isTouchDevice = window.matchMedia && window.matchMedia('(hover: none)').matches;
+  const safeMessage = message ?? {};
+  const isSent = safeMessage.sender_id === currentUser?.id;
+  const isReplied = !!safeMessage.reply_to;
+  const isTouchDevice = typeof window !== 'undefined' && window.matchMedia?.('(hover: none)').matches;
 
-  // Sender info for received messages (group chat avatar on left)
-  const sender = message.sender || {};
+  const sender = safeMessage.sender ?? {};
   const senderName = sender.name || sender.username || 'User';
   const senderAvatar = getValidAvatarUrl(sender.avatar || sender.profile_image);
-  const senderInitial = senderName.charAt(0).toUpperCase();
+  const senderInitial = (senderName || 'U').charAt(0).toUpperCase();
 
-  // Current user info for sent messages (group chat avatar on right)
   const myAvatar = getValidAvatarUrl(currentUser?.avatar || currentUser?.profile_image);
   const myName = currentUser?.name || currentUser?.username || 'Me';
-  const myInitial = myName.charAt(0).toUpperCase();
+  const myInitial = (myName || 'M').charAt(0).toUpperCase();
+
+  const MENU_H = 220;
+  const MENU_W = 180;
+  const openContextMenu = (clientX, clientY) => {
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+    let x = clientX;
+    let y = clientY;
+    const openUpwards = (screenH - y) < MENU_H;
+    setIsUpwards(openUpwards);
+    if (openUpwards) y -= MENU_H;
+    if (screenW - x < MENU_W) x -= MENU_W;
+    setMenuPos({ x, y });
+    setShowActions(true);
+  };
 
   const handleLongPress = (e, touchX, touchY) => {
     e.preventDefault();
-    if (!isSelectionMode) {
-      const menuHeight = 220;
-      const menuWidth = 180;
-      const screenH = window.innerHeight;
-      const screenW = window.innerWidth;
-
-      let x = touchX || e.clientX;
-      let y = touchY || e.clientY;
-
-      const openUpwards = (screenH - y) < menuHeight;
-      setIsUpwards(openUpwards);
-      if (openUpwards) y = y - menuHeight;
-      if ((screenW - x) < menuWidth) x = x - menuWidth;
-
-      setMenuPos({ x, y });
-      setShowActions(true);
-    }
+    if (!isSelectionMode) openContextMenu(touchX ?? e.clientX, touchY ?? e.clientY);
   };
 
   const handleClick = () => {
@@ -110,13 +108,13 @@ const MessageItem = ({
   };
 
   const handleReply = () => {
-    onReply(message);
+    onReply(safeMessage);
     setShowActions(false);
   };
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(message.content);
+      await navigator.clipboard.writeText(safeMessage.content ?? '');
       setShowActions(false);
     } catch (error) {
       console.error('Failed to copy message:', error);
@@ -124,7 +122,7 @@ const MessageItem = ({
   };
 
   const handleForward = () => {
-    onForward(message);
+    onForward(safeMessage);
     setShowActions(false);
   };
 
@@ -134,15 +132,14 @@ const MessageItem = ({
   };
 
   const saveEdit = async () => {
-    if (editContent.trim() && editContent !== message.content) {
+    if (editContent.trim() && editContent !== (safeMessage.content ?? '')) {
       try {
         const { error } = await supabase
           .from('messages')
-          .update({ content: editContent.trim(), edited_at: new Date().toISOString() })
-          .eq('id', message.id);
+          .update({ content: editContent.trim(), updated_at: new Date().toISOString() })
+          .eq('id', safeMessage.id);
         if (error) throw error;
-        message.content = editContent.trim();
-        message.edited_at = new Date().toISOString();
+        safeMessage.content = editContent.trim();
       } catch (error) {
         console.error('Error editing message:', error);
       }
@@ -151,7 +148,7 @@ const MessageItem = ({
   };
 
   const cancelEdit = () => {
-    setEditContent(message.content);
+    setEditContent(message?.content ?? '');
     setIsEditing(false);
   };
 
@@ -159,7 +156,7 @@ const MessageItem = ({
     setShowActions(false);
 
     // Trigger particle effect locally for instant feedback
-    const element = document.getElementById(`message-${message.id}`);
+    const element = document.getElementById(`message-${safeMessage.id}`);
     if (element) {
       const rect = element.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
@@ -171,9 +168,9 @@ const MessageItem = ({
       });
     }
 
-    if (onDelete) onDelete(message.id);
+    if (onDelete) onDelete(safeMessage.id);
     try {
-      const { error } = await supabase.from('messages').delete().eq('id', message.id);
+      const { error } = await supabase.from('messages').delete().eq('id', safeMessage.id);
       if (error) throw error;
       toast.success('Message deleted');
     } catch (error) {
@@ -187,12 +184,14 @@ const MessageItem = ({
       toast.error('Please select a reason');
       return;
     }
+    const validReasons = ['spam', 'harassment', 'inappropriate', 'other'];
+    const reason = validReasons.includes(reportReason) ? reportReason : 'other';
     try {
       const { error } = await supabase.from('reports').insert({
         reporter_id: currentUser?.id,
-        reported_id: message.sender_id,
-        reason: reportReason,
-        details: `Reported message (ID: ${message.id}): "${message.content?.slice(0, 100)}"`
+        reported_id: safeMessage.sender_id,
+        reason,
+        details: `Reported message (ID: ${safeMessage.id}): "${(safeMessage.content ?? '').slice(0, 100)}"`
       });
       if (error) throw error;
       toast.success('Report submitted');
@@ -232,13 +231,11 @@ const MessageItem = ({
     const absDeltaX = Math.abs(deltaX);
     const absDeltaY = Math.abs(deltaY);
 
-    // Swipe right → reply
     if (absDeltaX > 50 && absDeltaX > absDeltaY * 1.5 && deltaX > 0 && !isSelectionMode) {
-      onReply && onReply(message);
+      onReply?.(safeMessage);
       return;
     }
 
-    // Long press → context menu
     if (touchDuration > 500 && absDeltaX < 10 && absDeltaY < 10) {
       handleLongPress(e, touchEndX, touchEndY);
     }
@@ -246,50 +243,50 @@ const MessageItem = ({
 
   const handleSenderAvatarClick = (e) => {
     e.stopPropagation();
-    if (onSenderClick && message.sender_id) {
-      onSenderClick(message.sender_id);
+    if (onSenderClick && currentUser?.id != null && safeMessage.sender_id) {
+      onSenderClick(safeMessage.sender_id);
     }
   };
 
   const renderMessageContent = () => {
-    if (message.media_path && (message.media_type === 'image' || message.media_type === 'video')) {
+    if (safeMessage.media_path && (safeMessage.media_type === 'image' || safeMessage.media_type === 'video')) {
       return (
         <MediaMessage
-          message={message}
+          message={safeMessage}
           repliedMsg={repliedMsg}
           currentUserId={currentUser?.id}
           isSender={isSent}
-          time={formatTime(message.created_at)}
-          status={message.is_read ? 'read' : 'sent'}
+          time={formatTime(safeMessage.created_at)}
+          status={safeMessage.is_read ? 'read' : 'sent'}
         />
       );
     }
 
-    if (message.media_path && message.media_type === 'voice') {
+    if (safeMessage.media_path && safeMessage.media_type === 'voice') {
       return (
         <VoiceMessage
-          message={message}
+          message={safeMessage}
           repliedMsg={repliedMsg}
           currentUserId={currentUser?.id}
           isSender={isSent}
-          time={formatTime(message.created_at)}
-          status={message.is_read ? 'read' : 'sent'}
+          time={formatTime(safeMessage.created_at)}
+          status={safeMessage.is_read ? 'read' : 'sent'}
         />
       );
     }
 
     return (
       <MessageBubble
-        text={message.content}
+        text={safeMessage.content ?? ''}
         repliedMsg={repliedMsg}
         currentUserId={currentUser?.id}
-        time={formatTime(message.created_at)}
+        time={formatTime(safeMessage.created_at)}
         isMine={isSent}
-        isDeleted={message.is_deleted}
-        status={message.is_read ? 'read' : 'sent'}
-        edited={!!message.edited_at}
-        sender={message.sender}
-        message={message}
+        isDeleted={safeMessage.is_deleted}
+        status={safeMessage.is_read ? 'read' : 'sent'}
+        edited={!!safeMessage.updated_at}
+        sender={safeMessage.sender}
+        message={safeMessage}
       />
     );
   };
@@ -302,31 +299,15 @@ const MessageItem = ({
     <>
       <div
         ref={messageRef}
-        id={`message-${message.id}`}
-        className={`message-item ${isSent ? 'sent' : 'received'} ${isSelected ? 'selected' : ''} ${showActions ? 'highlighted' : ''} ${isGroupChat ? 'group-message' : ''} ${message.isDeleting ? 'is-deleting' : ''}`}
+        id={`message-${safeMessage.id}`}
+        className={`message-item ${isSent ? 'sent' : 'received'} ${isSelected ? 'selected' : ''} ${showActions ? 'highlighted' : ''} ${isGroupChat ? 'group-message' : ''} ${safeMessage.isDeleting ? 'is-deleting' : ''}`}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => {
           if (!isTouchDevice) {
             e.preventDefault();
-            if (!isSelectionMode) {
-              const menuHeight = 220;
-              const menuWidth = 180;
-              const screenH = window.innerHeight;
-              const screenW = window.innerWidth;
-
-              let x = e.clientX;
-              let y = e.clientY;
-
-              const openUpwards = (screenH - y) < menuHeight;
-              setIsUpwards(openUpwards);
-              if (openUpwards) y = y - menuHeight;
-              if ((screenW - x) < menuWidth) x = x - menuWidth;
-
-              setMenuPos({ x, y });
-              setShowActions(true);
-            }
+            if (!isSelectionMode) openContextMenu(e.clientX, e.clientY);
           }
         }}
       >
@@ -374,7 +355,7 @@ const MessageItem = ({
             className="group-sender-avatar group-sender-avatar--self"
             onClick={(e) => {
               e.stopPropagation();
-              onSenderClick && onSenderClick(currentUser.id);
+              if (currentUser?.id != null) onSenderClick?.(currentUser.id);
             }}
             title="View your profile"
             aria-label="View your profile"
@@ -436,8 +417,7 @@ const MessageItem = ({
               <option value="">Select a reason...</option>
               <option value="spam">Spam</option>
               <option value="harassment">Harassment</option>
-              <option value="hate_speech">Hate Speech</option>
-              <option value="inappropriate_content">Inappropriate Content</option>
+              <option value="inappropriate">Inappropriate</option>
               <option value="other">Other</option>
             </select>
             <div className="report-modal-actions">

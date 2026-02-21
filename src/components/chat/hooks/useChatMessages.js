@@ -22,15 +22,18 @@ export const useChatMessages = (chatId, currentUserId) => {
   const mountedRef = useRef(true);
 
   const processMessages = useCallback((rawList) => {
-    return (rawList || []).map(msg => ({
-      ...msg,
-      sender: msg.sender || (msg.sender_id ? { id: msg.sender_id, name: 'Unknown', avatar: null } : null),
-      receiver: msg.receiver || (msg.receiver_id ? { id: msg.receiver_id, name: 'Unknown', avatar: null } : null),
-      isOwn: msg.sender_id === currentUserId,
-      isRead: Boolean(msg.is_read),
-      timestamp: msg.created_at ? new Date(msg.created_at).getTime() : 0,
-      formattedTime: formatMessageTime(msg.created_at)
-    }));
+    return (rawList || []).map(msg => {
+      const m = msg ?? {};
+      return {
+        ...m,
+        sender: m.sender ?? (m.sender_id ? { id: m.sender_id, name: 'Unknown', avatar: null } : null),
+        receiver: m.receiver ?? (m.receiver_id ? { id: m.receiver_id, name: 'Unknown', avatar: null } : null),
+        isOwn: m.sender_id === currentUserId,
+        isRead: Boolean(m.is_read),
+        timestamp: m.created_at ? new Date(m.created_at).getTime() : 0,
+        formattedTime: formatMessageTime(m.created_at)
+      };
+    });
   }, [currentUserId]);
 
   const fetchMessages = useCallback(async (page = 0) => {
@@ -154,14 +157,17 @@ export const useChatMessages = (chatId, currentUserId) => {
 
       if (insertError) {
         const errInfo = handleDatabaseError(insertError, 'messages');
-        if (errInfo.isSchemaError) {
+        if (errInfo?.isSchemaError) {
           setMessages(prev => prev.filter(m => m.id !== tempId));
           return null;
         }
         throw insertError;
       }
 
-      setMessages(prev => prev.filter(m => m.id !== tempId).concat([{ ...data, isOwn: true, isRead: false }]));
+      if (!mountedRef.current) return data;
+      const processed = processMessages([data])[0];
+      const finalMessage = processed ? { ...processed, isOwn: true, isRead: Boolean(processed.isRead) } : { ...data, isOwn: true, isRead: false };
+      setMessages(prev => prev.filter(m => m.id !== tempId).concat([finalMessage]));
       return data;
     } catch (err) {
       console.error('Error sending message:', err);

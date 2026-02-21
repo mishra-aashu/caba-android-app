@@ -4,7 +4,7 @@ import { formatLastSeen, formatTime } from '../../utils/timeUtils';
 import '../../styles/ChatListItem.css';
 
 const ChatListItem = ({ chat, onClick, isActive }) => {
-  // Use normalized properties from chatHelpers.js (returned by useChatListRealtime)
+  if (!chat) return null;
   const {
     name,
     avatar,

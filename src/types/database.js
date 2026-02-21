@@ -103,40 +103,40 @@ export const BlockedUser = {
   blocked_id: 'string',
 };
 
-// Reminder entity
+// Reminder entity (DB: title, description, status — no message/is_completed)
 export const Reminder = {
   ...BaseEntity,
   id: 'string',
   sender_id: 'string',
   receiver_id: 'string',
-  message: 'string',
-  reminder_time: 'string', // ISO timestamp
-  is_completed: 'boolean',
+  title: 'string',
+  description: 'string|null',
+  reminder_time: 'string',
+  status: 'string', // pending, accepted, rejected, completed, snoozed, cancelled
 };
 
-// Support Message entity
+// Support Message entity (DB: admin_response not response)
 export const SupportMessage = {
   ...BaseEntity,
   id: 'string',
   user_id: 'string',
   message: 'string',
-  message_type: 'string', // 'user', 'admin'
+  message_type: 'string',
   responded_by: 'string|null',
-  response: 'string|null',
-  responded_at: 'string|null', // ISO timestamp
+  admin_response: 'string|null',
+  responded_at: 'string|null',
 };
 
-// Report entity
+// Report entity (DB: details not description; reviewed_at not resolved_at; no admin_notes)
 export const Report = {
   ...BaseEntity,
   id: 'string',
   reporter_id: 'string',
   reported_id: 'string',
-  reason: 'string',
-  description: 'string',
-  status: 'string', // 'pending', 'resolved', 'dismissed'
-  admin_notes: 'string|null',
-  resolved_at: 'string|null', // ISO timestamp
+  reason: 'string', // spam, harassment, inappropriate, other
+  details: 'string|null',
+  status: 'string',
+  reviewed_at: 'string|null',
 };
 
 // Admin Log entity
