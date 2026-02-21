@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { realtimeManager } from '../utils/realtimeManager';
 import { supabase } from '../config/supabase';
 import useUserStore from '../store/userStore';
-import { safeDbConversion, dbToFrontend } from '../utils/dbFieldMapping';
+import { safeDbConversion } from '../utils/dbFieldMapping';
 
 export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
   const processedMessageIds = useRef(new Set());
@@ -40,8 +40,8 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
               }
               processedMessageIds.current.add(newRecord.id);
 
-              // Enrich message with sender details
-              let enrichedMsg = safeDbConversion(newRecord);
+              // Keep message in snake_case so MessageList/MessageItem get created_at, sender_id, etc.
+              let enrichedMsg = { ...newRecord };
               const cachedUser = useUserStore.getState().getUser(newRecord.sender_id);
 
               if (cachedUser) {
@@ -55,11 +55,14 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                     .single();
 
                   if (!error && data) {
-                    enrichedMsg.sender = dbToFrontend(data);
+                    enrichedMsg.sender = data;
                     useUserStore.getState().setUser(data);
+                  } else {
+                    enrichedMsg.sender = { id: newRecord.sender_id, name: 'Unknown', avatar: null };
                   }
                 } catch (err) {
                   console.warn('Could not enrich realtime message with sender profile:', err);
+                  enrichedMsg.sender = { id: newRecord.sender_id, name: 'Unknown', avatar: null };
                 }
               }
 

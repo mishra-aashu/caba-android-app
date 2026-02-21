@@ -308,18 +308,28 @@ const Chat = () => {
   } = useTruthDareGame(chatId, currentUser?.id);
 
   const handleNewMessage = useCallback((newMessage) => {
+    const isOwnMessage = newMessage.sender_id === currentUser?.id;
+
     setMessages(prev => {
-      // Check if message already exists to prevent duplicates
       const exists = prev.some(msg => msg.id === newMessage.id);
       if (exists) return prev;
 
-      // Check if this is replacing a temporary message
+      // Own message from realtime: never add as new — only replace our temp, or skip (insert response will handle it)
+      if (isOwnMessage) {
+        const tempIndex = prev.findIndex(msg =>
+          msg.tempId && msg.content === newMessage.content
+        );
+        if (tempIndex !== -1) {
+          return prev.map((msg, i) => (i === tempIndex ? newMessage : msg));
+        }
+        return prev; // already have it from insert response or will get it; avoid duplicate
+      }
+
+      // From other user: replace temp if same content/time, else add
       const hasTempMessage = prev.some(msg =>
         msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at
       );
-
       if (hasTempMessage) {
-        // Replace temporary message with real message
         return prev.map(msg =>
           (msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at)
             ? newMessage

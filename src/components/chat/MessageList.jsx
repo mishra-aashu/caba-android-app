@@ -28,7 +28,8 @@ const MessageList = ({
   const groupMessagesByDate = (messages) => {
     const groups = {};
     messages.forEach(message => {
-      const dateKey = formatDateSafe(message.created_at);
+      const createdAt = message.created_at ?? message.createdAt;
+      const dateKey = formatDateSafe(createdAt);
       if (!dateKey) return;
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(message);
@@ -72,7 +73,7 @@ const MessageList = ({
         <React.Fragment key={dateKey}>
           <div className="date-separator">
             <div className="date-pill">
-              {new Date(dateMessages[0].created_at).toLocaleDateString()}
+              {new Date(dateMessages[0].created_at ?? dateMessages[0].createdAt).toLocaleDateString()}
             </div>
           </div>
 
