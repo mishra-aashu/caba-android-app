@@ -18,6 +18,8 @@ import TypingIndicator from './TypingIndicator';
 import MediaViewer from '../media/MediaViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
+import { useMessages } from '../../hooks/useMessages';
+import { useQueryClient } from '@tanstack/react-query';
 import { useData } from '../../contexts/DataContext';
 import { messageReadsService } from '../../services/messageReadsService';
 import { useTruthDareGame } from '../../hooks/useTruthDareGame';
@@ -52,6 +54,7 @@ const Chat = () => {
   const { startCall } = useCall();
   const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
   const showUserDetails = React.useContext(UserDetailsContext);
+  const queryClient = useQueryClient();
 
   // State
   const [messages, setMessages] = useState([]);
@@ -140,23 +143,37 @@ const Chat = () => {
   const [vanishPresets, setVanishPresets] = useState([]);
   const [selectedVanishDuration, setSelectedVanishDuration] = useState(86400);
 
-  // ─── IN-MEMORY MESSAGE CACHE ────────────────────────────────────────────────
-  // A Map<chatId, Message[]> that lives for the lifetime of the Chat component.
-  // This is the same pattern used by WhatsApp Web / Telegram Web:
-  //   • Switch to a chat → show cached messages INSTANTLY (0 ms, no spinner)
-  //   • Silently re-fetch in the background → merge new messages into cache
-  //   • Realtime events also write into the cache so it stays up-to-date
-  // The cache is a ref (not state) so updating it never triggers a re-render.
-  const messageCacheRef = useRef(new Map()); // Map<chatId, Message[]>
+  // ─── REACT QUERY MESSAGE HOOK ──────────────────────────────────────────────
+  const { data: queryMessages, isLoading: queryLoading } = useMessages(validChatId);
 
-  // Helper: write the current messages array back into the cache for this chat
-  const updateCache = useCallback((cid, msgs) => {
-    messageCacheRef.current.set(cid, msgs);
-  }, []);
+  // showLoading: show spinner only on initial load if no data
+  const showLoading = queryLoading && messages.length === 0;
 
-  // showLoading: only show the full-screen spinner when we have NO cached data
-  // AND a network fetch is in-flight. If cache has data, we show it immediately.
-  const showLoading = messagesLoading && messages.length === 0;
+  // Sync query results with local messages state
+  useEffect(() => {
+    if (queryMessages) {
+      // Merge logic: authoritative query data + optimistic sends not yet in DB
+      setMessages(prev => {
+        const dbIds = new Set(queryMessages.map(m => m.id));
+        const pendingOptimistic = prev.filter(m => m.tempId && !dbIds.has(m.id));
+
+        // Sort merged list by time
+        const merged = [...queryMessages, ...pendingOptimistic];
+        merged.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
+        // Sync user store for all fetched users
+        queryMessages.forEach(msg => {
+          if (msg.sender) useUserStore.getState().setUser(msg.sender);
+          if (msg.receiver) useUserStore.getState().setUser(msg.receiver);
+        });
+
+        return merged;
+      });
+      setMessagesLoading(false);
+    } else if (queryLoading && messages.length === 0) {
+      setMessagesLoading(true);
+    }
+  }, [queryMessages, queryLoading]);
 
   // ─── MAIN MESSAGE FETCH EFFECT ───────────────────────────────────────────────
   // Runs every time the user opens a different chat (validChatId changes).
@@ -169,110 +186,14 @@ const Chat = () => {
   //          messages from the other user) into the cache and update the UI.
   //          The `cancelled` flag ensures a stale response from a previous chat
   //          can never overwrite the current chat's messages.
-  useEffect(() => {
-    if (!validChatId || !supabase) {
-      setMessages([]);
-      // Don't reset otherUser for groups - preserve the placeholder
-      if (!isGroupChat) {
-        setOtherUser(null);
-      }
-      return;
-    }
-
-    let cancelled = false;
-
-    // ── Step 1: Show cached messages instantly ──
-    const cached = messageCacheRef.current.get(validChatId);
-    if (cached && cached.length > 0) {
-      setMessages(cached);
-      setMessagesLoading(false); // cache hit → no spinner
-    } else {
-      setMessages([]);
-      setMessagesLoading(true);  // no cache → show spinner until fetch completes
-    }
-    setHasMoreMessages(true);
-
-    // ── Step 2: Background fetch to get fresh / missing messages ──
-    const fetchFreshMessages = async () => {
-      try {
-        if (!validChatId) {
-          console.warn('fetchFreshMessages called with invalid chatId');
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('messages')
-          .select(`
-             *,
-             sender:sender_id (
-               id,
-               name,
-               avatar,
-               is_online,
-               last_seen
-             ),
-             receiver:receiver_id (
-               id,
-               name,
-               avatar,
-               is_online,
-               last_seen
-             )
-           `)
-          .eq('chat_id', validChatId)
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (error) throw error;
-        if (cancelled) return; // user already switched to another chat
-
-        // Add null safety for sender/receiver (receiver_id is null for group messages)
-        const freshMessages = (data || []).map(msg => ({
-          ...msg,
-          sender: msg.sender || { id: msg.sender_id, name: 'Unknown', avatar: null },
-          receiver: msg.receiver || (msg.receiver_id ? { id: msg.receiver_id, name: 'Unknown', avatar: null } : null)
-        })).reverse(); // ascending order
-
-        // Merge: authoritative DB list + realtime-only messages (arrived after fetch
-        // started) + optimistic sends not yet in DB. Prevents race where received
-        // messages are dropped when background fetch completes.
-        setMessages(prev => {
-          const dbIds = new Set(freshMessages.map(m => m.id));
-          const pendingOptimistic = prev.filter(m => m.tempId && !dbIds.has(m.id));
-          const realtimeOnly = prev.filter(m => m.id && !m.tempId && !dbIds.has(m.id));
-          const merged = [...freshMessages, ...realtimeOnly, ...pendingOptimistic];
-          merged.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
-
-          freshMessages.forEach(msg => {
-            if (msg.sender) useUserStore.getState().setUser(msg.sender);
-            if (msg.receiver) useUserStore.getState().setUser(msg.receiver);
-          });
-
-          updateCache(validChatId, merged);
-          return merged;
-        });
-
-        setHasMoreMessages((data || []).length === 50);
-      } catch (err) {
-        if (cancelled) return;
-        console.error('Error fetching messages:', err);
-      } finally {
-        if (!cancelled) setMessagesLoading(false);
-      }
-    };
-
-    fetchFreshMessages();
-
-    return () => { cancelled = true; };
-  }, [validChatId, supabase, updateCache]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Keep the cache in sync whenever messages state changes (realtime updates,
-  // optimistic sends, deletes, etc.) so the next cache-hit is always fresh.
+  // ─── KEEP CACHE IN SYNC ─────────────────────────────────────────────────────
+  // This is important for realtime updates and deletes which modify the local 'messages' state.
+  // We write these changes back to the React Query cache so they persist across navigation.
   useEffect(() => {
     if (validChatId && messages.length > 0) {
-      updateCache(validChatId, messages);
+      queryClient.setQueryData(['messages', validChatId], messages);
     }
-  }, [messages, validChatId, updateCache]);
+  }, [messages, validChatId, queryClient]);
 
   // Auto-scroll to bottom when chat switches or new messages arrive
   useEffect(() => {
@@ -1076,7 +997,7 @@ const Chat = () => {
       console.error('Error deleting messages:', error);
       toast.error('Failed to delete messages');
       setMessages(prevMessages);
-      updateCache(validChatId, prevMessages);
+      queryClient.setQueryData(['messages', validChatId], prevMessages);
     }
   };
 
