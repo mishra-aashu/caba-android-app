@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
-import { Image, Video, X } from 'lucide-react';
+import { Image, Video, X, MessageSquarePlus } from 'lucide-react';
 import './AttachmentMenu.css';
 
-const AttachmentMenu = ({ isOpen, onClose, onFileSelect }) => {
+const AttachmentMenu = ({ isOpen, onClose, onFileSelect, onQuickSelect }) => {
   const fileInputRef = useRef(null);
 
   const handleIconClick = (accept) => {
@@ -42,6 +42,12 @@ const AttachmentMenu = ({ isOpen, onClose, onFileSelect }) => {
             <Video size={24} />
           </div>
           <span>Video</span>
+        </div>
+        <div className="attachment-option" onClick={() => { onQuickSelect && onQuickSelect(); onClose(); }}>
+          <div className="icon-wrapper quick-option">
+            <MessageSquarePlus size={24} />
+          </div>
+          <span>Quick MSG</span>
         </div>
 
       </div>

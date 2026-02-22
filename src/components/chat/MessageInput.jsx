@@ -136,6 +136,13 @@ const MessageInput = ({
     }
   };
 
+  const toggleEmojiPicker = () => {
+    if (!showEmojiPicker && textareaRef.current) {
+      textareaRef.current.blur();
+    }
+    setShowEmojiPicker(prev => !prev);
+  };
+
   const toggleAttachmentMenu = () => {
     setShowAttachmentMenu(prev => !prev);
   };
@@ -301,11 +308,12 @@ const MessageInput = ({
   };
 
   return (
-    <div className="chat-input-container" ref={containerRef} style={{ position: 'relative' }}>
+    <div className={`chat-input-container ${showEmojiPicker ? 'emoji-open' : ''}`} ref={containerRef} style={{ position: 'relative' }}>
       <AttachmentMenu
         isOpen={showAttachmentMenu}
         onClose={() => setShowAttachmentMenu(false)}
         onFileSelect={handleFileSelect}
+        onQuickSelect={!isDesktop ? () => setShowQuickReplies(true) : undefined}
       />
 
 
@@ -402,6 +410,20 @@ const MessageInput = ({
         </div>
       )}
 
+      {showEmojiPicker && !isDesktop && (
+        <EmojiPicker
+          isOpen={true}
+          isInline={true}
+          onEmojiSelect={handleEmojiSelect}
+          onClose={() => setShowEmojiPicker(false)}
+          onOpenChange={setShowEmojiPicker}
+          showHeader={false}
+          showArrow={false}
+          showCloseButton={false}
+          showTrigger={false}
+        />
+      )}
+
       {isRecording && (
         <div className="recording-row">
           <div className="recording-waveform">
@@ -417,78 +439,131 @@ const MessageInput = ({
       )}
 
       {!isRecording && (
-        <div className="input-row">
-          <div className="left-buttons">
-            <button
-              className="btn-quick-reply"
-              onClick={toggleQuickReplies}
-              title="Quick Messages"
+        isDesktop ? (
+          <div className="input-row desktop-layout">
+            <div className="left-buttons">
+              <button
+                className="btn-quick-reply"
+                onClick={toggleQuickReplies}
+                title="Quick Messages"
+                disabled={isUploading || externalDisabled}
+              >
+                <MessageSquarePlus size={22} />
+              </button>
+              <button
+                className="btn-attach"
+                onClick={toggleAttachmentMenu}
+                title="Attach Media"
+                disabled={isUploading || externalDisabled}
+              >
+                <Paperclip size={22} />
+              </button>
+              <button
+                className="btn-emoji"
+                onClick={toggleEmojiPicker}
+                title="Add emoji"
+                disabled={isUploading || externalDisabled}
+              >
+                <Smile size={22} />
+              </button>
+              <button
+                className="btn-mic"
+                onClick={handleVoiceRecord}
+                title="Record Voice"
+                disabled={isUploading || externalDisabled}
+              >
+                <Mic size={22} />
+              </button>
+            </div>
+
+            <textarea
+              ref={textareaRef}
+              className="chat-input"
+              placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
+              value={message}
+              onChange={handleInputChange}
+              onKeyPress={handleKeyPress}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setShowEmojiPicker(true);
+              }}
+              rows={1}
               disabled={isUploading || externalDisabled}
-            >
-              <MessageSquarePlus size={22} />
-            </button>
+            />
+
             <button
-              className="btn-attach"
-              onClick={toggleAttachmentMenu}
-              title="Attach Media"
-              disabled={isUploading || externalDisabled}
+              className="btn-send"
+              onClick={handleSend}
+              disabled={(!message.trim() && !filePreview && !voiceBlob) || isUploading || externalDisabled}
             >
-              <Paperclip size={22} />
-            </button>
-            <button
-              className="btn-emoji"
-              onClick={() => setShowEmojiPicker(true)}
-              title="Add emoji"
-              disabled={isUploading || externalDisabled}
-            >
-              <Smile size={22} />
-            </button>
-            <button
-              className="btn-mic"
-              onClick={handleVoiceRecord}
-              title={isRecording ? "Stop Recording" : "Record Voice"}
-              disabled={isUploading || externalDisabled}
-            >
-              {isRecording ? <Square size={22} /> : <Mic size={22} />}
+              {isUploading ? <LoaderCircle size={24} className="animate-spin" /> : <Send size={22} />}
             </button>
           </div>
+        ) : (
+          <div className="input-row mobile-layout">
+            <div className="action-buttons">
+              <button
+                className="btn-emoji-inline-left"
+                onClick={toggleEmojiPicker}
+                title="Add emoji"
+                disabled={isUploading || externalDisabled}
+              >
+                <Smile size={22} />
+              </button>
+            </div>
 
-          <textarea
-            ref={textareaRef}
-            className="chat-input"
-            placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
-            value={message}
-            onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
-            onContextMenu={isDesktop ? (e) => {
-              e.preventDefault();
-              setShowEmojiPicker(true);
-            } : undefined}
-            rows={1}
-            disabled={isUploading || externalDisabled}
-          />
+            <div className="input-capsule">
+              <textarea
+                ref={textareaRef}
+                className="chat-input"
+                placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
+                value={message}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                rows={1}
+                disabled={isUploading || externalDisabled}
+              />
 
-          <button
-            className="btn-send"
-            onClick={handleSend}
-            disabled={(!message.trim() && !filePreview && !voiceBlob) || isUploading || externalDisabled}
-          >
-            {isUploading ? <LoaderCircle size={24} className="animate-spin" /> : <Send size={22} />}
-          </button>
-        </div>
+              <button
+                className="btn-attach-inline"
+                onClick={toggleAttachmentMenu}
+                title="Attach Media"
+                disabled={isUploading || externalDisabled}
+              >
+                <Paperclip size={22} />
+              </button>
+            </div>
+
+            <button
+              className="btn-send mobile-action-btn"
+              onClick={(message.trim() || filePreview || voiceBlob) ? handleSend : handleVoiceRecord}
+              disabled={isUploading || externalDisabled}
+              title={(message.trim() || filePreview || voiceBlob) ? "Send" : "Record Voice"}
+            >
+              {isUploading ? (
+                <LoaderCircle size={24} className="animate-spin" />
+              ) : (message.trim() || filePreview || voiceBlob) ? (
+                <Send size={22} />
+              ) : (
+                <Mic size={22} />
+              )}
+            </button>
+          </div>
+        )
       )}
 
-      {/* Emoji Picker */}
-      {showEmojiPicker && (
+      {showEmojiPicker && isDesktop && (
         <div className="emoji-picker-overlay" onClick={() => setShowEmojiPicker(false)}>
           <div className="emoji-picker-container" onClick={(e) => e.stopPropagation()}>
             <EmojiPicker
               isOpen={true}
               onEmojiSelect={handleEmojiSelect}
               onClose={() => setShowEmojiPicker(false)}
+              onOpenChange={setShowEmojiPicker}
               showHeader={true}
-              showArrow={true}
+              showArrow={false}
               showCloseButton={true}
+              showTrigger={false}
             />
           </div>
         </div>

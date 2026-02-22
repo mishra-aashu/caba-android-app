@@ -99,7 +99,7 @@ const AppContent = () => {
       <Route path="/shared-profile/:userId" element={<SharedProfile />} />
       <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
       <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
-      <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
+      <Route path="/about" element={<About />} />
 
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
@@ -211,7 +211,7 @@ const ProtectedRoute = ({ children }) => {
           {children}
         </main>
       </div>
-      
+
       <PhoneAuthModal
         isOpen={showPhoneCollect}
         onClose={() => setShowPhoneCollect(false)}

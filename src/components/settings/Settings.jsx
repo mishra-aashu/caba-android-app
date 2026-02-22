@@ -689,12 +689,12 @@ const Settings = () => {
         <div className="settings-section">
           <h2 className="section-title">About</h2>
 
-          <div className="settings-item">
+          <div className="settings-item" onClick={() => navigate('/about')}>
             <div className="item-left">
               <i className="fas fa-info"></i>
-              <span className="label">App Version</span>
+              <span className="label">About App</span>
             </div>
-            <span className="value">1.0.0</span>
+            <span className="icon arrow">›</span>
           </div>
 
           <div className="settings-item" onClick={checkForUpdates}>

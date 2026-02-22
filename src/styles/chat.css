@@ -573,70 +573,211 @@ body.light-mode .chat-loading p {
 }
 
 /* Chat Input Area */
+/* --- Chat Input Container --- */
 .chat-input-container {
   padding: 0.5rem 1rem;
   padding-bottom: calc(0.5rem + var(--sab));
-  /* Safe area bottom */
-  background: transparent;
   position: sticky;
   bottom: 0;
   z-index: 10;
+  background: transparent;
+  transition: all 0.3s ease;
 }
 
-.input-row {
+/* --- Desktop Specific Layout (Original Style) --- */
+.input-row.desktop-layout {
   display: flex;
   align-items: center;
-  /* Vertically center align items */
   background-color: var(--surface, rgba(255, 255, 255, 0.1));
-  /* Soft background */
-  padding: 8px 12px;
+  padding: 8px 16px;
   border-radius: 30px;
-  /* More pronounced capsule shape */
   box-shadow: var(--shadow-md);
-  gap: 0.5rem;
-  /* Use gap for spacing */
+  gap: 12px;
+  width: 100%;
 }
 
-/* This class is no longer needed with the new gap property on input-row */
-.left-buttons {
+.desktop-layout .left-buttons {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 4px;
 }
 
-.chat-input {
+.desktop-layout .chat-input {
   flex: 1;
   border: none;
-  padding: 0.5rem 0.25rem;
   background: transparent;
   color: var(--text-primary);
   outline: none;
   resize: none;
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 14px;
+  padding: 8px 0;
   max-height: 120px;
+  line-height: normal;
 }
 
-.chat-input:focus {
-  border-color: transparent;
-}
-
-.btn-attach,
-.btn-send,
-.btn-quick-reply,
-.btn-mic,
-.btn-emoji {
+.desktop-layout .btn-send {
+  background: var(--primary);
   width: 40px;
-  /* Slightly smaller buttons */
   height: 40px;
-  background: transparent;
-  color: var(--text-secondary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  color: white;
   border: none;
-  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.desktop-layout .left-buttons button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.desktop-layout .left-buttons button:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* --- Mobile Specific Layout (Modern Capsule Style) --- */
+@media (max-width: 450px) {
+  .chat-input-container.emoji-open {
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-bottom: 0;
+    background: var(--surface);
+  }
+
+  .input-row.mobile-layout {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 0 4px;
+    width: 100%;
+    overflow: hidden;
+    /* Prevent overflow on tiny screens */
+  }
+
+  .mobile-layout .action-buttons {
+    display: flex !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+  }
+
+  .mobile-layout .action-buttons button {
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    color: #8696a0;
+  }
+
+  .mobile-layout .input-capsule {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    background: #202c33;
+    border-radius: 24px;
+    padding: 4px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    min-height: 48px;
+    min-width: 0;
+    /* Allow capsule to shrink */
+  }
+
+  .mobile-layout .chat-input {
+    flex: 1;
+    border: none !important;
+    background: transparent !important;
+    color: #e9edef;
+    outline: none !important;
+    resize: none;
+    font-size: 16px;
+    padding: 10px 4px;
+    max-height: 140px;
+    min-height: 24px;
+    min-width: 0;
+    /* Important for flex shrink */
+    line-height: normal;
+  }
+
+  .mobile-layout .btn-attach-inline {
+    width: 36px !important;
+    height: 36px !important;
+    color: #8696a0 !important;
+    background: transparent !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    flex-shrink: 0;
+  }
+
+  .mobile-layout .mobile-action-btn {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    background: var(--primary) !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    flex-shrink: 0 !important;
+    margin-bottom: 0 !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+    cursor: pointer !important;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+}
+
+/* Narrow phones shield */
+@media (max-width: 320px) {
+  .input-row.mobile-layout {
+    gap: 4px !important;
+  }
+
+  .mobile-layout .input-capsule {
+    padding: 4px !important;
+  }
+
+  .mobile-layout .chat-input {
+    font-size: 14px !important;
+  }
+
+  .mobile-layout .mobile-action-btn {
+    width: 42px !important;
+    height: 42px !important;
+  }
+}
+
+/* --- General Button Styles to prevent weird borders --- */
+.btn-quick-reply,
+.btn-attach,
+.btn-emoji,
+.btn-mic,
+.btn-emoji-inline,
+.btn-mic-inline,
+.btn-send {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-attach:hover,
@@ -644,15 +785,6 @@ body.light-mode .chat-loading p {
 .btn-mic:hover,
 .btn-emoji:hover {
   background-color: var(--hover-color);
-}
-
-.btn-send {
-  background-color: var(--brand-primary);
-  color: white;
-}
-
-.btn-send:hover {
-  filter: brightness(1.1);
 }
 
 .btn-send:disabled {
@@ -1623,8 +1755,14 @@ body.light-mode .chat-loading p {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10000;
   padding: 20px;
+}
+
+@media (max-width: 450px) {
+  .emoji-picker-overlay {
+    padding: 0;
+  }
 }
 
 .emoji-picker-overlay .emoji-picker-container {
