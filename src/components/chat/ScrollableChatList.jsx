@@ -48,11 +48,19 @@ const ScrollableChatList = ({
                                 onClick={() => handleChatClick(group)}
                             >
                                 <div className="sidebar-group-avatar">
-                                    <img
-                                        src={group.avatar || "/group-avatar-placeholder.png"}
-                                        alt={group.name}
-                                        onError={(e) => { e.target.src = "/group-avatar-placeholder.png"; }}
-                                    />
+                                    {group.avatar ? (
+                                        <img
+                                            src={group.avatar}
+                                            alt={group.name}
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.nextSibling.style.display = 'flex';
+                                            }}
+                                        />
+                                    ) : null}
+                                    <div className="group-avatar-fallback" style={{ display: group.avatar ? 'none' : 'flex' }}>
+                                        <Users size={20} />
+                                    </div>
                                 </div>
                                 <div className="sidebar-group-info">
                                     <span className="sidebar-group-name">{group.name}</span>

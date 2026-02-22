@@ -1863,6 +1863,33 @@ body.light-mode .chat-loading p {
    GROUP MESSAGE SENDER AVATARS
    ============================================= */
 
+/* ── Sidebar Group Avatar Fallback ── */
+.sidebar-group-avatar {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.sidebar-group-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.sidebar-group-avatar .group-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border-radius: 50%;
+}
+
 /* ── GROUP MESSAGE ROW LAYOUT ──
    Received: [left-avatar]  [name + bubble-wrapper]
    Sent:     [bubble-wrapper]  [right-avatar]          */
