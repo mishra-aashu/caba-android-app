@@ -241,20 +241,25 @@ const MainLayout = () => {
     };
 
     const handleChatClick = (chat) => {
-        if (!chat || !chat.otherUser) return;
+        if (!chat) return;
 
         // If it's a group, navigate to group chat with state for instant header
-        if (chat.isGroup || chat.chatType === 'group') {
+        if (chat.isGroup || chat.chatType === 'group' || chat.type === 'group') {
             navigate(`/chat/${chat.id}/group`, {
                 state: {
-                    groupName: chat.otherUser.name || 'Group Chat',
-                    groupAvatar: chat.otherUser.avatar || null,
-                    memberCount: chat.otherUser.member_count || 0,
+                    groupName: chat.name || 'Group Chat',
+                    groupAvatar: chat.avatar || null,
+                    memberCount: chat.member_count || 0,
                 }
             });
         } else {
             // Regular 1-on-1 chat
-            navigate(`/chat/${chat.id}/${chat.otherUser.id}`);
+            const otherUserId = chat.metadata?.otherUserId;
+            if (otherUserId) {
+                navigate(`/chat/${chat.id}/${otherUserId}`);
+            } else {
+                console.error('Could not find other user ID for chat:', chat);
+            }
         }
     };
 
