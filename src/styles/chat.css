@@ -582,6 +582,9 @@ body.light-mode .chat-loading p {
   z-index: 10;
   background: transparent;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  /* Ensure children like Emoji Picker stack below Input Row */
 }
 
 /* --- Desktop Specific Layout (Original Style) --- */

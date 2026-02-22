@@ -410,20 +410,6 @@ const MessageInput = ({
         </div>
       )}
 
-      {showEmojiPicker && !isDesktop && (
-        <EmojiPicker
-          isOpen={true}
-          isInline={true}
-          onEmojiSelect={handleEmojiSelect}
-          onClose={() => setShowEmojiPicker(false)}
-          onOpenChange={setShowEmojiPicker}
-          showHeader={false}
-          showArrow={false}
-          showCloseButton={false}
-          showTrigger={false}
-        />
-      )}
-
       {isRecording && (
         <div className="recording-row">
           <div className="recording-waveform">
@@ -481,6 +467,7 @@ const MessageInput = ({
               className="chat-input"
               placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
               value={message}
+              onFocus={() => setShowEmojiPicker(false)}
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               onContextMenu={(e) => {
@@ -518,6 +505,7 @@ const MessageInput = ({
                 className="chat-input"
                 placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
                 value={message}
+                onFocus={() => setShowEmojiPicker(false)}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 rows={1}
@@ -550,6 +538,21 @@ const MessageInput = ({
             </button>
           </div>
         )
+      )}
+
+      {/* Mobile Inline Picker - Renders BELOW the input bar */}
+      {showEmojiPicker && !isDesktop && (
+        <EmojiPicker
+          isOpen={true}
+          isInline={true}
+          onEmojiSelect={handleEmojiSelect}
+          onClose={() => setShowEmojiPicker(false)}
+          onOpenChange={setShowEmojiPicker}
+          showHeader={false}
+          showArrow={false}
+          showCloseButton={false}
+          showTrigger={false}
+        />
       )}
 
       {showEmojiPicker && isDesktop && (
