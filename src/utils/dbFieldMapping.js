@@ -14,6 +14,11 @@ export const DB_TO_FRONTEND_MAP = {
   'phone_number': 'phoneNumber',
   'profile_image': 'profileImage',
   'emoji_style': 'emojiStyle',
+  'auth_provider': 'authProvider',
+  'email_confirmed_at': 'emailConfirmedAt',
+  'auth_password': 'authPassword',
+  'fcm_token_android': 'fcmTokenAndroid',
+  'fcm_token_web': 'fcmTokenWeb',
 
   // Message fields
   'sender_id': 'senderId',
@@ -35,16 +40,28 @@ export const DB_TO_FRONTEND_MAP = {
   'started_at': 'startedAt',
   'ended_at': 'endedAt',
   'answered_at': 'answeredAt',
+  'room_id': 'roomId',
+  'group_id': 'groupId',
+  'is_group_call': 'isGroupCall',
+  'call_participants': 'callParticipants',
+  'max_participants': 'maxParticipants',
+  'host_id': 'hostId',
+  'call_settings': 'callSettings',
+  'recording_enabled': 'recordingEnabled',
+  'screen_sharing_enabled': 'screenSharingEnabled',
 
   // Chat fields
   'user1_id': 'user1Id',
   'user2_id': 'user2Id',
   'last_message': 'lastMessage',
   'last_message_time': 'lastMessageTime',
+  'unread_count': 'unreadCount',
 
   // Group fields
   'created_by': 'createdBy',
   'group_id': 'groupId',
+  'avatar_url': 'avatarUrl',
+  'member_count': 'memberCount',
 
   // Contact fields
   'contact_user_id': 'contactUserId',
@@ -85,6 +102,39 @@ export const DB_TO_FRONTEND_MAP = {
   // Message Read fields
   'message_id': 'messageId',
   'read_at': 'readAt',
+
+  // Group Call Participants fields
+  'joined_at': 'joinedAt',
+  'left_at': 'leftAt',
+  'is_muted': 'isMuted',
+  'is_video_enabled': 'isVideoEnabled',
+  'is_screen_sharing': 'isScreenSharing',
+  'is_speaking': 'isSpeaking',
+  'audio_level': 'audioLevel',
+  'participant_role': 'participantRole',
+
+  // Call Recordings fields
+  'recording_url': 'recordingUrl',
+  'file_size': 'fileSize',
+  'duration': 'duration',
+  'recording_type': 'recordingType',
+  'thumbnail_url': 'thumbnailUrl',
+  'is_processed': 'isProcessed',
+  'uploaded_at': 'uploadedAt',
+  'expires_at': 'expiresAt',
+  'created_by': 'createdBy',
+
+  // WebRTC Signals fields
+  'from_user_id': 'fromUserId',
+  'to_user_id': 'toUserId',
+  'signal_type': 'signalType',
+  'signal_data': 'signalData',
+  'is_processed': 'isProcessed',
+  'broadcast_type': 'broadcastType',
+
+  // Game Invitations fields
+  'invitation_data': 'invitationData',
+  'game_type': 'gameType',
 
   // Common fields
   'user_id': 'userId'

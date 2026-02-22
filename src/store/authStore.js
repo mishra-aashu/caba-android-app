@@ -297,14 +297,31 @@ const useAuthStore = create((set, get) => ({
   },
 
   signInWithPhone: async (user) => {
+    // Store phone auth data
     localStorage.setItem('phoneAuthUser', JSON.stringify(user));
     localStorage.setItem('phoneAuthToken', 'phone_auth_' + user.id);
+    
+    // Set auth state
     set({
       user,
       dbUser: dbToFrontend(user),
       isAuthenticated: true,
       isPhoneAuth: true
     });
+
+    // Initialize Supabase session for phone users to enable DB operations
+    try {
+      const { error } = await supabase.auth.setSession({
+        access_token: 'phone_auth_' + user.id,
+        refresh_token: 'phone_refresh_' + user.id
+      });
+      
+      if (error) {
+        console.warn('Phone auth session setup failed, DB operations may be limited:', error);
+      }
+    } catch (sessionError) {
+      console.warn('Could not establish Supabase session for phone user:', sessionError);
+    }
   },
 
   // ✅ Set offline before signing out

@@ -13,6 +13,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
   const processedIds = useRef(new Set());
   const handlersRef = useRef(handlers);
   const mountedRef = useRef(true);
+  const subscriptionRef = useRef(null);
   handlersRef.current = handlers;
 
   useEffect(() => {
@@ -20,7 +21,13 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
     mountedRef.current = true;
     processedIds.current.clear();
 
-    realtimeManager.subscribe(
+    // Clean up any existing subscription for this chatId
+    if (subscriptionRef.current) {
+      realtimeManager.unsubscribe(`chat_messages_${chatId}`);
+      subscriptionRef.current = null;
+    }
+
+    subscriptionRef.current = realtimeManager.subscribe(
       `chat_messages_${chatId}`,
       {},
       {
@@ -77,7 +84,10 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
 
     return () => {
       mountedRef.current = false;
-      realtimeManager.unsubscribe(`chat_messages_${chatId}`);
+      if (subscriptionRef.current) {
+        realtimeManager.unsubscribe(`chat_messages_${chatId}`);
+        subscriptionRef.current = null;
+      }
       processedIds.current.clear();
     };
   }, [chatId]);

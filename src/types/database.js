@@ -21,7 +21,14 @@ export const User = {
   is_admin: 'boolean',
   is_online: 'boolean',
   last_seen: 'string', // ISO timestamp
-  emoji_style: 'string|null', // Added from database schema
+  emoji_style: 'string|null', // 'native', 'twitter', 'google'
+  auth_provider: 'string', // 'phone', 'google'
+  email_confirmed_at: 'string|null', // ISO timestamp
+  auth_password: 'string|null',
+  fcm_token_android: 'string|null',
+  fcm_token_web: 'string|null',
+  about: 'string|null',
+  password: 'string|null',
 };
 
 // Message entity
@@ -33,11 +40,10 @@ export const Message = {
   receiver_id: 'string|null',
   content: 'string',
   media_path: 'string|null',
-  media_type: 'string|null', // 'image', 'video', 'audio', 'document'
+  media_type: 'string|null', // 'image', 'video', 'audio', 'document', 'news_share'
   reply_to: 'string|null', // Message ID
   is_read: 'boolean',
   is_group_message: 'boolean',
-  emoji_style: 'string|null', // Added from database schema
   status: 'string', // 'sending', 'sent', 'delivered', 'read'
 };
 
@@ -49,6 +55,7 @@ export const Chat = {
   user2_id: 'string',
   last_message: 'string|null',
   last_message_time: 'string|null', // ISO timestamp
+  unread_count: 'number',
 };
 
 // Group entity
@@ -158,6 +165,91 @@ export const MessageRead = {
   message_id: 'string',
   user_id: 'string',
   read_at: 'string', // ISO timestamp
+};
+
+// Call entity (from 'calls' table)
+export const Call = {
+  ...BaseEntity,
+  id: 'string',
+  caller_id: 'string',
+  receiver_id: 'string',
+  call_id: 'string',
+  call_type: 'string', // 'voice', 'video'
+  status: 'string', // 'initiated', 'ringing', 'answered', 'ended', 'missed', 'rejected', 'failed'
+  started_at: 'string', // ISO timestamp
+  answered_at: 'string|null', // ISO timestamp
+  ended_at: 'string|null', // ISO timestamp
+  duration: 'number',
+  room_id: 'string|null',
+  group_id: 'string|null',
+  is_group_call: 'boolean',
+  call_participants: 'array', // JSONB
+  max_participants: 'number',
+  host_id: 'string|null',
+  call_settings: 'object', // JSONB
+  recording_enabled: 'boolean',
+  screen_sharing_enabled: 'boolean',
+};
+
+// Group Call Participant entity
+export const GroupCallParticipant = {
+  ...BaseEntity,
+  id: 'string',
+  call_id: 'string',
+  user_id: 'string',
+  joined_at: 'string', // ISO timestamp
+  left_at: 'string|null', // ISO timestamp
+  is_muted: 'boolean',
+  is_video_enabled: 'boolean',
+  is_screen_sharing: 'boolean',
+  is_speaking: 'boolean',
+  audio_level: 'number',
+  participant_role: 'string', // 'host', 'moderator', 'participant'
+  metadata: 'object', // JSONB
+};
+
+// Call Recording entity
+export const CallRecording = {
+  ...BaseEntity,
+  id: 'string',
+  call_id: 'string',
+  recording_url: 'string',
+  file_size: 'number',
+  duration: 'number',
+  recording_type: 'string', // 'audio', 'video', 'screen'
+  thumbnail_url: 'string|null',
+  is_processed: 'boolean',
+  uploaded_at: 'string', // ISO timestamp
+  expires_at: 'string|null', // ISO timestamp
+  created_by: 'string',
+};
+
+// WebRTC Signal entity
+export const WebRTCSignal = {
+  ...BaseEntity,
+  id: 'string',
+  from_user_id: 'string',
+  to_user_id: 'string',
+  signal_type: 'string', // 'offer', 'answer', 'ice_candidate', 'call_end'
+  signal_data: 'object', // JSONB
+  room_id: 'string',
+  is_processed: 'boolean',
+  expires_at: 'string', // ISO timestamp
+  group_id: 'string|null',
+  call_id: 'string|null',
+  broadcast_type: 'string', // 'direct', 'broadcast', 'room'
+};
+
+// Game Invitation entity
+export const GameInvitation = {
+  ...BaseEntity,
+  id: 'string',
+  chat_id: 'string',
+  sender_id: 'string',
+  receiver_id: 'string',
+  game_type: 'string',
+  status: 'string', // 'pending', 'accepted', 'rejected', 'completed'
+  invitation_data: 'object', // JSONB
 };
 
 // Type validation functions

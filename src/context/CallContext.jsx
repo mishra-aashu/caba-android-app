@@ -164,13 +164,7 @@ export function CallProvider({ children, currentUser }) {
   // Subscribe to signals
   useEffect(() => {
     if (currentUser?.id) {
-      // Skip WebSocket subscriptions for phone users
-      if (currentUser.id.startsWith('phone_')) {
-        console.log('🔔 Skipping signal subscription for phone user:', currentUser.id);
-        return;
-      }
-
-      console.log('🔔 Setting up signal subscription for:', currentUser.id);
+      console.log('🔔 Setting up signal subscription for:', currentUser.id, 'Phone user:', currentUser.id.startsWith('phone_'));
 
       signalChannelRef.current = callService.subscribeToSignals(
         currentUser.id,
