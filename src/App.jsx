@@ -58,6 +58,8 @@ import OfflineIndicator from './components/common/OfflineIndicator';
 import ViewportManager from './components/layout/ViewportManager';
 import MainLayout from './components/MainLayout';
 import Chat from './components/chat/Chat';
+import PwaUpdater from './components/pwa/PwaUpdater';
+import useNetworkSync from './hooks/useNetworkSync';
 import './styles/offline-indicator.css';
 
 // Initialize Capacitor Updater
@@ -230,12 +232,17 @@ const App = () => {
     initializePushNotifications();
   }, []);
 
+  // Initialize offline sync monitor
+  useNetworkSync();
+
   return (
     <Suspense fallback={
       <div className="loading">
         <div className="loading-spinner"></div>
       </div>
     }>
+      {/* PWA Update Handler */}
+      <PwaUpdater />
       {/* AuthProvider is provided in main.jsx */}
       {/* SupabaseProvider is provided in main.jsx */}
       {/* ThemeProvider is provided in main.jsx */}
