@@ -3,6 +3,7 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 import useAuthStore from '../../store/authStore';
 import { X } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
+import { realtimeManager } from '../../utils/realtimeManager';
 import './News.css';
 
 const News = () => {
@@ -17,6 +18,34 @@ const News = () => {
     if (currentUser) {
       initializeNews(currentUser);
     }
+  }, [currentUser]);
+
+  // Real-time subscription for statuses
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channelName = `news_statuses_${currentUser.id}`;
+    realtimeManager.subscribe(
+      channelName,
+      {},
+      {
+        postgres_changes: [
+          {
+            event: '*',
+            schema: 'public',
+            table: 'statuses',
+            handler: () => {
+              loadRecentStatuses(currentUser);
+              loadMyStatus(currentUser);
+            }
+          }
+        ]
+      }
+    );
+
+    return () => {
+      realtimeManager.unsubscribe(channelName);
+    };
   }, [currentUser]);
 
   const initializeNews = async (user) => {

@@ -15,7 +15,8 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
 
   useEffect(() => {
     const fetchAudioUrl = () => {
-      if (!message.media_path) {
+      const mediaPath = message.mediaPath || message.media_path;
+      if (!mediaPath) {
         setError('No media path provided.');
         setIsLoading(false);
         return;
@@ -23,7 +24,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
       try {
         setIsLoading(true);
         setError(null);
-        const url = getPublicMediaUrl(message.media_path);
+        const url = getPublicMediaUrl(mediaPath);
         if (url) {
           setAudioUrl(url);
         } else {
@@ -38,7 +39,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
     };
 
     fetchAudioUrl();
-  }, [message.media_path]);
+  }, [message.mediaPath, message.media_path]);
 
   const handlePlayPause = () => {
     if (!audioRef.current || isLoading || error) return;
@@ -54,8 +55,8 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
     }
     setIsPlaying(!isPlaying);
   };
-  
-    const handleTimeUpdate = () => {
+
+  const handleTimeUpdate = () => {
     if (audioRef.current) {
       setCurrentTime(audioRef.current.currentTime);
     }
@@ -110,7 +111,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
     }
     return barElements;
   };
-  
+
   const togglePlay = () => {
     if (!audioRef.current || isLoading || error) return;
 
@@ -152,7 +153,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
         borderBottomLeftRadius: isSender ? '16px' : '0px'
       }}>
         {repliedMsg && repliedMsg.id && (
-            <div
+          <div
             className="reply-quote-container"
             onClick={() => {
               if (repliedMsg?.id) {
@@ -168,17 +169,17 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             <div className="reply-quote-bar"></div>
             <div className="reply-quote-content">
               <span className="reply-quote-user">
-                {repliedMsg.sender_id === currentUserId ? "You" : "User"}
+                {(repliedMsg.senderId || repliedMsg.sender_id) === currentUserId ? "You" : "User"}
               </span>
               <p className="reply-quote-text">
-                {repliedMsg.media_type === 'voice' ? '🎤 Voice Message' : repliedMsg.content}
+                {(repliedMsg.mediaType || repliedMsg.media_type) === 'voice' ? '🎤 Voice Message' : repliedMsg.content}
               </p>
             </div>
           </div>
         )}
 
         <div className="voice-content">
-        <div style={{
+          <div style={{
             width: '40px',
             height: '40px',
             borderRadius: '50%',
@@ -190,23 +191,23 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             cursor: 'pointer',
             flexShrink: 0
           }} onClick={togglePlay}>
-          <span style={{
+            <span style={{
               color: '#fff',
               marginLeft: '2px',
               marginTop: '1px',
               display: 'block'
             }}>
-            {isLoading ? <LoaderCircle size={20} className="animate-spin" /> : error ? <AlertTriangle size={20} color="red" /> : isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </span>
-        </div>
+              {isLoading ? <LoaderCircle size={20} className="animate-spin" /> : error ? <AlertTriangle size={20} color="red" /> : isPlaying ? <Pause size={16} /> : <Play size={16} />}
+            </span>
+          </div>
 
           <div className="waveform-container" ref={waveformRef} onClick={handleSeek}>
             <div className="waveform">
               {renderWaveform()}
             </div>
-             {/* Progress Indicator */}
-            <div 
-              className="waveform-progress" 
+            {/* Progress Indicator */}
+            <div
+              className="waveform-progress"
               style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
             ></div>
           </div>
@@ -232,7 +233,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
 
           <div className="voice-time-overlay">
             <span>{time}</span>
-            {isSender && <span className="tick-icon">{status === 'read' ? '✓✓' : '✓'}</span>}
+            {isSender && <span className={`tick-icon ${status === 'read' ? 'read' : ''}`}>{status === 'read' ? '✓✓' : '✓'}</span>}
           </div>
         </div>
       </div>

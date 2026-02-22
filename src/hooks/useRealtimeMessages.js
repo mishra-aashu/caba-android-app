@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { realtimeManager } from '../utils/realtimeManager';
 import { supabase } from '../config/supabase';
 import useUserStore from '../store/userStore';
+import { dbToFrontend } from '../utils/dbFieldMapping';
 
 function enrichSender(senderId) {
   const cached = useUserStore.getState().getUser(senderId);
@@ -46,26 +47,28 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
               if (processedIds.current.has(newRecord.id)) return;
               processedIds.current.add(newRecord.id);
 
-              let sender = enrichSender(newRecord.sender_id);
+              const frontendMsg = dbToFrontend(newRecord);
+              let sender = enrichSender(frontendMsg.senderId);
               try {
-                const { data } = await supabase.from('users').select('id, name, avatar, is_online, last_seen').eq('id', newRecord.sender_id).single();
+                const { data } = await supabase.from('users').select('id, name, avatar, is_online, last_seen').eq('id', frontendMsg.senderId).single();
                 if (data) {
-                  useUserStore.getState().setUser(data);
-                  sender = data;
+                  const frontendUser = dbToFrontend(data);
+                  useUserStore.getState().setUser(frontendUser);
+                  sender = frontendUser;
                 }
               } catch (_) { /* keep fallback sender */ }
 
               const enrichedMsg = {
-                ...newRecord,
+                ...frontendMsg,
                 sender,
-                receiver: newRecord.receiver_id ? enrichSender(newRecord.receiver_id) : null
+                receiver: frontendMsg.receiverId ? enrichSender(frontendMsg.receiverId) : null
               };
               if (mountedRef.current && handlersRef.current.onNewMessage) {
                 handlersRef.current.onNewMessage(enrichedMsg);
               }
             } else if (eventType === 'UPDATE' && newRecord) {
               if (mountedRef.current && handlersRef.current.onUpdateMessage) {
-                handlersRef.current.onUpdateMessage(newRecord);
+                handlersRef.current.onUpdateMessage(dbToFrontend(newRecord));
               }
             } else if (eventType === 'DELETE' && oldRecord?.id) {
               const deletedId = oldRecord.id;

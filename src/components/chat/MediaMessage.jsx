@@ -11,7 +11,8 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
     if (!imageLoaded) {
       setIsLoading(true);
       // Check if media_path is already a full URL (for GIFs from Tenor)
-      const url = message.media_path.startsWith('http') ? message.media_path : getPublicMediaUrl(message.media_path);
+      const mediaPath = message.mediaPath || message.media_path;
+      const url = mediaPath.startsWith('http') ? mediaPath : getPublicMediaUrl(mediaPath);
       setMediaUrl(url);
       setImageLoaded(true);
       setIsLoading(false);
@@ -20,10 +21,11 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
 
   // Auto-load for external GIFs
   useEffect(() => {
-    if (message.media_path.startsWith('http')) {
+    const mediaPath = message.mediaPath || message.media_path;
+    if (mediaPath && mediaPath.startsWith('http')) {
       handleViewMedia();
     }
-  }, [message.media_path]);
+  }, [message.mediaPath, message.media_path]);
 
   // Render the message
   return (
@@ -50,12 +52,12 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             <div className="reply-quote-content">
               {/* Name Logic: Agar sender_id meri hai to 'You', nahi to 'User' */}
               <span className="reply-quote-user">
-                {repliedMsg.sender_id === currentUserId ? "You" : "User"}
+                {(repliedMsg.senderId || repliedMsg.sender_id) === currentUserId ? "You" : "User"}
               </span>
 
               {/* Content Logic: Image hai ya text? */}
               <p className="reply-quote-text">
-                {repliedMsg.message_type === 'image'
+                {(repliedMsg.messageType || repliedMsg.message_type) === 'image'
                   ? "📷 Photo"
                   : repliedMsg.content?.substring(0, 60) || "..."}
               </p>
@@ -76,7 +78,7 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
                 className="actual-image"
                 onLoad={() => setIsLoading(false)}
               />
-              {message.media_path.startsWith('http') && (
+              {(message.mediaPath || message.media_path)?.startsWith('http') && (
                 <span className="gif-badge">GIF</span>
               )}
             </>
@@ -84,7 +86,7 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
           {imageLoaded && (
             <div className="media-time-overlay">
               <span>{time}</span>
-              {isSender && <span className="tick-icon">{status === 'read' ? '✓✓' : '✓'}</span>}
+              {isSender && <span className={`tick-icon ${status === 'read' ? 'read' : ''}`}>{status === 'read' ? '✓✓' : '✓'}</span>}
             </div>
           )}
         </div>

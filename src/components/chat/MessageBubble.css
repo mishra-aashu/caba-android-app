@@ -8,42 +8,53 @@
 }
 
 .message-container.mine {
-  justify-content: flex-end; /* Mera message Right side */
+  justify-content: flex-end;
+  /* Mera message Right side */
 }
 
 .message-container.theirs {
-  justify-content: flex-start; /* Doosre ka Left side */
+  justify-content: flex-start;
+  /* Doosre ka Left side */
 }
 
 /* --- THE BUBBLE (Jaadu Yahan Hai) --- */
 .bubble {
-  max-width: 75%; /* Bubble screen ke 75% se bada na ho */
-  padding: 6px 7px 8px 9px; /* Padding: Top Right Bottom Left */
-  border-radius: 8px; /* Rounded Corners */
+  max-width: 75%;
+  /* Bubble screen ke 75% se bada na ho */
+  padding: 6px 7px 8px 9px;
+  /* Padding: Top Right Bottom Left */
+  border-radius: 8px;
+  /* Rounded Corners */
   position: relative;
   font-family: Helvetica, Arial, sans-serif;
   font-size: 14.2px;
   line-height: 19px;
-  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13); /* Halka Shadow Depth ke liye */
+  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+  /* Halka Shadow Depth ke liye */
 }
 
 /* Colors */
 .mine .bubble {
-  background: var(--sent-message-bg, #E7FFDB); /* Use variable with fallback */
+  background: var(--sent-message-bg, #E7FFDB);
+  /* Use variable with fallback */
   color: var(--sent-message-text, #111b21);
-  border-top-right-radius: 0; /* Right corner sharp for tail */
+  border-top-right-radius: 0;
+  /* Right corner sharp for tail */
 }
 
 .theirs .bubble {
-  background: var(--received-message-bg, #FFFFFF); /* Use variable with fallback */
+  background: var(--received-message-bg, #FFFFFF);
+  /* Use variable with fallback */
   color: var(--received-message-text, #111b21);
-  border-top-left-radius: 0; /* Left corner sharp for tail */
+  border-top-left-radius: 0;
+  /* Left corner sharp for tail */
 }
 
 /* --- CONTENT ALIGNMENT (Text + Time) --- */
 .message-content {
   display: flex;
-  flex-wrap: nowrap; /* Prevent wrapping */
+  flex-wrap: nowrap;
+  /* Prevent wrapping */
   align-items: flex-end;
 }
 
@@ -51,8 +62,10 @@
   margin-right: 10px;
   word-wrap: break-word;
   white-space: pre-wrap;
-  flex-shrink: 1; /* Allow text to shrink */
-  min-width: 0; /* Allow text to shrink below its minimum content size */
+  flex-shrink: 1;
+  /* Allow text to shrink */
+  min-width: 0;
+  /* Allow text to shrink below its minimum content size */
 }
 
 /* Deleted Text Styling (Grey aur Italic) */
@@ -67,19 +80,28 @@
 .timestamp {
   font-size: 11px;
   color: #667781;
-  margin-left: auto; /* Time ko hamesha right side dhakel dega */
-  height: 15px; /* Alignment fix */
+  margin-left: auto;
+  /* Time ko hamesha right side dhakel dega */
+  height: 15px;
+  /* Alignment fix */
   line-height: 15px;
   display: flex;
   align-items: center;
-  margin-bottom: -3px; /* Thoda neeche adjust karne ke liye */
+  margin-bottom: -3px;
+  /* Thoda neeche adjust karne ke liye */
 }
 
 .tick {
-  color: #53bdeb; /* Blue ticks color */
+  color: #8696a0;
+  /* Grey for sent/delivered */
   font-size: 14px;
   margin-left: 3px;
   font-weight: bold;
+}
+
+.tick.read {
+  color: #53bdeb;
+  /* Blue for read */
 }
 
 .edited-indicator {
@@ -107,11 +129,12 @@
   height: 0;
   border-top: 0px solid transparent;
   border-bottom: 12px solid transparent;
-  border-left: 10px solid #E7FFDB; 
+  border-left: 10px solid #E7FFDB;
 }
 
 [data-theme='dark'] .tail-mine {
-  border-left-color: #005c4b; /* Solid dark green for the tail */
+  border-left-color: #005c4b;
+  /* Solid dark green for the tail */
 }
 
 /* --- Reply Quote Block Styles --- */
@@ -165,6 +188,7 @@
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
+  line-clamp: 1;
   overflow: hidden;
   text-overflow: ellipsis;
 }

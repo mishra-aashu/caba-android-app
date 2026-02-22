@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../config/supabase';
 import toast from 'react-hot-toast';
+import { safeDbConversion, dbToFrontend } from '../utils/dbFieldMapping';
 
 // ==========================================
 // USER QUERIES
@@ -24,7 +25,7 @@ const fetchUserById = async (userId) => {
     .single();
 
   if (error) throw error;
-  return data;
+  return dbToFrontend(data);
 };
 
 /**
@@ -66,7 +67,7 @@ const fetchContacts = async (userId) => {
     .order('contact_name', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return safeDbConversion(data || []);
 };
 
 /**
@@ -100,7 +101,7 @@ const fetchChatById = async (chatId) => {
     .single();
 
   if (error) throw error;
-  return data;
+  return dbToFrontend(data);
 };
 
 /**
@@ -260,7 +261,14 @@ export const useSendMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ chatId, senderId, receiverId, content, mediaPath, mediaType, isGroupMessage }) => {
+    mutationFn: async ({ chatId, senderId, receiverId, content, mediaPath, mediaType, isGroupMessage, vanishAt }) => {
+      // Derive message_type for DB schema compliance
+      let message_type = 'text';
+      if (mediaType === 'image') message_type = 'image';
+      else if (mediaType === 'video') message_type = 'video';
+      else if (mediaType === 'voice' || mediaType === 'audio') message_type = 'audio';
+      else if (mediaType === 'document') message_type = 'document';
+
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -270,13 +278,15 @@ export const useSendMessage = () => {
           content,
           media_path: mediaPath,
           media_type: mediaType,
+          message_type,
           is_group_message: isGroupMessage || false,
+          vanish_at: vanishAt,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return dbToFrontend(data);
     },
     // Optimistic update - immediately show message
     onMutate: async (variables) => {

@@ -398,7 +398,9 @@ const MessageInput = ({
               <span className="reply-title">Replying to {replyingTo.sender_id === currentUser?.id ? 'You' : 'Them'}</span>
               <p className="reply-message">
                 {/* Agar text lamba ho to cut jayega */}
-                {replyingTo.media_type === 'voice' ? '🎤 Voice Message' : replyingTo.content.substring(0, 60) + '...'}
+                {(replyingTo.media_type === 'voice' || replyingTo.media_type === 'audio' || replyingTo.message_type === 'audio')
+                  ? '🎤 Voice Message'
+                  : replyingTo.content.substring(0, 60) + '...'}
               </p>
             </div>
           </div>

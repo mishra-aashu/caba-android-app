@@ -38,8 +38,17 @@ const Reminders = () => {
             event: '*',
             schema: 'public',
             table: 'reminders',
+            filter: `receiver_id=eq.${currentUser.id}`,
             handler: () => {
-              // Reload reminders on any change
+              loadReminders(currentUser);
+            }
+          },
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reminders',
+            filter: `sender_id=eq.${currentUser.id}`,
+            handler: () => {
               loadReminders(currentUser);
             }
           }

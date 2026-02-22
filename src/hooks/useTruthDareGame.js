@@ -57,8 +57,9 @@ export const useTruthDareGame = (roomId, userId) => {
       channelName,
       {},
       {
-        broadcast: ({ event, payload }) => {
-          if (event === 'game_update') {
+        broadcast: {
+          event: 'game_update',
+          callback: ({ payload }) => {
             setGameState(payload.gameState);
             setGameId(payload.gameId);
             if (payload.gameState.stage !== 'idle') {

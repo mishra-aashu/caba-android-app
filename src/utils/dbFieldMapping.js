@@ -30,6 +30,8 @@ export const DB_TO_FRONTEND_MAP = {
   'is_read': 'isRead',
   'is_group_message': 'isGroupMessage',
   'status': 'status',
+  'is_edited': 'isEdited',
+  'vanish_at': 'vanishAt',
 
   // Call fields
   'caller_id': 'callerId',

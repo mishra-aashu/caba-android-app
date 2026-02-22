@@ -37,15 +37,30 @@ class RealtimeManager {
 
         // 2. Add event listeners
         Object.entries(callbacks).forEach(([event, callback]) => {
+          if (!callback) return;
+
           if (event === 'postgres_changes') {
             // callback is an array of listeners
-            callback.forEach(listenerConfig => {
-              // Root fix: strip 'handler' from the config object passed to Supabase
-              // Supabase expects only valid filter properties (event, schema, table, filter)
+            const listeners = Array.isArray(callback) ? callback : [callback];
+            listeners.forEach(listenerConfig => {
               const { handler, ...supabaseConfig } = listenerConfig;
               channel.on('postgres_changes', supabaseConfig, handler || (() => { }));
             });
+          } else if (event === 'broadcast' || event === 'presence') {
+            // Support both: broadcast: (payload) => {} 
+            // AND broadcast: { event: 'name', callback: (payload) => {} }
+            const configs = Array.isArray(callback) ? callback : [callback];
+            configs.forEach(config => {
+              if (typeof config === 'function') {
+                // Direct function: use default event name or generic listener
+                channel.on(event, { event: '*' }, config);
+              } else if (config && typeof config === 'object') {
+                const { event: subEvent, callback: cb } = config;
+                channel.on(event, { event: subEvent || '*' }, cb || (() => { }));
+              }
+            });
           } else {
+            // Fallback for other events
             channel.on(event, callback);
           }
         });

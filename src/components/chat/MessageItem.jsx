@@ -57,8 +57,8 @@ const MessageItem = ({
 
   // Move these declarations before useEffect to fix initialization error
   const safeMessage = message ?? {};
-  const isSent = safeMessage.sender_id === currentUser?.id;
-  const isReplied = !!safeMessage.reply_to;
+  const isSent = (safeMessage.senderId || safeMessage.sender_id) === currentUser?.id;
+  const isReplied = !!(safeMessage.replyTo || safeMessage.reply_to);
   const isTouchDevice = typeof window !== 'undefined' && window.matchMedia?.('(hover: none)').matches;
 
   useEffect(() => {
@@ -71,16 +71,16 @@ const MessageItem = ({
         }
       }
     };
-    
+
     const handleEditTrigger = (e) => {
       if (e.detail.messageId === safeMessage.id && isSent) {
         handleEdit();
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     messageRef.current?.addEventListener('triggerEdit', handleEditTrigger);
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       messageRef.current?.removeEventListener('triggerEdit', handleEditTrigger);
@@ -89,7 +89,7 @@ const MessageItem = ({
 
   const sender = safeMessage.sender ?? {};
   const senderName = sender.name || sender.username || 'User';
-  const senderAvatar = getValidAvatarUrl(sender.avatar || sender.profile_image);
+  const senderAvatar = getValidAvatarUrl(sender.avatar || sender.profile_image || sender.profileImage);
   const senderInitial = (senderName || 'U').charAt(0).toUpperCase();
 
   const myAvatar = getValidAvatarUrl(currentUser?.avatar || currentUser?.profile_image);
@@ -150,17 +150,20 @@ const MessageItem = ({
         const now = new Date().toISOString();
         const { error } = await supabase
           .from('messages')
-          .update({ 
-            content: editContent.trim(), 
-            updated_at: now 
+          .update({
+            content: editContent.trim(),
+            updated_at: now
           })
           .eq('id', safeMessage.id);
         if (error) throw error;
-        
+
         // Update the local message object to reflect the change immediately
         safeMessage.content = editContent.trim();
-        safeMessage.updated_at = now; // Set updated_at to current time
-        
+        if (safeMessage.updatedAt) safeMessage.updatedAt = now;
+        if (safeMessage.updated_at) safeMessage.updated_at = now;
+        safeMessage.isEdited = true;
+        safeMessage.is_edited = true;
+
         // Force re-render by updating the parent component's state
         // This will trigger the realtime update and show the "edited" indicator
         if (window.updateMessageInChat) {
@@ -169,7 +172,7 @@ const MessageItem = ({
             updated_at: now
           });
         }
-        
+
         toast.success('Message edited successfully');
       } catch (error) {
         console.error('Error editing message:', error);
@@ -221,7 +224,7 @@ const MessageItem = ({
     try {
       const { error } = await supabase.from('reports').insert({
         reporter_id: currentUser?.id,
-        reported_id: safeMessage.sender_id,
+        reported_id: safeMessage.senderId || safeMessage.sender_id,
         reason,
         details: `Reported message (ID: ${safeMessage.id}): "${(safeMessage.content ?? '').slice(0, 100)}"`
       });
@@ -275,8 +278,9 @@ const MessageItem = ({
 
   const handleSenderAvatarClick = (e) => {
     e.stopPropagation();
-    if (onSenderClick && currentUser?.id != null && safeMessage.sender_id) {
-      onSenderClick(safeMessage.sender_id);
+    const senderId = safeMessage.senderId || safeMessage.sender_id;
+    if (onSenderClick && currentUser?.id != null && senderId) {
+      onSenderClick(senderId);
     }
   };
 
@@ -318,15 +322,15 @@ const MessageItem = ({
             }}
           />
           <div className="message-edit-actions">
-            <button 
-              className="edit-cancel-btn" 
+            <button
+              className="edit-cancel-btn"
               onClick={cancelEdit}
               title="Cancel (Esc)"
             >
               ✕
             </button>
-            <button 
-              className="edit-save-btn" 
+            <button
+              className="edit-save-btn"
               onClick={saveEdit}
               title="Save (Enter)"
               disabled={!editContent.trim() || editContent === (safeMessage.content ?? '')}
@@ -338,28 +342,32 @@ const MessageItem = ({
       );
     }
 
-    if (safeMessage.media_path && (safeMessage.media_type === 'image' || safeMessage.media_type === 'video')) {
+    const mediaPath = safeMessage.mediaPath || safeMessage.media_path;
+    const mediaType = safeMessage.mediaType || safeMessage.media_type;
+    const isRead = safeMessage.isRead || safeMessage.is_read;
+
+    if (mediaPath && (mediaType === 'image' || mediaType === 'video')) {
       return (
         <MediaMessage
           message={safeMessage}
           repliedMsg={repliedMsg}
           currentUserId={currentUser?.id}
           isSender={isSent}
-          time={formatTime(safeMessage.created_at)}
-          status={safeMessage.is_read ? 'read' : 'sent'}
+          time={formatTime(safeMessage.createdAt || safeMessage.created_at)}
+          status={isRead ? 'read' : 'sent'}
         />
       );
     }
 
-    if (safeMessage.media_path && safeMessage.media_type === 'voice') {
+    if (mediaPath && (mediaType === 'voice' || mediaType === 'audio')) {
       return (
         <VoiceMessage
           message={safeMessage}
           repliedMsg={repliedMsg}
           currentUserId={currentUser?.id}
           isSender={isSent}
-          time={formatTime(safeMessage.created_at)}
-          status={safeMessage.is_read ? 'read' : 'sent'}
+          time={formatTime(safeMessage.createdAt || safeMessage.created_at)}
+          status={isRead ? 'read' : 'sent'}
         />
       );
     }
@@ -369,11 +377,11 @@ const MessageItem = ({
         text={safeMessage.content ?? ''}
         repliedMsg={repliedMsg}
         currentUserId={currentUser?.id}
-        time={formatTime(safeMessage.created_at)}
+        time={formatTime(safeMessage.createdAt || safeMessage.created_at)}
         isMine={isSent}
-        isDeleted={safeMessage.is_deleted}
-        status={safeMessage.is_read ? 'read' : 'sent'}
-        edited={!!safeMessage.updated_at}
+        isDeleted={safeMessage.isDeleted || safeMessage.is_deleted}
+        status={isRead ? 'read' : 'sent'}
+        edited={!!(safeMessage.updatedAt || safeMessage.updated_at)}
         sender={safeMessage.sender}
         message={safeMessage} // Pass the full message object with timestamps
       />

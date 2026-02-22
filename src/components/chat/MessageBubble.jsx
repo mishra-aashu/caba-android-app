@@ -4,7 +4,7 @@ import './MessageBubble.css';
 
 // Icon for deleted messages
 const BlockIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="#8696a0" style={{marginRight: '5px', verticalAlign: 'middle'}}>
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="#8696a0" style={{ marginRight: '5px', verticalAlign: 'middle' }}>
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-4.41 3.59-8 8-8 4.41 0 8 3.59 8 8 0 4.41-3.59 8-8 8zm3.88-11.71L10.7 13.47l-1.59-1.59L7.7 13.3l4.59 4.59 6.6-6.6-1.42-1.42zM12 4c-1.86 0-3.57.65-4.93 1.74l9.67 9.67C17.91 13.88 18.5 12.02 18.5 10c0-4.41-3.59-8-8-8zM5.26 8.26C4.48 9.38 4 10.63 4 12c0 4.41 3.59 8 8 8 1.37 0 2.62-.48 3.74-1.26L5.26 8.26z"></path>
     <path fill="none" d="M0 0h24v24H0z"></path>
     <circle cx="12" cy="12" r="10" stroke="#667781" strokeWidth="2" fill="none" />
@@ -14,46 +14,31 @@ const BlockIcon = () => (
 
 // Spy icon for anonymous messages
 const SpyIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style={{marginRight: '4px'}}>
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.41 0 8 3.59 8 8 0 1.85-.63 3.55-1.69 4.9z"/>
-    <circle cx="12" cy="10" r="3"/>
-    <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style={{ marginRight: '4px' }}>
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.41 0 8 3.59 8 8 0 1.85-.63 3.55-1.69 4.9z" />
+    <circle cx="12" cy="10" r="3" />
+    <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
   </svg>
 );
 
 // Lock icon for time capsule
 const LockIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{marginRight: '4px'}}>
-    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: '4px' }}>
+    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
   </svg>
 );
 
 // Utility function to check if a message was edited
 const isMessageEdited = (message) => {
-  if (!message?.updated_at || !message?.created_at) return false;
-  
-  const updatedTime = new Date(message.updated_at);
-  const createdTime = new Date(message.created_at);
-  const timeDiff = updatedTime.getTime() - createdTime.getTime();
-  
-  // Very conservative threshold - only show "edited" if time difference is more than 3 seconds
-  // This ensures only truly edited messages show the label, avoiding database precision issues
-  const isTimeEdited = timeDiff > 3000; // 3000ms = 3 seconds
-  
-  // Additional safety check: if the timestamps are exactly the same down to seconds, don't show edited
-  const updatedSeconds = Math.floor(updatedTime.getTime() / 1000);
-  const createdSeconds = Math.floor(createdTime.getTime() / 1000);
-  const isSameSecond = updatedSeconds === createdSeconds;
-  
-  return isTimeEdited && !isSameSecond;
+  return !!(message?.isEdited || message?.is_edited);
 };
 
-const MessageBubble = ({ 
-  text, 
-  repliedMsg, 
-  currentUserId, 
-  time, 
-  isMine, 
+const MessageBubble = ({
+  text,
+  repliedMsg,
+  currentUserId,
+  time,
+  isMine,
   isDeleted,
   status,
   edited,
@@ -61,32 +46,33 @@ const MessageBubble = ({
   message // Full message object for special features
 }) => {
   const [unlockCountdown, setUnlockCountdown] = useState('');
-  
+
   // Check for special message types
-  const isAnonymous = message?.is_anonymous;
-  const isTimeCapsule = message?.unlock_at;
-  const isLocked = isTimeCapsule && new Date(message.unlock_at) > new Date();
-  
+  const isAnonymous = message?.isAnonymous || message?.is_anonymous;
+  const unlockAt = message?.unlockAt || message?.unlock_at;
+  const isTimeCapsule = !!unlockAt;
+  const isLocked = isTimeCapsule && new Date(unlockAt) > new Date();
+
   // Properly check if message was edited - only show "edited" if updated_at > created_at
   const isEdited = isMessageEdited(message);
 
   // Calculate time remaining for time capsule
   useEffect(() => {
     if (!isTimeCapsule) return;
-    
+
     const updateCountdown = () => {
       const now = new Date();
       const unlockTime = new Date(message.unlock_at);
       const diff = unlockTime - now;
-      
+
       if (diff <= 0) {
         setUnlockCountdown('');
         return;
       }
-      
+
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      
+
       if (hours > 24) {
         const days = Math.floor(hours / 24);
         setUnlockCountdown(`Opens in ${days} day${days > 1 ? 's' : ''}`);
@@ -96,12 +82,12 @@ const MessageBubble = ({
         setUnlockCountdown(`Opens in ${minutes} minute${minutes > 1 ? 's' : ''}`);
       }
     };
-    
+
     updateCountdown();
     const interval = setInterval(updateCountdown, 60000); // Update every minute
-    
+
     return () => clearInterval(interval);
-  }, [isTimeCapsule, message?.unlock_at]);
+  }, [isTimeCapsule, message?.unlockAt, message?.unlock_at]);
 
   // Determine sender name
   const getSenderName = () => {
@@ -121,11 +107,11 @@ const MessageBubble = ({
 
   return (
     <div className={`message-container ${isMine ? 'mine' : 'theirs'} ${isAnonymous ? 'anonymous' : ''} ${isLocked ? 'locked' : ''}`}>
-      
+
       {/* Bubble Box */}
       <div className="bubble">
         {/* Anonymous/Group sender info */}
-        {!isMine && (isAnonymous || message?.is_group_message) && (
+        {!isMine && (isAnonymous || message?.isGroupMessage || message?.is_group_message) && (
           <div className="sender-info">
             <div className="sender-avatar">
               {getAvatar()}
@@ -162,12 +148,14 @@ const MessageBubble = ({
             <div className="reply-quote-bar"></div>
             <div className="reply-quote-content">
               <span className="reply-quote-user">
-                {repliedMsg.sender_id === currentUserId ? "You" : "User"}
+                {(repliedMsg.senderId || repliedMsg.sender_id) === currentUserId ? "You" : "User"}
               </span>
               <p className="reply-quote-text">
-                {repliedMsg.message_type === 'image'
+                {(repliedMsg.mediaType || repliedMsg.media_type) === 'image' || (repliedMsg.messageType || repliedMsg.message_type) === 'image'
                   ? <EmojiRenderer text="📷 Photo" />
-                  : <EmojiRenderer text={repliedMsg.content?.substring(0, 60) || "..."} />}
+                  : (repliedMsg.mediaType === 'voice' || repliedMsg.media_type === 'voice' || repliedMsg.mediaType === 'audio' || repliedMsg.media_type === 'audio' || repliedMsg.messageType === 'audio' || repliedMsg.message_type === 'audio')
+                    ? <EmojiRenderer text="🎤 Voice Message" />
+                    : <EmojiRenderer text={repliedMsg.content?.substring(0, 60) || "..."} />}
               </p>
             </div>
           </div>
@@ -187,7 +175,11 @@ const MessageBubble = ({
             {isTimeCapsule && !isLocked && '⏰ '}
             {time}
             {isEdited && <span className="edited-indicator">edited</span>}
-            {isMine && <span className="tick">✓✓</span>}
+            {isMine && (
+              <span className={`tick ${status === 'read' ? 'read' : ''}`}>
+                {status === 'read' || status === 'delivered' ? '✓✓' : '✓'}
+              </span>
+            )}
           </span>
         </div>
 

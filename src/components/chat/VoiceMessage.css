@@ -95,6 +95,7 @@
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
+  line-clamp: 1;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -211,9 +212,15 @@
 }
 
 .tick-icon {
-  color: #53bdeb;
+  color: #8696a0;
+  /* Grey for sent */
   font-size: 14px;
   font-weight: bold;
+}
+
+.tick-icon.read {
+  color: #53bdeb;
+  /* Blue for read */
 }
 
 /* Highlight for replied messages */

@@ -1,5 +1,6 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { supabase } from '../config/supabase';
+import { safeDbConversion } from '../utils/dbFieldMapping';
 
 /**
  * Fetch messages for a specific chat (DM or Group)
@@ -36,7 +37,8 @@ export const fetchMessages = async (chatId, limit = 50) => {
     }
 
     // Add null safety and return in ascending order (oldest first)
-    return (data || []).map(msg => ({
+    const converted = safeDbConversion(data || []);
+    return converted.map(msg => ({
         ...msg,
         sender: msg.sender || { id: msg.sender_id, name: 'Unknown', avatar: null },
         receiver: msg.receiver || (msg.receiver_id ? { id: msg.receiver_id, name: 'Unknown', avatar: null } : null)

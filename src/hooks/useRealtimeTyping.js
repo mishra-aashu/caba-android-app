@@ -7,44 +7,52 @@ export const useRealtimeTyping = (chatId, currentUserId) => {
   const [typingUsers, setTypingUsers] = useState({});
   const timeoutRefs = useRef({});
 
+  const channelRef = useRef(null);
+
   useEffect(() => {
     if (!chatId) return;
 
     const channelName = `typing_room_${chatId}`;
     console.log(`🔌 Consolidating typing indicator hook for: ${chatId}`);
 
-    realtimeManager.subscribe(
-      channelName,
-      {},
-      {
-        broadcast: ({ event, payload }) => {
-          if (event === 'typing') {
-            if (payload.userId === currentUserId) return;
+    const initSubscription = async () => {
+      const channel = await realtimeManager.subscribe(
+        channelName,
+        {},
+        {
+          broadcast: {
+            event: 'typing',
+            callback: ({ payload }) => {
+              if (payload.userId === currentUserId) return;
 
-            // Clear existing timeout for this user
-            if (timeoutRefs.current[payload.userId]) {
-              clearTimeout(timeoutRefs.current[payload.userId]);
+              // Clear existing timeout for this user
+              if (timeoutRefs.current[payload.userId]) {
+                clearTimeout(timeoutRefs.current[payload.userId]);
+              }
+
+              // User ko "Typing..." list mein daalo
+              setTypingUsers((prev) => ({
+                ...prev,
+                [payload.userId]: Date.now(),
+              }));
+
+              // 3 second baad auto-remove kar do
+              timeoutRefs.current[payload.userId] = setTimeout(() => {
+                setTypingUsers((prev) => {
+                  const newState = { ...prev };
+                  delete newState[payload.userId];
+                  return newState;
+                });
+                delete timeoutRefs.current[payload.userId];
+              }, 3000);
             }
-
-            // User ko "Typing..." list mein daalo
-            setTypingUsers((prev) => ({
-              ...prev,
-              [payload.userId]: Date.now(),
-            }));
-
-            // 3 second baad auto-remove kar do
-            timeoutRefs.current[payload.userId] = setTimeout(() => {
-              setTypingUsers((prev) => {
-                const newState = { ...prev };
-                delete newState[payload.userId];
-                return newState;
-              });
-              delete timeoutRefs.current[payload.userId];
-            }, 3000);
           }
         }
-      }
-    );
+      );
+      channelRef.current = channel;
+    };
+
+    initSubscription();
 
     return () => {
       // Clear all pending timeouts
@@ -54,28 +62,21 @@ export const useRealtimeTyping = (chatId, currentUserId) => {
       timeoutRefs.current = {};
 
       realtimeManager.unsubscribe(channelName);
+      channelRef.current = null;
     };
   }, [chatId, currentUserId]);
 
   const sendTyping = useCallback(
     throttle(async () => {
-      const channelName = `typing_room_${chatId}`;
-      const channel = supabase.channel(channelName);
+      if (!channelRef.current) return;
 
-      // Use direct supabase channel for transient broadcast to avoid singleton tracking overhead
-      // but ensure it's lightweight. Actually, let's just use the existing channel if possible.
-      // But broadcast needs a subscribed channel. 
-      // The singleton manages subscriptions, so we can't easily "broadcast" without a tracked channel.
-
-      await channel.send({
+      await channelRef.current.send({
         type: 'broadcast',
         event: 'typing',
         payload: { userId: currentUserId },
       });
-
-      // Since it's throttled and transient, we don't necessarily need to track it in singleton if we cleanup.
     }, 500),
-    [chatId, currentUserId]
+    [currentUserId]
   );
 
   return { typingUsers, sendTyping };

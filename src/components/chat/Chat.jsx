@@ -7,7 +7,7 @@ import { useGroupCall } from '../../context/GroupCallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
 import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
-import { frontendToDb } from '../../utils/dbFieldMapping';
+import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
 import { validateEntity, Message } from '../../types/database';
 import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2 } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
@@ -179,9 +179,9 @@ const Chat = () => {
         const dbIds = new Set(queryMessages.map(m => m.id));
         const pendingOptimistic = prev.filter(m => m.tempId && !dbIds.has(m.id));
 
-        // Sort merged list by time
+        // Sort merged list by time - handle both formats for safety during transition
         const merged = [...queryMessages, ...pendingOptimistic];
-        merged.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        merged.sort((a, b) => new Date(a.createdAt || a.created_at || 0) - new Date(b.createdAt || b.created_at || 0));
 
         // Sync user store for all fetched users
         queryMessages.forEach(msg => {
@@ -295,7 +295,7 @@ const Chat = () => {
   } = useTruthDareGame(chatId, currentUser?.id);
 
   const handleNewMessage = useCallback((newMessage) => {
-    const isOwnMessage = newMessage.sender_id === currentUser?.id;
+    const isOwnMessage = (newMessage.senderId || newMessage.sender_id) === currentUser?.id;
 
     setMessages(prev => {
       const exists = prev.some(msg => msg.id === newMessage.id);
@@ -312,13 +312,15 @@ const Chat = () => {
         return prev; // already have it from insert response or will get it; avoid duplicate
       }
 
-      // From other user: replace temp if same content/time, else add
-      const hasTempMessage = prev.some(msg =>
-        msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at
+      // From other user: replace temp if same content/time, else else add
+      const isAlreadyPresent = prev.some(msg =>
+        (msg.tempId && msg.content === newMessage.content && (msg.createdAt === newMessage.createdAt || msg.created_at === newMessage.created_at)) ||
+        msg.id === newMessage.id
       );
-      if (hasTempMessage) {
+
+      if (isAlreadyPresent) {
         return prev.map(msg =>
-          (msg.tempId && msg.content === newMessage.content && msg.created_at === newMessage.created_at)
+          (msg.tempId && msg.content === newMessage.content && (msg.createdAt === newMessage.createdAt || msg.created_at === newMessage.created_at))
             ? newMessage
             : msg
         );
@@ -328,7 +330,8 @@ const Chat = () => {
     });
 
     // Play notification sound for incoming messages
-    if (newMessage.sender_id !== currentUser?.id && !isMuted) {
+    const senderId = newMessage.senderId || newMessage.sender_id;
+    if (senderId !== currentUser?.id && !isMuted) {
       NotificationSound.playMessageNotification();
     }
 
@@ -342,7 +345,7 @@ const Chat = () => {
     // Check if this is a game invite acceptance that should open the game room
     // When user accepts an invitation, they become the sender of the 'accepted' message
     if (newMessage.type === 'game_invite' && newMessage.status === 'accepted') {
-      if (newMessage.sender_id === currentUser?.id) {
+      if (senderId === currentUser?.id) {
         startGame(otherUserId);
       }
     }
@@ -797,8 +800,11 @@ const Chat = () => {
         .order('created_at', { ascending: false }); // Load latest first for pagination
 
       if (isLoadMore && messages.length > 0) {
-        const oldestMessage = messages[0]; // Since messages are in ascending order
-        query = query.lt('created_at', oldestMessage.created_at);
+        const oldestMessage = messages[0]; // messages is in ascending order
+        const oldestTime = oldestMessage.createdAt || oldestMessage.created_at;
+        if (oldestTime) {
+          query = query.lt('created_at', oldestTime);
+        }
       }
 
       query = query.limit(50); // Load 50 messages at a time
@@ -810,15 +816,15 @@ const Chat = () => {
       const newMessages = data || [];
 
       if (isLoadMore) {
-        const combined = [...newMessages.reverse(), ...messages]; // Reverse because we loaded descending
+        const combined = [...data.map(m => dbToFrontend(m)).reverse(), ...messages];
         setMessages(combined);
         await saveMessagesToDevice(chatId, combined);
-        setHasMoreMessages(newMessages.length === 50);
+        setHasMoreMessages(data.length === 50);
       } else {
-        const reversed = newMessages.reverse(); // To ascending order
+        const reversed = data.map(m => dbToFrontend(m)).reverse();
         setMessages(reversed);
         await saveMessagesToDevice(chatId, reversed);
-        setHasMoreMessages(newMessages.length === 50);
+        setHasMoreMessages(data.length === 50);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -872,6 +878,8 @@ const Chat = () => {
     // 1. Optimistic Update - Show message immediately
     const tempId = Date.now();
     // 1. Prepare DB Object (snake_case)
+    const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
+
     const dbMessageData = frontendToDb({
       chatId: validChatId,
       senderId: currentUser.id,
@@ -881,9 +889,10 @@ const Chat = () => {
       mediaType: null,
       isGroupMessage: Boolean(isGroupChat),
       replyTo: replyingTo ? replyingTo.id : null,
+      messageType: 'text',
       createdAt: new Date().toISOString(),
+      vanishAt: vanishAt,
       status: 'sending',
-      // UI-only fields
       tempId: tempId
     });
 
@@ -904,10 +913,11 @@ const Chat = () => {
       return;
     }
 
-    // Optimistic message: keep snake_case so UI has created_at, sender_id (MessageItem uses these)
+    // Optimistic message: convert to camelCase for UI consistency
     const optimisticMsg = {
-      ...dbMessageData,
+      ...dbToFrontend(dbMessageData),
       sender: currentUser,
+      tempId: tempId
     };
 
     setMessages(prev => [...prev, optimisticMsg]);
@@ -926,9 +936,10 @@ const Chat = () => {
 
       if (error) throw error;
 
-      // 3. Replace temporary message with real message (snake_case so created_at, sender_id work)
+      // 3. Replace temporary message with real message (converted to camelCase)
+      const frontendData = dbToFrontend(data);
       setMessages(prev => prev.map(msg =>
-        msg.tempId === tempId ? { ...data, status: 'sent', sender: currentUser } : msg
+        msg.tempId === tempId ? { ...frontendData, status: 'sent', sender: currentUser } : msg
       ));
 
       NotificationSound.playMessageNotification();
@@ -950,6 +961,8 @@ const Chat = () => {
         : mediaType === 'video' ? '🎥 Video'
           : '🎤 Voice Message';
 
+      const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
+
       const newMessage = {
         chat_id: validChatId,
         sender_id: currentUser.id,
@@ -957,15 +970,23 @@ const Chat = () => {
         content: content,
         media_path: mediaPath,
         media_type: mediaType,
+        message_type: mediaType === 'voice' ? 'audio' : mediaType,
         reply_to: null,
         is_group_message: Boolean(isGroupChat),
+        vanish_at: vanishAt,
       };
 
-      const { error } = await supabase
+      // Pessimistic send for media for simplicity, but convert to camelCase after
+      const { data, error } = await supabase
         .from('messages')
-        .insert(newMessage);
+        .insert(newMessage)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      const frontendMsg = dbToFrontend(data);
+      setMessages(prev => [...prev, { ...frontendMsg, sender: currentUser }]);
 
       setReplyingTo(null);
       NotificationSound.playMessageNotification();
@@ -1066,15 +1087,19 @@ const Chat = () => {
       const isGroupTarget = targetChat.isGroup || targetChat.is_group || false;
 
       for (const message of messages) {
+        const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
+
         const forwardMessage = {
           chat_id: targetChat.id,
-          sender_id: currentUser.id,
-          receiver_id: isGroupTarget ? null : (targetChat.otherUser?.id || null),
-          content: `Forwarded: ${message.content}`,
-          media_path: message.media_path,
-          media_type: message.media_type,
+          senderId: currentUser.id,
+          receiverId: isGroupTarget ? null : (targetChat.otherUser?.id || null),
+          content: message.content,
+          mediaPath: message.mediaPath || message.media_path,
+          mediaType: message.mediaType || message.media_type,
+          messageType: message.messageType || message.message_type || (message.media_type === 'voice' ? 'audio' : message.media_type) || 'text',
           reply_to: null,
           is_group_message: Boolean(isGroupTarget),
+          vanish_at: vanishAt,
         };
 
         const { error } = await supabase
@@ -1118,7 +1143,7 @@ const Chat = () => {
     const messageId = Array.from(selectedMessages)[0];
     const message = messages.find(msg => msg.id === messageId);
 
-    if (message && message.sender_id === currentUser.id) {
+    if (message && (message.senderId || message.sender_id) === currentUser.id) {
       // Trigger edit mode for that message
       setReplyingTo(null); // Clear reply if any
       exitSelectionMode();
@@ -1145,7 +1170,7 @@ const Chat = () => {
 
   const handleMessageEdit = (message) => {
     // This function will be passed to MessageItem to handle edit triggers
-    if (message.sender_id === currentUser.id) {
+    if ((message.senderId || message.sender_id) === currentUser.id) {
       // The actual edit logic is handled in MessageItem component
       // This is just a placeholder for any additional logic needed
     }
@@ -1233,7 +1258,7 @@ const Chat = () => {
         .limit(50);
 
       if (error) throw error;
-      setSearchResults(data || []);
+      setSearchResults((data || []).map(m => dbToFrontend(m)));
     } catch (error) {
       console.error('Error searching messages:', error);
       setSearchResults([]);
@@ -1450,7 +1475,7 @@ const Chat = () => {
     const fileInfo = {
       file_name: message.file_name || 'Unknown',
       file_size: message.file_size || 0,
-      mime_type: message.media_type || 'image/jpeg',
+      mime_type: message.mediaType || message.media_type || 'image/jpeg',
       storage_url: mediaUrl,
       file_type: mediaType
     };
@@ -1674,7 +1699,8 @@ const Chat = () => {
                   </button>
                   {Array.from(selectedMessages).every(messageId => {
                     const message = messages.find(msg => msg.id === messageId);
-                    return message && message.sender_id === currentUser?.id;
+                    const isMine = (message.senderId || message.sender_id) === currentUser.id;
+                    return message && isMine;
                   }) && (
                       <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
                         <Trash2 size={16} />
@@ -1812,7 +1838,7 @@ const Chat = () => {
                       {message.content}
                     </div>
                     <div className="search-result-time">
-                      {new Date(message.created_at).toLocaleDateString()}
+                      {new Date(message.createdAt || message.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 ))

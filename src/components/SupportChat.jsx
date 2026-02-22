@@ -82,19 +82,8 @@ const SupportChat = () => {
           table: 'support_messages',
           filter: `user_id=eq.${currentUser.id}`,
           handler: (payload) => {
-            if (payload.eventType === 'UPDATE' && payload.new.response) {
-              // Admin responded
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: `response-${payload.new.id}`,
-                  text: payload.new.response,
-                  sender: 'support',
-                  timestamp: new Date(payload.new.responded_at || Date.now()),
-                  status: 'read',
-                },
-              ]);
-            }
+            // Refresh messages on any change to ensure consistency and avoid duplicates
+            loadMessages();
           }
         }]
       }
