@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useWebRTCCalling } from '../../hooks/media/useWebRTCCalling';
+import { useDialog } from '../../contexts/DialogContext';
 
 /**
  * WebRTC Calling Component
@@ -20,6 +21,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
     callDuration,
     callType
   } = useWebRTCCalling();
+  const { showAlert } = useDialog();
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -61,7 +63,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
     });
 
     if (!result.success) {
-      alert('Failed to start call: ' + result.error);
+      showAlert('Failed to start call: ' + result.error);
     }
   };
 

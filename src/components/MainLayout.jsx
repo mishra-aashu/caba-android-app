@@ -10,6 +10,7 @@ import { useSupabase } from '../contexts/SupabaseContext';
 import { dpOptions } from '../utils/dpOptions';
 import { getInitials } from '../utils/stringUtils';
 import toast from 'react-hot-toast';
+import { useDialog } from '../contexts/DialogContext';
 import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
 import ParticleOverlay from './chat/ParticleOverlay';
@@ -27,6 +28,7 @@ import Sidebar from './layout/Sidebar';
 const MainLayout = () => {
     const { user, session } = useAuth();
     const { supabase } = useSupabase();
+    const { showAlert } = useDialog();
     const navigate = useNavigate();
     const location = useLocation();
     const isDesktop = useIsDesktop();
@@ -323,7 +325,7 @@ const MainLayout = () => {
         currentUser: user,
         handleNavigation,
         handleAboutApp: () => navigate('/about'),
-        handleHelp: () => alert('Help'),
+        handleHelp: () => showAlert('Help Support Coming Soon', 'Support'),
         handleLogout,
         isAdmin: false,
         savedContacts,

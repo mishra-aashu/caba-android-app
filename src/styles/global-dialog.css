@@ -1,0 +1,84 @@
+.global-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.dialog-message {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-primary, #e9edef);
+    margin: 0;
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.dialog-input-container {
+    margin-top: 16px;
+    width: 100%;
+}
+
+.dialog-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.dialog-input:focus {
+    border-color: var(--primary-color);
+}
+
+.dialog-btn {
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.confirm-btn {
+    background: var(--brand-primary, #00BFA5);
+    color: white;
+}
+
+.confirm-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.cancel-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary, #8696a0);
+}
+
+.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Light mode overrides if needed */
+body.light-mode .dialog-message {
+    color: #1a1a1a;
+}
+
+body.light-mode .cancel-btn {
+    background: #f0f2f5;
+    color: #54656f;
+}
+
+body.light-mode .cancel-btn:hover {
+    background: #e9edef;
+}

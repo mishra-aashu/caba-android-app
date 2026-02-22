@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useMediaCleanup } from '../../hooks/media/useMediaCleanup';
+import { useDialog } from '../../contexts/DialogContext';
 
 /**
  * Media Cleanup Component
@@ -15,6 +16,7 @@ const MediaCleanup = ({ autoStart = false }) => {
     runCleanup,
     cleanupTransfer
   } = useMediaCleanup();
+  const { showConfirm } = useDialog();
 
   useEffect(() => {
     if (autoStart && !isRunning) {
@@ -27,7 +29,8 @@ const MediaCleanup = ({ autoStart = false }) => {
   };
 
   const handleCleanupTransfer = async (transferId) => {
-    if (window.confirm('Are you sure you want to cleanup this transfer?')) {
+    const confirmed = await showConfirm('Are you sure you want to cleanup this transfer?');
+    if (confirmed) {
       await cleanupTransfer(transferId);
     }
   };

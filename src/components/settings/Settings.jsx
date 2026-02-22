@@ -9,12 +9,14 @@ import { clearAllCachedData } from '../../utils/FileSystemManager';
 import { MoreVertical } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import toast from 'react-hot-toast';
+import { useDialog } from '../../contexts/DialogContext';
 import '../../styles/settings.css';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { theme, toggleTheme } = useTheme();
+  const { showAlert, showConfirm } = useDialog();
   const baseUrl = import.meta.env.BASE_URL || '/';
   const [settings, setSettings] = useState({
     // Notifications
@@ -240,7 +242,7 @@ const Settings = () => {
     currentAudioRef.current = audio;
     audio.play().catch(e => {
       console.log('Could not play ringtone:', e);
-      alert('Could not play ringtone');
+      showAlert('Could not play ringtone');
       return;
     });
 
@@ -275,7 +277,8 @@ const Settings = () => {
 
   // Clear cache functions
   const clearAllCache = async () => {
-    if (!confirm('This will clear all cached app data, including chats and media from this device. Continue?')) return;
+    const confirmed = await showConfirm('This will clear all cached app data, including chats and media from this device. Continue?');
+    if (!confirmed) return;
 
     try {
       toast.success('Clearing all cached data...');
@@ -303,14 +306,17 @@ const Settings = () => {
 
   // Delete account
   const deleteAccount = async () => {
-    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
-    if (!confirm('This will permanently delete all your messages, calls, and data. Continue?')) return;
+    const confirmed1 = await showConfirm('Are you sure you want to delete your account? This action cannot be undone.');
+    if (!confirmed1) return;
+
+    const confirmed2 = await showConfirm('This will permanently delete all your messages, calls, and data. Continue?');
+    if (!confirmed2) return;
 
     try {
       // Get current user from the auth store
       const currentUser = useAuthStore.getState().dbUser;
       if (!currentUser) {
-        alert('No user session found');
+        showAlert('No user session found');
         navigate('/login');
         return;
       }
@@ -323,7 +329,7 @@ const Settings = () => {
 
       if (error) {
         console.error('Error deleting user data:', error);
-        alert('Failed to delete account');
+        showAlert('Failed to delete account');
         return;
       }
 
@@ -339,20 +345,19 @@ const Settings = () => {
   };
 
   // Placeholder functions for unimplemented features
-  const showSecuritySettings = () => alert('Security settings coming soon');
+  const showSecuritySettings = () => showAlert('Security settings coming soon');
   const showBlockedUsers = () => navigate('/blocked');
-  const showAutoDownloadSettings = () => alert('Auto download settings coming soon');
-  const showHelpCenter = () => alert('Help center coming soon');
-  const showContactSupport = () => alert('Contact support coming soon');
-  const showTerms = () => alert('Terms & Privacy coming soon');
-  const checkForUpdates = () => {
+  const showAutoDownloadSettings = () => showAlert('Auto download settings coming soon');
+  const showHelpCenter = () => showAlert('Help center coming soon');
+  const showContactSupport = () => showAlert('Contact support coming soon');
+  const showTerms = () => showAlert('Terms & Privacy coming soon');
+  const checkForUpdates = async () => {
     if (remoteVersion) {
-      alert(`You are using the latest version (${remoteVersion})`);
+      showAlert(`You are using the latest version (${remoteVersion})`, 'App Update');
     } else {
-      alert('Checking for updates...');
-      fetchRemoteVersion().then(() => {
-        alert('You are using the latest version');
-      });
+      showAlert('Checking for updates...');
+      await fetchRemoteVersion();
+      showAlert('You are using the latest version', 'App Update');
     }
   };
 

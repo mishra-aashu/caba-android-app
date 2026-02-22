@@ -6,6 +6,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useCall } from '../../context/CallContext';
 import { dpOptions } from '../../utils/dpOptions';
 import { CallHistory } from '../CallHistory';
+import { useDialog } from '../../contexts/DialogContext';
 import { CallButton } from '../CallButton';
 import { IncomingCallModal } from '../IncomingCallModal';
 import BottomNavigation from '../common/BottomNavigation';
@@ -16,6 +17,7 @@ import '../../styles/calls.css';
 const Calls = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { showAlert } = useDialog();
   const { startCall, answerCall } = useCall();
   const [searchTerm, setSearchTerm] = useState('');
   const [incomingCall, setIncomingCall] = useState(null);
@@ -198,12 +200,12 @@ const Calls = () => {
     console.log('handleCall called with contact:', contact, 'type:', type);
     if (!contact) {
       console.error('handleCall: contact is null/undefined');
-      alert('Invalid contact: contact not found');
+      showAlert('Invalid contact: contact not found');
       return;
     }
     if (!contact.id) {
       console.error('handleCall: contact.id is null/undefined', contact);
-      alert('Invalid contact: contact ID missing');
+      showAlert('Invalid contact: contact ID missing');
       return;
     }
     console.log('handleCall: validation passed, proceeding with call');
@@ -212,7 +214,7 @@ const Calls = () => {
       await startCall(contact.id, type);
     } catch (error) {
       console.error('Error starting call:', error);
-      alert('Failed to start call: ' + error.message);
+      showAlert('Failed to start call: ' + error.message);
     }
   };
 
@@ -223,7 +225,7 @@ const Calls = () => {
       navigate(`/call/${callData.call_id}`);
     } catch (error) {
       console.error('Error accepting call:', error);
-      alert('Failed to accept call: ' + error.message);
+      showAlert('Failed to accept call: ' + error.message);
     }
   };
 

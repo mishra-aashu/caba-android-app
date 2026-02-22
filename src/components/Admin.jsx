@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDialog } from '../contexts/DialogContext';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useAuth } from '../hooks/useAuth';
+import { useAuthStore } from '../store/authStore';
 import { isAdmin, verifyAdminTableAccess, fetchAdminData } from '../utils/adminVerification';
 import { dpOptions } from '../utils/dpOptions';
 import { isUserOnline } from '../utils/timeUtils';
@@ -32,7 +34,8 @@ const Admin = () => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { user } = useAuth();
-  const [currentUser, setCurrentUser] = useState(null);
+  const { dbUser: currentUser } = useAuthStore();
+  const { showAlert, showConfirm } = useDialog();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -627,7 +630,8 @@ const Admin = () => {
 
   // Admin Actions
   const demoteAdmin = async (userId) => {
-    if (!confirm('Are you sure you want to remove admin privileges from this user?')) return;
+    const confirmed = await showConfirm('Are you sure you want to remove admin privileges from this user?');
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase
@@ -638,20 +642,21 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('demote_admin', `Removed admin privileges from user ${userId}`);
         loadUsers();
-        alert('Admin privileges removed successfully');
+        showAlert('Admin privileges removed successfully');
       } else {
-        alert('Error removing admin privileges: ' + error.message);
+        showAlert('Error removing admin privileges: ' + error.message);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error demoting admin:', error);
       }
-      alert('Error removing admin privileges');
+      showAlert('Error removing admin privileges');
     }
   };
 
   const promoteToAdmin = async (userId) => {
-    if (!confirm('Are you sure you want to grant admin privileges to this user?')) return;
+    const confirmed = await showConfirm('Are you sure you want to grant admin privileges to this user?');
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase
@@ -662,20 +667,21 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('promote_admin', `Granted admin privileges to user ${userId}`);
         loadUsers();
-        alert('Admin privileges granted successfully');
+        showAlert('Admin privileges granted successfully');
       } else {
-        alert('Error granting admin privileges: ' + error.message);
+        showAlert('Error granting admin privileges: ' + error.message);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error promoting to admin:', error);
       }
-      alert('Error granting admin privileges');
+      showAlert('Error granting admin privileges');
     }
   };
 
   const deleteMessage = async (messageId) => {
-    if (!confirm('Are you sure you want to delete this message?')) return;
+    const confirmed = await showConfirm('Are you sure you want to delete this message?');
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase
@@ -686,18 +692,19 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('delete_message', `Deleted message ${messageId}`);
         loadMessages();
-        alert('Message deleted successfully');
+        showAlert('Message deleted successfully');
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error deleting message:', error);
       }
-      alert('Error deleting message');
+      showAlert('Error deleting message');
     }
   };
 
   const deleteNewsArticle = async (articleId) => {
-    if (!confirm('Are you sure you want to delete this article?')) return;
+    const confirmed = await showConfirm('Are you sure you want to delete this article?');
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase
@@ -708,13 +715,13 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('delete_news', `Deleted news article ${articleId}`);
         loadNews();
-        alert('Article deleted successfully');
+        showAlert('Article deleted successfully');
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error deleting article:', error);
       }
-      alert('Error deleting article');
+      showAlert('Error deleting article');
     }
   };
 
@@ -764,16 +771,16 @@ const Admin = () => {
 
       if (!error) {
         await logAdminAction('maintenance', `Ran ${functionName}`);
-        alert(`${functionName} completed successfully`);
+        showAlert(`${functionName} completed successfully`);
         loadDashboardData();
       } else {
-        alert(`Error running ${functionName}: ${error.message}`);
+        showAlert(`Error running ${functionName}: ${error.message}`);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error(`Error running ${functionName}:`, error);
       }
-      alert(`Error running ${functionName}`);
+      showAlert(`Error running ${functionName}`);
     }
   };
 
@@ -791,7 +798,7 @@ const Admin = () => {
 
   const submitSupportResponse = async () => {
     if (!responseText.trim()) {
-      alert('Please enter a response');
+      showAlert('Please enter a response');
       return;
     }
 
@@ -804,18 +811,18 @@ const Admin = () => {
 
       if (!error && data) {
         await logAdminAction('support_response', `Responded to support message from ${responseModal.userName}`);
-        alert('Response sent successfully');
+        showAlert('Response sent successfully');
         setResponseModal({ open: false, messageId: null, userName: '', message: '' });
         setResponseText('');
         loadSupportMessages();
       } else {
-        alert('Error sending response');
+        showAlert('Error sending response');
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error responding to support message:', error);
       }
-      alert('Error sending response');
+      showAlert('Error sending response');
     }
   };
 
@@ -846,15 +853,15 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('unblock_users', `Unblocked user ${blockedId} from ${blockerId}`);
         loadBlockedUsers();
-        alert('Users unblocked successfully');
+        showAlert('Users unblocked successfully');
       } else {
-        alert('Error unblocking users: ' + error.message);
+        showAlert('Error unblocking users: ' + error.message);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error unblocking users:', error);
       }
-      alert('Error unblocking users');
+      showAlert('Error unblocking users');
     }
   };
 
@@ -868,15 +875,15 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('delete_group', `Deleted group ${groupId}`);
         loadGroups();
-        alert('Group deleted successfully');
+        showAlert('Group deleted successfully');
       } else {
-        alert('Error deleting group: ' + error.message);
+        showAlert('Error deleting group: ' + error.message);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error deleting group:', error);
       }
-      alert('Error deleting group');
+      showAlert('Error deleting group');
     }
   };
 
@@ -890,15 +897,15 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('delete_reminder', `Deleted reminder ${reminderId}`);
         loadReminders();
-        alert('Reminder deleted successfully');
+        showAlert('Reminder deleted successfully');
       } else {
-        alert('Error deleting reminder: ' + error.message);
+        showAlert('Error deleting reminder: ' + error.message);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error deleting reminder:', error);
       }
-      alert('Error deleting reminder');
+      showAlert('Error deleting reminder');
     }
   };
 
@@ -912,15 +919,15 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('delete_status', `Deleted status ${statusId}`);
         loadStatuses();
-        alert('Status deleted successfully');
+        showAlert('Status deleted successfully');
       } else {
-        alert('Error deleting status: ' + error.message);
+        showAlert('Error deleting status: ' + error.message);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error deleting status:', error);
       }
-      alert('Error deleting status');
+      showAlert('Error deleting status');
     }
   };
 
@@ -934,15 +941,15 @@ const Admin = () => {
       if (!error) {
         await logAdminAction('delete_media_transfer', `Deleted media transfer ${transferId}`);
         loadMediaTransfers();
-        alert('Media transfer deleted successfully');
+        showAlert('Media transfer deleted successfully');
       } else {
-        alert('Error deleting media transfer: ' + error.message);
+        showAlert('Error deleting media transfer: ' + error.message);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error deleting media transfer:', error);
       }
-      alert('Error deleting media transfer');
+      showAlert('Error deleting media transfer');
     }
   };
 
@@ -1618,8 +1625,8 @@ const Admin = () => {
                     <div className="blocked-actions">
                       <button
                         className="action-btn small danger"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to unblock this user?')) {
+                        onClick={async () => {
+                          if (await showConfirm('Are you sure you want to unblock this user?')) {
                             unblockUsers(block.blockerId, block.blockedId);
                           }
                         }}
@@ -1684,8 +1691,8 @@ const Admin = () => {
                       </button>
                       <button
                         className="action-btn small danger"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this group?')) {
+                        onClick={async () => {
+                          if (await showConfirm('Are you sure you want to delete this group?')) {
                             deleteGroup(group.id);
                           }
                         }}
@@ -1747,8 +1754,8 @@ const Admin = () => {
                     <div className="reminder-actions">
                       <button
                         className="action-btn small danger"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this reminder?')) {
+                        onClick={async () => {
+                          if (await showConfirm('Are you sure you want to delete this reminder?')) {
                             deleteReminder(reminder.id);
                           }
                         }}
@@ -1819,8 +1826,8 @@ const Admin = () => {
                     <div className="status-actions">
                       <button
                         className="action-btn small danger"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this status?')) {
+                        onClick={async () => {
+                          if (await showConfirm('Are you sure you want to delete this status?')) {
                             deleteStatus(status.id);
                           }
                         }}
@@ -1882,8 +1889,8 @@ const Admin = () => {
                     <div className="transfer-actions">
                       <button
                         className="action-btn small danger"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this transfer?')) {
+                        onClick={async () => {
+                          if (await showConfirm('Are you sure you want to delete this transfer?')) {
                             deleteMediaTransfer(transfer.id);
                           }
                         }}

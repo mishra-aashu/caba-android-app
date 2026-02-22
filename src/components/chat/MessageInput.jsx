@@ -4,6 +4,7 @@ import EmojiPicker from '../common/EmojiPicker';
 import { Paperclip, MessageSquarePlus, Send, LoaderCircle, X, Image as ImageIcon, Video as VideoIcon, Mic, Square, Trash2, Smile } from 'lucide-react';
 import { uploadMedia, uploadVoiceMessage } from '../../services/mediaService';
 import { compressImage, handleVideo } from '../../utils/mediaCompressor';
+import { useDialog } from '../../contexts/DialogContext';
 import useIsDesktop from '../../hooks/useIsDesktop';
 
 const MessageInput = ({
@@ -20,6 +21,7 @@ const MessageInput = ({
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const { showAlert } = useDialog();
 
   const [filePreview, setFilePreview] = useState(null); // { url: '...', file: File }
   const [imageQuality, setImageQuality] = useState('standard'); // 'standard' or 'high'
@@ -92,7 +94,7 @@ const MessageInput = ({
       if (mediaPath) {
         onSendMedia(mediaPath, 'voice');
       } else {
-        alert('Voice upload failed. Please try again.');
+        showAlert('Voice upload failed. Please try again.');
       }
       setVoiceBlob(null);
     }
@@ -122,7 +124,7 @@ const MessageInput = ({
       if (mediaPath) {
         onSendMedia(mediaPath, fileType);
       } else {
-        alert('Upload failed. Please try again.');
+        showAlert('Upload failed. Please try again.');
       }
       setFilePreview(null); // Clear preview after sending
     }
@@ -219,7 +221,7 @@ const MessageInput = ({
       return true;
     } catch (err) {
       setHasPermission(false);
-      alert('Microphone access is required to record audio.');
+      showAlert('Microphone access is required to record audio.');
       return false;
     }
   };

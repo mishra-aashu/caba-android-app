@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config/supabase';
 import useAuthStore from '../../store/authStore';
+import { useDialog } from '../../contexts/DialogContext';
 import '../../styles/reminders.css';
 
 const CreateReminder = ({ onBack }) => {
   const currentUser = useAuthStore((state) => state.dbUser);
+  const { showAlert } = useDialog();
   const [selectedRecipient, setSelectedRecipient] = useState(null);
   const [contacts, setContacts] = useState([]);
   const [formData, setFormData] = useState({
@@ -75,23 +77,23 @@ const CreateReminder = ({ onBack }) => {
     e.preventDefault();
 
     if (!selectedRecipient) {
-      alert('Please select a recipient');
+      showAlert('Please select a recipient');
       return;
     }
 
     if (!formData.title.trim()) {
-      alert('Please enter a title');
+      showAlert('Please enter a title');
       return;
     }
 
     if (!formData.date || !formData.time) {
-      alert('Please select date and time');
+      showAlert('Please select date and time');
       return;
     }
 
     const reminderTime = new Date(`${formData.date}T${formData.time}`);
     if (reminderTime < new Date()) {
-      alert('Reminder time cannot be in the past');
+      showAlert('Reminder time cannot be in the past');
       return;
     }
 
@@ -126,11 +128,11 @@ const CreateReminder = ({ onBack }) => {
 
       if (error) throw error;
 
-      alert('Reminder created successfully');
       onBack && onBack();
+      showAlert('Reminder created successfully');
     } catch (error) {
       console.error('Error creating reminder:', error);
-      alert('Failed to create reminder');
+      showAlert('Failed to create reminder');
     } finally {
       setLoading(false);
     }

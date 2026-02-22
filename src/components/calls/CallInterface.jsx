@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../config/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDialog } from '../../contexts/DialogContext';
 import '../../styles/call-interface.css';
 
 const CallInterface = ({ contact, callType, incoming = false, callId, roomId, onClose, onCallEnd }) => {
   const { theme } = useTheme();
+  const { showAlert } = useDialog();
   const [callState, setCallState] = useState(incoming ? 'incoming' : 'connecting');
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -33,7 +35,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
     try {
       // Check if WebRTCCall is available
       if (!window.WebRTCCall) {
-        alert('WebRTC not loaded. Please refresh the page.');
+        showAlert('WebRTC not loaded. Please refresh the page.');
         onClose();
         return;
       }
@@ -70,13 +72,13 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
           localVideoRef.current.srcObject = result.localStream;
         }
       } else {
-        alert('Failed to start call: ' + result.error);
+        showAlert('Failed to start call: ' + result.error);
         onClose();
       }
 
     } catch (error) {
       console.error('Call initialization error:', error);
-      alert('Failed to initialize call');
+      showAlert('Failed to initialize call');
       onClose();
     }
   };
@@ -84,7 +86,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
   const initializeIncomingCall = async () => {
     try {
       if (!window.WebRTCCall) {
-        alert('WebRTC not loaded. Please refresh the page.');
+        showAlert('WebRTC not loaded. Please refresh the page.');
         onClose();
         return;
       }
@@ -120,13 +122,13 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
           localVideoRef.current.srcObject = result.localStream;
         }
       } else {
-        alert('Failed to answer call: ' + result.error);
+        showAlert('Failed to answer call: ' + result.error);
         onClose();
       }
 
     } catch (error) {
       console.error('Incoming call initialization error:', error);
-      alert('Failed to answer call');
+      showAlert('Failed to answer call');
       onClose();
     }
   };

@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useAuthStore from '../../store/authStore';
+import { useDialog } from '../../contexts/DialogContext';
 import './Blocked.css';
 
 const Blocked = ({ onBack }) => {
   const { supabase } = useSupabase();
   const currentUser = useAuthStore((state) => state.dbUser);
+  const { showAlert, showConfirm } = useDialog();
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [unblockModal, setUnblockModal] = useState(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -37,31 +38,27 @@ const Blocked = ({ onBack }) => {
       setBlockedUsers(data || []);
     } catch (error) {
       console.error('Error loading blocked users:', error);
-      alert('Failed to load blocked users');
+      showAlert('Failed to load blocked users');
     }
   };
 
-  const handleUnblock = (blockId, userName) => {
-    setUnblockModal({ blockId, userName });
-  };
-
-  const confirmUnblock = async () => {
-    if (!unblockModal) return;
+  const handleUnblock = async (blockId, userName) => {
+    const confirmed = await showConfirm(`Are you sure you want to unblock ${userName}?`, 'Unblock User');
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase
         .from('blocked_users')
         .delete()
-        .eq('id', unblockModal.blockId);
+        .eq('id', blockId);
 
       if (error) throw error;
 
-      setUnblockModal(null);
       await loadBlockedUsers(currentUser);
-      alert('User unblocked successfully');
+      showAlert('User unblocked successfully');
     } catch (error) {
       console.error('Error unblocking user:', error);
-      alert('Failed to unblock user');
+      showAlert('Failed to unblock user');
     }
   };
 
@@ -135,31 +132,7 @@ const Blocked = ({ onBack }) => {
         )}
       </div>
 
-      {/* Unblock Modal */}
-      {unblockModal && (
-        <div className="modal" onClick={() => setUnblockModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Unblock User</h2>
-              <button className="close-modal" onClick={() => setUnblockModal(null)}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>Are you sure you want to unblock <strong>{unblockModal.userName}</strong>?</p>
-              <p className="modal-note">You will be able to receive messages and calls from this user again.</p>
-              <div className="modal-actions">
-                <button className="btn-secondary" onClick={() => setUnblockModal(null)}>
-                  Cancel
-                </button>
-                <button className="btn-danger" onClick={confirmUnblock}>
-                  Unblock
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal removed in favor of GlobalDialog */}
     </div>
   );
 };

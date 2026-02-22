@@ -38,6 +38,7 @@ import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import useUserStore from '../../store/userStore';
 import { UserDetailsContext } from '../MainLayout';
+import { useDialog } from '../../contexts/DialogContext';
 import WallpaperPicker from './WallpaperPicker';
 import '../../styles/chat.css';
 
@@ -56,6 +57,7 @@ const Chat = () => {
   const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
   const { startCall } = useCall();
   const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
+  const { showAlert } = useDialog();
   const showUserDetails = React.useContext(UserDetailsContext);
   const queryClient = useQueryClient();
   const { chats: allChats } = useData();
@@ -1180,7 +1182,7 @@ const Chat = () => {
     const copyText = selectedMsgs.map(msg => msg.content).join('\n\n');
     navigator.clipboard.writeText(copyText);
     exitSelectionMode();
-    alert('Messages copied to clipboard');
+    showAlert('Messages copied to clipboard');
   };
 
   const handleSelectionEdit = () => {
@@ -1225,7 +1227,7 @@ const Chat = () => {
 
   const handleViewContact = () => {
     if (!otherUserId || otherUserId === 'undefined') {
-      alert('User information not available');
+      showAlert('User information not available');
       return;
     }
     // Use context callback if available (desktop - keeps Chat mounted), otherwise navigate (mobile)
@@ -1424,7 +1426,7 @@ const Chat = () => {
         .eq('id', chatId);
     } catch (error) {
       console.error('Error clearing chat:', error);
-      alert('Failed to clear chat. Please try again.');
+      showAlert('Failed to clear chat. Please try again.');
     }
   };
 
@@ -1443,7 +1445,7 @@ const Chat = () => {
       navigate(`/call/${callId}`);
     } catch (error) {
       console.error('Failed to start voice call:', error);
-      alert('Failed to start call: ' + error.message);
+      showAlert('Failed to start call: ' + error.message);
     }
   };
 
@@ -1458,7 +1460,7 @@ const Chat = () => {
       navigate(`/call/${callId}`);
     } catch (error) {
       console.error('Failed to start video call:', error);
-      alert('Failed to start call: ' + error.message);
+      showAlert('Failed to start call: ' + error.message);
     }
   };
 
@@ -1543,7 +1545,7 @@ const Chat = () => {
       document.body.removeChild(link);
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Failed to download media');
+      showAlert('Failed to download media');
     }
   };
 

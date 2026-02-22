@@ -10,10 +10,12 @@ import AddMembersModal from './AddMembersModal';
 import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown, Calendar, User as UserIcon, Camera, Shield, Lock, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { useDialog } from '../../contexts/DialogContext';
 import './GroupInfoDrawer.css';
 
 const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
   const { user } = useAuth();
+  const { showAlert, showConfirm } = useDialog();
   const { useGroup, useGroupMembers, useIsAdmin, useLeaveGroup, useUpdateGroup } = useGroupActions();
 
   const [showAddMembers, setShowAddMembers] = useState(false);
@@ -54,7 +56,8 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
 
   // Handle leave group
   const handleLeaveGroup = async () => {
-    if (!window.confirm('Are you sure you want to leave this group?')) return;
+    const confirmed = await showConfirm('Are you sure you want to leave this group?');
+    if (!confirmed) return;
 
     try {
       await leaveGroupMutation.mutateAsync({ groupId, userId: user.id });

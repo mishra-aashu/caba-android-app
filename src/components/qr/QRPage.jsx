@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { QRCodeGenerator, QRCodeScanner } from './index';
+import { useDialog } from '../../contexts/DialogContext';
 import BottomNavigation from '../common/BottomNavigation';
 import './QRPage.css';
 
@@ -10,6 +11,7 @@ const QRPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { supabase } = useSupabase();
+  const { showAlert } = useDialog();
   const [showGenerator, setShowGenerator] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [scannedUser, setScannedUser] = useState(null);
@@ -38,11 +40,11 @@ const QRPage = () => {
           setScannedUser(userData);
           setShowUserModal(true);
         } else {
-          alert('User not found');
+          showAlert('User not found');
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
-        alert('Failed to load user information');
+        showAlert('Failed to load user information');
       } finally {
         setLoading(false);
       }
@@ -65,7 +67,7 @@ const QRPage = () => {
         .single();
 
       if (existing) {
-        alert('User already in contacts');
+        showAlert('User already in contacts');
         return;
       }
 
@@ -81,12 +83,12 @@ const QRPage = () => {
 
       if (error) throw error;
 
-      alert(`${scannedUser.name} added to contacts!`);
+      showAlert(`${scannedUser.name} added to contacts!`);
       setShowUserModal(false);
       setScannedUser(null);
     } catch (error) {
       console.error('Error adding to contacts:', error);
-      alert('Failed to add contact');
+      showAlert('Failed to add contact');
     } finally {
       setLoading(false);
     }
@@ -123,7 +125,7 @@ const QRPage = () => {
       setScannedUser(null);
     } catch (error) {
       console.error('Error starting chat:', error);
-      alert('Failed to start chat');
+      showAlert('Failed to start chat');
     } finally {
       setLoading(false);
     }
@@ -280,7 +282,7 @@ const QRPage = () => {
           </div>
         </div>
       )}
-      
+
       {/* Bottom Navigation */}
       <BottomNavigation />
     </div>

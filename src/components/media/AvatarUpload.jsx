@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useAvatarUpload } from '../../hooks/media/useAvatarUpload';
+import { useDialog } from '../../contexts/DialogContext';
 
 /**
  * Avatar Upload Component
@@ -8,6 +9,7 @@ import { useAvatarUpload } from '../../hooks/media/useAvatarUpload';
 const AvatarUpload = ({ onAvatarUpdate, className = '' }) => {
   const fileInputRef = useRef(null);
   const { uploadAvatar, getCurrentUserAvatar, isUploading, uploadProgress } = useAvatarUpload();
+  const { showAlert } = useDialog();
   const [currentAvatar, setCurrentAvatar] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
@@ -46,7 +48,7 @@ const AvatarUpload = ({ onAvatarUpdate, className = '' }) => {
       console.error('Avatar upload error:', error);
       setPreviewUrl(null);
       URL.revokeObjectURL(preview);
-      alert('Failed to upload avatar: ' + error.message);
+      showAlert('Failed to upload avatar: ' + error.message);
     }
 
     // Clear the input

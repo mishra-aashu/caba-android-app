@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'react-qrcode-logo';
+import { useDialog } from '../../contexts/DialogContext';
 import './QRCodeGenerator.css';
 
 const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) => {
+  const { showAlert } = useDialog();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedStyle, setSelectedStyle] = useState('classic');
@@ -92,7 +94,7 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
       }
     } catch (error) {
       console.error('Error downloading QR code:', error);
-      alert('Failed to download QR code');
+      showAlert('Failed to download QR code');
     }
   };
 
@@ -182,7 +184,7 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
                     });
                   } else {
                     navigator.clipboard.writeText(`${window.location.origin}/shared-profile.html?userId=${userId}`)
-                      .then(() => alert('Profile link copied to clipboard!'));
+                      .then(() => showAlert('Profile link copied to clipboard!'));
                   }
                 }}>
                   <i className="fas fa-share"></i>

@@ -4,11 +4,13 @@ import useAuthStore from '../../store/authStore';
 import { X } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import { realtimeManager } from '../../utils/realtimeManager';
+import { useDialog } from '../../contexts/DialogContext';
 import './News.css';
 
 const News = () => {
   const { supabase } = useSupabase();
   const currentUser = useAuthStore((state) => state.dbUser);
+  const { showAlert } = useDialog();
   const [myStatuses, setMyStatuses] = useState([]);
   const [recentStatuses, setRecentStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -164,11 +166,11 @@ const News = () => {
   };
 
   const handleAddStatus = () => {
-    alert('Status feature coming soon');
+    showAlert('Status feature coming soon');
   };
 
   const handleViewStatus = (user, statuses) => {
-    alert(`Viewing ${user.name}'s status`);
+    showAlert(`Viewing ${user.name}'s status`);
   };
 
   if (loading) {

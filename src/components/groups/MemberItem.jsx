@@ -9,9 +9,11 @@ import { getDpById } from '../../utils/dpOptions';
 import { isUserOnline } from '../../utils/timeUtils';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { MoreVertical, Crown, User, Phone, Trash2, ArrowUp, Flag } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import toast from 'react-hot-toast';
 
 const MemberItem = ({ member, groupId, currentUserId, isCurrentUserAdmin, creatorId }) => {
+  const { showAlert, showConfirm } = useDialog();
   const { useRemoveMember, useMakeAdmin, useDemoteAdmin } = useGroupActions();
   const { supabase } = useSupabase();
 
@@ -50,7 +52,7 @@ const MemberItem = ({ member, groupId, currentUserId, isCurrentUserAdmin, creato
 
   // Handle remove member
   const handleRemove = async () => {
-    if (!window.confirm(`Remove ${memberName} from the group?`)) return;
+    if (!(await showConfirm(`Remove ${memberName} from the group?`))) return;
 
     try {
       await removeMemberMutation.mutateAsync({ groupId, userId: memberUserId });

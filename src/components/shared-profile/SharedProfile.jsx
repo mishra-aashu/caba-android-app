@@ -3,11 +3,13 @@ import { supabase } from '../../config/supabase';
 import useAuthStore from '../../store/authStore';
 import { dpOptions } from '../../utils/dpOptions';
 import { X } from 'lucide-react';
+import { useDialog } from '../../contexts/DialogContext';
 import './SharedProfile.css';
 
 const SharedProfile = ({ userId, onBack }) => {
   const [user, setUser] = useState(null);
   const currentUser = useAuthStore((state) => state.dbUser);
+  const { showAlert } = useDialog();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,16 +28,16 @@ const SharedProfile = ({ userId, onBack }) => {
       setUser(data);
     } catch (error) {
       console.error('Error loading shared profile:', error);
-      alert('Profile not found');
+      showAlert('Profile not found');
     }
   };
 
   const handleAddToContacts = () => {
-    alert('Add to contacts - feature not implemented');
+    showAlert('Add to contacts - feature not implemented');
   };
 
   const handleChat = () => {
-    alert('Start chat - feature not implemented');
+    showAlert('Start chat - feature not implemented');
   };
 
   const getInitials = (name) => {
@@ -74,10 +76,10 @@ const SharedProfile = ({ userId, onBack }) => {
         <div className="header-right">
           {!currentUser && (
             <div className="auth-actions">
-              <button className="btn-primary" onClick={() => alert('Login - feature not implemented')}>
+              <button className="btn-primary" onClick={() => showAlert('Login - feature not implemented')}>
                 <i className="fas fa-sign-in-alt"></i> Login
               </button>
-              <button className="btn-secondary" onClick={() => alert('Sign up - feature not implemented')}>
+              <button className="btn-secondary" onClick={() => showAlert('Sign up - feature not implemented')}>
                 <i className="fas fa-user-plus"></i> Sign Up
               </button>
             </div>

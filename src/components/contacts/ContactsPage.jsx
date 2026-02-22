@@ -18,11 +18,13 @@ import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
 import toast from 'react-hot-toast';
+import { useDialog } from '../../contexts/DialogContext';
 import './ContactsPage.css';
 
 const ContactsPage = ({ onClose, isDesktop = false }) => {
     const { supabase } = useSupabase();
     const { user } = useAuth();
+    const { showAlert, showConfirm } = useDialog();
     const { contacts: savedContacts, refreshContacts } = useData();
     const navigate = useNavigate();
 
@@ -104,7 +106,8 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
     };
 
     const handleDeleteContact = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this contact?')) return;
+        const confirmed = await showConfirm('Are you sure you want to delete this contact?');
+        if (!confirmed) return;
         try {
             const { error } = await supabase
                 .from('contacts')

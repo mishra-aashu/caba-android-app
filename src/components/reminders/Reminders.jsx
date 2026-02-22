@@ -5,6 +5,7 @@ import useAuthStore from '../../store/authStore';
 import { X, ArrowLeft, Plus, Settings, Clock, Check, CheckCircle, Timer, Ban, Bell, Pill, Users, CalendarCheck, Cake, ClipboardList, MoreHorizontal, List, Send, Inbox, Repeat, MapPin, BellOff, AlertCircle } from 'lucide-react';
 import { realtimeManager } from '../../utils/realtimeManager';
 import { safeDbConversion } from '../../utils/dbFieldMapping';
+import { useDialog } from '../../contexts/DialogContext';
 import { toast } from 'react-hot-toast';
 import '../../styles/reminders.css';
 
@@ -12,6 +13,7 @@ const Reminders = () => {
   const { supabase } = useSupabase();
   const { theme } = useTheme();
   const currentUser = useAuthStore((state) => state.dbUser);
+  const { showAlert, showConfirm, showPrompt } = useDialog();
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -160,7 +162,9 @@ const Reminders = () => {
   };
 
   const snoozeReminder = async (id) => {
-    const snoozeMinutes = parseInt(prompt('Snooze for how many minutes?', '10'));
+    const snoozeInput = await showPrompt('Snooze for how many minutes?', '10');
+    if (snoozeInput === null) return;
+    const snoozeMinutes = parseInt(snoozeInput);
     if (!snoozeMinutes || snoozeMinutes < 1) return;
 
     try {
@@ -303,10 +307,10 @@ const Reminders = () => {
           <h1>Reminders</h1>
         </div>
         <div className="header-right">
-          <button className="icon-btn" onClick={() => alert('Create reminder')}>
+          <button className="icon-btn" onClick={() => showAlert('Create reminder functionality coming soon')}>
             <Plus size={24} />
           </button>
-          <button className="icon-btn" onClick={() => alert('Settings')}>
+          <button className="icon-btn" onClick={() => showAlert('Reminder Settings Coming Soon')}>
             <Settings size={24} />
           </button>
         </div>
@@ -444,7 +448,7 @@ const Reminders = () => {
             <BellOff size={64} />
             <h3>No Reminders</h3>
             <p>You don't have any reminders in this category</p>
-            <button className="btn-primary" onClick={() => alert('Create reminder')}>
+            <button className="btn-primary" onClick={() => showAlert('Create reminder functionality coming soon')}>
               <Plus size={16} /> Create Reminder
             </button>
           </div>
@@ -452,7 +456,7 @@ const Reminders = () => {
       </main>
 
       {/* FAB */}
-      <button className="fab" onClick={() => alert('Create reminder')}>
+      <button className="fab" onClick={() => showAlert('Create reminder functionality coming soon')}>
         <Plus size={28} />
       </button>
     </div>

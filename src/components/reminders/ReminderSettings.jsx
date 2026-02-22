@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useDialog } from '../../contexts/DialogContext';
 import '../../styles/reminders.css';
 
 const ReminderSettings = ({ onBack }) => {
+  const { showAlert } = useDialog();
   const [settings, setSettings] = useState({
     reminderRingtone: 'fm-freemusic-give-me-a-smile(chosic.com).mp3',
     defaultVibration: true,
@@ -30,7 +32,7 @@ const ReminderSettings = ({ onBack }) => {
 
   const saveSettings = () => {
     localStorage.setItem('reminderSettings', JSON.stringify(settings));
-    alert('Settings saved successfully');
+    showAlert('Settings saved successfully');
     onBack && onBack();
   };
 
@@ -68,7 +70,7 @@ const ReminderSettings = ({ onBack }) => {
                 <p>Choose notification sound</p>
               </div>
             </div>
-            <button className="btn-primary" onClick={() => alert('Ringtone selection - feature not implemented')}>
+            <button className="btn-primary" onClick={() => showAlert('Ringtone selection - feature not implemented')}>
               <i className="fas fa-music"></i>
               Choose Ringtone
             </button>

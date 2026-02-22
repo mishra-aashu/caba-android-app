@@ -61,6 +61,8 @@ import Chat from './components/chat/Chat';
 import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
 import { requestPersistentStorage } from './db/db';
+import { DialogProvider } from './contexts/DialogContext';
+import GlobalDialog from './components/common/GlobalDialog';
 import './styles/offline-indicator.css';
 
 // Initialize Capacitor Updater
@@ -250,29 +252,32 @@ const App = () => {
       {/* SupabaseProvider is provided in main.jsx */}
       {/* ThemeProvider is provided in main.jsx */}
       <ErrorBoundary>
-        <DataProvider>
-          <GroupCallProvider currentUser={dbUser}>
-            <ChatThemeProvider>
-              {/* Universal Layout Logic */}
-              <ViewportManager />
-              {/* 🎯 Offline Indicator - Shows network status to users */}
-              <OfflineIndicator>
-                <AppContent />
-              </OfflineIndicator>
-              {/* Global Components */}
-              <CallStatusIndicator />
-              <IncomingCallModal />
-              <GroupIncomingCallNotification />
-              <Toaster
-                position="bottom"
-                containerStyle={{
-                  left: '62%',
-                  top: '70%',
-                  transform: 'translate(-50%, -50%)'
-                }} />
-            </ChatThemeProvider>
-          </GroupCallProvider>
-        </DataProvider>
+        <DialogProvider>
+          <DataProvider>
+            <GroupCallProvider currentUser={dbUser}>
+              <ChatThemeProvider>
+                {/* Universal Layout Logic */}
+                <ViewportManager />
+                {/* 🎯 Offline Indicator - Shows network status to users */}
+                <OfflineIndicator>
+                  <AppContent />
+                </OfflineIndicator>
+                {/* Global Components */}
+                <CallStatusIndicator />
+                <IncomingCallModal />
+                <GroupIncomingCallNotification />
+                <Toaster
+                  position="bottom"
+                  containerStyle={{
+                    left: '62%',
+                    top: '70%',
+                    transform: 'translate(-50%, -50%)'
+                  }} />
+                <GlobalDialog />
+              </ChatThemeProvider>
+            </GroupCallProvider>
+          </DataProvider>
+        </DialogProvider>
       </ErrorBoundary>
     </Suspense>
   );

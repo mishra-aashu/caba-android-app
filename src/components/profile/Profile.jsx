@@ -9,6 +9,7 @@ import '../../styles/profile.css';
 import '../qr/QRCodeGenerator.css';
 import '../qr/QRCodeScanner.css';
 import FullscreenImageModal from './FullscreenImageModal';
+import { useDialog } from '../../contexts/DialogContext';
 import toast from 'react-hot-toast';
 
 const Profile = ({ isModal = false, isSidebar = false }) => {
@@ -16,6 +17,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { user: authUser, loading: authLoading } = useAuth();
+  const { showAlert } = useDialog();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ chats: 0, calls: 0, contacts: 0 });
@@ -118,7 +120,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
       const { name, about, email } = editForm;
 
       if (name.length < 3) {
-        alert('Name must be at least 3 characters');
+        showAlert('Name must be at least 3 characters');
         return;
       }
 
@@ -139,7 +141,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile');
+      showAlert('Failed to update profile');
     }
   };
 
@@ -162,7 +164,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
     } catch (error) {
       console.error('Error selecting DP:', error);
-      alert('Failed to update profile picture');
+      showAlert('Failed to update profile picture');
     }
   };
 
@@ -170,13 +172,12 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
     setShowScanQrModal(false);
 
     try {
-      const userData = JSON.parse(scannedData);
       if (userData.id && userData.name) {
         setFoundUser(userData);
         setShowUserFoundModal(true);
       }
     } catch (error) {
-      alert('Invalid QR code format');
+      showAlert('Invalid QR code format');
     }
   };
 
@@ -191,10 +192,10 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
         addedAt: new Date().toISOString()
       });
       localStorage.setItem('CaBa_contacts', JSON.stringify(contacts));
-      alert(`${foundUser.name} added to contacts`);
+      showAlert(`${foundUser.name} added to contacts`);
       loadProfileStats();
     } else {
-      alert('User already in contacts');
+      showAlert('User already in contacts');
     }
     setShowUserFoundModal(false);
   };
