@@ -38,9 +38,21 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: 'index.html',
         runtimeCaching: [
           {
+            urlPattern: ({ url }) => url.pathname === '/' || url.pathname.endsWith('index.html'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'entry-point-cache',
+              expiration: {
+                maxEntries: 1,
+              }
+            }
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+
             handler: 'CacheFirst',
             options: {
               cacheName: 'google-fonts-cache',

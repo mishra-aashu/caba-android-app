@@ -41,4 +41,17 @@ export const markSyncItemCompleted = async (id) => {
     return await db.sync_queue.update(id, { status: 'completed' });
 };
 
+/**
+ * Request persistent storage to prevent browser eviction
+ */
+export const requestPersistentStorage = async () => {
+    if (navigator.storage && navigator.storage.persist) {
+        const isPersisted = await navigator.storage.persist();
+        console.log(`Persistent storage granted: ${isPersisted}`);
+        return isPersisted;
+    }
+    return false;
+};
+
 export default db;
+

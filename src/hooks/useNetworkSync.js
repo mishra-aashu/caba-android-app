@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import db from '../db/db';
 import { supabase } from '../config/supabase';
 
@@ -7,52 +7,73 @@ import { supabase } from '../config/supabase';
  * when the internet connection is restored.
  */
 const useNetworkSync = () => {
+    const isSyncing = useRef(false);
+
     useEffect(() => {
         const processQueue = async () => {
-            const pendingItems = await db.sync_queue
-                .where('status')
-                .equals('pending')
-                .toArray();
+            if (isSyncing.current) return;
+            isSyncing.current = true;
 
-            if (pendingItems.length === 0) return;
+            try {
+                // 1. Auth Check: Ensure session is valid/refreshed before sync
+                const { data: { session }, error: authError } = await supabase.auth.getSession();
 
-            console.log(`Processing ${pendingItems.length} pending sync items...`);
-
-            for (const item of pendingItems) {
-                try {
-                    let error = null;
-
-                    switch (item.type) {
-                        case 'send_message':
-                            const { error: msgError } = await supabase
-                                .from('messages')
-                                .insert(item.payload);
-                            error = msgError;
-                            break;
-
-                        case 'update_profile':
-                            const { error: profileError } = await supabase
-                                .from('users')
-                                .update(item.payload.data)
-                                .eq('id', item.payload.id);
-                            error = profileError;
-                            break;
-
-                        // Add more cases as needed (groups, contacts, etc.)
-                        default:
-                            console.warn(`Unknown sync item type: ${item.type}`);
-                            break;
-                    }
-
-                    if (!error) {
-                        await db.sync_queue.update(item.id, { status: 'completed' });
-                    } else {
-                        console.error(`Failed to sync item ${item.id}:`, error);
-                        // Optionally mark as failed or retry later
-                    }
-                } catch (err) {
-                    console.error(`Error processing sync item ${item.id}:`, err);
+                if (authError || !session) {
+                    console.warn('Sync postponed: No active session');
+                    return;
                 }
+
+                const pendingItems = await db.sync_queue
+                    .where('status')
+                    .equals('pending')
+                    .toArray();
+
+                if (pendingItems.length === 0) return;
+
+                console.log(`Processing ${pendingItems.length} pending sync items...`);
+
+                for (const item of pendingItems) {
+                    try {
+                        let error = null;
+
+                        switch (item.type) {
+                            case 'send_message':
+                                const { error: msgError } = await supabase
+                                    .from('messages')
+                                    .insert(item.payload);
+                                error = msgError;
+                                break;
+
+                            case 'update_profile':
+                                const { error: profileError } = await supabase
+                                    .from('users')
+                                    .update(item.payload.data)
+                                    .eq('id', item.payload.id);
+                                error = profileError;
+                                break;
+
+                            default:
+                                console.warn(`Unknown sync item type: ${item.type}`);
+                                break;
+                        }
+
+                        // 2. Atomic Update: Use Dexie transaction to mark as completed
+                        if (!error) {
+                            await db.transaction('rw', db.sync_queue, async () => {
+                                await db.sync_queue.update(item.id, {
+                                    status: 'completed',
+                                    synced_at: new Date().toISOString()
+                                });
+                            });
+                        } else {
+                            console.error(`Failed to sync item ${item.id}:`, error);
+                        }
+                    } catch (err) {
+                        console.error(`Error processing sync item ${item.id}:`, err);
+                    }
+                }
+            } finally {
+                isSyncing.current = false;
             }
         };
 
@@ -63,7 +84,6 @@ const useNetworkSync = () => {
 
         window.addEventListener('online', handleOnline);
 
-        // Initial check in case we just loaded while online
         if (navigator.onLine) {
             processQueue();
         }
@@ -75,3 +95,4 @@ const useNetworkSync = () => {
 };
 
 export default useNetworkSync;
+

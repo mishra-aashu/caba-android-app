@@ -60,6 +60,7 @@ import MainLayout from './components/MainLayout';
 import Chat from './components/chat/Chat';
 import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
+import { requestPersistentStorage } from './db/db';
 import './styles/offline-indicator.css';
 
 // Initialize Capacitor Updater
@@ -230,6 +231,8 @@ const App = () => {
   useEffect(() => {
     // App khulte hi notification system start karo
     initializePushNotifications();
+    // Request persistent storage for IndexedDB
+    requestPersistentStorage();
   }, []);
 
   // Initialize offline sync monitor
