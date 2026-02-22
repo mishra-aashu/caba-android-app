@@ -150,7 +150,7 @@ const ChatListPanel = ({
   };
 
   return (
-    <main className="chat-list-panel-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative' }}>
+    <main className="chat-list-panel-content">
       <header className="top-header">
         <div className="header-left">
           <h1 className="chats-title">Chats</h1>

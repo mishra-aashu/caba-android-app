@@ -12,13 +12,13 @@ const GroupListItem = ({ group, onClick, isActive }) => {
   // Get member preview text - "Sender: Message" format
   const getMemberPreview = () => {
     if (!group.last_message) return 'No messages yet';
-    
+
     // For group messages, show sender name + message
     // Format: "Amit: Chalo kal milte hai"
-    const message = group.last_message.length > 30 
-      ? group.last_message.substring(0, 30) + '...' 
+    const message = group.last_message.length > 30
+      ? group.last_message.substring(0, 30) + '...'
       : group.last_message;
-    
+
     return message;
   };
 
@@ -34,7 +34,7 @@ const GroupListItem = ({ group, onClick, isActive }) => {
     const date = new Date(timeStr);
     const now = new Date();
     const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffDays === 1) {
@@ -57,56 +57,66 @@ const GroupListItem = ({ group, onClick, isActive }) => {
   };
 
   return (
-    <div 
-      className={`chat-item-card ${isActive ? 'active' : ''}`}
+    <div
+      className={`chat-item ${isActive ? 'active' : ''} group-item`}
       onClick={onClick}
     >
       {/* Group Avatar */}
-      <div className="chat-item-avatar">
+      <div className="chat-avatar-container">
         {group.avatar_url ? (
-          <img 
-            src={group.avatar_url} 
+          <img
+            src={group.avatar_url}
             alt={group.name}
+            className="chat-avatar"
             onError={(e) => {
               e.target.style.display = 'none';
               e.target.nextSibling.style.display = 'flex';
             }}
           />
         ) : null}
-        <div 
+        <div
           className="avatar-placeholder"
-          style={{ 
+          style={{
             display: group.avatar_url ? 'none' : 'flex',
-            background: 'linear-gradient(135deg, #25d366, #128c7e)'
+            background: 'linear-gradient(135deg, #25d366, #128c7e)',
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
           <Users size={20} color="white" />
         </div>
-        
-        {/* Online indicator - groups don't have online status, but we can show member count */}
+
+        {/* Unread Badge on Avatar (Legacy position, but let's keep it functional) */}
         {group.unreadCount > 0 && (
-          <span className="unread-count">{group.unreadCount}</span>
+          <span className="unread-badge" style={{ position: 'absolute', bottom: '-2px', right: '-2px', marginLeft: 0 }}>
+            {group.unreadCount}
+          </span>
         )}
       </div>
 
       {/* Chat Info */}
-      <div className="chat-item-info">
-        <div className="chat-item-header">
-          <span className="chat-item-name">{group.name || 'Unnamed Group'}</span>
-          <span className="chat-item-time">
+      <div className="chat-info">
+        <div className="chat-header-row">
+          <span className="chat-name">{group.name || 'Unnamed Group'}</span>
+          <span className="chat-time">
             {formatTime(group.last_message_time)}
           </span>
         </div>
-        
-        <div className="chat-item-preview">
-          {/* Show member count for groups */}
-          <span className="member-count-badge">
-            <Users size={12} />
-            {getMemberCountText()}
-          </span>
-          <span className="chat-item-message">
-            {getMemberPreview()}
-          </span>
+
+        <div className="chat-footer-row">
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+            {/* Show member count for groups */}
+            <span className="member-count-badge" style={{ marginRight: '6px' }}>
+              <Users size={12} style={{ marginRight: '4px' }} />
+              {getMemberCountText()}
+            </span>
+            <span className="chat-last-message">
+              {getMemberPreview()}
+            </span>
+          </div>
         </div>
       </div>
     </div>

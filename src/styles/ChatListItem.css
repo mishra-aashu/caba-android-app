@@ -1,419 +1,198 @@
-/* --- MAIN PANEL CONTENT (Root of ChatListPanel) --- */
+/* ==========================================================================
+   UNIFIED CHAT LIST STYLES (Zero-Shift Architecture)
+   ========================================================================== */
+
+/* --- 1. Root Containers --- */
 .chat-list-panel-content {
-  background-color: var(--surface-color);
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100% !important;
+  background-color: var(--surface-color, #111b21);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   width: 100%;
-  overflow: hidden !important;
+  overflow: hidden;
   position: relative;
 }
 
-/* Sidebar Wrapper inside Sidebar.jsx */
-.sidebar-root {
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-}
-
-/* --- LIST CONTAINER (Pura List Area) --- */
 .chat-list-container,
 .scrollable-area {
-  background-color: var(--surface-color);
-  flex: 1 !important;
-  min-height: 0 !important;
-  height: 100% !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 0;
-  margin: 0;
-  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  -webkit-overflow-scrolling: touch;
 }
 
-.chat-items-section {
-  flex-shrink: 0;
-  min-height: min-content;
-}
-
-/* --- Light Mode Support (.light-mode class) --- */
-body.light-mode .chat-list-container,
-body.light-mode .scrollable-area,
-body.light-mode .chat-list-panel-content {
-  background-color: #ffffff;
-}
-
-body.light-mode .chat-item {
-  border-bottom-color: rgba(0, 0, 0, 0.1);
-}
-
-body.light-mode .chat-item:hover {
-  background-color: #f0f2f5;
-}
-
-body.light-mode .chat-item.active {
-  background-color: #e1f5fe;
-  border-left-color: #128c7e;
-}
-
-body.light-mode .chat-item:hover .chat-avatar {
-  border-color: rgba(0, 0, 0, 0.1);
-}
-
-body.light-mode .chat-name {
-  color: #111b21 !important;
-}
-
-body.light-mode .chat-time {
-  color: #54656f !important;
-  opacity: 1 !important;
-}
-
-body.light-mode .chat-last-message {
-  color: #54656f !important;
-  opacity: 1 !important;
-}
-
-body.light-mode .chat-item.active .chat-last-message {
-  color: #111b21 !important;
-}
-
-body.light-mode .online-dot {
-  border-color: #ffffff;
-}
-
-body.light-mode .typing {
-  color: #128c7e;
-}
-
-/* --- 1. Main Chat Item (Outer Box) --- */
+/* --- 2. The Chat Item (Unified Base) --- */
 .chat-item {
   display: flex;
-  /* Row me rakhega (Avatar | Text) */
   align-items: center;
-  /* Vertical Center */
-  justify-content: flex-start;
-  /* Hamesha Left se start ho (Center nahi) */
   padding: 12px 16px;
   width: 100%;
-  /* Full width */
   cursor: pointer;
+  position: relative;
+  /* For absolute indicator */
   box-sizing: border-box;
-  /* Padding width me count ho */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   transition: background-color 0.2s ease;
-
-  /* Reset any default button styles if you use <button> */
   background: transparent;
-  border: none;
-  text-align: left;
-  /* Text hamesha left rahe */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  contain: layout style;
 }
 
-/* Hover Effect: Smooth Glow */
+/* ZERO-SHIFT INDICATOR (Absolute positioning) */
+.chat-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 2;
+}
+
+/* Hover & Active States */
 .chat-item:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Active State (Click hone par) */
 .chat-item.active {
-  background-color: rgba(0, 168, 132, 0.1);
-  border-left: 4px solid #00a884;
-  padding-left: 12px;
-  /* Border ke liye adjust */
+  background-color: rgba(var(--brand-primary-rgb, 0, 168, 132), 0.1);
 }
 
-/* Last item ki border hata do */
-.chat-item:last-child {
-  border-bottom: none;
+.chat-item.active::before {
+  background-color: var(--brand-primary, #00a884);
 }
 
-/* --- 2. Avatar Styling --- */
+/* --- 3. Internal Components (Avatar) --- */
 .chat-avatar-container {
   position: relative;
   margin-right: 15px;
-  /* Text se doori */
   flex-shrink: 0;
-  /* Avatar shrink na ho */
+  display: flex;
+  align-items: center;
 }
 
 .chat-avatar {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  /* Gol Avatar */
   object-fit: cover;
-  border: 2px solid transparent;
-  /* Border space maintain karne ke liye */
-  transition: border-color 0.2s;
 }
 
-.chat-item:hover .chat-avatar {
-  border-color: rgba(255, 255, 255, 0.2);
-  /* Hover par ring */
-}
-
-/* Online Dot with Pulse Animation */
 .online-dot {
   position: absolute;
-  bottom: 2px;
-  right: 2px;
+  bottom: 1px;
+  right: 1px;
   width: 12px;
   height: 12px;
-  background-color: var(--brand-primary);
-  border: 2px solid var(--surface-color);
+  background-color: #00a884;
+  border: 2px solid var(--surface-color, #111b21);
   border-radius: 50%;
-  box-shadow: 0 0 0 rgba(var(--brand-primary), 0.4);
-  animation: pulse-green 2s infinite;
 }
 
-/* --- 3. Text Info Area (Sabse Zaruri Part) --- */
+/* --- 4. Internal Components (Info) --- */
 .chat-info {
   flex: 1;
-  /* Bachi hui jagah le */
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  /* Upar Name, Niche Message */
-  justify-content: center;
-  /* Box ke vertical center me rahe */
-
-  /* 👇 YE LINE ADD KARO (Jisse center problem solve hogi) 👇 */
-  align-items: flex-start;
-  min-width: 0;
-  /* Text truncation ke liye zaroori */
 }
 
-/* --- 4. Top Row (Name + Time) --- */
 .chat-header-row {
   display: flex;
   justify-content: space-between;
-  /* Name Left, Time Right */
   align-items: baseline;
-  /* Text base line match kare */
-  width: 100%;
-  /* Pura faila do */
-  margin-bottom: 4px;
-  /* Name aur message ke beech gap */
+  margin-bottom: 2px;
 }
 
 .chat-name {
   font-size: 16px;
   font-weight: 500;
-  color: #e9edef;
-  margin: 0;
+  color: var(--text-primary, #e9edef);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: left;
-  /* Force Left */
 }
 
 .chat-time {
-  font-size: 11px;
-  color: #8696a0;
-  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary, #8696a0);
   margin-left: 8px;
   flex-shrink: 0;
-  /* Time shrink na ho */
 }
 
-/* --- 5. Bottom Row (Message + Badge) --- */
 .chat-footer-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  /* Pura faila do */
 }
 
 .chat-last-message {
   font-size: 14px;
-  color: #8696a0;
-  margin: 0;
+  color: var(--text-secondary, #8696a0);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: left;
-  /* Force Left */
-  max-width: 85%;
+  flex: 1;
 }
 
-.message-sender-prefix {
-  font-weight: 500;
-  color: var(--brand-primary);
-  margin-right: 2px;
-}
-
-.message-sender-prefix.me {
-  color: #00a884;
-}
-
-/* Active ya Unread message ka color alag ho */
-.chat-item.active .chat-last-message {
-  color: var(--text-primary);
-}
-
-/* Typing... Green Color */
-.typing {
-  color: var(--brand-primary);
-  font-weight: 500;
-  font-style: italic;
-}
-
-/* --- 6. Unread Badge --- */
 .unread-badge {
-  background-color: var(--brand-primary);
-  color: var(--surface-color);
-  font-size: 10px;
-  font-weight: 700;
+  background-color: var(--brand-primary, #00a884);
+  color: white;
   min-width: 18px;
   height: 18px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  flex-shrink: 0;
-}
-
-/* --- 7. Animations --- */
-@keyframes pulse-green {
-  0% {
-    box-shadow: 0 0 0 0 rgba(var(--brand-primary), 0.7);
-  }
-
-  70% {
-    box-shadow: 0 0 0 6px rgba(var(--brand-primary), 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(var(--brand-primary), 0);
-  }
-}
-
-/* Mobile Scrollbar Hide (Optional) */
-.chat-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.chat-list::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--text-secondary), 0.3);
-  border-radius: 4px;
-}
-
-/* --- Group List Item Styles --- */
-.member-count-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  padding: 0 5px;
   font-size: 11px;
-  color: var(--text-secondary);
-  margin-right: 6px;
-  padding: 2px 6px;
-  background: var(--border-color);
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-
-.chat-item-preview {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.chat-item-preview .chat-item-message {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* --- Group Chat Indicators --- */
-.chat-item.group-item {
-  /* Subtle background for groups to differentiate */
-  background-color: rgba(100, 108, 255, 0.03);
-}
-
-.chat-item.group-item:hover {
-  background-color: rgba(100, 108, 255, 0.08);
-}
-
-.chat-item.group-item.active {
-  background-color: rgba(100, 108, 255, 0.12);
-  border-left-color: #6468f3;
-}
-
-/* Group badge on avatar */
-.group-badge {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 20px;
-  height: 20px;
-  background: linear-gradient(135deg, #6468f3, #8b5cf6);
-  border: 2px solid var(--surface-color);
-  border-radius: 50%;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-left: 8px;
 }
 
-/* Group indicator icon next to name */
-.group-indicator {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 6px;
-  color: #6468f3;
+/* --- 5. Theme specific overrides --- */
+body.light-mode .chat-list-panel-content,
+body.light-mode .chat-list-container {
+  background-color: #ffffff;
 }
 
-.group-indicator .group-icon {
-  opacity: 0.9;
+body.light-mode .chat-item {
+  border-bottom-color: rgba(0, 0, 0, 0.05);
 }
 
-/* Member preview in last message */
-.member-preview {
-  font-weight: 500;
-  color: #6468f3;
-  margin-right: 2px;
+body.light-mode .chat-item:hover {
+  background-color: #f5f6f6;
 }
 
-.preview-name {
-  color: inherit;
+body.light-mode .chat-item.active {
+  background-color: #f0f2f5;
 }
 
-.more-members {
-  color: #888;
-  font-size: 12px;
+body.light-mode .chat-name {
+  color: #111b21;
 }
 
-/* Light mode support for groups */
-body.light-mode .chat-item.group-item {
-  background-color: rgba(100, 108, 255, 0.03);
+body.light-mode .chat-time,
+body.light-mode .chat-last-message {
+  color: #667781;
 }
 
-body.light-mode .chat-item.group-item:hover {
-  background-color: rgba(100, 108, 255, 0.08);
+/* --- 6. Scrollbar Styling --- */
+.scrollable-area::-webkit-scrollbar {
+  width: 6px;
 }
 
-body.light-mode .chat-item.group-item.active {
-  background-color: rgba(100, 108, 255, 0.12);
-  border-left-color: #6468f3;
+.scrollable-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
-body.light-mode .group-indicator {
-  color: #6468f3;
-}
-
-body.light-mode .member-preview {
-  color: #6468f3;
-}
-
-body.light-mode .group-badge {
-  border-color: #ffffff;
-  background: linear-gradient(135deg, #6468f3, #8b5cf6);
+body.light-mode .scrollable-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
 }

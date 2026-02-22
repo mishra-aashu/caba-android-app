@@ -7,8 +7,10 @@
   background-color: var(--bg-color);
   color: var(--text-primary);
   display: grid;
-  grid-template-columns: 360px 1fr; /* Sidebar and Chat Pane */
-  grid-template-rows: 60px 1fr; /* Header and Content */
+  grid-template-columns: 360px 1fr;
+  /* Sidebar and Chat Pane */
+  grid-template-rows: 60px 1fr;
+  /* Header and Content */
   grid-template-areas:
     "header header"
     "sidebar chat";
@@ -24,7 +26,7 @@
   height: 100%;
   z-index: -1;
   background: radial-gradient(ellipse at top left, hsla(160, 100%, 50%, 0.1), transparent 50%),
-              radial-gradient(ellipse at bottom right, hsla(180, 100%, 50%, 0.1), transparent 50%);
+    radial-gradient(ellipse at bottom right, hsla(180, 100%, 50%, 0.1), transparent 50%);
 }
 
 .glass {
@@ -35,10 +37,10 @@
 }
 
 [data-theme='dark'] .glass {
-    background: rgba(30, 30, 30, 0.5);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(30, 30, 30, 0.5);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 
@@ -63,7 +65,8 @@
   -webkit-backdrop-filter: blur(15px);
   backdrop-filter: blur(15px);
   border-right: 1px solid rgba(255, 255, 255, 0.15);
-  z-index: 5; /* Ensure it's above the aurora background */
+  z-index: 5;
+  /* Ensure it's above the aurora background */
 }
 
 /* --- Light Mode Support (.light-mode class) --- */
@@ -82,8 +85,8 @@ body.light-mode .sidebar .search input::placeholder {
 }
 
 [data-theme='dark'] .sidebar {
-    background: rgba(30, 30, 30, 0.6);
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(30, 30, 30, 0.6);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .chat-pane {
@@ -101,21 +104,24 @@ body.light-mode .sidebar .search input::placeholder {
   align-items: center;
   gap: 0.75rem;
 }
+
 .app-header .logo {
   width: 32px;
   height: 32px;
   background-color: var(--brand-primary);
   border-radius: 50%;
 }
+
 .app-header .name {
   font-size: 1.25rem;
   font-weight: 600;
 }
+
 .app-header .badge {
   font-size: 0.75rem;
   padding: 2px 8px;
   border-radius: 12px;
-  background-color: rgba(0,0,0,0.1);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 /* Sidebar */
@@ -123,14 +129,16 @@ body.light-mode .sidebar .search input::placeholder {
   display: flex;
   gap: 0.5rem;
 }
+
 .sidebar .search input {
   flex-grow: 1;
   border: none;
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
   padding: 0.75rem;
   border-radius: 8px;
   color: var(--text-primary);
 }
+
 .sidebar .search input:focus {
   outline: 1px solid var(--brand-primary);
 }
@@ -140,29 +148,7 @@ body.light-mode .sidebar .search input::placeholder {
   overflow-y: auto;
 }
 
-.chat-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-.chat-item:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-.chat-item.active {
-  background-color: var(--brand-primary);
-  color: white;
-  border-radius: 12px;
-}
-
-.chat-item.active .chat-meta .preview,
-.chat-item.active .chat-time {
-  color: rgba(255, 255, 255, 0.85);
-}
+/* Consolidated to ChatListItem.css */
 
 .avatar {
   width: 50px;
@@ -170,7 +156,8 @@ body.light-mode .sidebar .search input::placeholder {
   border-radius: 50%;
   background-color: var(--brand-secondary);
   flex-shrink: 0;
-  overflow: hidden; /* Ensure images inside are contained */
+  overflow: hidden;
+  /* Ensure images inside are contained */
 }
 
 .avatar img {
@@ -184,17 +171,22 @@ body.light-mode .sidebar .search input::placeholder {
   flex-grow: 1;
   overflow: hidden;
 }
+
 .chat-meta .title {
-  font-weight: 700; /* Bolder name */
+  font-weight: 700;
+  /* Bolder name */
 }
+
 .chat-meta .preview {
   font-size: 0.9rem;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 400; /* Lighter preview text */
+  font-weight: 400;
+  /* Lighter preview text */
 }
+
 .chat-time {
   font-size: 0.8rem;
   color: var(--text-secondary);
@@ -208,18 +200,21 @@ body.light-mode .sidebar .search input::placeholder {
   padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
 }
+
 .chat-header .title {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
+
 .chat-header .status {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
+
 .chat-header .tools {
-    display: flex;
-    gap: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .messages {
@@ -236,17 +231,20 @@ body.light-mode .sidebar .search input::placeholder {
   padding: 0.75rem 1rem;
   border-radius: 18px;
 }
+
 .msg-in {
   background-color: var(--surface-color);
   align-self: flex-start;
   border-bottom-left-radius: 4px;
 }
+
 .msg-out {
   background-color: var(--brand-secondary);
   color: white;
   align-self: flex-end;
   border-bottom-right-radius: 4px;
 }
+
 .msg .meta {
   font-size: 0.75rem;
   margin-top: 4px;
@@ -260,10 +258,12 @@ body.light-mode .sidebar .search input::placeholder {
   align-items: center;
   border-top: 1px solid var(--border-color);
 }
+
 .composer .tools {
-    display: flex;
-    gap: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
+
 .composer input {
   flex-grow: 1;
   border: none;
@@ -272,57 +272,64 @@ body.light-mode .sidebar .search input::placeholder {
   font-size: 1rem;
   color: var(--text-primary);
 }
+
 .composer input:focus {
   outline: none;
 }
 
 /* Utils */
 .hidden-scroll::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
+
 .hidden-scroll {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .text-soft {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .fab {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--brand-gradient);
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--shadow-md);
-    cursor: pointer;
-    transition: transform 0.2s;
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: transform 0.2s;
 }
+
 .fab:hover {
-    transform: scale(1.05);
+  transform: scale(1.05);
 }
 
 /* 4. Responsive & Mobile Styles */
 
 /* Hide back button on desktop */
 .chat-header .back-btn {
-    display: none;
+  display: none;
 }
 
 @media (max-width: 768px) {
   .app-shell {
-    display: block; /* Change from grid to block */
+    display: block;
+    /* Change from grid to block */
     position: relative;
-    padding-top: 60px; /* Space for the fixed header */
+    padding-top: 60px;
+    /* Space for the fixed header */
   }
 
   .app-header {
@@ -332,13 +339,15 @@ body.light-mode .sidebar .search input::placeholder {
     width: 100%;
     border-radius: 0;
   }
-  
-  .sidebar, .chat-pane {
+
+  .sidebar,
+  .chat-pane {
     position: absolute;
     top: 60px;
     left: 0;
     width: 100%;
-    height: calc(100% - 60px); /* Full height minus header */
+    height: calc(100% - 60px);
+    /* Full height minus header */
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     backface-visibility: hidden;
     will-change: transform;
@@ -353,7 +362,7 @@ body.light-mode .sidebar .search input::placeholder {
   .chat-pane {
     transform: translateX(100%);
     z-index: 3;
-    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
   }
 
   .app-shell.show-chat .sidebar {
@@ -368,7 +377,8 @@ body.light-mode .sidebar .search input::placeholder {
 
   /* Show back button and hide some desktop elements on mobile */
   .chat-header .back-btn {
-    display: flex; /* Show it on mobile */
+    display: flex;
+    /* Show it on mobile */
     align-items: center;
     justify-content: center;
     width: 40px;
@@ -378,25 +388,40 @@ body.light-mode .sidebar .search input::placeholder {
     color: var(--text-primary);
     border-radius: 50%;
   }
+
   .chat-header .back-btn:hover {
-      background: rgba(0,0,0,0.05);
+    background: rgba(0, 0, 0, 0.05);
   }
 
-  .app-header .brand .badge, 
-  .app-header > div > .btn-primary { /* Hide toggle theme button on mobile */
-      display: none;
+  .app-header .brand .badge,
+  .app-header>div>.btn-primary {
+    /* Hide toggle theme button on mobile */
+    display: none;
   }
 
   /* Adjust padding for mobile */
-  .app-header { padding: 0 1rem; }
-  .sidebar { padding: 0.75rem; }
-  .chat-header { padding: 0.5rem; }
-  .messages { padding: 1rem; }
-  .composer { padding: 0.5rem 1rem; }
+  .app-header {
+    padding: 0 1rem;
+  }
+
+  .sidebar {
+    padding: 0.75rem;
+  }
+
+  .chat-header {
+    padding: 0.5rem;
+  }
+
+  .messages {
+    padding: 1rem;
+  }
+
+  .composer {
+    padding: 0.5rem 1rem;
+  }
 
   /* Hide FAB on mobile if BottomNavigation is present */
   .fab {
-      display: none;
+    display: none;
   }
 }
-

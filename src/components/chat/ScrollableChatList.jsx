@@ -26,7 +26,7 @@ const ScrollableChatList = ({
                 flex: 1,
                 overflowY: 'auto',
                 overflowX: 'hidden',
-                height: '100%',
+                minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column'
             }}
@@ -65,7 +65,7 @@ const ScrollableChatList = ({
             )}
 
             {/* Main Chat List (DMs on Desktop, Unified on Mobile) */}
-            <div className="chat-items-section" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div className="chat-items-section" style={{ display: 'flex', flexDirection: 'column' }}>
                 {isDesktop && !searchTerm && <div className="sidebar-section-header"><h3>Messages</h3></div>}
 
                 {(isDesktop ? dmChats : filteredChats).length > 0 ? (

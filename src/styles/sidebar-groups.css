@@ -61,15 +61,35 @@
     min-width: 60px;
     max-width: 70px;
     transition: transform 0.2s;
+    will-change: transform;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    padding-top: 4px;
+    /* Space for top indicator if we use one */
 }
 
 .sidebar-group-item:hover {
     transform: translateY(-2px);
 }
 
-.sidebar-group-item.active .sidebar-group-avatar {
-    border: 2px solid var(--brand-primary);
-    padding: 2px;
+/* ZERO-SHIFT INDICATOR for Groups */
+.sidebar-group-item::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background-color: transparent;
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+    z-index: 2;
+}
+
+.sidebar-group-item.active::before {
+    background-color: var(--brand-primary);
 }
 
 .sidebar-group-avatar {
@@ -86,6 +106,9 @@
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     transition: all 0.2s;
+    border: 2px solid transparent;
+    /* Static border to prevent shift */
+    padding: 2px;
 }
 
 .sidebar-group-avatar img {
@@ -115,6 +138,7 @@
     font-size: 0.75rem;
     color: var(--text-secondary);
 }
+
 .unread-dot {
     width: 10px;
     height: 10px;
