@@ -10,6 +10,7 @@ const WallpaperPicker = ({ onClose }) => {
     const [wallpapers, setWallpapers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState('all');
+    const [selectedId, setSelectedId] = useState(null);  // track by ID for instant badge
 
     useEffect(() => {
         fetchWallpapers();
@@ -40,11 +41,16 @@ const WallpaperPicker = ({ onClose }) => {
         : wallpapers.filter(w => w.category === activeCategory);
 
     const handleSelect = async (wallpaper) => {
-        await selectWallpaper(wallpaper.id);
+        setSelectedId(wallpaper.id);                      // instant badge feedback
+        const url = wallpaper.url || wallpaper.thumbnail_url;
+        await selectWallpaper(wallpaper.id, null, url);   // pass URL for instant apply
+        onClose();                                         // close after selecting
     };
 
     const handleRemove = async () => {
+        setSelectedId(null);
         await selectWallpaper(null);
+        onClose();
     };
 
     return (
@@ -70,37 +76,46 @@ const WallpaperPicker = ({ onClose }) => {
                 </div>
 
                 <div className="wallpaper-grid">
+                    {/* Default / Remove wallpaper tile */}
                     <div
-                        className={`wallpaper-item default-none ${!chatWallpaper ? 'selected' : ''}`}
+                        className={`wallpaper-item default-none ${selectedId === null && !chatWallpaper ? 'selected' : ''}`}
                         onClick={handleRemove}
                     >
                         <div className="wallpaper-preview none-preview">
                             <ImageIcon size={24} />
                             <span>Default</span>
                         </div>
-                        {!chatWallpaper && <div className="selected-badge"><Check size={14} /></div>}
+                        {selectedId === null && !chatWallpaper && (
+                            <div className="selected-badge"><Check size={14} /></div>
+                        )}
                     </div>
 
                     {loading ? (
-                        <div className="loading-placeholder">Loading wallpapers...</div>
+                        <div className="loading-placeholder">
+                            <div className="loading-spinner" />
+                            Loading wallpapers...
+                        </div>
                     ) : (
-                        filteredWallpapers.map(wp => (
-                            <div
-                                key={wp.id}
-                                className={`wallpaper-item ${chatWallpaper === wp.url ? 'selected' : ''}`}
-                                onClick={() => handleSelect(wp)}
-                            >
-                                <div className="wallpaper-preview">
-                                    <img src={wp.thumbnail_url || wp.url} alt={wp.name} loading="lazy" />
-                                </div>
-                                {chatWallpaper === wp.url && (
-                                    <div className="selected-badge">
-                                        <Check size={14} />
+                        filteredWallpapers.map(wp => {
+                            const isSelected = selectedId === wp.id || (!selectedId && chatWallpaper === wp.url);
+                            return (
+                                <div
+                                    key={wp.id}
+                                    className={`wallpaper-item ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => handleSelect(wp)}
+                                >
+                                    <div className="wallpaper-preview">
+                                        <img src={wp.thumbnail_url || wp.url} alt={wp.name} loading="lazy" />
                                     </div>
-                                )}
-                                <div className="wallpaper-name">{wp.name}</div>
-                            </div>
-                        ))
+                                    {isSelected && (
+                                        <div className="selected-badge">
+                                            <Check size={14} />
+                                        </div>
+                                    )}
+                                    <div className="wallpaper-name">{wp.name}</div>
+                                </div>
+                            );
+                        })
                     )}
                 </div>
 

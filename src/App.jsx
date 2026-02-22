@@ -20,8 +20,6 @@ const Login = lazy(() => import('./components/auth/Login'));
 const Signup = lazy(() => import('./components/auth/Signup'));
 const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
-const MainLayout = lazy(() => import('./components/MainLayout'));
-const Chat = lazy(() => import('./components/chat/Chat'));
 const ChatPlaceholder = lazy(() => import('./components/common/ChatPlaceholder'));
 const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
@@ -58,6 +56,8 @@ import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import ViewportManager from './components/layout/ViewportManager';
+import MainLayout from './components/MainLayout';
+import Chat from './components/chat/Chat';
 import './styles/offline-indicator.css';
 
 // Initialize Capacitor Updater

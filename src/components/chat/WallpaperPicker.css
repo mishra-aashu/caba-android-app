@@ -1,67 +1,80 @@
+/* ─── Overlay ─────────────────────────────────────────────────────────────── */
 .wallpaper-picker-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2000;
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.2s ease-out;
 }
 
+/* ─── Container ───────────────────────────────────────────────────────────── */
 .wallpaper-picker-container {
-    width: 90%;
-    max-width: 500px;
-    max-height: 80vh;
-    background: var(--surface);
-    border-radius: 20px;
+    width: 92%;
+    max-width: 520px;
+    max-height: 85vh;
+    background: var(--surface, #1e1e2e);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    border-radius: 22px;
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow-xl);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
     overflow: hidden;
-    animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: slideUp 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+/* ─── Header ──────────────────────────────────────────────────────────────── */
 .wallpaper-picker-header {
-    padding: 1.25rem;
-    border-bottom: 1px solid var(--border-color);
+    padding: 1.2rem 1.4rem;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.07));
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 .wallpaper-picker-header h3 {
     margin: 0;
-    font-size: 1.25rem;
-    color: var(--text-primary);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary, #fff);
+    letter-spacing: -0.01em;
 }
 
 .close-btn {
-    background: none;
+    background: var(--surface-low, rgba(255, 255, 255, 0.06));
     border: none;
-    color: var(--text-secondary);
+    color: var(--text-secondary, #aaa);
     cursor: pointer;
-    padding: 5px;
+    padding: 6px;
     border-radius: 50%;
-    transition: background 0.2s;
+    width: 32px;
+    height: 32px;
+    transition: background 0.2s, color 0.2s;
     display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .close-btn:hover {
-    background: var(--hover-color);
+    background: var(--hover-color, rgba(255, 255, 255, 0.12));
+    color: var(--text-primary, #fff);
 }
 
+/* ─── Categories ──────────────────────────────────────────────────────────── */
 .wallpaper-categories {
-    padding: 1rem;
+    padding: 0.9rem 1.2rem;
     display: flex;
     gap: 0.5rem;
     overflow-x: auto;
     scrollbar-width: none;
-    background: var(--surface-low);
+    flex-shrink: 0;
+    background: var(--surface-low, rgba(0, 0, 0, 0.15));
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
 }
 
 .wallpaper-categories::-webkit-scrollbar {
@@ -69,139 +82,203 @@
 }
 
 .category-btn {
-    padding: 6px 16px;
+    padding: 5px 14px;
     border-radius: 20px;
-    border: 1px solid var(--border-color);
-    background: var(--surface);
-    color: var(--text-secondary);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+    background: transparent;
+    color: var(--text-secondary, #aaa);
     white-space: nowrap;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.18s;
+    flex-shrink: 0;
+}
+
+.category-btn:hover {
+    border-color: var(--brand-primary, #7c3aed);
+    color: var(--brand-primary, #7c3aed);
 }
 
 .category-btn.active {
-    background: var(--brand-primary);
-    color: white;
-    border-color: var(--brand-primary);
+    background: var(--brand-primary, #7c3aed);
+    color: #fff;
+    border-color: var(--brand-primary, #7c3aed);
+    box-shadow: 0 2px 10px rgba(124, 58, 237, 0.35);
 }
 
+/* ─── Grid ────────────────────────────────────────────────────────────────── */
 .wallpaper-grid {
     flex: 1;
-    padding: 1.25rem;
+    padding: 1.2rem;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color, #333) transparent;
 }
 
+.wallpaper-grid::-webkit-scrollbar {
+    width: 4px;
+}
+
+.wallpaper-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.wallpaper-grid::-webkit-scrollbar-thumb {
+    background: var(--border-color, #333);
+    border-radius: 4px;
+}
+
+/* ─── Wallpaper Item ──────────────────────────────────────────────────────── */
 .wallpaper-item {
     position: relative;
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    aspect-ratio: 9/16;
-    border: 2px solid transparent;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+    aspect-ratio: 9 / 16;
+    border: 2.5px solid transparent;
+    background: var(--surface-low, #111);
 }
 
 .wallpaper-item:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .wallpaper-item.selected {
-    border-color: var(--brand-primary);
+    border-color: var(--brand-primary, #7c3aed);
+    box-shadow: 0 0 0 1px var(--brand-primary, #7c3aed), 0 8px 24px rgba(124, 58, 237, 0.35);
+    transform: scale(1.02);
 }
 
+/* ─── Preview ─────────────────────────────────────────────────────────────── */
 .wallpaper-preview {
     width: 100%;
     height: 100%;
-    background: var(--surface-low);
+    background: var(--surface-low, #1a1a2e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .wallpaper-preview img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+    transition: opacity 0.3s;
 }
 
+/* Skeleton shimmer while image loads */
+.wallpaper-preview img:not([src]),
+.wallpaper-preview img[src=""] {
+    opacity: 0;
+}
+
+/* Default "none" tile */
 .none-preview {
-    display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-    background: linear-gradient(135deg, var(--surface-low), var(--border-color));
+    gap: 6px;
+    color: var(--text-secondary, #888);
+    background: linear-gradient(135deg, var(--surface-low, #181828), var(--border-color, #2a2a3c));
 }
 
 .none-preview span {
-    font-size: 0.8rem;
-    margin-top: 5px;
+    font-size: 0.75rem;
+    font-weight: 500;
 }
 
+/* ─── Selected Badge ──────────────────────────────────────────────────────── */
 .selected-badge {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    background: var(--brand-primary);
-    color: white;
-    width: 24px;
-    height: 24px;
+    top: 7px;
+    right: 7px;
+    background: var(--brand-primary, #7c3aed);
+    color: #fff;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* ─── Wallpaper Name ──────────────────────────────────────────────────────── */
 .wallpaper-name {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-    color: white;
-    padding: 10px 8px 5px;
-    font-size: 0.75rem;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+    color: #fff;
+    padding: 18px 7px 5px;
+    font-size: 0.7rem;
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: center;
 }
 
+/* ─── Footer ──────────────────────────────────────────────────────────────── */
 .wallpaper-picker-footer {
-    padding: 1rem;
-    border-top: 1px solid var(--border-color);
+    padding: 0.9rem 1.2rem;
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.07));
     display: flex;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .remove-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: none;
-    border: 1px solid var(--error-color, #ff4444);
-    color: var(--error-color, #ff4444);
-    padding: 8px 20px;
+    gap: 7px;
+    background: transparent;
+    border: 1.5px solid var(--error-color, #ef4444);
+    color: var(--error-color, #ef4444);
+    padding: 7px 22px;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.18s;
 }
 
 .remove-btn:hover {
-    background: var(--error-color, #ff4444);
-    color: white;
+    background: var(--error-color, #ef4444);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
 }
 
+/* ─── Loading ─────────────────────────────────────────────────────────────── */
 .loading-placeholder {
     grid-column: 1 / -1;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     padding: 3rem;
-    color: var(--text-secondary);
+    color: var(--text-secondary, #888);
+    font-size: 0.9rem;
 }
 
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color, #333);
+    border-top-color: var(--brand-primary, #7c3aed);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+/* ─── Animations ──────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -215,11 +292,29 @@
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translateY(40px) scale(0.95);
+        transform: translateY(36px) scale(0.96);
     }
 
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
 }

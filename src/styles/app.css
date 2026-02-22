@@ -322,7 +322,7 @@ body.light-mode .chat-list-panel {
     right: 0;
     bottom: 0;
     /* Changed from height 100% to respect parent padding/pb-safe */
-    transition: transform 0.4s cubic-bezier(0.45, 0, 0.2, 1);
+    transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     backface-visibility: hidden;
     will-change: transform;
   }

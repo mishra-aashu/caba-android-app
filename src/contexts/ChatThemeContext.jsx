@@ -375,11 +375,14 @@ export const ChatThemeProvider = ({ children }) => {
   }, [scrollPercentage]);
 
   // Load chat theme logic — check localStorage cache first, then DB
+  // CRITICAL: applyTheme is called DIRECTLY here (not via useEffect) so
+  // the background is set on the same tick — zero blink / flash.
   const loadChatTheme = async (chatId) => {
     if (!chatId) {
       setCurrentChatTheme('classic_purple');
       setCurrentWallpaper(null);
       setLoading(false);
+      applyTheme('classic_purple', null);
       return;
     }
 
@@ -393,32 +396,32 @@ export const ChatThemeProvider = ({ children }) => {
     }
     localStorage.setItem(debounceKey, now.toString());
 
-    // 1. Check localStorage cache first (fast)
+    // ── STEP 1: Apply cached theme SYNCHRONOUSLY (instant, no blink) ─────────
     const cachedTheme = localStorage.getItem(`digidad_chat_theme_${chatId}`);
     const cachedWallpaper = localStorage.getItem(`digidad_chat_wallpaper_${chatId}`);
 
-    if (cachedTheme && chatThemes[cachedTheme]) {
-      setCurrentChatTheme(cachedTheme);
-    }
-    if (cachedWallpaper) {
-      setCurrentWallpaper(cachedWallpaper);
-    }
+    const themeToApply = (cachedTheme && chatThemes[cachedTheme]) ? cachedTheme : 'classic_purple';
+    const wallpaperToApply = cachedWallpaper || null;
 
-    // 2. Fallback: query DB tables
+    // Apply immediately — this is synchronous, fires before any async work
+    setCurrentChatTheme(themeToApply);
+    setCurrentWallpaper(wallpaperToApply);
+    applyTheme(themeToApply, wallpaperToApply);
+
+    // ── STEP 2: Background DB refresh (updates if different from cache) ───────
     try {
-      // Load Theme
       const { data: themeData } = await supabase
         .from('chat_themes')
         .select('theme_name')
         .eq('chat_id', chatId)
         .maybeSingle();
 
-      if (themeData?.theme_name && chatThemes[themeData.theme_name]) {
+      if (themeData?.theme_name && chatThemes[themeData.theme_name] && themeData.theme_name !== themeToApply) {
         setCurrentChatTheme(themeData.theme_name);
         localStorage.setItem(`digidad_chat_theme_${chatId}`, themeData.theme_name);
+        applyTheme(themeData.theme_name, wallpaperToApply);
       }
 
-      // Load Wallpaper
       const { data: wallpaperData } = await supabase
         .from('chat_wallpapers')
         .select(`
@@ -430,11 +433,20 @@ export const ChatThemeProvider = ({ children }) => {
 
       if (wallpaperData) {
         const url = wallpaperData.custom_url || wallpaperData.wallpaper?.url;
-        setCurrentWallpaper(url);
-        if (url) localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, url);
-      } else {
+        if (url !== wallpaperToApply) {
+          setCurrentWallpaper(url || null);
+          if (url) {
+            localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, url);
+          } else {
+            localStorage.removeItem(`digidad_chat_wallpaper_${chatId}`);
+          }
+          applyTheme(themeToApply, url || null);
+        }
+      } else if (wallpaperToApply) {
+        // DB says no wallpaper — clear it
         setCurrentWallpaper(null);
         localStorage.removeItem(`digidad_chat_wallpaper_${chatId}`);
+        applyTheme(themeToApply, null);
       }
     } catch (e) {
       console.error('Error loading theme/wallpaper from DB:', e);
@@ -469,7 +481,7 @@ export const ChatThemeProvider = ({ children }) => {
     }
   };
 
-  const saveChatWallpaper = async (wallpaperId, chatId, customUrl = null) => {
+  const saveChatWallpaper = async (wallpaperId, chatId, customUrl = null, knownUrl = null) => {
     if (!chatId) return;
     try {
       const currentUser = useAuthStore.getState().dbUser;
@@ -484,8 +496,12 @@ export const ChatThemeProvider = ({ children }) => {
       if (customUrl) {
         upsertData.custom_url = customUrl;
         upsertData.wallpaper_id = null;
-      } else {
+      } else if (wallpaperId) {
         upsertData.wallpaper_id = wallpaperId;
+        upsertData.custom_url = null;
+      } else {
+        // null = removing wallpaper
+        upsertData.wallpaper_id = null;
         upsertData.custom_url = null;
       }
 
@@ -495,18 +511,22 @@ export const ChatThemeProvider = ({ children }) => {
 
       if (error) throw error;
 
-      // Update local state if it's the current chat
+      // Update local state for the current chat (if not already done optimistically)
       if (chatId === currentChatId) {
-        // If it's a predefined wallpaper, we need to find its URL
-        if (wallpaperId && !customUrl) {
+        if (wallpaperId === null && !customUrl) {
+          // Already handled optimistically in selectWallpaper
+        } else if (knownUrl) {
+          // Already handled optimistically in selectWallpaper
+        } else if (customUrl) {
+          setCurrentWallpaper(customUrl);
+          localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, customUrl);
+        } else if (wallpaperId) {
+          // Fallback: fetch URL from DB only if we don't know it
           const { data } = await supabase.from('wallpapers').select('url').eq('id', wallpaperId).single();
           if (data?.url) {
             setCurrentWallpaper(data.url);
             localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, data.url);
           }
-        } else if (customUrl) {
-          setCurrentWallpaper(customUrl);
-          localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, customUrl);
         }
       }
     } catch (e) {
@@ -516,7 +536,13 @@ export const ChatThemeProvider = ({ children }) => {
 
   const setChatId = (chatId) => {
     setCurrentChatId(chatId);
-    setLoading(true);
+    // Apply cached theme IMMEDIATELY before any async work — prevents blink.
+    // loadChatTheme will also call applyTheme after reading cache, but calling
+    // it here first ensures frame 1 has the correct background.
+    const cachedTheme = localStorage.getItem(`digidad_chat_theme_${chatId}`);
+    const cachedWallpaper = localStorage.getItem(`digidad_chat_wallpaper_${chatId}`);
+    const themeKey = (cachedTheme && chatThemes[cachedTheme]) ? cachedTheme : 'classic_purple';
+    applyTheme(themeKey, cachedWallpaper || null);
     loadChatTheme(chatId);
   };
 
@@ -534,9 +560,21 @@ export const ChatThemeProvider = ({ children }) => {
     applyTheme(themeKey, currentWallpaper);
   };
 
-  const selectWallpaper = async (wallpaperId, customUrl = null) => {
+  const selectWallpaper = async (wallpaperId, customUrl = null, wallpaperUrl = null) => {
     if (!currentChatId) return;
-    await saveChatWallpaper(wallpaperId, currentChatId, customUrl);
+
+    // Optimistic update: apply the wallpaper URL immediately for instant feedback
+    if (wallpaperId === null) {
+      // Removing wallpaper
+      setCurrentWallpaper(null);
+      localStorage.removeItem(`digidad_chat_wallpaper_${currentChatId}`);
+    } else if (wallpaperUrl) {
+      // We already have the URL — apply instantly
+      setCurrentWallpaper(wallpaperUrl);
+      localStorage.setItem(`digidad_chat_wallpaper_${currentChatId}`, wallpaperUrl);
+    }
+
+    await saveChatWallpaper(wallpaperId, currentChatId, customUrl, wallpaperUrl);
   };
 
   const applyTheme = (themeKey, wallpaperUrl) => {
@@ -579,11 +617,11 @@ export const ChatThemeProvider = ({ children }) => {
     document.body.classList.add(`theme-${themeKey.replace(/_/, '-')}`);
   };
 
-  useEffect(() => {
-    if (!loading && currentChatId) {
-      applyTheme(currentChatTheme, currentWallpaper);
-    }
-  }, [currentChatTheme, currentWallpaper, currentChatId, loading]);
+  // NOTE: applyTheme is now called DIRECTLY from setChatId and loadChatTheme
+  // (synchronously on the same tick) instead of in this useEffect.
+  // Removing the useEffect prevents the async 2-step blink:
+  // (loading→theme state updates→useEffect fires→applyTheme runs)
+  // The sequence is now: setChatId → applyTheme(cache) immediately → no blink.
 
   const value = {
     chatTheme: currentChatTheme,

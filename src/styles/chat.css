@@ -148,12 +148,11 @@ body.light-mode .messages-container {
     url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3e%3cg fill='%23000000' fill-opacity='0.08'%3e%3ccircle cx='50' cy='50' r='3'/%3e%3ccircle cx='10' cy='10' r='2'/%3e%3ccircle cx='90' cy='90' r='2'/%3e%3ccircle cx='10' cy='90' r='1'/%3e%3ccircle cx='90' cy='10' r='1'/%3e%3c/g%3e%3c/svg%3e"),
     /* Base layer: New chat wallpaper with reduced opacity */
     linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)),
-    var(--chat-bg-image, url("/assets/images/Gemini_Generated_Image_v2m4e5v2m4e5v2m4.png"));
+    var(--chat-bg-image, url());
   background-size: 300px 300px, cover, cover;
   background-repeat: repeat, no-repeat, no-repeat;
   padding-bottom: 40px;
   /* Space for the input */
-  transition: background 0.3s ease;
 }
 
 /* Fix Input Container Icons */
@@ -339,8 +338,6 @@ body.light-mode .chat-loading p {
   min-width: 0;
   /* Important for flex shrink */
   position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, opacity;
 }
 
 @media (max-width: 768px) {
@@ -394,7 +391,6 @@ body.light-mode .chat-loading p {
   background-repeat: repeat, no-repeat, no-repeat;
   padding-bottom: 40px;
   /* Space for the input */
-  transition: background 0.3s ease;
 }
 
 .chat-header {

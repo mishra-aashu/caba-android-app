@@ -149,7 +149,7 @@ const Chat = () => {
   // showLoading: show spinner only on initial load if no data
   const showLoading = queryLoading && messages.length === 0;
 
-  // Sync query results with local messages state
+  // Sync query results with local messages state.
   useEffect(() => {
     if (queryMessages) {
       // Merge logic: authoritative query data + optimistic sends not yet in DB
@@ -170,10 +170,8 @@ const Chat = () => {
         return merged;
       });
       setMessagesLoading(false);
-    } else if (queryLoading && messages.length === 0) {
-      setMessagesLoading(true);
     }
-  }, [queryMessages, queryLoading]);
+  }, [queryMessages]);
 
   // ─── MAIN MESSAGE FETCH EFFECT ───────────────────────────────────────────────
   // Runs every time the user opens a different chat (validChatId changes).
@@ -187,23 +185,39 @@ const Chat = () => {
   //          The `cancelled` flag ensures a stale response from a previous chat
   //          can never overwrite the current chat's messages.
   // ─── KEEP CACHE IN SYNC ─────────────────────────────────────────────────────
-  // This is important for realtime updates and deletes which modify the local 'messages' state.
-  // We write these changes back to the React Query cache so they persist across navigation.
+  // Write realtime/optimistic changes (deletes, status updates, new messages) back
+  // to the React Query cache so they persist when the user navigates back.
+  // We guard with a chatId ref so that stale effect closures from a PREVIOUS chat
+  // cannot overwrite the CURRENT chat's cache with the wrong messages.
+  const activeChatIdRef = useRef(validChatId);
+  useEffect(() => { activeChatIdRef.current = validChatId; }, [validChatId]);
+
   useEffect(() => {
-    if (validChatId && messages.length > 0) {
+    // Only write back if messages actually belong to the currently visible chat.
+    if (validChatId && activeChatIdRef.current === validChatId && messages.length > 0) {
       queryClient.setQueryData(['messages', validChatId], messages);
     }
   }, [messages, validChatId, queryClient]);
 
-  // Cleanup messages when switching chats to prevent stale data display and incorrect caching
+  // When switching chats reset unread counter and messages state.
+  // Seed messages from cache if available so frame 1 shows correct data.
   useEffect(() => {
     if (chatId) {
-      setMessages([]);
       setUnreadCount(0);
-      setMessagesLoading(true);
       setHasMoreMessages(true);
+
+      const cacheKey = ['messages', chatId === 'new' ? null : chatId];
+      const cached = queryClient.getQueryData(cacheKey);
+
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        setMessages(cached);
+        setMessagesLoading(false);
+      } else {
+        setMessages([]);
+        setMessagesLoading(true);
+      }
     }
-  }, [chatId]);
+  }, [chatId, queryClient]);
 
   // Auto-scroll to bottom when chat switches or new messages arrive
   useEffect(() => {
