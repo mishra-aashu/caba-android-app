@@ -3,21 +3,23 @@
    ============================================ */
 
 /* Smooth scrolling for better performance */
-.history-container,
-.history-list,
-.history-scroll-container {
+.history-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary, #fff) !important;
+}
+
+.history-content {
+  flex: 1;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch !important;
   scroll-behavior: smooth !important;
   overscroll-behavior: contain;
-}
-
-/* Container */
-.history-container {
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary, #fff) !important;
+  padding-bottom: 80px;
+  /* Space for bottom nav */
 }
 
 /* Header */
@@ -60,7 +62,7 @@
   color: var(--text-primary, #111) !important;
 }
 
-/* Content */
+/* Content - already defined above, keeping this for backward compatibility if class exists */
 .history-content {
   flex: 1;
   overflow-y: auto;
@@ -139,8 +141,16 @@
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  display: block !important;
+  display: flex !important;
+  align-items: center !important;
   text-align: left !important;
+}
+
+.history-item .call-count {
+  font-weight: 400 !important;
+  color: #8696a0 !important;
+  margin-left: 5px !important;
+  font-size: 14px !important;
 }
 
 /* Sub Info Row */
@@ -170,13 +180,28 @@
   color: #0088ff !important;
 }
 
-.history-item .history-time-text {
-  font-size: 13px !important;
+.history-item .time-text {
+  flex: 1 !important;
 }
 
-.history-item .history-duration {
-  font-size: 12px !important;
-  color: #8696a0 !important;
+.history-item .duration-text {
+  font-weight: 500 !important;
+  color: #25d366 !important;
+}
+
+.history-loader {
+  padding: 20px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.scroll-more-text,
+.no-more-calls {
+  color: #8696a0;
+  font-size: 13px;
 }
 
 /* RIGHT: Action Button */
@@ -233,7 +258,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .history-loading p {
@@ -331,12 +358,13 @@
 
 /* Mobile Dark Mode Fix */
 @media (max-width: 600px) {
+
   [data-theme="dark"] .history-container,
   .dark .history-container {
     background: #111b21 !important;
     min-height: 100vh !important;
   }
-  
+
   [data-theme="dark"] .history-item,
   .dark .history-item {
     background: #111b21 !important;
@@ -372,7 +400,7 @@
     background: #ffffff !important;
     width: 100% !important;
   }
-  
+
   .history-item {
     padding: 10px !important;
     min-height: 60px;

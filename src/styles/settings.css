@@ -22,7 +22,7 @@ body.light-mode .back-btn {
 
 body.light-mode .settings-section {
   background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 body.light-mode .section-title {
@@ -172,7 +172,10 @@ body.light-mode .preview-card {
 }
 
 .settings-screen {
-  min-height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--background);
   color: var(--text-primary);
 }
@@ -212,9 +215,13 @@ body.light-mode .preview-card {
 }
 
 .settings-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 20px;
   max-width: 600px;
   margin: 0 auto;
+  width: 100%;
 }
 
 .settings-section {
@@ -326,11 +333,11 @@ body.light-mode .preview-card {
   border-radius: 50%;
 }
 
-input:checked + .toggle-slider {
+input:checked+.toggle-slider {
   background-color: var(--accent-color);
 }
 
-input:checked + .toggle-slider:before {
+input:checked+.toggle-slider:before {
   transform: translateX(26px);
 }
 

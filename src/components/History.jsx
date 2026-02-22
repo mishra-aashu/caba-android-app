@@ -14,18 +14,18 @@ import '../styles/history.css';
 const History = () => {
   const navigate = useNavigate();
   const { startCall, callState } = useCall();
-  
+
   // Get current user from auth store
   const authState = useAuthStore.getState();
   const { dbUser, isAuthenticated } = authState;
   const userId = dbUser?.id;
-  
+
   // React Query for call history - cached for 10 minutes
-  const { 
-    data: queryData, 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data: queryData,
+    isLoading,
+    error,
+    refetch
   } = useQuery({
     queryKey: ['callHistory', userId],
     queryFn: async () => {
@@ -39,7 +39,7 @@ const History = () => {
     staleTime: 1000 * 60 * 10, // 10 minutes - keep this specific list fresh for 10 mins
     gcTime: 1000 * 60 * 60, // 1 hour - keep in cache for 1 hour
   });
-  
+
   // Local state for grouped history and pagination
   const [history, setHistory] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
@@ -48,7 +48,7 @@ const History = () => {
   const [lastCallId, setLastCallId] = useState(null);
   const [loadingLocked, setLoadingLocked] = useState(false);
   const loaderRef = useRef(null);
-  
+
   // Update history when query data changes
   useEffect(() => {
     if (queryData?.calls) {
@@ -58,7 +58,7 @@ const History = () => {
       setLastCallId(queryData.lastCallId);
     }
   }, [queryData]);
-  
+
   // Set current user when available
   useEffect(() => {
     if (dbUser && isAuthenticated) {
@@ -89,15 +89,15 @@ const History = () => {
   const loadCallHistory = async (userId) => {
     try {
       console.log('Loading call history for user:', userId);
-       
+
       // Load user-specific history with pagination (20 at a time) - SERVER SIDE
       const result = await callService.getCallHistory(userId, 20, null);
       console.log('Call history data for user:', result.calls);
-      
+
       // Group calls by other_user_id to show count
       const groupedCalls = groupCallsByUser(result.calls);
       console.log('Grouped calls:', groupedCalls);
-      
+
       setHistory(groupedCalls);
       setHasMore(result.hasMore);
       setLastCallId(result.lastCallId);
@@ -112,7 +112,7 @@ const History = () => {
     const callDate = new Date(date);
     const diffTime = now - callDate;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'today';
     if (diffDays === 1) return 'yesterday';
     if (diffDays < 7) return `week_${callDate.getDay()}`; // Same day of week
@@ -125,7 +125,7 @@ const History = () => {
     const callDate = new Date(date);
     const diffTime = now - callDate;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return callDate.toLocaleDateString('en', { weekday: 'long' }); // Monday, Tuesday
@@ -136,12 +136,12 @@ const History = () => {
   // Group calls by user + WhatsApp-style time period
   const groupCallsByUser = (calls) => {
     const grouped = {};
-    
+
     calls.forEach(call => {
       const otherUserId = call.other_user_id;
       const groupKey = getWhatsAppGroupKey(call.started_at);
       const compositeKey = `${otherUserId}_${groupKey}`;
-      
+
       if (!grouped[compositeKey]) {
         grouped[compositeKey] = {
           ...call,
@@ -156,7 +156,7 @@ const History = () => {
         }
       }
     });
-    
+
     return Object.values(grouped).sort((a, b) => {
       const dateA = a.started_at ? new Date(a.started_at).getTime() : 0;
       const dateB = b.started_at ? new Date(b.started_at).getTime() : 0;
@@ -166,36 +166,36 @@ const History = () => {
 
   const loadMoreCalls = async () => {
     if (!currentUser || isLoadingMore || !hasMore || loadingLocked) return;
-    
+
     console.log('Loading more calls, current history count:', history.length);
-    
+
     // Lock to prevent rapid multiple loads
     setLoadingLocked(true);
     setIsLoadingMore(true);
-    
+
     try {
       const result = await callService.getCallHistory(currentUser.id, 20, lastCallId);
       console.log('Loaded more calls:', result.calls.length, 'hasMore:', result.hasMore);
-      
+
       if (!result.calls || result.calls.length === 0) {
         setHasMore(false);
         return;
       }
-      
+
       // Group new calls by user
       const groupedNewCalls = groupCallsByUser(result.calls);
       console.log('Grouped new calls:', groupedNewCalls.length);
-      
+
       // Merge with existing grouped calls - use WhatsApp-style grouping
       setHistory(prev => {
         const mergedMap = new Map();
-        
+
         // Add existing entries
         prev.forEach(call => {
           const groupKey = `${call.other_user_id}_${getWhatsAppGroupKey(call.started_at)}`;
           mergedMap.set(groupKey, call);
         });
-        
+
         // Update or add new calls
         groupedNewCalls.forEach(newCall => {
           const groupKey = `${newCall.other_user_id}_${getWhatsAppGroupKey(newCall.started_at)}`;
@@ -210,7 +210,7 @@ const History = () => {
             mergedMap.set(groupKey, newCall);
           }
         });
-        
+
         const merged = Array.from(mergedMap.values());
         return merged.sort((a, b) => {
           const dateA = a.started_at ? new Date(a.started_at).getTime() : 0;
@@ -218,7 +218,7 @@ const History = () => {
           return dateB - dateA; // Newest first
         });
       });
-      
+
       setHasMore(result.hasMore);
       setLastCallId(result.lastCallId);
       console.log('History after merge:', history.length);
@@ -334,10 +334,7 @@ const History = () => {
 
   return (
     <>
-      <div 
-        className="history-container"
-        style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}
-      >
+      <div className="history-container">
         <header className="app-header">
           <div className="header-left">
             <button className="back-btn" onClick={() => navigate(-1)}>
@@ -350,60 +347,27 @@ const History = () => {
           <div className="header-right"></div>
         </header>
 
-        <div 
-          className="history-content"
-          style={{ 
-            flex: 1, 
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            scrollBehavior: 'smooth'
-          }}
-        >
+        <div className="history-content">
           {history.length > 0 ? (
-            <div className="history-list" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="history-list">
               {history.map((call) => (
-                <div 
-                  key={call.id} 
+                <div
+                  key={call.id}
                   className="history-item"
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    width: '100%',
-                    padding: 10,
-                    borderBottom: '1px solid #f0f0f0',
-                    boxSizing: 'border-box',
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => handleCall(call.other_user_id, call.call_type)}
                 >
                   {/* Avatar */}
-                  <div 
-                    className="call-avatar"
-                    style={{ 
-                      width: 40, 
-                      height: 40, 
-                      minWidth: 40, 
-                      borderRadius: '50%', 
-                      overflow: 'hidden',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: 10,
-                      flexShrink: 0,
-                      background: '#e8e8e8'
-                    }}
-                  >
+                  <div className="call-avatar">
                     {call.other_user_avatar ? (
                       parseInt(call.other_user_avatar) ? (
                         <img
                           src={dpOptions.find(dp => dp.id === parseInt(call.other_user_avatar))?.path || call.other_user_avatar}
                           alt={call.other_user_name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                         />
                       ) : (
                         <img
                           src={call.other_user_avatar}
                           alt={call.other_user_name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
                         />
                       )
                     ) : (
@@ -412,34 +376,18 @@ const History = () => {
                   </div>
 
                   {/* Info */}
-                  <div 
-                    className="history-details"
-                    style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, marginRight: 8 }}
-                  >
-                    <h3 className="history-name" style={{ fontWeight: 600, margin: '0 0 2px 0', fontSize: 15, color: '#111' }}>
+                  <div className="history-details">
+                    <h3 className="history-name">
                       {call.other_user_name || 'Unknown'}
                       {call.callCount > 1 && (
-                        <span style={{ fontWeight: 400, color: '#8696a0', marginLeft: 5 }}>
-                          ({call.callCount})
-                        </span>
+                        <span className="call-count"> ({call.callCount})</span>
                       )}
                     </h3>
-                    <div 
-                      className="history-status-row"
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 6, 
-                        fontSize: 12, 
-                        color: '#8696a0',
-                        marginTop: 2,
-                        width: '100%'
-                      }}
-                    >
+                    <div className="history-status-row">
                       {getCallIcon(call)}
-                      <span style={{ flex: 1 }}>{formatTime(call.started_at)}</span>
+                      <span className="time-text">{formatTime(call.started_at)}</span>
                       {call.call_duration > 0 && (
-                        <span style={{ fontWeight: 500, color: '#25d366' }}>
+                        <span className="duration-text">
                           {formatDuration(call.call_duration)}
                         </span>
                       )}
@@ -449,23 +397,10 @@ const History = () => {
                   {/* Call Button */}
                   <button
                     className="call-action-btn"
-                    style={{ 
-                      width: 36, 
-                      height: 36, 
-                      minWidth: 36, 
-                      border: 'none', 
-                      background: 'transparent', 
-                      color: '#0088ff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '50%',
-                      marginLeft: 'auto',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      outline: 'none'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCall(call.other_user_id, call.call_type);
                     }}
-                    onClick={() => handleCall(call.other_user_id, call.call_type)}
                     disabled={callState !== 'idle'}
                   >
                     {call.call_type === 'video' ? (
@@ -484,36 +419,20 @@ const History = () => {
               <p>Your calls will appear here</p>
             </div>
           )}
-          
+
           {/* Loader for infinite scroll */}
           {hasMore && (
-            <div 
-              ref={loaderRef}
-              style={{ 
-                padding: 20, 
-                textAlign: 'center',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
+            <div ref={loaderRef} className="history-loader">
               {isLoadingMore ? (
-                <div className="loading-spinner" style={{
-                  width: 24,
-                  height: 24,
-                  border: '2px solid #e8e8e8',
-                  borderTopColor: '#0088ff',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
+                <div className="loading-spinner"></div>
               ) : (
-                <span style={{ color: '#8696a0', fontSize: 13 }}>Scroll for more</span>
+                <span className="scroll-more-text">Scroll for more</span>
               )}
             </div>
           )}
-          
+
           {!hasMore && history.length > 0 && (
-            <div style={{ padding: 20, textAlign: 'center', color: '#8696a0', fontSize: 13 }}>
+            <div className="no-more-calls">
               No more calls
             </div>
           )}
