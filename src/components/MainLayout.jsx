@@ -50,7 +50,14 @@ const MainLayout = () => {
     const [contactName, setContactName] = useState('');
     const [contactPhone, setContactPhone] = useState('');
     const [contactMenuOpen, setContactMenuOpen] = useState(null);
-    const [isChatViewActive, setIsChatViewActive] = useState(false);
+    // Derived state directly from location to prevent 1-frame layout shifts during navigation
+    const isChatViewActive = useMemo(() =>
+        location.pathname.startsWith('/chat/') ||
+        location.pathname.startsWith('/user-details/') ||
+        location.pathname === '/groups' ||
+        location.pathname === '/contacts' ||
+        location.pathname === '/profile',
+        [location.pathname]);
 
     // State for user-details panel - keeps Chat mounted!
     const [showUserDetailsPanel, setShowUserDetailsPanel] = useState(false);
@@ -59,16 +66,6 @@ const MainLayout = () => {
     const chatListRef = useRef();
 
     const currentChatId = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
-
-    useEffect(() => {
-        setIsChatViewActive(
-            location.pathname.startsWith('/chat/') ||
-            location.pathname.startsWith('/user-details/') ||
-            location.pathname === '/groups' ||
-            location.pathname === '/contacts' ||
-            location.pathname === '/profile'
-        );
-    }, [location]);
 
 
     // Contacts are now managed by DataContext

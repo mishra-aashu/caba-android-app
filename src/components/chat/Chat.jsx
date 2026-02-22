@@ -195,6 +195,16 @@ const Chat = () => {
     }
   }, [messages, validChatId, queryClient]);
 
+  // Cleanup messages when switching chats to prevent stale data display and incorrect caching
+  useEffect(() => {
+    if (chatId) {
+      setMessages([]);
+      setUnreadCount(0);
+      setMessagesLoading(true);
+      setHasMoreMessages(true);
+    }
+  }, [chatId]);
+
   // Auto-scroll to bottom when chat switches or new messages arrive
   useEffect(() => {
     if (messages.length > 0 && messagesEndRef.current) {
@@ -456,8 +466,8 @@ const Chat = () => {
       return;
     }
 
-    // For DM chats: reset stale state before loading
-    setOtherUser(null);
+    // For DM chats: reset stale state before loading ONLY if it's a different user
+    // (Removing setOtherUser(null) to prevent header flicker)
 
     // 1. INSTANT INITIALIZATION: Try to get data from allChats first
     if (allChats && allChats.length > 0) {
@@ -1419,8 +1429,7 @@ const Chat = () => {
     }
   };
 
-  // Memoize the Chat component to prevent unnecessary re-renders
-  const MemoizedChat = memo(Chat);
+  // Memoize the header and other static parts if needed, but defining a component inside a component is a bug
 
   return (
     <div className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}>
