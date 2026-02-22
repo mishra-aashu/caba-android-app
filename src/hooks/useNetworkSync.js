@@ -38,11 +38,32 @@ const useNetworkSync = () => {
 
                         switch (item.type) {
                             case 'send_message':
-                                const { error: msgError } = await supabase
+                                const { data: syncedData, error: msgError } = await supabase
                                     .from('messages')
-                                    .insert(item.payload);
+                                    .insert(item.payload)
+                                    .select()
+                                    .single();
+
+                                if (!msgError && syncedData) {
+                                    // 2. Reconciliation: Update local Dexie with real ID and remove temp
+                                    await db.transaction('rw', db.messages, async () => {
+                                        // We need a way to find the temp message. 
+                                        // Since we don't have the temp ID in the payload, 
+                                        // we use content and created_at as a heuristic.
+                                        const tempMsg = await db.messages
+                                            .where('content').equals(item.payload.content)
+                                            .and(m => m.created_at === item.payload.created_at)
+                                            .first();
+
+                                        if (tempMsg) {
+                                            await db.messages.delete(tempMsg.id);
+                                        }
+                                        await db.messages.add(syncedData);
+                                    });
+                                }
                                 error = msgError;
                                 break;
+
 
                             case 'update_profile':
                                 const { error: profileError } = await supabase

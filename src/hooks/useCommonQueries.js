@@ -262,31 +262,63 @@ export const useSendMessage = () => {
 
   return useMutation({
     mutationFn: async ({ chatId, senderId, receiverId, content, mediaPath, mediaType, isGroupMessage, vanishAt }) => {
-      // Derive message_type for DB schema compliance
+      // Prepare message data
       let message_type = 'text';
       if (mediaType === 'image') message_type = 'image';
       else if (mediaType === 'video') message_type = 'video';
       else if (mediaType === 'voice' || mediaType === 'audio') message_type = 'audio';
       else if (mediaType === 'document') message_type = 'document';
 
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          chat_id: chatId,
-          sender_id: senderId,
-          receiver_id: receiverId,
-          content,
-          media_path: mediaPath,
-          media_type: mediaType,
-          message_type,
-          is_group_message: isGroupMessage || false,
-          vanish_at: vanishAt,
-        })
-        .select()
-        .single();
+      const messageData = {
+        chat_id: chatId,
+        sender_id: senderId,
+        receiver_id: receiverId,
+        content,
+        media_path: mediaPath,
+        media_type: mediaType,
+        message_type,
+        is_group_message: isGroupMessage || false,
+        vanish_at: vanishAt,
+        status: navigator.onLine ? 'sending' : 'pending',
+        created_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
-      return dbToFrontend(data);
+      const tempId = Date.now();
+
+      try {
+        // 1. Always save to local Dexie for offline support
+        const { addToSyncQueue, db } = await import('../db/db');
+        await db.messages.add({
+          ...messageData,
+          id: `temp_${tempId}`,
+          tempId
+        });
+
+        if (navigator.onLine) {
+          const { data, error } = await supabase
+            .from('messages')
+            .insert(messageData)
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          // 2. Reconcile Dexie
+          await db.transaction('rw', db.messages, async () => {
+            await db.messages.delete(`temp_${tempId}`);
+            await db.messages.add(data);
+          });
+
+          return dbToFrontend(data);
+        } else {
+          // 3. Queue for sync
+          await addToSyncQueue('send_message', messageData);
+          return { ...dbToFrontend(messageData), tempId, is_pending: true };
+        }
+      } catch (err) {
+        console.error('Error in useSendMessage mutation:', err);
+        throw err;
+      }
     },
     // Optimistic update - immediately show message
     onMutate: async (variables) => {
@@ -306,10 +338,9 @@ export const useSendMessage = () => {
         media_path: variables.mediaPath,
         media_type: variables.mediaType,
         created_at: new Date().toISOString(),
-        is_pending: true, // Mark as pending
+        status: navigator.onLine ? 'sending' : 'pending',
         sender: {
           id: variables.senderId,
-          // User details would be added from cache
         },
       };
 
@@ -320,14 +351,14 @@ export const useSendMessage = () => {
       return { previousMessages, queryKey };
     },
     onError: (err, variables, context) => {
-      // Remove optimistic message on error
       if (context?.previousMessages) {
         queryClient.setQueryData(context.queryKey, context.previousMessages);
       }
-      toast.error('Failed to send message');
+      if (navigator.onLine) {
+        toast.error('Failed to send message online');
+      }
     },
     onSettled: (_, __, variables) => {
-      // Sync with server
       const queryKey = variables.isGroupMessage
         ? ['groupMessages', variables.chatId]
         : ['chatMessages', variables.chatId];
@@ -335,6 +366,7 @@ export const useSendMessage = () => {
     },
   });
 };
+
 
 // ==========================================
 // PREFETCHING HOOKS

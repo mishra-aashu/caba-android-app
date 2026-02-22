@@ -177,9 +177,14 @@ const MessageBubble = ({
             {isEdited && <span className="edited-indicator">edited</span>}
             {isMine && (
               <span className={`tick ${status === 'read' ? 'read' : ''}`}>
-                {status === 'read' || status === 'delivered' ? '✓✓' : '✓'}
+                {status === 'pending' ? (
+                  <span className="pending-indicator">🕒</span>
+                ) : (
+                  status === 'read' || status === 'delivered' ? '✓✓' : '✓'
+                )}
               </span>
             )}
+
           </span>
         </div>
 

@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
 import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
 import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
+import { db, addToSyncQueue } from '../../db/db';
 import { validateEntity, Message } from '../../types/database';
 import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2 } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
@@ -877,7 +878,6 @@ const Chat = () => {
 
     // 1. Optimistic Update - Show message immediately
     const tempId = Date.now();
-    // 1. Prepare DB Object (snake_case)
     const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
 
     const dbMessageData = frontendToDb({
@@ -892,28 +892,11 @@ const Chat = () => {
       messageType: 'text',
       createdAt: new Date().toISOString(),
       vanishAt: vanishAt,
-      status: 'sending',
+      status: navigator.onLine ? 'sending' : 'pending',
       tempId: tempId
     });
 
-    // Validate message data (schema expects snake_case)
-    // We add placeholder values for fields that the DB auto-generates
-    const messageForValidation = {
-      ...dbMessageData,
-      id: 'temp-validation-id',
-      updated_at: dbMessageData.created_at,
-      is_read: false,
-      emoji_style: null
-    };
-
-    const validationErrors = validateEntity(messageForValidation, Message, 'message');
-    if (validationErrors.length > 0) {
-      console.error('Message validation failed:', validationErrors);
-      toast.error('Invalid message data');
-      return;
-    }
-
-    // Optimistic message: convert to camelCase for UI consistency
+    // Optimistic message for UI
     const optimisticMsg = {
       ...dbToFrontend(dbMessageData),
       sender: currentUser,
@@ -924,78 +907,132 @@ const Chat = () => {
     setReplyingTo(null);
 
     try {
-      // 2. Background Database Call
-      // Remove tempId before sending to DB, but keep status
-      const { tempId: _, ...insertData } = dbMessageData;
+      // 2. Persistent Save to local Dexie (for offline resilience)
+      const { tempId: _, ...localSaveData } = dbMessageData;
+      await db.messages.add({
+        ...localSaveData,
+        id: `temp_${tempId}`, // local-only temp ID
+        tempId: tempId
+      });
 
-      const { data, error } = await supabase
-        .from('messages')
-        .insert(insertData)
-        .select()
-        .single();
+      // 3. Conditional Sending
+      if (navigator.onLine) {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert(localSaveData)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // 3. Replace temporary message with real message (converted to camelCase)
-      const frontendData = dbToFrontend(data);
-      setMessages(prev => prev.map(msg =>
-        msg.tempId === tempId ? { ...frontendData, status: 'sent', sender: currentUser } : msg
-      ));
+        // Replace temporary message in state and Dexie
+        const frontendData = dbToFrontend(data);
+        setMessages(prev => prev.map(msg =>
+          msg.tempId === tempId ? { ...frontendData, status: 'sent', sender: currentUser } : msg
+        ));
+
+        // Update Dexie with real record and remove temp one
+        await db.transaction('rw', db.messages, async () => {
+          await db.messages.delete(`temp_${tempId}`);
+          await db.messages.add(data);
+        });
+
+      } else {
+        // 4. Offline: Add to sync queue
+        await addToSyncQueue('send_message', localSaveData);
+        toast.success('Message queued for sync (offline)');
+      }
 
       NotificationSound.playMessageNotification();
 
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message.');
-
-      // 4. Rollback on error - Remove temporary message
-      setMessages(prev => prev.filter(msg => msg.tempId !== tempId));
+      // We don't rollback if it's already in Dexie/SyncQueue, but we show error if it failed online attempt
+      if (navigator.onLine) {
+        toast.error('Failed to send message online.');
+      }
     }
   };
+
 
   const handleSendMedia = async (mediaPath, mediaType) => {
     if (!mediaPath || !currentUser) return;
 
+    const tempId = Date.now();
+    const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
+    const content = mediaType === 'image' ? '📷 Photo'
+      : mediaType === 'video' ? '🎥 Video'
+        : '🎤 Voice Message';
+
+    const dbMessageData = {
+      chat_id: validChatId,
+      sender_id: currentUser.id,
+      receiver_id: isGroupChat ? null : otherUserId,
+      content: content,
+      media_path: mediaPath,
+      media_type: mediaType,
+      message_type: mediaType === 'voice' ? 'audio' : mediaType,
+      reply_to: replyingTo?.id || null,
+      is_group_message: Boolean(isGroupChat),
+      vanish_at: vanishAt,
+      status: navigator.onLine ? 'sending' : 'pending',
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistic UI update
+    const optimisticMsg = {
+      ...dbToFrontend(dbMessageData),
+      sender: currentUser,
+      tempId: tempId
+    };
+
+    setMessages(prev => [...prev, optimisticMsg]);
+    setReplyingTo(null);
+
     try {
-      const content = mediaType === 'image' ? '📷 Photo'
-        : mediaType === 'video' ? '🎥 Video'
-          : '🎤 Voice Message';
+      // 1. Persistent Save to local Dexie
+      await db.messages.add({
+        ...dbMessageData,
+        id: `temp_media_${tempId}`,
+        tempId: tempId
+      });
 
-      const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
+      if (navigator.onLine) {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert(dbMessageData)
+          .select()
+          .single();
 
-      const newMessage = {
-        chat_id: validChatId,
-        sender_id: currentUser.id,
-        receiver_id: isGroupChat ? null : otherUserId,
-        content: content,
-        media_path: mediaPath,
-        media_type: mediaType,
-        message_type: mediaType === 'voice' ? 'audio' : mediaType,
-        reply_to: null,
-        is_group_message: Boolean(isGroupChat),
-        vanish_at: vanishAt,
-      };
+        if (error) throw error;
 
-      // Pessimistic send for media for simplicity, but convert to camelCase after
-      const { data, error } = await supabase
-        .from('messages')
-        .insert(newMessage)
-        .select()
-        .single();
+        const frontendMsg = dbToFrontend(data);
+        setMessages(prev => prev.map(msg =>
+          msg.tempId === tempId ? { ...frontendMsg, sender: currentUser } : msg
+        ));
 
-      if (error) throw error;
+        // Update Dexie
+        await db.transaction('rw', db.messages, async () => {
+          await db.messages.delete(`temp_media_${tempId}`);
+          await db.messages.add(data);
+        });
 
-      const frontendMsg = dbToFrontend(data);
-      setMessages(prev => [...prev, { ...frontendMsg, sender: currentUser }]);
+      } else {
+        // 2. Offline: Add to sync queue
+        await addToSyncQueue('send_message', dbMessageData);
+        toast.success('Media queued for sync (offline)');
+      }
 
-      setReplyingTo(null);
       NotificationSound.playMessageNotification();
 
     } catch (error) {
       console.error('Error sending media message:', error);
-      toast.error('Failed to send media.');
+      if (navigator.onLine) {
+        toast.error('Failed to send media online.');
+      }
     }
   };
+
 
 
   const handleTyping = () => {

@@ -39,6 +39,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: 'index.html',
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // Increase to 10MB
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname === '/' || url.pathname.endsWith('index.html'),
@@ -88,5 +89,15 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-ui': ['framer-motion', 'lucide-react', 'react-icons'],
+          'vendor-query': ['@tanstack/react-query', '@tanstack/react-query-persist-client'],
+        }
+      }
+    }
   },
 })
