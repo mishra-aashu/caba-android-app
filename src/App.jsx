@@ -104,9 +104,9 @@ const AppContent = () => {
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<ChatPlaceholder />} />
-        <Route path="chat/:chatId/:otherUserId" element={<Chat />} />
+        <Route path="chat/:chatId/:otherUserId" element={<Chat key={window.location.pathname} />} />
         {/* Group chat route - uses same Chat component but detects group */}
-        <Route path="chat/:chatId/group" element={<Chat />} />
+        <Route path="chat/:chatId/group" element={<Chat key={window.location.pathname} />} />
         <Route path="user-details/:id" element={<UserDetails />} />
         <Route path="groups" element={<GroupsPage />} />
         <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />

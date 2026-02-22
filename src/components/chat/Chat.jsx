@@ -46,6 +46,8 @@ import './AttachmentMenu.css';
 
 const Chat = () => {
   const { chatId, otherUserId } = useParams();
+  // Define validChatId early so it can be used in useState and hooks
+  const validChatId = chatId === 'new' ? null : chatId;
   const navigate = useNavigate();
   const location = useLocation();
   const { supabase } = useSupabase();
@@ -55,10 +57,19 @@ const Chat = () => {
   const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
   const showUserDetails = React.useContext(UserDetailsContext);
   const queryClient = useQueryClient();
+  const { chats: allChats } = useData();
 
   // State
-  const [messages, setMessages] = useState([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  // ─── INSTANT DATA INITIALIZATION (Frame 1) ─────────────────────────────────
+  // We initialize the local state directly from the React Query cache.
+  // This ensures that 'Frame 1' of the component already has messages,
+  // preventing the 'blank blink' before the first useEffect runs.
+  const [messages, setMessages] = useState(() => {
+    if (!validChatId) return [];
+    const cached = queryClient.getQueryData(['messages', validChatId]);
+    return Array.isArray(cached) ? cached : [];
+  });
+  const [messagesLoading, setMessagesLoading] = useState(!messages.length && validChatId);
   const [showGroupCallScreen, setShowGroupCallScreen] = useState(false);
   const [activeCallData, setActiveCallData] = useState(null);
   const [activeGroupCall, setActiveGroupCall] = useState(null);
@@ -84,7 +95,20 @@ const Chat = () => {
       };
     }
 
-    // 2. Fallback: For group chats, return a valid placeholder IMMEDIATELY.
+    // 2. Try to use data from allChats cache (extremely fast, covers both DMs and Groups)
+    if (allChats && allChats.length > 0) {
+      const activeChat = allChats.find(c => c.id === chatId);
+      if (activeChat && activeChat.otherUser) {
+        return {
+          ...activeChat.otherUser,
+          is_group: !!activeChat.isGroup,
+          isGroup: !!activeChat.isGroup,
+          member_count: activeChat.otherUser.member_count || 0,
+        };
+      }
+    }
+
+    // 3. Fallback: For group chats, return a valid placeholder IMMEDIATELY.
     // This ensures the header never renders "Loading..." or null state for groups,
     // even if we visited via direct URL.
     if (isGroupChat) {
@@ -98,7 +122,7 @@ const Chat = () => {
       };
     }
 
-    // 3. For DMs, start null (we need to fetch the user to know their name)
+    // 4. For DMs, start null (we need to fetch the user to know their name)
     return null;
   });
 
@@ -130,8 +154,6 @@ const Chat = () => {
     }
   }, [chatId, isGroupChat]);
 
-  // Define validChatId early so it can be used in useQuery
-  const validChatId = chatId === 'new' ? null : chatId;
 
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -167,11 +189,14 @@ const Chat = () => {
           if (msg.receiver) useUserStore.getState().setUser(msg.receiver);
         });
 
+        // Background persistence sync
+        if (validChatId) saveMessagesToDevice(validChatId, merged);
+
         return merged;
       });
       setMessagesLoading(false);
     }
-  }, [queryMessages]);
+  }, [queryMessages, validChatId]);
 
   // ─── MAIN MESSAGE FETCH EFFECT ───────────────────────────────────────────────
   // Runs every time the user opens a different chat (validChatId changes).
@@ -199,22 +224,30 @@ const Chat = () => {
     }
   }, [messages, validChatId, queryClient]);
 
-  // When switching chats reset unread counter and messages state.
-  // Seed messages from cache if available so frame 1 shows correct data.
+  // When switching chats, pivot the state immediately.
+  // We use this effect to handle clearing unread counts and 
+  // ensuring the list is seeded if the query hook hasn't updated yet.
   useEffect(() => {
-    if (chatId) {
+    if (chatId && chatId !== 'new') {
       setUnreadCount(0);
       setHasMoreMessages(true);
 
-      const cacheKey = ['messages', chatId === 'new' ? null : chatId];
-      const cached = queryClient.getQueryData(cacheKey);
-
+      const cached = queryClient.getQueryData(['messages', chatId]);
       if (cached && Array.isArray(cached) && cached.length > 0) {
         setMessages(cached);
         setMessagesLoading(false);
       } else {
-        setMessages([]);
-        setMessagesLoading(true);
+        // Fallback: Check mobile filesystem for permanent backup
+        loadMessagesFromDevice(chatId).then(localMessages => {
+          if (localMessages && localMessages.length > 0) {
+            setMessages(localMessages);
+            queryClient.setQueryData(['messages', chatId], localMessages);
+            setMessagesLoading(false);
+          } else {
+            setMessages([]);
+            setMessagesLoading(true);
+          }
+        });
       }
     }
   }, [chatId, queryClient]);
@@ -339,7 +372,6 @@ const Chat = () => {
 
   const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
 
-  const { chats: allChats } = useData();
 
   // Load group info for group chats - MUST BE DEFINED BEFORE initializeChat
   const loadGroupInfo = async (groupId) => {

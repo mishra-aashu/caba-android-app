@@ -1,5 +1,7 @@
 import React from 'react';
 import { Timer, Users, User } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { fetchMessages } from '../../hooks/useMessages';
 import { formatLastSeen, formatTime } from '../../utils/timeUtils';
 import '../../styles/ChatListItem.css';
 
@@ -19,6 +21,22 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
     is_vanish_enabled
   } = chat;
 
+  const queryClient = useQueryClient();
+
+  // ─── AGGRESSIVE PRE-FETCH ──────────────────────────────────────────────────
+  // Pre-loading data on 'hover' or 'touch start' (pointer down) ensures that
+  // by the time the click is complete and navigation finishes, the data
+  // is already in the cache. This is the 'Full Proof' secret to instant feel.
+  const handlePrefetch = () => {
+    if (chat.id) {
+      queryClient.prefetchQuery({
+        queryKey: ['messages', chat.id],
+        queryFn: () => fetchMessages(chat.id),
+        staleTime: 1000 * 60 * 5,
+      });
+    }
+  };
+
   // Format time using our helper or fallback
   // If user is online, show 'Online', otherwise show last seen if available, else message timestamp
   const displayTime = formatTime(timestamp);
@@ -32,6 +50,8 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
     <div
       className={`chat-item ${isActive ? 'active' : ''} ${isGroup ? 'group-item' : ''} ${is_vanish_enabled ? 'vanish-mode' : ''}`}
       onClick={onClick}
+      onMouseEnter={handlePrefetch}
+      onPointerDown={handlePrefetch}
     >
       <div className="chat-avatar-container">
         {isGroup ? (

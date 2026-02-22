@@ -5,10 +5,25 @@
 
 import React from 'react';
 import { Users } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { fetchMessages } from '../../hooks/useMessages';
 import { getInitials } from '../../utils/stringUtils';
 import { isUserOnline } from '../../utils/timeUtils';
 
 const GroupListItem = ({ group, onClick, isActive }) => {
+  const queryClient = useQueryClient();
+
+  // ─── AGGRESSIVE PRE-FETCH ──────────────────────────────────────────────────
+  const handlePrefetch = () => {
+    if (group.id) {
+      queryClient.prefetchQuery({
+        queryKey: ['messages', group.id],
+        queryFn: () => fetchMessages(group.id),
+        staleTime: 1000 * 60 * 5,
+      });
+    }
+  };
+
   // Get member preview text - "Sender: Message" format
   const getMemberPreview = () => {
     if (!group.last_message) return 'No messages yet';
@@ -60,6 +75,8 @@ const GroupListItem = ({ group, onClick, isActive }) => {
     <div
       className={`chat-item ${isActive ? 'active' : ''} group-item`}
       onClick={onClick}
+      onMouseEnter={handlePrefetch}
+      onPointerDown={handlePrefetch}
     >
       {/* Group Avatar */}
       <div className="chat-avatar-container">
