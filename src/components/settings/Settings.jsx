@@ -40,6 +40,7 @@ const Settings = () => {
   const [showStorageDetails, setShowStorageDetails] = useState(false);
   const [showRingtoneModal, setShowRingtoneModal] = useState(false);
   const [selectedRingtone, setSelectedRingtone] = useState('fm-freemusic-give-me-a-smile(chosic.com).mp3');
+  const [remoteVersion, setRemoteVersion] = useState(null);
 
   // Audio state management
   const currentAudioRef = useRef(null);
@@ -66,6 +67,7 @@ const Settings = () => {
 
   useEffect(() => {
     loadSettings();
+    fetchRemoteVersion();
     // Cleanup audio on unmount
     return () => {
       if (currentAudioRef.current) {
@@ -115,6 +117,23 @@ const Settings = () => {
 
     // Load storage usage
     calculateStorageUsage();
+  };
+
+  const fetchRemoteVersion = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_versions')
+        .select('latest_version')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!error && data) {
+        setRemoteVersion(data.latest_version);
+      }
+    } catch (err) {
+      console.error('Error fetching remote version:', err);
+    }
   };
 
 
@@ -326,7 +345,16 @@ const Settings = () => {
   const showHelpCenter = () => alert('Help center coming soon');
   const showContactSupport = () => alert('Contact support coming soon');
   const showTerms = () => alert('Terms & Privacy coming soon');
-  const checkForUpdates = () => alert('You are using the latest version (1.0.0)');
+  const checkForUpdates = () => {
+    if (remoteVersion) {
+      alert(`You are using the latest version (${remoteVersion})`);
+    } else {
+      alert('Checking for updates...');
+      fetchRemoteVersion().then(() => {
+        alert('You are using the latest version');
+      });
+    }
+  };
 
   return (
     <div className="settings-screen">
