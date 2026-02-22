@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDialog } from '../contexts/DialogContext';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useAuth } from '../hooks/useAuth';
-import { useAuthStore } from '../store/authStore';
+import useAuthStore from '../store/authStore';
 import { isAdmin, verifyAdminTableAccess, fetchAdminData } from '../utils/adminVerification';
 import { dpOptions } from '../utils/dpOptions';
 import { isUserOnline } from '../utils/timeUtils';
