@@ -89,8 +89,24 @@ export const normalizeChat = (rawChat, currentUserId = null) => {
       rawChat.last_seen || rawChat.other_user_last_seen || (rawChat.other_user && rawChat.other_user.last_seen))
   );
 
+  // 7. Resolve Final ID strings for consistent comparison
+  const normalizedChatId = idForFallback ? idForFallback.toString() : null;
+  let otherUserId = rawChat.other_user_id || (rawChat.other_user && rawChat.other_user.id);
+
+  // Root Cause Fix: If other_user_id is missing (common in some views/RPCs), 
+  // derive it from user1_id/user2_id by excluding currentUserId
+  if (!otherUserId && !isGroup && currentUserId) {
+    if (rawChat.user1_id && rawChat.user1_id !== currentUserId) {
+      otherUserId = rawChat.user1_id;
+    } else if (rawChat.user2_id && rawChat.user2_id !== currentUserId) {
+      otherUserId = rawChat.user2_id;
+    }
+  }
+
+  const normalizedOtherUserId = otherUserId ? otherUserId.toString() : null;
+
   return {
-    id: idForFallback,
+    id: normalizedChatId,
     type: chatType,
     isGroup,
     isChat: !isGroup,
@@ -113,7 +129,7 @@ export const normalizeChat = (rawChat, currentUserId = null) => {
 
     // Original Data for metadata lookups
     metadata: {
-      otherUserId: rawChat.other_user_id || rawChat.user1_id || rawChat.user2_id || rawChat.user_id || (rawChat.other_user && rawChat.other_user.id),
+      otherUserId: normalizedOtherUserId,
       otherUserName: rawName,
       otherUserAvatar: avatar,
       otherUserPhone: rawChat.other_user_phone || rawChat.phone || rawChat.phone_number || (rawChat.other_user && rawChat.other_user.phone),

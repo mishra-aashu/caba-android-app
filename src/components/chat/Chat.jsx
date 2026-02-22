@@ -98,13 +98,18 @@ const Chat = () => {
 
     // 2. Try to use data from allChats cache (extremely fast, covers both DMs and Groups)
     if (allChats && allChats.length > 0) {
-      const activeChat = allChats.find(c => c.id === chatId);
-      if (activeChat && activeChat.otherUser) {
+      // Use loose equality (==) because chatId from URL is always a string, 
+      // but DB ID could be a number.
+      const activeChat = allChats.find(c => c.id == chatId);
+      if (activeChat) {
         return {
-          ...activeChat.otherUser,
+          ...activeChat,
+          // Support both nested object pattern and flat normalized pattern
+          ...(activeChat.otherUser || {}),
+          id: chatId,
           is_group: !!activeChat.isGroup,
           isGroup: !!activeChat.isGroup,
-          member_count: activeChat.otherUser.member_count || 0,
+          member_count: activeChat.member_count || activeChat.otherUser?.member_count || 0,
         };
       }
     }
@@ -521,9 +526,13 @@ const Chat = () => {
 
     // 1. INSTANT INITIALIZATION: Try to get data from allChats first
     if (allChats && allChats.length > 0) {
-      const activeChat = allChats.find(c => c.id === chatId);
-      if (activeChat && activeChat.otherUser) {
-        setOtherUser({ ...activeChat.otherUser, is_group: false });
+      const activeChat = allChats.find(c => c.id == chatId);
+      if (activeChat) {
+        setOtherUser({
+          ...activeChat,
+          ...(activeChat.otherUser || {}),
+          is_group: !!activeChat.isGroup
+        });
         return; // Success! Instant UI population.
       }
     }
@@ -558,20 +567,21 @@ const Chat = () => {
 
     // 1. FIRST: Try to get group data from allChats (instant, no loading)
     if (allChats && allChats.length > 0) {
-      const activeChat = allChats.find(c => c.id === chatId && c.isGroup);
-      if (activeChat && activeChat.otherUser && activeChat.otherUser.name) {
+      const activeChat = allChats.find(c => c.id == chatId && c.isGroup);
+      if (activeChat && (activeChat.name || activeChat.otherUser?.name)) {
         // We have group data from chat list - use it immediately!
         setOtherUser(prev => {
           // Only update if we don't already have real data for this group
-          if (prev?.id === chatId && prev?.is_group && prev?.name && prev.name !== 'Group Chat') {
+          if (prev?.id == chatId && prev?.is_group && prev?.name && prev.name !== 'Group Chat') {
             return prev;
           }
           return {
-            ...activeChat.otherUser,
+            ...activeChat,
+            ...(activeChat.otherUser || {}),
             id: chatId,
             is_group: true,
             isGroup: true,
-            member_count: activeChat.otherUser.member_count || 0
+            member_count: activeChat.member_count || activeChat.otherUser?.member_count || 0
           };
         });
         // If we got data from allChats, we're done - no need to fetch from DB here
