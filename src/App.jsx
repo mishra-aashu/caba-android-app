@@ -211,6 +211,7 @@ const ProtectedRoute = ({ children }) => {
           {children}
         </main>
       </div>
+      
       <PhoneAuthModal
         isOpen={showPhoneCollect}
         onClose={() => setShowPhoneCollect(false)}
