@@ -938,8 +938,8 @@ const Chat = () => {
         });
 
       } else {
-        // 4. Offline: Add to sync queue
-        await addToSyncQueue('send_message', localSaveData);
+        // 4. Offline: Add to sync queue with precision tempId
+        await addToSyncQueue('send_message', { ...localSaveData, tempId });
         toast.success('Message queued for sync (offline)');
       }
 
@@ -1018,8 +1018,8 @@ const Chat = () => {
         });
 
       } else {
-        // 2. Offline: Add to sync queue
-        await addToSyncQueue('send_message', dbMessageData);
+        // 2. Offline: Add to sync queue with precision tempId
+        await addToSyncQueue('send_message', { ...dbMessageData, tempId });
         toast.success('Media queued for sync (offline)');
       }
 

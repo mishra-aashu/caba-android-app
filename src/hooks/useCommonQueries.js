@@ -311,8 +311,8 @@ export const useSendMessage = () => {
 
           return dbToFrontend(data);
         } else {
-          // 3. Queue for sync
-          await addToSyncQueue('send_message', messageData);
+          // 3. Queue for sync with precision tempId
+          await addToSyncQueue('send_message', { ...messageData, tempId });
           return { ...dbToFrontend(messageData), tempId, is_pending: true };
         }
       } catch (err) {

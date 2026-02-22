@@ -5,7 +5,7 @@ export const db = new Dexie('CaBaOfflineDB');
 // Define database schema
 db.version(1).stores({
     chats_list: 'id, last_message_at',
-    messages: 'id, chat_id, created_at, sender_id',
+    messages: 'id, chat_id, created_at, sender_id, tempId',
     contacts: 'id, contact_name',
     user_profiles: 'id, name',
     groups: 'id, name',

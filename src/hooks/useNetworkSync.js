@@ -26,7 +26,7 @@ const useNetworkSync = () => {
                 const pendingItems = await db.sync_queue
                     .where('status')
                     .equals('pending')
-                    .toArray();
+                    .sortBy('id'); // Ensure strict creation order (ASC)
 
                 if (pendingItems.length === 0) return;
 
@@ -34,29 +34,35 @@ const useNetworkSync = () => {
 
                 for (const item of pendingItems) {
                     try {
+                        // 1. Per-item Auth Verification: Protect against session expiry mid-sync
+                        const { data: { session }, error: authError } = await supabase.auth.getSession();
+                        if (authError || !session) {
+                            console.warn('Sync aborted mid-loop: Invalid session');
+                            break; // Stop processing further items until re-authenticated
+                        }
+
                         let error = null;
 
                         switch (item.type) {
                             case 'send_message':
+                                // Extract tempId from payload for precise reconciliation
+                                const { tempId, ...supabasePayload } = item.payload;
+
                                 const { data: syncedData, error: msgError } = await supabase
                                     .from('messages')
-                                    .insert(item.payload)
+                                    .insert(supabasePayload)
                                     .select()
                                     .single();
 
                                 if (!msgError && syncedData) {
-                                    // 2. Reconciliation: Update local Dexie with real ID and remove temp
+                                    // 2. Precision Reconciliation: Use indexed tempId for O(1) lookup
                                     await db.transaction('rw', db.messages, async () => {
-                                        // We need a way to find the temp message. 
-                                        // Since we don't have the temp ID in the payload, 
-                                        // we use content and created_at as a heuristic.
-                                        const tempMsg = await db.messages
-                                            .where('content').equals(item.payload.content)
-                                            .and(m => m.created_at === item.payload.created_at)
-                                            .first();
-
-                                        if (tempMsg) {
-                                            await db.messages.delete(tempMsg.id);
+                                        if (tempId) {
+                                            // Or better: use the indexed tempId if available
+                                            const recordByTempId = await db.messages.where('tempId').equals(tempId).first();
+                                            if (recordByTempId) {
+                                                await db.messages.delete(recordByTempId.id);
+                                            }
                                         }
                                         await db.messages.add(syncedData);
                                     });
