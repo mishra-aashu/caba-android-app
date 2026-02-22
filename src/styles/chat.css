@@ -454,17 +454,32 @@ body.light-mode .chat-loading p {
   object-fit: cover;
 }
 
+.user-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name,
 .user-details h3 {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .user-details .user-phone {
   font-size: 0.9rem;
   color: var(--muted-text, var(--text-secondary));
   margin: 0.1rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-details .user-status {
@@ -472,6 +487,9 @@ body.light-mode .chat-loading p {
   color: var(--text-secondary);
   margin: 0;
   font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-actions {

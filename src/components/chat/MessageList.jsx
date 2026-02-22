@@ -70,23 +70,23 @@ const MessageList = ({
 
   return (
     <div className="messages-wrapper">
-      {Object.entries(groupedMessages).map(([dateKey, dateMessages]) => (
-        <React.Fragment key={dateKey}>
+      {Object.entries(groupedMessages).map(([dateKey, dateMessages], groupIdx) => (
+        <React.Fragment key={`group-${dateKey}-${groupIdx}`}>
           <div className="date-separator">
             <div className="date-pill">
               {new Date(dateMessages[0].created_at ?? dateMessages[0].createdAt).toLocaleDateString()}
             </div>
           </div>
 
-          {dateMessages.map(message => {
+          {dateMessages.map((message, msgIdx) => {
             // Safely get repliedMsg - only pass if it exists and has an id
-            const repliedMsg = message.reply_to 
-              ? messages.find(m => m && m.id === message.reply_to) 
+            const repliedMsg = message.reply_to
+              ? messages.find(m => m && m.id === message.reply_to)
               : null;
 
             return (
               <MessageItem
-                key={message.id}
+                key={message.id || message.tempId || `msg-${groupIdx}-${msgIdx}`}
                 message={message}
                 repliedMsg={repliedMsg}
                 currentUser={currentUser}
