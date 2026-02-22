@@ -1,0 +1,1 @@
+import{r,ap as a,a4 as c}from"./index-C58utrsd.js";function f(t){const n=r.useRef(null),e=r.useRef(null);return e.current&&e.current.update(t),r.useEffect(()=>(e.current=new a({...t,ref:n}),()=>{e.current=null}),[]),c.createElement("div",{ref:n})}export{f as default};
