@@ -33,12 +33,20 @@ const PwaUpdater = () => {
         return false;
     };
 
-    const handleUpdate = () => {
-        // Unified clean refresh
-        if (typeof updateServiceWorker === 'function') {
-            updateServiceWorker(true);
+    const handleUpdate = async () => {
+        try {
+            if (typeof updateServiceWorker === 'function') {
+                // This will activate the new service worker 
+                // and automatically reload the page when ready!
+                await updateServiceWorker(true);
+            } else {
+                // Fallback if service worker is not available for some reason
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Update failed:', error);
+            window.location.reload(); // Fallback
         }
-        window.location.reload(true);
     };
 
     const showUpdateToast = (isMandatory = false) => {
