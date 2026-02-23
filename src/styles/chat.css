@@ -215,6 +215,7 @@ body.light-mode .chat-loading p {
   color: #54656f;
 }
 
+/* GPU Acceleration for Chat Screen - Performance Optimizations */
 .chat-screen {
   display: flex;
   flex-direction: row;
@@ -223,7 +224,10 @@ body.light-mode .chat-loading p {
   background: var(--background);
   position: relative;
   overflow: hidden;
-  /* Removed transform: translateZ(0) to avoid breaking fixed modals */
+  /* GPU acceleration */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 .chat-main-area {
@@ -232,8 +236,13 @@ body.light-mode .chat-loading p {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  /* Important for flex shrink */
+  min-height: 0;
+  /* Important for flex shrink - allows children to use flex: 1 */
   position: relative;
+  /* GPU acceleration */
+  transform: translateZ(0);
+  will-change: transform;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
@@ -271,19 +280,20 @@ body.light-mode .chat-loading p {
 
 .messages-container {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   -webkit-overflow-scrolling: touch;
   /* Momentum scrolling for mobile */
   scroll-behavior: smooth;
   /* Smooth programmatic scrolling */
   overscroll-behavior-y: contain;
   /* Prevent scroll chaining */
-  will-change: transform;
+  will-change: scroll-position, transform;
   /* GPU acceleration hint */
   position: relative;
   /* Important for scroll-bottom-btn absolute positioning */
   padding: 1rem;
+  padding-bottom: 8px;
+  /* Small space for visual separation from input */
   background:
     /* Top layer: Doodle pattern */
     url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3e%3cg fill='%23000000' fill-opacity='0.08'%3e%3ccircle cx='50' cy='50' r='3'/%3e%3ccircle cx='10' cy='10' r='2'/%3e%3ccircle cx='90' cy='90' r='2'/%3e%3ccircle cx='10' cy='90' r='1'/%3e%3ccircle cx='90' cy='10' r='1'/%3e%3c/g%3e%3c/svg%3e"),
@@ -293,10 +303,14 @@ body.light-mode .chat-loading p {
   background-size: 300px 300px, cover, cover;
   background-position: center;
   background-repeat: repeat, no-repeat, no-repeat;
-  padding-bottom: 40px;
-  /* Space for the input */
   transform: translateZ(0);
   /* Force GPU layer */
+  contain: content;
+  /* CSS containment for performance */
+  /* FLEXBOX FIX: Take remaining space above input */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-header {
@@ -406,6 +420,9 @@ body.light-mode .chat-loading p {
   margin-bottom: 2px;
   position: relative;
   transition: background-color 0.2s ease;
+  /* GPU Acceleration */
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .message-item.highlighted {
@@ -2046,4 +2063,272 @@ body.light-mode .chat-loading p {
 
 .banner-join-btn:active {
   transform: translateY(0);
+}
+
+/* =============================================
+   VIRTUALIZED MESSAGE LIST STYLES
+   Performance Optimizations for 60+ FPS
+   ============================================= */
+
+/* Virtuoso Container - GPU acceleration hints */
+.virtuoso-container {
+  contain: strict;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.virtuoso-container [data-virtuoso-scroller] {
+  will-change: scroll-position;
+  transform: translateZ(0);
+  /* Force GPU layer */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  /* Enable momentum scrolling (Telegram-like) */
+  scroll-behavior: smooth;
+  /* Smooth scrolling for programmatic scrolls */
+}
+
+/* Disable transitions during scroll to prevent blank screen */
+.virtuoso-container [data-virtuoso-scroller]:active,
+.virtuoso-container [data-virtuoso-scroller]:not(.virtuoso-scroll-inactive) {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Ensure messages don't have transitions that cause blank screen */
+.message-item,
+.message-bubble,
+.message-content,
+.virtuoso-message-wrapper {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Message item optimization for virtualization */
+.message-item {
+  contain: content;
+  /* Optimize rendering - browser can skip layout for items not changing */
+  content-visibility: auto;
+  /* CSS containment for performance */
+}
+
+/* Prevent layout shifts from images/emojis */
+.message-container img,
+.message-container video,
+.message-container .emoji-renderer {
+  max-width: 100%;
+  height: auto;
+  /* Reserve space to prevent layout shifts */
+  aspect-ratio: attr(width) / attr(height);
+  /* Where possible */
+}
+
+/* Image container - prevent CLS (Cumulative Layout Shift) */
+.message-media-container {
+  position: relative;
+  /* Reserve space before image loads */
+  min-height: 100px;
+  min-width: 150px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Aspect ratio enforcement for media */
+.message-media-container img,
+.message-media-container video {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  /* Reserve aspect ratio space */
+  aspect-ratio: 16 / 9;
+  max-height: 300px;
+}
+
+/* Emoji/image optimizations */
+.jumbo-emoji-bubble .message-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jumbo-emoji-text {
+  font-size: 48px;
+  line-height: 1.2;
+}
+
+/* Ensure emojis have fixed dimensions to prevent layout shifts */
+.emoji-renderer img,
+.emoji-renderer span[role="img"] {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* Jumbo emoji sizes */
+.jumbo-emoji .emoji-renderer img,
+.jumbo-emoji .emoji-renderer span[role="img"] {
+  width: 64px;
+  height: 64px;
+}
+
+/* Smooth scrolling enhancement */
+.messages-wrapper.virtuoso-container {
+  scroll-behavior: auto;
+  /* Let Virtuoso handle scrolling */
+}
+
+/* Loading and empty states */
+.virtuoso-loading,
+.virtuoso-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+}
+
+/* Footer spacer for proper bottom alignment */
+.virtuoso-footer-spacer {
+  height: 1px;
+  flex-shrink: 0;
+}
+
+/* =============================================
+   VIRTUALIZED MESSAGE WRAPPER FIXES
+   Zero-height element prevention
+   ============================================= */
+
+/* Wrapper for each message item in Virtuoso */
+.virtuoso-message-wrapper {
+  min-height: 24px;
+  width: 100%;
+  overflow: hidden;
+  /* Prevents margin collapse which can cause zero-height */
+  box-sizing: border-box;
+  display: block;
+  /* Force GPU layer */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Placeholder for empty/null messages */
+.message-item-placeholder {
+  min-height: 24px;
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+}
+
+/* Message item base - ensure it's always visible */
+.message-item {
+  min-height: 24px;
+  display: flex;
+  width: 100%;
+}
+
+/* =============================================
+   IMAGE & EMOJI LAYOUT SHIFT FIXES
+   Prevent CLS (Cumulative Layout Shift)
+   ============================================= */
+
+/* Message media container - always reserve space */
+.message-media-container {
+  position: relative;
+  min-height: 100px;
+  min-width: 150px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  display: block;
+}
+
+/* Ensure all images have explicit dimensions */
+.message-item img,
+.message-bubble img,
+.virtuoso-message-wrapper img,
+.message-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  /* Explicit dimensions to prevent layout shifts */
+  min-height: 24px;
+  min-width: 24px;
+}
+
+/* Avatar images - fixed dimensions */
+.message-item .user-avatar img,
+.message-bubble .user-avatar img,
+.group-sender-avatar img,
+.sender-avatar img {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  object-fit: cover;
+}
+
+/* Message bubble images */
+.message-bubble-image {
+  display: block;
+  width: 200px;
+  height: auto;
+  /* Aspect ratio reservation */
+  aspect-ratio: attr(width) / attr(height);
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 12px;
+  background-color: rgba(0, 0, 0, 0.05);
+  /* Loading placeholder */
+  min-height: 150px;
+}
+
+/* Emoji renderers - fixed dimensions */
+.emoji-renderer,
+.emoji-renderer img,
+.emoji-renderer span[role="img"],
+.message-content .emoji {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Jumbo emoji - larger but still fixed */
+.jumbo-emoji .emoji-renderer,
+.jumbo-emoji .emoji-renderer img,
+.jumbo-emoji .emoji-renderer span[role="img"],
+.jumbo-emoji .message-content .emoji {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  min-height: 64px;
+}
+
+/* Ensure message content doesn't collapse */
+.message-content {
+  display: block;
+  min-height: 1em;
+  /* Prevent empty content from collapsing */
+  overflow: visible;
+}
+
+/* Message bubble container */
+.message-bubble {
+  display: block;
+  overflow: hidden;
+  /* Prevent margin collapse */
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }

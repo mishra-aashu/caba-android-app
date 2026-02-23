@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { supabase } from '../../config/supabase';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -495,4 +495,18 @@ const MessageItem = ({
   );
 };
 
-export default MessageItem;
+// Memoize MessageItem to prevent re-renders during scroll
+export default memo(MessageItem, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  if (prevProps.message?.id !== nextProps.message?.id) return false;
+  if (prevProps.isSelected !== nextProps.isSelected) return false;
+  if (prevProps.isSelectionMode !== nextProps.isSelectionMode) return false;
+  
+  // For content changes, check specific fields
+  if (prevProps.message?.content !== nextProps.message?.content) return false;
+  if (prevProps.message?.isDeleting !== nextProps.message?.isDeleting) return false;
+  if (prevProps.message?.isEdited !== nextProps.message?.isEdited) return false;
+  if (prevProps.message?.is_edited !== nextProps.message?.is_edited) return false;
+  
+  return true;
+});

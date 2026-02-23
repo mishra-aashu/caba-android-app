@@ -5,6 +5,11 @@ import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import KlipyGifPicker from '../chat/GifPicker.jsx';
 import './EmojiPicker.css';
 
+// Number of categories to render initially (top categories)
+const INITIAL_CATEGORIES_COUNT = 3;
+// Number of categories to load per scroll
+const CATEGORIES_PER_LOAD = 2;
+
 /**
  * Utility to convert emoji-mart unified hex (e.g. "1F602") to our lowercase hyphenated format.
  * Includes zero-padding to 4 digits for consistency with assets.
@@ -12,6 +17,23 @@ import './EmojiPicker.css';
 const formatHex = (unified) => {
     return unified.split('-').map(part => part.toLowerCase().padStart(4, '0')).join('-');
 };
+
+// Pre-process a single category - called lazily
+const processCategory = (cat) => ({
+    ...cat,
+    emojis: cat.emojis.map(id => {
+        const emoji = data.emojis[id];
+        return {
+            id,
+            name: emoji.name,
+            native: emoji.skins[0].native,
+            hex: formatHex(emoji.skins[0].unified)
+        };
+    })
+});
+
+// Get filtered categories (excluding 'frequent' which is usually empty)
+const getFilteredCategories = () => data.categories.filter(c => c.id !== 'frequent');
 
 const EmojiPicker = ({
     onEmojiSelect,
@@ -29,30 +51,41 @@ const EmojiPicker = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('smileys');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [hasBeenOpened, setHasBeenOpened] = useState(false); // Track if picker has ever been opened
+    const [hasBeenOpened, setHasBeenOpened] = useState(false);
+    // Lazy loading state
+    const [visibleCategoriesCount, setVisibleCategoriesCount] = useState(INITIAL_CATEGORIES_COUNT);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    
     const { emojiStyle } = useEmojiStyle();
+    const filteredCategories = useMemo(() => getFilteredCategories(), []);
 
     const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
     const pickerRef = useRef(null);
     const scrollRef = useRef(null);
+    const loadingRef = useRef(null);
 
-    // Pre-calculate categories with hex codes to avoid logic during render
-    const processedCategories = useMemo(() => {
-        return data.categories.map(cat => ({
-            ...cat,
-            emojis: cat.emojis.map(id => {
-                const emoji = data.emojis[id];
-                return {
-                    id,
-                    name: emoji.name,
-                    native: emoji.skins[0].native,
-                    hex: formatHex(emoji.skins[0].unified)
-                };
-            })
-        }));
-    }, []);
+    // Reset visible categories when picker opens
+    useEffect(() => {
+        if (isOpen) {
+            setHasBeenOpened(true);
+            setIsVisible(true);
+            setVisibleCategoriesCount(INITIAL_CATEGORIES_COUNT);
+        } else {
+            setIsVisible(false);
+        }
+    }, [isOpen]);
 
-    // Filtered emojis based on search (also pre-processed)
+    // Get only the categories that should be visible (lazy loaded)
+    const visibleCategories = useMemo(() => {
+        return filteredCategories.slice(0, visibleCategoriesCount);
+    }, [filteredCategories, visibleCategoriesCount]);
+
+    // Process only visible categories
+    const processedVisibleCategories = useMemo(() => {
+        return visibleCategories.map(cat => processCategory(cat));
+    }, [visibleCategories]);
+
+    // Filtered emojis based on search
     const filteredEmojis = useMemo(() => {
         if (!searchQuery) return null;
         const query = searchQuery.toLowerCase();
@@ -67,19 +100,55 @@ const EmojiPicker = ({
         }));
     }, [searchQuery]);
 
-    useEffect(() => {
-        if (isOpen) {
-            setHasBeenOpened(true);
-            // DIRECT TOGGLE: No more 10ms timeout which caused "visible delay"
-            setIsVisible(true);
-        } else {
-            setIsVisible(false);
+    // Scroll handler for lazy loading
+    const handleScroll = useCallback(() => {
+        if (scrollRef.current && !searchQuery && visibleCategoriesCount < filteredCategories.length) {
+            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+            // Load more when user scrolls to 80% of content
+            if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+                if (!isLoadingMore) {
+                    setIsLoadingMore(true);
+                    // Small delay to prevent too many rapid loads
+                    setTimeout(() => {
+                        setVisibleCategoriesCount(prev => Math.min(prev + CATEGORIES_PER_LOAD, filteredCategories.length));
+                        setIsLoadingMore(false);
+                    }, 100);
+                }
+            }
         }
-    }, [isOpen]);
+    }, [searchQuery, visibleCategoriesCount, filteredCategories.length, isLoadingMore]);
+
+    // Set up intersection observer for lazy loading
+    useEffect(() => {
+        if (!scrollRef.current || searchQuery) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !isLoadingMore && visibleCategoriesCount < filteredCategories.length) {
+                        setIsLoadingMore(true);
+                        setTimeout(() => {
+                            setVisibleCategoriesCount(prev => Math.min(prev + CATEGORIES_PER_LOAD, filteredCategories.length));
+                            setIsLoadingMore(false);
+                        }, 100);
+                    }
+                });
+            },
+            { rootMargin: '100px' }
+        );
+
+        // Observe the loading trigger element
+        if (loadingRef.current) {
+            observer.observe(loadingRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [searchQuery, isLoadingMore, visibleCategoriesCount, filteredCategories.length]);
 
     const handleEmojiSelect = useCallback((emojiData) => {
-        // We pass the native unicode character back, which our renderer then converts
-        onEmojiSelect(emojiData.skins[0].native);
+        // Handle different emoji data formats
+        const nativeEmoji = emojiData.native || (emojiData.skins && emojiData.skins[0]?.native);
+        onEmojiSelect(nativeEmoji);
     }, [onEmojiSelect]);
 
     const handleToggle = useCallback(() => {
@@ -195,7 +264,7 @@ const EmojiPicker = ({
                                 {/* CATEGORY BAR */}
                                 {!searchQuery && (
                                     <div className="emoji-category-bar">
-                                        {data.categories.filter(c => c.id !== 'frequent').map(cat => (
+                                        {filteredCategories.map(cat => (
                                             <button
                                                 key={cat.id}
                                                 className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`}
@@ -208,8 +277,8 @@ const EmojiPicker = ({
                                     </div>
                                 )}
 
-                                {/* EMOJI GRID */}
-                                <div className="emoji-scroll-area" ref={scrollRef}>
+                                {/* EMOJI GRID - With lazy loading */}
+                                <div className="emoji-scroll-area" ref={scrollRef} onScroll={handleScroll}>
                                     {searchQuery ? (
                                         <div className="emoji-grid">
                                             {filteredEmojis.map(emoji => (
@@ -223,20 +292,29 @@ const EmojiPicker = ({
                                             {filteredEmojis.length === 0 && <div className="no-recent">No emojis found</div>}
                                         </div>
                                     ) : (
-                                        processedCategories.map(cat => (
-                                            <div key={cat.id} id={`cat-${cat.id}`} className="category-section">
-                                                <div className="emoji-grid">
-                                                    {cat.emojis.map(emoji => (
-                                                        <EmojiItem
-                                                            key={emoji.id}
-                                                            emoji={emoji}
-                                                            style={emojiStyle}
-                                                            onSelect={handleEmojiSelect}
-                                                        />
-                                                    ))}
+                                        <>
+                                            {processedVisibleCategories.map(cat => (
+                                                <div key={cat.id} id={`cat-${cat.id}`} className="category-section">
+                                                    <div className="emoji-grid">
+                                                        {cat.emojis.map(emoji => (
+                                                            <EmojiItem
+                                                                key={emoji.id}
+                                                                emoji={emoji}
+                                                                style={emojiStyle}
+                                                                onSelect={handleEmojiSelect}
+                                                            />
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            ))}
+                                            
+                                            {/* Loading trigger element */}
+                                            {!searchQuery && visibleCategoriesCount < filteredCategories.length && (
+                                                <div ref={loadingRef} className="emoji-loading-trigger">
+                                                    {isLoadingMore && <div className="loading-spinner-small"></div>}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </>
@@ -257,7 +335,6 @@ const EmojiPicker = ({
 // Use memo to prevent re-rendering every emoji on every picker update
 const EmojiItem = memo(({ emoji, style, onSelect }) => {
     const [hasError, setHasError] = useState(false);
-    // hex is now pre-provided, zero logic here
     const assetPath = `/assets/emojis/${style}/${emoji.hex}.webp`;
 
     return (

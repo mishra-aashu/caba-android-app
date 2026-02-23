@@ -102,6 +102,10 @@
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  /* GPU Acceleration */
+  transform: translateZ(0);
+  will-change: scroll-position;
+  contain: content;
 }
 
 .groups-loading,

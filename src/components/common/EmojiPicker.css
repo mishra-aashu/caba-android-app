@@ -59,6 +59,14 @@
       /* GPU Acceleration & Performance isolation */
       will-change: transform, opacity;
       contain: strict;
+      
+      /* Additional GPU Acceleration */
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      perspective: 1000px;
+      -webkit-perspective: 1000px;
   }
 
   /* When popup is visible (applied via JS class or when loaded) */
@@ -272,6 +280,7 @@
   .emoji-scroll-area {
       flex: 1;
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 12px;
       position: relative;
       /* For sticky positioning */
@@ -279,6 +288,15 @@
       box-sizing: border-box;
       padding-right: 8px;
       /* Reduce right padding to fill space */
+      
+      /* GPU Acceleration for smooth scrolling */
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      will-change: scroll-position;
+      -webkit-overflow-scrolling: touch;
+      
+      /* Performance optimizations */
+      contain: strict;
   }
 
   .category-section {
@@ -286,6 +304,7 @@
       /* Render optimization: only render what's visible */
       content-visibility: auto;
       contain-intrinsic-size: 1px 200px;
+      contain: layout style;
   }
 
   .emoji-grid {
@@ -322,12 +341,22 @@
       /* Optimization: prevents layout shift */
       contain: layout paint;
       will-change: transform;
+      
+      /* GPU Acceleration for smooth hover */
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
   }
 
   .emoji-item img {
       width: 32px;
       height: 32px;
       object-fit: contain;
+      /* GPU Acceleration for images */
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      will-change: opacity;
   }
 
   .emoji-item span {
@@ -592,4 +621,22 @@
       to {
           transform: rotate(360deg);
       }
+  }
+
+  /* Lazy Loading Trigger */
+  .emoji-loading-trigger {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      min-height: 40px;
+  }
+
+  .loading-spinner-small {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #00a884;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
   }

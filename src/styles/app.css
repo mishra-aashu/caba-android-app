@@ -197,6 +197,9 @@ body {
   scroll-behavior: smooth;
   padding-bottom: var(--sab);
   /* Respect safe area bottom */
+  /* GPU Acceleration */
+  transform: translateZ(0);
+  will-change: scroll-position;
 }
 
 @media (max-width: 768px) {

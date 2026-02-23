@@ -289,3 +289,80 @@
   filter: blur(8px);
   user-select: none;
 }
+
+/* --- JUMBO EMOJI (Telegram-like Emoji-Only Messages) --- */
+/* Applied when message contains only 1-3 emojis and zero text */
+
+/* Container for jumbo emoji messages */
+.message-container.jumbo-emoji {
+  /* Remove bottom margin for cleaner emoji display */
+  margin-bottom: 10px;
+}
+
+/* Bubble for jumbo emoji - remove background, padding, and shadow */
+.bubble.jumbo-emoji-bubble {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  min-width: auto !important;
+  max-width: none !important;
+  
+  /* Ensure proper alignment */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Hide timestamp for jumbo emoji messages */
+.message-container.jumbo-emoji .timestamp {
+  display: none;
+}
+
+/* Hide reply quote for jumbo emoji messages */
+.message-container.jumbo-emoji .reply-quote-container {
+  display: none;
+}
+
+/* Hide sender info for jumbo emoji messages */
+.message-container.jumbo-emoji .sender-info {
+  display: none;
+}
+
+/* Make emojis significantly larger in jumbo emoji mode */
+.message-container.jumbo-emoji .text img,
+.message-container.jumbo-emoji .emoji-renderer-root img,
+.jumbo-emoji-bubble .custom-emoji-img {
+  width: 64px !important;
+  height: 64px !important;
+  margin: 0 !important;
+  object-fit: contain !important;
+}
+
+/* Support for 4rem size as fallback */
+@media (max-width: 480px) {
+  .message-container.jumbo-emoji .text img,
+  .message-container.jumbo-emoji .emoji-renderer-root img,
+  .jumbo-emoji-bubble .custom-emoji-img {
+    width: 4rem !important;
+    height: 4rem !important;
+  }
+}
+
+/* Ensure the message content container has minimal padding for jumbo emojis */
+.message-container.jumbo-emoji .message-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Native emoji fallback support for jumbo mode */
+.message-container.jumbo-emoji .native-emoji-fallback {
+  font-size: 48px !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 480px) {
+  .message-container.jumbo-emoji .native-emoji-fallback {
+    font-size: 3rem !important;
+  }
+}

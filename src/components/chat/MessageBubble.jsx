@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import EmojiRenderer from '../common/EmojiRenderer';
+import { isOnlyEmoji } from '../../utils/emojiUtils';
 import './MessageBubble.css';
 
 // Icon for deleted messages
@@ -33,7 +34,7 @@ const isMessageEdited = (message) => {
   return !!(message?.isEdited || message?.is_edited);
 };
 
-const MessageBubble = ({
+const MessageBubble = memo(({
   text,
   repliedMsg,
   currentUserId,
@@ -52,6 +53,10 @@ const MessageBubble = ({
   const unlockAt = message?.unlockAt || message?.unlock_at;
   const isTimeCapsule = !!unlockAt;
   const isLocked = isTimeCapsule && new Date(unlockAt) > new Date();
+
+  // Check if message contains only emojis (1-3 emojis, no text)
+  // This enables the "Jumbo Emoji" feature for Telegram-like emoji-only messages
+  const isJumboEmoji = !isDeleted && !isLocked && isOnlyEmoji(text);
 
   // Properly check if message was edited - only show "edited" if updated_at > created_at
   const isEdited = isMessageEdited(message);
@@ -89,35 +94,38 @@ const MessageBubble = ({
     return () => clearInterval(interval);
   }, [isTimeCapsule, message?.unlockAt, message?.unlock_at]);
 
-  // Determine sender name
-  const getSenderName = () => {
+  // Memoize sender name computation
+  const senderName = useMemo(() => {
     if (isAnonymous) return 'Anonymous';
     if (sender?.id === currentUserId) return 'You';
     return sender?.name || 'Unknown';
-  };
+  }, [isAnonymous, sender, currentUserId]);
 
-  // Determine avatar
-  const getAvatar = () => {
+  // Memoize avatar
+  const avatar = useMemo(() => {
     if (isAnonymous) return <SpyIcon />;
     if (sender?.avatar) {
       return <img src={sender.avatar} alt={sender.name} />;
     }
     return null;
-  };
+  }, [isAnonymous, sender]);
+
+  // Memoize emoji renderer for performance
+  const emojiStyle = isJumboEmoji ? { width: '64px', height: '64px' } : {};
 
   return (
-    <div className={`message-container ${isMine ? 'mine' : 'theirs'} ${isAnonymous ? 'anonymous' : ''} ${isLocked ? 'locked' : ''}`}>
+    <div className={`message-container ${isMine ? 'mine' : 'theirs'} ${isAnonymous ? 'anonymous' : ''} ${isLocked ? 'locked' : ''} ${isJumboEmoji ? 'jumbo-emoji' : ''}`}>
 
       {/* Bubble Box */}
-      <div className={`bubble caba-bubble ${isMine ? 'bubble-sent caba-bubble--sent' : 'bubble-received caba-bubble--received'}`}>
+      <div className={`bubble caba-bubble ${isMine ? 'bubble-sent caba-bubble--sent' : 'bubble-received caba-bubble--received'} ${isJumboEmoji ? 'jumbo-emoji-bubble' : ''}`}>
         {/* Anonymous sender info inside bubble (Only for truly anonymous messages) */}
         {!isMine && isAnonymous && (
           <div className="sender-info">
             <div className="sender-avatar">
-              {getAvatar()}
+              {avatar}
             </div>
             <span className="sender-name anonymous-name">
-              {getSenderName()}
+              {senderName}
             </span>
           </div>
         )}
@@ -163,10 +171,13 @@ const MessageBubble = ({
         {/* Actual Message Content */}
         <div className="message-content">
           {/* Text Area */}
-          <span className={`text ${isDeleted ? 'deleted-text' : ''} ${isLocked ? 'blurred' : ''}`}>
+          <span className={`text ${isDeleted ? 'deleted-text' : ''} ${isLocked ? 'blurred' : ''} ${isJumboEmoji ? 'jumbo-emoji-text' : ''}`}>
             {isDeleted && <BlockIcon />}
             {isLocked ? <LockIcon /> : null}
-            <EmojiRenderer text={isLocked ? 'Time Capsule Message' : text} />
+            <EmojiRenderer 
+              text={isLocked ? 'Time Capsule Message' : text} 
+              style={emojiStyle}
+            />
           </span>
 
           {/* Time Area */}
@@ -188,6 +199,38 @@ const MessageBubble = ({
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for React.memo - only re-render when these change
+  if (prevProps.text !== nextProps.text) return false;
+  if (prevProps.time !== nextProps.time) return false;
+  if (prevProps.status !== nextProps.status) return false;
+  if (prevProps.isMine !== nextProps.isMine) return false;
+  if (prevProps.isDeleted !== nextProps.isDeleted) return false;
+  if (prevProps.edited !== nextProps.edited) return false;
+  
+  // Check repliedMsg changes
+  const prevReplyId = prevProps.repliedMsg?.id;
+  const nextReplyId = nextProps.repliedMsg?.id;
+  if (prevReplyId !== nextReplyId) return false;
+  
+  // Check sender changes
+  const prevSenderId = prevProps.sender?.id;
+  const nextSenderId = nextProps.sender?.id;
+  if (prevSenderId !== nextSenderId) return false;
+  
+  // Check message object key changes
+  const prevMessageId = prevProps.message?.id;
+  const nextMessageId = nextProps.message?.id;
+  if (prevMessageId !== nextMessageId) return false;
+  
+  // Check unlock status for time capsule
+  const prevLocked = prevProps.message?.unlockAt || prevProps.message?.unlock_at;
+  const nextLocked = nextProps.message?.unlockAt || nextProps.message?.unlock_at;
+  if (prevLocked !== nextLocked) return false;
+  
+  return true;
+});
+
+MessageBubble.displayName = 'MessageBubble';
 
 export default MessageBubble;

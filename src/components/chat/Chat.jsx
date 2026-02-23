@@ -13,7 +13,7 @@ import { validateEntity, Message } from '../../types/database';
 import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2 } from 'lucide-react';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
-import MessageList from './MessageList';
+import VirtualizedMessageList from './VirtualizedMessageList';
 import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import MediaViewer from '../media/MediaViewer';
@@ -1794,7 +1794,7 @@ const Chat = () => {
             </div>
           )}
 
-          <MessageList
+          <VirtualizedMessageList
             messages={messages}
             currentUser={currentUser}
             selectedMessages={selectedMessages}
@@ -1821,9 +1821,10 @@ const Chat = () => {
                 showUserDetails(senderId);
               }
             }}
+            isScrolledToBottom={isScrolledToBottom}
+            typingUsers={typingUsers}
+            initialTopMostItemIndex={messages.length > 0 ? messages.length - 1 : 0}
           />
-
-          <TypingIndicator isVisible={Object.keys(typingUsers).length > 0} />
 
           <div ref={messagesEndRef} />
 
