@@ -102,15 +102,16 @@ const Chat = () => {
 
     // 2. Try to use data from allChats cache (extremely fast, covers both DMs and Groups)
     if (allChats && allChats.length > 0) {
-      // Use loose equality (==) because chatId from URL is always a string, 
-      // but DB ID could be a number.
       const activeChat = allChats.find(c => c.id == chatId);
       if (activeChat) {
+        // If it's a DM (has otherUserId), we MUST use otherUserId for the user fetch
+        // and only use activeChat properties as metadata.
+        const effectiveOtherUserId = isGroupChat ? chatId : otherUserId;
+
         return {
           ...activeChat,
-          // Support both nested object pattern and flat normalized pattern
           ...(activeChat.otherUser || {}),
-          id: chatId,
+          id: effectiveOtherUserId, // CRITICAL: Must be the user ID, not chat ID
           is_group: !!activeChat.isGroup,
           isGroup: !!activeChat.isGroup,
           member_count: activeChat.member_count || activeChat.otherUser?.member_count || 0,
@@ -532,9 +533,11 @@ const Chat = () => {
     if (allChats && allChats.length > 0) {
       const activeChat = allChats.find(c => c.id == chatId);
       if (activeChat) {
+        const effectiveOtherUserId = isGroupChat ? chatId : otherUserId;
         setOtherUser({
           ...activeChat,
           ...(activeChat.otherUser || {}),
+          id: effectiveOtherUserId, // CRITICAL: Use correct ID
           is_group: !!activeChat.isGroup
         });
         return; // Success! Instant UI population.
