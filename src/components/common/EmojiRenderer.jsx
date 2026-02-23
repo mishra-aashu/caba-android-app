@@ -1,47 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
-import { toArray } from 'react-emoji-render';
-import '../../styles/emoji-styles.css';
 
-// Central configuration for emoji styles
-const STYLE_CONFIG = {
-  twitter: {
-    baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
-    ext: '.png',
-    isUppercase: false
-  },
-  apple: {
-    baseUrl: 'https://unpkg.com/emoji-datasource-apple@14.0.0/img/apple/64/',
-    ext: '.png',
-    isUppercase: true
-  },
-  google: {
-    baseUrl: 'https://unpkg.com/emoji-datasource-google@14.0.0/img/google/64/',
-    ext: '.png',
-    isUppercase: true
+/**
+ * Utility to convert an emoji string (grapheme) to its standard hex code format.
+ * Matches emoji-datasource naming convention (e.g., "1f602", "1f468-200d-1f4bb").
+ */
+const getEmojiHex = (emoji) => {
+  const codePoints = [];
+  for (const char of emoji) {
+    codePoints.push(char.codePointAt(0).toString(16).toLowerCase());
   }
+  return codePoints.join('-');
 };
 
 /**
  * SafeEmoji Component - Handles individual emoji rendering with state-based fallback.
+ * Uses local assets: /assets/emojis/{vendor}/{hexcode}.webp
  */
-const SafeEmoji = ({ src, token, className = '', style = {} }) => {
+const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
   const [hasError, setHasError] = useState(false);
+  const src = `/assets/emojis/${vendor}/${hex}.webp`;
 
-  // GUARANTEED FALLBACK: If image fails, show native unicode emoji
-  if (hasError) {
-    return <span className={`native-emoji-fallback ${className}`} style={style}>{token}</span>;
+  // FALLBACK: If image fails or vendor is native, show native unicode emoji
+  if (hasError || vendor === 'native') {
+    return (
+      <span
+        className={`native-emoji-fallback ${className}`}
+        style={{ ...style, fontStyle: 'normal' }}
+      >
+        {emoji}
+      </span>
+    );
   }
 
   return (
     <img
       src={src}
-      alt={token}
+      alt={emoji}
       className={`custom-emoji-img ${className}`}
-      style={style}
+      style={{
+        display: 'inline-block',
+        verticalAlign: 'middle',
+        width: '1.2em',
+        height: '1.2em',
+        ...style
+      }}
       loading="lazy"
       onError={() => {
-        console.warn(`Emoji load failed: ${src}`);
+        // console.warn(`Emoji asset not found: ${src}`);
         setHasError(true);
       }}
     />
@@ -49,55 +55,64 @@ const SafeEmoji = ({ src, token, className = '', style = {} }) => {
 };
 
 /**
- * EmojiRenderer Component - The "Principal Engineer" Revert
- * 
- * Instead of fragile manual hex math, we leverage react-emoji-render's 
- * internal parser by providing a dummy ID and then intercepting the generated output.
+ * EmojiRenderer Component - Offline-first emoji renderer.
+ * Splits text into segments and replaces emojis with high-quality WebP images.
  */
 const EmojiRenderer = ({ text, className = '', style = {}, styleOverride = null }) => {
   const { emojiStyle: globalEmojiStyle } = useEmojiStyle();
   const activeStyle = styleOverride || globalEmojiStyle;
 
-  // 1. Native Fallback
-  if (activeStyle === 'native' || !STYLE_CONFIG[activeStyle]) {
-    return <span className={className} style={style}>{text}</span>;
-  }
+  // Use useMemo for segmenting text to avoid recalculating on every render
+  const elements = useMemo(() => {
+    if (!text) return null;
 
-  const config = STYLE_CONFIG[activeStyle];
+    // 1. Native Fallback Shortcut
+    if (activeStyle === 'native') {
+      return text;
+    }
 
-  // 2. LEVERAGE LIBRARY MATH
-  // We use a dummy ID to force toArray() to generate codepoints for us.
-  const ID = "LIB_PARSER_";
-  const emojiArray = toArray(text, {
-    baseUrl: ID,
-    ext: config.ext,
-    protocol: 'https'
-  });
+    try {
+      // Use Intl.Segmenter (modern browser standard) for robust emoji splitting
+      // Falls back to simple splitting if not available (though widely supported now)
+      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+        const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+        const segments = Array.from(segmenter.segment(text));
+
+        return segments.map((s, index) => {
+          const { segment } = s;
+
+          // Basic emoji test - most emojis are multi-codepoint or in high ranges
+          // We check if it's an emoji using a regex that targets emoji ranges
+          const isEmoji = /\p{Emoji_Presentation}|\p{Emoji}\uFE0F|\p{Emoji_Modifier_Base}/u.test(segment);
+
+          if (isEmoji) {
+            const hex = getEmojiHex(segment);
+            return (
+              <SafeEmoji
+                key={index}
+                emoji={segment}
+                hex={hex}
+                vendor={activeStyle}
+                className={className}
+                style={style}
+              />
+            );
+          }
+
+          return <span key={index}>{segment}</span>;
+        });
+      }
+    } catch (e) {
+      console.error('Emoji segmentation error:', e);
+    }
+
+    // Absolute fallback: return raw text
+    return text;
+  }, [text, activeStyle, className, style]);
 
   return (
-    <span className={`emoji-renderer-root ${className}`} style={style} renderfulltext="true" renderemoji="true">
-      {emojiArray.map((part, index) => {
-        // toArray returns React elements (img) for emojis when baseUrl is provided
-        if (React.isValidElement(part) && part.type === 'img') {
-          const { src, alt } = part.props;
-
-          // lib generates: "https:LIB_PARSER_/{hex}.{ext}"
-          // We extract the hex token and apply our own casing/FE0F rules.
-          const hex = src.split('/').pop().split('.')[0];
-
-          // Clean up the hex (remove variation selectors common in filenames)
-          let cleanHex = hex.replace(/fe0f/gi, '').replace(/-$/, '');
-          cleanHex = cleanHex.split('-').filter(Boolean).join('-');
-
-          const finalToken = config.isUppercase ? cleanHex.toUpperCase() : cleanHex.toLowerCase();
-          const finalSrc = `${config.baseUrl}${finalToken}${config.ext}`;
-
-          return <SafeEmoji key={index} src={finalSrc} token={alt} />;
-        }
-
-        // Return plain text parts or children of non-img elements
-        return <span key={index}>{typeof part === 'string' ? part : part.props.children}</span>;
-      })}
+    <span className={`emoji-renderer-root ${className}`} style={{ ...style, display: 'inline' }}>
+      {elements}
     </span>
   );
 };

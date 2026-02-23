@@ -88,7 +88,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
   },
   build: {
-    chunkSizeWarningLimit: 2000,
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
       output: {
         manualChunks: {

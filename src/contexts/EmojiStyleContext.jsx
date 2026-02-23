@@ -6,8 +6,8 @@ const EmojiStyleContext = createContext();
 
 // Emoji Style Provider Component
 export const EmojiStyleProvider = ({ children }) => {
-  // Default emoji style is 'native' (device emojis)
-  const [emojiStyle, setEmojiStyle] = useState('native');
+  // Default emoji style is 'apple' as requested
+  const [emojiStyle, setEmojiStyle] = useState('apple');
   const [loading, setLoading] = useState(true);
   const { supabase } = useSupabase();
 
@@ -42,7 +42,11 @@ export const EmojiStyleProvider = ({ children }) => {
   const updateEmojiStyle = async (newStyle) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
+      if (!user) {
+        // Fallback for local-only state if not logged in
+        setEmojiStyle(newStyle);
+        return true;
+      }
 
       const { error } = await supabase
         .from('users')
@@ -75,7 +79,8 @@ export const EmojiStyleProvider = ({ children }) => {
     isNative: emojiStyle === 'native',
     isTwitter: emojiStyle === 'twitter',
     isGoogle: emojiStyle === 'google',
-    isApple: emojiStyle === 'apple'
+    isApple: emojiStyle === 'apple',
+    isFacebook: emojiStyle === 'facebook'
   };
 
   return (

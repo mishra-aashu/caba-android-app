@@ -81,22 +81,14 @@ const EmojiSettings = () => {
           <div className="emoji-info-section">
             <h2 className="section-title">🎨 Choose Emoji Style</h2>
             <p className="emoji-description">
-              Select how emojis appear in your chats. This affects both the emoji picker and how emojis are displayed in messages.
+              Select how emojis appear in your chats. This affects both the emoji picker and how emojis are displayed in messages. Our app now uses offline-first emoji assets for better performance.
             </p>
           </div>
 
           {/* Style Selector */}
           <div className="options-list">
 
-            {/* 1. System Default */}
-            <EmojiPreviewRow
-              styleName="System Default"
-              styleKey="native"
-              isSelected={emojiStyle === 'native'}
-              onSelect={handleStyleChange}
-            />
-
-            {/* 2. Apple */}
+            {/* 1. Apple */}
             <EmojiPreviewRow
               styleName="Apple"
               styleKey="apple"
@@ -104,25 +96,39 @@ const EmojiSettings = () => {
               onSelect={handleStyleChange}
             />
 
-            {/* 3. Twitter */}
+            {/* 2. Google */}
             <EmojiPreviewRow
-              styleName="Twitter (Twemoji)"
-              styleKey="twitter"
-              isSelected={emojiStyle === 'twitter'}
-              onSelect={handleStyleChange}
-            />
-
-            {/* 4. Google */}
-            <EmojiPreviewRow
-              styleName="Google (Noto)"
+              styleName="Google"
               styleKey="google"
               isSelected={emojiStyle === 'google'}
               onSelect={handleStyleChange}
             />
 
+            {/* 3. Twitter */}
+            <EmojiPreviewRow
+              styleName="Twitter"
+              styleKey="twitter"
+              isSelected={emojiStyle === 'twitter'}
+              onSelect={handleStyleChange}
+            />
+
+            {/* 4. Facebook */}
+            <EmojiPreviewRow
+              styleName="Facebook"
+              styleKey="facebook"
+              isSelected={emojiStyle === 'facebook'}
+              onSelect={handleStyleChange}
+            />
+
+            {/* 5. System Default */}
+            <EmojiPreviewRow
+              styleName="System Default"
+              styleKey="native"
+              isSelected={emojiStyle === 'native'}
+              onSelect={handleStyleChange}
+            />
+
           </div>
-
-
 
           {/* Note */}
           <div className="emoji-note">
@@ -132,7 +138,7 @@ const EmojiSettings = () => {
             <div className="note-content">
               <h4>Note:</h4>
               <p>
-                System Default uses your device's built-in emojis. Apple, Twitter, and Google styles render emojis as high-quality images for a consistent appearance across all devices.
+                System Default uses your device's built-in emojis. Apple, Google, Twitter, and Facebook styles use high-quality, offline WebP assets for a consistent experience even without internet.
               </p>
             </div>
           </div>
