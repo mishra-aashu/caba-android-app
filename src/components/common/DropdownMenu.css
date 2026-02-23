@@ -65,7 +65,6 @@ body.light-mode .dropdown-divider {
     position: absolute;
     top: calc(100% + 8px); /* Use calc to maintain spacing without a physical gap */
     right: 0;
-    /* margin-top: 8px; Removed to fix premature closing */
     background: var(--bg-1) !important;
     backdrop-filter: none;
     border: 1px solid rgba(255,255,255,0.1);
@@ -74,7 +73,6 @@ body.light-mode .dropdown-divider {
     min-width: 200px;
     z-index: 1000;
     overflow: hidden;
-    animation: dropdownFadeIn 0.2s ease-out;
     color: var(--text-0) !important;
     display: none; /* Hide by default */
     transform: translateZ(0); /* Hardware acceleration */
@@ -82,8 +80,7 @@ body.light-mode .dropdown-divider {
 }
 
 .dropdown.is-open .dropdown-menu {
-    display: block !important; /* Force display when open */
-    transform: translateZ(0); /* Hardware acceleration */
+    display: block !important;
 }
 
 .dropdown-menu-left {

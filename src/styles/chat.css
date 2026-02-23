@@ -291,9 +291,12 @@ body.light-mode .chat-loading p {
   /* GPU acceleration hint */
   position: relative;
   /* Important for scroll-bottom-btn absolute positioning */
-  padding: 1rem;
-  padding-bottom: 8px;
-  /* Small space for visual separation from input */
+  padding: 0 1rem 8px 1rem;
+  /* FIX: Removed top padding (was 1rem) to prevent messages being clipped behind header */
+  /* Responsive width: thin to wide devices */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background:
     /* Top layer: Doodle pattern */
     url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3e%3cg fill='%23000000' fill-opacity='0.08'%3e%3ccircle cx='50' cy='50' r='3'/%3e%3ccircle cx='10' cy='10' r='2'/%3e%3ccircle cx='90' cy='90' r='2'/%3e%3ccircle cx='10' cy='90' r='1'/%3e%3ccircle cx='90' cy='10' r='1'/%3e%3c/g%3e%3c/svg%3e"),
@@ -311,6 +314,25 @@ body.light-mode .chat-loading p {
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* Responsive adjustments for thin to thick devices */
+@media (max-width: 320px) {
+  .messages-container {
+    padding: 0 0.5rem 8px 0.5rem;
+  }
+}
+
+@media (min-width: 400px) and (max-width: 600px) {
+  .messages-container {
+    padding: 0 1.25rem 8px 1.25rem;
+  }
+}
+
+@media (min-width: 601px) {
+  .messages-container {
+    padding: 0 1.5rem 8px 1.5rem;
+  }
 }
 
 .chat-header {
@@ -447,8 +469,15 @@ body.light-mode .chat-loading p {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  flex-shrink: 1;
   overflow-x: hidden;
+  overflow-y: hidden;
   position: relative;
+  height: 100%;
+  width: 100%;
+  margin-top: 0;
+  padding-top: 0;
+  min-height: 0;
 }
 
 .message-time {
@@ -1296,8 +1325,8 @@ body.light-mode .chat-loading p {
 /* Mobile adjustments */
 @media (max-width: 767px) {
   .chat-screen .messages-container {
-    padding-top: 70px;
-    /* Always reserve space for potential toolbar on mobile */
+    padding-top: 0;
+    /* FIX: Removed 70px top padding that was causing messages to be clipped behind header */
   }
 }
 

@@ -8,6 +8,7 @@ import useAuthStore from '../store/authStore';
 import { dpOptions } from '../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../utils/timeUtils';
 import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import toast from 'react-hot-toast';
@@ -739,9 +740,36 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         );
     }
 
+    // Animation variants for framer motion
+    const pageVariants = {
+        initial: {
+            opacity: 0,
+            y: 20,
+        },
+        animate: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.3,
+                ease: 'easeOut',
+                staggerChildren: 0.05,
+            },
+        },
+    };
+
+    const itemVariants = {
+        initial: { opacity: 0, y: 10 },
+        animate: { opacity: 1, y: 0 },
+    };
+
     return (
-        <div className={`user-details-screen ${isModal ? 'user-details-modal' : ''} ${isPanel ? 'user-details-panel-view' : ''} ${isPanel ? 'panel-slide-in' : ''}`}>
-            <header className="user-details-header">
+        <motion.div 
+            className={`user-details-screen ${isModal ? 'user-details-modal' : ''} ${isPanel ? 'user-details-panel-view' : ''} ${isPanel ? 'panel-slide-in' : ''}`}
+            initial="initial"
+            animate="animate"
+            variants={pageVariants}
+        >
+            <motion.header className="user-details-header" variants={itemVariants}>
                 {isPanel ? (
                     <button className="close-panel-btn" onClick={onClose || (() => navigate(-1))}>
                         <X size={24} />
@@ -765,9 +793,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                         ]}
                     />
                 </div>
-            </header>
+            </motion.header>
 
-            <div className="user-profile-section">
+            <motion.div className="user-profile-section" variants={itemVariants}>
                 <div className="user-details-avatar" id="userDetailAvatar" onClick={() => user.avatar && setShowImageModal(true)} style={{ cursor: user.avatar ? 'pointer' : 'default' }}>
                     {user.avatar ? (
                         parseInt(user.avatar) ? (
@@ -784,9 +812,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 <p className="user-detail-status">
                     {isUserOnline(Boolean(currentOnlineStatus?.is_online), currentOnlineStatus?.last_seen || user.last_seen) ? 'Online' : `Last seen ${formatLastSeen(currentOnlineStatus?.last_seen || user.last_seen)}`}
                 </p>
-            </div>
+            </motion.div>
 
-            <div className="user-actions">
+            <motion.div className="user-actions" variants={itemVariants}>
                 <button className="action-btn" id="messageUserBtn" onClick={handleMessage}>
                     <MessageCircle size={24} />
                     <span>Message</span>
@@ -799,10 +827,10 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     <Video size={24} />
                     <span>Video</span>
                 </button>
-            </div>
+            </motion.div>
 
             <div className="user-info-sections">
-                <div className="info-section">
+                <motion.div className="info-section" variants={itemVariants}>
                     <h3 className="section-header">Media, Links, and Docs</h3>
                     <div className="media-preview">
                         <div className="media-item">
@@ -818,9 +846,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             <span className="count" id="docsCount">{mediaCount.docs}</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="info-section">
+                <motion.div className="info-section" variants={itemVariants}>
                     <div className="settings-item toggle-item">
                         <div className="item-left">
                             <BellOff className="icon" size={20} />
@@ -831,9 +859,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             <span className="toggle-slider"></span>
                         </label>
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="info-section">
+                <motion.div className="info-section" variants={itemVariants}>
                     {!isContact && (
                         <div className="settings-item" id="addToContactsBtn" onClick={handleAddToContacts}>
                             <div className="item-left">
@@ -856,9 +884,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             <span className="label">Export Chat</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="info-section" id="groupsSection">
+                <motion.div className="info-section" id="groupsSection" variants={itemVariants}>
                     <h3 className="section-header">Groups in Common</h3>
                     <div id="commonGroups">
                         {commonGroups.length > 0 ? (
@@ -880,9 +908,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             <p className="no-data">No groups in common</p>
                         )}
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="info-section danger-section">
+                <motion.div className="info-section danger-section" variants={itemVariants}>
                     <div className="settings-item danger" id="blockContactBtn" onClick={handleBlockUser}>
                         <div className="item-left">
                             <Ban className="icon" size={20} />
@@ -903,7 +931,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             <span className="label">Delete Chat & Contact</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
             </div>
 
@@ -1032,7 +1060,10 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             >
                 <div className="image-modal-content">
                     {user.avatar && (
-                        <img
+                        <motion.img
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
                             src={parseInt(user.avatar) ? dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path : user.avatar}
                             alt={user.name}
                             className="full-screen-image"
@@ -1064,7 +1095,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     </div>
                 </div>
             </Modal>
-        </div>
+        </motion.div>
     );
 };
 

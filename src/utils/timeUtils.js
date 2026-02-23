@@ -43,7 +43,7 @@ export const isUserOnline = (isOnline, lastSeen) => {
 
 export const formatLastSeen = (lastSeen) => {
   if (!lastSeen) {
-    return 'last seen recently';
+    return 'recently';
   }
 
   const date = parseDbTimestamp(lastSeen);
@@ -52,29 +52,29 @@ export const formatLastSeen = (lastSeen) => {
 
   // Check if it was less than a minute ago
   if (diffSeconds < 60) {
-    return 'last seen just now';
+    return 'just now';
   }
 
   // Use relative time for recent times (up to 2 hours)
   if (diffSeconds < 3600 * 2) {
-    return `last seen ${date.from(now)}`;
+    return date.from(now);
   }
 
   if (date.isToday()) {
-    return `last seen today at ${date.format('h:mm A')}`;
+    return `today at ${date.format('h:mm A')}`;
   }
 
   if (date.isYesterday()) {
-    return `last seen yesterday at ${date.format('h:mm A')}`;
+    return `yesterday at ${date.format('h:mm A')}`;
   }
 
   // If it's been less than 7 days, show the day of the week
   const diffDays = now.diff(date, 'day');
   if (diffDays < 7) {
-    return `last seen on ${date.format('dddd')}`;
+    return date.format('dddd');
   }
 
-  return `last seen on ${date.format('PP')}`;
+  return date.format('PP');
 };
 
 /**

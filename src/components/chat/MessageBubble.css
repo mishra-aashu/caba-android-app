@@ -366,3 +366,9 @@
     font-size: 3rem !important;
   }
 }
+
+/* --- JELLY ANIMATION FOR EMOJI MESSAGES --- */
+/* Make the bubble clickable for jelly animation - framer-motion handles the animation */
+.message-container.jumbo-emoji {
+  cursor: pointer;
+}

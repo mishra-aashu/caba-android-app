@@ -468,57 +468,46 @@ const MessageItem = ({
   const renderAnimatedContent = () => {
     const messageContent = renderMessageContent();
 
-    // Mobile: Add swipe-to-reply with drag functionality
-    if (isMobile || isTouchDevice) {
-      return (
-        <motion.div
-          className="message-bubble-wrapper"
-          ref={dragConstraintsRef}
-          drag="x"
-          dragConstraints={{ left: 0, right: 150 }}
-          dragElastic={0.3}
-          dragSnapToOrigin={false}
-          onDragEnd={handleDragEnd}
-          variants={swipeAnimation}
-          initial="rest"
-          whileHover="dragging"
-          whileTap="dragging"
-          style={{ position: 'relative' }}
-        >
-          {/* Reply icon that reveals behind the message */}
-          <div 
-            className="swipe-reply-icon"
-            style={{
-              position: 'absolute',
-              left: -45,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              opacity: 0.7,
-              pointerEvents: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 0
-            }}
-          >
-            <Reply size={20} color="#7c3aed" />
-          </div>
-          {messageContent}
-        </motion.div>
-      );
-    }
-
-    // Desktop: Add click-to-reply highlight animation
+    // Always enable drag-to-reply functionality for all devices (mobile + desktop)
+    // This provides a consistent swipe/drag experience across all platforms
     return (
       <motion.div
         className="message-bubble-wrapper"
-        variants={highlightAnimation}
+        ref={dragConstraintsRef}
+        drag="x"
+        dragConstraints={{ left: 0, right: 150 }}
+        dragElastic={0.3}
+        dragSnapToOrigin={false}
+        onDragEnd={handleDragEnd}
+        variants={swipeAnimation}
         initial="rest"
-        animate={highlightControls}
-        onClick={() => {
-          // This is handled by context menu, but we keep for accessibility
-        }}
+        whileHover="dragging"
+        whileTap="dragging"
+        style={{ position: 'relative' }}
+        // Add cursor style for desktop to indicate drag is available
+        {...(!(isMobile || isTouchDevice) && { 
+          whileFocus: "dragging",
+          style: { cursor: 'grab' }
+        })}
       >
+        {/* Reply icon that reveals behind the message */}
+        <div 
+          className="swipe-reply-icon"
+          style={{
+            position: 'absolute',
+            left: -45,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            opacity: 0.7,
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 0
+          }}
+        >
+          <Reply size={20} color="#7c3aed" />
+        </div>
         {messageContent}
       </motion.div>
     );

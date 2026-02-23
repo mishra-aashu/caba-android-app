@@ -11,6 +11,7 @@ import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
 import { db, addToSyncQueue } from '../../db/db';
 import { validateEntity, Message } from '../../types/database';
 import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
 import VirtualizedMessageList from './VirtualizedMessageList';
@@ -1565,10 +1566,31 @@ const Chat = () => {
     }
   };
 
+  // Animation variants for framer motion
+  const pageVariants = {
+    initial: {
+      opacity: 0,
+      x: 20,
+    },
+    animate: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        duration: 0.3,
+        ease: 'easeOut',
+      },
+    },
+  };
+
   // Memoize the header and other static parts if needed, but defining a component inside a component is a bug
 
   return (
-    <div className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}>
+    <motion.div 
+      className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
+      initial="initial"
+      animate="animate"
+      variants={pageVariants}
+    >
       <div className="chat-main-area">
         {/* Chat Header - always render, even if otherUser is loading */}
         <header className="chat-header">
@@ -1833,6 +1855,7 @@ const Chat = () => {
               }
             }}
             isScrolledToBottom={isScrolledToBottom}
+            followOutput="auto"
             typingUsers={typingUsers}
             initialTopMostItemIndex={messages.length > 0 ? messages.length - 1 : 0}
           />
@@ -2237,7 +2260,7 @@ const Chat = () => {
           }}
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 

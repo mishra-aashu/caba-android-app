@@ -44,8 +44,10 @@ const VirtualizedMessageList = ({
   const containerRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
   const isAutoScrollingRef = useRef(false);
+  const lastMessageCountRef = useRef(messages.length);
 
   // Determine if we should auto-scroll based on user position
+  // Only auto-scroll when user is at bottom or during explicit auto-scroll
   const shouldAutoScroll = useCallback(() => {
     return isScrolledToBottom || isAutoScrollingRef.current;
   }, [isScrolledToBottom]);
