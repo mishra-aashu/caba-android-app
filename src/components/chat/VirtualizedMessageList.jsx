@@ -2,11 +2,13 @@ import React, { useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import MessageItem from './MessageItem';
 import TypingIndicator from './TypingIndicator';
+import useChatStore, { selectMessages } from '../../store/useChatStore';
 
 /**
  * VirtualizedMessageList - A high-performance chat message list using react-virtuoso
  * 
  * Features:
+ * - Uses Zustand store for messages (selective subscription for 60fps)
  * - Starts at bottom (chat-like behavior)
  * - Dynamic height support for variable message sizes
  * - Auto-scroll to bottom on new messages
@@ -14,7 +16,6 @@ import TypingIndicator from './TypingIndicator';
  * - Optimized for mobile performance (60+ FPS)
  */
 const VirtualizedMessageList = ({
-  messages,
   currentUser,
   selectedMessages,
   isSelectionMode,
@@ -34,6 +35,11 @@ const VirtualizedMessageList = ({
   typingUsers = {},
   initialTopMostItemIndex,
 }) => {
+  // 🔥 OPTIMIZED: Subscribe ONLY to messages array from Zustand store
+  // This component ONLY re-renders when messages change
+  // The ChatScreen parent does NOT re-render because it won't subscribe to messages
+  const messages = useChatStore(selectMessages);
+  
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
@@ -326,10 +332,8 @@ const VirtualizedMessageList = ({
 
 
 // Memoized export for performance - strict comparison to prevent flickering
+// Note: messages is now handled by Zustand store subscription, not props
 export default memo(VirtualizedMessageList, (prevProps, nextProps) => {
-  // Don't re-render if messages array is the same reference
-  if (prevProps.messages !== nextProps.messages) return false;
-  
   // Don't re-render for same current user
   if (prevProps.currentUser !== nextProps.currentUser) return false;
   

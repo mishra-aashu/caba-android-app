@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { fetchMessages } from '../../hooks/useMessages';
 import { getInitials } from '../../utils/stringUtils';
 import { isUserOnline } from '../../utils/timeUtils';
+import { formatInboxTime } from '../../utils/dateFormatter';
 
 const GroupListItem = ({ group, onClick, isActive }) => {
   const queryClient = useQueryClient();
@@ -43,23 +44,8 @@ const GroupListItem = ({ group, onClick, isActive }) => {
     return `${count} ${count === 1 ? 'member' : 'members'}`;
   };
 
-  // Format time
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '';
-    const date = new Date(timeStr);
-    const now = new Date();
-    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return date.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
-    }
-  };
+  // Format time using dayjs via formatInboxTime
+  // Returns "h:mm A" for today, "Yesterday", or "DD/MM/YYYY" for older
 
   // Get initials from group name
   const getGroupInitials = () => {
@@ -119,7 +105,7 @@ const GroupListItem = ({ group, onClick, isActive }) => {
         <div className="chat-header-row">
           <span className="chat-name">{group.name || 'Unnamed Group'}</span>
           <span className="chat-time">
-            {formatTime(group.last_message_time)}
+            {formatInboxTime(group.last_message_time)}
           </span>
         </div>
 

@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
 import { getValidAvatarUrl } from '../../utils/avatarUtils';
+import { formatBubbleTime } from '../../utils/dateFormatter';
 import {
   Calendar,
   Check,
@@ -19,8 +20,10 @@ import {
   CheckCircle,
   Send,
   UserCheck,
-  UserX
+  UserX,
+  Reply
 } from 'lucide-react';
+import { motion, useAnimation } from 'framer-motion';
 import MessageBubble from './MessageBubble';
 import DesktopContextMenu from './DesktopContextMenu';
 import toast from 'react-hot-toast';
@@ -54,12 +57,22 @@ const MessageItem = ({
   const [reportReason, setReportReason] = useState('');
   const bubbleRef = useRef(null);
   const messageRef = useRef(null);
+  const dragConstraintsRef = useRef(null);
+
+  // Animation controls for desktop highlight animation
+  const highlightControls = useAnimation();
+  
+  // Detect touch device for swipe functionality
+  const isTouchDevice = typeof window !== 'undefined' && 
+    (window.matchMedia?.('(hover: none)').matches || 'ontouchstart' in window);
+  
+  // Check if we're on mobile (smaller screen) for swipe to reply
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   // Move these declarations before useEffect to fix initialization error
   const safeMessage = message ?? {};
   const isSent = (safeMessage.senderId || safeMessage.sender_id) === currentUser?.id;
   const isReplied = !!(safeMessage.replyTo || safeMessage.reply_to);
-  const isTouchDevice = typeof window !== 'undefined' && window.matchMedia?.('(hover: none)').matches;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -238,16 +251,8 @@ const MessageItem = ({
     setReportReason('');
   };
 
-  const formatTime = (timestamp) => {
-    try {
-      if (!timestamp) return '';
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) return '';
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (error) {
-      return '';
-    }
-  };
+  // Using dayjs via formatBubbleTime from dateFormatter
+  // formatBubbleTime returns "h:mm A" format like "10:45 AM"
 
   const handleTouchStart = (e) => {
     setTouchStartTime(Date.now());
@@ -266,9 +271,22 @@ const MessageItem = ({
     const absDeltaX = Math.abs(deltaX);
     const absDeltaY = Math.abs(deltaY);
 
-    if (absDeltaX > 50 && absDeltaX > absDeltaY * 1.5 && deltaX > 0 && !isSelectionMode) {
-      onReply?.(safeMessage);
-      return;
+    // Sent messages: swipe LEFT to reply
+    // Received messages: swipe RIGHT to reply
+    if (absDeltaX > 50 && absDeltaX > absDeltaY * 1.5 && !isSelectionMode) {
+      if (isSent) {
+        // Sent messages: left swipe (negative deltaX)
+        if (deltaX < 0) {
+          onReply?.(safeMessage);
+          return;
+        }
+      } else {
+        // Received messages: right swipe (positive deltaX)
+        if (deltaX > 0) {
+          onReply?.(safeMessage);
+          return;
+        }
+      }
     }
 
     if (touchDuration > 500 && absDeltaX < 10 && absDeltaY < 10) {
@@ -353,7 +371,7 @@ const MessageItem = ({
           repliedMsg={repliedMsg}
           currentUserId={currentUser?.id}
           isSender={isSent}
-          time={formatTime(safeMessage.createdAt || safeMessage.created_at)}
+          time={formatBubbleTime(safeMessage.createdAt || safeMessage.created_at)}
           status={isRead ? 'read' : 'sent'}
         />
       );
@@ -366,7 +384,7 @@ const MessageItem = ({
           repliedMsg={repliedMsg}
           currentUserId={currentUser?.id}
           isSender={isSent}
-          time={formatTime(safeMessage.createdAt || safeMessage.created_at)}
+          time={formatBubbleTime(safeMessage.createdAt || safeMessage.created_at)}
           status={isRead ? 'read' : 'sent'}
         />
       );
@@ -377,7 +395,7 @@ const MessageItem = ({
         text={safeMessage.content ?? ''}
         repliedMsg={repliedMsg}
         currentUserId={currentUser?.id}
-        time={formatTime(safeMessage.createdAt || safeMessage.created_at)}
+        time={formatBubbleTime(safeMessage.createdAt || safeMessage.created_at)}
         isMine={isSent}
         isDeleted={safeMessage.isDeleted || safeMessage.is_deleted}
         status={isRead ? 'read' : 'sent'}
@@ -392,6 +410,119 @@ const MessageItem = ({
   // We no longer show own avatar on the right for sent messages to reduce clutter.
   const showReceivedAvatar = isGroupChat && !isSent;
   const showSentAvatar = false; // logic disabled as planned
+
+  // Framer Motion animation variants for swipe to reply (Mobile)
+  const swipeAnimation = {
+    rest: { x: 0, scale: 1 },
+    dragging: { x: 0, scale: 1.02 },
+    release: { x: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 30 } }
+  };
+
+  // Framer Motion animation for desktop highlight (click to reply)
+  const highlightAnimation = {
+    rest: { scale: 1, boxShadow: '0 0 0 0 transparent' },
+    highlight: { 
+      scale: 1.05, 
+      boxShadow: '0 0 0 4px rgba(124, 58, 237, 0.3)',
+      transition: { duration: 0.15, ease: 'easeOut' }
+    },
+    complete: { 
+      scale: 1, 
+      boxShadow: '0 0 0 0 transparent',
+      transition: { duration: 0.2, ease: 'easeIn' }
+    }
+  };
+
+  // Handle drag end for swipe to reply
+  // Sent messages: swipe LEFT (negative x) to reply
+  // Received messages: swipe RIGHT (positive x) to reply
+  const handleDragEnd = (event, info) => {
+    const dragThreshold = 60; // pixels to drag before triggering reply
+    
+    if (isSent) {
+      // For sent messages (right side), swipe LEFT (negative x) to reply
+      if (info.offset.x <= -dragThreshold) {
+        onReply?.(safeMessage);
+      }
+    } else {
+      // For received messages (left side), swipe RIGHT (positive x) to reply
+      if (info.offset.x >= dragThreshold) {
+        onReply?.(safeMessage);
+      }
+    }
+  };
+
+  // Modified handleReply to trigger highlight animation on desktop
+  const handleReplyWithHighlight = () => {
+    // Trigger highlight animation on desktop
+    if (!isMobile && !isTouchDevice) {
+      highlightControls.start('highlight').then(() => {
+        highlightControls.start('complete');
+      });
+    }
+    onReply(safeMessage);
+    setShowActions(false);
+  };
+
+  // Render message bubble with framer-motion wrapper
+  const renderAnimatedContent = () => {
+    const messageContent = renderMessageContent();
+
+    // Mobile: Add swipe-to-reply with drag functionality
+    if (isMobile || isTouchDevice) {
+      return (
+        <motion.div
+          className="message-bubble-wrapper"
+          ref={dragConstraintsRef}
+          drag="x"
+          dragConstraints={{ left: 0, right: 150 }}
+          dragElastic={0.3}
+          dragSnapToOrigin={false}
+          onDragEnd={handleDragEnd}
+          variants={swipeAnimation}
+          initial="rest"
+          whileHover="dragging"
+          whileTap="dragging"
+          style={{ position: 'relative' }}
+        >
+          {/* Reply icon that reveals behind the message */}
+          <div 
+            className="swipe-reply-icon"
+            style={{
+              position: 'absolute',
+              left: -45,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              opacity: 0.7,
+              pointerEvents: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 0
+            }}
+          >
+            <Reply size={20} color="#7c3aed" />
+          </div>
+          {messageContent}
+        </motion.div>
+      );
+    }
+
+    // Desktop: Add click-to-reply highlight animation
+    return (
+      <motion.div
+        className="message-bubble-wrapper"
+        variants={highlightAnimation}
+        initial="rest"
+        animate={highlightControls}
+        onClick={() => {
+          // This is handled by context menu, but we keep for accessibility
+        }}
+      >
+        {messageContent}
+      </motion.div>
+    );
+  };
 
   return (
     <>
@@ -444,7 +575,8 @@ const MessageItem = ({
               {senderName}
             </button>
           )}
-          {renderMessageContent()}
+          {/* Use animated content instead of direct render */}
+          {renderAnimatedContent()}
         </div>
 
       </div>
@@ -458,6 +590,7 @@ const MessageItem = ({
         isVisible={showActions && !isSelectionMode}
         isUpwards={isUpwards}
         onReply={handleReply}
+        onReplyWithHighlight={handleReplyWithHighlight}
         onCopy={handleCopy}
         onForward={handleForward}
         onEdit={handleEdit}

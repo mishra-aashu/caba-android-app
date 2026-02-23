@@ -1728,56 +1728,55 @@ body.light-mode .chat-loading p {
 }
 
 /* =============================================
-   GROUP MESSAGE SENDER AVATARS
+   SWIPE TO REPLY ANIMATION STYLES
    ============================================= */
 
-/* ── Sidebar Group Avatar Fallback ── */
-.sidebar-group-avatar {
+/* Swipe reply icon - hidden by default, shown only when dragging */
+.swipe-reply-icon {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* Show the reply icon when actively dragging */
+.message-bubble-wrapper[data-dragging="true"] .swipe-reply-icon {
+  opacity: 1;
+}
+
+/* Message bubble wrapper for animations */
+.message-bubble-wrapper {
   position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
+  display: inline-block;
 }
 
-.sidebar-group-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+/* Mobile touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .message-bubble-wrapper:active {
+    transform: scale(0.98);
+  }
 }
 
-.sidebar-group-avatar .group-avatar-fallback {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  border-radius: 50%;
+/* Desktop hover effect for message bubble */
+@media (hover: hover) and (pointer: fine) {
+  .message-bubble-wrapper:hover {
+    filter: brightness(1.05);
+  }
 }
 
-/* ── GROUP MESSAGE ROW LAYOUT ──
-   Received: [left-avatar]  [name + bubble-wrapper]
-   Sent:     [bubble-wrapper]  [right-avatar]          */
-
-/* Base flex row for all group messages */
-.message-item.group-message {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 8px;
-  /* Standard visible gap */
-  width: 100%;
-  padding: 2px 8px;
-  /* Horizontal padding for the row itself */
+/* Highlight animation for desktop reply */
+@keyframes replyHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+  }
 }
 
-/* Sent group messages: avatar goes to the right naturally
-   (DOM order: content-wrapper first, then avatar div)   */
-.message-item.group-message.sent {
-  justify-content: flex-end;
+.message-bubble-wrapper.reply-highlight {
+  animation: replyHighlight 0.4s ease-out;
 }
 
 /* Received group messages: avatar is first in DOM, bubble flows right */
@@ -2331,4 +2330,57 @@ body.light-mode .chat-loading p {
   /* Prevent margin collapse */
   overflow-wrap: break-word;
   word-wrap: break-word;
+}
+
+/* =============================================
+   SWIPE TO REPLY ANIMATION STYLES
+   ============================================= */
+
+/* Swipe reply icon - revealed behind the message bubble */
+.swipe-reply-icon {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show the reply icon when dragging */
+.message-bubble-wrapper:active .swipe-reply-icon,
+.message-bubble-wrapper.dragging .swipe-reply-icon {
+  opacity: 1;
+}
+
+/* Message bubble wrapper for animations */
+.message-bubble-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Mobile touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .message-bubble-wrapper:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Desktop hover effect for message bubble */
+@media (hover: hover) and (pointer: fine) {
+  .message-bubble-wrapper:hover {
+    filter: brightness(1.05);
+  }
+}
+
+/* Highlight animation for desktop reply */
+@keyframes replyHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+  }
+}
+
+.message-bubble-wrapper.reply-highlight {
+  animation: replyHighlight 0.4s ease-out;
 }

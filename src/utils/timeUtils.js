@@ -1,27 +1,33 @@
 // src/utils/timeUtils.js
-import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
+// Now using dayjs for all date formatting - see dateFormatter.js for new utilities
+// Keeping this file for backward compatibility - re-exports from dateFormatter
+
+import { formatInboxTime, formatBubbleTime } from './dateFormatter';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import isToday from 'dayjs/plugin/isToday';
+import isYesterday from 'dayjs/plugin/isYesterday';
+
+// Extend with plugins
+dayjs.extend(relativeTime);
+dayjs.extend(isToday);
+dayjs.extend(isYesterday);
 
 /**
- * Robustly parse PostgreSQL timestamp strings
+ * Robustly parse timestamp to dayjs object
  * @param {string|Date} timestamp - Postgres timestamp or Date object
- * @returns {Date} Parsed Date object
+ * @returns {dayjs.Dayjs} Parsed dayjs object
  */
 const parseDbTimestamp = (timestamp) => {
-  if (!timestamp) return new Date();
-  if (timestamp instanceof Date) return timestamp;
-
+  if (!timestamp) return dayjs();
+  if (timestamp instanceof Date) return dayjs(timestamp);
+  
   // Handle PostgreSQL timestamp format like "2026-01-15 15:26:16.049+00"
   let dateStr = timestamp;
   if (typeof timestamp === 'string' && timestamp.includes(' ') && !timestamp.includes('T')) {
     dateStr = timestamp.replace(' ', 'T');
-    // Ensure milliseconds and timezone are handled correctly if partially truncated
-    if (dateStr.endsWith('+00') && !dateStr.includes('.')) {
-      // If it ends in +00 but has no sub-seconds, add :00 for safari/older engines if needed
-      // but usually T-format handles +00 fine. The previous logic added :00 which is odd for +00.
-      // Let's stick to a cleaner conversion.
-    }
   }
-  return new Date(dateStr);
+  return dayjs(dateStr);
 };
 
 export const isUserOnline = (isOnline, lastSeen) => {
@@ -29,8 +35,8 @@ export const isUserOnline = (isOnline, lastSeen) => {
   if (!lastSeen) return true;
 
   const date = parseDbTimestamp(lastSeen);
-  const now = new Date();
-  const diffMinutes = (now.getTime() - date.getTime()) / (1000 * 60);
+  const now = dayjs();
+  const diffMinutes = now.diff(date, 'minute');
 
   return diffMinutes <= 5;
 };
@@ -41,60 +47,42 @@ export const formatLastSeen = (lastSeen) => {
   }
 
   const date = parseDbTimestamp(lastSeen);
-  const now = new Date();
+  const now = dayjs();
+  const diffSeconds = now.diff(date, 'second');
 
   // Check if it was less than a minute ago
-  const diffSeconds = (now.getTime() - date.getTime()) / 1000;
   if (diffSeconds < 60) {
     return 'last seen just now';
   }
 
-  // Use formatDistanceToNow for recent times
-  if (diffSeconds < 3600 * 2) { // up to 2 hours
-    return `last seen ${formatDistanceToNow(date, { addSuffix: true })}`;
+  // Use relative time for recent times (up to 2 hours)
+  if (diffSeconds < 3600 * 2) {
+    return `last seen ${date.from(now)}`;
   }
 
-  if (isToday(date)) {
-    return `last seen today at ${format(date, 'p')}`;
+  if (date.isToday()) {
+    return `last seen today at ${date.format('h:mm A')}`;
   }
 
-  if (isYesterday(date)) {
-    return `last seen yesterday at ${format(date, 'p')}`;
+  if (date.isYesterday()) {
+    return `last seen yesterday at ${date.format('h:mm A')}`;
   }
 
   // If it's been less than 7 days, show the day of the week
-  const diffDays = (now.getTime() - date.getTime()) / (1000 * 3600 * 24);
+  const diffDays = now.diff(date, 'day');
   if (diffDays < 7) {
-    return `last seen on ${format(date, 'EEEE')}`;
+    return `last seen on ${date.format('dddd')}`;
   }
 
-  return `last seen on ${format(date, 'PP')}`;
+  return `last seen on ${date.format('PP')}`;
 };
 
 /**
  * Format timestamp for display (e.g., in chat list items)
+ * Now uses dayjs via dateFormatter.js
  * @param {string|Date} timestamp - Timestamp to format
  * @returns {string} Formatted time string
  */
 export const formatTime = (timestamp) => {
-  if (!timestamp) return '';
-
-  const date = parseDbTimestamp(timestamp);
-  const now = new Date();
-
-  // Using date-fns for consistency
-  if (isToday(date)) {
-    return format(date, 'p'); // e.g., 3:45 PM
-  }
-
-  if (isYesterday(date)) {
-    return 'Yesterday';
-  }
-
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 3600 * 24));
-  if (diffDays < 7) {
-    return format(date, 'eeee'); // e.g., Monday
-  }
-
-  return format(date, 'P'); // e.g., 05/29/2023
+  return formatInboxTime(timestamp);
 };

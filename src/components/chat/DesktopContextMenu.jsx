@@ -7,6 +7,7 @@ const DesktopContextMenu = ({
   isVisible,
   isUpwards,
   onReply,
+  onReplyWithHighlight,
   onCopy,
   onForward,
   onEdit,
@@ -17,6 +18,17 @@ const DesktopContextMenu = ({
   onClose
 }) => {
   if (!isVisible) return null;
+
+  const handleReplyClick = () => {
+    // If onReplyWithHighlight is provided (desktop), use it for the animation
+    if (onReplyWithHighlight) {
+      onReplyWithHighlight();
+    } else {
+      // Fallback to regular onReply (mobile)
+      onReply();
+    }
+    onClose();
+  };
 
   const menuContent = (
     <div
@@ -32,7 +44,7 @@ const DesktopContextMenu = ({
         <span>Select</span>
       </div>
 
-      <div className="menu-item" onClick={() => { onReply(); onClose(); }}>
+      <div className="menu-item" onClick={handleReplyClick}>
         <span className="icon"><Reply size={16} /></span>
         <span>Reply</span>
       </div>

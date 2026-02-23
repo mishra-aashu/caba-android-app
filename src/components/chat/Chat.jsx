@@ -41,6 +41,7 @@ import { UserDetailsContext } from '../MainLayout';
 import { useDialog } from '../../contexts/DialogContext';
 import WallpaperPicker from './WallpaperPicker';
 import useIsDesktop from '../../hooks/useIsDesktop';
+import useChatStore, { selectMessages, selectSetMessages } from '../../store/useChatStore';
 import '../../styles/chat.css';
 
 import '../../styles/game-modal.css';
@@ -175,6 +176,16 @@ const Chat = () => {
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const [vanishPresets, setVanishPresets] = useState([]);
   const [selectedVanishDuration, setSelectedVanishDuration] = useState(86400);
+
+  // 🔥 ZUSTAND STORE SYNC: Keep the Zustand store in sync with local state
+  // This enables granular re-renders - only VirtualizedMessageList re-renders when messages change
+  const setStoreMessages = useChatStore(selectSetMessages);
+  
+  useEffect(() => {
+    if (messages.length > 0) {
+      setStoreMessages(messages);
+    }
+  }, [messages, setStoreMessages]);
 
   // ─── REACT QUERY MESSAGE HOOK ──────────────────────────────────────────────
   const { data: queryMessages, isLoading: queryLoading } = useMessages(validChatId);

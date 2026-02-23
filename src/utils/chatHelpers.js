@@ -8,6 +8,7 @@
  */
 
 import { isUserOnline, formatTime } from './timeUtils';
+import { formatBubbleTime } from './dateFormatter';
 
 /**
  * Normalize chat data from the RPC function or database
