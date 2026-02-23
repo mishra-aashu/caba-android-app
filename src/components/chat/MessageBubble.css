@@ -70,11 +70,11 @@
 /* Sent Messages - Progressive Radius & Universal Indigo */
 /* Sent Messages - Progressive Radius & Universal Indigo */
 .bubble-sent {
-  background: var(--sent-message-bg, var(--sent-message-bg-default));
-  color: var(--sent-message-text, #ffffff) !important;
-  border-radius: 20px 20px 4px 20px !important;
-  box-shadow: var(--sent-message-shadow, var(--sent-message-shadow-default));
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--sent-message-bg);
+  color: var(--sent-message-text);
+  border-radius: 20px 20px 4px 20px;
+  box-shadow: var(--sent-message-shadow);
+  border: var(--sent-message-border);
   min-width: 85px;
   padding: 10px 16px 8px 14px;
 }
@@ -93,11 +93,11 @@
 
 /* Received Messages - Progressive Radius */
 .bubble-received {
-  background: var(--received-message-bg, var(--received-message-bg-default));
-  color: var(--received-message-text, var(--received-message-text-default));
-  border-radius: 20px 20px 20px 4px !important;
-  box-shadow: var(--received-message-shadow, var(--received-message-shadow-default));
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: var(--received-message-bg);
+  color: var(--received-message-text);
+  border-radius: 20px 20px 20px 4px;
+  box-shadow: var(--received-message-shadow);
+  border: var(--received-message-border);
   min-width: 85px;
 }
 
@@ -129,7 +129,7 @@
 /* --- TIMESTAMP DESIGN --- */
 .timestamp {
   font-size: 10px;
-  color: var(--sent-message-meta, var(--sent-message-meta-default));
+  color: var(--sent-message-meta);
   opacity: 0.9;
   align-self: flex-end;
   display: flex;
@@ -142,18 +142,18 @@
 }
 
 .bubble-received .timestamp {
-  color: var(--received-message-meta, var(--received-message-meta-default));
+  color: var(--received-message-meta);
 }
 
-.tick {
+.tick-icon {
   font-size: 12px;
   font-weight: bold;
-  color: var(--tick-color, var(--tick-color-default));
+  color: var(--tick-color);
 }
 
-.tick.read {
-  color: var(--tick-read-color, var(--tick-read-color-default)) !important;
-  filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.4));
+.tick-icon.read {
+  color: var(--tick-read-color);
+  filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.2));
 }
 
 .edited-indicator {

@@ -1,6 +1,8 @@
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import './index.css';
+import './styles/theme-tokens.css';
+import './styles/theme-integration.css';
 import './styles/app.css';
 import App from './App.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
@@ -45,26 +47,26 @@ const AppWithCallProvider = () => {
 };
 
 createRoot(document.getElementById('root')).render(
-    <HashRouter>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{ persister }}
-        onSuccess={() => {
-          // Optional: Log when hydration is complete
-          console.log('Query client restored from IndexedDB');
-        }}
-      >
-        <SupabaseProvider>
-          <AuthProvider>
-            <ThemeProvider>
-              <ChatThemeProvider>
-                <EmojiStyleProvider>
-                  <AppWithCallProvider />
-                </EmojiStyleProvider>
-              </ChatThemeProvider>
-            </ThemeProvider>
-          </AuthProvider>
-        </SupabaseProvider>
-      </PersistQueryClientProvider>
-    </HashRouter>
+  <HashRouter>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister }}
+      onSuccess={() => {
+        // Optional: Log when hydration is complete
+        console.log('Query client restored from IndexedDB');
+      }}
+    >
+      <SupabaseProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <ChatThemeProvider>
+              <EmojiStyleProvider>
+                <AppWithCallProvider />
+              </EmojiStyleProvider>
+            </ChatThemeProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </SupabaseProvider>
+    </PersistQueryClientProvider>
+  </HashRouter>
 )

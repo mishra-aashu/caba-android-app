@@ -489,7 +489,7 @@ export const ChatThemeProvider = ({ children }) => {
 
       const upsertData = {
         chat_id: chatId,
-        user_id: currentUser.id,
+        set_by: currentUser.id,
         updated_at: new Date().toISOString()
       };
 
@@ -507,7 +507,7 @@ export const ChatThemeProvider = ({ children }) => {
 
       const { error } = await supabase
         .from('chat_wallpapers')
-        .upsert(upsertData, { onConflict: 'chat_id,user_id' });
+        .upsert(upsertData, { onConflict: 'chat_id,set_by' });
 
       if (error) throw error;
 
@@ -613,8 +613,8 @@ export const ChatThemeProvider = ({ children }) => {
     setProp('--chat-buttons-text', theme.buttons.text);
     setProp('--chat-buttons-icon-color', theme.buttons.iconColor);
 
-    document.body.className = document.body.className.replace(/theme-\w+/g, '');
-    document.body.classList.add(`theme-${themeKey.replace(/_/, '-')}`);
+    // Standardize on data-chat-theme attribute
+    document.body.setAttribute('data-chat-theme', themeKey.replace(/_/g, '-'));
   };
 
   // NOTE: applyTheme is now called DIRECTLY from setChatId and loadChatTheme

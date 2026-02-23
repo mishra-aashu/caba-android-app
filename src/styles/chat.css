@@ -86,60 +86,9 @@
   transform: none;
 }
 
-/* Light mode adjustments for edit mode */
-body.light-mode .message-edit-container {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.1);
-}
+/* Edit mode adjustments are now theme-aware via variables */
 
-body.light-mode .message-edit-input {
-  background: white;
-  border-color: rgba(0, 0, 0, 0.2);
-  color: #1a1a1a;
-}
-
-body.light-mode .message-edit-input:focus {
-  border-color: #00a884;
-  background: white;
-}
-
-body.light-mode .edit-cancel-btn {
-  background: rgba(255, 68, 68, 0.1);
-  color: #ff4444;
-}
-
-body.light-mode .edit-cancel-btn:hover {
-  background: rgba(255, 68, 68, 0.2);
-}
-
-body.light-mode .edit-save-btn:disabled {
-  background: rgba(0, 0, 0, 0.05);
-  color: #667781;
-}
-
-/* --- Light Mode Support (.light-mode class) --- */
-body.light-mode .chat-screen {
-  background: #ffffff;
-}
-
-body.light-mode .chat-header {
-  background: #ffffff;
-  border-bottom-color: #e0e0e0;
-}
-
-body.light-mode .back-btn,
-body.light-mode .icon-btn {
-  color: #54656f !important;
-}
-
-body.light-mode .chat-user-info .user-details h3 {
-  color: #1a1a1a;
-}
-
-body.light-mode .chat-user-info .user-details .user-phone,
-body.light-mode .chat-user-info .user-details .user-status {
-  color: #667781;
-}
+/* Header and Footer elements now use theme tokens by default */
 
 /* Fix Chat Wallpaper/Background in Light Mode */
 body.light-mode .messages-container {
@@ -155,53 +104,8 @@ body.light-mode .messages-container {
   /* Space for the input */
 }
 
-/* Fix Input Container Icons */
-body.light-mode .input-row {
-  background-color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
-}
-
-body.light-mode .btn-attach,
-body.light-mode .btn-emoji,
-body.light-mode .btn-mic,
-body.light-mode .btn-quick-reply {
-  color: #54656f !important;
-}
-
-body.light-mode .btn-send {
-  color: #ffffff !important;
-}
-
-/* Fix Input Placeholder */
-body.light-mode .chat-input::placeholder {
-  color: #667781 !important;
-}
-
-body.light-mode .chat-input {
-  color: #1a1a1a;
-}
-
-
-/* Legacy Fix Message Bubbles removed */
-
-/* Fix Message Timestamp */
-body.light-mode .message-time {
-  color: #54656f !important;
-  opacity: 1 !important;
-}
-
-/* Fix Date Separator */
-body.light-mode .date-pill {
-  background-color: #e1f5fe;
-  color: #54656f;
-}
-
-/* Fix Typing Indicator */
-body.light-mode .typing-indicator {
-  background: #e1f5fe;
-  border-color: #b3e5fc;
-  color: #54656f;
-}
+/* Inputs and secondary elements are also theme-aware */
+/* Removed legacy light-mode overrides */
 
 /* Fix Recording UI */
 body.light-mode .recording-row {
@@ -369,6 +273,14 @@ body.light-mode .chat-loading p {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* Momentum scrolling for mobile */
+  scroll-behavior: smooth;
+  /* Smooth programmatic scrolling */
+  overscroll-behavior-y: contain;
+  /* Prevent scroll chaining */
+  will-change: transform;
+  /* GPU acceleration hint */
   position: relative;
   /* Important for scroll-bottom-btn absolute positioning */
   padding: 1rem;
@@ -383,6 +295,8 @@ body.light-mode .chat-loading p {
   background-repeat: repeat, no-repeat, no-repeat;
   padding-bottom: 40px;
   /* Space for the input */
+  transform: translateZ(0);
+  /* Force GPU layer */
 }
 
 .chat-header {

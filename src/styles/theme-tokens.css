@@ -1,0 +1,47 @@
+/* =============================================
+   SEMANTIC THEME TOKENS - BASE FALLBACKS
+   ============================================= */
+
+:root {
+    /* Common variables */
+    --theme-backdrop-blur: blur(10px);
+    --theme-text-contrast: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --theme-icon-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --theme-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+    /* Chat Background */
+    --chat-bg-gradient: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%);
+
+    /* Sent Message Tokens */
+    --sent-message-bg: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    --sent-message-text: #ffffff;
+    --sent-message-border: 1px solid rgba(255, 255, 255, 0.1);
+    --sent-message-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+    --sent-message-meta: rgba(255, 255, 255, 0.8);
+    --tick-color: rgba(255, 255, 255, 0.5);
+    --tick-read-color: #38bdf8;
+
+    /* Received Message Tokens */
+    --received-message-bg: #ffffff;
+    --received-message-text: #1a1a1a;
+    --received-message-border: 1px solid rgba(0, 0, 0, 0.05);
+    --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --received-message-meta: rgba(0, 0, 0, 0.5);
+
+    /* Chat Header */
+    --chat-header-bg: #ffffff;
+    --chat-header-text: #1a1a1a;
+    --chat-header-icon-color: #54656f;
+    --chat-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    /* Chat Input */
+    --chat-input-bg: #ffffff;
+    --chat-input-text: #1a1a1a;
+    --chat-input-icon-color: #8696a0;
+    --chat-input-border: 1px solid #e9edef;
+    --chat-input-shadow: none;
+
+    /* Buttons */
+    --chat-buttons-bg: var(--sent-message-bg);
+    --chat-buttons-text: var(--sent-message-text);
+}
