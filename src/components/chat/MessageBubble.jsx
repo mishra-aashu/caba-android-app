@@ -110,13 +110,13 @@ const MessageBubble = ({
 
       {/* Bubble Box */}
       <div className="bubble">
-        {/* Anonymous/Group sender info */}
-        {!isMine && (isAnonymous || message?.isGroupMessage || message?.is_group_message) && (
+        {/* Anonymous sender info inside bubble (Only for truly anonymous messages) */}
+        {!isMine && isAnonymous && (
           <div className="sender-info">
             <div className="sender-avatar">
               {getAvatar()}
             </div>
-            <span className={`sender-name ${isAnonymous ? 'anonymous-name' : ''}`}>
+            <span className="sender-name anonymous-name">
               {getSenderName()}
             </span>
           </div>

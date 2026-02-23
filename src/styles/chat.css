@@ -1895,8 +1895,11 @@ body.light-mode .chat-loading p {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
-  gap: 5px;
-  /* Reduced gap for tighter look */
+  gap: 8px;
+  /* Standard visible gap */
+  width: 100%;
+  padding: 2px 8px;
+  /* Horizontal padding for the row itself */
 }
 
 /* Sent group messages: avatar goes to the right naturally
@@ -1992,11 +1995,12 @@ body.light-mode .chat-loading p {
 .message-content-wrapper.with-avatar {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  /* tight gap between name and bubble */
-  max-width: calc(100% - 50px);
-  /* leave room for avatar */
+  gap: 2px;
+  max-width: 85%;
   flex-grow: 1;
+  /* Allow stretching to fill available row space up to max-width */
+  min-width: 140px;
+  /* Minimum width to prevent "meaningless lines" for short messages */
 }
 
 /* ── Sender Name Label ── */

@@ -1,8 +1,9 @@
 /* Container: Message ko Right ya Left align karne ke liye */
 .message-container {
   display: flex;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   width: 100%;
+  max-width: 100%;
   /* PERFORMANCE: CSS Containment - isolates rendering for better scroll performance */
   contain: content;
 }
@@ -270,25 +271,12 @@
   font-weight: 500;
 }
 
-/* --- GROUP MESSAGE SENDER INFO --- */
+/* --- SENDER INFO (Only for Anonymous in Bubble) --- */
 .sender-info {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
-}
-
-.sender-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-.sender-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .sender-name {

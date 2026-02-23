@@ -388,9 +388,10 @@ const MessageItem = ({
     );
   };
 
-  // In groups: received messages show sender avatar on left, sent messages show own avatar on right
+  // In groups: received messages show sender avatar on left.
+  // We no longer show own avatar on the right for sent messages to reduce clutter.
   const showReceivedAvatar = isGroupChat && !isSent;
-  const showSentAvatar = isGroupChat && isSent;
+  const showSentAvatar = false; // logic disabled as planned
 
   return (
     <>
@@ -439,47 +440,13 @@ const MessageItem = ({
         <div className={`message-content-wrapper ${isGroupChat ? 'with-avatar' : ''}`}>
           {/* Sender name — received group messages only */}
           {showReceivedAvatar && (
-            <button className="group-sender-name" onClick={handleSenderAvatarClick}>
+            <button className="group-sender-name" onClick={handleSenderAvatarClick} style={{ margin: 0, padding: '0 4px' }}>
               {senderName}
             </button>
           )}
           {renderMessageContent()}
         </div>
 
-        {/* RIGHT avatar — sent group messages (own DP) */}
-        {showSentAvatar && (
-          <button
-            className="group-sender-avatar group-sender-avatar--self"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (currentUser?.id != null) onSenderClick?.(currentUser.id);
-            }}
-            title="View your profile"
-            aria-label="View your profile"
-          >
-            {myAvatar ? (
-              <img
-                src={myAvatar}
-                alt={myName}
-                className="group-sender-avatar-img"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent) {
-                    const initial = parent.querySelector('.group-sender-avatar-initial');
-                    if (initial) initial.style.display = 'flex';
-                  }
-                }}
-              />
-            ) : null}
-            <span
-              className="group-sender-avatar-initial"
-              style={{ display: myAvatar ? 'none' : 'flex' }}
-            >
-              {myInitial}
-            </span>
-          </button>
-        )}
       </div>
 
       {showActions && !isSelectionMode && (
