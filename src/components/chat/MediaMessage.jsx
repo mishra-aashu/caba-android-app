@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getPublicMediaUrl } from '../../services/mediaService';
+import EmojiRenderer from '../common/EmojiRenderer';
 import './MediaMessage.css';
 
 const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUserId }) => {
@@ -55,8 +56,8 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
               {/* Content Logic: Image hai ya text? */}
               <p className="reply-quote-text">
                 {(repliedMsg.messageType || repliedMsg.message_type) === 'image'
-                  ? "📷 Photo"
-                  : repliedMsg.content?.substring(0, 60) || "..."}
+                  ? <EmojiRenderer text="📷 Photo" />
+                  : <EmojiRenderer text={repliedMsg.content?.substring(0, 60) || "..."} />}
               </p>
             </div>
           </div>

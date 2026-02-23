@@ -74,7 +74,8 @@ export const EmojiStyleProvider = ({ children }) => {
     loading,
     isNative: emojiStyle === 'native',
     isTwitter: emojiStyle === 'twitter',
-    isGoogle: emojiStyle === 'google'
+    isGoogle: emojiStyle === 'google',
+    isApple: emojiStyle === 'apple'
   };
 
   return (

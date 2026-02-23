@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import AttachmentMenu from './AttachmentMenu';
 import EmojiPicker from '../common/EmojiPicker';
+import EmojiRenderer from '../common/EmojiRenderer';
 import { Paperclip, MessageSquarePlus, Send, LoaderCircle, X, Image as ImageIcon, Video as VideoIcon, Mic, Square, Trash2, Smile } from 'lucide-react';
 import { uploadMedia, uploadVoiceMessage } from '../../services/mediaService';
 import { compressImage, handleVideo } from '../../utils/mediaCompressor';
@@ -401,8 +402,8 @@ const MessageInput = ({
               <p className="reply-message">
                 {/* Agar text lamba ho to cut jayega */}
                 {(replyingTo.media_type === 'voice' || replyingTo.media_type === 'audio' || replyingTo.message_type === 'audio')
-                  ? '🎤 Voice Message'
-                  : replyingTo.content.substring(0, 60) + '...'}
+                  ? <EmojiRenderer text="🎤 Voice Message" />
+                  : <EmojiRenderer text={replyingTo.content.substring(0, 60) + '...'} />}
               </p>
             </div>
           </div>

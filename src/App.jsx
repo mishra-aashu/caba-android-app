@@ -65,6 +65,7 @@ import { requestPersistentStorage } from './db/db';
 import { DialogProvider } from './contexts/DialogContext';
 import GlobalDialog from './components/common/GlobalDialog';
 import './styles/offline-indicator.css';
+import './styles/emoji-styles.css';
 
 // Initialize Capacitor Updater
 if (Capacitor.isNativePlatform()) {
@@ -260,7 +261,7 @@ const App = () => {
               <ChatThemeProvider>
                 {/* Universal Layout Logic */}
                 <ViewportManager />
-                {/* 🎯 Offline Indicator - Shows network status to users */}
+                {/* Offline Indicator - Shows network status to users */}
                 <OfflineIndicator>
                   <AppContent />
                 </OfflineIndicator>

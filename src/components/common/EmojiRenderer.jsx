@@ -1,61 +1,93 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
+import { Twemoji } from 'react-emoji-render';
+import '../../styles/emoji-styles.css';
 
-// Helper function to convert emoji to hex code for CDN URLs
-const toHex = (emoji) => {
-  return emoji.codePointAt(0).toString(16);
+// Central configuration for emoji styles
+const STYLE_CONFIG = {
+  twitter: {
+    baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
+    ext: '.png',
+    isUppercase: false // Twemoji filenames are lowercase
+  },
+  apple: {
+    // Stability: Using specific versioned unpkg path for emoji-datasource-apple
+    baseUrl: 'https://unpkg.com/emoji-datasource-apple@14.0.0/img/apple/64/',
+    ext: '.png',
+    isUppercase: true // emoji-datasource filenames are UPPERCASE
+  },
+  google: {
+    baseUrl: 'https://unpkg.com/emoji-datasource-google@14.0.0/img/google/64/',
+    ext: '.png',
+    isUppercase: true // emoji-datasource filenames are UPPERCASE
+  }
 };
 
-// Emoji Renderer Component - Uses native emojis for best performance
-const EmojiRenderer = ({ text, className = '', style = {} }) => {
-  // For now, using native emojis for best performance and compatibility
-  // This ensures emojis always work and load fast
+/**
+ * SafeEmoji Component - Handles individual emoji rendering with state-based fallback.
+ */
+const SafeEmoji = ({ src, token }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return <span className="native-emoji-fallback">{token}</span>;
+  }
+
   return (
-    <span className={className} style={style}>
-      {text}
-    </span>
+    <img
+      src={src}
+      alt={token}
+      className="custom-emoji-img"
+      loading="lazy"
+      onError={() => setHasError(true)}
+    />
   );
 };
 
-// Hook for programmatic emoji rendering
-export const useEmojiRenderer = () => {
-  const { emojiStyle } = useEmojiStyle();
+/**
+ * EmojiRenderer Component - Bulletproof Implementation
+ * 
+ * Handles custom emoji styles with:
+ * 1. Strict CDN token mapping (casing/sanitization)
+ * 2. Automatic fail-safe fallback to native OS emoji on 404 using state
+ */
+const EmojiRenderer = ({ text, className = '', style = {}, styleOverride = null }) => {
+  const { emojiStyle: globalEmojiStyle } = useEmojiStyle();
+  const activeStyle = styleOverride || globalEmojiStyle;
 
-  const renderEmoji = (emoji) => {
-    if (emojiStyle === 'native') {
-      return emoji;
-    }
+  // 1. Native Fallback
+  if (activeStyle === 'native' || !STYLE_CONFIG[activeStyle]) {
+    return <span className={className} style={style}>{text}</span>;
+  }
 
-    const hex = toHex(emoji);
-    const imageUrl = emojiStyle === 'twitter'
-      ? `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/${hex}.png`
-      : `https://fonts.gstatic.com/s/e/notoemoji/latest/${hex}/512.png`;
+  const config = STYLE_CONFIG[activeStyle];
 
-    return (
-      <img
-        src={imageUrl}
-        alt={emoji}
-        className="emoji-image"
-        style={{
-          height: '1em',
-          width: '1em',
-          verticalAlign: 'middle',
-          display: 'inline-block'
-        }}
-        onError={(e) => {
-          // Fallback to native emoji
-          e.target.style.display = 'none';
-          e.target.nextSibling.style.display = 'inline';
-        }}
-      />
-    );
-  };
-
-  const renderText = (text) => {
-    return <EmojiRenderer text={text} />;
-  };
-
-  return { renderEmoji, renderText, emojiStyle };
+  return (
+    <Twemoji
+      text={text}
+      options={{
+        callback: (token) => {
+          // Sanitization: Remove variation selectors (standard in emoji-datasource filenames)
+          let cleanToken = token.replace(/-fe0f/g, '');
+          cleanToken = config.isUppercase ? cleanToken.toUpperCase() : cleanToken.toLowerCase();
+          return `${config.baseUrl}${cleanToken}${config.ext}`;
+        }
+      }}
+      svg={false} // Force PNGs
+      className={`custom-emoji-renderer ${className}`}
+      style={style}
+      // Fail-safe logic: If the image fails to load, we revert to native text
+      renderFullText={(fullText) => <span>{fullText}</span>}
+      renderEmoji={(props) => {
+        const { src, token, key } = props;
+        return (
+          <span key={key} className="emoji-container">
+            <SafeEmoji src={src} token={token} />
+          </span>
+        );
+      }}
+    />
+  );
 };
 
 export default EmojiRenderer;

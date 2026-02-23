@@ -5,32 +5,13 @@ import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import toast from 'react-hot-toast';
 import '../../styles/settings.css';
 
-// Helper function to convert emoji to hex code
-const toHex = (emoji) => {
-  return emoji.codePointAt(0).toString(16);
-};
+import EmojiRenderer from '../common/EmojiRenderer';
 
 // Preview emojis for demonstration
 const PREVIEW_EMOJIS = ["😍", "🎉", "❤️", "🚀"];
 
 // Emoji Preview Row Component
 const EmojiPreviewRow = ({ styleName, styleKey, isSelected, onSelect }) => {
-
-  // Image Source Generators
-  const getImageUrl = (emoji, type) => {
-    const hex = toHex(emoji);
-
-    if (type === 'twitter') {
-      // Twitter (Twemoji) CDN
-      return `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/${hex}.png`;
-    }
-    else if (type === 'google') {
-      // Google (Noto) CDN
-      return `https://fonts.gstatic.com/s/e/notoemoji/latest/${hex}/512.png`;
-    }
-    return null;
-  };
-
   return (
     <div
       className={`preview-card ${isSelected ? 'selected' : ''}`}
@@ -42,27 +23,13 @@ const EmojiPreviewRow = ({ styleName, styleKey, isSelected, onSelect }) => {
       </div>
 
       <div className="preview-icons-row">
-        {PREVIEW_EMOJIS.map((emoji, index) => (
-          <div key={index} className="emoji-wrapper">
-
-            {/* Logic: Agar 'native' hai to Text, warna Image */}
-            {styleKey === 'native' ? (
-              <span className="native-emoji">{emoji}</span>
-            ) : (
-              <img
-                src={getImageUrl(emoji, styleKey)}
-                alt={emoji}
-                className="custom-emoji-img"
-                onError={(e) => {
-                   e.target.style.display='none'; // Agar load na ho to chup jaye
-                   e.target.nextSibling.style.display='block'; // Fallback text dikhaye
-                }}
-              />
-            )}
-
-            {/* Fallback for safety (Hidden by default) */}
-            <span className="fallback-emoji" style={{display: 'none'}}>{emoji}</span>
-
+        {PREVIEW_EMOJIS.map((emoji) => (
+          <div key={emoji} className="emoji-wrapper">
+            <EmojiRenderer
+              text={emoji}
+              styleOverride={styleKey}
+              className={styleKey === 'native' ? 'native-emoji' : 'custom-emoji-img'}
+            />
           </div>
         ))}
       </div>
@@ -129,7 +96,15 @@ const EmojiSettings = () => {
               onSelect={handleStyleChange}
             />
 
-            {/* 2. Twitter */}
+            {/* 2. Apple */}
+            <EmojiPreviewRow
+              styleName="Apple"
+              styleKey="apple"
+              isSelected={emojiStyle === 'apple'}
+              onSelect={handleStyleChange}
+            />
+
+            {/* 3. Twitter */}
             <EmojiPreviewRow
               styleName="Twitter (Twemoji)"
               styleKey="twitter"
@@ -137,7 +112,7 @@ const EmojiSettings = () => {
               onSelect={handleStyleChange}
             />
 
-            {/* 3. Google */}
+            {/* 4. Google */}
             <EmojiPreviewRow
               styleName="Google (Noto)"
               styleKey="google"
@@ -157,7 +132,7 @@ const EmojiSettings = () => {
             <div className="note-content">
               <h4>Note:</h4>
               <p>
-                System Default uses your device's built-in emojis. Twitter and Google styles render emojis as images in chat messages for consistent appearance across devices.
+                System Default uses your device's built-in emojis. Apple, Twitter, and Google styles render emojis as high-quality images for a consistent appearance across all devices.
               </p>
             </div>
           </div>

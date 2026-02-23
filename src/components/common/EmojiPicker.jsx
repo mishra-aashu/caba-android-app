@@ -136,7 +136,7 @@ const EmojiPicker = ({
                                     <Picker
                                         data={data}
                                         theme="dark"
-                                        set="native"  // Use native emojis by default for best performance and compatibility
+                                        set={emojiStyle === 'native' ? 'native' : (emojiStyle === 'google' ? 'google' : (emojiStyle === 'twitter' ? 'twitter' : (emojiStyle === 'apple' ? 'apple' : 'native')))}
                                         onEmojiSelect={handleEmojiSelect}
                                         previewPosition="none"
                                         skinTonePosition="none"

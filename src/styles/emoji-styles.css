@@ -1,0 +1,22 @@
+/* Custom Emoji Styling */
+.emoji-image,
+.custom-emoji-img {
+    height: 1.25em !important;
+    width: 1.25em !important;
+    margin: 0 0.1em;
+    vertical-align: -0.2em;
+    display: inline-block;
+}
+
+/* Ensure emojis in messages are sized correctly */
+.message-content .text img {
+    height: 1.3em;
+    width: 1.3em;
+    vertical-align: middle;
+}
+
+/* Large emoji only mode (if we wanted to implement it later) */
+.text.large-emoji img {
+    height: 2.5em;
+    width: 2.5em;
+}

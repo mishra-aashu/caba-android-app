@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getPublicMediaUrl } from '../../services/mediaService';
+import EmojiRenderer from '../common/EmojiRenderer';
 import { Play, Pause, LoaderCircle, AlertTriangle } from 'lucide-react';
 import './VoiceMessage.css';
 
@@ -166,7 +167,9 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
                 {(repliedMsg.senderId || repliedMsg.sender_id) === currentUserId ? "You" : "User"}
               </span>
               <p className="reply-quote-text">
-                {(repliedMsg.mediaType || repliedMsg.media_type) === 'voice' ? '🎤 Voice Message' : repliedMsg.content}
+                {(repliedMsg.mediaType || repliedMsg.media_type) === 'voice'
+                  ? <EmojiRenderer text="🎤 Voice Message" />
+                  : <EmojiRenderer text={repliedMsg.content?.substring(0, 60) || "..."} />}
               </p>
             </div>
           </div>
