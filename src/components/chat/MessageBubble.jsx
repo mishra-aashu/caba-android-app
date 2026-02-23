@@ -109,7 +109,7 @@ const MessageBubble = ({
     <div className={`message-container ${isMine ? 'mine' : 'theirs'} ${isAnonymous ? 'anonymous' : ''} ${isLocked ? 'locked' : ''}`}>
 
       {/* Bubble Box */}
-      <div className="bubble">
+      <div className={`bubble ${isMine ? 'bubble-sent' : 'bubble-received'}`}>
         {/* Anonymous sender info inside bubble (Only for truly anonymous messages) */}
         {!isMine && isAnonymous && (
           <div className="sender-info">
@@ -145,7 +145,6 @@ const MessageBubble = ({
               }
             }}
           >
-            <div className="reply-quote-bar"></div>
             <div className="reply-quote-content">
               <span className="reply-quote-user">
                 {(repliedMsg.senderId || repliedMsg.sender_id) === currentUserId ? "You" : "User"}
@@ -184,11 +183,8 @@ const MessageBubble = ({
                 )}
               </span>
             )}
-
           </span>
         </div>
-
-        {isMine && <div className="tail-mine"></div>}
       </div>
     </div>
   );

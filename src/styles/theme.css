@@ -46,6 +46,17 @@
   /* Bubbles */
   --bubble-in: linear-gradient(180deg, rgba(124, 58, 237, 0.9), rgba(34, 211, 238, 0.85));
   --bubble-out: linear-gradient(180deg, rgba(26, 32, 48, 0.9), rgba(18, 23, 34, 0.9));
+
+  /* Default Bubble Fallbacks (Premium Universal Palette) */
+  --sent-message-bg-default: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --received-message-bg-default: rgba(255, 255, 255, 0.1);
+  --received-message-text-default: #eef2ff;
+  --sent-message-meta-default: rgba(255, 255, 255, 0.7);
+  --received-message-meta-default: rgba(255, 255, 255, 0.6);
+  --tick-color-default: rgba(255, 255, 255, 0.4);
+  --tick-read-color-default: #38bdf8;
+  --sent-message-shadow-default: 0 3px 12px -2px rgba(79, 70, 229, 0.25);
+  --received-message-shadow-default: 0 3px 10px -2px rgba(0, 0, 0, 0.08);
 }
 
 

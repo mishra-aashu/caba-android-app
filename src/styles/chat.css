@@ -181,16 +181,8 @@ body.light-mode .chat-input {
   color: #1a1a1a;
 }
 
-/* Fix Message Bubbles */
-body.light-mode .message.received .message-bubble {
-  background: #ffffff;
-  color: #1a1a1a;
-}
 
-body.light-mode .message.sent .message-bubble {
-  background: #d9fdd3;
-  color: #1a1a1a;
-}
+/* Legacy Fix Message Bubbles removed */
 
 /* Fix Message Timestamp */
 body.light-mode .message-time {
@@ -493,97 +485,47 @@ body.light-mode .chat-loading p {
   gap: 0.5rem;
 }
 
-/* Message Bubbles */
-.message {
+/* --- MESSAGE ITEM CONTAINER --- */
+.message-item {
   display: flex;
-  margin-bottom: 0.75rem;
-  padding: 0 1rem;
-  animation: messageFadeIn 0.5s ease-out;
-}
-
-@keyframes messageFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  width: 100%;
+  margin-bottom: 2px;
+  position: relative;
+  transition: background-color 0.2s ease;
 }
 
 .message-item.highlighted {
-  background-color: rgba(0, 123, 255, 0.1);
-  /* Light blue highlight */
-  border-radius: 8px;
-  padding: 4px;
+  background-color: rgba(0, 123, 255, 0.05);
+  border-radius: 12px;
 }
 
 .message-item.selected {
-  background-color: rgba(37, 211, 102, 0.08);
-  /* Subtle green highlight */
-  border-left: 3px solid #25d366;
-  /* Thin green accent border on left */
-  border-radius: 8px;
-  padding: 6px 8px 6px 12px;
-  /* Extra left padding for border */
-  box-shadow: 0 1px 3px rgba(37, 211, 102, 0.2);
-  transition: all 0.2s ease;
+  background-color: rgba(37, 211, 102, 0.05);
+  box-shadow: inset 4px 0 0 0 var(--brand-primary);
 }
 
-.message.sent {
+.message-item.sent {
   justify-content: flex-end;
 }
 
-.message-bubble {
-  max-width: 75%;
-  overflow-x: hidden;
-  padding: 0.6rem 1rem;
-  /* Increased padding */
-  border-radius: 12px;
-  /* Base radius */
-  font-size: 0.9rem;
-  line-height: 1.4;
-  word-wrap: break-word;
-  position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  /* Subtle shadow */
-}
-
-.message.received .message-bubble {
-  background: var(--received-message-background);
-  color: var(--text-primary);
-  border-radius: 12px 12px 12px 0;
-  /* Asymmetrical radius */
-}
-
-.message.sent .message-bubble {
-  background: var(--sent-message-background);
-  color: var(--text-on-primary, #fff);
-  /* Default to white if not set */
-  border-radius: 12px 12px 0 12px;
-  /* Asymmetrical radius */
+.message-item.received {
+  justify-content: flex-start;
 }
 
 .messages-wrapper {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  /* Allow it to fill the available space */
   overflow-x: hidden;
   position: relative;
-  /* Establish positioning context for sticky children */
 }
 
 .message-time {
   font-size: 11px;
-  /* Smaller font size */
   color: var(--text-secondary);
   margin-top: 0.25rem;
   text-align: right;
   opacity: 0.8;
-  /* Less prominent */
 }
 
 /* Chat Input Area */
@@ -598,7 +540,6 @@ body.light-mode .chat-loading p {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  /* Ensure children like Emoji Picker stack below Input Row */
 }
 
 /* --- Desktop Specific Layout (Original Style) --- */

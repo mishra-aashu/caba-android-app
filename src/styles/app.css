@@ -34,10 +34,10 @@
   --text-primary: #081411;
   --text-secondary: #546E7A;
   --border-color: #E0E0E0;
-  --brand-primary: #00BFA5;
-  /* A more vibrant green */
-  --brand-gradient: linear-gradient(135deg, #00A884 0%, #25D366 100%);
-  --brand-secondary: #00796B;
+  --brand-primary: #6366f1;
+  /* Premium Indigo */
+  --brand-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --brand-secondary: #4f46e5;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.07);
   --success-color: #2E7D32;
@@ -59,9 +59,9 @@
   --text-primary: #EAEAEA;
   --text-secondary: #9E9E9E;
   --border-color: #2D2D2D;
-  --brand-primary: #00BFA5;
-  --brand-gradient: linear-gradient(135deg, #00796B 0%, #00BFA5 100%);
-  --brand-secondary: #004D40;
+  --brand-primary: #6366f1;
+  --brand-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --brand-secondary: #3730a3;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.4);
   --chat-header-icon-color: #ffffff;
@@ -683,63 +683,14 @@ body.light-mode .chat-list-panel {
   justify-content: flex-start;
 }
 
-.bubble {
-  max-width: 70%;
-  padding: 10px 15px;
-  border-radius: 18px;
-  position: relative;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  box-shadow: var(--shadow-sm);
-  word-wrap: break-word;
-  white-space: pre-wrap;
-}
 
-.mine .bubble {
-  background: var(--brand-secondary);
-  color: var(--text-primary);
-  border-bottom-right-radius: 4px;
-}
+/* Base .bubble style removed to avoid conflicts with component styling */
 
-.theirs .bubble {
-  background: var(--surface-color);
-  color: var(--text-primary);
-  border-bottom-left-radius: 4px;
-}
 
-[data-theme='dark'] .mine .bubble {
-  background: var(--brand-secondary);
-  color: #FFF;
-}
+/* Legacy bubble blocks removed for theme engine supremacy */
 
-.message-meta {
-  display: flex;
-  align-items: flex-end;
-  margin-top: 4px;
-  justify-content: flex-end;
-}
 
-.timestamp {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-right: 5px;
-}
-
-.tick {
-  font-size: 1rem;
-  margin-left: 2px;
-  color: #4FC3F7;
-  /* Read receipt color */
-}
-
-.tick.read {
-  color: #4FC3F7;
-}
-
-.deleted-text {
-  font-style: italic;
-  color: var(--text-secondary);
-}
+/* Legacy meta blocks removed for theme engine supremacy */
 
 /* =============================================
    6. UTILITY & FORM CLASSES

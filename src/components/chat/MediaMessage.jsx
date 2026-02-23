@@ -30,7 +30,7 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
   // Render the message
   return (
     <div className={`message-row ${isSender ? 'sent' : 'received'}`}>
-      <div className="media-bubble">
+      <div className={`media-bubble ${isSender ? 'media-sent' : 'media-received'}`}>
         {/* Reply Block */}
         {repliedMsg && repliedMsg.id && (
           <div
@@ -46,9 +46,6 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
               }
             }}
           >
-            {/* Green/Accent Bar */}
-            <div className="reply-quote-bar"></div>
-
             <div className="reply-quote-content">
               {/* Name Logic: Agar sender_id meri hai to 'You', nahi to 'User' */}
               <span className="reply-quote-user">

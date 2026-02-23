@@ -1,148 +1,168 @@
-/* --- 1. Message Row Alignment --- */
+/* Media Message Redesign - Premium Floating Look */
+
 .message-row {
   display: flex;
   width: 100%;
-  margin-bottom: 4px;
-  /* Thoda gap kam rakhein consecutive messages ke liye */
+  margin-bottom: 8px;
+  /* Floating margin */
+  padding: 0 12px;
+  contain: content;
 }
 
 .message-row.sent {
   justify-content: flex-end;
-  /* Right side */
 }
 
 .message-row.received {
   justify-content: flex-start;
-  /* Left side */
 }
 
-/* --- 2. The Bubble Wrapper --- */
+/* --- THE UNIQUE MEDIA BUBBLE --- */
 .media-bubble {
   position: relative;
-  max-width: 75%;
-  /* Mobile par 75%, PC par chhota kar sakte hain */
+  max-width: 82%;
   width: fit-content;
-  border-radius: 16px;
   overflow: hidden;
-  /* Image ko corners se bahar jane se roke */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  /* Halki shadow depth ke liye */
-  background-color: #1f2c34;
-  /* Dark Background agar image transparent ho */
+
+  /* Glassmorphism Design */
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  background-color: var(--received-message-bg, rgba(255, 255, 255, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Updated border */
+
+  /* Performance fix */
+  transform: translateZ(0);
+  contain: paint;
+  will-change: transform;
+
+  /* Modern Radius */
+  border-radius: 20px;
+
+  /* Elevation */
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1),
+    0 2px 6px -2px rgba(0, 0, 0, 0.05);
+
+  animation: media-bubble-appear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  will-change: transform, opacity;
 }
 
-/* PC View ke liye max-width control */
-@media (min-width: 768px) {
-  .media-bubble {
-    max-width: 350px;
-    /* Desktop par zyada bada na dikhe */
+@keyframes media-bubble-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
-/* --- 3. Differential Border Radius (WhatsApp Style) --- */
-/* Sent messages: Niche right ka corner sharp hoga */
-.message-row.sent .media-bubble {
-  border-radius: 16px 16px 4px 16px;
+.media-sent {
+  background: var(--sent-message-bg, var(--sent-message-bg-default));
+  border-radius: 20px 20px 4px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--sent-message-shadow, var(--sent-message-shadow-default));
 }
 
-/* Received messages: Niche left ka corner sharp hoga */
-.message-row.received .media-bubble {
-  border-radius: 16px 16px 16px 4px;
+.media-received {
+  background: var(--received-message-bg, var(--received-message-bg-default));
+  border-radius: 20px 20px 20px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--received-message-shadow, var(--received-message-shadow-default));
 }
 
-/* --- 4. The Image Styling --- */
+/* --- Desktop Max Width --- */
+@media (min-width: 768px) {
+  .media-bubble {
+    max-width: 380px;
+  }
+}
+
+/* --- MEDIA CONTENT --- */
 .media-content {
   position: relative;
   width: 100%;
-  height: 100%;
   display: flex;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.media-content:hover {
+  opacity: 0.95;
 }
 
 .actual-image {
   width: 100%;
   height: auto;
-  max-height: 400px;
-  /* Lambi images ko screen bharne se roke */
+  max-height: 450px;
   object-fit: cover;
-  /* Image stretch na ho */
   display: block;
 }
 
-/* --- 5. The "Blue Box" Fix (Placeholder) --- */
-/* Jo blue box aapke screenshot me hai, usko replace karein */
+/* Placeholder Styling */
 .media-placeholder {
   width: 280px;
-  /* Fixed width for placeholder */
   height: 200px;
-  background: linear-gradient(135deg, #2a3942 0%, #111b21 100%);
-  /* Elegant Dark Gradient */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #8696a0;
-  cursor: pointer;
-}
-
-.media-placeholder:hover {
-  background: #202c33;
-  /* Hover effect */
+  gap: 8px;
 }
 
 .media-placeholder .icon {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  opacity: 0.8;
+  font-size: 2.2rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-.media-placeholder .text {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* --- 6. Timestamp Overlay (Pro Look) --- */
-/* Ye time ko image ke upar layega, jaisa WhatsApp me hota hai */
+/* Timestamp Overlay */
 .media-time-overlay {
   position: absolute;
   bottom: 0;
   right: 0;
   width: 100%;
-  padding: 40px 10px 6px 0;
-  /* Top padding gradient ke liye */
+  padding: 30px 10px 6px 0;
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+  color: var(--sent-message-meta, #ffffff);
+  /* Sent images usually have white-ish meta */
+  font-size: 10px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  opacity: 0.95;
+}
 
-  /* Gradient taaki text dikhe chahe image white ho ya black */
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.75rem;
-  /* 12px */
-  font-weight: 500;
+.media-received .media-time-overlay {
+  color: var(--received-message-meta, #ffffff);
 }
 
 .tick-icon {
-  font-size: 0.8rem;
-  color: #8696a0;
-  /* Grey for sent */
+  font-size: 13px;
+  color: var(--tick-color, var(--tick-color-default));
 }
 
 .tick-icon.read {
-  color: #53bdeb;
-  /* Blue for read */
+  color: var(--tick-read-color, var(--tick-read-color-default)) !important;
+  filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.5));
 }
 
 /* GIF Badge */
 .gif-badge {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
+  top: 10px;
+  left: 10px;
   background: rgba(0, 0, 0, 0.6);
   color: white;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 4px;
-  backdrop-filter: blur(2px);
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.5px;
 }

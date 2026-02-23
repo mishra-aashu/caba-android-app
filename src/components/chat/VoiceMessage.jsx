@@ -146,12 +146,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
 
   return (
     <div className={`message-row ${isSender ? 'sent' : 'received'}`}>
-      <div className={`voice-card ${isSender ? "voice-sent" : "voice-received"}`} style={{
-        backgroundColor: isSender ? '#005c4b' : '#202c33',
-        borderRadius: '16px',
-        borderBottomRightRadius: isSender ? '0px' : '16px',
-        borderBottomLeftRadius: isSender ? '16px' : '0px'
-      }}>
+      <div className={`voice-card ${isSender ? "voice-sent" : "voice-received"}`}>
         {repliedMsg && repliedMsg.id && (
           <div
             className="reply-quote-container"
@@ -166,7 +161,6 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
               }
             }}
           >
-            <div className="reply-quote-bar"></div>
             <div className="reply-quote-content">
               <span className="reply-quote-user">
                 {(repliedMsg.senderId || repliedMsg.sender_id) === currentUserId ? "You" : "User"}
@@ -179,24 +173,8 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
         )}
 
         <div className="voice-content">
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: '12px',
-            cursor: 'pointer',
-            flexShrink: 0
-          }} onClick={togglePlay}>
-            <span style={{
-              color: '#fff',
-              marginLeft: '2px',
-              marginTop: '1px',
-              display: 'block'
-            }}>
+          <div className="play-btn-wrapper" onClick={togglePlay}>
+            <span className="play-icon">
               {isLoading ? <LoaderCircle size={20} className="animate-spin" /> : error ? <AlertTriangle size={20} color="red" /> : isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </span>
           </div>
