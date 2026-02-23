@@ -7,15 +7,17 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import MemberItem from './MemberItem';
 import AddMembersModal from './AddMembersModal';
-import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown, Calendar, User as UserIcon, Camera, Shield, Lock, MessageSquare } from 'lucide-react';
+import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown, Calendar, User as UserIcon, Camera, Shield, Lock, MessageSquare, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
+import useIsDesktop from '../../hooks/useIsDesktop';
 import './GroupInfoDrawer.css';
 
 const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
   const { user } = useAuth();
   const { showAlert, showConfirm } = useDialog();
+  const isDesktop = useIsDesktop();
   const { useGroup, useGroupMembers, useIsAdmin, useLeaveGroup, useUpdateGroup } = useGroupActions();
 
   const [showAddMembers, setShowAddMembers] = useState(false);
@@ -146,10 +148,17 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
     <div className={`group-info-drawer ${isOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="drawer-header">
+        {!isDesktop && (
+          <button className="close-btn mobile-back-btn" onClick={onClose}>
+            <ArrowLeft size={20} />
+          </button>
+        )}
         <h2>Group Info</h2>
-        <button className="close-btn" onClick={onClose}>
-          <X size={20} />
-        </button>
+        {isDesktop && (
+          <button className="close-btn desktop-close-btn" onClick={onClose}>
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       {/* Scrollable Content Area */}

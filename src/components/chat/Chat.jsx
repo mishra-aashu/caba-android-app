@@ -40,6 +40,7 @@ import useUserStore from '../../store/userStore';
 import { UserDetailsContext } from '../MainLayout';
 import { useDialog } from '../../contexts/DialogContext';
 import WallpaperPicker from './WallpaperPicker';
+import useIsDesktop from '../../hooks/useIsDesktop';
 import '../../styles/chat.css';
 
 import '../../styles/game-modal.css';
@@ -58,6 +59,7 @@ const Chat = () => {
   const { startCall } = useCall();
   const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
   const { showAlert } = useDialog();
+  const isDesktop = useIsDesktop();
   const showUserDetails = React.useContext(UserDetailsContext);
   const queryClient = useQueryClient();
   const { chats: allChats } = useData();
@@ -1560,7 +1562,7 @@ const Chat = () => {
             <ArrowLeft size={20} />
           </button>
 
-          <div className="chat-user-info" onClick={() => isGroupChat ? setShowGroupInfoDrawer(true) : handleViewContact()} style={{ cursor: otherUser ? 'pointer' : 'default' }}>
+          <div className="chat-user-info" onClick={() => isGroupChat ? (isDesktop ? setShowGroupInfoDrawer(true) : navigate(`/chat/${chatId}/group/info`)) : handleViewContact()} style={{ cursor: otherUser ? 'pointer' : 'default' }}>
             <div className="user-avatar">
               {otherUser?.avatar ? (
                 parseInt(otherUser.avatar) ? (
@@ -1607,7 +1609,7 @@ const Chat = () => {
                   {
                     icon: <User size={16} />,
                     label: 'View Group Info',
-                    onClick: () => setShowGroupInfoDrawer(true)
+                    onClick: () => isDesktop ? setShowGroupInfoDrawer(true) : navigate(`/chat/${chatId}/group/info`)
                   }
                 ] : [
                   {
@@ -1673,7 +1675,7 @@ const Chat = () => {
                   {
                     icon: <Ban size={16} />,
                     label: 'Leave Group',
-                    onClick: () => setShowGroupInfoDrawer(true),
+                    onClick: () => isDesktop ? setShowGroupInfoDrawer(true) : navigate(`/chat/${chatId}/group/info`),
                     danger: true
                   }
                 ] : [
@@ -2202,8 +2204,8 @@ const Chat = () => {
         />
       )}
 
-      {/* Group Info Drawer - for group chats */}
-      {(isGroupChat || otherUser?.is_group) && (
+      {/* Group Info Drawer - for group chats (Desktop only) */}
+      {isDesktop && (isGroupChat || otherUser?.is_group) && (
         <GroupInfoDrawer
           isOpen={showGroupInfoDrawer}
           onClose={() => {

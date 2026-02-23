@@ -41,6 +41,7 @@ const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
 const QRPage = lazy(() => import('./components/qr'));
 const Intro = lazy(() => import('./components/Intro'));
 const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
+const GroupInfoPage = lazy(() => import('./components/groups/GroupInfoPage'));
 const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 // import CallScreen from './components/CallScreen';
@@ -112,6 +113,7 @@ const AppContent = () => {
         <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
         {/* Group chat route - uses same Chat component but detects group */}
         <Route path="chat/:chatId/group" element={<Chat key={location.pathname} />} />
+        <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
         <Route path="user-details/:id" element={<UserDetails />} />
         <Route path="groups" element={<GroupsPage />} />
         <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
