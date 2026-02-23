@@ -124,6 +124,7 @@
 html {
   font-size: 16px;
   /* Base font size */
+  scroll-behavior: smooth;
 }
 
 body {
@@ -135,6 +136,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
+  overscroll-behavior-y: none;
+  /* Prevent pull-to-refresh on body if handled by app */
 }
 
 #root {
@@ -190,6 +193,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  /* Momentum scrolling */
+  scroll-behavior: smooth;
   padding-bottom: var(--sab);
   /* Respect safe area bottom */
 }
@@ -616,6 +621,8 @@ body.light-mode .chat-list-panel {
   overflow-y: auto;
   flex-grow: 1;
   padding: 0;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 

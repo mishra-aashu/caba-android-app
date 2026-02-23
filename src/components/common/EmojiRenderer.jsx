@@ -1,14 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
+import '../../styles/emoji-styles.css';
 
 /**
  * Utility to convert an emoji string (grapheme) to its standard hex code format.
- * Matches emoji-datasource naming convention (e.g., "1f602", "1f468-200d-1f4bb").
+ * Matches emoji-datasource naming convention (e.g., "0023", "1f602", "1f468-200d-1f4bb").
  */
 const getEmojiHex = (emoji) => {
   const codePoints = [];
   for (const char of emoji) {
-    codePoints.push(char.codePointAt(0).toString(16).toLowerCase());
+    const cp = char.codePointAt(0).toString(16).toLowerCase();
+    // Zero-pad to at least 4 chars for small values (required by standard naming)
+    codePoints.push(cp.padStart(4, '0'));
   }
   return codePoints.join('-');
 };

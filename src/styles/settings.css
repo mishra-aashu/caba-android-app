@@ -218,6 +218,8 @@ body.light-mode .preview-card {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Momentum scrolling */
+  scroll-behavior: smooth;
   padding: 20px;
   max-width: 600px;
   margin: 0 auto;
