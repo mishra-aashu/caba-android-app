@@ -3,6 +3,7 @@ import { Timer, Users, User } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchMessages } from '../../hooks/useMessages';
 import { formatLastSeen, formatTime } from '../../utils/timeUtils';
+import EmojiRenderer from '../common/EmojiRenderer';
 import '../../styles/ChatListItem.css';
 
 const ChatListItem = ({ chat, onClick, isActive }) => {
@@ -99,7 +100,7 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
         <div className="chat-footer-row">
           <p className="chat-last-message">
             {messagePrefix}
-            {lastMessage}
+            <EmojiRenderer text={lastMessage} />
           </p>
 
           {unreadCount > 0 && (

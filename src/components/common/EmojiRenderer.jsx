@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
-import { Twemoji } from 'react-emoji-render';
+import { toArray } from 'react-emoji-render';
 import '../../styles/emoji-styles.css';
 
 // Central configuration for emoji styles
@@ -8,48 +8,51 @@ const STYLE_CONFIG = {
   twitter: {
     baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/',
     ext: '.png',
-    isUppercase: false // Twemoji filenames are lowercase
+    isUppercase: false
   },
   apple: {
-    // Stability: Using specific versioned unpkg path for emoji-datasource-apple
     baseUrl: 'https://unpkg.com/emoji-datasource-apple@14.0.0/img/apple/64/',
     ext: '.png',
-    isUppercase: true // emoji-datasource filenames are UPPERCASE
+    isUppercase: true
   },
   google: {
     baseUrl: 'https://unpkg.com/emoji-datasource-google@14.0.0/img/google/64/',
     ext: '.png',
-    isUppercase: true // emoji-datasource filenames are UPPERCASE
+    isUppercase: true
   }
 };
 
 /**
  * SafeEmoji Component - Handles individual emoji rendering with state-based fallback.
  */
-const SafeEmoji = ({ src, token }) => {
+const SafeEmoji = ({ src, token, className = '', style = {} }) => {
   const [hasError, setHasError] = useState(false);
 
+  // GUARANTEED FALLBACK: If image fails, show native unicode emoji
   if (hasError) {
-    return <span className="native-emoji-fallback">{token}</span>;
+    return <span className={`native-emoji-fallback ${className}`} style={style}>{token}</span>;
   }
 
   return (
     <img
       src={src}
       alt={token}
-      className="custom-emoji-img"
+      className={`custom-emoji-img ${className}`}
+      style={style}
       loading="lazy"
-      onError={() => setHasError(true)}
+      onError={() => {
+        console.warn(`Emoji load failed: ${src}`);
+        setHasError(true);
+      }}
     />
   );
 };
 
 /**
- * EmojiRenderer Component - Bulletproof Implementation
+ * EmojiRenderer Component - The "Principal Engineer" Revert
  * 
- * Handles custom emoji styles with:
- * 1. Strict CDN token mapping (casing/sanitization)
- * 2. Automatic fail-safe fallback to native OS emoji on 404 using state
+ * Instead of fragile manual hex math, we leverage react-emoji-render's 
+ * internal parser by providing a dummy ID and then intercepting the generated output.
  */
 const EmojiRenderer = ({ text, className = '', style = {}, styleOverride = null }) => {
   const { emojiStyle: globalEmojiStyle } = useEmojiStyle();
@@ -62,31 +65,40 @@ const EmojiRenderer = ({ text, className = '', style = {}, styleOverride = null 
 
   const config = STYLE_CONFIG[activeStyle];
 
+  // 2. LEVERAGE LIBRARY MATH
+  // We use a dummy ID to force toArray() to generate codepoints for us.
+  const ID = "LIB_PARSER_";
+  const emojiArray = toArray(text, {
+    baseUrl: ID,
+    ext: config.ext,
+    protocol: 'https'
+  });
+
   return (
-    <Twemoji
-      text={text}
-      options={{
-        callback: (token) => {
-          // Sanitization: Remove variation selectors (standard in emoji-datasource filenames)
-          let cleanToken = token.replace(/-fe0f/g, '');
-          cleanToken = config.isUppercase ? cleanToken.toUpperCase() : cleanToken.toLowerCase();
-          return `${config.baseUrl}${cleanToken}${config.ext}`;
+    <span className={`emoji-renderer-root ${className}`} style={style} renderfulltext="true" renderemoji="true">
+      {emojiArray.map((part, index) => {
+        // toArray returns React elements (img) for emojis when baseUrl is provided
+        if (React.isValidElement(part) && part.type === 'img') {
+          const { src, alt } = part.props;
+
+          // lib generates: "https:LIB_PARSER_/{hex}.{ext}"
+          // We extract the hex token and apply our own casing/FE0F rules.
+          const hex = src.split('/').pop().split('.')[0];
+
+          // Clean up the hex (remove variation selectors common in filenames)
+          let cleanHex = hex.replace(/fe0f/gi, '').replace(/-$/, '');
+          cleanHex = cleanHex.split('-').filter(Boolean).join('-');
+
+          const finalToken = config.isUppercase ? cleanHex.toUpperCase() : cleanHex.toLowerCase();
+          const finalSrc = `${config.baseUrl}${finalToken}${config.ext}`;
+
+          return <SafeEmoji key={index} src={finalSrc} token={alt} />;
         }
-      }}
-      svg={false} // Force PNGs
-      className={`custom-emoji-renderer ${className}`}
-      style={style}
-      // Fail-safe logic: If the image fails to load, we revert to native text
-      renderFullText={(fullText) => <span>{fullText}</span>}
-      renderEmoji={(props) => {
-        const { src, token, key } = props;
-        return (
-          <span key={key} className="emoji-container">
-            <SafeEmoji src={src} token={token} />
-          </span>
-        );
-      }}
-    />
+
+        // Return plain text parts or children of non-img elements
+        return <span key={index}>{typeof part === 'string' ? part : part.props.children}</span>;
+      })}
+    </span>
   );
 };
 
