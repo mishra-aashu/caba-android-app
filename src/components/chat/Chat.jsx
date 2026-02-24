@@ -18,6 +18,7 @@ import VirtualizedMessageList from './VirtualizedMessageList';
 import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import MediaViewer from '../media/MediaViewer';
+import ImageViewer from './ImageViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
 import { useMessages } from '../../hooks/useMessages';
@@ -275,13 +276,12 @@ const Chat = () => {
     }
   }, [chatId, queryClient]);
 
-  // Auto-scroll to bottom when chat switches or new messages arrive
+  // Auto-scroll to bottom when chat switches only (handled by VirtualizedMessageList)
   useEffect(() => {
-    if (messages.length > 0 && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    if (messages.length > 0 && messagesContainerRef.current) {
       setIsScrolledToBottom(true);
     }
-  }, [chatId, messages.length]);
+  }, [chatId]);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -293,6 +293,9 @@ const Chat = () => {
   const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
   const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
   const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState(null);
+  const [currentImageMessage, setCurrentImageMessage] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [messagesToForward, setMessagesToForward] = useState([]);
@@ -658,12 +661,7 @@ const Chat = () => {
     return () => { cancelled = true; };
   }, [chatId, isGroupChat, supabase, allChats]);
 
-  // Scroll to bottom when messages change (only if user is already at bottom)
-  useEffect(() => {
-    if (isScrolledToBottom) {
-      scrollToBottom();
-    }
-  }, [messages, isScrolledToBottom]);
+  // Scroll to bottom handled by VirtualizedMessageList - no manual intervention needed
 
   // Load mute and temp chat preferences
   useEffect(() => {
@@ -1077,7 +1075,10 @@ const Chat = () => {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use VirtualizedMessageList's scrollToBottom if available
+    if (messagesContainerRef.current?.scrollToBottom) {
+      messagesContainerRef.current.scrollToBottom('auto');
+    }
     setIsScrolledToBottom(true);
   };
 
@@ -1498,22 +1499,15 @@ const Chat = () => {
     setActiveGroupCall(null);
   };
 
-  const handleScroll = (e) => {
-    const container = e.target;
-    const scrolledFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    const isAtBottom = scrolledFromBottom < 50; // Consider "at bottom" if within 50px
-    const isAtTop = container.scrollTop < 50; // Consider "at top" if within 50px
+  const handleScroll = (scrollData) => {
+    // Handle scroll from VirtualizedMessageList
+    const isAtBottom = scrollData?.isAtBottom || false;
+    const isAtTop = scrollData?.isAtTop || false;
+    const isScrollingUp = scrollData?.isScrollingUp || false;
 
-    setShowScrollButton(scrolledFromBottom > 300);
+    // Show scroll button when not at bottom
+    setShowScrollButton(!isAtBottom);
     setIsScrolledToBottom(isAtBottom);
-
-    // Calculate scroll percentage
-    if (container.scrollHeight > container.clientHeight) {
-      const scrollPercentage = (container.scrollTop / (container.scrollHeight - container.clientHeight)) * 100;
-      setScrollPercentage(scrollPercentage);
-    } else {
-      setScrollPercentage(0);
-    }
 
     // If scrolled to bottom, mark messages as read and reset unread count
     if (isAtBottom && unreadCount > 0) {
@@ -1528,7 +1522,10 @@ const Chat = () => {
   };
 
   const scrollToBottomSmooth = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use VirtualizedMessageList's scrollToBottom if available
+    if (messagesContainerRef.current?.scrollToBottom) {
+      messagesContainerRef.current.scrollToBottom('smooth');
+    }
     setShowScrollButton(false);
     setUnreadCount(0);
     setIsScrolledToBottom(true);
@@ -1536,18 +1533,23 @@ const Chat = () => {
   };
 
   const handleMediaView = (mediaUrl, mediaType, message) => {
-    // For now, we'll use the media URL directly
-    // In a more complete implementation, we'd get the media ID from the message
-    const fileInfo = {
-      file_name: message.file_name || 'Unknown',
-      file_size: message.file_size || 0,
-      mime_type: message.mediaType || message.media_type || 'image/jpeg',
-      storage_url: mediaUrl,
-      file_type: mediaType
-    };
-
-    setCurrentMediaInfo({ fileInfo });
-    setMediaViewerOpen(true);
+    // For images, use the new Framer Motion ImageViewer
+    if (mediaType === 'image') {
+      setCurrentImageUrl(mediaUrl);
+      setCurrentImageMessage(message);
+      setImageViewerOpen(true);
+    } else {
+      // For videos, use the existing MediaViewer
+      const fileInfo = {
+        file_name: message.file_name || 'Unknown',
+        file_size: message.file_size || 0,
+        mime_type: message.mediaType || message.media_type || 'video/mp4',
+        storage_url: mediaUrl,
+        file_type: mediaType
+      };
+      setCurrentMediaInfo({ fileInfo });
+      setMediaViewerOpen(true);
+    }
   };
 
   const handleMediaDownload = async (mediaUrl, messageId) => {
@@ -1820,9 +1822,7 @@ const Chat = () => {
         {/* Messages Container */}
         <div
           className="messages-container"
-          onScroll={handleScroll}
           ref={messagesContainerRef}
-          style={{ transform: 'translateZ(0)' }}
         >
           {/* Load More Indicator */}
           {loadingMore && (
@@ -1860,6 +1860,7 @@ const Chat = () => {
               }
             }}
             isScrolledToBottom={isScrolledToBottom}
+            onScroll={handleScroll}
             followOutput="auto"
             typingUsers={typingUsers}
             initialTopMostItemIndex={messages.length > 0 ? messages.length - 1 : 0}
@@ -2265,6 +2266,19 @@ const Chat = () => {
           }}
         />
       )}
+
+      {/* Fullscreen Image Viewer with Framer Motion */}
+      <ImageViewer
+        isOpen={imageViewerOpen}
+        onClose={() => {
+          setImageViewerOpen(false);
+          setCurrentImageUrl(null);
+          setCurrentImageMessage(null);
+        }}
+        imageUrl={currentImageUrl}
+        message={currentImageMessage}
+        onDownload={handleMediaDownload}
+      />
     </motion.div>
   );
 };

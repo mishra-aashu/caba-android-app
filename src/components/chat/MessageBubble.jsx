@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useMemo } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+// Removed framer-motion for uniform scrolling
 import EmojiRenderer from '../common/EmojiRenderer';
 import { isOnlyEmoji } from '../../utils/emojiUtils';
 import './MessageBubble.css';
@@ -48,7 +48,7 @@ const MessageBubble = memo(({
   message // Full message object for special features
 }) => {
   const [unlockCountdown, setUnlockCountdown] = useState('');
-  const controls = useAnimation();
+  // Removed animation controls for uniform scrolling
 
   // Check for special message types
   const isAnonymous = message?.isAnonymous || message?.is_anonymous;
@@ -115,28 +115,11 @@ const MessageBubble = memo(({
   // Memoize emoji renderer for performance
   const emojiStyle = isJumboEmoji ? { width: '64px', height: '64px' } : {};
 
-  // Handle click on emoji message to trigger jelly animation
-  const handleJellyClick = async () => {
-    if (isJumboEmoji) {
-      // Jelly/bounce animation with spring physics - smooth and bouncy!
-      await controls.start({
-        scale: [1, 1.2, 0.9, 1.1, 0.95, 1.05, 1],
-        rotate: [0, -5, 5, -3, 3, 0],
-        transition: { 
-          duration: 0.5, 
-          ease: "easeInOut",
-          times: [0, 0.15, 0.3, 0.5, 0.7, 0.85, 1]
-        }
-      });
-    }
-  };
+  // Removed jelly animation for uniform scrolling
 
   return (
-    <motion.div 
+    <div 
       className={`message-container ${isMine ? 'mine' : 'theirs'} ${isAnonymous ? 'anonymous' : ''} ${isLocked ? 'locked' : ''} ${isJumboEmoji ? 'jumbo-emoji' : ''}`}
-      onClick={handleJellyClick}
-      animate={controls}
-      initial={false}
     >
       {/* Bubble Box */}
       <div className={`bubble caba-bubble ${isMine ? 'bubble-sent caba-bubble--sent' : 'bubble-received caba-bubble--received'} ${isJumboEmoji ? 'jumbo-emoji-bubble' : ''}`}>
@@ -219,7 +202,7 @@ const MessageBubble = memo(({
           </span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }, (prevProps, nextProps) => {
   // Custom comparison for React.memo - only re-render when these change

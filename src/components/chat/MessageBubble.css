@@ -37,35 +37,20 @@
   backface-visibility: hidden;
   contain: layout;
   /* Isolate rendering */
-  will-change: transform, opacity;
+  /* Removed will-change to prevent blank screen during scrolling */
 
-  /* Smooth transitions */
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background 0.3s ease;
+  /* Removed transitions for uniform scrolling */
 
   /* Optimized Glassmorphism - lower blur for performance */
   backdrop-filter: blur(8px) saturate(160%);
   -webkit-backdrop-filter: blur(8px) saturate(160%);
 
-  /* Animation for new messages */
-  animation: bubble-appear 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  /* Removed bubble appear animation for uniform scrolling */
 }
 
-@keyframes bubble-appear {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(10px);
-  }
+/* Removed bubble-appear animation */
 
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.bubble:hover {
-  transform: translateY(-1px);
-}
+/* Removed hover effect for uniform scrolling */
 
 /* Sent Messages - Progressive Radius & Universal Indigo */
 /* Sent Messages - Progressive Radius & Universal Indigo */
@@ -206,27 +191,7 @@
   overflow: hidden;
 }
 
-/* Highlight Animation */
-@keyframes bubble-highlight {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 191, 165, 0.4);
-  }
-
-  50% {
-    transform: scale(1.02);
-    box-shadow: 0 0 20px 5px rgba(0, 191, 165, 0.3);
-  }
-
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 191, 165, 0);
-  }
-}
-
-.highlight .bubble {
-  animation: bubble-highlight 1.5s ease-in-out;
-}
+/* Removed highlight animation */
 
 /* --- ANONYMOUS MESSAGE STYLES --- */
 .message-container.anonymous .bubble {
@@ -367,8 +332,4 @@
   }
 }
 
-/* --- JELLY ANIMATION FOR EMOJI MESSAGES --- */
-/* Make the bubble clickable for jelly animation - framer-motion handles the animation */
-.message-container.jumbo-emoji {
-  cursor: pointer;
-}
+/* Removed jelly animation for uniform scrolling */

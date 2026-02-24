@@ -47,9 +47,13 @@ const VirtualizedMessageList = ({
   const lastMessageCountRef = useRef(messages.length);
 
   // Determine if we should auto-scroll based on user position
-  // Only auto-scroll when user is at bottom or during explicit auto-scroll
+  // Only auto-scroll when user is explicitly at bottom or during initial load
   const shouldAutoScroll = useCallback(() => {
-    return isScrolledToBottom || isAutoScrollingRef.current;
+    // Don't auto-scroll if user is manually scrolling up to read older messages
+    if (isAutoScrollingRef.current) return true;
+    
+    // Only auto-scroll if user is already at bottom
+    return isScrolledToBottom === true;
   }, [isScrolledToBottom]);
 
   // Scroll to bottom function exposed to parent
@@ -79,21 +83,19 @@ const VirtualizedMessageList = ({
       // New message arrived - auto-scroll to bottom
       isAutoScrollingRef.current = true;
       
-      // Use smooth scroll for new messages, instant for initial load
-      const behavior = prevLength === 0 ? 'auto' : 'smooth';
-      
+      // Use 'auto' behavior to prevent smooth animation conflicts
       if (virtuosoRef.current) {
         virtuosoRef.current.scrollToIndex({
           index: newLength - 1,
-          behavior,
+          behavior: 'auto',
           align: 'end',
         });
       }
       
-      // Reset auto-scroll flag after animation
+      // Reset auto-scroll flag after a shorter delay
       setTimeout(() => {
         isAutoScrollingRef.current = false;
-      }, 300);
+      }, 100);
     }
     
     prevMessagesLengthRef.current = newLength;
@@ -101,8 +103,16 @@ const VirtualizedMessageList = ({
 
   // Handle scroll events from Virtuoso
   const handleScroll = useCallback((location) => {
+    // Track if user is at bottom to prevent unwanted auto-scroll
+    const isAtBottom = location?.isAtBottom || false;
+    
     if (onScroll) {
-      onScroll(location);
+      onScroll({
+        ...location,
+        isAtBottom,
+        // Add explicit scroll direction tracking
+        isScrollingUp: location?.scrollTop !== undefined && location?.scrollTop > 0
+      });
     }
   }, [onScroll]);
 
@@ -297,33 +307,44 @@ const VirtualizedMessageList = ({
       className="messages-wrapper virtuoso-container" 
       ref={containerRef}
       style={{ 
-        contain: 'strict',
+        contain: 'content',
         height: '100%',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
         paddingTop: 0,
         marginTop: 0,
+        /* Removed GPU hints to prevent blank screen */
       }}
     >
       <Virtuoso
         ref={virtuosoRef}
         data={messages}
         initialTopMostItemIndex={initialTopMostItemIndex ?? (messages.length > 0 ? messages.length - 1 : 0)}
-        followOutput={followOutput ?? (shouldAutoScroll() ? 'auto' : false)}
+        followOutput={'auto'} // Always auto for professional behavior
         atBottomStateChange={(isAtBottom) => {
-          // Optionally notify parent of scroll state
+          // Properly track bottom state
+          if (onScroll) {
+            onScroll({ isAtBottom });
+          }
+        }}
+        atTopStateChange={(isAtTop) => {
+          // Track top state for better scroll control
+          if (onScroll) {
+            onScroll({ isAtTop });
+          }
         }}
         itemContent={renderMessage}
         computeItemKey={(index, message) => message?.id || message?.tempId || `msg-${index}`}
-        overscan={200} // Render 200px extra for smoother scrolling
-        alignToBottom // Align to bottom like WhatsApp/Telegram
+        overscan={50} // Reduced for better performance
+        alignToBottom={true}
         style={{ 
           flex: 1,
           width: '100%',
           minHeight: 0,
           height: '100%',
-          willChange: 'transform', // GPU acceleration hint
+          /* Professional scroll behavior */
+          overflowY: 'auto',
         }}
       />
       {/* Typing indicator outside virtuoso to avoid zero-sized element issues */}

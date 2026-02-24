@@ -373,6 +373,7 @@ const MessageItem = ({
           isSender={isSent}
           time={formatBubbleTime(safeMessage.createdAt || safeMessage.created_at)}
           status={isRead ? 'read' : 'sent'}
+          onMediaClick={(url, msg) => onMediaView?.(url, mediaType, msg)}
         />
       );
     }

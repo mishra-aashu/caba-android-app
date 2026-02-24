@@ -3,20 +3,29 @@ import { getPublicMediaUrl } from '../../services/mediaService';
 import EmojiRenderer from '../common/EmojiRenderer';
 import './MediaMessage.css';
 
-const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUserId }) => {
+const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, onMediaClick }) => {
   const [mediaUrl, setMediaUrl] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleViewMedia = () => {
-    if (!imageLoaded) {
-      setIsLoading(true);
-      // Check if media_path is already a full URL (for GIFs from Tenor)
-      const mediaPath = message.mediaPath || message.media_path;
-      const url = mediaPath.startsWith('http') ? mediaPath : getPublicMediaUrl(mediaPath);
-      setMediaUrl(url);
-      setImageLoaded(true);
-      setIsLoading(false);
+  // Get media URL
+  const getMediaUrl = () => {
+    const mediaPath = message.mediaPath || message.media_path;
+    return mediaPath.startsWith('http') ? mediaPath : getPublicMediaUrl(mediaPath);
+  };
+
+  const handleViewMedia = (e) => {
+    e?.stopPropagation();
+    
+    // Always get fresh URL
+    const url = getMediaUrl();
+    setMediaUrl(url);
+    setImageLoaded(true);
+    setIsLoading(false);
+
+    // Trigger fullscreen viewer if callback provided
+    if (onMediaClick) {
+      onMediaClick(url, message);
     }
   };
 
