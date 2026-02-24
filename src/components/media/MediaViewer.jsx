@@ -7,7 +7,7 @@ import './MediaViewer.css';
  * Media Viewer Component
  * Modal component for viewing media files
  */
-const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {} }) => {
+const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare }) => {
   const {
     currentMedia,
     isLoading,
@@ -90,6 +90,11 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {} }) => {
 
   // Share function
   const handleShare = async () => {
+    if (onShare && currentMedia) {
+      onShare(currentMedia);
+      return;
+    }
+
     if (navigator.share && currentMedia?.media?.objectUrl) {
       try {
         await navigator.share({
@@ -139,14 +144,21 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {} }) => {
             {({ zoomIn, zoomOut, resetTransform, scale }) => (
               <>
                 <TransformComponent>
-                  <img
-                    src={objectUrl}
-                    alt={fileInfo.file_name}
-                    className="viewer-image"
-                    style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }}
-                    onLoad={() => console.log('Image loaded')}
-                    onError={() => console.error('Image failed to load')}
-                  />
+                  <div style={{
+                    transform: `rotate(${rotation}deg)`,
+                    transition: 'transform 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <img
+                      src={objectUrl}
+                      alt={fileInfo.file_name}
+                      className="viewer-image"
+                      onLoad={() => console.log('Image loaded')}
+                      onError={() => console.error('Image failed to load')}
+                    />
+                  </div>
                 </TransformComponent>
 
                 {/* Zoom controls in BOTTOM FOOTER */}

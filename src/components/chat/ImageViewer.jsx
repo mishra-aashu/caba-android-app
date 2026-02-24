@@ -4,12 +4,13 @@ import { X, Download, Share2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Minimize2, 
 import { getValidAvatarUrl } from '../../utils/avatarUtils';
 import './ImageViewer.css';
 
-const ImageViewer = ({ 
-  isOpen, 
-  onClose, 
-  imageUrl, 
+const ImageViewer = ({
+  isOpen,
+  onClose,
+  imageUrl,
   message,
-  onDownload 
+  onDownload,
+  onShare
 }) => {
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -50,17 +51,17 @@ const ImageViewer = ({
       // Secure download - fetch as blob to hide URL
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      
+
       // Create object URL
       const url = window.URL.createObjectURL(blob);
-      
+
       // Create hidden link and trigger download
       const link = document.createElement('a');
       link.href = url;
       link.download = `CaBa_Media_${Date.now()}.jpg`;
       document.body.appendChild(link);
       link.click();
-      
+
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -80,6 +81,11 @@ const ImageViewer = ({
   }, [imageUrl, message, onDownload]);
 
   const handleShare = useCallback(async () => {
+    if (onShare && message) {
+      onShare(message);
+      return;
+    }
+
     try {
       if (navigator.share) {
         await navigator.share({
@@ -95,7 +101,7 @@ const ImageViewer = ({
     } catch (error) {
       console.log('Share cancelled or failed:', error);
     }
-  }, [imageUrl]);
+  }, [imageUrl, onShare, message]);
 
   const handleFullscreen = useCallback(() => {
     try {
@@ -128,7 +134,7 @@ const ImageViewer = ({
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      
+
       if (lastTouchDistance.current) {
         const scale = distance / lastTouchDistance.current;
         if (scale > 1.1) {
@@ -158,7 +164,7 @@ const ImageViewer = ({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isOpen) return;
-      
+
       switch (e.key) {
         case 'Escape':
           onClose();
@@ -211,7 +217,7 @@ const ImageViewer = ({
     const handleWheel = (e) => {
       if (!isOpen) return;
       e.preventDefault();
-      
+
       if (e.deltaY < 0) {
         handleZoomIn();
       } else {
@@ -274,24 +280,22 @@ const ImageViewer = ({
   };
 
   const imageVariants = {
-    hidden: { 
-      opacity: 0, 
+    hidden: {
+      opacity: 0,
       scale: 0.5,
       rotate: -10
     },
-    visible: { 
-      opacity: 1, 
-      scale: 1,
-      rotate: 0,
-      transition: { 
+    visible: {
+      opacity: 1,
+      transition: {
         type: 'spring',
         stiffness: 400,
         damping: 35,
         mass: 1
       }
     },
-    exit: { 
-      opacity: 0, 
+    exit: {
+      opacity: 0,
       scale: 0.5,
       rotate: 10,
       transition: { duration: 0.15 }
@@ -308,14 +312,14 @@ const ImageViewer = ({
   const senderName = message?.sender?.name || 'Unknown';
   const senderAvatar = message?.sender?.avatar || message?.sender?.profile_image || null;
   const validSenderAvatar = getValidAvatarUrl(senderAvatar);
-  const messageTime = message?.createdAt || message?.created_at 
-    ? new Date(message.createdAt || message.created_at).toLocaleString() 
+  const messageTime = message?.createdAt || message?.created_at
+    ? new Date(message.createdAt || message.created_at).toLocaleString()
     : '';
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div 
+        <motion.div
           ref={viewerRef}
           className="image-viewer-overlay"
           variants={overlayVariants}
@@ -326,7 +330,7 @@ const ImageViewer = ({
           style={{ willChange: 'opacity' }}
         >
           {/* Top Bar - All Actions */}
-          <motion.div 
+          <motion.div
             className="image-viewer-header"
             initial={{ y: -80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -368,14 +372,14 @@ const ImageViewer = ({
           </motion.div>
 
           {/* Image Container with GPU acceleration */}
-          <div 
+          <div
             ref={imageContainerRef}
             className="image-viewer-content"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
-            style={{ 
+            style={{
               cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in',
               willChange: 'transform'
             }}
@@ -385,7 +389,7 @@ const ImageViewer = ({
                 <div className="viewer-spinner"></div>
               </div>
             )}
-            
+
             <motion.img
               src={imageUrl}
               alt="Full screen media"
@@ -395,7 +399,10 @@ const ImageViewer = ({
               animate="visible"
               exit="exit"
               style={{
-                transform: `translate3d(${position.x}px, ${position.y}px, 0) scale(${zoom}) rotate(${rotation}deg)`,
+                x: position.x,
+                y: position.y,
+                scale: zoom,
+                rotate: rotation,
                 transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                 opacity: isImageLoaded ? 1 : 0,
                 willChange: 'transform, opacity',
@@ -409,7 +416,7 @@ const ImageViewer = ({
           </div>
 
           {/* Bottom Controls - All Action Buttons */}
-          <motion.div 
+          <motion.div
             className="viewer-bottom-controls"
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -428,11 +435,11 @@ const ImageViewer = ({
             >
               <ZoomOut size={22} />
             </motion.button>
-            
+
             <div className="viewer-zoom-level">
               {Math.round(zoom * 100)}%
             </div>
-            
+
             <motion.button
               className="viewer-action-btn"
               variants={buttonVariants}

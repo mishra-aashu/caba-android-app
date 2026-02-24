@@ -1562,7 +1562,7 @@ const Chat = () => {
         storage_url: mediaUrl,
         file_type: mediaType
       };
-      setCurrentMediaInfo({ fileInfo });
+      setCurrentMediaInfo({ fileInfo, messageId: message.id });
       setMediaViewerOpen(true);
     }
   };
@@ -1581,6 +1581,12 @@ const Chat = () => {
       console.error('Download failed:', error);
       showAlert('Failed to download media');
     }
+  };
+
+  const handleShareAsForward = (message) => {
+    if (!message) return;
+    setMessagesToForward([message]);
+    setShowForwardModal(true);
   };
 
   // Animation variants for framer motion
@@ -2064,26 +2070,17 @@ const Chat = () => {
           </div>
         </Modal>
 
-        {/* Media Viewer Modal */}
-        <Modal
+        {/* Media Viewer Component for videos/files */}
+        <MediaViewer
           isOpen={mediaViewerOpen}
           onClose={() => {
             setMediaViewerOpen(false);
             setCurrentMediaInfo(null);
           }}
-          title="Media Viewer"
-          size="fullscreen"
-        >
-          <div className="media-viewer-content">
-            {currentMediaInfo?.fileInfo?.file_type === 'image' ? (
-              <img src={currentMediaInfo.fileInfo.storage_url} alt="Full screen media" className="full-media" />
-            ) : currentMediaInfo?.fileInfo?.file_type === 'video' ? (
-              <video src={currentMediaInfo.fileInfo.storage_url} controls autoPlay className="full-media" />
-            ) : (
-              <div className="unsupported-media">Unsupported media type</div>
-            )}
-          </div>
-        </Modal>
+          mediaId={currentMediaInfo?.messageId}
+          fileInfo={currentMediaInfo?.fileInfo}
+          onShare={handleShareAsForward}
+        />
 
         {/* Forward Modal */}
         <ForwardModal
@@ -2298,6 +2295,7 @@ const Chat = () => {
         imageUrl={currentImageUrl}
         message={currentImageMessage}
         onDownload={handleMediaDownload}
+        onShare={handleShareAsForward}
       />
     </motion.div>
   );

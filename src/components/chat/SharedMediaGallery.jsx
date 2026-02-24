@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useMessages } from '../../hooks/useMessages';
+import { useSharedMedia } from '../../hooks/useSharedMedia';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
@@ -10,6 +10,9 @@ import { formatChatDivider } from '../../utils/dateFormatter';
 import ImageViewer from './ImageViewer';
 import MediaViewer from '../media/MediaViewer';
 import { motion } from 'framer-motion';
+import { useData } from '../../contexts/DataContext';
+import ForwardModal from './ForwardModal';
+import toast from 'react-hot-toast';
 import './SharedMediaGallery.css';
 
 const SharedMediaGallery = () => {
@@ -17,8 +20,8 @@ const SharedMediaGallery = () => {
     const navigate = useNavigate();
     const { user: currentUser } = useAuth();
 
-    // Increase limit to 200 for gallery
-    const { data: initialMessages, isLoading } = useMessages(chatId, 200);
+    // Use specialized media hook (fetches ONLY images/videos)
+    const { data: initialMedia, isLoading } = useSharedMedia(chatId, 100);
     const [messages, setMessages] = useState([]);
 
     const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -29,12 +32,17 @@ const SharedMediaGallery = () => {
     const [currentMediaId, setCurrentMediaId] = useState(null);
     const [currentFileInfo, setCurrentFileInfo] = useState(null);
 
-    // Sync initial messages to local state
+    const [showForwardModal, setShowForwardModal] = useState(false);
+    const [messagesToForward, setMessagesToForward] = useState([]);
+    const { chats: allChats } = useData();
+    const { supabase } = useSupabase();
+
+    // Sync initial media to local state
     useEffect(() => {
-        if (initialMessages) {
-            setMessages(initialMessages);
+        if (initialMedia) {
+            setMessages(initialMedia);
         }
-    }, [initialMessages]);
+    }, [initialMedia]);
 
     // Handle new messages in real-time
     const handleNewMessage = useCallback((newMessage) => {
@@ -116,6 +124,42 @@ const SharedMediaGallery = () => {
             document.body.removeChild(link);
         } catch (error) {
             console.error('Download failed:', error);
+        }
+    };
+    const handleShareAsForward = (message) => {
+        if (!message) return;
+        setMessagesToForward([message]);
+        setShowForwardModal(true);
+    };
+
+    const handleForwardMessages = async (messagesToForward, targetChat) => {
+        try {
+            const isGroupTarget = targetChat.isGroup || targetChat.is_group || false;
+
+            for (const message of messagesToForward) {
+                const forwardMessage = {
+                    chat_id: targetChat.id,
+                    senderId: currentUser.id,
+                    receiverId: isGroupTarget ? null : (targetChat.otherUser?.id || null),
+                    content: message.content || '',
+                    mediaPath: message.mediaPath || message.media_path,
+                    mediaType: message.mediaType || message.media_type,
+                    messageType: message.messageType || message.message_type || (message.media_type === 'voice' ? 'audio' : message.media_type) || 'text',
+                    reply_to: null,
+                    is_group_message: Boolean(isGroupTarget),
+                };
+
+                const { error } = await supabase
+                    .from('messages')
+                    .insert(forwardMessage);
+
+                if (error) throw error;
+            }
+
+            toast.success(`Message${messagesToForward.length > 1 ? 's' : ''} forwarded successfully`);
+        } catch (error) {
+            console.error('Error forwarding messages:', error);
+            toast.error('Failed to forward messages');
         }
     };
 
@@ -286,6 +330,7 @@ const SharedMediaGallery = () => {
                 imageUrl={currentImageUrl}
                 message={currentImageMessage}
                 onDownload={handleDownload}
+                onShare={handleShareAsForward}
             />
 
             {/* Video/Media Viewer */}
@@ -294,6 +339,26 @@ const SharedMediaGallery = () => {
                 onClose={() => setMediaViewerOpen(false)}
                 mediaId={currentMediaId}
                 fileInfo={currentFileInfo}
+                onShare={(currentMedia) => {
+                    // Convert back to message format for forwarding
+                    const message = messages.find(m => m.id === currentMediaId);
+                    if (message) {
+                        handleShareAsForward(message);
+                    }
+                }}
+            />
+
+            {/* Forward Modal */}
+            <ForwardModal
+                isOpen={showForwardModal}
+                onClose={() => {
+                    setShowForwardModal(false);
+                    setMessagesToForward([]);
+                }}
+                chats={allChats || []}
+                messagesToForward={messagesToForward}
+                onForward={handleForwardMessages}
+                currentUser={currentUser}
             />
         </motion.div>
     );

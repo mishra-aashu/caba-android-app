@@ -48,10 +48,10 @@ export const fetchMessages = async (chatId, limit = 50) => {
 /**
  * Hook to get messages for a chat with global caching
  */
-export const useMessages = (chatId, limit = 50) => {
+export const useMessages = (chatId) => {
     return useQuery({
-        queryKey: ['messages', chatId, limit],
-        queryFn: () => fetchMessages(chatId, limit),
+        queryKey: ['messages', chatId],
+        queryFn: () => fetchMessages(chatId),
         enabled: !!chatId && chatId !== 'new',
         staleTime: 1000 * 60 * 5,       // 5 minutes — serve cache instantly, revalidate in bg
         gcTime: 1000 * 60 * 30,          // 30 minutes in cache after last use
