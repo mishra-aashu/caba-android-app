@@ -54,6 +54,7 @@ const ChatListPanel = ({
   savedContacts,
   isDesktop,
   currentChatId,
+  handleChatListRefresh, // Refresh handler from MainLayout
 }) => {
   const { supabase } = useSupabase();
   const { useUserGroups } = useGroupActions();
@@ -245,6 +246,7 @@ const ChatListPanel = ({
         loadingMore={loadingMore}
         renderChatItem={renderChatItem}
         setShowCreateGroupModal={setShowCreateGroupModal}
+        onRefresh={handleChatListRefresh}
       />
 
       <CreateGroupModal

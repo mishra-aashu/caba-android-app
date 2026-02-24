@@ -282,6 +282,23 @@ const MainLayout = () => {
         }
     };
 
+    // Placeholder refresh function for JellyPullToRefresh
+    // This will be called when the user pulls down and releases past the threshold
+    // Replace with actual data fetching logic (e.g., refetch from Supabase)
+    const handleChatListRefresh = async () => {
+        console.log(' Refreshing chat list...');
+        
+        // Simulate network delay (replace with actual API call)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Refresh contacts if needed
+        if (refreshContacts) {
+            refreshContacts();
+        }
+        
+        console.log(' Chat list refreshed!');
+    };
+
     // Filter and sort chats for the list
     const filteredChats = useMemo(() => {
         let result = chats;
@@ -347,6 +364,7 @@ const MainLayout = () => {
         handleStartChatWithContact,
         isDesktop,
         currentChatId,
+        handleChatListRefresh, // Pass the refresh handler to ChatListPanel
     };
 
     // Only show full-screen loader on initial data fetch to prevent blinking during route changes

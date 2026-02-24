@@ -2,6 +2,7 @@ import React from 'react';
 import { MessageCircle, Search, Plus, Users } from 'lucide-react';
 import ChatListItem from './ChatListItem';
 import { isUserOnline } from '../../utils/timeUtils';
+import JellyPullToRefresh from '../common/JellyPullToRefresh';
 
 const ScrollableChatList = ({
     isDesktop,
@@ -15,22 +16,35 @@ const ScrollableChatList = ({
     chatListRef,
     loadingMore,
     renderChatItem, // We can also define it here but keeping it flexible
-    setShowCreateGroupModal
+    setShowCreateGroupModal,
+    onRefresh, // Async refresh function for JellyPullToRefresh
 }) => {
+    // Default refresh handler if not provided
+    const handleRefresh = async () => {
+        if (onRefresh) {
+            await onRefresh();
+        }
+    };
+
     return (
-        <div
-            className="chat-list-wrapper chat-list-container scrollable-area"
-            onScroll={handleChatListScroll}
-            ref={chatListRef}
-            style={{
-                flex: 1,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                minHeight: 0,
-                display: 'flex',
-                flexDirection: 'column'
-            }}
+        <JellyPullToRefresh
+            onRefresh={handleRefresh}
+            refreshThreshold={100}
+            maxDragDistance={200}
         >
+            <div
+                className="chat-list-wrapper chat-list-container scrollable-area"
+                onScroll={handleChatListScroll}
+                ref={chatListRef}
+                style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    minHeight: 0,
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}
+            >
             {/* Desktop Groups Sidebar Section */}
             {isDesktop && groupChats.length > 0 && !searchTerm && (
                 <div className="sidebar-groups-section">
@@ -104,7 +118,8 @@ const ScrollableChatList = ({
                     <p>Loading more chats...</p>
                 </div>
             )}
-        </div>
+            </div>
+        </JellyPullToRefresh>
     );
 };
 
