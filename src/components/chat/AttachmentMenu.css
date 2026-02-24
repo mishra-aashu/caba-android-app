@@ -1,28 +1,34 @@
-/* New styles for positioning the menu above the input bar */
-.attachment-menu-modal, .quick-replies-menu {
-  position: absolute;
-  bottom: 100%; /* Position above the parent container */
-  left: 10px;
-  width: 90%;
-  max-width: 350px;
-  background-color: var(--surface-color);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-  margin-bottom: 10px; /* Space between menu and input bar */
-  z-index: 100;
-  animation: pop-up 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  transform-origin: bottom left;
+/* Simple Attachment Menu - Clean & Professional */
+.attachment-menu-modal {
+  position: relative;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-color);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+  margin-bottom: 12px;
+  z-index: 1000;
+  min-width: 280px;
+  animation: slideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Prevent jumping during animation */
+  will-change: transform, opacity;
+  /* Ensure stable positioning */
+  backface-visibility: hidden;
+  /* Ensure display is controlled by isOpen prop */
+  display: block;
 }
 
-@keyframes pop-up {
-  from {
-    transform: scale(0.9) translateY(10px);
+@keyframes slideUp {
+  0% {
     opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
   }
-  to {
-    transform: scale(1) translateY(0);
+  100% {
     opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
   }
 }
 
@@ -30,12 +36,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .attachment-menu-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -45,12 +53,20 @@
   border: none;
   cursor: pointer;
   color: var(--text-secondary);
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.attachment-menu-header .close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
 }
 
 .attachment-options {
-  display: flex; /* Changed to flex for horizontal layout */
-  gap: 24px; /* Increased gap */
-  justify-content: center; /* Center the items */
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 
 .attachment-option {
@@ -58,45 +74,94 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 16px 12px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
   text-align: center;
-  width: 100px; /* Give a fixed width */
+  min-width: 80px;
+  background: transparent;
+  border: 1px solid transparent;
 }
 
 .attachment-option:hover {
-  background-color: var(--bg-color);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
 .attachment-option .icon-wrapper {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 8px;
-  color: #fff;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
 }
 
+.attachment-option:hover .icon-wrapper {
+  background: var(--brand-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Simple icon backgrounds */
 .icon-wrapper.photo-option {
-  background: linear-gradient(135deg, #a860ff, #3f8cff);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .icon-wrapper.video-option {
-  background: linear-gradient(135deg, #ff5b5b, #ff8c5b);
+  background: rgba(239, 68, 68, 0.1);
 }
 
-.icon-wrapper.voice-option {
-  background: linear-gradient(135deg, #25d366, #128c7e);
+.icon-wrapper.quick-option {
+  background: rgba(34, 197, 94, 0.1);
 }
 
 .attachment-option span {
-  font-size: 0.85rem;
+  font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.attachment-option:hover span {
+  color: var(--text-primary);
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 480px) {
+  .attachment-menu-modal {
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    min-width: unset;
+    margin: 0 16px;
+    border-radius: 12px;
+  }
+  
+  .attachment-options {
+    gap: 8px;
+  }
+  
+  .attachment-option {
+    padding: 12px 8px;
+    min-width: 70px;
+  }
+  
+  .attachment-option .icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+  }
+  
+  .attachment-option span {
+    font-size: 12px;
+  }
 }
 
 /* Quick Replies Menu adjustments */

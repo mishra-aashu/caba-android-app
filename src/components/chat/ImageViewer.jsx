@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, Share2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Download, Share2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Minimize2, Fullscreen } from 'lucide-react';
 import { getValidAvatarUrl } from '../../utils/avatarUtils';
 import './ImageViewer.css';
 
@@ -17,129 +17,10 @@ const ImageViewer = ({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const imageContainerRef = useRef(null);
+  const viewerRef = useRef(null);
   const lastTouchDistance = useRef(0);
 
-  // Reset state when image changes
-  useEffect(() => {
-    if (isOpen) {
-      setZoom(1);
-      setPosition({ x: 0, y: 0 });
-      setRotation(0);
-      setIsImageLoaded(false);
-      setIsDragging(false);
-    }
-  }, [isOpen, imageUrl]);
-
-  // Handle keyboard events
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isOpen) return;
-      
-      switch (e.key) {
-        case 'Escape':
-          onClose();
-          break;
-        case '+':
-        case '=':
-          handleZoomIn();
-          break;
-        case '-':
-          handleZoomOut();
-          break;
-        case 'r':
-        case 'R':
-          handleRotate();
-          break;
-        case '0':
-          handleReset();
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setPosition(prev => ({ ...prev, y: prev.y + 50 }));
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          setPosition(prev => ({ ...prev, y: prev.y - 50 }));
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          setPosition(prev => ({ ...prev, x: prev.x + 50 }));
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          setPosition(prev => ({ ...prev, x: prev.x - 50 }));
-          break;
-        default:
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Handle wheel zoom
-  useEffect(() => {
-    const handleWheel = (e) => {
-      if (!isOpen) return;
-      e.preventDefault();
-      
-      if (e.deltaY < 0) {
-        handleZoomIn();
-      } else {
-        handleZoomOut();
-      }
-    };
-
-    const container = imageContainerRef.current;
-    if (container) {
-      container.addEventListener('wheel', handleWheel, { passive: false });
-      return () => container.removeEventListener('wheel', handleWheel);
-    }
-  }, [isOpen]);
-
-  // Prevent body scroll when viewer is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  // Touch zoom handlers
-  const handleTouchStart = useCallback((e) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      lastTouchDistance.current = Math.sqrt(dx * dx + dy * dy);
-    }
-  }, []);
-
-  const handleTouchMove = useCallback((e) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (lastTouchDistance.current) {
-        const scale = distance / lastTouchDistance.current;
-        if (scale > 1.1) {
-          handleZoomIn();
-          lastTouchDistance.current = distance;
-        } else if (scale < 0.9) {
-          handleZoomOut();
-          lastTouchDistance.current = distance;
-        }
-      }
-      lastTouchDistance.current = distance;
-    }
-  }, []);
-
+  // Handler functions - defined before useEffect to avoid hoisting issues
   const handleZoomIn = useCallback(() => {
     setZoom(prev => Math.min(prev + 0.5, 4));
   }, []);
@@ -198,13 +79,164 @@ const ImageViewer = ({
     }
   }, [imageUrl, message, onDownload]);
 
-  const handleShare = useCallback(() => {
-    if (navigator.share) {
-      navigator.share({
-        url: imageUrl,
-      }).catch(err => console.log('Share cancelled:', err));
+  const handleShare = useCallback(async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'CaBa Media',
+          text: 'Check out this amazing media!',
+          url: imageUrl
+        });
+      } else {
+        // Fallback - copy to clipboard
+        await navigator.clipboard.writeText(imageUrl);
+        alert('Link copied to clipboard!');
+      }
+    } catch (error) {
+      console.log('Share cancelled or failed:', error);
     }
   }, [imageUrl]);
+
+  const handleFullscreen = useCallback(() => {
+    try {
+      if (!document.fullscreenElement) {
+        viewerRef.current?.requestFullscreen().catch(err => {
+          console.error('Fullscreen failed:', err);
+        });
+      } else {
+        document.exitFullscreen().catch(err => {
+          console.error('Exit fullscreen failed:', err);
+        });
+      }
+    } catch (error) {
+      console.error('Fullscreen error:', error);
+    }
+  }, []);
+
+  // Touch zoom handlers
+  const handleTouchStart = useCallback((e) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastTouchDistance.current = Math.sqrt(dx * dx + dy * dy);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (lastTouchDistance.current) {
+        const scale = distance / lastTouchDistance.current;
+        if (scale > 1.1) {
+          handleZoomIn();
+          lastTouchDistance.current = distance;
+        } else if (scale < 0.9) {
+          handleZoomOut();
+          lastTouchDistance.current = distance;
+        }
+      }
+      lastTouchDistance.current = distance;
+    }
+  }, []);
+
+  // Reset state when image changes
+  useEffect(() => {
+    if (isOpen) {
+      setZoom(1);
+      setPosition({ x: 0, y: 0 });
+      setRotation(0);
+      setIsImageLoaded(false);
+      setIsDragging(false);
+    }
+  }, [isOpen, imageUrl]);
+
+  // Handle keyboard events
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isOpen) return;
+      
+      switch (e.key) {
+        case 'Escape':
+          onClose();
+          break;
+        case '+':
+        case '=':
+          handleZoomIn();
+          break;
+        case '-':
+          handleZoomOut();
+          break;
+        case 'r':
+        case 'R':
+          handleRotate();
+          break;
+        case '0':
+          handleReset();
+          break;
+        case 'f':
+        case 'F':
+          handleFullscreen();
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setPosition(prev => ({ ...prev, y: prev.y + 50 }));
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setPosition(prev => ({ ...prev, y: prev.y - 50 }));
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          setPosition(prev => ({ ...prev, x: prev.x + 50 }));
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          setPosition(prev => ({ ...prev, x: prev.x - 50 }));
+          break;
+        default:
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, handleZoomIn, handleZoomOut, handleRotate, handleReset, handleFullscreen]);
+
+  // Handle wheel zoom
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (!isOpen) return;
+      e.preventDefault();
+      
+      if (e.deltaY < 0) {
+        handleZoomIn();
+      } else {
+        handleZoomOut();
+      }
+    };
+
+    const container = imageContainerRef.current;
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
+      return () => container.removeEventListener('wheel', handleWheel);
+    }
+  }, [isOpen]);
+
+  // Prevent body scroll when viewer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   // Mouse drag handlers with GPU acceleration
   const handleMouseDown = useCallback((e) => {
@@ -284,6 +316,7 @@ const ImageViewer = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div 
+          ref={viewerRef}
           className="image-viewer-overlay"
           variants={overlayVariants}
           initial="hidden"
@@ -457,6 +490,18 @@ const ImageViewer = ({
               title="Download"
             >
               <Download size={22} />
+            </motion.button>
+
+            {/* Fullscreen */}
+            <motion.button
+              className="viewer-action-btn"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+              onClick={handleFullscreen}
+              title="Fullscreen (F)"
+            >
+              <Fullscreen size={22} />
             </motion.button>
           </motion.div>
         </motion.div>

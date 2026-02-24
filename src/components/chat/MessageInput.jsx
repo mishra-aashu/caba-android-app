@@ -311,13 +311,16 @@ const MessageInput = ({
   };
 
   return (
-    <div className={`chat-input-container ${showEmojiPicker ? 'emoji-open' : ''}`} ref={containerRef} style={{ position: 'relative' }}>
-      <AttachmentMenu
-        isOpen={showAttachmentMenu}
-        onClose={() => setShowAttachmentMenu(false)}
-        onFileSelect={handleFileSelect}
-        onQuickSelect={!isDesktop ? () => setShowQuickReplies(true) : undefined}
-      />
+    <div className={`chat-input-container ${showEmojiPicker ? 'emoji-open' : ''}`} ref={containerRef} style={{ position: 'relative', zIndex: 1 }}>
+      {/* Attachment Menu - Positioned relative to input container */}
+      <div className="attachment-menu-wrapper">
+        <AttachmentMenu
+          isOpen={showAttachmentMenu}
+          onClose={() => setShowAttachmentMenu(false)}
+          onFileSelect={handleFileSelect}
+          onQuickSelect={!isDesktop ? () => setShowQuickReplies(true) : undefined}
+        />
+      </div>
 
 
 

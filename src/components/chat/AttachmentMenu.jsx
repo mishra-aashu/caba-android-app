@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Image, Video, X, MessageSquarePlus } from 'lucide-react';
+import { Image, Video, X, Paperclip } from 'lucide-react';
 import './AttachmentMenu.css';
 
 const AttachmentMenu = ({ isOpen, onClose, onFileSelect, onQuickSelect }) => {
@@ -15,42 +15,53 @@ const AttachmentMenu = ({ isOpen, onClose, onFileSelect, onQuickSelect }) => {
     if (file) {
       onFileSelect(file);
     }
-    // Reset the input value to allow selecting the same file again
     event.target.value = null;
     onClose();
   };
 
+  // Debug: Add console log to check if component is being called
+  React.useEffect(() => {
+    console.log('AttachmentMenu isOpen:', isOpen);
+  }, [isOpen]);
+
   if (!isOpen) {
+    console.log('AttachmentMenu: Returning null because isOpen is false');
     return null;
   }
 
+  console.log('AttachmentMenu: Rendering popup');
   return (
     <div className="attachment-menu-modal">
       <div className="attachment-menu-header">
         <h3>Attach</h3>
-        <button onClick={onClose} className="close-btn"><X size={20} /></button>
+        <button onClick={onClose} className="close-btn">
+          <X size={18} />
+        </button>
       </div>
+      
       <div className="attachment-options">
         <div className="attachment-option" onClick={() => handleIconClick('image/*')}>
           <div className="icon-wrapper photo-option">
-            <Image size={24} />
+            <Image size={20} />
           </div>
           <span>Photo</span>
         </div>
+        
         <div className="attachment-option" onClick={() => handleIconClick('video/*')}>
           <div className="icon-wrapper video-option">
-            <Video size={24} />
+            <Video size={20} />
           </div>
           <span>Video</span>
         </div>
+        
         <div className="attachment-option" onClick={() => { onQuickSelect && onQuickSelect(); onClose(); }}>
           <div className="icon-wrapper quick-option">
-            <MessageSquarePlus size={24} />
+            <Paperclip size={20} />
           </div>
-          <span>Quick MSG</span>
+          <span>File</span>
         </div>
-
       </div>
+      
       <input
         type="file"
         ref={fileInputRef}

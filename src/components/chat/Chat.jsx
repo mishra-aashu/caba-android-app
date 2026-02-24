@@ -1828,7 +1828,7 @@ const Chat = () => {
           {loadingMore && (
             <div className="load-more-indicator">
               <div className="loading-spinner"></div>
-              <p>Loading more messages...</p>
+              <p>Loading older messages...</p>
             </div>
           )}
 

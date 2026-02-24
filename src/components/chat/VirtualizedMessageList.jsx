@@ -190,40 +190,6 @@ const VirtualizedMessageList = ({
     onSenderClick,
   ]);
 
-  // Memoized date header renderer
-  const renderDateHeader = useCallback((index) => {
-    if (index >= messages.length) return null;
-    
-    const message = messages[index];
-    if (!message) return null;
-    
-    const createdAt = message.created_at ?? message.createdAt;
-    if (!createdAt) return null;
-    
-    const date = new Date(createdAt);
-    if (isNaN(date.getTime())) return null;
-    
-    // Check if this is the first message of the day
-    const prevMessage = index > 0 ? messages[index - 1] : null;
-    const prevDate = prevMessage 
-      ? new Date(prevMessage.created_at ?? prevMessage.createdAt)
-      : null;
-    
-    const isFirstOfDay = !prevDate || date.toDateString() !== prevDate.toDateString();
-    
-    if (isFirstOfDay) {
-      return (
-        <div className="date-separator" key={`date-${date.toDateString()}`}>
-          <div className="date-pill">
-            {date.toLocaleDateString()}
-          </div>
-        </div>
-      );
-    }
-    
-    return null;
-  }, [messages]);
-
   // Combine messages with date headers
   const itemsWithHeaders = useMemo(() => {
     const items = [];
@@ -319,8 +285,8 @@ const VirtualizedMessageList = ({
     >
       <Virtuoso
         ref={virtuosoRef}
-        data={messages}
-        initialTopMostItemIndex={initialTopMostItemIndex ?? (messages.length > 0 ? messages.length - 1 : 0)}
+        data={itemsWithHeaders}
+        initialTopMostItemIndex={initialTopMostItemIndex ?? (itemsWithHeaders.length > 0 ? itemsWithHeaders.length - 1 : 0)}
         followOutput={'auto'} // Always auto for professional behavior
         atBottomStateChange={(isAtBottom) => {
           // Properly track bottom state
@@ -334,8 +300,8 @@ const VirtualizedMessageList = ({
             onScroll({ isAtTop });
           }
         }}
-        itemContent={renderMessage}
-        computeItemKey={(index, message) => message?.id || message?.tempId || `msg-${index}`}
+        itemContent={renderItem}
+        computeItemKey={(index, item) => item?.key || `item-${index}`}
         overscan={50} // Reduced for better performance
         alignToBottom={true}
         style={{ 

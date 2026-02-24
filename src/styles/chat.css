@@ -125,10 +125,23 @@ body.light-mode .scroll-bottom-btn {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Fix Quick Replies Menu */
-body.light-mode .quick-replies-menu {
-  background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+/* Quick Replies Menu - Simplified */
+.quick-replies-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-color);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+  margin-bottom: 12px;
+  z-index: 1000;
+  min-width: 280px;
+  animation: slideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 body.light-mode .quick-reply-option {
@@ -278,6 +291,125 @@ body.light-mode .chat-loading p {
   font-size: 1rem;
   font-weight: 500;
   margin: 0;
+}
+
+/* --- Load More Indicator --- */
+.load-more-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 8px;
+  margin: 8px 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 80px;
+  position: relative;
+  overflow: hidden;
+  /* Smooth appearance animation */
+  animation: slideDown 0.3s ease-out;
+  transition: all 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.load-more-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.load-more-indicator .loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top: 3px solid var(--brand-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+  /* Smooth fade-in */
+  animation: spin 1s linear infinite, fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.load-more-indicator p {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+  text-align: center;
+  opacity: 0.9;
+}
+
+/* Light mode adjustments */
+body.light-mode .load-more-indicator {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .load-more-indicator .loading-spinner {
+  border-color: rgba(0, 0, 0, 0.1);
+  border-top-color: var(--brand-primary);
+}
+
+body.light-mode .load-more-indicator p {
+  color: var(--text-secondary);
+}
+
+/* Mobile responsive design */
+@media (max-width: 480px) {
+  .load-more-indicator {
+    margin: 6px 4px;
+    padding: 12px 6px;
+    min-height: 60px;
+    border-radius: 8px;
+  }
+  
+  .load-more-indicator .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+    margin-bottom: 8px;
+  }
+  
+  .load-more-indicator p {
+    font-size: 13px;
+  }
 }
 
 .messages-container {
@@ -497,11 +629,14 @@ body.light-mode .chat-loading p {
   flex-shrink: 0; /* यह कभी नहीं सिकुड़ेगा */
   width: 100%;
   padding: 0.5rem 1rem;
+  /* Ensure stable positioning for child elements */
+  position: relative;
+  z-index: 10;
+  /* Prevent layout shift during animations */
+  isolation: isolate;
   padding-bottom: calc(0.5rem + var(--sab));
   padding-bottom: env(safe-area-inset-bottom); /* iPhone के होम बार के लिए */
   /* FIXED: Changed from 'sticky' to flex layout - last item in flex column */
-  position: relative;
-  z-index: 10;
   background: transparent;
   transition: all 0.3s ease;
   display: flex;
@@ -724,21 +859,47 @@ body.light-mode .chat-loading p {
 .date-separator {
   display: flex;
   justify-content: center;
-  margin: 10px 0;
+  margin: 16px 0 8px 0;
+  position: relative;
+  z-index: 5;
 }
 
 .date-pill {
   background-color: var(--surface-color);
   color: var(--text-secondary);
-  padding: 5px 12px;
-  border-radius: 8px;
+  padding: 6px 16px;
+  border-radius: 12px;
   font-size: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.date-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme='dark'] .date-pill {
   background-color: #1f2c34;
   color: #8696a0;
+}
+
+/* Mobile responsive date separator */
+@media (max-width: 480px) {
+  .date-separator {
+    margin: 12px 0 6px 0;
+  }
+  
+  .date-pill {
+    padding: 4px 12px;
+    font-size: 11px;
+    border-radius: 8px;
+  }
 }
 
 [data-theme='dark'] .btn-mic {
@@ -827,43 +988,6 @@ body.light-mode .chat-loading p {
 .btn-stop-recording:hover {
   background-color: var(--error-color, #cc0000);
   transform: scale(1.1);
-}
-
-/* --- Quick Replies Menu --- */
-.quick-replies-menu {
-  position: absolute;
-  bottom: 80px;
-  /* Position above input bar */
-  left: 10px;
-  right: 10px;
-  background-color: var(--surface-color);
-  border-radius: 16px;
-  padding: 1rem;
-  box-shadow: var(--shadow-md);
-  z-index: 998;
-  /* Below attachment menu but above other content */
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  animation: slideUp 0.2s ease-out;
-}
-
-.quick-reply-option {
-  padding: 8px 15px;
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
-  background-color: transparent;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.quick-reply-option:hover {
-  background-color: var(--bg-color);
-  border-color: var(--brand-primary);
-  color: var(--brand-primary);
 }
 
 /* Animation for the popup menus */
