@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import useAuthStore from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { FaGoogle, FaCheckCircle, FaInfoCircle } from 'react-icons/fa';
 import '../../styles/LoginPage.css'; // Correctly import the dedicated CSS file
 
 const Login = () => {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, isServerUnreachable, clearServerError } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +17,7 @@ const Login = () => {
       return;
     }
     try {
+      clearServerError();
       setLoading(true);
       setError('');
       const result = await signInWithGoogle();
@@ -47,7 +48,7 @@ const Login = () => {
 
   return (
     <div className="art-login-container gpu-max">
-      
+
       {/* About Button - Top Right */}
       <button className="about-btn-top-right" onClick={handleAboutClick} title="About">
         <FaInfoCircle />
@@ -59,7 +60,7 @@ const Login = () => {
       <div className="noise-overlay gpu-accelerated"></div>
 
       <div className="art-content">
-        
+
         {/* --- LEFT SIDE: The Art/Story --- */}
         <div className="art-hero-section gpu-accelerated">
           <div className="brand-badge gpu-accelerated">CaBa Messenger</div>
@@ -68,10 +69,10 @@ const Login = () => {
             <span className="italic-text gpu-accelerated">Conversation.</span>
           </h1>
           <p className="art-desc gpu-accelerated">
-            Experience messaging that feels as authentic as a handwritten letter. 
+            Experience messaging that feels as authentic as a handwritten letter.
             Secure, simple, and beautifully designed for you.
           </p>
-          
+
           <div className="art-features gpu-accelerated">
             <div className="feat-item gpu-accelerated"><FaCheckCircle /> Private by default</div>
             <div className="feat-item gpu-accelerated"><FaCheckCircle /> Infinite history</div>
@@ -82,12 +83,18 @@ const Login = () => {
         <div className="login-wrapper gpu-accelerated">
           <div className="paper-card gpu-accelerated">
             <div className="card-texture"></div> {/* Paper Grain */}
-            
+
             <div className="card-header">
               <h2>Welcome Back</h2>
               <p>Sign in to continue your story</p>
             </div>
-            
+
+            {isServerUnreachable && (
+              <div className="error-message server-error-banner">
+                <FaInfoCircle /> facing some issue with the server, try after sometime!!!
+              </div>
+            )}
+
             {error && <div className="error-message">{error}</div>}
 
             <button className="google-art-btn gpu-accelerated" onClick={handleGoogleLogin} disabled={loading || !agreed}>

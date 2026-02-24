@@ -86,6 +86,13 @@ const MessageInput = ({
   const handleSend = async () => {
     // Prioritize sending voice if available
     if (voiceBlob) {
+      if (!navigator.onLine) {
+        // [FIX 1] Offline: Pass blob directly to handleSendMedia in Chat.jsx
+        onSendMedia(voiceBlob, 'voice');
+        setVoiceBlob(null);
+        return;
+      }
+
       setIsUploading(true);
       // Convert blob to file
       const voiceFile = new File([voiceBlob], "voice.webm", { type: "audio/webm" });
@@ -102,7 +109,6 @@ const MessageInput = ({
     // Then media if a file is selected
     else if (filePreview) {
       const { file } = filePreview;
-      setIsUploading(true);
 
       let processedFile;
       const fileType = file.type.startsWith('image/') ? 'image' : 'video';
@@ -119,6 +125,14 @@ const MessageInput = ({
         return;
       }
 
+      if (!navigator.onLine) {
+        // [FIX 1] Offline: Pass processed file directly to handleSendMedia in Chat.jsx
+        onSendMedia(processedFile, fileType);
+        setFilePreview(null);
+        return;
+      }
+
+      setIsUploading(true);
       const mediaPath = await uploadMedia(processedFile, currentUser.id);
       setIsUploading(false);
 

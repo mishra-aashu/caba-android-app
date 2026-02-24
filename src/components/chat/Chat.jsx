@@ -182,7 +182,7 @@ const Chat = () => {
   // 🔥 ZUSTAND STORE SYNC: Keep the Zustand store in sync with local state
   // This enables granular re-renders - only VirtualizedMessageList re-renders when messages change
   const setStoreMessages = useChatStore(selectSetMessages);
-  
+
   useEffect(() => {
     if (messages.length > 0) {
       setStoreMessages(messages);
@@ -982,8 +982,12 @@ const Chat = () => {
   };
 
 
-  const handleSendMedia = async (mediaPath, mediaType) => {
-    if (!mediaPath || !currentUser) return;
+  const handleSendMedia = async (mediaPathOrFile, mediaType) => {
+    if (!mediaPathOrFile || !currentUser) return;
+
+    const isFile = mediaPathOrFile instanceof File || mediaPathOrFile instanceof Blob;
+    const mediaPath = isFile ? null : mediaPathOrFile;
+    const localFile = isFile ? mediaPathOrFile : null;
 
     const tempId = Date.now();
     const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
@@ -1007,10 +1011,15 @@ const Chat = () => {
     };
 
     // Optimistic UI update
+    // If it's a file (offline), create a temporary URL for immediate preview
+    const objectUrl = localFile ? URL.createObjectURL(localFile) : null;
+
     const optimisticMsg = {
       ...dbToFrontend(dbMessageData),
       sender: currentUser,
-      tempId: tempId
+      tempId: tempId,
+      // Use the objectUrl for local preview if we don't have a storage path yet
+      media_url: objectUrl || (mediaPath ? getPublicMediaUrl(mediaPath) : null)
     };
 
     setMessages(prev => [...prev, optimisticMsg]);
@@ -1018,13 +1027,14 @@ const Chat = () => {
 
     try {
       // 1. Persistent Save to local Dexie
+      // We store the message record first
       await db.messages.add({
         ...dbMessageData,
         id: `temp_media_${tempId}`,
         tempId: tempId
       });
 
-      if (navigator.onLine) {
+      if (navigator.onLine && !localFile) {
         const { data, error } = await supabase
           .from('messages')
           .insert(dbMessageData)
@@ -1045,9 +1055,14 @@ const Chat = () => {
         });
 
       } else {
-        // 2. Offline: Add to sync queue with precision tempId
-        await addToSyncQueue('send_message', { ...dbMessageData, tempId });
-        toast.success('Media queued for sync (offline)');
+        // 2. Offline OR File provided (needs upload): Add to sync queue
+        // For files, we add the actual file object to the payload
+        await addToSyncQueue('send_message', {
+          ...dbMessageData,
+          tempId,
+          file: localFile // This will be stored as a Blob in IndexedDB by Dexie
+        });
+        toast.success(localFile ? 'Media queued for upload/sync' : 'Media queued for sync (offline)');
       }
 
       NotificationSound.playMessageNotification();
@@ -1587,7 +1602,7 @@ const Chat = () => {
   // Memoize the header and other static parts if needed, but defining a component inside a component is a bug
 
   return (
-    <motion.div 
+    <motion.div
       className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
       // FIX: Added 'layout' prop to fix the Framer Motion transition bug
       // This tells Framer Motion to properly handle layout changes during transitions

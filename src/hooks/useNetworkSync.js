@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import db from '../db/db';
 import { supabase } from '../config/supabase';
+import { uploadMedia, uploadVoiceMessage } from '../services/mediaService';
+import useChatStore from '../store/useChatStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * useNetworkSync monitors online/offline status and processes the sync_queue
@@ -8,6 +11,7 @@ import { supabase } from '../config/supabase';
  */
 const useNetworkSync = () => {
     const isSyncing = useRef(false);
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         const processQueue = async () => {
@@ -42,30 +46,68 @@ const useNetworkSync = () => {
                         }
 
                         let error = null;
+                        let syncedData = null;
 
                         switch (item.type) {
                             case 'send_message':
-                                // Extract tempId from payload for precise reconciliation
-                                const { tempId, ...supabasePayload } = item.payload;
+                                // [FIX 1] Offline Media Upload
+                                // Extract payload and potential local file
+                                const { tempId, file, ...supabasePayload } = item.payload;
 
-                                const { data: syncedData, error: msgError } = await supabase
+                                let finalPayload = { ...supabasePayload };
+
+                                // If there's a local file, upload it first
+                                if (file) {
+                                    console.log('Syncing media file for message...', item.id);
+                                    let mediaPath = null;
+
+                                    if (supabasePayload.media_type === 'voice') {
+                                        mediaPath = await uploadVoiceMessage(file, session.user.id);
+                                    } else {
+                                        mediaPath = await uploadMedia(file, session.user.id);
+                                    }
+
+                                    if (!mediaPath) {
+                                        error = { message: 'Failed to upload media during sync' };
+                                        break;
+                                    }
+
+                                    finalPayload.media_path = mediaPath;
+                                }
+
+                                const { data: msgData, error: msgError } = await supabase
                                     .from('messages')
-                                    .insert(supabasePayload)
+                                    .insert(finalPayload)
                                     .select()
                                     .single();
 
-                                if (!msgError && syncedData) {
+                                if (!msgError && msgData) {
+                                    syncedData = msgData;
                                     // 2. Precision Reconciliation: Use indexed tempId for O(1) lookup
                                     await db.transaction('rw', db.messages, async () => {
                                         if (tempId) {
-                                            // Or better: use the indexed tempId if available
                                             const recordByTempId = await db.messages.where('tempId').equals(tempId).first();
                                             if (recordByTempId) {
                                                 await db.messages.delete(recordByTempId.id);
                                             }
                                         }
-                                        await db.messages.add(syncedData);
+                                        await db.messages.add(msgData);
                                     });
+
+                                    // [FIX 2] Real-time UI Invalidation (Zustand)
+                                    // Instantly update the UI status from 'pending' to 'sent'
+                                    if (tempId) {
+                                        useChatStore.getState().replaceTempMessage(tempId, {
+                                            ...msgData,
+                                            status: 'sent',
+                                            sender: useChatStore.getState().messages.find(m => m.tempId === tempId)?.sender
+                                        });
+                                    }
+
+                                    // Invalidate React Query if applicable
+                                    if (finalPayload.chat_id) {
+                                        queryClient.invalidateQueries({ queryKey: ['messages', finalPayload.chat_id] });
+                                    }
                                 }
                                 error = msgError;
                                 break;
@@ -118,7 +160,7 @@ const useNetworkSync = () => {
         return () => {
             window.removeEventListener('online', handleOnline);
         };
-    }, []);
+    }, [queryClient]);
 };
 
 export default useNetworkSync;

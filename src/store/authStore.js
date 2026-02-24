@@ -18,6 +18,9 @@ const useAuthStore = create((set, get) => ({
   isAuthenticated: false,
   loading: true,
   isPhoneAuth: false,
+  isServerUnreachable: false,
+
+  clearServerError: () => set({ isServerUnreachable: false }),
 
   initializeAuth: async () => {
     try {
@@ -41,12 +44,12 @@ const useAuthStore = create((set, get) => ({
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) {
-          console.warn('⚠️ Supabase getSession error (timeout/offline):', error.message);
-        } else {
-          currentSession = data?.session;
+          console.warn('⚠️ Supabase getSession warning (likely offline):', error.message);
+          // Don't show server error banner on init - assume offline mode
         }
+        currentSession = data?.session;
       } catch (sessionError) {
-        console.error('❌ Supabase getSession threw an error:', sessionError);
+        console.warn('ℹ️ Supabase getSession handled (likely offline):', sessionError.message);
       }
 
       if (currentSession?.user) {
@@ -280,6 +283,7 @@ const useAuthStore = create((set, get) => ({
   },
 
   signInWithGoogle: async () => {
+    set({ isServerUnreachable: false }); // Reset error state on new attempt
     try {
       if (Capacitor.isNativePlatform()) {
         const googleUser = await GoogleAuth.signIn();
@@ -309,6 +313,18 @@ const useAuthStore = create((set, get) => ({
       }
     } catch (error) {
       console.error("Google Sign In Error:", error);
+
+      // ✅ Trigger banner only on active failure
+      const isConnectionError =
+        error.message?.toLowerCase().includes('fetch') ||
+        error.message?.toLowerCase().includes('network') ||
+        error.message?.toLowerCase().includes('timeout') ||
+        error.name === 'TypeError'; // fetch usually throws TypeError on network failure
+
+      if (isConnectionError) {
+        set({ isServerUnreachable: true });
+      }
+
       return { success: false, error: error.message };
     }
   },
