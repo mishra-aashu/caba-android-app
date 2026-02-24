@@ -10,6 +10,7 @@ import { App } from '@capacitor/app';
 let lastRefreshTime = 0;
 const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum
 let isHandlingSession = false; // Prevent duplicate handleUserSession calls
+let isRefreshing = false; // ✅ Prevent concurrent refreshSession calls
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -24,54 +25,27 @@ const useAuthStore = create((set, get) => ({
 
   initializeAuth: async () => {
     try {
-      // Check for phone auth first
-      const phoneUser = localStorage.getItem('phoneAuthUser');
-      const phoneToken = localStorage.getItem('phoneAuthToken');
+      // Supabase handles session persistence automatically.
+      // We rely on onAuthStateChange to populate the store.
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (phoneUser && phoneToken) {
-        const user = JSON.parse(phoneUser);
-        set({
-          user,
-          dbUser: user,
-          isAuthenticated: true,
-          isPhoneAuth: true,
-          loading: false
-        });
-        return;
-      }
-      // ✅ Get initial session safely
-      let currentSession = null;
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) {
-          console.warn('⚠️ Supabase getSession warning (likely offline):', error.message);
-          // Don't show server error banner on init - assume offline mode
-        }
-        currentSession = data?.session;
-      } catch (sessionError) {
-        console.warn('ℹ️ Supabase getSession handled (likely offline):', sessionError.message);
+      if (sessionError) {
+        console.warn('⚠️ Supabase getSession warning (likely offline):', sessionError.message);
       }
 
-      if (currentSession?.user) {
-        console.log('✅ Initial session found:', currentSession.user.email);
+      if (session?.user) {
+        console.log('✅ Initial session found:', session.user.email);
         set({
-          user: currentSession.user,
-          session: currentSession,
+          user: session.user,
+          session: session,
           isAuthenticated: true,
           loading: false
         });
-
-        // Don't strongly await it if we are just concerned about auth, but keeping existing behavior
-        await get().handleUserSession(currentSession.user);
+        await get().handleUserSession(session.user);
       } else {
-        console.log('ℹ️ No initial session found or server unreachable');
-        set({
-          user: null,
-          session: null,
-          isAuthenticated: false,
-          loading: false
-        });
+        set({ loading: false });
       }
+
 
       // ✅ CLEAN auth state listener — no unnecessary side effects
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -161,17 +135,28 @@ const useAuthStore = create((set, get) => ({
         }
 
         // ✅ Token expiring soon — refresh it
+        if (isRefreshing) {
+          console.log(`⏭️ Skip refresh (${eventName}) — already in progress`);
+          return;
+        }
+
         console.log(`🔄 Refreshing token (${eventName})`);
+        isRefreshing = true;
         lastRefreshTime = now;
 
-        const { error } = await supabase.auth.refreshSession();
-        if (error) {
-          console.error(`❌ Refresh failed (${eventName}):`, error);
-          // ✅ If refresh fails, try to re-authenticate
-          if (error.message?.includes('refresh_token')) {
-            console.warn('🔒 Refresh token invalid — signing out');
-            get().signOut();
+        try {
+          const { error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error(`❌ Refresh failed (${eventName}):`, error);
+            // ✅ If refresh fails with specific auth errors, try to re-authenticate
+            const fatalErrors = ['refresh_token_not_found', 'invalid_grant', 'expired_token'];
+            if (fatalErrors.some(errMsg => error.message?.toLowerCase().includes(errMsg))) {
+              console.warn('🔒 Fatal refresh error — signing out');
+              get().signOut();
+            }
           }
+        } finally {
+          isRefreshing = false;
         }
       };
 
@@ -329,33 +314,9 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  signInWithPhone: async (user) => {
-    // Store phone auth data
-    localStorage.setItem('phoneAuthUser', JSON.stringify(user));
-    localStorage.setItem('phoneAuthToken', 'phone_auth_' + user.id);
+  // signInWithPhone (Legacy) was removed for security.
+  // Phone linking is handled in handleUserSession and separate onboarding UI.
 
-    // Set auth state
-    set({
-      user,
-      dbUser: dbToFrontend(user),
-      isAuthenticated: true,
-      isPhoneAuth: true
-    });
-
-    // Initialize Supabase session for phone users to enable DB operations
-    try {
-      const { error } = await supabase.auth.setSession({
-        access_token: 'phone_auth_' + user.id,
-        refresh_token: 'phone_refresh_' + user.id
-      });
-
-      if (error) {
-        console.warn('Phone auth session setup failed, DB operations may be limited:', error);
-      }
-    } catch (sessionError) {
-      console.warn('Could not establish Supabase session for phone user:', sessionError);
-    }
-  },
 
   // ✅ Set offline before signing out
   signOut: async () => {
@@ -377,8 +338,7 @@ const useAuthStore = create((set, get) => ({
     }
 
     await supabase.auth.signOut();
-    localStorage.removeItem('phoneAuthUser');
-    localStorage.removeItem('phoneAuthToken');
+
     set({
       user: null,
       session: null,

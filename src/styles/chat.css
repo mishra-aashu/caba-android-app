@@ -232,13 +232,15 @@ body.light-mode .chat-loading p {
 .chat-screen {
   display: flex;
   flex-direction: column;
-  /* 100dvh ही असली जादू है जो URL बार के हिसाब से खुद को एडजस्ट करता है */
-  height: 100dvh; 
+  /* Use dynamic viewport height that adjusts when keyboard opens */
+  height: 100dvh;
+  height: var(--app-height, 100dvh);
   width: 100%;
   background: var(--background);
   position: relative;
   overflow: hidden;
-  overscroll-behavior-y: none; /* यह PWA को रबर की तरह खिंचने से रोकेगा */
+  overscroll-behavior-y: none;
+  /* यह PWA को रबर की तरह खिंचने से रोकेगा */
   /* GPU acceleration */
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -318,6 +320,7 @@ body.light-mode .chat-loading p {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -339,6 +342,7 @@ body.light-mode .chat-loading p {
   0% {
     left: -100%;
   }
+
   100% {
     left: 100%;
   }
@@ -361,6 +365,7 @@ body.light-mode .chat-loading p {
     opacity: 0;
     transform: scale(0.8);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -399,22 +404,24 @@ body.light-mode .load-more-indicator p {
     min-height: 60px;
     border-radius: 8px;
   }
-  
+
   .load-more-indicator .loading-spinner {
     width: 24px;
     height: 24px;
     border-width: 2px;
     margin-bottom: 8px;
   }
-  
+
   .load-more-indicator p {
     font-size: 13px;
   }
 }
 
 .messages-container {
-  flex: 1; /* बची हुई सारी जगह यह ले लेगा */
-  min-height: 0; /* यह बहुत ज़रूरी है, वरना फ्लेक्सबॉक्स ओवरफ्लो कर जाता है */
+  flex: 1;
+  /* बची हुई सारी जगह यह ले लेगा */
+  min-height: 0;
+  /* यह बहुत ज़रूरी है, वरना फ्लेक्सबॉक्स ओवरफ्लो कर जाता है */
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
   /* Momentum scrolling for mobile */
@@ -626,7 +633,8 @@ body.light-mode .load-more-indicator p {
 /* --- Chat Input Container --- */
 /* FIX: Use flexbox instead of sticky to work with Framer Motion transitions */
 .chat-input-container {
-  flex-shrink: 0; /* यह कभी नहीं सिकुड़ेगा */
+  flex-shrink: 0;
+  /* यह कभी नहीं सिकुड़ेगा */
   width: 100%;
   padding: 0.5rem 1rem;
   /* Ensure stable positioning for child elements */
@@ -634,15 +642,22 @@ body.light-mode .load-more-indicator p {
   z-index: 10;
   /* Prevent layout shift during animations */
   isolation: isolate;
-  padding-bottom: calc(0.5rem + var(--sab));
-  padding-bottom: env(safe-area-inset-bottom); /* iPhone के होम बार के लिए */
-  /* FIXED: Changed from 'sticky' to flex layout - last item in flex column */
-  background: transparent;
-  transition: all 0.3s ease;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+  background: var(--surface);
+  /* Ensure no transparency gaps */
+  transition: transform 0.3s cubic-bezier(0.1, 0.7, 0.1, 1);
   display: flex;
   flex-direction: column;
-  /* Respect keyboard height when open */
-  margin-bottom: var(--keyboard-height, 0px);
+  /* Dynamic margin-bottom if needed for non-dvh environments */
+  margin-bottom: 0px;
+}
+
+/* Adjust input container when keyboard is open on mobile */
+@media (max-width: 768px) {
+  .chat-input-container {
+    /* When keyboard is open, reduce bottom padding to minimize gap */
+    padding-bottom: calc(env(safe-area-inset-bottom, 8px) + max(0px, var(--keyboard-height, 0px) * 0.1));
+  }
 }
 
 /* --- Desktop Specific Layout (Original Style) --- */
@@ -894,7 +909,7 @@ body.light-mode .load-more-indicator p {
   .date-separator {
     margin: 12px 0 6px 0;
   }
-  
+
   .date-pill {
     padding: 4px 12px;
     font-size: 11px;
@@ -1928,9 +1943,11 @@ body.light-mode .load-more-indicator p {
   0% {
     box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
   }
+
   50% {
     box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
   }
@@ -2534,9 +2551,11 @@ body.light-mode .load-more-indicator p {
   0% {
     box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
   }
+
   50% {
     box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
   }

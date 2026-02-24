@@ -59,6 +59,7 @@ import OfflineIndicator from './components/common/OfflineIndicator';
 import ViewportManager from './components/layout/ViewportManager';
 import MainLayout from './components/MainLayout';
 import Chat from './components/chat/Chat';
+const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
 import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
 import { requestPersistentStorage } from './db/db';
@@ -66,6 +67,8 @@ import { DialogProvider } from './contexts/DialogContext';
 import GlobalDialog from './components/common/GlobalDialog';
 import './styles/offline-indicator.css';
 import './styles/emoji-styles.css';
+
+import SyncIndicator from './components/common/SyncIndicator';
 
 // Initialize Capacitor Updater
 if (Capacitor.isNativePlatform()) {
@@ -114,6 +117,8 @@ const AppContent = () => {
         <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
         {/* Group chat route - uses same Chat component but detects group */}
         <Route path="chat/:chatId/group" element={<Chat key={location.pathname} />} />
+        <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
+        <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
         <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
         <Route path="user-details/:id" element={<UserDetails />} />
         <Route path="groups" element={<GroupsPage />} />
@@ -269,6 +274,7 @@ const App = () => {
                 <CallStatusIndicator />
                 <IncomingCallModal />
                 <GroupIncomingCallNotification />
+                <SyncIndicator />
                 <Toaster
                   position="bottom"
                   containerStyle={{

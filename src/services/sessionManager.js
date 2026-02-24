@@ -10,11 +10,22 @@ class SessionManager {
 
   async initialize() {
     try {
-      const storedUser = this.getStoredUser();
-      if (storedUser) {
-        this.currentUser = storedUser;
-        this.notifyListeners();
-        return storedUser;
+      const { data: { session }, error } = await this.supabase.auth.getSession();
+      if (error) throw error;
+
+      if (session?.user) {
+        // Fetch full profile from users table
+        const { data: userData, error: dbError } = await this.supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (!dbError && userData) {
+          this.currentUser = userData;
+          this.notifyListeners();
+          return userData;
+        }
       }
       return null;
     } catch (error) {
@@ -23,111 +34,12 @@ class SessionManager {
     }
   }
 
-  storeUser(user) {
-    if (user) {
-      try {
-        sessionStorage.setItem('_auth_user', JSON.stringify(user));
-      } catch (error) {
-        console.error('Error storing user:', error);
-      }
-    }
-  }
+  // sessionStorage methods removed to prevent Auth desync.
+  // We rely on Supabase session persistence and useAuthStore.
 
-  getStoredUser() {
-    try {
-      const stored = sessionStorage.getItem('_auth_user');
-      return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-      console.error('Error retrieving stored user:', error);
-      return null;
-    }
-  }
+  // Legacy Phone+Password Auth methods were removed for security.
+  // We now use pure Google OAuth with phone number linking.
 
-  clearStoredUser() {
-    try {
-      sessionStorage.removeItem('_auth_user');
-    } catch (error) {
-      console.error('Error clearing stored user:', error);
-    }
-  }
-
-  async signInWithPhonePassword(phone, password) {
-    try {
-      const { data: userData, error: userError } = await this.supabase
-        .from('users')
-        .select('*')
-        .eq('phone', phone)
-        .single();
-
-      if (userError || !userData) {
-        return { success: false, error: 'Phone number not registered' };
-      }
-
-      if (userData.password !== password) {
-        return { success: false, error: 'Invalid password' };
-      }
-
-      if (!userData.email_confirmed_at) {
-        return { success: false, error: 'Email not confirmed. Please check your email and confirm your account.' };
-      }
-
-      const { data: updatedUser, error: updateError } = await this.supabase
-        .from('users')
-        .update({ is_online: true, last_seen: new Date().toISOString() })
-        .eq('id', userData.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error("Error updating user status on sign-in", updateError);
-      }
-
-      this.currentUser = updatedUser || userData;
-      this.storeUser(this.currentUser);
-      this.notifyListeners();
-
-      // Log activity
-      logUserActivity(this.currentUser.id, 'login', { method: 'phone' });
-
-      return { success: true, data: { user: this.currentUser } };
-    } catch (error) {
-      console.error('Phone sign in error:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  async signUpWithPhonePassword(phone, password, name, email) {
-    try {
-      const { data: dbUser, error: dbError } = await this.supabase
-        .from('users')
-        .insert([{
-          phone: phone,
-          name: name,
-          password: password,
-          email: email,
-          email_confirmed_at: new Date().toISOString(),
-          is_online: true,
-          created_at: new Date().toISOString(),
-          last_seen: new Date().toISOString()
-        }])
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      this.currentUser = dbUser;
-      this.storeUser(dbUser);
-      this.notifyListeners();
-
-      // Log activity
-      logUserActivity(dbUser.id, 'signup', { method: 'phone' });
-
-      return { success: true, data: { user: dbUser } };
-    } catch (error) {
-      console.error('Phone sign up error:', error);
-      return { success: false, error: error.message };
-    }
-  }
 
   async signInWithGoogle() {
     try {
@@ -176,8 +88,9 @@ class SessionManager {
               id: user.id,
               email: user.email,
               name: user.user_metadata?.full_name || user.email.split('@')[0],
+
               phone: user.user_metadata?.phone || null,
-              password: null,
+
               email_confirmed_at: new Date().toISOString(),
               is_online: true,
               created_at: new Date().toISOString(),
@@ -209,7 +122,6 @@ class SessionManager {
         }
 
         this.currentUser = userData;
-        this.storeUser(userData);
         this.notifyListeners();
 
         // Log activity
@@ -237,7 +149,6 @@ class SessionManager {
       const userId = this.currentUser?.id;
       await this.supabase.auth.signOut();
       this.currentUser = null;
-      this.clearStoredUser();
       this.notifyListeners();
 
       // Log activity

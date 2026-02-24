@@ -10,7 +10,7 @@ import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSy
 import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
 import { db, addToSyncQueue } from '../../db/db';
 import { validateEntity, Message } from '../../types/database';
-import { Phone, Video, User, Bell, BellOff, Search, Image, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2 } from 'lucide-react';
+import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
@@ -1611,7 +1611,7 @@ const Chat = () => {
       animate="animate"
       variants={pageVariants}
       // 👇 यह लाइन एनिमेशन के टाइम गैप बनने से रोकेगी 👇
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100dvh' }}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
     >
       <div className="chat-main-area">
         {/* Chat Header - always render, even if otherUser is loading */}
@@ -1698,7 +1698,12 @@ const Chat = () => {
                   onClick: handleChangeTheme
                 },
                 {
-                  icon: <Image size={16} />,
+                  icon: <ImageIcon size={16} />,
+                  label: 'Shared Media',
+                  onClick: () => navigate(`${location.pathname}/media`)
+                },
+                {
+                  icon: <ImageIcon size={16} />,
                   label: 'Chat Wallpaper',
                   onClick: () => setShowWallpaperPicker(true)
                 },

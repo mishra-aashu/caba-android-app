@@ -20,83 +20,96 @@ const AttachmentMenu = ({ isOpen, onClose, onFileSelect, onQuickSelect }) => {
     onClose();
   };
 
-  // Debug: Add console log to check if component is being called
-  React.useEffect(() => {
-    console.log('AttachmentMenu isOpen:', isOpen);
-  }, [isOpen]);
-
-  if (!isOpen) {
-    console.log('AttachmentMenu: Returning null because isOpen is false');
-    return null;
-  }
-
-  console.log('AttachmentMenu: Rendering popup');
   return (
     <AnimatePresence>
-      <motion.div 
-        className="attachment-menu-modal"
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-        transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-      >
-        <div className="attachment-menu-header">
-          <h3>Attach</h3>
-          <motion.button 
-            onClick={onClose} 
-            className="close-btn"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+      {isOpen && (
+        <>
+          {/* Overlay/Backdrop to prevent background clicks */}
+          <motion.div
+            className="attachment-menu-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              zIndex: 99,
+              backdropFilter: 'blur(2px)'
+            }}
+          />
+
+          <motion.div
+            className="attachment-menu-modal"
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            style={{ zIndex: 100 }}
           >
-            <X size={18} />
-          </motion.button>
-        </div>
-        
-        <div className="attachment-options">
-          <motion.div 
-            className="attachment-option" 
-            onClick={() => handleIconClick('image/*')}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="icon-wrapper photo-option">
-              <Image size={20} />
+            <div className="attachment-menu-header">
+              <h3>Attach</h3>
+              <motion.button
+                onClick={onClose}
+                className="close-btn"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <X size={18} />
+              </motion.button>
             </div>
-            <span>Photo</span>
-          </motion.div>
-        
-          <motion.div 
-            className="attachment-option" 
-            onClick={() => handleIconClick('video/*')}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="icon-wrapper video-option">
-              <Video size={20} />
+
+            <div className="attachment-options">
+              <motion.div
+                className="attachment-option"
+                onClick={() => handleIconClick('image/*')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <div className="icon-wrapper photo-option">
+                  <Image size={20} />
+                </div>
+                <span>Photo</span>
+              </motion.div>
+
+              <motion.div
+                className="attachment-option"
+                onClick={() => handleIconClick('video/*')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <div className="icon-wrapper video-option">
+                  <Video size={20} />
+                </div>
+                <span>Video</span>
+              </motion.div>
+
+              <motion.div
+                className="attachment-option"
+                onClick={() => { onQuickSelect && onQuickSelect(); onClose(); }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <div className="icon-wrapper quick-option">
+                  <Paperclip size={20} />
+                </div>
+                <span>File</span>
+              </motion.div>
             </div>
-            <span>Video</span>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
           </motion.div>
-        
-          <motion.div 
-            className="attachment-option" 
-            onClick={() => { onQuickSelect && onQuickSelect(); onClose(); }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="icon-wrapper quick-option">
-              <Paperclip size={20} />
-            </div>
-            <span>File</span>
-          </motion.div>
-        </div>
-        
-        <input
-          type="file"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-      </motion.div>
+        </>
+      )}
     </AnimatePresence>
   );
 };

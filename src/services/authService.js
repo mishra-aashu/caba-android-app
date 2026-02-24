@@ -19,13 +19,8 @@ class AuthService {
     }
   }
 
-  async authenticateWithPhone(phone, password) {
-    return await this.sessionManager.signInWithPhonePassword(phone, password);
-  }
+  // Legacy methods removed for security.
 
-  async signUpWithPhone(phone, password, name) {
-    return await this.sessionManager.signUpWithPhonePassword(phone, password, name);
-  }
 
   async signOut() {
     return await this.sessionManager.signOut();

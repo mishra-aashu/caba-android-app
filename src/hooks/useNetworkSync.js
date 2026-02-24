@@ -19,11 +19,13 @@ const useNetworkSync = () => {
             isSyncing.current = true;
 
             try {
+                useChatStore.getState().setSyncing(true);
                 // 1. Auth Check: Ensure session is valid/refreshed before sync
                 const { data: { session }, error: authError } = await supabase.auth.getSession();
 
                 if (authError || !session) {
                     console.warn('Sync postponed: No active session');
+                    // ✅ If specifically a session error, we might need to notify authStore
                     return;
                 }
 
@@ -83,8 +85,9 @@ const useNetworkSync = () => {
 
                                 if (!msgError && msgData) {
                                     syncedData = msgData;
-                                    // 2. Precision Reconciliation: Use indexed tempId for O(1) lookup
-                                    await db.transaction('rw', db.messages, async () => {
+                                    // 2. Precision Reconciliation: Atomic Swap
+                                    // Wrap everything in a single transaction to prevent duplicates/ghost messages
+                                    await db.transaction('rw', [db.messages, db.sync_queue], async () => {
                                         if (tempId) {
                                             const recordByTempId = await db.messages.where('tempId').equals(tempId).first();
                                             if (recordByTempId) {
@@ -92,6 +95,12 @@ const useNetworkSync = () => {
                                             }
                                         }
                                         await db.messages.add(msgData);
+
+                                        // Mark sync item as completed ATOMICALLY with the DB update
+                                        await db.sync_queue.update(item.id, {
+                                            status: 'completed',
+                                            synced_at: new Date().toISOString()
+                                        });
                                     });
 
                                     // [FIX 2] Real-time UI Invalidation (Zustand)
@@ -108,8 +117,12 @@ const useNetworkSync = () => {
                                     if (finalPayload.chat_id) {
                                         queryClient.invalidateQueries({ queryKey: ['messages', finalPayload.chat_id] });
                                     }
+
+                                    // Reset error so the outer loop doesn't try to mark it again
+                                    error = null;
+                                } else {
+                                    error = msgError;
                                 }
-                                error = msgError;
                                 break;
 
 
@@ -126,23 +139,46 @@ const useNetworkSync = () => {
                                 break;
                         }
 
-                        // 2. Atomic Update: Use Dexie transaction to mark as completed
+                        // 2. Atomic Update: Mark as completed only if it wasn't already handled in the 'send_message' block
                         if (!error) {
-                            await db.transaction('rw', db.sync_queue, async () => {
+                            const currentItem = await db.sync_queue.get(item.id);
+                            if (currentItem.status === 'pending') {
                                 await db.sync_queue.update(item.id, {
                                     status: 'completed',
                                     synced_at: new Date().toISOString()
                                 });
-                            });
+                            }
                         } else {
                             console.error(`Failed to sync item ${item.id}:`, error);
+
+                            // Increment retry count or mark as failed
+                            const currentRetryCount = (item.retry_count || 0) + 1;
+                            if (currentRetryCount >= 3) {
+                                console.warn(`Item ${item.id} failed after 3 attempts. Marking as failed.`);
+                                await db.sync_queue.update(item.id, {
+                                    status: 'failed',
+                                    last_error: error.message || 'Unknown error'
+                                });
+                            } else {
+                                await db.sync_queue.update(item.id, {
+                                    retry_count: currentRetryCount,
+                                    last_error: error.message || 'Unknown error'
+                                });
+                            }
                         }
                     } catch (err) {
                         console.error(`Error processing sync item ${item.id}:`, err);
+                        // Ensure we don't hang the loop; mark as failed on unexpected exception
+                        await db.sync_queue.update(item.id, {
+                            status: 'failed',
+                            last_error: err.message || 'Unexpected exception'
+                        });
                     }
+
                 }
             } finally {
                 isSyncing.current = false;
+                useChatStore.getState().setSyncing(false);
             }
         };
 

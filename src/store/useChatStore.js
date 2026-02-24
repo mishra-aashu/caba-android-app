@@ -16,9 +16,10 @@ import { create } from 'zustand';
 const useChatStore = create((set, get) => ({
   // ─── STATE ─────────────────────────────────────────────────────────────
   messages: [],
-  
+  isSyncing: false,
+
   // ─── ACTIONS ──────────────────────────────────────────────────────────
-  
+
   /**
    * Add a new message to the messages array
    * @param {Object} newMessage - The message object to add
@@ -28,7 +29,7 @@ const useChatStore = create((set, get) => ({
       // Prevent duplicates
       const exists = state.messages.some(msg => msg.id === newMessage.id);
       if (exists) return state;
-      
+
       return {
         messages: [...state.messages, newMessage]
       };
@@ -85,6 +86,8 @@ const useChatStore = create((set, get) => ({
       )
     }));
   },
+
+  setSyncing: (status) => set({ isSyncing: status }),
 }));
 
 // ─── SELECTORS ──────────────────────────────────────────────────────────
@@ -113,5 +116,10 @@ export const selectSetMessages = (state) => state.setMessages;
  * Select the entire store (for debugging)
  */
 export const selectAll = (state) => state;
+
+/**
+ * Select the sync status
+ */
+export const selectIsSyncing = (state) => state.isSyncing;
 
 export default useChatStore;

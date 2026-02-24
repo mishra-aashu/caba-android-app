@@ -76,6 +76,20 @@ const MessageInput = ({
     onTyping();
   };
 
+  const handleInputFocus = () => {
+    // Trigger viewport update on mobile when input is focused
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        // Force a reflow to ensure proper viewport adjustment
+        document.body.style.height = `${window.visualViewport.height}px`;
+        setTimeout(() => {
+          document.body.style.height = '';
+        }, 100);
+      });
+    }
+    setShowEmojiPicker(false);
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -489,7 +503,7 @@ const MessageInput = ({
               className="chat-input"
               placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
               value={message}
-              onFocus={() => setShowEmojiPicker(false)}
+              onFocus={handleInputFocus}
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               onContextMenu={(e) => {
@@ -527,7 +541,7 @@ const MessageInput = ({
                 className="chat-input"
                 placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
                 value={message}
-                onFocus={() => setShowEmojiPicker(false)}
+                onFocus={handleInputFocus}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 rows={1}

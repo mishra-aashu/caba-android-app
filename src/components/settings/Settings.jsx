@@ -10,6 +10,7 @@ import { MoreVertical } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
+import SyncRetryModal from './SyncRetryModal';
 import '../../styles/settings.css';
 
 const Settings = () => {
@@ -43,6 +44,7 @@ const Settings = () => {
   const [showRingtoneModal, setShowRingtoneModal] = useState(false);
   const [selectedRingtone, setSelectedRingtone] = useState('fm-freemusic-give-me-a-smile(chosic.com).mp3');
   const [remoteVersion, setRemoteVersion] = useState(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   // Audio state management
   const currentAudioRef = useRef(null);
@@ -687,6 +689,14 @@ const Settings = () => {
             </div>
             <span className="icon arrow">›</span>
           </div>
+
+          <div className="settings-item" onClick={() => setShowSyncModal(true)} style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: '10px', paddingTop: '10px' }}>
+            <div className="item-left">
+              <i className="fas fa-sync-alt" style={{ color: 'var(--brand-primary, #128c7e)' }}></i>
+              <span className="label" style={{ color: 'var(--brand-primary, #128c7e)', fontWeight: '600' }}>Manage Sync Queue</span>
+            </div>
+            <span className="icon arrow" style={{ color: 'var(--brand-primary, #128c7e)' }}>›</span>
+          </div>
         </div>
 
         {/* Help and Support */}
@@ -793,6 +803,9 @@ const Settings = () => {
       )}
 
 
+
+      {/* Sync Retry Modal */}
+      <SyncRetryModal isOpen={showSyncModal} onClose={() => setShowSyncModal(false)} />
 
       {/* Bottom Navigation */}
       <BottomNavigation />

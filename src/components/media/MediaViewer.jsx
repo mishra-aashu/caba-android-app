@@ -20,12 +20,14 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {} }) => {
   } = useMediaViewer();
 
   const [videoControls, setVideoControls] = useState(null);
+  const [rotation, setRotation] = useState(0); // ✅ Added rotation state
   const videoRef = useRef(null);
   const transformWrapperRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && mediaId) {
       openMedia(mediaId, fileInfo, options);
+      setRotation(0); // Reset rotation when new media opens
     } else if (!isOpen) {
       closeMedia();
     }
@@ -56,23 +58,23 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {} }) => {
       const timestamp = Date.now();
       const extension = fileName?.split('.').pop() || 'jpg';
       const customFileName = `CaBa_Media_${timestamp}.${extension}`;
-      
+
       // Fetch image as blob
       const response = await fetch(imageUrl, { mode: 'cors' });
       if (!response.ok) throw new Error('Failed to fetch image');
-      
+
       const blob = await response.blob();
-      
+
       // Create temporary local link
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = customFileName;
-      
+
       // Trigger download
       document.body.appendChild(link);
       link.click();
-      
+
       // Cleanup
       document.body.removeChild(link);
       URL.revokeObjectURL(blobUrl);
@@ -111,6 +113,10 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {} }) => {
     }
   };
 
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
   const renderMediaContent = () => {
     if (!currentMedia?.media) return null;
 
@@ -137,59 +143,67 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {} }) => {
                     src={objectUrl}
                     alt={fileInfo.file_name}
                     className="viewer-image"
+                    style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }}
                     onLoad={() => console.log('Image loaded')}
                     onError={() => console.error('Image failed to load')}
                   />
                 </TransformComponent>
-                
+
                 {/* Zoom controls in BOTTOM FOOTER */}
                 <div className="viewer-controls-footer">
                   <div className="zoom-indicator">
                     {Math.round(scale * 100)}%
                   </div>
-                  <button 
+                  <button
                     className="control-btn"
                     onClick={() => zoomIn()}
                     title="Zoom In"
                   >
                     <i className="fas fa-search-plus"></i>
                   </button>
-                  <button 
+                  <button
                     className="control-btn"
                     onClick={() => zoomOut()}
                     title="Zoom Out"
                   >
                     <i className="fas fa-search-minus"></i>
                   </button>
-                  <button 
+                  <button
                     className="control-btn"
                     onClick={resetTransform}
                     title="Reset"
                   >
                     <i className="fas fa-compress"></i>
                   </button>
-                  <button 
+                  <button
                     className="control-btn"
                     onClick={() => resetTransform()}
                     title="100%"
                   >
                     <i className="fas fa-expand"></i>
                   </button>
-                  <button 
+                  <button
+                    className="control-btn"
+                    onClick={handleRotate}
+                    title="Rotate"
+                  >
+                    <i className="fas fa-redo"></i>
+                  </button>
+                  <button
                     className="control-btn"
                     onClick={handleShare}
                     title="Share"
                   >
                     <i className="fas fa-share"></i>
                   </button>
-                  <button 
+                  <button
                     className="control-btn"
                     onClick={handleFullscreen}
                     title="Fullscreen"
                   >
                     <i className="fas fa-expand-arrows-alt"></i>
                   </button>
-                  <button 
+                  <button
                     className="control-btn"
                     onClick={() => handleSecureDownload(objectUrl, fileInfo.file_name)}
                     title="Download"

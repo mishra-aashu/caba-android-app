@@ -14,23 +14,12 @@
   z-index: 100;
   max-width: 350px;
   width: max-content;
-  animation: slideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.1);
   /* Glassmorphism effect */
   backdrop-filter: blur(10px);
   background: rgba(30, 30, 30, 0.8);
 }
 
-@keyframes slideUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
 
 .attachment-menu-header {
   display: flex;
@@ -136,29 +125,32 @@
 /* Mobile Responsive Design */
 @media (max-width: 480px) {
   .attachment-menu-modal {
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 32px);
+    position: fixed;
+    bottom: calc(var(--chat-input-height, 60px) + 20px);
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-width: unset;
     min-width: unset;
-    margin: 0 16px;
+    margin: 0;
     border-radius: 12px;
   }
-  
+
   .attachment-options {
     gap: 8px;
   }
-  
+
   .attachment-option {
     padding: 12px 8px;
     min-width: 70px;
   }
-  
+
   .attachment-option .icon-wrapper {
     width: 40px;
     height: 40px;
     border-radius: 8px;
   }
-  
+
   .attachment-option span {
     font-size: 12px;
   }
