@@ -164,15 +164,37 @@ const ImageViewer = ({
     setRotation(0);
   }, []);
 
-  const handleDownload = useCallback(() => {
-    if (onDownload) {
-      onDownload(imageUrl, message);
-    } else {
+  const handleDownload = useCallback(async () => {
+    try {
+      // Secure download - fetch as blob to hide URL
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // Create object URL
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create hidden link and trigger download
       const link = document.createElement('a');
-      link.href = imageUrl;
-      link.download = `image_${Date.now()}.jpg`;
-      link.target = '_blank';
+      link.href = url;
+      link.download = `CaBa_Media_${Date.now()}.jpg`;
+      document.body.appendChild(link);
       link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to simple download
+      if (onDownload) {
+        onDownload(imageUrl, message);
+      } else {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `image_${Date.now()}.jpg`;
+        link.target = '_blank';
+        link.click();
+      }
     }
   }, [imageUrl, message, onDownload]);
 
