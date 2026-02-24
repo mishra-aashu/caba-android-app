@@ -1,46 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getPublicMediaUrl } from '../../services/mediaService';
+import { useAudioBlob } from '../../hooks/useAudioBlob';
 import EmojiRenderer from '../common/EmojiRenderer';
 import { Play, Pause, LoaderCircle, AlertTriangle } from 'lucide-react';
 import './VoiceMessage.css';
 
 const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUserId }) => {
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { audioUrl, isLoading, error: hookError } = useAudioBlob(message.mediaPath || message.media_path);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [playbackError, setPlaybackError] = useState(null);
   const audioRef = useRef(null);
   const waveformRef = useRef(null);
 
-  useEffect(() => {
-    const fetchAudioUrl = () => {
-      const mediaPath = message.mediaPath || message.media_path;
-      if (!mediaPath) {
-        setError('No media path provided.');
-        setIsLoading(false);
-        return;
-      }
-      try {
-        setIsLoading(true);
-        setError(null);
-        const url = getPublicMediaUrl(mediaPath);
-        if (url) {
-          setAudioUrl(url);
-        } else {
-          throw new Error('Failed to get audio URL.');
-        }
-      } catch (err) {
-        setError(err.message);
-        console.error("Error fetching audio URL:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAudioUrl();
-  }, [message.mediaPath, message.media_path]);
+  const error = hookError || playbackError;
+  const setError = setPlaybackError;
 
   const handlePlayPause = () => {
     if (!audioRef.current || isLoading || error) return;

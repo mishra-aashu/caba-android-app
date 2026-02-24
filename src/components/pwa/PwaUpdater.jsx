@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import toast from 'react-hot-toast';
-import { supabase } from '../../config/supabase';
-
+import { useAuth } from '../../hooks/useAuth';
+import { useAppVersions } from '../../hooks/useAppVersions';
 // App's current local version synced with package.json
 const APP_VERSION = __APP_VERSION__;
 
@@ -18,6 +19,13 @@ const PwaUpdater = () => {
         onRegistered(r) { console.log('SW Registered'); },
         onRegisterError(error) { console.error('SW Error', error); },
     });
+
+    const { currentUser } = useAuth();
+    const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+    const [updateInfo, setUpdateInfo] = useState(null);
+    const { data: dbVersionData } = useAppVersions();
+    const location = useLocation();
+    const isGameRoute = location.pathname.includes('/game');
 
     // Version comparison helper
     const isOlderVersion = (local, server) => {
@@ -149,41 +157,41 @@ const PwaUpdater = () => {
         });
     };
 
+    // Reset update banner if new version is installed
+    useEffect(() => {
+        const storedVersion = localStorage.getItem('digidad_running_version');
+        if (storedVersion && storedVersion !== APP_VERSION) {
+            localStorage.setItem('digidad_running_version', APP_VERSION);
+            setShowUpdateBanner(false);
+            setUpdateInfo(null);
+
+            // Re-fetch versions query internally if the app just updated
+        } else if (!storedVersion) {
+            localStorage.setItem('digidad_running_version', APP_VERSION);
+        }
+    }, []);
+
+    // Periodic check for mandatory background updates
+    useEffect(() => {
+        let interval;
+        if (currentUser && !isGameRoute) {
+            // Check every 30 minutes
+            interval = setInterval(() => {
+                if (navigator.onLine && window.updateW) {
+                    window.updateW();
+                }
+            }, 30 * 60 * 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [currentUser, isGameRoute]);
+
     useEffect(() => {
         const checkAppVersion = async () => {
             try {
-                // 1. Check local cache first (12 hour TTL)
-                const CACHE_KEY = 'digidad_app_version_check';
-                const CACHE_TTL = 1000 * 60 * 60 * 12; // 12 hours
-
-                const cachedCheckStr = localStorage.getItem(CACHE_KEY);
-                if (cachedCheckStr) {
-                    try {
-                        const cachedCheck = JSON.parse(cachedCheckStr);
-                        if (Date.now() - cachedCheck.timestamp < CACHE_TTL) {
-                            // If we have a valid cache, we assume no mandatory update for now.
-                            // Only show update toast if SW says needRefresh.
-                            if (needRefresh) showUpdateToast(false);
-                            return;
-                        }
-                    } catch (e) { /* ignore parse error */ }
-                }
-
-                // 2. Check Supabase for remote version info (only if cache expired/missing)
-                const { data, error } = await supabase
-                    .from('app_versions')
-                    .select('latest_version, min_required_version')
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .single();
-
-                if (error) throw error;
+                const data = dbVersionData;
                 if (data) {
-                    // Update cache
-                    localStorage.setItem(CACHE_KEY, JSON.stringify({
-                        timestamp: Date.now(),
-                        data
-                    }));
                     const isMandatory = isOlderVersion(APP_VERSION, data.min_required_version);
                     const isOptional = isOlderVersion(APP_VERSION, data.latest_version);
 
@@ -205,7 +213,7 @@ const PwaUpdater = () => {
         };
 
         checkAppVersion();
-    }, [needRefresh]);
+    }, [needRefresh, dbVersionData]);
 
     return null;
 };

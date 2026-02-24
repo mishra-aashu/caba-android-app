@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSupabase } from './SupabaseContext';
-
+import { useUserTheme } from '../hooks/useThemesData';
+import { useQueryClient } from '@tanstack/react-query';
 // Create the Theme Context
 const ThemeContext = createContext();
 
@@ -16,31 +17,16 @@ export const ThemeProvider = ({ children }) => {
     return savedTheme || 'light';
   });
 
+  const queryClient = useQueryClient();
+  const { data: dbTheme } = useUserTheme(user?.id);
+
   // Sync theme from DB on mount/login
   useEffect(() => {
-    const fetchUserTheme = async () => {
-      if (!user?.id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('user_themes')
-          .select('theme_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (data?.theme_id && data.theme_id !== theme) {
-          setTheme(data.theme_id);
-          localStorage.setItem('theme', data.theme_id);
-        }
-      } catch (err) {
-        console.error('Error fetching user theme:', err);
-      }
-    };
-
-    fetchUserTheme();
-  }, [user?.id, supabase]);
+    if (dbTheme && dbTheme !== theme) {
+      setTheme(dbTheme);
+      localStorage.setItem('theme', dbTheme);
+    }
+  }, [dbTheme]);
 
   // Toggle between light and dark themes
   const toggleTheme = async () => {
@@ -59,6 +45,8 @@ export const ThemeProvider = ({ children }) => {
           }, { onConflict: 'user_id' });
 
         if (error) throw error;
+        // Invalidate cache directly so next reload pulls the fresh theme
+        queryClient.invalidateQueries(['user_themes', user.id]);
       } catch (err) {
         console.error('Error saving user theme:', err);
       }

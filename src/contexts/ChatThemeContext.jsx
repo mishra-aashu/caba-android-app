@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import useAuthStore from '../store/authStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 // ✨ Polished & Premium Chat Themes
 const chatThemes = {
@@ -361,7 +362,7 @@ const ChatThemeContext = createContext();
 
 // Chat Theme Provider Component
 export const ChatThemeProvider = ({ children }) => {
-
+  const queryClient = useQueryClient();
   // State
   const [currentChatTheme, setCurrentChatTheme] = useState('classic_purple');
   const [currentWallpaper, setCurrentWallpaper] = useState(null);
@@ -417,33 +418,45 @@ export const ChatThemeProvider = ({ children }) => {
   const refreshTheme = async (chatId) => {
     if (!chatId) return;
     try {
-      const { data: themeData } = await supabase
-        .from('chat_themes')
-        .select('theme_name')
-        .eq('chat_id', chatId)
-        .maybeSingle();
+      const themeName = await queryClient.fetchQuery({
+        queryKey: ['chat_themes', chatId],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from('chat_themes')
+            .select('theme_name')
+            .eq('chat_id', chatId)
+            .maybeSingle();
+          return data?.theme_name || null;
+        },
+        staleTime: Infinity,
+        gcTime: 1000 * 60 * 60 * 24,
+      });
 
-      if (themeData?.theme_name && chatThemes[themeData.theme_name]) {
-        setCurrentChatTheme(themeData.theme_name);
-        localStorage.setItem(`digidad_chat_theme_${chatId}`, themeData.theme_name);
-        applyTheme(themeData.theme_name, currentWallpaper);
+      if (themeName && chatThemes[themeName]) {
+        setCurrentChatTheme(themeName);
+        localStorage.setItem(`digidad_chat_theme_${chatId}`, themeName);
+        applyTheme(themeName, currentWallpaper);
       }
 
-      const { data: wallpaperData } = await supabase
-        .from('chat_wallpapers')
-        .select(`
-          custom_url,
-          wallpaper:wallpapers(url)
-        `)
-        .eq('chat_id', chatId)
-        .maybeSingle();
+      const wallpaperUrl = await queryClient.fetchQuery({
+        queryKey: ['chat_wallpapers', chatId],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from('chat_wallpapers')
+            .select(`custom_url, wallpaper:wallpapers(url)`)
+            .eq('chat_id', chatId)
+            .maybeSingle();
+          return data?.custom_url || data?.wallpaper?.url || null;
+        },
+        staleTime: Infinity,
+        gcTime: 1000 * 60 * 60 * 24,
+      });
 
-      if (wallpaperData) {
-        const url = wallpaperData.custom_url || wallpaperData.wallpaper?.url;
-        setCurrentWallpaper(url || null);
-        if (url) localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, url);
+      if (wallpaperUrl !== undefined) {
+        setCurrentWallpaper(wallpaperUrl || null);
+        if (wallpaperUrl) localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, wallpaperUrl);
         else localStorage.removeItem(`digidad_chat_wallpaper_${chatId}`);
-        applyTheme(currentChatTheme, url || null);
+        applyTheme(currentChatTheme, wallpaperUrl || null);
       }
     } catch (e) {
       console.warn('Theme refresh failed:', e);
@@ -471,6 +484,8 @@ export const ChatThemeProvider = ({ children }) => {
             },
             { onConflict: 'chat_id,set_by' }
           );
+
+        queryClient.invalidateQueries(['chat_themes', chatId]);
       }
     } catch (e) {
       console.error('Theme save failed', e);
@@ -525,6 +540,8 @@ export const ChatThemeProvider = ({ children }) => {
           }
         }
       }
+
+      queryClient.invalidateQueries(['chat_wallpapers', chatId]);
     } catch (e) {
       console.error('Wallpaper save failed', e);
     }

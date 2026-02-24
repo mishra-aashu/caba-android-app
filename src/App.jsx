@@ -99,49 +99,52 @@ const AppContent = () => {
   }
 
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-      <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-      <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-      <Route path="/intro" element={<PublicRoute><Intro /></PublicRoute>} />
-      <Route path="/shared-profile/:userId" element={<SharedProfile />} />
-      <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
-      <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
-      <Route path="/about" element={<About />} />
+    <>
+      <PwaUpdater />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/intro" element={<PublicRoute><Intro /></PublicRoute>} />
+        <Route path="/shared-profile/:userId" element={<SharedProfile />} />
+        <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
+        <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
+        <Route path="/about" element={<About />} />
 
-      {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-        <Route index element={<ChatPlaceholder />} />
-        <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
-        {/* Group chat route - uses same Chat component but detects group */}
-        <Route path="chat/:chatId/group" element={<Chat key={location.pathname} />} />
-        <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
-        <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
-        <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
-        <Route path="user-details/:id" element={<UserDetails />} />
-        <Route path="groups" element={<GroupsPage />} />
-        <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
-        <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
-      </Route>
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/emoji-settings" element={<ProtectedRoute><EmojiSettings /></ProtectedRoute>} />
+        {/* Protected routes */}
+        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+          <Route index element={<ChatPlaceholder />} />
+          <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
+          {/* Group chat route - uses same Chat component but detects group */}
+          <Route path="chat/:chatId/group" element={<Chat key={location.pathname} />} />
+          <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
+          <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
+          <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
+          <Route path="user-details/:id" element={<UserDetails />} />
+          <Route path="groups" element={<GroupsPage />} />
+          <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
+          <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
+        </Route>
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/emoji-settings" element={<ProtectedRoute><EmojiSettings /></ProtectedRoute>} />
 
-      <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-      <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
-      <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
-      <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-      <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
-      <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
-      <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-      <Route path="/admin-about" element={<div className="legal-page-wrapper"><AdminAbout /></div>} />
-      <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
+        <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+        <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
+        <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
+        <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
+        <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/admin-about" element={<div className="legal-page-wrapper"><AdminAbout /></div>} />
+        <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
 
-      {/* 404 route */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* 404 route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 };
 
@@ -254,8 +257,7 @@ const App = () => {
         <div className="loading-spinner"></div>
       </div>
     }>
-      {/* PWA Update Handler */}
-      <PwaUpdater />
+      {/* AuthProvider is provided in main.jsx */}
       {/* AuthProvider is provided in main.jsx */}
       {/* SupabaseProvider is provided in main.jsx */}
       {/* ThemeProvider is provided in main.jsx */}
