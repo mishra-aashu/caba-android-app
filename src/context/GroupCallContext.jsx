@@ -152,18 +152,22 @@ export function GroupCallProvider({ children, currentUser }) {
   useEffect(() => {
     if (currentUser?.id) {
       const fetchUserGroups = async () => {
-        const { data, error } = await supabase
-          .from('group_members')
-          .select('group_id')
-          .eq('user_id', currentUser.id);
+        try {
+          const { data, error } = await supabase
+            .from('group_members')
+            .select('group_id')
+            .eq('user_id', currentUser.id);
 
-        if (!error && data) {
-          const groupIds = data.map(m => m.group_id);
-          console.log('👥 Fetched user groups for notification filtering:', groupIds);
-          userGroupsRef.current = groupIds;
-          dispatch({ type: ACTIONS.SET_USER_GROUPS, payload: groupIds });
-        } else if (error) {
-          console.error('❌ Error fetching user groups:', error);
+          if (!error && data) {
+            const groupIds = data.map(m => m.group_id);
+            console.log('👥 Fetched user groups for notification filtering:', groupIds);
+            userGroupsRef.current = groupIds;
+            dispatch({ type: ACTIONS.SET_USER_GROUPS, payload: groupIds });
+          } else if (error) {
+            console.warn('⚠️ Server Unreachable or Error fetching user groups:', error.message);
+          }
+        } catch (err) {
+          console.warn('❌ Exception while fetching user groups:', err);
         }
       };
       fetchUserGroups();

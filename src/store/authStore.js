@@ -36,21 +36,38 @@ const useAuthStore = create((set, get) => ({
         });
         return;
       }
-      // ✅ Get initial session
-      const { data: { session } } = await supabase.auth.getSession();
+      // ✅ Get initial session safely
+      let currentSession = null;
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.warn('⚠️ Supabase getSession error (timeout/offline):', error.message);
+        } else {
+          currentSession = data?.session;
+        }
+      } catch (sessionError) {
+        console.error('❌ Supabase getSession threw an error:', sessionError);
+      }
 
-      if (session?.user) {
-        console.log('✅ Initial session found:', session.user.email);
+      if (currentSession?.user) {
+        console.log('✅ Initial session found:', currentSession.user.email);
         set({
-          user: session.user,
-          session,
+          user: currentSession.user,
+          session: currentSession,
           isAuthenticated: true,
           loading: false
         });
-        await get().handleUserSession(session.user);
+
+        // Don't strongly await it if we are just concerned about auth, but keeping existing behavior
+        await get().handleUserSession(currentSession.user);
       } else {
-        console.log('ℹ️ No initial session found');
-        set({ loading: false });
+        console.log('ℹ️ No initial session found or server unreachable');
+        set({
+          user: null,
+          session: null,
+          isAuthenticated: false,
+          loading: false
+        });
       }
 
       // ✅ CLEAN auth state listener — no unnecessary side effects
@@ -300,7 +317,7 @@ const useAuthStore = create((set, get) => ({
     // Store phone auth data
     localStorage.setItem('phoneAuthUser', JSON.stringify(user));
     localStorage.setItem('phoneAuthToken', 'phone_auth_' + user.id);
-    
+
     // Set auth state
     set({
       user,
@@ -315,7 +332,7 @@ const useAuthStore = create((set, get) => ({
         access_token: 'phone_auth_' + user.id,
         refresh_token: 'phone_refresh_' + user.id
       });
-      
+
       if (error) {
         console.warn('Phone auth session setup failed, DB operations may be limited:', error);
       }

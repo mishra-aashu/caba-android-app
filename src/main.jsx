@@ -14,6 +14,7 @@ import { CallProvider } from './context/CallContext.jsx' // Import CallProvider
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createIDBPersister } from './utils/persister';
+import AppErrorBoundary from './components/common/AppErrorBoundary';
 
 // Create the IndexedDB persister
 const persister = createIDBPersister('reactQueryClient');
@@ -47,26 +48,28 @@ const AppWithCallProvider = () => {
 };
 
 createRoot(document.getElementById('root')).render(
-  <HashRouter>
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{ persister }}
-      onSuccess={() => {
-        // Optional: Log when hydration is complete
-        console.log('Query client restored from IndexedDB');
-      }}
-    >
-      <SupabaseProvider>
-        <AuthProvider>
-          <ThemeProvider>
-            <ChatThemeProvider>
-              <EmojiStyleProvider>
-                <AppWithCallProvider />
-              </EmojiStyleProvider>
-            </ChatThemeProvider>
-          </ThemeProvider>
-        </AuthProvider>
-      </SupabaseProvider>
-    </PersistQueryClientProvider>
-  </HashRouter>
+  <AppErrorBoundary>
+    <HashRouter>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister }}
+        onSuccess={() => {
+          // Optional: Log when hydration is complete
+          console.log('Query client restored from IndexedDB');
+        }}
+      >
+        <SupabaseProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <ChatThemeProvider>
+                <EmojiStyleProvider>
+                  <AppWithCallProvider />
+                </EmojiStyleProvider>
+              </ChatThemeProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </SupabaseProvider>
+      </PersistQueryClientProvider>
+    </HashRouter>
+  </AppErrorBoundary>
 )

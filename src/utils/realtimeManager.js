@@ -50,15 +50,6 @@ class RealtimeManager {
             // Support both: broadcast: (payload) => {} 
             // AND broadcast: { event: 'name', callback: (payload) => {} }
             const configs = Array.isArray(callback) ? callback : [callback];
-            configs.forEach(config => {
-              if (typeof config === 'function') {
-                // Direct function: use default event name or generic listener
-                channel.on(event, { event: '*' }, config);
-              } else if (config && typeof config === 'object') {
-                const { event: subEvent, callback: cb } = config;
-                channel.on(event, { event: subEvent || '*' }, cb || (() => { }));
-              }
-            });
           } else {
             // Fallback for other events
             channel.on(event, callback);

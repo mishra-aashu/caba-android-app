@@ -1,0 +1,114 @@
+.server-fallback-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #1a1a1a 0%, #0a0a0a 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+    color: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.server-fallback-card {
+    max-width: 400px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 40px 30px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    animation: cardAppear 0.5s ease-out;
+}
+
+@keyframes cardAppear {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.server-fallback-logo {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+}
+
+.server-fallback-icon {
+    margin-bottom: 24px;
+    color: #ff4d4d;
+    display: flex;
+    justify-content: center;
+}
+
+.server-fallback-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #fff;
+}
+
+.server-fallback-message {
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 32px;
+}
+
+.retry-button {
+    background: #ffffff;
+    color: #000000;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
+}
+
+.retry-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+    background: #f0f0f0;
+}
+
+.retry-button:active {
+    transform: translateY(0);
+}
+
+.retry-icon {
+    width: 18px;
+    height: 18px;
+}
+
+@media (max-width: 480px) {
+    .server-fallback-card {
+        padding: 30px 20px;
+    }
+
+    .server-fallback-title {
+        font-size: 20px;
+    }
+}
