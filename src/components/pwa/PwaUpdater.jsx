@@ -61,15 +61,15 @@ const PwaUpdater = () => {
         try {
             // Step 1: Clear all caches first
             await clearAllCaches();
-            
+
             // Step 2: Unregister all service workers
             await unregisterAllServiceWorkers();
-            
+
             // Step 3: Try standard SW update
             if (typeof updateServiceWorker === 'function') {
                 await updateServiceWorker(true);
             }
-            
+
             // Step 4: Force hard reload to ensure fresh assets
             window.location.reload(true);
         } catch (error) {
@@ -92,7 +92,7 @@ const PwaUpdater = () => {
                     fontWeight: '500',
                     color: 'var(--text-primary)'
                 }}>
-                     A new version of CaBa is ready! Tap to refresh.
+                    A new version of CaBa is ready! Tap to refresh.
                 </span>
                 <button
                     onClick={() => {
@@ -152,7 +152,24 @@ const PwaUpdater = () => {
     useEffect(() => {
         const checkAppVersion = async () => {
             try {
-                // Check Supabase for remote version info
+                // 1. Check local cache first (12 hour TTL)
+                const CACHE_KEY = 'digidad_app_version_check';
+                const CACHE_TTL = 1000 * 60 * 60 * 12; // 12 hours
+
+                const cachedCheckStr = localStorage.getItem(CACHE_KEY);
+                if (cachedCheckStr) {
+                    try {
+                        const cachedCheck = JSON.parse(cachedCheckStr);
+                        if (Date.now() - cachedCheck.timestamp < CACHE_TTL) {
+                            // If we have a valid cache, we assume no mandatory update for now.
+                            // Only show update toast if SW says needRefresh.
+                            if (needRefresh) showUpdateToast(false);
+                            return;
+                        }
+                    } catch (e) { /* ignore parse error */ }
+                }
+
+                // 2. Check Supabase for remote version info (only if cache expired/missing)
                 const { data, error } = await supabase
                     .from('app_versions')
                     .select('latest_version, min_required_version')
@@ -162,6 +179,11 @@ const PwaUpdater = () => {
 
                 if (error) throw error;
                 if (data) {
+                    // Update cache
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({
+                        timestamp: Date.now(),
+                        data
+                    }));
                     const isMandatory = isOlderVersion(APP_VERSION, data.min_required_version);
                     const isOptional = isOlderVersion(APP_VERSION, data.latest_version);
 

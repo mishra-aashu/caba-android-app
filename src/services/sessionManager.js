@@ -34,13 +34,6 @@ class SessionManager {
     }
   }
 
-  // sessionStorage methods removed to prevent Auth desync.
-  // We rely on Supabase session persistence and useAuthStore.
-
-  // Legacy Phone+Password Auth methods were removed for security.
-  // We now use pure Google OAuth with phone number linking.
-
-
   async signInWithGoogle() {
     try {
       const { data, error } = await this.supabase.auth.signInWithOAuth({
@@ -88,9 +81,7 @@ class SessionManager {
               id: user.id,
               email: user.email,
               name: user.user_metadata?.full_name || user.email.split('@')[0],
-
               phone: user.user_metadata?.phone || null,
-
               email_confirmed_at: new Date().toISOString(),
               is_online: true,
               created_at: new Date().toISOString(),
@@ -106,17 +97,9 @@ class SessionManager {
 
           userData = newUser;
         } else if (existingUser) {
-          const { data: updatedUser, error: updateError } = await this.supabase
-            .from('users')
-            .update({
-              is_online: true,
-              last_seen: new Date().toISOString()
-            })
-            .eq('id', existingUser.id)
-            .select()
-            .single();
-
-          userData = updatedUser || existingUser;
+          // Root fix: STOP database-heavy heartbeats. 
+          // Presence will handle online status in memory.
+          userData = existingUser;
         } else {
           return { success: false, error: 'Database error occurred' };
         }
@@ -139,13 +122,8 @@ class SessionManager {
 
   async signOut() {
     try {
-      if (this.currentUser) {
-        await this.supabase
-          .from('users')
-          .update({ is_online: false, last_seen: new Date().toISOString() })
-          .eq('id', this.currentUser.id);
-      }
-
+      // Root fix: Presence auto-cleans up on disconnect.
+      // No need for a heavy Postgres update on signout.
       const userId = this.currentUser?.id;
       await this.supabase.auth.signOut();
       this.currentUser = null;

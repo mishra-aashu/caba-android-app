@@ -198,17 +198,32 @@ export const useChatListRealtime = (currentUserId) => {
                         handler: () => { if (mountedRef.current) queryClient.invalidateQueries({ queryKey: ['chatList', currentUserId] }); }
                     },
                     {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'users',
-                        handler: (payload) => {
-                            if (!mountedRef.current || !payload?.new) return;
-                            const updatedUser = payload.new;
-                            setChats(prev => prev.map(chat =>
-                                chat.metadata?.otherUserId === updatedUser.id
-                                    ? { ...chat, is_online: isUserOnline(Boolean(updatedUser.is_online), updatedUser.last_seen), last_seen: updatedUser.last_seen }
-                                    : chat
-                            ));
+                        event: 'presence',
+                        callback: {
+                            event: 'sync',
+                            callback: () => {
+                                if (!mountedRef.current) return;
+                                const state = realtimeManager.subscriptions.get(`chat_list_updates_${currentUserId}`)?.values().next().value?.presenceState();
+                                if (!state) return;
+
+                                // Flatten presence state to get list of online user IDs
+                                const onlineUserIds = new Set();
+                                Object.values(state).forEach(presences => {
+                                    presences.forEach(p => onlineUserIds.add(p.user_id));
+                                });
+
+                                setChats(prev => prev.map(chat => {
+                                    const otherId = chat.metadata?.otherUserId;
+                                    if (otherId) {
+                                        return {
+                                            ...chat,
+                                            is_online: onlineUserIds.has(otherId),
+                                            last_seen: onlineUserIds.has(otherId) ? new Date().toISOString() : chat.last_seen
+                                        };
+                                    }
+                                    return chat;
+                                }));
+                            }
                         }
                     },
                     {

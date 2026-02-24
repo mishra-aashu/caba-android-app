@@ -6,7 +6,7 @@
 import React from 'react';
 import { Users } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { fetchMessages } from '../../hooks/useMessages';
+import { fetchMessagesPage } from '../../hooks/useMessages';
 import { getInitials } from '../../utils/stringUtils';
 import { isUserOnline } from '../../utils/timeUtils';
 import { formatInboxTime } from '../../utils/dateFormatter';
@@ -17,9 +17,10 @@ const GroupListItem = ({ group, onClick, isActive }) => {
   // ─── AGGRESSIVE PRE-FETCH ──────────────────────────────────────────────────
   const handlePrefetch = () => {
     if (group.id) {
-      queryClient.prefetchQuery({
+      queryClient.prefetchInfiniteQuery({
         queryKey: ['messages', group.id],
-        queryFn: () => fetchMessages(group.id),
+        queryFn: ({ pageParam }) => fetchMessagesPage({ chatId: group.id, pageParam }),
+        initialPageParam: null,
         staleTime: 1000 * 60 * 5,
       });
     }

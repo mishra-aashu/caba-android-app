@@ -4,7 +4,7 @@ import { supabase } from '../config/supabase';
 import { realtimeManager } from '../utils/realtimeManager';
 import { prepareDataForDB } from '../utils/dbSchemaCompatibility';
 
-export const useTruthDareGame = (roomId, userId) => {
+export const useTruthDareGame = (roomId, userId, { enabled = true } = {}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [gameId, setGameId] = useState(null);
   const [gameState, setGameState] = useState({
@@ -14,38 +14,35 @@ export const useTruthDareGame = (roomId, userId) => {
     content: '',
   });
 
+  const fetchActiveGame = useCallback(async () => {
+    if (!roomId || !userId) return;
+    try {
+      const { data, error } = await supabase
+        .from('game_invitations')
+        .select('*')
+        .eq('chat_id', roomId)
+        .in('status', ['pending', 'accepted'])
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data && !error) {
+        setGameId(data.id);
+        if (data.invitation_data) {
+          setGameState(data.invitation_data);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching active game:', err);
+    }
+  }, [roomId, userId]);
+
   // 1. Initial Load: Fetch active/pending game for this room
   useEffect(() => {
-    if (!roomId || !userId) return;
-
-    const fetchActiveGame = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('game_invitations')
-          .select('*')
-          .eq('chat_id', roomId)
-          .in('status', ['pending', 'accepted'])
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (data && !error) {
-          setGameId(data.id);
-          if (data.invitation_data) {
-            setGameState(data.invitation_data);
-            if (data.status === 'accepted' || data.invitation_data.stage !== 'idle') {
-              // Only auto-open if it's already in progress
-              // setIsOpen(true); 
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching active game:', err);
-      }
-    };
-
-    fetchActiveGame();
-  }, [roomId, userId]);
+    if (enabled) {
+      fetchActiveGame();
+    }
+  }, [enabled, fetchActiveGame]);
 
   // 2. Real-time Subscription
   useEffect(() => {

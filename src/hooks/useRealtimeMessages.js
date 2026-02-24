@@ -48,21 +48,19 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
               processedIds.current.add(newRecord.id);
 
               const frontendMsg = dbToFrontend(newRecord);
-              let sender = enrichSender(frontendMsg.senderId);
-              try {
-                const { data } = await supabase.from('users').select('id, name, avatar, is_online, last_seen').eq('id', frontendMsg.senderId).single();
-                if (data) {
-                  const frontendUser = dbToFrontend(data);
-                  useUserStore.getState().setUser(frontendUser);
-                  sender = frontendUser;
-                }
-              } catch (_) { /* keep fallback sender */ }
+
+              // Root fix: Fetch both sender and receiver concurrently from cache
+              const [sender, receiver] = await Promise.all([
+                useUserStore.getState().fetchUserIfNeeded(frontendMsg.senderId),
+                frontendMsg.receiverId ? useUserStore.getState().fetchUserIfNeeded(frontendMsg.receiverId) : Promise.resolve(null)
+              ]);
 
               const enrichedMsg = {
                 ...frontendMsg,
-                sender,
-                receiver: frontendMsg.receiverId ? enrichSender(frontendMsg.receiverId) : null
+                sender: sender || enrichSender(frontendMsg.senderId),
+                receiver: receiver || (frontendMsg.receiverId ? enrichSender(frontendMsg.receiverId) : null)
               };
+
               if (mountedRef.current && handlersRef.current.onNewMessage) {
                 handlersRef.current.onNewMessage(enrichedMsg);
               }

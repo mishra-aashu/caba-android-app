@@ -1,11 +1,6 @@
 import imageCompression from 'browser-image-compression';
 
-const HIGH_QUALITY_OPTIONS = {
-  maxSizeMB: 2,          // Max file size for high quality
-  maxWidthOrHeight: 1920,
-  useWebWorker: false,
-  initialQuality: 0.8,
-};
+
 
 const STANDARD_QUALITY_OPTIONS = {
   maxSizeMB: 0.5,        // Max file size for standard quality

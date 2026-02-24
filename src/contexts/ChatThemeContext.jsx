@@ -408,7 +408,14 @@ export const ChatThemeProvider = ({ children }) => {
     setCurrentWallpaper(wallpaperToApply);
     applyTheme(themeToApply, wallpaperToApply);
 
-    // ── STEP 2: Background DB refresh (updates if different from cache) ───────
+    // ── STEP 2: DB refresh is DEFERRED until refreshTheme() is called ─────────
+    // This eliminates redundant network requests on every chat page load.
+    setLoading(false);
+  };
+
+  // Explicitly fetch from DB when user enters theme/settings UI
+  const refreshTheme = async (chatId) => {
+    if (!chatId) return;
     try {
       const { data: themeData } = await supabase
         .from('chat_themes')
@@ -416,10 +423,10 @@ export const ChatThemeProvider = ({ children }) => {
         .eq('chat_id', chatId)
         .maybeSingle();
 
-      if (themeData?.theme_name && chatThemes[themeData.theme_name] && themeData.theme_name !== themeToApply) {
+      if (themeData?.theme_name && chatThemes[themeData.theme_name]) {
         setCurrentChatTheme(themeData.theme_name);
         localStorage.setItem(`digidad_chat_theme_${chatId}`, themeData.theme_name);
-        applyTheme(themeData.theme_name, wallpaperToApply);
+        applyTheme(themeData.theme_name, currentWallpaper);
       }
 
       const { data: wallpaperData } = await supabase
@@ -433,25 +440,14 @@ export const ChatThemeProvider = ({ children }) => {
 
       if (wallpaperData) {
         const url = wallpaperData.custom_url || wallpaperData.wallpaper?.url;
-        if (url !== wallpaperToApply) {
-          setCurrentWallpaper(url || null);
-          if (url) {
-            localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, url);
-          } else {
-            localStorage.removeItem(`digidad_chat_wallpaper_${chatId}`);
-          }
-          applyTheme(themeToApply, url || null);
-        }
-      } else if (wallpaperToApply) {
-        // DB says no wallpaper — clear it
-        setCurrentWallpaper(null);
-        localStorage.removeItem(`digidad_chat_wallpaper_${chatId}`);
-        applyTheme(themeToApply, null);
+        setCurrentWallpaper(url || null);
+        if (url) localStorage.setItem(`digidad_chat_wallpaper_${chatId}`, url);
+        else localStorage.removeItem(`digidad_chat_wallpaper_${chatId}`);
+        applyTheme(currentChatTheme, url || null);
       }
     } catch (e) {
-      console.error('Error loading theme/wallpaper from DB:', e);
+      console.warn('Theme refresh failed:', e);
     }
-    setLoading(false);
   };
 
   const saveChatTheme = async (themeKey, chatId) => {
@@ -632,6 +628,7 @@ export const ChatThemeProvider = ({ children }) => {
     setChatId,
     loading,
     currentThemeData: chatThemes[currentChatTheme] || chatThemes.classic_purple,
+    refreshTheme,
     setScrollPercentage,
     currentChatId
   };

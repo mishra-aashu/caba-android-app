@@ -1,7 +1,7 @@
 import React from 'react';
 import { Timer, Users, User } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { fetchMessages } from '../../hooks/useMessages';
+import { fetchMessagesPage } from '../../hooks/useMessages';
 import { formatLastSeen, formatTime } from '../../utils/timeUtils';
 import EmojiRenderer from '../common/EmojiRenderer';
 import '../../styles/ChatListItem.css';
@@ -30,9 +30,10 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
   // is already in the cache. This is the 'Full Proof' secret to instant feel.
   const handlePrefetch = () => {
     if (chat.id) {
-      queryClient.prefetchQuery({
+      queryClient.prefetchInfiniteQuery({
         queryKey: ['messages', chat.id],
-        queryFn: () => fetchMessages(chat.id),
+        queryFn: ({ pageParam }) => fetchMessagesPage({ chatId: chat.id, pageParam }),
+        initialPageParam: null,
         staleTime: 1000 * 60 * 5,
       });
     }

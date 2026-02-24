@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useSupabase } from './SupabaseContext';
+import useUserStore from '../store/userStore';
 
 // Create the Emoji Style Context
 const EmojiStyleContext = createContext();
@@ -20,16 +21,10 @@ export const EmojiStyleProvider = ({ children }) => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('users')
-        .select('emoji_style')
-        .eq('id', user.id)
-        .single();
+      const userData = await useUserStore.getState().fetchUserIfNeeded(user.id);
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('Error loading emoji style:', error);
-      } else if (data?.emoji_style) {
-        setEmojiStyle(data.emoji_style);
+      if (userData?.emojiStyle) {
+        setEmojiStyle(userData.emojiStyle);
       }
     } catch (error) {
       console.error('Error loading emoji style:', error);

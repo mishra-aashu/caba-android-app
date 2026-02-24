@@ -1,14 +1,14 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '../config/supabase';
 import { safeDbConversion } from '../utils/dbFieldMapping';
 
 /**
- * Fetch messages for a specific chat (DM or Group)
+ * Fetch messages for a specific chat (DM or Group) with pagination
  */
-export const fetchMessages = async (chatId, limit = 50) => {
-    if (!chatId) return [];
+export const fetchMessagesPage = async ({ chatId, pageParam = null, limit = 50 }) => {
+    if (!chatId) return { data: [], nextCursor: null };
 
-    const { data, error } = await supabase
+    let query = supabase
         .from('messages')
         .select(`
        *,
@@ -31,30 +31,49 @@ export const fetchMessages = async (chatId, limit = 50) => {
         .order('created_at', { ascending: false })
         .limit(limit);
 
+    if (pageParam) {
+        query = query.lt('created_at', pageParam);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
-        console.error('Error fetching messages:', error);
+        console.error('Error fetching messages page:', error);
         throw error;
     }
 
-    // Add null safety and return in ascending order (oldest first)
+    // Convert database field names to frontend format
     const converted = safeDbConversion(data || []);
-    return converted.map(msg => ({
+    const messages = converted.map(msg => ({
         ...msg,
         sender: msg.sender || { id: msg.sender_id, name: 'Unknown', avatar: null },
         receiver: msg.receiver || (msg.receiver_id ? { id: msg.receiver_id, name: 'Unknown', avatar: null } : null)
-    })).reverse();
+    }));
+
+    // For infinite query, we return them in the order they came (newest first in this case)
+    // The UI can reverse them for display.
+    const validMessages = messages || [];
+    return {
+        data: validMessages,
+        nextCursor: validMessages.length === limit ? validMessages[validMessages.length - 1].createdAt : null
+    };
 };
 
 /**
- * Hook to get messages for a chat with global caching
+ * Hook to get infinite messages for a chat
  */
-export const useMessages = (chatId) => {
-    return useQuery({
+export const useInfiniteMessages = (chatId) => {
+    return useInfiniteQuery({
         queryKey: ['messages', chatId],
-        queryFn: () => fetchMessages(chatId),
+        queryFn: ({ pageParam }) => fetchMessagesPage({ chatId, pageParam }),
+        initialPageParam: null,
+        getNextPageParam: (lastPage) => {
+            if (!lastPage || !lastPage.data || lastPage.data.length === 0) return undefined;
+            return lastPage.nextCursor;
+        },
         enabled: !!chatId && chatId !== 'new',
-        staleTime: 1000 * 60 * 5,       // 5 minutes — serve cache instantly, revalidate in bg
-        gcTime: 1000 * 60 * 30,          // 30 minutes in cache after last use
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 30,
         refetchOnWindowFocus: false,
     });
 };

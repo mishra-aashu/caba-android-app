@@ -28,14 +28,27 @@ const fetchUserById = async (userId) => {
   return dbToFrontend(data);
 };
 
+import useUserStore from '../store/userStore';
+
 /**
  * Hook to get user profile with caching
- * Use this instead of fetching user in multiple components
+ * Root fix: Integrated with useUserStore to ensure absolute zero redundant fetches
  */
 export const useUser = (userId) => {
+  const storeUser = useUserStore(state => state.users[userId]);
+  const fetchIfNeeded = useUserStore(state => state.fetchUserIfNeeded);
+
   return useQuery({
     queryKey: ['user', userId],
-    queryFn: () => fetchUserById(userId),
+    queryFn: async () => {
+      // 1. Check store again (in case it updated since hook render)
+      const cached = useUserStore.getState().getUser(userId);
+      if (cached) return cached;
+
+      // 2. Fetch using deduplicated store logic
+      return await fetchIfNeeded(userId);
+    },
+    initialData: storeUser, // Show cached data immediately
     enabled: !!userId,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
@@ -322,9 +335,7 @@ export const useSendMessage = () => {
     },
     // Optimistic update - immediately show message
     onMutate: async (variables) => {
-      const queryKey = variables.isGroupMessage
-        ? ['groupMessages', variables.chatId]
-        : ['chatMessages', variables.chatId];
+      const queryKey = ['messages', variables.chatId];
 
       await queryClient.cancelQueries({ queryKey });
 
@@ -359,9 +370,7 @@ export const useSendMessage = () => {
       }
     },
     onSettled: (_, __, variables) => {
-      const queryKey = variables.isGroupMessage
-        ? ['groupMessages', variables.chatId]
-        : ['chatMessages', variables.chatId];
+      const queryKey = ['messages', variables.chatId];
       queryClient.invalidateQueries({ queryKey });
     },
   });
@@ -422,7 +431,7 @@ export const useInvalidateQueries = () => {
   };
 
   const invalidateMessages = (chatId, isGroup = false) => {
-    const queryKey = isGroup ? ['groupMessages', chatId] : ['chatMessages', chatId];
+    const queryKey = ['messages', chatId];
     queryClient.invalidateQueries({ queryKey });
   };
 

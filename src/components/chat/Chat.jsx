@@ -21,7 +21,7 @@ import MediaViewer from '../media/MediaViewer';
 import ImageViewer from './ImageViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
-import { useMessages } from '../../hooks/useMessages';
+import { useInfiniteMessages } from '../../hooks/useMessages';
 import { useQueryClient } from '@tanstack/react-query';
 import { useData } from '../../contexts/DataContext';
 import { messageReadsService } from '../../services/messageReadsService';
@@ -68,17 +68,27 @@ const Chat = () => {
   const { chats: allChats } = useData();
 
   // State
+  // ─── PAGINATION (Infinite Query) ──────────────────────────────────────────
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isMessagesLoading,
+    status: messagesStatus
+  } = useInfiniteMessages(validChatId);
+
   // ─── INSTANT DATA INITIALIZATION (Frame 1) ─────────────────────────────────
-  // We initialize the local state directly from the React Query cache.
-  // This ensures that 'Frame 1' of the component already has messages,
-  // preventing the 'blank blink' before the first useEffect runs.
-  const [messages, setMessages] = useState(() => {
-    if (!validChatId) return [];
-    const cached = queryClient.getQueryData(['messages', validChatId]);
-    return Array.isArray(cached) ? cached : [];
-  });
-  const [messagesLoading, setMessagesLoading] = useState(!messages.length && validChatId);
+  // We sync local Zustand store with the React Query cache.
+  const setStoreMessages = useChatStore(state => state.setMessages);
+  const addStoreMessage = useChatStore(state => state.addMessage);
+  const updateStoreMessage = useChatStore(state => state.updateMessage);
+  const removeStoreMessage = useChatStore(state => state.removeMessage);
+  const replaceTempMessage = useChatStore(state => state.replaceTempMessage);
+  const messages = useChatStore(state => state.messages);
+
   const [showGroupCallScreen, setShowGroupCallScreen] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const [activeCallData, setActiveCallData] = useState(null);
   const [activeGroupCall, setActiveGroupCall] = useState(null);
 
@@ -169,119 +179,37 @@ const Chat = () => {
   }, [chatId, isGroupChat]);
 
 
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isTempChat, setIsTempChat] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
-  const [vanishPresets, setVanishPresets] = useState([]);
-  const [selectedVanishDuration, setSelectedVanishDuration] = useState(86400);
-
-  // 🔥 ZUSTAND STORE SYNC: Keep the Zustand store in sync with local state
-  // This enables granular re-renders - only VirtualizedMessageList re-renders when messages change
-  const setStoreMessages = useChatStore(selectSetMessages);
-
+  // ─── PAGINATION SYNC ──────────────────────────────────────────────────────
+  // Sync infinite query data to Zustand store
   useEffect(() => {
-    if (messages.length > 0) {
-      setStoreMessages(messages);
+    if (infiniteData?.pages) {
+      // Flatten pages (newest first from hook) and reverse for UI (oldest first)
+      const allMsgs = infiniteData.pages.flatMap(page => page.data).reverse();
+      setStoreMessages(allMsgs);
+
+      // Persist to local storage in background
+      if (allMsgs.length > 0 && validChatId) {
+        saveMessagesToDevice(validChatId, allMsgs);
+      }
     }
-  }, [messages, setStoreMessages]);
-
-  // ─── REACT QUERY MESSAGE HOOK ──────────────────────────────────────────────
-  const { data: queryMessages, isLoading: queryLoading } = useMessages(validChatId);
-
-  // showLoading: show spinner only on initial load if no data
-  const showLoading = queryLoading && messages.length === 0;
-
-  // Sync query results with local messages state.
-  useEffect(() => {
-    if (queryMessages) {
-      // Merge logic: authoritative query data + optimistic sends not yet in DB
-      setMessages(prev => {
-        const dbIds = new Set(queryMessages.map(m => m.id));
-        const pendingOptimistic = prev.filter(m => m.tempId && !dbIds.has(m.id));
-
-        // Sort merged list by time - handle both formats for safety during transition
-        const merged = [...queryMessages, ...pendingOptimistic];
-        merged.sort((a, b) => new Date(a.createdAt || a.created_at || 0) - new Date(b.createdAt || b.created_at || 0));
-
-        // Sync user store for all fetched users
-        queryMessages.forEach(msg => {
-          if (msg.sender) useUserStore.getState().setUser(msg.sender);
-          if (msg.receiver) useUserStore.getState().setUser(msg.receiver);
-        });
-
-        // Background persistence sync
-        if (validChatId) saveMessagesToDevice(validChatId, merged);
-
-        return merged;
-      });
-      setMessagesLoading(false);
-    }
-  }, [queryMessages, validChatId]);
-
-  // ─── MAIN MESSAGE FETCH EFFECT ───────────────────────────────────────────────
-  // Runs every time the user opens a different chat (validChatId changes).
-  //
-  // Step 1 – INSTANT: If the cache already has messages for this chat, show them
-  //          right away. The user sees content immediately with zero loading.
-  //
-  // Step 2 – BACKGROUND: Always fire a fresh DB fetch regardless of cache.
-  //          When it resolves, merge any new messages (sent while away, or
-  //          messages from the other user) into the cache and update the UI.
-  //          The `cancelled` flag ensures a stale response from a previous chat
-  //          can never overwrite the current chat's messages.
-  // ─── KEEP CACHE IN SYNC ─────────────────────────────────────────────────────
-  // Write realtime/optimistic changes (deletes, status updates, new messages) back
-  // to the React Query cache so they persist when the user navigates back.
-  // We guard with a chatId ref so that stale effect closures from a PREVIOUS chat
-  // cannot overwrite the CURRENT chat's cache with the wrong messages.
-  const activeChatIdRef = useRef(validChatId);
-  useEffect(() => { activeChatIdRef.current = validChatId; }, [validChatId]);
-
-  useEffect(() => {
-    // Only write back if messages actually belong to the currently visible chat.
-    if (validChatId && activeChatIdRef.current === validChatId && messages.length > 0) {
-      queryClient.setQueryData(['messages', validChatId], messages);
-    }
-  }, [messages, validChatId, queryClient]);
+  }, [infiniteData, setStoreMessages, validChatId]);
 
   // When switching chats, pivot the state immediately.
-  // We use this effect to handle clearing unread counts and 
-  // ensuring the list is seeded if the query hook hasn't updated yet.
   useEffect(() => {
     if (chatId && chatId !== 'new') {
       setUnreadCount(0);
-      setHasMoreMessages(true);
 
-      const cached = queryClient.getQueryData(['messages', chatId]);
-      if (cached && Array.isArray(cached) && cached.length > 0) {
-        setMessages(cached);
-        setMessagesLoading(false);
-      } else {
-        // Fallback: Check mobile filesystem for permanent backup
-        loadMessagesFromDevice(chatId).then(localMessages => {
-          if (localMessages && localMessages.length > 0) {
-            setMessages(localMessages);
-            queryClient.setQueryData(['messages', chatId], localMessages);
-            setMessagesLoading(false);
-          } else {
-            setMessages([]);
-            setMessagesLoading(true);
-          }
-        });
-      }
-    }
-  }, [chatId, queryClient]);
+      // Clear store to prevent showing old chat's messages momentarily
+      useChatStore.getState().clearMessages();
 
-  // Auto-scroll to bottom when chat switches only (handled by VirtualizedMessageList)
-  useEffect(() => {
-    if (messages.length > 0 && messagesContainerRef.current) {
-      setIsScrolledToBottom(true);
+      // Fallback: Check mobile filesystem for permanent backup/instant load
+      loadMessagesFromDevice(chatId).then(localMessages => {
+        if (localMessages && localMessages.length > 0) {
+          setStoreMessages(localMessages);
+        }
+      });
     }
-  }, [chatId]);
+  }, [chatId, setStoreMessages]);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -305,10 +233,27 @@ const Chat = () => {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [showBlockConfirmModal, setShowBlockConfirmModal] = useState(false);
-
+  const [isMuted, setIsMuted] = useState(false);
+  const [isTempChat, setIsTempChat] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+  const [vanishPresets, setVanishPresets] = useState([]);
+  const [selectedVanishDuration, setSelectedVanishDuration] = useState(86400);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
+
+  const markMessagesAsRead = useCallback(async () => {
+    try {
+      if (!currentUser || !chatId || chatId === 'new') return;
+
+      // Use messageReadsService for consistent read receipt tracking
+      await messageReadsService.markAllAsRead(chatId, currentUser.id);
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  }, [currentUser, chatId]);
+
 
   const {
     isOpen: isGameOpen,
@@ -318,42 +263,25 @@ const Chat = () => {
     sendChallenge,
     completeTurn,
     closeGame
-  } = useTruthDareGame(chatId, currentUser?.id);
+  } = useTruthDareGame(chatId, currentUser?.id, { enabled: showGameRoom });
 
   const handleNewMessage = useCallback((newMessage) => {
     const isOwnMessage = (newMessage.senderId || newMessage.sender_id) === currentUser?.id;
 
-    setMessages(prev => {
-      const exists = prev.some(msg => msg.id === newMessage.id);
-      if (exists) return prev;
-
-      // Own message from realtime: never add as new — only replace our temp, or skip (insert response will handle it)
-      if (isOwnMessage) {
-        const tempIndex = prev.findIndex(msg =>
-          msg.tempId && msg.content === newMessage.content
-        );
-        if (tempIndex !== -1) {
-          return prev.map((msg, i) => (i === tempIndex ? newMessage : msg));
-        }
-        return prev; // already have it from insert response or will get it; avoid duplicate
-      }
-
-      // From other user: replace temp if same content/time, else else add
-      const isAlreadyPresent = prev.some(msg =>
-        (msg.tempId && msg.content === newMessage.content && (msg.createdAt === newMessage.createdAt || msg.created_at === newMessage.created_at)) ||
-        msg.id === newMessage.id
+    // Check if we should replace a temp message or add as new
+    if (isOwnMessage) {
+      // Find matching temp message by content and recentness
+      const matchingMsg = messages.find(m =>
+        m.tempId && m.content === newMessage.content && (Date.now() - m.tempId < 30000)
       );
-
-      if (isAlreadyPresent) {
-        return prev.map(msg =>
-          (msg.tempId && msg.content === newMessage.content && (msg.createdAt === newMessage.createdAt || msg.created_at === newMessage.created_at))
-            ? newMessage
-            : msg
-        );
+      if (matchingMsg) {
+        replaceTempMessage(matchingMsg.tempId, newMessage);
+        return;
       }
+    }
 
-      return [...prev, newMessage];
-    });
+    // Add as new message (Zustand addMessage handles duplicates)
+    addStoreMessage(newMessage);
 
     // Play notification sound for incoming messages
     const senderId = newMessage.senderId || newMessage.sender_id;
@@ -361,36 +289,26 @@ const Chat = () => {
       NotificationSound.playMessageNotification();
     }
 
-    // Increment unread count if not scrolled to bottom
+    // Unread logic
     if (!isScrolledToBottom) {
       setUnreadCount(prev => prev + 1);
     } else {
       markMessagesAsRead();
     }
-
-    // Check if this is a game invite acceptance that should open the game room
-    // When user accepts an invitation, they become the sender of the 'accepted' message
-    if (newMessage.type === 'game_invite' && newMessage.status === 'accepted') {
-      if (senderId === currentUser?.id) {
-        startGame(otherUserId);
-      }
-    }
-  }, [isScrolledToBottom, currentUser?.id, isMuted, startGame]);
+  }, [isScrolledToBottom, currentUser?.id, isMuted, messages, addStoreMessage, replaceTempMessage, markMessagesAsRead]);
 
   const handleDeleteMessage = useCallback((deletedId) => {
     // Mark as deleting first to trigger CSS animation
-    setMessages((prev) => prev.map(m => m.id === deletedId ? { ...m, isDeleting: true } : m));
+    updateStoreMessage(deletedId, { isDeleting: true });
 
     // Remove from state after animation finishes
     setTimeout(() => {
-      setMessages((prev) => prev.filter(m => m.id !== deletedId));
+      removeStoreMessage(deletedId);
     }, 450);
   }, []);
 
   const handleStatusUpdate = useCallback((updatedMessage) => {
-    setMessages(prev => prev.map(msg =>
-      msg.id === updatedMessage.id ? updatedMessage : msg
-    ));
+    updateStoreMessage(updatedMessage.id, updatedMessage);
   }, []);
 
   useRealtimeMessages(validChatId, {
@@ -470,98 +388,61 @@ const Chat = () => {
 
   const loadOtherUserInfo = async (userId) => {
     try {
-      if (!userId) {
-        console.warn('loadOtherUserInfo called with null userId');
-        return;
-      }
+      if (!userId) return;
 
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Root fix: Use centralized cache/fetch to avoid redundant calls
+      const user = await useUserStore.getState().fetchUserIfNeeded(userId);
+      if (user) {
+        setOtherUser(user);
 
-      if (error) throw error;
-      setOtherUser(user);
-      useUserStore.getState().setUser(user);
+        // Load contact name - only if we have currentUser
+        if (currentUser?.id) {
+          const { data: contact } = await supabase
+            .from('contacts')
+            .select('contact_name')
+            .eq('user_id', currentUser.id)
+            .eq('contact_user_id', userId)
+            .maybeSingle();
 
-      // Load contact name - only if we have currentUser
-      if (currentUser?.id) {
-        const { data: contact } = await supabase
-          .from('contacts')
-          .select('contact_name')
-          .eq('user_id', currentUser.id)
-          .eq('contact_user_id', userId)
-          .maybeSingle();
-
-        if (contact) {
-          setOtherUser(prev => ({ ...prev, contact_name: contact.contact_name }));
+          if (contact) {
+            setOtherUser(prev => ({ ...prev, contact_name: contact.contact_name }));
+          }
         }
       }
     } catch (error) {
       console.error('Error loading user info:', error);
-      // Set fallback user data to prevent crashes
-      setOtherUser({
-        id: userId,
-        name: 'Unknown User',
-        avatar: null
-      });
+      setOtherUser({ id: userId, name: 'Unknown User', avatar: null });
     }
   };
 
   // Initialize chat function - MUST BE DEFINED BEFORE useEffect that calls it
+  // Sync infinite query data to Zustand store
+  useEffect(() => {
+    if (infiniteData?.pages) {
+      // Flatten pages (newest first from hook) and reverse for UI (oldest first)
+      const allMsgs = infiniteData.pages.flatMap(page => page.data).reverse();
+      setStoreMessages(allMsgs);
+
+      // Persist to local storage in background
+      if (allMsgs.length > 0 && validChatId) {
+        saveMessagesToDevice(validChatId, allMsgs);
+      }
+    }
+  }, [infiniteData, setStoreMessages, validChatId]);
+
+
   const initializeChat = async () => {
-    if (!chatId) return;
+    if (!chatId || isInitializing) return;
+    setIsInitializing(true);
 
-    if (isGroupChat) {
-      // 1. INSTANT INITIALIZATION: Try to get data from allChats first (same as DMs)
-      if (allChats && allChats.length > 0) {
-        const activeChat = allChats.find(c => c.id === chatId && c.isGroup);
-        if (activeChat && activeChat.otherUser) {
-          // Use group data from chat list - instant display!
-          setOtherUser({
-            ...activeChat.otherUser,
-            is_group: true,
-            isGroup: true,
-            member_count: activeChat.otherUser.member_count || 0
-          });
-          // Still load full group info in background for member details, etc.
-          loadGroupInfo(chatId);
-          return; // Success! Instant UI population.
-        }
+    try {
+      if (isGroupChat) {
+        await loadGroupInfo(chatId);
+      } else if (otherUserId && otherUserId !== 'group') {
+        await loadOtherUserInfo(otherUserId);
       }
-
-      // 2. FALLBACK: Set placeholder and load from database
-      setOtherUser(prev => {
-        // Keep existing data if we're already on this group (prevents flicker on re-render)
-        if (prev?.id === chatId && prev?.is_group) return prev;
-        return { id: chatId, name: 'Group Chat', avatar: null, is_group: true, member_count: 0 };
-      });
-      loadGroupInfo(chatId); // non-blocking, will overwrite placeholder when done
-      return;
-    }
-
-    // For DM chats: reset stale state before loading ONLY if it's a different user
-    // (Removing setOtherUser(null) to prevent header flicker)
-
-    // 1. INSTANT INITIALIZATION: Try to get data from allChats first
-    if (allChats && allChats.length > 0) {
-      const activeChat = allChats.find(c => c.id == chatId);
-      if (activeChat) {
-        const effectiveOtherUserId = isGroupChat ? chatId : otherUserId;
-        setOtherUser({
-          ...activeChat,
-          ...(activeChat.otherUser || {}),
-          id: effectiveOtherUserId, // CRITICAL: Use correct ID
-          is_group: !!activeChat.isGroup
-        });
-        return; // Success! Instant UI population.
-      }
-    }
-
-    // 2. FALLBACK: Load from database
-    if (otherUserId && otherUserId !== 'group') {
-      await loadOtherUserInfo(otherUserId);
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -576,10 +457,10 @@ const Chat = () => {
       initializeChat();
     }
 
-    return () => {
-      cleanup();
-    };
-  }, [chatId, otherUserId, authLoading, isAuthenticated, currentUser, allChats]);
+
+    // Root fix: Remove allChats from dependencies to stop infinite loop
+    // allChats updates on every status heartbeat, but we only need to init once per chatId/userId change
+  }, [chatId, otherUserId, authLoading, isAuthenticated, currentUser]);
 
   // ─── INSTANT GROUP HEADER ─────────────────────────────────────────────────
   // Fires immediately on chatId change WITHOUT waiting for currentUser/auth.
@@ -622,8 +503,8 @@ const Chat = () => {
       return { id: chatId, name: 'Group Chat', avatar: null, is_group: true, isGroup: true, member_count: 0 };
     });
 
-    // 3. If no supabase yet, wait for it
-    if (!supabase) {
+    // 3. If no supabase yet, or if NOT a group chat, stop here
+    if (!supabase || !isGroupChat) {
       return;
     }
 
@@ -659,7 +540,7 @@ const Chat = () => {
     })();
 
     return () => { cancelled = true; };
-  }, [chatId, isGroupChat, supabase, allChats]);
+  }, [chatId, isGroupChat, supabase]);
 
   // Scroll to bottom handled by VirtualizedMessageList - no manual intervention needed
 
@@ -686,57 +567,76 @@ const Chat = () => {
       }
     };
 
-    const fetchVanishPresets = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('vanish_duration_presets')
-          .select('*')
-          .order('duration_seconds', { ascending: true });
-        if (data) setVanishPresets(data);
-      } catch (error) {
-        console.error('Error fetching vanish presets:', error);
-      }
-    };
-
     loadTempChatState();
-    fetchVanishPresets();
   }, [chatId, currentUser, supabase]);
 
-  // Subscribe to real-time updates for other user's online status
+  const fetchVanishPresets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vanish_duration_presets')
+        .select('*')
+        .order('duration_seconds', { ascending: true });
+      if (data) setVanishPresets(data);
+    } catch (error) {
+      console.error('Error fetching vanish presets:', error);
+    }
+  };
+
+  // Subscribe to real-time updates for other user's online status using Presence
   useEffect(() => {
-    if (!otherUserId) return;
+    if (isGroupChat || !otherUserId) return;
 
-    const channelName = `user_status_${otherUserId}`;
-    console.log(`🔌 Consolidating user status subscription for: ${otherUserId}`);
+    const channelName = 'online-presence';
+    console.log(`📡 Listening to Presence events for: ${otherUserId}`);
 
+    const handleSync = () => {
+      const channel = realtimeManager.subscriptions.get(channelName)?.values().next().value;
+      if (!channel) return;
+
+      const state = channel.presenceState();
+
+      // Flatten presence state to see if otherUserId is present
+      let isOnline = false;
+      let lastSeen = null;
+
+      Object.values(state).forEach((presences) => {
+        presences.forEach((p) => {
+          if (p.user_id === otherUserId) {
+            isOnline = true;
+            lastSeen = p.online_at;
+          }
+        });
+      });
+
+      setOtherUser(prev => {
+        if (!prev || (prev.is_online === isOnline && prev.last_seen === lastSeen)) return prev;
+        return {
+          ...prev,
+          is_online: isOnline,
+          last_seen: lastSeen || prev.last_seen
+        };
+      });
+    };
+
+    // Subscribing to online-presence (it might already be subscribed by useOnlineStatus)
     realtimeManager.subscribe(
       channelName,
       {},
       {
-        postgres_changes: [
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'users',
-            filter: `id=eq.${otherUserId}`,
-            handler: (payload) => {
-              const updatedUser = payload.new;
-              setOtherUser(prev => ({
-                ...prev,
-                is_online: Boolean(updatedUser.is_online),
-                last_seen: updatedUser.last_seen
-              }));
-            }
-          }
-        ]
+        presence: {
+          event: 'sync',
+          callback: handleSync
+        }
       }
     );
 
     return () => {
-      console.log(`🔌 Cleaning up user status for: ${otherUserId}`);
-      realtimeManager.unsubscribe(channelName);
+      // Note: We don't necessarily want to unsubscribe here if useOnlineStatus is using it,
+      // but realtimeManager.unsubscribe should handle reference counting if implemented correctly.
+      // For now, we follow the pattern.
+      console.log(`🔌 Cleaning up presence listener for: ${otherUserId}`);
     };
-  }, [otherUserId]);
+  }, [otherUserId, isGroupChat]);
 
   // Handle detecting ongoing group calls
   useEffect(() => {
@@ -796,82 +696,24 @@ const Chat = () => {
   }, [chatId, isGroupChat, supabase, currentUser?.id]);
 
 
-  const loadMessages = async (isLoadMore = false) => {
-    if (!chatId || chatId === 'new') return;
-
-    if (isLoadMore) {
-      setLoadingMore(true);
+  const handleScroll = (location) => {
+    // 1. Pagination Trigger
+    if (location.isAtTop && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
 
-    try {
-      // OPTIMIZED QUERY: Use joins to fetch user data in single query
-      let query = supabase
-        .from('messages')
-        .select(`
-          *,
-          sender:sender_id (
-            id,
-            name,
-            avatar,
-            is_online,
-            last_seen
-          ),
-          receiver:receiver_id (
-            id,
-            name,
-            avatar,
-            is_online,
-            last_seen
-          )
-        `)
-        .eq('chat_id', chatId)
-        .order('created_at', { ascending: false }); // Load latest first for pagination
+    // 2. UI State Management
+    const isAtBottom = location.isAtBottom || false;
+    setIsScrolledToBottom(isAtBottom);
+    setShowScrollButton(!isAtBottom);
 
-      if (isLoadMore && messages.length > 0) {
-        const oldestMessage = messages[0]; // messages is in ascending order
-        const oldestTime = oldestMessage.createdAt || oldestMessage.created_at;
-        if (oldestTime) {
-          query = query.lt('created_at', oldestTime);
-        }
-      }
-
-      query = query.limit(50); // Load 50 messages at a time
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const newMessages = data || [];
-
-      if (isLoadMore) {
-        const combined = [...data.map(m => dbToFrontend(m)).reverse(), ...messages];
-        setMessages(combined);
-        await saveMessagesToDevice(chatId, combined);
-        setHasMoreMessages(data.length === 50);
-      } else {
-        const reversed = data.map(m => dbToFrontend(m)).reverse();
-        setMessages(reversed);
-        await saveMessagesToDevice(chatId, reversed);
-        setHasMoreMessages(data.length === 50);
-      }
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    } finally {
-      setLoadingMore(false);
+    if (isAtBottom && unreadCount > 0) {
+      setUnreadCount(0);
+      markMessagesAsRead();
     }
   };
 
-  const loadMoreMessages = () => {
-    if (chatId && hasMoreMessages && !loadingMore) {
-      loadMessages(true);
-    }
-  };
 
-  const cleanup = () => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-  };
 
   const handleBlockUser = async () => {
     setShowBlockConfirmModal(true);
@@ -930,7 +772,7 @@ const Chat = () => {
       tempId: tempId
     };
 
-    setMessages(prev => [...prev, optimisticMsg]);
+    addStoreMessage(optimisticMsg);
     setReplyingTo(null);
 
     try {
@@ -954,9 +796,7 @@ const Chat = () => {
 
         // Replace temporary message in state and Dexie
         const frontendData = dbToFrontend(data);
-        setMessages(prev => prev.map(msg =>
-          msg.tempId === tempId ? { ...frontendData, status: 'sent', sender: currentUser } : msg
-        ));
+        replaceTempMessage(tempId, { ...frontendData, status: 'sent', sender: currentUser });
 
         // Update Dexie with real record and remove temp one
         await db.transaction('rw', db.messages, async () => {
@@ -1022,7 +862,7 @@ const Chat = () => {
       media_url: objectUrl || (mediaPath ? getPublicMediaUrl(mediaPath) : null)
     };
 
-    setMessages(prev => [...prev, optimisticMsg]);
+    addStoreMessage(optimisticMsg);
     setReplyingTo(null);
 
     try {
@@ -1044,9 +884,8 @@ const Chat = () => {
         if (error) throw error;
 
         const frontendMsg = dbToFrontend(data);
-        setMessages(prev => prev.map(msg =>
-          msg.tempId === tempId ? { ...frontendMsg, sender: currentUser } : msg
-        ));
+        const realMsgWithSender = { ...dbToFrontend(data), sender: currentUser };
+        replaceTempMessage(tempId, realMsgWithSender);
 
         // Update Dexie
         await db.transaction('rw', db.messages, async () => {
@@ -1079,14 +918,6 @@ const Chat = () => {
 
   const handleTyping = () => {
     sendTyping();
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      sendTyping();
-    }, 3000);
   };
 
   const scrollToBottom = () => {
@@ -1097,16 +928,6 @@ const Chat = () => {
     setIsScrolledToBottom(true);
   };
 
-  const markMessagesAsRead = useCallback(async () => {
-    try {
-      if (!currentUser || !chatId || chatId === 'new') return;
-
-      // Use messageReadsService for consistent read receipt tracking
-      await messageReadsService.markAllAsRead(chatId, currentUser.id);
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
-  }, [currentUser, chatId]);
 
   const handleReply = (message) => {
     setReplyingTo(message);
@@ -1146,7 +967,7 @@ const Chat = () => {
     setShowDeleteModal(false);
     const ids = Array.from(selectedMessages);
     const prevMessages = messages;
-    setMessages(prev => prev.filter(m => !selectedMessages.has(m.id)));
+    ids.forEach(id => removeStoreMessage(id));
     exitSelectionMode();
 
     try {
@@ -1155,8 +976,8 @@ const Chat = () => {
     } catch (error) {
       console.error('Error deleting messages:', error);
       toast.error('Failed to delete messages');
-      setMessages(prevMessages);
-      queryClient.setQueryData(['messages', validChatId], prevMessages);
+      setStoreMessages(prevMessages);
+      queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
     }
   };
 
@@ -1430,6 +1251,7 @@ const Chat = () => {
   };
 
   const handleTempChatSettings = () => {
+    fetchVanishPresets(); // Fetch on demand
     setShowVanishSettingsModal(true);
   };
 
@@ -1448,7 +1270,7 @@ const Chat = () => {
 
       if (error) throw error;
 
-      setMessages([]);
+      useChatStore.getState().clearMessages();
 
       await supabase
         .from('chats')
@@ -1514,27 +1336,7 @@ const Chat = () => {
     setActiveGroupCall(null);
   };
 
-  const handleScroll = (scrollData) => {
-    // Handle scroll from VirtualizedMessageList
-    const isAtBottom = scrollData?.isAtBottom || false;
-    const isAtTop = scrollData?.isAtTop || false;
-    const isScrollingUp = scrollData?.isScrollingUp || false;
 
-    // Show scroll button when not at bottom
-    setShowScrollButton(!isAtBottom);
-    setIsScrolledToBottom(isAtBottom);
-
-    // If scrolled to bottom, mark messages as read and reset unread count
-    if (isAtBottom && unreadCount > 0) {
-      setUnreadCount(0);
-      markMessagesAsRead();
-    }
-
-    // Load more messages when scrolled to top
-    if (isAtTop && hasMoreMessages && !loadingMore && messages.length > 0) {
-      loadMoreMessages();
-    }
-  };
 
   const scrollToBottomSmooth = () => {
     // Use VirtualizedMessageList's scrollToBottom if available
@@ -1851,7 +1653,7 @@ const Chat = () => {
           ref={messagesContainerRef}
         >
           {/* Load More Indicator */}
-          {loadingMore && (
+          {isFetchingNextPage && (
             <div className="load-more-indicator">
               <div className="loading-spinner"></div>
               <p>Loading older messages...</p>
@@ -1867,15 +1669,15 @@ const Chat = () => {
             onReply={handleReply}
             onForward={handleForwardMessage}
             onDelete={(messageId) => {
-              setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isDeleting: true } : m));
+              updateStoreMessage(messageId, { isDeleting: true });
               setTimeout(() => {
-                setMessages(prev => prev.filter(m => m.id !== messageId));
+                removeStoreMessage(messageId);
               }, 450);
             }}
             onEdit={handleMessageEdit}
             onMediaView={handleMediaView}
             onMediaDownload={handleMediaDownload}
-            isLoading={showLoading}
+            isLoading={isMessagesLoading}
             isGroupChat={Boolean(isGroupChat)}
             onSenderClick={(senderId) => {
               const isMobile = window.matchMedia('(max-width: 768px)').matches;
