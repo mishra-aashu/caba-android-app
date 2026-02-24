@@ -1,4 +1,4 @@
-import{j as e}from"./vendor-ui-DRlN_Dxo.js";import{r as n}from"./vendor-react-B-GH-4VX.js";import{b as f,u as p,e as v}from"./index-d0a2GRAe.js";import"./vendor-supabase-BZ0N5lZN.js";import"./vendor-query-CWtXFYdG.js";const w=({onBack:u})=>{const{supabase:d}=f(),a=p(r=>r.dbUser),{showAlert:o,showConfirm:m}=v(),[t,h]=n.useState([]),[b,k]=n.useState(!0);n.useEffect(()=>{a&&i(a).then(()=>k(!1))},[a]);const i=async r=>{try{const{data:s,error:l}=await d.from("blocked_users").select(`
+import{j as e}from"./vendor-ui-DRlN_Dxo.js";import{r as n}from"./vendor-react-B-GH-4VX.js";import{b as f,u as p,e as v}from"./index-CuGEB8Kt.js";import"./vendor-supabase-BZ0N5lZN.js";import"./vendor-query-CWtXFYdG.js";const w=({onBack:u})=>{const{supabase:d}=f(),a=p(r=>r.dbUser),{showAlert:o,showConfirm:m}=v(),[t,h]=n.useState([]),[b,k]=n.useState(!0);n.useEffect(()=>{a&&i(a).then(()=>k(!1))},[a]);const i=async r=>{try{const{data:s,error:l}=await d.from("blocked_users").select(`
           *,
           blocked_user:users!blocked_users_blocked_id_fkey(
             id,
