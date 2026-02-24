@@ -490,16 +490,20 @@ body.light-mode .chat-loading p {
 
 /* Chat Input Area */
 /* --- Chat Input Container --- */
+/* FIX: Use flexbox instead of sticky to work with Framer Motion transitions */
 .chat-input-container {
   padding: 0.5rem 1rem;
   padding-bottom: calc(0.5rem + var(--sab));
-  position: sticky;
-  bottom: 0;
+  /* FIXED: Changed from 'sticky' to flex layout - last item in flex column */
+  position: relative;
   z-index: 10;
   background: transparent;
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  /* Respect keyboard height when open */
+  margin-bottom: var(--keyboard-height, 0px);
 }
 
 /* --- Desktop Specific Layout (Original Style) --- */

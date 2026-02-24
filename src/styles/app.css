@@ -26,6 +26,23 @@
   /* --font-sans: 'Poppins', sans-serif; */
   /* <-- Uncomment to use Poppins */
 
+  /* --- DYNAMIC VIEWPORT & SAFE AREA VARIABLES (PWA Mobile Fix) --- */
+  /* Primary: Dynamic viewport height - adjusts when keyboard/URL bar appears */
+  --app-height: 100dvh;
+  /* Fallback: Standard viewport height */
+  --app-height: 100vh;
+  /* iOS Safari fallback */
+  --app-height: -webkit-fill-available;
+  
+  /* Keyboard height - updated by ViewportManager when keyboard opens */
+  --keyboard-height: 0px;
+  
+  /* Safe area insets for notched devices (iPhone X+) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
   /* --- REFINED LIGHT THEME --- */
   --bg-color: #F7FDF9;
   /* A very light, almost white green */
@@ -144,6 +161,8 @@ body {
   height: var(--app-height);
   width: 100vw;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Custom Scrollbars */

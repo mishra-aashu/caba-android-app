@@ -1587,6 +1587,9 @@ const Chat = () => {
   return (
     <motion.div 
       className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
+      // FIX: Added 'layout' prop to fix the Framer Motion transition bug
+      // This tells Framer Motion to properly handle layout changes during transitions
+      layout
       initial="initial"
       animate="animate"
       variants={pageVariants}
