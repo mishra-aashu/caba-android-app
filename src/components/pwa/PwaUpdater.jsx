@@ -33,19 +33,49 @@ const PwaUpdater = () => {
         return false;
     };
 
+    // Aggressive cache clearing to prevent 404 on hashed assets
+    const clearAllCaches = async () => {
+        try {
+            const cacheNames = await caches.keys();
+            console.log('[PwaUpdater] Clearing caches:', cacheNames);
+            await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+            console.log('[PwaUpdater] All caches cleared');
+        } catch (error) {
+            console.error('[PwaUpdater] Cache clearing failed:', error);
+        }
+    };
+
+    // Unregister all service workers
+    const unregisterAllServiceWorkers = async () => {
+        try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            console.log('[PwaUpdater] Unregistering SWs:', registrations.length);
+            await Promise.all(registrations.map(reg => reg.unregister()));
+            console.log('[PwaUpdater] All service workers unregistered');
+        } catch (error) {
+            console.error('[PwaUpdater] SW unregistration failed:', error);
+        }
+    };
+
     const handleUpdate = async () => {
         try {
+            // Step 1: Clear all caches first
+            await clearAllCaches();
+            
+            // Step 2: Unregister all service workers
+            await unregisterAllServiceWorkers();
+            
+            // Step 3: Try standard SW update
             if (typeof updateServiceWorker === 'function') {
-                // This will activate the new service worker 
-                // and automatically reload the page when ready!
                 await updateServiceWorker(true);
-            } else {
-                // Fallback if service worker is not available for some reason
-                window.location.reload();
             }
+            
+            // Step 4: Force hard reload to ensure fresh assets
+            window.location.reload(true);
         } catch (error) {
             console.error('Update failed:', error);
-            window.location.reload(); // Fallback
+            // Emergency fallback - force hard reload anyway
+            window.location.reload(true);
         }
     };
 

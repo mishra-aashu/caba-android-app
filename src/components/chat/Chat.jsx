@@ -1593,6 +1593,8 @@ const Chat = () => {
       initial="initial"
       animate="animate"
       variants={pageVariants}
+      // 👇 यह लाइन एनिमेशन के टाइम गैप बनने से रोकेगी 👇
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100dvh' }}
     >
       <div className="chat-main-area">
         {/* Chat Header - always render, even if otherUser is loading */}

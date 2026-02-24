@@ -218,12 +218,14 @@ body.light-mode .chat-loading p {
 /* GPU Acceleration for Chat Screen - Performance Optimizations */
 .chat-screen {
   display: flex;
-  flex-direction: row;
-  height: 100%;
+  flex-direction: column;
+  /* 100dvh ही असली जादू है जो URL बार के हिसाब से खुद को एडजस्ट करता है */
+  height: 100dvh; 
   width: 100%;
   background: var(--background);
   position: relative;
   overflow: hidden;
+  overscroll-behavior-y: none; /* यह PWA को रबर की तरह खिंचने से रोकेगा */
   /* GPU acceleration */
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -279,7 +281,8 @@ body.light-mode .chat-loading p {
 }
 
 .messages-container {
-  flex: 1;
+  flex: 1; /* बची हुई सारी जगह यह ले लेगा */
+  min-height: 0; /* यह बहुत ज़रूरी है, वरना फ्लेक्सबॉक्स ओवरफ्लो कर जाता है */
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
   /* Momentum scrolling for mobile */
@@ -311,7 +314,6 @@ body.light-mode .chat-loading p {
   contain: content;
   /* CSS containment for performance */
   /* FLEXBOX FIX: Take remaining space above input */
-  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -492,8 +494,11 @@ body.light-mode .chat-loading p {
 /* --- Chat Input Container --- */
 /* FIX: Use flexbox instead of sticky to work with Framer Motion transitions */
 .chat-input-container {
+  flex-shrink: 0; /* यह कभी नहीं सिकुड़ेगा */
+  width: 100%;
   padding: 0.5rem 1rem;
   padding-bottom: calc(0.5rem + var(--sab));
+  padding-bottom: env(safe-area-inset-bottom); /* iPhone के होम बार के लिए */
   /* FIXED: Changed from 'sticky' to flex layout - last item in flex column */
   position: relative;
   z-index: 10;
@@ -501,7 +506,6 @@ body.light-mode .chat-loading p {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
   /* Respect keyboard height when open */
   margin-bottom: var(--keyboard-height, 0px);
 }
