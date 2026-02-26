@@ -5,11 +5,11 @@
   "homepage": "/",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "gh-pages -d dist"
+    "deploy": "cross-env GITHUB_PAGES=true vite build && gh-pages -d dist"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
@@ -68,6 +68,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.3.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.2.1",
