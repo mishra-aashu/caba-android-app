@@ -13,22 +13,23 @@ import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import { CallProvider } from './context/CallContext.jsx' // Import CallProvider
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createIDBPersister } from './utils/persister';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import AppErrorBoundary from './components/common/AppErrorBoundary';
 
-// Create the IndexedDB persister
-const persister = createIDBPersister('reactQueryClient');
+// Create the LocalStorage persister
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 Minutes (Data stays 'fresh', no refetch on tab switch)
-      gcTime: 1000 * 60 * 30, // 30 Minutes (Keep unused data in cache)
-      refetchOnWindowFocus: false, // Do NOT refetch when switching tabs/windows
-      refetchOnMount: false, // If data is in cache and fresh, use it - no fetch again
-      retry: 1, // Retry failed requests only once
-      // Network error handling - don't show error immediately, allow offline
-      networkMode: 'offlineFirst', // Only make requests when online
+      staleTime: 1000 * 60 * 5, // 5 Minutes (Global)
+      gcTime: 1000 * 60 * 30, // 30 Minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: true, // Allow refetch on mount if stale
+      retry: 1,
+      networkMode: 'offlineFirst',
     },
     mutations: {
       retry: 1,
@@ -54,8 +55,7 @@ createRoot(document.getElementById('root')).render(
         client={queryClient}
         persistOptions={{ persister }}
         onSuccess={() => {
-          // Optional: Log when hydration is complete
-          console.log('Query client restored from IndexedDB');
+          console.log('Query client restored from LocalStorage');
         }}
       >
         <SupabaseProvider>

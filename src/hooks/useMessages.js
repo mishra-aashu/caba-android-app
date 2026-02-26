@@ -53,9 +53,14 @@ export const fetchMessagesPage = async ({ chatId, pageParam = null, limit = 50 }
     // For infinite query, we return them in the order they came (newest first in this case)
     // The UI can reverse them for display.
     const validMessages = messages || [];
+
+    // Defensive check for nextCursor: only if we have data and reached the limit
+    const lastMsg = validMessages.length > 0 ? validMessages[validMessages.length - 1] : null;
+    const nextCursor = (validMessages.length === limit && lastMsg) ? lastMsg.createdAt : null;
+
     return {
         data: validMessages,
-        nextCursor: validMessages.length === limit ? validMessages[validMessages.length - 1].createdAt : null
+        nextCursor
     };
 };
 
@@ -68,8 +73,9 @@ export const useInfiniteMessages = (chatId) => {
         queryFn: ({ pageParam }) => fetchMessagesPage({ chatId, pageParam }),
         initialPageParam: null,
         getNextPageParam: (lastPage) => {
+            // Defensive: ensure lastPage and lastPage.data exist
             if (!lastPage || !lastPage.data || lastPage.data.length === 0) return undefined;
-            return lastPage.nextCursor;
+            return lastPage.nextCursor || undefined;
         },
         enabled: !!chatId && chatId !== 'new',
         staleTime: 1000 * 60 * 5,

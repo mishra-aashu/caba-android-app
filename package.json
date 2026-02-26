@@ -29,6 +29,7 @@
     "@emoji-mart/react": "^1.1.1",
     "@ionic/react": "^8.7.15",
     "@supabase/supabase-js": "^2.95.3",
+    "@tanstack/query-sync-storage-persister": "^5.90.23",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-query-persist-client": "^5.90.22",
     "axios": "^1.13.2",
