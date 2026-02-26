@@ -22,6 +22,7 @@ import ImageViewer from './ImageViewer';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
 import { useInfiniteMessages } from '../../hooks/useMessages';
+import { useGroupDetails } from '../../hooks/useGroupDetails';
 import { useQueryClient } from '@tanstack/react-query';
 import { useData } from '../../contexts/DataContext';
 import { messageReadsService } from '../../services/messageReadsService';
@@ -77,6 +78,11 @@ const Chat = () => {
     isLoading: isMessagesLoading,
     status: messagesStatus
   } = useInfiniteMessages(validChatId);
+
+  // ─── UNIFIED GROUP DATA ───────────────────────────────────────────────────
+  const { data: groupDetails } = useGroupDetails(
+    (otherUserId === 'group' || location.pathname.endsWith('/group')) ? validChatId : null
+  );
 
   // ─── INSTANT DATA INITIALIZATION (Frame 1) ─────────────────────────────────
   // We sync local Zustand store with the React Query cache.
@@ -157,7 +163,35 @@ const Chat = () => {
     }
   }, [chatId, setChatId]);
 
-  // Ensure group placeholder is set immediately when chatId changes for groups
+  // Sync the cached group details into the otherUser state whenever they load natively
+  useEffect(() => {
+    if (groupDetails) {
+      // Safe extraction of member info mapped from deep join
+      const memberCount = groupDetails.group_members?.length || 0;
+      const memberPreviews = groupDetails.group_members?.slice(0, 5).map(m => ({
+        id: m.users?.id,
+        name: m.users?.name || 'Unknown',
+        avatar: m.users?.avatar,
+        role: m.role
+      })) || [];
+      const myRole = groupDetails.group_members?.find(m => m.user_id === currentUser?.id)?.role || 'member';
+
+      setOtherUser(prev => ({
+        ...(prev || {}),
+        ...groupDetails,
+        id: groupDetails.id,
+        name: groupDetails.name,
+        avatar: groupDetails.avatar_url,
+        is_group: true,
+        isGroup: true,
+        member_count: memberCount,
+        member_previews: memberPreviews,
+        my_role: myRole,
+        description: groupDetails.description
+      }));
+    }
+  }, [groupDetails, currentUser?.id]);
+
   useEffect(() => {
     if (isGroupChat && chatId) {
       setOtherUser(prev => {
@@ -320,72 +354,6 @@ const Chat = () => {
   const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
 
 
-  // Load group info for group chats - MUST BE DEFINED BEFORE initializeChat
-  const loadGroupInfo = async (groupId) => {
-    try {
-      // Run all 3 queries in parallel but handle failures gracefully
-      const results = await Promise.allSettled([
-        supabase.from('groups').select('*').eq('id', groupId).single(),
-        supabase.from('group_members').select('*', { count: 'exact', head: true }).eq('group_id', groupId),
-        supabase.from('group_members').select('user_id, role, users!inner(id, name, avatar)').eq('group_id', groupId).limit(5),
-        supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser?.id).single(),
-      ]);
-
-      const groupResult = results[0];
-      const countResult = results[1];
-      const membersResult = results[2];
-      const roleResult = results[3];
-
-      if (groupResult.status === 'rejected' || (groupResult.status === 'fulfilled' && groupResult.value.error)) {
-        throw groupResult.reason || groupResult.value.error;
-      }
-
-      const group = groupResult.value.data;
-
-      // Extract data safely from other results (they might have failed)
-      const memberCount = (countResult.status === 'fulfilled' && !countResult.value.error)
-        ? countResult.value.count
-        : 0;
-
-      const memberPreviews = (membersResult.status === 'fulfilled' && !membersResult.value.error && membersResult.value.data)
-        ? membersResult.value.data.map(m => ({
-          id: m.users?.id,
-          name: m.users?.name || 'Unknown',
-          avatar: m.users?.avatar,
-          role: m.role
-        }))
-        : [];
-
-      const myRole = (roleResult.status === 'fulfilled' && !roleResult.value.error && roleResult.value.data)
-        ? roleResult.value.data.role
-        : 'member';
-
-      // Set full group info
-      setOtherUser({
-        ...group,
-        name: group.name,
-        avatar: group.avatar_url,
-        is_group: true,
-        isGroup: true,
-        member_count: memberCount,
-        member_previews: memberPreviews,
-        my_role: myRole,
-        description: group.description
-      });
-
-    } catch (error) {
-      console.error('Error loading group info:', error);
-      // Fallback — never show blank
-      setOtherUser(prev => ({
-        id: groupId,
-        name: prev?.name || 'Group Chat',
-        avatar: prev?.avatar || null,
-        is_group: true,
-        member_count: prev?.member_count || 0,
-      }));
-    }
-  };
-
   const loadOtherUserInfo = async (userId) => {
     try {
       if (!userId) return;
@@ -436,9 +404,7 @@ const Chat = () => {
     setIsInitializing(true);
 
     try {
-      if (isGroupChat) {
-        await loadGroupInfo(chatId);
-      } else if (otherUserId && otherUserId !== 'group') {
+      if (!isGroupChat && otherUserId && otherUserId !== 'group') {
         await loadOtherUserInfo(otherUserId);
       }
     } finally {
@@ -461,86 +427,6 @@ const Chat = () => {
     // Root fix: Remove allChats from dependencies to stop infinite loop
     // allChats updates on every status heartbeat, but we only need to init once per chatId/userId change
   }, [chatId, otherUserId, authLoading, isAuthenticated, currentUser]);
-
-  // ─── INSTANT GROUP HEADER ─────────────────────────────────────────────────
-  // Fires immediately on chatId change WITHOUT waiting for currentUser/auth.
-  // Sets a placeholder synchronously then overwrites with real data from DB or allChats.
-  useEffect(() => {
-    if (!isGroupChat || !chatId) return;
-
-    // 1. FIRST: Try to get group data from allChats (instant, no loading)
-    if (allChats && allChats.length > 0) {
-      const activeChat = allChats.find(c => c.id == chatId && c.isGroup);
-      if (activeChat && (activeChat.name || activeChat.otherUser?.name)) {
-        // We have group data from chat list - use it immediately!
-        setOtherUser(prev => {
-          // Only update if we don't already have real data for this group
-          if (prev?.id == chatId && prev?.is_group && prev?.name && prev.name !== 'Group Chat') {
-            return prev;
-          }
-          return {
-            ...activeChat,
-            ...(activeChat.otherUser || {}),
-            id: chatId,
-            is_group: true,
-            isGroup: true,
-            member_count: activeChat.member_count || activeChat.otherUser?.member_count || 0
-          };
-        });
-        // If we got data from allChats, we're done - no need to fetch from DB here
-        // (initializeChat will handle loading full details if needed)
-        return;
-      }
-    }
-
-    // 2. Ensure placeholder is set if we don't have data yet
-    setOtherUser(prev => {
-      // Keep existing data if it's valid for this group
-      if (prev?.id === chatId && prev?.is_group && prev?.name) {
-        return prev;
-      }
-      // Set placeholder
-      return { id: chatId, name: 'Group Chat', avatar: null, is_group: true, isGroup: true, member_count: 0 };
-    });
-
-    // 3. If no supabase yet, or if NOT a group chat, stop here
-    if (!supabase || !isGroupChat) {
-      return;
-    }
-
-    // 4. Load from database if we don't have data from allChats yet
-    let cancelled = false;
-    (async () => {
-      try {
-        const [groupResult, countResult] = await Promise.all([
-          supabase.from('groups').select('id, name, avatar_url, description').eq('id', chatId).single(),
-          supabase.from('group_members').select('*', { count: 'exact', head: true }).eq('group_id', chatId),
-        ]);
-        if (cancelled) return;
-        if (groupResult.error) throw groupResult.error;
-        const group = groupResult.data;
-        setOtherUser(prev => {
-          // Don't overwrite if we already have real data
-          if (prev?.id === chatId && prev?.is_group && prev?.name && prev.name !== 'Group Chat') {
-            return prev;
-          }
-          return {
-            ...(prev || {}),
-            ...group,
-            name: group.name,
-            avatar: group.avatar_url,
-            is_group: true,
-            isGroup: true,
-            member_count: countResult.count || 0,
-          };
-        });
-      } catch (err) {
-        if (!cancelled) console.warn('Group header fast-fetch failed:', err);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [chatId, isGroupChat, supabase]);
 
   // Scroll to bottom handled by VirtualizedMessageList - no manual intervention needed
 
