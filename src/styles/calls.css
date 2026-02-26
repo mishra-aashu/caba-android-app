@@ -7,7 +7,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-color);
+  background-color: var(--bg-color) !important;
   color: var(--text-primary);
   overflow: hidden;
 }
@@ -18,10 +18,18 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  background-color: var(--surface-color);
-  border-bottom: 1px solid var(--border-color);
+  background-color: var(--primary-color) !important;
+  color: white !important;
   flex-shrink: 0;
   z-index: 10;
+}
+
+.calls-container .app-header h1 {
+  color: white !important;
+}
+
+.calls-container .back-btn {
+  color: white !important;
 }
 
 [data-theme='dark'] .calls-container .app-header {
@@ -125,10 +133,11 @@
 }
 
 /* This makes the area below the header+search scrollable */
-.calls-container .call-history-section {
+.calls-container .calls-scroll-area {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  background-color: var(--bg-color) !important;
 }
 
 .calls-container .contacts-section {
@@ -185,9 +194,6 @@
   position: relative;
   margin-right: 12px;
   flex-shrink: 0;
-}
-
-.calls-container .call-avatar .avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -202,7 +208,7 @@
   overflow: hidden;
 }
 
-.calls-container .call-avatar .avatar img {
+.calls-container .call-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -289,7 +295,7 @@
   justify-content: center;
   height: 100%;
   color: var(--text-secondary);
-  background-color: var(--bg-color);
+  background-color: var(--bg-color) !important;
 }
 
 .calls-loading .loading-spinner {
@@ -379,6 +385,9 @@
   border-bottom: 1px solid var(--border-color);
   transition: background-color 0.15s;
   cursor: pointer;
+  width: 100%;
+  min-height: 72px;
+  position: relative;
 }
 
 .call-item:last-child {
@@ -401,6 +410,7 @@
 .call-item .call-avatar {
   width: 48px;
   height: 48px;
+  min-width: 48px;
   border-radius: 50%;
   background-color: var(--brand-secondary);
   color: white;
@@ -591,16 +601,24 @@
 
 @media (max-width: 480px) {
 
-  .calls-container .call-avatar .avatar,
+  .calls-container .call-avatar,
   .call-item .call-avatar {
-    width: 42px;
-    height: 42px;
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
     font-size: 1rem;
+    margin-right: 12px !important;
   }
 
   .calls-container .contact-info h4,
   .call-name {
-    font-size: 0.95rem;
+    font-size: 1rem !important;
+  }
+
+  .call-item,
+  .calls-container .contact-item {
+    padding: 0.75rem !important;
+    min-height: 70px !important;
   }
 }
 

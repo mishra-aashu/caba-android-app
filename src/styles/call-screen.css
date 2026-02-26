@@ -98,7 +98,7 @@ body.light-mode .control-button:hover {
   margin: 0;
 }
 
-.caller-name {
+.call-screen-container .caller-name {
   color: white;
   font-weight: 600;
   font-size: 1.125rem;
@@ -160,9 +160,11 @@ body.light-mode .control-button:hover {
   0% {
     box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 20px rgba(37, 211, 102, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
   }
@@ -392,6 +394,7 @@ body.light-mode .control-button:hover {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+
   .call-screen-header,
   .call-controls {
     padding: 1rem;
@@ -560,7 +563,7 @@ body.light-mode .control-button:hover {
 }
 
 /* --- Show Avatar/DP when no remote stream --- */
-.call-avatar {
+.call-screen-container .call-avatar {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -574,7 +577,7 @@ body.light-mode .control-button:hover {
   animation: avatar-pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
 
-.call-avatar img {
+.call-screen-container .call-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -597,9 +600,11 @@ body.light-mode .control-button:hover {
   0% {
     transform: translate(-50%, -50%) scale(1);
   }
+
   50% {
     transform: translate(-50%, -50%) scale(1.05);
   }
+
   100% {
     transform: translate(-50%, -50%) scale(1);
   }

@@ -320,7 +320,7 @@ const Calls = () => {
         </div>
 
         {/* Scrollable Content: Call History */}
-        <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div className="calls-scroll-area" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div className="call-history-section">
             <CallHistory
               userId={dbUser?.id}
