@@ -23,7 +23,7 @@ const PwaUpdater = () => {
     const { currentUser } = useAuth();
     const [showUpdateBanner, setShowUpdateBanner] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
-    const { data: dbVersionData } = useAppVersions();
+    const { data: dbVersionData, refetch: refetchVersions } = useAppVersions();
     const location = useLocation();
     const isGameRoute = location.pathname.includes('/game');
 
@@ -177,8 +177,8 @@ const PwaUpdater = () => {
         if (currentUser && !isGameRoute) {
             // Check every 30 minutes
             interval = setInterval(() => {
-                if (navigator.onLine && window.updateW) {
-                    window.updateW();
+                if (navigator.onLine) {
+                    refetchVersions();
                 }
             }, 30 * 60 * 1000);
         }

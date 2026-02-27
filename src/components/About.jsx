@@ -1,33 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../config/supabase';
+import { useAppVersions } from '../hooks/useAppVersions';
 import { ArrowLeft, Shield, Lock, Eye, MessageCircle, Phone, Users, Heart, Trash2, FileText } from 'lucide-react';
 import './about/About.css';
 
 const About = () => {
   const navigate = useNavigate();
-  const [version, setVersion] = useState('1.0.0');
-
-  useEffect(() => {
-    const fetchVersion = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('app_versions')
-          .select('latest_version')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (data && !error) {
-          setVersion(data.latest_version);
-        }
-      } catch (err) {
-        console.error('Error fetching version:', err);
-      }
-    };
-
-    fetchVersion();
-  }, []);
+  const { data: dbVersionData } = useAppVersions();
+  const version = dbVersionData?.latest_version || '1.0.0';
 
   return (
     <div className="about-container">

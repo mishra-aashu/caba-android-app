@@ -5,6 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useData } from '../../contexts/DataContext';
 import useAuthStore from '../../store/authStore';
+import { useAppVersions } from '../../hooks/useAppVersions';
 import { clearAllCachedData } from '../../utils/FileSystemManager';
 import { MoreVertical } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
@@ -43,7 +44,8 @@ const Settings = () => {
   const [showStorageDetails, setShowStorageDetails] = useState(false);
   const [showRingtoneModal, setShowRingtoneModal] = useState(false);
   const [selectedRingtone, setSelectedRingtone] = useState('fm-freemusic-give-me-a-smile(chosic.com).mp3');
-  const [remoteVersion, setRemoteVersion] = useState(null);
+  const { data: dbVersionData } = useAppVersions();
+  const remoteVersion = dbVersionData?.latest_version || null;
   const [showSyncModal, setShowSyncModal] = useState(false);
 
   // Audio state management
@@ -71,7 +73,6 @@ const Settings = () => {
 
   useEffect(() => {
     loadSettings();
-    fetchRemoteVersion();
     // Cleanup audio on unmount
     return () => {
       if (currentAudioRef.current) {
@@ -123,25 +124,7 @@ const Settings = () => {
     calculateStorageUsage();
   };
 
-  const fetchRemoteVersion = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('app_versions')
-        .select('latest_version')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!error && data) {
-        setRemoteVersion(data.latest_version);
-      }
-    } catch (err) {
-      console.error('Error fetching remote version:', err);
-    }
-  };
-
-
-  // Calculate storage usage
+  // formatStorageSize...
   const calculateStorageUsage = async () => {
     try {
       let appSize = 0;
@@ -357,8 +340,6 @@ const Settings = () => {
     if (remoteVersion) {
       showAlert(`You are using the latest version (${remoteVersion})`, 'App Update');
     } else {
-      showAlert('Checking for updates...');
-      await fetchRemoteVersion();
       showAlert('You are using the latest version', 'App Update');
     }
   };

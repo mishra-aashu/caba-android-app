@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db from '../db/db';
 import { supabase } from '../config/supabase';
+import { useQuery } from '@tanstack/react-query';
 
 /**
  * useOfflineData serves data from Dexie first and syncs from Supabase in background.
+ * Uses TanStack Query to ensure we don't spam Supabase on every mount.
  * @param {string} tableName - Dexie table name
  * @param {string} supabaseTable - Supabase table name
  * @param {object} queryBuilder - Function to refine supabase query
@@ -13,9 +15,12 @@ const useOfflineData = (tableName, supabaseTable, queryBuilder = null) => {
     // 1. serve data from Dexie instantly
     const data = useLiveQuery(() => db[tableName].toArray());
 
-    useEffect(() => {
-        // 2. Silently fetch from Supabase in background
-        const syncData = async () => {
+    // 2. Use useQuery to handle background sync throttle
+    useQuery({
+        queryKey: ['bgSync', tableName, supabaseTable],
+        queryFn: async () => {
+            if (!navigator.onLine) return null;
+
             try {
                 let query = supabase.from(supabaseTable).select('*');
                 if (queryBuilder) {
@@ -23,21 +28,22 @@ const useOfflineData = (tableName, supabaseTable, queryBuilder = null) => {
                 }
 
                 const { data: remoteData, error } = await query;
-
                 if (error) throw error;
 
                 if (remoteData) {
-                    // 3. Update Dexie with fresh server data
-                    // We use bulkPut to update existing and add new ones
                     await db[tableName].bulkPut(remoteData);
                 }
+                return { lastSync: new Date().toISOString() };
             } catch (err) {
                 console.error(`Background sync failed for ${tableName}:`, err);
+                throw err;
             }
-        };
-
-        syncData();
-    }, [tableName, supabaseTable, queryBuilder]);
+        },
+        staleTime: 1000 * 60 * 5, // Only sync every 5 minutes
+        gcTime: 1000 * 60 * 60,
+        refetchOnWindowFocus: false,
+        refetchOnMount: true,
+    });
 
     return { data, loading: data === undefined };
 };
@@ -51,23 +57,27 @@ export const useOfflineMessages = (chatId) => {
         [chatId]
     );
 
-    useEffect(() => {
-        if (!chatId) return;
+    useQuery({
+        queryKey: ['bgSyncMessages', chatId],
+        queryFn: async () => {
+            if (!chatId || !navigator.onLine) return null;
 
-        const syncMessages = async () => {
             const { data: remoteMessages, error } = await supabase
                 .from('messages')
                 .select('*')
                 .eq('chat_id', chatId)
                 .order('created_at', { ascending: true });
 
-            if (!error && remoteMessages) {
+            if (error) throw error;
+            if (remoteMessages) {
                 await db.messages.bulkPut(remoteMessages);
             }
-        };
-
-        syncMessages();
-    }, [chatId]);
+            return { lastSync: new Date().toISOString() };
+        },
+        enabled: !!chatId,
+        staleTime: 1000 * 60 * 2, // Sync messages every 2 minutes
+        refetchOnWindowFocus: false,
+    });
 
     return messages || [];
 };
@@ -81,23 +91,26 @@ export const useOfflineChats = (userId) => {
         []
     );
 
-    useEffect(() => {
-        if (!userId) return;
+    useQuery({
+        queryKey: ['bgSyncChats', userId],
+        queryFn: async () => {
+            if (!userId || !navigator.onLine) return null;
 
-        const syncChats = async () => {
-            // This is a simplified fetch, actual app might use a more complex join
             const { data: remoteChats, error } = await supabase
                 .from('chats')
                 .select('*')
                 .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
 
-            if (!error && remoteChats) {
+            if (error) throw error;
+            if (remoteChats) {
                 await db.chats_list.bulkPut(remoteChats);
             }
-        };
-
-        syncChats();
-    }, [userId]);
+            return { lastSync: new Date().toISOString() };
+        },
+        enabled: !!userId,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+    });
 
     return chats || [];
 };

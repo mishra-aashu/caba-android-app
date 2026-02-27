@@ -100,7 +100,6 @@ const AppContent = () => {
 
   return (
     <>
-      <PwaUpdater />
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -261,6 +260,7 @@ const App = () => {
       {/* AuthProvider is provided in main.jsx */}
       {/* SupabaseProvider is provided in main.jsx */}
       {/* ThemeProvider is provided in main.jsx */}
+      <PwaUpdater />
       <ErrorBoundary>
         <DialogProvider>
           <DataProvider>
