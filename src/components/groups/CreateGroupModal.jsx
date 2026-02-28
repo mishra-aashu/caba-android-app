@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useData } from '../../contexts/DataContext';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import Modal from '../common/Modal';
 import DpPicker from '../common/DpPicker';
@@ -22,7 +23,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
 
   const createGroupMutation = useCreateGroup();
 
-  const [savedContacts, setSavedContacts] = useState(propContacts);
+  const { contacts: cachedContacts } = useData();
   const [step, setStep] = useState(1); // 1: Select members, 2: Group info
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState([]);
@@ -34,36 +35,11 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
   const [showDpPicker, setShowDpPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Fetch contacts if not provided
-  useEffect(() => {
-    if (isOpen && propContacts.length === 0 && user?.id) {
-      const fetchContacts = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('contacts')
-            .select(`
-              id,
-              user_id,
-              contact_user_id,
-              contact_name,
-              otherUser:users!contacts_contact_user_id_fkey(id, name, phone, avatar, is_online)
-            `)
-            .eq('user_id', user.id);
+  // Use provided contacts or cached ones
+  const baseContacts = propContacts.length > 0 ? propContacts : (cachedContacts || []);
 
-          if (error) throw error;
-          setSavedContacts(data || []);
-        } catch (error) {
-          console.error('Error fetching contacts in modal:', error);
-        }
-      };
-      fetchContacts();
-    } else if (propContacts.length > 0) {
-      setSavedContacts(propContacts);
-    }
-  }, [isOpen, propContacts, user?.id, supabase]);
-
-  // Transform savedContacts to contact format
-  const contacts = savedContacts.map(contact => {
+  // Transform baseContacts to contact format
+  const contacts = baseContacts.map(contact => {
     const userData = contact.otherUser || {};
     // Handle avatar - can be number (DP ID), URL, or null
     let avatarUrl = userData?.avatar || null;
@@ -218,7 +194,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
             </div>
 
             <div className="contacts-list">
-              {savedContacts.length === 0 ? (
+              {baseContacts.length === 0 ? (
                 <div className="no-contacts">
                   No contacts yet. Add contacts first to create a group.
                 </div>

@@ -1,0 +1,134 @@
+.user-qr-card {
+    background: var(--card-bg, #ffffff);
+    border-radius: 24px;
+    padding: 24px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.user-qr-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.user-qr-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--primary-color, #6b46c1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.user-qr-info h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-primary, #1a202c);
+}
+
+.user-qr-info p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary, #718096);
+}
+
+.user-qr-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.qr-wrapper {
+    position: relative;
+    padding: 16px;
+    background: white;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+}
+
+.shadow-premium {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.qr-logo-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 4px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-inner {
+    background: var(--primary-color, #6b46c1);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-text {
+    color: white;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: -0.5px;
+}
+
+.user-qr-footer {
+    display: flex;
+    justify-content: center;
+}
+
+.uri-badge {
+    background: var(--bg-secondary, #f7fafc);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.uri-badge code {
+    font-size: 11px;
+    color: var(--primary-color, #6b46c1);
+    font-weight: 600;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .user-qr-card {
+        background: #1e1e1e;
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .user-qr-info h3 {
+        color: #f7fafc;
+    }
+
+    .user-qr-info p {
+        color: #a0aec0;
+    }
+
+    .uri-badge {
+        background: #2d3748;
+    }
+}

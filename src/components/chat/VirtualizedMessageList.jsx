@@ -39,7 +39,7 @@ const VirtualizedMessageList = ({
   // This component ONLY re-renders when messages change
   // The ChatScreen parent does NOT re-render because it won't subscribe to messages
   const messages = useChatStore(selectMessages);
-  
+
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
@@ -51,7 +51,7 @@ const VirtualizedMessageList = ({
   const shouldAutoScroll = useCallback(() => {
     // Don't auto-scroll if user is manually scrolling up to read older messages
     if (isAutoScrollingRef.current) return true;
-    
+
     // Only auto-scroll if user is already at bottom
     return isScrolledToBottom === true;
   }, [isScrolledToBottom]);
@@ -82,7 +82,7 @@ const VirtualizedMessageList = ({
     if (newLength > prevLength && shouldAutoScroll()) {
       // New message arrived - auto-scroll to bottom
       isAutoScrollingRef.current = true;
-      
+
       // Use 'auto' behavior to prevent smooth animation conflicts
       if (virtuosoRef.current) {
         virtuosoRef.current.scrollToIndex({
@@ -91,13 +91,13 @@ const VirtualizedMessageList = ({
           align: 'end',
         });
       }
-      
+
       // Reset auto-scroll flag after a shorter delay
       setTimeout(() => {
         isAutoScrollingRef.current = false;
       }, 100);
     }
-    
+
     prevMessagesLengthRef.current = newLength;
   }, [messages.length, shouldAutoScroll]);
 
@@ -105,7 +105,7 @@ const VirtualizedMessageList = ({
   const handleScroll = useCallback((location) => {
     // Track if user is at bottom to prevent unwanted auto-scroll
     const isAtBottom = location?.isAtBottom || false;
-    
+
     if (onScroll) {
       onScroll({
         ...location,
@@ -123,13 +123,13 @@ const VirtualizedMessageList = ({
       if (!message) {
         // Return a placeholder with minimum height to prevent zero-sized element
         return (
-          <div 
-            className="message-item-placeholder" 
+          <div
+            className="message-item-placeholder"
             style={{ minHeight: '24px', width: '100%', display: 'block' }}
           />
         );
       }
-      
+
       // Safely get repliedMsg
       const replyTo = message.replyTo || message.reply_to;
       const repliedMsg = replyTo
@@ -144,10 +144,10 @@ const VirtualizedMessageList = ({
       // Wrap in a div with min-height to prevent zero-sized element error
       // Using stable dimensions
       return (
-        <div 
+        <div
           className="virtuoso-message-wrapper"
-          style={{ 
-            minHeight: '24px', 
+          style={{
+            minHeight: '24px',
             width: '100%',
             overflow: 'hidden',
             display: 'block',
@@ -193,46 +193,53 @@ const VirtualizedMessageList = ({
   // Combine messages with date headers
   const itemsWithHeaders = useMemo(() => {
     const items = [];
-    
+
     messages.forEach((message, index) => {
       // Add date header if needed
       const createdAt = message?.created_at ?? message?.createdAt;
       if (createdAt) {
         const date = new Date(createdAt);
         const prevMessage = index > 0 ? messages[index - 1] : null;
-        const prevDate = prevMessage 
+        const prevDate = prevMessage
           ? new Date(prevMessage.created_at ?? prevMessage.createdAt)
           : null;
-        
+
         const isFirstOfDay = !prevDate || date.toDateString() !== prevDate.toDateString();
-        
+
         if (isFirstOfDay) {
           items.push({ type: 'date-header', date: date.toDateString(), key: `header-${date.toDateString()}` });
         }
       }
-      
+
       // Add message
       items.push({ type: 'message', message, key: message.id || message.tempId || `msg-${index}` });
     });
-    
+
     return items;
   }, [messages]);
 
   // Render item with date headers
   const renderItem = useCallback((index) => {
     const item = itemsWithHeaders[index];
-    if (!item) return null;
-    
+    if (!item) {
+      return <div style={{ minHeight: '1px' }} />;
+    }
+
     if (item.type === 'date-header') {
       return (
-        <div className="date-separator">
-          <div className="date-pill">
-            {new Date(item.date).toLocaleDateString()}
+        <div
+          className="virtuoso-header-wrapper"
+          style={{ minHeight: '40px', width: '100%', display: 'block' }}
+        >
+          <div className="date-separator">
+            <div className="date-pill">
+              {new Date(item.date).toLocaleDateString()}
+            </div>
           </div>
         </div>
       );
     }
-    
+
     const messageIndex = messages.findIndex(m => m.id === item.message?.id || m.tempId === item.message?.tempId);
     return renderMessage(messageIndex, item.message);
   }, [itemsWithHeaders, messages, renderMessage]);
@@ -269,10 +276,10 @@ const VirtualizedMessageList = ({
   }
 
   return (
-    <div 
-      className="messages-wrapper virtuoso-container" 
+    <div
+      className="messages-wrapper virtuoso-container"
       ref={containerRef}
-      style={{ 
+      style={{
         contain: 'content',
         height: '100%',
         width: '100%',
@@ -304,7 +311,7 @@ const VirtualizedMessageList = ({
         computeItemKey={(index, item) => item?.key || `item-${index}`}
         overscan={50} // Reduced for better performance
         alignToBottom={true}
-        style={{ 
+        style={{
           flex: 1,
           width: '100%',
           minHeight: 0,
@@ -325,23 +332,23 @@ const VirtualizedMessageList = ({
 export default memo(VirtualizedMessageList, (prevProps, nextProps) => {
   // Don't re-render for same current user
   if (prevProps.currentUser !== nextProps.currentUser) return false;
-  
+
   // Only re-render on loading state change
   if (prevProps.isLoading !== nextProps.isLoading) return false;
-  
+
   // Only re-render on selection mode change
   if (prevProps.isSelectionMode !== nextProps.isSelectionMode) return false;
-  
+
   // Don't re-render for scroll state changes (causes flicker)
   // We don't need to re-render the whole list just because user scrolled
-  
+
   // Check selected messages count (not deep comparison to avoid flicker)
   if (prevProps.selectedMessages?.size !== nextProps.selectedMessages?.size) return false;
-  
+
   // Check typing users
   const prevTypingCount = Object.keys(prevProps.typingUsers || {}).length;
   const nextTypingCount = Object.keys(nextProps.typingUsers || {}).length;
   if (prevTypingCount !== nextTypingCount) return false;
-  
+
   return true;
 });

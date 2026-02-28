@@ -978,3 +978,31 @@ body.light-mode .input-group textarea::placeholder {
   font-size: 30px;
   cursor: pointer;
 }
+/* QR Modal Specifics */
+.modal-content.qr-content {
+  max-width: 380px;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.modal-content.qr-content .modal-header {
+  border-bottom: none;
+  padding: 20px 24px 0;
+}
+
+.modal-content.qr-content .modal-header h2 {
+  color: white;
+}
+
+.modal-content.qr-content .close-btn {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.modal-body.centered {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 400px;
+}

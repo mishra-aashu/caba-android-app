@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useData } from '../../contexts/DataContext';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import Modal from '../common/Modal';
 import { Search, Check, X } from 'lucide-react';
@@ -14,57 +15,27 @@ const AddMembersModal = ({ isOpen, onClose, groupId, existingMemberIds = [], onS
   const { supabase } = useSupabase();
   const { user } = useAuth();
   const { useAddMembers } = useGroupActions();
-  
+
   const addMembersMutation = useAddMembers();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [contacts, setContacts] = useState([]);
+  const { contacts: cachedContacts } = useData();
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch contacts who are not already members
-  useEffect(() => {
-    if (isOpen && user?.id) {
-      fetchContacts();
-    }
-  }, [isOpen, user?.id]);
+  // Unused raw fetch removed in favor of useData cached contacts
 
-  const fetchContacts = async () => {
-    try {
-      // Get all contacts
-      const { data: contactsData, error: contactsError } = await supabase
-        .from('contacts')
-        .select(`
-          contact_user_id,
-          contact_name,
-          otherUser:users!inner(
-            id,
-            name,
-            avatar,
-            phone,
-            is_online,
-            last_seen
-          )
-        `)
-        .eq('user_id', user.id);
-
-      if (contactsError) throw contactsError;
-
-      // Format and filter out existing members
-      const formattedContacts = (contactsData || [])
-        .map(c => ({
-          id: c.otherUser?.id,
-          name: c.contact_name || c.otherUser?.name || 'Unknown',
-          avatar: c.otherUser?.avatar,
-          phone: c.otherUser?.phone,
-        }))
-        .filter(c => c.id && !existingMemberIds.includes(c.id));
-
-      setContacts(formattedContacts);
-    } catch (error) {
-      console.error('Error fetching contacts:', error);
-    }
-  };
+  // Derived contacts list from cache, filtering out existing members
+  const contacts = React.useMemo(() => {
+    return (cachedContacts || [])
+      .map(c => ({
+        id: c.contact_user_id, // Match the expected ID format
+        name: c.contact_name || c.otherUser?.name || 'Unknown',
+        avatar: c.otherUser?.avatar,
+        phone: c.otherUser?.phone,
+      }))
+      .filter(c => c.id && !existingMemberIds.includes(c.id));
+  }, [cachedContacts, existingMemberIds]);
 
   // Filter contacts by search
   const filteredContacts = contacts.filter(contact =>
@@ -95,14 +66,14 @@ const AddMembersModal = ({ isOpen, onClose, groupId, existingMemberIds = [], onS
 
     try {
       const memberIds = selectedContacts.map(c => c.id);
-      
+
       await addMembersMutation.mutateAsync({
         groupId,
         memberIds,
       });
 
       toast.success(`${selectedContacts.length} member(s) added successfully`);
-      
+
       // Reset and close
       resetForm();
       onSuccess?.();
@@ -200,8 +171,8 @@ const AddMembersModal = ({ isOpen, onClose, groupId, existingMemberIds = [], onS
             })
           ) : (
             <div className="no-contacts">
-              {searchQuery 
-                ? 'No contacts found' 
+              {searchQuery
+                ? 'No contacts found'
                 : 'All contacts are already members'}
             </div>
           )}
@@ -212,13 +183,13 @@ const AddMembersModal = ({ isOpen, onClose, groupId, existingMemberIds = [], onS
           <button className="btn-secondary" onClick={handleClose}>
             Cancel
           </button>
-          <button 
-            className="btn-primary" 
+          <button
+            className="btn-primary"
             onClick={handleAddMembers}
             disabled={loading || selectedContacts.length === 0}
           >
-            {loading 
-              ? 'Adding...' 
+            {loading
+              ? 'Adding...'
               : `Add ${selectedContacts.length} Member${selectedContacts.length !== 1 ? 's' : ''}`}
           </button>
         </div>

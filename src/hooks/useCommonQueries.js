@@ -437,3 +437,53 @@ export const useInvalidateQueries = () => {
 
   return { invalidateChatList, invalidateMessages };
 };
+
+// ==========================================
+// CONTACT MUTATIONS
+// ==========================================
+
+/**
+ * Add contact mutation
+ */
+export const useAddContact = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, contactUserId, contactName }) => {
+      // Check if contact already exists
+      const { data: existing, error: fetchError } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('contact_user_id', contactUserId)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (existing) {
+        toast.error('Contact already exists');
+        return existing;
+      }
+
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert([{
+          user_id: userId,
+          contact_user_id: contactUserId,
+          contact_name: contactName
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['contacts', variables.userId] });
+      toast.success('Contact added successfully!');
+    },
+    onError: (error) => {
+      console.error('Error adding contact:', error);
+      toast.error('Failed to add contact');
+    }
+  });
+};

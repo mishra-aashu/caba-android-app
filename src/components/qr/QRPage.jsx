@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabase } from '../../contexts/SupabaseContext';
-import { QRCodeGenerator, QRCodeScanner } from './index';
+import { useQueryClient } from '@tanstack/react-query';
+import { UserQRCode, QRScanner } from './index';
 import { useDialog } from '../../contexts/DialogContext';
 import BottomNavigation from '../common/BottomNavigation';
 import './QRPage.css';
@@ -11,6 +12,7 @@ const QRPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { supabase } = useSupabase();
+  const queryClient = useQueryClient();
   const { showAlert } = useDialog();
   const [showGenerator, setShowGenerator] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -84,6 +86,7 @@ const QRPage = () => {
       if (error) throw error;
 
       showAlert(`${scannedUser.name} added to contacts!`);
+      queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
       setShowUserModal(false);
       setScannedUser(null);
     } catch (error) {
@@ -107,6 +110,7 @@ const QRPage = () => {
         .single();
 
       if (existingChat) {
+        queryClient.invalidateQueries({ queryKey: ['chats', user.id] });
         navigate(`/chat/${existingChat.id}/${scannedUser.id}`);
       } else {
         // Create new chat
@@ -118,6 +122,7 @@ const QRPage = () => {
 
         if (newChatError) throw newChatError;
 
+        queryClient.invalidateQueries({ queryKey: ['chats', user.id] });
         navigate(`/chat/${newChat.id}/${scannedUser.id}`);
       }
 
@@ -215,18 +220,26 @@ const QRPage = () => {
 
       {/* QR Code Generator Modal */}
       {showGenerator && user && (
-        <QRCodeGenerator
-          userId={userData.id}
-          userName={userData.name}
-          userPhone={userData.phone}
-          onClose={() => setShowGenerator(false)}
-        />
+        <div className="modal-overlay" onClick={() => setShowGenerator(false)}>
+          <div className="modal-content qr-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>My QR Code</h2>
+              <button className="close-btn" onClick={() => setShowGenerator(false)}>&times;</button>
+            </div>
+            <div className="modal-body centered" style={{ padding: '20px' }}>
+              <UserQRCode
+                userId={user.id}
+                publicKey={user.public_key || 'not-generated-yet'}
+                userName={user.name || user.user_metadata?.name || 'User'}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* QR Code Scanner Modal */}
       {showScanner && (
-        <QRCodeScanner
-          onScan={handleScan}
+        <QRScanner
           onClose={() => setShowScanner(false)}
         />
       )}

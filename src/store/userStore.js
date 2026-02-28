@@ -8,7 +8,7 @@ const fetchUserFromDb = async (userId) => {
     try {
         const { data, error } = await supabase
             .from('users')
-            .select('id, name, avatar, is_online, last_seen, emoji_style')
+            .select('id, name, avatar, is_online, last_seen, emoji_style, public_key, about, phone, email')
             .eq('id', userId)
             .single();
 

@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config/supabase';
 import useAuthStore from '../../store/authStore';
+import { useData } from '../../contexts/DataContext';
 import { useDialog } from '../../contexts/DialogContext';
+import { useQueryClient } from '@tanstack/react-query';
 import '../../styles/reminders.css';
 
 const CreateReminder = ({ onBack }) => {
   const currentUser = useAuthStore((state) => state.dbUser);
   const { showAlert } = useDialog();
+  const { contacts: cachedContacts, chats: cachedChats } = useData();
+  const queryClient = useQueryClient();
   const [selectedRecipient, setSelectedRecipient] = useState(null);
-  const [contacts, setContacts] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -25,49 +28,37 @@ const CreateReminder = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
 
-  useEffect(() => {
-    if (currentUser) {
-      loadContacts(currentUser);
-    }
-  }, [currentUser]);
+  // Consolidate contacts and chat users for selection
+  const contacts = React.useMemo(() => {
+    if (!currentUser) return [];
 
-  const loadContacts = async (user) => {
-    try {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select(`
-          *,
-          contact_user:users!contacts_contact_user_id_fkey(*)
-        `)
-        .eq('user_id', user.id);
+    const contactMap = new Map();
 
-      if (error) throw error;
-
-      const contactsData = data.map(c => c.contact_user);
-
-      // Also load from chats
-      const { data: chats } = await supabase
-        .from('chats')
-        .select(`
-          user1:users!chats_user1_id_fkey(*),
-          user2:users!chats_user2_id_fkey(*)
-        `)
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
-
-      if (chats) {
-        chats.forEach(chat => {
-          const otherUser = chat.user1.id === user.id ? chat.user2 : chat.user1;
-          if (!contactsData.find(c => c.id === otherUser.id)) {
-            contactsData.push(otherUser);
-          }
+    // 1. Add from contacts
+    (cachedContacts || []).forEach(c => {
+      if (c.otherUser) {
+        contactMap.set(c.otherUser.id, {
+          ...c.otherUser,
+          display_name: c.contact_name || c.otherUser.name
         });
       }
+    });
 
-      setContacts(contactsData);
-    } catch (error) {
-      console.error('Error loading contacts:', error);
-    }
-  };
+    // 2. Add from chats (to include people not in contacts)
+    (cachedChats || []).forEach(chat => {
+      if (chat.otherUser && !contactMap.has(chat.otherUser.id)) {
+        contactMap.set(chat.otherUser.id, {
+          ...chat.otherUser,
+          display_name: chat.otherUser.name
+        });
+      }
+    });
+
+    return Array.from(contactMap.values()).map(user => ({
+      ...user,
+      name: user.display_name // Map to expected name property
+    }));
+  }, [cachedContacts, cachedChats, currentUser]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -129,6 +120,7 @@ const CreateReminder = ({ onBack }) => {
       if (error) throw error;
 
       onBack && onBack();
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
       showAlert('Reminder created successfully');
     } catch (error) {
       console.error('Error creating reminder:', error);

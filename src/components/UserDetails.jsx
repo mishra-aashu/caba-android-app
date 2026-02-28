@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useData } from '../contexts/DataContext';
+import { useUserFullProfile } from '../hooks/useUserFullProfile';
 import { useCall } from '../context/CallContext';
 import useAuthStore from '../store/authStore';
 import { dpOptions } from '../utils/dpOptions';
@@ -19,24 +20,34 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     const userId = propUserId || paramUserId;
     const navigate = useNavigate();
     const { supabase } = useSupabase();
-    const { refreshContacts } = useData();
+    const { refreshContacts, contacts: cachedContacts } = useData();
     const { startCall } = useCall();
     const queryClient = useQueryClient();
     const currentUser = useAuthStore((state) => state.dbUser);
 
-    // State
-    const [user, setUser] = useState(null);
-    const [isMuted, setIsMuted] = useState(false);
-    const [isContact, setIsContact] = useState(false);
-    const [isBlocked, setIsBlocked] = useState(false);
-    const [mediaCount, setMediaCount] = useState({ images: 0, links: 0, docs: 0 });
-    const [commonGroups, setCommonGroups] = useState([]);
-    const [contactName, setContactName] = useState('');
-    const [contactPhone, setContactPhone] = useState('');
-    const [contactAbout, setContactAbout] = useState('');
-    const [contactId, setContactId] = useState(null);
+    // Consolidated Data Fetching
+    const {
+        data: profileData,
+        isLoading: isProfileLoading,
+        isError,
+        error
+    } = useUserFullProfile(userId, currentUser?.id);
 
-    // Modals
+    // Derived State from consolidated hook
+    const user = profileData;
+    const isContact = !!profileData?.contact_info;
+    const contactId = profileData?.contact_info?.id;
+    const isBlocked = !!profileData?.is_blocked;
+    const mediaCount = profileData?.media_counts || { images: 0, links: 0, docs: 0 };
+    const commonGroups = profileData?.common_groups || [];
+    const isMuted = (() => {
+        if (!currentUser || !userId) return false;
+        const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
+        const chatId = [currentUser.id, userId].sort().join('_');
+        return !!mutedChats[chatId];
+    })();
+
+    // Local state for modals and forms (remains the same)
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [showEditContactModal, setShowEditContactModal] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
@@ -44,47 +55,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [reportReason, setReportReason] = useState('');
     const [reportDetails, setReportDetails] = useState('');
-
-    // Fetch user details with caching (30 minutes) - using TanStack Query
-    const { data: cachedUser, isLoading: isQueryLoading, isError, error } = useQuery({
-        queryKey: ['userDetails', userId, currentUser?.id],
-        queryFn: async () => {
-            if (!userId || !currentUser) return null;
-
-            const { data, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', userId)
-                .single();
-
-            if (error) throw error;
-
-            // Check if contact name exists for this user
-            if (currentUser.id !== userId) {
-                const { data: contact } = await supabase
-                    .from('contacts')
-                    .select('contact_name')
-                    .eq('user_id', currentUser.id)
-                    .eq('contact_user_id', userId)
-                    .maybeSingle();
-
-                if (contact) {
-                    return { ...data, contact_name: contact.contact_name };
-                }
-            }
-
-            return data;
-        },
-        staleTime: 1000 * 60 * 30, // 30 minutes
-        enabled: !!userId && !!currentUser,
-    });
-
-    // Update user state when cached data changes
-    useEffect(() => {
-        if (cachedUser) {
-            setUser(cachedUser);
-        }
-    }, [cachedUser]);
+    const [contactName, setContactName] = useState('');
+    const [contactPhone, setContactPhone] = useState('');
+    const [contactAbout, setContactAbout] = useState('');
 
     // Redirect if userId is invalid
     useEffect(() => {
@@ -93,13 +66,34 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         }
     }, [userId, navigate]);
 
-    // Load additional data after user is loaded
-    useEffect(() => {
-        if (!user || !currentUser) return;
-        loadAdditionalData(currentUser, userId);
-    }, [user, currentUser, userId]);
+    // Handle Mute Toggle (Refactored to avoid redundant state)
+    const [_muted, set_Muted] = useState(isMuted);
+    const handleMuteToggle = () => {
+        const chatId = [currentUser.id, userId].sort().join('_');
+        const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
 
-    // Subscribe to real-time updates for user's online status
+        if (_muted) {
+            delete mutedChats[chatId];
+        } else {
+            mutedChats[chatId] = true;
+        }
+
+        localStorage.setItem('mutedChats', JSON.stringify(mutedChats));
+        set_Muted(!_muted);
+    };
+
+    // Real-time status sync (Simplified)
+    const [currentOnlineStatus, setCurrentOnlineStatus] = useState(null);
+
+    useEffect(() => {
+        if (profileData) {
+            setCurrentOnlineStatus({
+                is_online: profileData.is_online,
+                last_seen: profileData.last_seen
+            });
+        }
+    }, [profileData]);
+
     useEffect(() => {
         if (!userId) return;
 
@@ -112,9 +106,12 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 filter: `id=eq.${userId}`
             }, (payload) => {
                 const updatedUser = payload.new;
-                setUser(prev => ({ ...prev, ...updatedUser }));
-                // Update the cached data as well
-                queryClient.setQueryData(['userDetails', userId], (oldData) => {
+                setCurrentOnlineStatus({
+                    is_online: updatedUser.is_online,
+                    last_seen: updatedUser.last_seen
+                });
+                // Update the consolidated cache
+                queryClient.setQueryData(['userFullProfile', userId, currentUser?.id], (oldData) => {
                     return oldData ? { ...oldData, ...updatedUser } : oldData;
                 });
             })
@@ -123,177 +120,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         return () => {
             supabase.removeChannel(subscription);
         };
-    }, [userId, supabase, queryClient]);
-
-    // Real-time online status
-    const [currentOnlineStatus, setCurrentOnlineStatus] = useState(null);
-
-    // Update online status from user data
-    useEffect(() => {
-        if (user) {
-            setCurrentOnlineStatus({
-                is_online: user.is_online,
-                last_seen: user.last_seen
-            });
-        }
-    }, [user]);
-
-    const loadAdditionalData = async (currentUser, userId) => {
-        try {
-            // Check if muted
-            const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
-            const chatId = [currentUser.id, userId].sort().join('_');
-            setIsMuted(!!mutedChats[chatId]);
-
-            // Check contact status
-            await checkContactStatus(currentUser.id, userId);
-
-            // Check block status
-            await checkBlockStatus(currentUser.id, userId);
-
-            // Load media count
-            await loadMediaCount(currentUser.id, userId);
-
-            // Load common groups
-            await loadCommonGroups(currentUser.id, userId);
-        } catch (error) {
-            console.error('Error loading additional data:', error);
-        }
-    };
-
-    const checkContactStatus = async (currentUserId, targetUserId) => {
-        try {
-            const { data, error } = await supabase
-                .from('contacts')
-                .select('id')
-                .eq('user_id', currentUserId)
-                .eq('contact_user_id', targetUserId)
-                .maybeSingle();
-
-            if (error) {
-                console.error('Error checking contact status:', error);
-                setIsContact(false);
-                setContactId(null);
-                return;
-            }
-
-            if (data) {
-                setIsContact(true);
-                setContactId(data.id);
-            } else {
-                setIsContact(false);
-                setContactId(null);
-            }
-        } catch (error) {
-            console.error('Error in checkContactStatus function:', error);
-        }
-    };
-
-    const checkBlockStatus = async (currentUserId, targetUserId) => {
-        try {
-            const { data, error } = await supabase
-                .from('blocked_users')
-                .select('blocker_id')
-                .eq('blocker_id', currentUserId)
-                .eq('blocked_id', targetUserId)
-                .limit(1);
-
-            if (error) {
-                console.error('Error checking block status:', error);
-                setIsBlocked(false); // Assume not blocked on error
-                return;
-            }
-
-            setIsBlocked(data && data.length > 0);
-        } catch (error) {
-            console.error('Error in checkBlockStatus function:', error);
-        }
-    };
-
-    const loadMediaCount = async (currentUserId, targetUserId) => {
-        try {
-            // Get chat ID
-            const { data: chat } = await supabase
-                .from('chats')
-                .select('id')
-                .or(`and(user1_id.eq.${currentUserId},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${currentUserId})`)
-                .single();
-
-            if (!chat) {
-                setMediaCount({ images: 0, links: 0, docs: 0 });
-                return;
-            }
-
-            // Count different types of media messages
-            const { data: messages, error: messagesError } = await supabase
-                .from('messages')
-                .select('message_type, content')
-                .eq('chat_id', chat.id);
-
-            if (messagesError) throw messagesError;
-
-            let images = 0, links = 0, docs = 0;
-
-            messages.forEach(msg => {
-                if (msg.message_type === 'image') images++;
-                else if (msg.message_type === 'document') docs++;
-                else if (msg.content && (msg.content.includes('http://') || msg.content.includes('https://'))) links++;
-            });
-
-            setMediaCount({ images, links, docs });
-        } catch (error) {
-            console.error('Error loading media count:', error);
-            setMediaCount({ images: 0, links: 0, docs: 0 });
-        }
-    };
-
-    const loadCommonGroups = async (currentUserId, targetUserId) => {
-        try {
-            // Get groups the current user is in
-            const { data: myGroups, error: myError } = await supabase
-                .from('group_members')
-                .select('group_id')
-                .eq('user_id', currentUserId);
-
-            if (myError) throw myError;
-
-            if (!myGroups || myGroups.length === 0) {
-                setCommonGroups([]);
-                return;
-            }
-
-            const myGroupIds = myGroups.map(g => g.group_id);
-
-            // Get groups the target user is in that overlap with ours
-            const { data: theirGroups, error: theirError } = await supabase
-                .from('group_members')
-                .select('group_id')
-                .eq('user_id', targetUserId)
-                .in('group_id', myGroupIds);
-
-            if (theirError) throw theirError;
-
-            if (!theirGroups || theirGroups.length === 0) {
-                setCommonGroups([]);
-                return;
-            }
-
-            const commonGroupIds = theirGroups.map(g => g.group_id);
-
-            // Fetch group details
-            const { data: groups, error: groupsError } = await supabase
-                .from('groups')
-                .select('id, name, avatar:avatar_url')
-                .in('id', commonGroupIds);
-
-            if (groupsError) throw groupsError;
-
-            setCommonGroups(groups || []);
-        } catch (error) {
-            console.error('Error loading common groups:', error);
-            setCommonGroups([]);
-        }
-    };
+    }, [userId, supabase, queryClient, currentUser?.id]);
 
     const getInitials = (name) => {
         return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
@@ -308,7 +135,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 .from('chats')
                 .select('*')
                 .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${user.id}),and(user1_id.eq.${user.id},user2_id.eq.${currentUser.id})`)
-                .single();
+                .maybeSingle();
 
             if (chat) {
                 navigate(`/chat/${chat.id}/${user.id}`);
@@ -361,20 +188,6 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         }
     };
 
-    const handleMuteToggle = () => {
-        const chatId = [currentUser.id, userId].sort().join('_');
-        const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
-
-        if (isMuted) {
-            delete mutedChats[chatId];
-        } else {
-            mutedChats[chatId] = true;
-        }
-
-        localStorage.setItem('mutedChats', JSON.stringify(mutedChats));
-        setIsMuted(!isMuted);
-    };
-
     const handleAddToContacts = async () => {
         try {
             if (!currentUser || !user) return;
@@ -407,7 +220,8 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
             if (error) throw error;
 
-            setIsContact(true);
+            queryClient.invalidateQueries({ queryKey: ['userFullProfile', userId, currentUser?.id] });
+            queryClient.invalidateQueries({ queryKey: ['contacts', currentUser.id] });
             refreshContacts();
             toast.success('Contact added successfully');
         } catch (error) {
@@ -553,19 +367,8 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 if (userError) throw userError;
             }
 
-            // Update local UI state — only update contact_name, not the actual user.name
-            setUser(prevUser => ({
-                ...prevUser,
-                contact_name: contactName.trim(),
-                // Only update actual name/about if editing own profile
-                ...(currentUser.id === userId ? {
-                    name: contactName.trim(),
-                    about: contactAbout.trim()
-                } : {})
-            }));
-
-            // Invalidate cached query so it re-fetches with new contact_name
-            queryClient.invalidateQueries({ queryKey: ['userDetails', userId, currentUser?.id] });
+            // Invalidate consolidated profile cache
+            queryClient.invalidateQueries({ queryKey: ['userFullProfile', userId, currentUser?.id] });
 
             setShowEditContactModal(false);
             refreshContacts();
@@ -598,7 +401,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
             if (error) throw error;
 
-            setIsBlocked(true);
+            queryClient.invalidateQueries({ queryKey: ['userFullProfile', userId, currentUser?.id] });
             setShowBlockModal(false);
             toast.success('Contact blocked');
         } catch (error) {
@@ -617,7 +420,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
             if (error) throw error;
 
-            setIsBlocked(false);
+            queryClient.invalidateQueries({ queryKey: ['userFullProfile', userId, currentUser?.id] });
             toast.success('Contact unblocked');
         } catch (error) {
             console.error('Error unblocking contact:', error);
@@ -698,8 +501,8 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             }
 
             setShowDeleteModal(false);
-            setIsContact(false);
-            setContactId(null);
+            queryClient.invalidateQueries({ queryKey: ['userFullProfile', userId, currentUser?.id] });
+            queryClient.invalidateQueries({ queryKey: ['contacts', currentUser.id] });
             refreshContacts();
             toast.success('Contact and chat deleted');
             navigate('/');
@@ -709,9 +512,8 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         }
     };
 
-    // Loading state - only show loading if query is loading AND no cached data exists yet
-    // When data comes from cache (cachedUser exists), don't show loading
-    const isLoading = isQueryLoading && !cachedUser && !user;
+    // Loading state
+    const isLoading = isProfileLoading && !profileData;
 
     if (isLoading) {
         return (
@@ -763,7 +565,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     };
 
     return (
-        <motion.div 
+        <motion.div
             className={`user-details-screen ${isModal ? 'user-details-modal' : ''} ${isPanel ? 'user-details-panel-view' : ''} ${isPanel ? 'panel-slide-in' : ''}`}
             initial="initial"
             animate="animate"

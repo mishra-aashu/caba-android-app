@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../config/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -19,134 +19,22 @@ const Calls = () => {
   const { theme } = useTheme();
   const { showAlert } = useDialog();
   const { startCall, answerCall } = useCall();
-  const [searchTerm, setSearchTerm] = useState('');
+  // Removed unused state
   const [incomingCall, setIncomingCall] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [callType, setCallType] = useState('video');
+  const queryClient = useQueryClient();
 
-  // Get current user from auth store
-  const authState = useAuthStore.getState();
-  const { dbUser, isAuthenticated } = authState;
+  // Get current user from auth store reactively
+  const { dbUser, isAuthenticated } = useAuthStore();
   const userId = dbUser?.id;
 
-  // React Query for contacts - cached for 10 minutes
-  const {
-    data: contactsData,
-    isLoading: contactsLoading,
-    refetch: refetchContacts
-  } = useQuery({
-    queryKey: ['callContacts', userId],
-    queryFn: async () => {
-      if (!userId) return [];
-      return await fetchContacts(userId);
-    },
-    enabled: !!userId && !!isAuthenticated,
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 60, // 1 hour
-  });
+  // Unused queries removed to prevent double requests
+  // Data is now handled by the child CallHistory component
 
-  // React Query for call history - cached for 10 minutes
-  const {
-    data: callHistoryData,
-    isLoading: historyLoading,
-    refetch: refetchHistory
-  } = useQuery({
-    queryKey: ['callHistoryList', userId],
-    queryFn: async () => {
-      if (!userId) return [];
-      return await fetchCallHistory(userId);
-    },
-    enabled: !!userId && !!isAuthenticated,
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 60, // 1 hour
-  });
+  // Unused helper functions removed
 
-  // Helper function to fetch contacts
-  const fetchContacts = async (userId) => {
-    try {
-      // Load contacts with explicit user fetching to handle data type issues
-      const { data: contactsList, error: contactsError } = await supabase
-        .from('contacts')
-        .select('contact_user_id, contact_name')
-        .eq('user_id', userId);
-
-      if (contactsError) throw contactsError;
-
-      let contactsData = [];
-      if (contactsList && contactsList.length > 0) {
-        // Fetch user details for each contact
-        const userIds = contactsList.map(c => c.contact_user_id).filter(id => id);
-        if (userIds.length > 0) {
-          const { data: users, error: usersError } = await supabase
-            .from('users')
-            .select('*')
-            .in('id', userIds);
-
-          if (!usersError && users) {
-            contactsData = users.map(u => {
-              const contact = contactsList.find(c => c.contact_user_id === u.id);
-              return { ...u, contact_name: contact?.contact_name };
-            });
-          }
-        }
-      }
-
-      // Also load from chats
-      const { data: chats } = await supabase
-        .from('chats')
-        .select(`
-          user1:users!chats_user1_id_fkey(*),
-          user2:users!chats_user2_id_fkey(*)
-        `)
-        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
-
-      if (chats) {
-        chats.forEach(chat => {
-          const otherUser = chat.user1.id === userId ? chat.user2 : chat.user1;
-          if (otherUser && otherUser.id && !contactsData.find(c => c.id === otherUser.id)) {
-            contactsData.push(otherUser);
-          }
-        });
-      }
-
-      return contactsData;
-    } catch (error) {
-      console.error('Error loading contacts:', error);
-      return [];
-    }
-  };
-
-  // Helper function to fetch call history
-  const fetchCallHistory = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('call_history')
-        .select(`
-          *,
-          caller:users!call_history_caller_id_fkey(name, avatar),
-          receiver:users!call_history_receiver_id_fkey(name, avatar)
-        `)
-        .or(`caller_id.eq.${userId},receiver_id.eq.${userId}`)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-
-      const historyData = data.map(call => ({
-        ...call,
-        otherUser: call.caller_id === userId ? call.receiver : call.caller
-      })).filter(call => call.otherUser && call.otherUser.id); // Filter out calls with invalid otherUser
-
-      return historyData;
-    } catch (error) {
-      console.error('Error loading call history:', error);
-      return [];
-    }
-  };
-
-  const contacts = contactsData || [];
-  const callHistory = callHistoryData || [];
-  const loading = contactsLoading || historyLoading || !isAuthenticated;
+  const loading = !isAuthenticated;
 
   useEffect(() => {
     checkPendingCall();
@@ -186,15 +74,7 @@ const Calls = () => {
 
   // Incoming call listener moved to global SupabaseContext
 
-  const filteredContacts = contacts.filter(contact => {
-    // First ensure contact has valid ID
-    if (!contact || !contact.id) return false;
-
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (contact.contact_name || contact.name).toLowerCase().includes(search) ||
-      (contact.phone && contact.phone.includes(search));
-  });
+  // Removed unused filteredContacts
 
   const handleCall = async (contact, type = 'video') => {
     console.log('handleCall called with contact:', contact, 'type:', type);
@@ -243,30 +123,22 @@ const Calls = () => {
 
   const handleCallEnd = () => {
     setActiveCall(null);
-    // Refetch call history
-    refetchHistory();
+    // Invalidate queries to refetch fresh data
+    queryClient.invalidateQueries({ queryKey: ['callHistory', userId] });
+    queryClient.invalidateQueries({ queryKey: ['missedCallsCount', userId] });
   };
 
   const getInitials = (name) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const formatCallTime = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return date.toLocaleDateString();
-  };
+  // Removed unused formatCallTime
 
   if (loading) {
     return (
       <div className="calls-loading">
         <div className="loading-spinner"></div>
-        <p>Loading contacts...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -306,18 +178,7 @@ const Calls = () => {
           </div>
         </header>
 
-        {/* Search */}
-        <div className="search-container">
-          <div className="search-box">
-            <i className="fas fa-search"></i>
-            <input
-              type="text"
-              placeholder="Search contacts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
+        {/* Search functionality removed as it was disconnected and causing issues */}
 
         {/* Scrollable Content: Call History */}
         <div className="calls-scroll-area" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>

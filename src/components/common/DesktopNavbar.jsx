@@ -4,42 +4,26 @@ import { Home, User, History, Settings, Bell, Users } from 'lucide-react';
 import CreateGroupModal from '../groups/CreateGroupModal';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useContacts } from '../../hooks/useCommonQueries';
 
 const DesktopNavbar = () => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { user } = useAuth();
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-  const [savedContacts, setSavedContacts] = useState([]);
 
-  // Fetch saved contacts when modal opens
-  useEffect(() => {
-    if (showCreateGroupModal && user?.id) {
-      fetchContacts();
-    }
-  }, [showCreateGroupModal, user?.id]);
+  // Use cached contacts hook
+  const { data: contactsData } = useContacts(user?.id);
 
-  const fetchContacts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select(`
-          id,
-          user_id,
-          contact_user_id,
-          contact_name,
-          is_favorite,
-          created_at,
-          otherUser:contact_user_id (id, name, phone, avatar, is_online)
-        `)
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      setSavedContacts(data || []);
-    } catch (error) {
-      console.error('Error fetching contacts:', error);
-    }
-  };
+  // Normalize contacts data structure
+  const savedContacts = React.useMemo(() => {
+    return contactsData ? contactsData.map(c => ({
+      ...c,
+      otherUser: c.contact_user
+    })) : [];
+  }, [contactsData]);
+
+  // Unused raw fetch removed in favor of useContacts hook
 
   // Clicking "Groups" button opens Create Group Modal
   const handleGroupsClick = () => {
@@ -56,8 +40,8 @@ const DesktopNavbar = () => {
             </Link>
           </li>
           <li className="desktop-nav-item">
-            <button 
-              className="desktop-nav-link" 
+            <button
+              className="desktop-nav-link"
               data-tooltip="Create Group"
               onClick={handleGroupsClick}
               style={{ background: 'none', border: 'none', cursor: 'pointer' }}

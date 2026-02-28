@@ -7,6 +7,8 @@ import { uploadMedia, uploadVoiceMessage } from '../../services/mediaService';
 import { compressImage, handleVideo } from '../../utils/mediaCompressor';
 import { useDialog } from '../../contexts/DialogContext';
 import useIsDesktop from '../../hooks/useIsDesktop';
+import useDraftStore from '../../store/useDraftStore';
+
 
 const MessageInput = ({
   onSendMessage,
@@ -15,9 +17,11 @@ const MessageInput = ({
   replyingTo,
   onCancelReply,
   currentUser,
+  chatId,
   disabled: externalDisabled = false,
   disabledPlaceholder = "Only admins can send messages"
 }) => {
+  const { setDraft, getDraft, clearDraft } = useDraftStore();
   const [message, setMessage] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -42,6 +46,26 @@ const MessageInput = ({
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationFrameRef = useRef(null);
+
+  const lastLoadedChatIdRef = useRef(chatId);
+
+  // Handle draft loading/saving
+  useEffect(() => {
+    if (chatId) {
+      const savedDraft = getDraft(chatId);
+      setMessage(savedDraft || '');
+      lastLoadedChatIdRef.current = chatId;
+    }
+  }, [chatId, getDraft]);
+
+  // Sync draft as user types
+  useEffect(() => {
+    // Only save if the message belongs to the currently loaded chatId
+    // to prevent saving a message from Chat A into Chat B right after switching
+    if (chatId && chatId === lastLoadedChatIdRef.current) {
+      setDraft(chatId, message);
+    }
+  }, [message, chatId, setDraft]);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -161,6 +185,7 @@ const MessageInput = ({
     else if (message.trim()) {
       onSendMessage(message.trim());
       setMessage('');
+      if (chatId) clearDraft(chatId);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }

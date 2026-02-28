@@ -363,17 +363,11 @@ const Chat = () => {
       if (user) {
         setOtherUser(user);
 
-        // Load contact name - only if we have currentUser
-        if (currentUser?.id) {
-          const { data: contact } = await supabase
-            .from('contacts')
-            .select('contact_name')
-            .eq('user_id', currentUser.id)
-            .eq('contact_user_id', userId)
-            .maybeSingle();
-
-          if (contact) {
-            setOtherUser(prev => ({ ...prev, contact_name: contact.contact_name }));
+        if (currentUser?.id && allChats) {
+          // Check cached chats/contacts for name
+          const chat = allChats.find(c => c.metadata?.otherUserId === userId);
+          if (chat && chat.name) {
+            setOtherUser(prev => ({ ...prev, name: chat.name, contact_name: chat.name }));
           }
         }
       }

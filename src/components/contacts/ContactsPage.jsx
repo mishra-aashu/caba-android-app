@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     User,
     Plus,
@@ -25,7 +26,8 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
     const { supabase } = useSupabase();
     const { user } = useAuth();
     const { showAlert, showConfirm } = useDialog();
-    const { contacts: savedContacts, refreshContacts } = useData();
+    const { contacts: baseContacts, refreshContacts } = useData();
+    const queryClient = useQueryClient();
     const navigate = useNavigate();
 
     const [showContactForm, setShowContactForm] = useState(false);
@@ -78,6 +80,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                 toast.success('Contact saved!');
             }
 
+            queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
             refreshContacts();
             resetForm();
         } catch (error) {
@@ -115,6 +118,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                 .eq('id', id);
             if (error) throw error;
             toast.success('Contact deleted');
+            queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
             refreshContacts();
         } catch (error) {
             console.error('Error deleting contact:', error);
@@ -164,7 +168,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
         }
     };
 
-    const filteredContacts = savedContacts.filter(contact =>
+    const filteredContacts = baseContacts.filter(contact =>
         contact.contact_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         contact.otherUser?.phone?.includes(searchQuery)
     );

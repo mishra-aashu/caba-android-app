@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
-import { QRCodeGenerator, QRCodeScanner } from '../qr';
+import { UserQRCode, QRScanner } from '../qr';
 import { dpOptions } from '../../utils/dpOptions';
 import '../../styles/profile.css';
 import '../qr/QRCodeGenerator.css';
@@ -406,18 +406,26 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
       {/* QR Code Modal */}
       {showQrModal && user && (
-        <QRCodeGenerator
-          userId={user.id}
-          userName={user.name}
-          userPhone={user.phone}
-          onClose={() => setShowQrModal(false)}
-        />
+        <div className="modal-overlay" onClick={() => setShowQrModal(false)}>
+          <div className="modal-content qr-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>My QR Code</h2>
+              <button className="close-btn" onClick={() => setShowQrModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body centered">
+              <UserQRCode
+                userId={user.id}
+                publicKey={user.public_key || 'not-generated-yet'}
+                userName={user.name}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Scan QR Modal */}
       {showScanQrModal && (
-        <QRCodeScanner
-          onScan={handleQrScan}
+        <QRScanner
           onClose={() => setShowScanQrModal(false)}
         />
       )}

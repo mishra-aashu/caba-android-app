@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo, Suspense, lazy, createContext, useContext } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { useData } from '../contexts/DataContext';
@@ -32,6 +33,7 @@ const MainLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isDesktop = useIsDesktop();
+    const queryClient = useQueryClient();
     const {
         chats,
         loading,
@@ -70,10 +72,8 @@ const MainLayout = () => {
     const currentChatId = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
 
 
-    // Contacts are now managed by DataContext
-    useEffect(() => {
-        if (user) refreshContacts();
-    }, [user, refreshContacts]);
+    // Contacts are now managed by DataContext and cached via TanStack Query
+    // No need to force refresh on every layout mount as it causes redundant network requests
 
     const handleSaveContact = async () => {
         if (!contactName.trim() || !contactPhone.trim()) {
@@ -106,6 +106,7 @@ const MainLayout = () => {
             if (error) throw error;
 
             toast.success('Contact saved!');
+            queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
             refreshContacts(); // Refresh global contacts
             setContactName('');
             setContactPhone('');
