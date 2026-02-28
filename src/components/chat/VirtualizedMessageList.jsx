@@ -15,7 +15,7 @@ import useChatStore, { selectMessages } from '../../store/useChatStore';
  * - Memoized components to prevent unnecessary re-renders
  * - Optimized for mobile performance (60+ FPS)
  */
-const VirtualizedMessageList = ({
+const VirtualizedMessageList = React.forwardRef(({
   currentUser,
   selectedMessages,
   isSelectionMode,
@@ -34,7 +34,7 @@ const VirtualizedMessageList = ({
   followOutput,
   typingUsers = {},
   initialTopMostItemIndex,
-}) => {
+}, ref) => {
   // 🔥 OPTIMIZED: Subscribe ONLY to messages array from Zustand store
   // This component ONLY re-renders when messages change
   // The ChatScreen parent does NOT re-render because it won't subscribe to messages
@@ -42,79 +42,51 @@ const VirtualizedMessageList = ({
 
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
-  const prevMessagesLengthRef = useRef(0);
-  const isAutoScrollingRef = useRef(false);
-  const lastMessageCountRef = useRef(messages.length);
 
-  // Determine if we should auto-scroll based on user position
-  // Only auto-scroll when user is explicitly at bottom or during initial load
-  const shouldAutoScroll = useCallback(() => {
-    // Don't auto-scroll if user is manually scrolling up to read older messages
-    if (isAutoScrollingRef.current) return true;
+  // Combine messages with date headers
+  const itemsWithHeaders = useMemo(() => {
+    const items = [];
 
-    // Only auto-scroll if user is already at bottom
-    return isScrolledToBottom === true;
-  }, [isScrolledToBottom]);
+    messages.forEach((message, index) => {
+      // Add date header if needed
+      const createdAt = message?.created_at ?? message?.createdAt;
+      if (createdAt) {
+        const date = new Date(createdAt);
+        const prevMessage = index > 0 ? messages[index - 1] : null;
+        const prevDate = prevMessage
+          ? new Date(prevMessage.created_at ?? prevMessage.createdAt)
+          : null;
+
+        const isFirstOfDay = !prevDate || date.toDateString() !== prevDate.toDateString();
+
+        if (isFirstOfDay) {
+          items.push({ type: 'date-header', date: date.toDateString(), key: `header-${date.toDateString()}` });
+        }
+      }
+
+      // Add message
+      items.push({ type: 'message', message, key: message.id || message.tempId || `msg-${index}` });
+    });
+    return items;
+  }, [messages]);
 
   // Scroll to bottom function exposed to parent
-  const scrollToBottom = useCallback((behavior = 'smooth') => {
-    if (virtuosoRef.current && messages.length > 0) {
+  const scrollToBottom = useCallback((behavior = 'auto') => {
+    if (virtuosoRef.current && itemsWithHeaders.length > 0) {
       virtuosoRef.current.scrollToIndex({
-        index: messages.length - 1,
+        index: itemsWithHeaders.length - 1,
         behavior,
         align: 'end',
       });
     }
-  }, [messages.length]);
+  }, [itemsWithHeaders.length]);
 
-  // Expose scrollToBottom to parent via ref callback
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollToBottom = scrollToBottom;
-    }
-  }, [scrollToBottom]);
+  // Expose scrollToBottom to parent via imperative handle
+  React.useImperativeHandle(ref, () => ({
+    scrollToBottom
+  }), [scrollToBottom]);
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    const prevLength = prevMessagesLengthRef.current;
-    const newLength = messages.length;
 
-    if (newLength > prevLength && shouldAutoScroll()) {
-      // New message arrived - auto-scroll to bottom
-      isAutoScrollingRef.current = true;
-
-      // Use 'auto' behavior to prevent smooth animation conflicts
-      if (virtuosoRef.current) {
-        virtuosoRef.current.scrollToIndex({
-          index: newLength - 1,
-          behavior: 'auto',
-          align: 'end',
-        });
-      }
-
-      // Reset auto-scroll flag after a shorter delay
-      setTimeout(() => {
-        isAutoScrollingRef.current = false;
-      }, 100);
-    }
-
-    prevMessagesLengthRef.current = newLength;
-  }, [messages.length, shouldAutoScroll]);
-
-  // Handle scroll events from Virtuoso
-  const handleScroll = useCallback((location) => {
-    // Track if user is at bottom to prevent unwanted auto-scroll
-    const isAtBottom = location?.isAtBottom || false;
-
-    if (onScroll) {
-      onScroll({
-        ...location,
-        isAtBottom,
-        // Add explicit scroll direction tracking
-        isScrollingUp: location?.scrollTop !== undefined && location?.scrollTop > 0
-      });
-    }
-  }, [onScroll]);
 
   // Memoized message item renderer with zero-height fix
   // Use useMemo instead of useCallback to avoid stale closures
@@ -138,7 +110,7 @@ const VirtualizedMessageList = ({
 
       // Get message ID for selection state
       const msgId = message.id || message.tempId || `msg-${index}`;
-      const isSelected = selectedMessages.has(message.id);
+      const isSelected = selectedMessages?.has?.(message.id) || false;
       const msgCurrentUser = currentUser;
 
       // Wrap in a div with min-height to prevent zero-sized element error
@@ -190,33 +162,7 @@ const VirtualizedMessageList = ({
     onSenderClick,
   ]);
 
-  // Combine messages with date headers
-  const itemsWithHeaders = useMemo(() => {
-    const items = [];
 
-    messages.forEach((message, index) => {
-      // Add date header if needed
-      const createdAt = message?.created_at ?? message?.createdAt;
-      if (createdAt) {
-        const date = new Date(createdAt);
-        const prevMessage = index > 0 ? messages[index - 1] : null;
-        const prevDate = prevMessage
-          ? new Date(prevMessage.created_at ?? prevMessage.createdAt)
-          : null;
-
-        const isFirstOfDay = !prevDate || date.toDateString() !== prevDate.toDateString();
-
-        if (isFirstOfDay) {
-          items.push({ type: 'date-header', date: date.toDateString(), key: `header-${date.toDateString()}` });
-        }
-      }
-
-      // Add message
-      items.push({ type: 'message', message, key: message.id || message.tempId || `msg-${index}` });
-    });
-
-    return items;
-  }, [messages]);
 
   // Render item with date headers
   const renderItem = useCallback((index) => {
@@ -294,37 +240,29 @@ const VirtualizedMessageList = ({
         ref={virtuosoRef}
         data={itemsWithHeaders}
         initialTopMostItemIndex={initialTopMostItemIndex ?? (itemsWithHeaders.length > 0 ? itemsWithHeaders.length - 1 : 0)}
-        followOutput={'auto'} // Always auto for professional behavior
+        followOutput={'auto'}
         atBottomStateChange={(isAtBottom) => {
-          // Properly track bottom state
-          if (onScroll) {
-            onScroll({ isAtBottom });
-          }
+          if (onScroll) onScroll({ isAtBottom });
         }}
         atTopStateChange={(isAtTop) => {
-          // Track top state for better scroll control
-          if (onScroll) {
-            onScroll({ isAtTop });
-          }
+          if (onScroll) onScroll({ isAtTop });
         }}
         itemContent={renderItem}
         computeItemKey={(index, item) => item?.key || `item-${index}`}
-        overscan={50} // Reduced for better performance
+        overscan={200}
         alignToBottom={true}
         style={{
           flex: 1,
           width: '100%',
           minHeight: 0,
           height: '100%',
-          /* Professional scroll behavior */
-          overflowY: 'auto',
         }}
       />
       {/* Typing indicator outside virtuoso to avoid zero-sized element issues */}
       <TypingIndicator isVisible={Object.keys(typingUsers).length > 0} />
     </div>
   );
-};
+});
 
 
 // Memoized export for performance - strict comparison to prevent flickering

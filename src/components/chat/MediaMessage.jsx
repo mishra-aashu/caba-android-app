@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import EmojiRenderer from '../common/EmojiRenderer';
 import './MediaMessage.css';
@@ -14,16 +14,17 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
     return mediaPath.startsWith('http') ? mediaPath : getPublicMediaUrl(mediaPath);
   };
 
-  const handleViewMedia = (e) => {
-    e?.stopPropagation();
-    
-    // Always get fresh URL
+  const loadMedia = useCallback(() => {
     const url = getMediaUrl();
     setMediaUrl(url);
     setImageLoaded(true);
     setIsLoading(false);
+    return url;
+  }, [message.mediaPath, message.media_path]);
 
-    // Trigger fullscreen viewer if callback provided
+  const handleMediaClick = (e) => {
+    e?.stopPropagation();
+    const url = loadMedia();
     if (onMediaClick) {
       onMediaClick(url, message);
     }
@@ -33,9 +34,9 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
   useEffect(() => {
     const mediaPath = message.mediaPath || message.media_path;
     if (mediaPath && mediaPath.startsWith('http')) {
-      handleViewMedia();
+      loadMedia();
     }
-  }, [message.mediaPath, message.media_path]);
+  }, [message.mediaPath, message.media_path, loadMedia]);
 
   // Render the message
   return (
@@ -71,7 +72,7 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             </div>
           </div>
         )}
-        <div className="media-content" onClick={handleViewMedia}>
+        <div className="media-content" onClick={handleMediaClick}>
           {!imageLoaded ? (
             <div className="media-placeholder">
               <span className="icon">🖼️</span>
@@ -97,6 +98,35 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             </div>
           )}
         </div>
+
+        {/* Reactions Display */}
+        {message?.metadata && Object.keys(message.metadata).length > 0 && (
+          <div className="message-reactions">
+            {Object.entries(
+              Object.values(message.metadata).reduce((acc, emoji) => {
+                acc[emoji] = (acc[emoji] || 0) + 1;
+                return acc;
+              }, {})
+            ).map(([emoji, count]) => {
+              const isMyReaction = message.metadata[currentUserId] === emoji;
+              return (
+                <div
+                  key={emoji}
+                  className={`reaction-badge ${isMyReaction ? 'user-reacted' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.handleReactionToggle) {
+                      window.handleReactionToggle(message.id, emoji);
+                    }
+                  }}
+                >
+                  <EmojiRenderer text={emoji} />
+                  {count > 1 && <span className="reaction-count">{count}</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import MemberItem from './MemberItem';
 import AddMembersModal from './AddMembersModal';
-import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown, Calendar, User as UserIcon, Camera, Shield, Lock, MessageSquare, ArrowLeft } from 'lucide-react';
+import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown, Calendar, User as UserIcon, Camera, Shield, Lock, MessageSquare, ArrowLeft, LoaderCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';

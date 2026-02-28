@@ -272,7 +272,7 @@
   padding: 0 !important;
   min-width: auto !important;
   max-width: none !important;
-  
+
   /* Ensure proper alignment */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -305,6 +305,7 @@
 
 /* Support for 4rem size as fallback */
 @media (max-width: 480px) {
+
   .message-container.jumbo-emoji .text img,
   .message-container.jumbo-emoji .emoji-renderer-root img,
   .jumbo-emoji-bubble .custom-emoji-img {
@@ -330,6 +331,67 @@
   .message-container.jumbo-emoji .native-emoji-fallback {
     font-size: 3rem !important;
   }
+}
+
+/* --- REACTIONS DISPLAY --- */
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.reaction-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+[data-theme='dark'] .reaction-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.reaction-badge:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+[data-theme='dark'] .reaction-badge:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.reaction-badge.user-reacted {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.4);
+}
+
+[data-theme='dark'] .reaction-badge.user-reacted {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.reaction-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
+.bubble-sent .reaction-count {
+  color: #ffffff;
+}
+
+.reaction-badge .emoji-renderer-root img {
+  width: 16px !important;
+  height: 16px !important;
 }
 
 /* Removed jelly animation for uniform scrolling */

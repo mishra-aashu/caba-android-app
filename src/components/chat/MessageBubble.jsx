@@ -118,7 +118,7 @@ const MessageBubble = memo(({
   // Removed jelly animation for uniform scrolling
 
   return (
-    <div 
+    <div
       className={`message-container ${isMine ? 'mine' : 'theirs'} ${isAnonymous ? 'anonymous' : ''} ${isLocked ? 'locked' : ''} ${isJumboEmoji ? 'jumbo-emoji' : ''}`}
     >
       {/* Bubble Box */}
@@ -179,11 +179,47 @@ const MessageBubble = memo(({
           <span className={`text ${isDeleted ? 'deleted-text' : ''} ${isLocked ? 'blurred' : ''} ${isJumboEmoji ? 'jumbo-emoji-text' : ''}`}>
             {isDeleted && <BlockIcon />}
             {isLocked ? <LockIcon /> : null}
-            <EmojiRenderer 
-              text={isLocked ? 'Time Capsule Message' : text} 
+            <EmojiRenderer
+              text={isLocked ? 'Time Capsule Message' : text}
               style={emojiStyle}
             />
           </span>
+
+          {/* Reactions Display */}
+          {message?.metadata && Object.keys(message.metadata).length > 0 && (
+            <div className="message-reactions">
+              {Object.entries(
+                Object.values(message.metadata).reduce((acc, emoji) => {
+                  acc[emoji] = (acc[emoji] || 0) + 1;
+                  return acc;
+                }, {})
+              ).map(([emoji, count]) => {
+                const hasUserReacted = Object.values(message.metadata).some(
+                  (uReaction) => uReaction === emoji && Object.keys(message.metadata).find(uid => message.metadata[uid] === emoji) === currentUserId
+                );
+
+                // Refined hasUserReacted check
+                const isMyReaction = message.metadata[currentUserId] === emoji;
+
+                return (
+                  <div
+                    key={emoji}
+                    className={`reaction-badge ${isMyReaction ? 'user-reacted' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Toggling via badge
+                      if (window.handleReactionToggle) {
+                        window.handleReactionToggle(message.id, emoji);
+                      }
+                    }}
+                  >
+                    <EmojiRenderer text={emoji} />
+                    {count > 1 && <span className="reaction-count">{count}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Time Area */}
           <span className="timestamp">
@@ -212,27 +248,32 @@ const MessageBubble = memo(({
   if (prevProps.isMine !== nextProps.isMine) return false;
   if (prevProps.isDeleted !== nextProps.isDeleted) return false;
   if (prevProps.edited !== nextProps.edited) return false;
-  
+
   // Check repliedMsg changes
   const prevReplyId = prevProps.repliedMsg?.id;
   const nextReplyId = nextProps.repliedMsg?.id;
   if (prevReplyId !== nextReplyId) return false;
-  
+
   // Check sender changes
   const prevSenderId = prevProps.sender?.id;
   const nextSenderId = nextProps.sender?.id;
   if (prevSenderId !== nextSenderId) return false;
-  
+
   // Check message object key changes
   const prevMessageId = prevProps.message?.id;
   const nextMessageId = nextProps.message?.id;
   if (prevMessageId !== nextMessageId) return false;
-  
+
   // Check unlock status for time capsule
   const prevLocked = prevProps.message?.unlockAt || prevProps.message?.unlock_at;
   const nextLocked = nextProps.message?.unlockAt || nextProps.message?.unlock_at;
   if (prevLocked !== nextLocked) return false;
-  
+
+  // Check for metadata changes (reactions)
+  const prevMeta = JSON.stringify(prevProps.message?.metadata || {});
+  const nextMeta = JSON.stringify(nextProps.message?.metadata || {});
+  if (prevMeta !== nextMeta) return false;
+
   return true;
 });
 

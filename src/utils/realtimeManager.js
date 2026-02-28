@@ -46,10 +46,18 @@ class RealtimeManager {
               const { handler, ...supabaseConfig } = listenerConfig;
               channel.on('postgres_changes', supabaseConfig, handler || (() => { }));
             });
-          } else if (event === 'broadcast' || event === 'presence') {
-            // Support both: broadcast: (payload) => {} 
-            // AND broadcast: { event: 'name', callback: (payload) => {} }
+          } else if (event === 'broadcast') {
             const configs = Array.isArray(callback) ? callback : [callback];
+            configs.forEach(config => {
+              const { event: eventName, callback: cb } = typeof config === 'function' ? { event: '*', callback: config } : config;
+              channel.on('broadcast', { event: eventName || '*' }, cb);
+            });
+          } else if (event === 'presence') {
+            const configs = Array.isArray(callback) ? callback : [callback];
+            configs.forEach(config => {
+              const { event: eventName, callback: cb } = typeof config === 'function' ? { event: '*', callback: config } : config;
+              channel.on('presence', { event: eventName || 'sync' }, cb);
+            });
           } else {
             // Fallback for other events
             channel.on(event, callback);

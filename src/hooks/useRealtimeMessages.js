@@ -39,6 +39,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
           filter: `chat_id=eq.${chatId}`,
           handler: async (payload) => {
             if (!mountedRef.current) return;
+            console.log(`📩 Realtime message event for chat ${chatId}:`, payload.eventType, payload.new?.id);
             const { eventType, new: newRecord, old: oldRecord } = payload;
             const id = newRecord?.id ?? oldRecord?.id;
             if (!id) return;

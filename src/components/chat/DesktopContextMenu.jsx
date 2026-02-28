@@ -1,6 +1,7 @@
 import React from 'react';
-import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag } from 'lucide-react';
+import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag, Heart } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import EmojiRenderer from '../common/EmojiRenderer';
 
 const DesktopContextMenu = ({
   position,
@@ -15,20 +16,26 @@ const DesktopContextMenu = ({
   onSelect,
   onReport,
   isSent,
-  onClose
+  onClose,
+  onReactionSelect,
+  preferredEmojis = [],
+  emojiStyle = 'apple'
 }) => {
   if (!isVisible) return null;
 
   const handleReplyClick = () => {
-    // If onReplyWithHighlight is provided (desktop), use it for the animation
     if (onReplyWithHighlight) {
       onReplyWithHighlight();
     } else {
-      // Fallback to regular onReply (mobile)
       onReply();
     }
     onClose();
   };
+
+  // Determine the actual emojis to display
+  const emojisToDisplay = preferredEmojis && preferredEmojis.length > 0
+    ? preferredEmojis
+    : ['❤️', '👍', '🔥', '😂', '😮', '😢', '🙏'];
 
   const menuContent = (
     <div
@@ -39,6 +46,30 @@ const DesktopContextMenu = ({
         transformOrigin: isUpwards ? 'bottom left' : 'top left'
       }}
     >
+      {/* Reactions Row - Moved to TOP */}
+      <div className="menu-reactions-row">
+        {emojisToDisplay.map((emoji) => (
+          <button
+            key={emoji}
+            className="menu-reaction-btn"
+            onClick={() => {
+              onReactionSelect(emoji);
+              onClose();
+            }}
+            title={`React with ${emoji}`}
+          >
+            <EmojiRenderer
+              text={emoji}
+              styleOverride={emojiStyle}
+              className={emojiStyle === 'native' ? 'native-emoji' : 'custom-emoji-img'}
+            />
+          </button>
+        ))}
+      </div>
+
+      <div className="menu-divider"></div>
+
+      {/* Actions Below Reactions */}
       <div className="menu-item" onClick={() => { onSelect(); onClose(); }}>
         <span className="icon"><MousePointer size={16} /></span>
         <span>Select</span>
@@ -58,9 +89,6 @@ const DesktopContextMenu = ({
         <span className="icon"><Share2 size={16} /></span>
         <span>Forward</span>
       </div>
-
-      {/* Line Separator */}
-      <div className="menu-divider"></div>
 
       {isSent && (
         <>
@@ -88,7 +116,6 @@ const DesktopContextMenu = ({
     </div>
   );
 
-  // Use portal to render at body level for proper positioning
   return createPortal(menuContent, document.body);
 };
 

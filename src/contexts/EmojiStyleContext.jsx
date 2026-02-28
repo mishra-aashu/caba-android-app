@@ -9,6 +9,7 @@ const EmojiStyleContext = createContext();
 export const EmojiStyleProvider = ({ children }) => {
   // Default emoji style is 'apple' as requested
   const [emojiStyle, setEmojiStyle] = useState('apple');
+  const [preferredEmojis, setPreferredEmojis] = useState(['❤️', '👍', '🔥', '😂', '😮', '😢', '🙏']);
   const [loading, setLoading] = useState(true);
   const { supabase } = useSupabase();
 
@@ -25,6 +26,9 @@ export const EmojiStyleProvider = ({ children }) => {
 
       if (userData?.emojiStyle) {
         setEmojiStyle(userData.emojiStyle);
+      }
+      if (userData?.preferredEmojis) {
+        setPreferredEmojis(userData.preferredEmojis);
       }
     } catch (error) {
       console.error('Error loading emoji style:', error);
@@ -61,6 +65,32 @@ export const EmojiStyleProvider = ({ children }) => {
     }
   };
 
+  const updatePreferredEmojis = async (newEmojis) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setPreferredEmojis(newEmojis);
+        return true;
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .update({ preferred_emojis: newEmojis })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error saving preferred emojis:', error);
+        return false;
+      }
+
+      setPreferredEmojis(newEmojis);
+      return true;
+    } catch (error) {
+      console.error('Error saving preferred emojis:', error);
+      return false;
+    }
+  };
+
   // Initialize on mount
   useEffect(() => {
     loadEmojiStyle();
@@ -70,6 +100,8 @@ export const EmojiStyleProvider = ({ children }) => {
   const value = {
     emojiStyle,
     updateEmojiStyle,
+    preferredEmojis,
+    updatePreferredEmojis,
     loading,
     isNative: emojiStyle === 'native',
     isTwitter: emojiStyle === 'twitter',

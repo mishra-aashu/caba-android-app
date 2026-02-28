@@ -46,6 +46,7 @@ import WallpaperPicker from './WallpaperPicker';
 import useIsDesktop from '../../hooks/useIsDesktop';
 import useChatStore, { selectMessages, selectSetMessages } from '../../store/useChatStore';
 import '../../styles/chat.css';
+import { getPublicMediaUrl } from '../../services/mediaService';
 
 import '../../styles/game-modal.css';
 
@@ -54,6 +55,7 @@ import './AttachmentMenu.css';
 const Chat = () => {
   const { chatId, otherUserId } = useParams();
   // Define validChatId early so it can be used in useState and hooks
+  // CRITICAL FIX: Don't set validChatId to null for 'new' chats only - groups need valid chatId
   const validChatId = chatId === 'new' ? null : chatId;
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,7 +66,7 @@ const Chat = () => {
   const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
   const { showAlert } = useDialog();
   const isDesktop = useIsDesktop();
-  const showUserDetails = React.useContext(UserDetailsContext);
+  const { showUserDetails } = React.useContext(UserDetailsContext) || {};
   const queryClient = useQueryClient();
   const { chats: allChats } = useData();
 
@@ -138,9 +140,9 @@ const Chat = () => {
       }
     }
 
-    // 3. Fallback: For group chats, return a valid placeholder IMMEDIATELY.
-    // This ensures the header never renders "Loading..." or null state for groups,
-    // even if we visited via direct URL.
+    // 3. CRITICAL FIX: For group chats, ALWAYS return a valid placeholder
+    // This ensures the header never renders blank or null state for groups,
+    // even if we visited via direct URL with no cached data.
     if (isGroupChat) {
       return {
         id: chatId,
@@ -152,7 +154,7 @@ const Chat = () => {
       };
     }
 
-    // 4. For DMs, start null (we need to fetch the user to know their name)
+    // 4. For DMs only, start null (we need to fetch the user to know their name)
     return null;
   });
 
@@ -219,6 +221,9 @@ const Chat = () => {
     if (infiniteData?.pages) {
       // Flatten pages (newest first from hook) and reverse for UI (oldest first)
       const allMsgs = infiniteData.pages.flatMap(page => page.data).reverse();
+
+      // Filter out any messages that are already in the store and NOT temp
+      // This prevents duplicates during background refetches
       setStoreMessages(allMsgs);
 
       // Persist to local storage in background
@@ -310,18 +315,37 @@ const Chat = () => {
       );
       if (matchingMsg) {
         replaceTempMessage(matchingMsg.tempId, newMessage);
+        // Note: Replacing temp message in React Query cache is complex, 
+        // usually handled by the mutation success.
         return;
       }
     }
 
+    // ROOT FIX: Update React Query Cache so it doesn't revert the store on next background fetch
+    queryClient.setQueryData(['messages', validChatId], (oldData) => {
+      if (!oldData || !oldData.pages) return oldData;
+
+      // Add to the FIRST page (newest data)
+      const newPages = [...oldData.pages];
+      const firstPage = newPages[0];
+
+      // Prevent duplicates in cache
+      const exists = firstPage.data.some(m => m.id === newMessage.id);
+      if (exists) return oldData;
+
+      newPages[0] = {
+        ...firstPage,
+        data: [newMessage, ...firstPage.data]
+      };
+
+      return {
+        ...oldData,
+        pages: newPages
+      };
+    });
+
     // Add as new message (Zustand addMessage handles duplicates)
     addStoreMessage(newMessage);
-
-    // Play notification sound for incoming messages
-    const senderId = newMessage.senderId || newMessage.sender_id;
-    if (senderId !== currentUser?.id && !isMuted) {
-      NotificationSound.playMessageNotification();
-    }
 
     // Unread logic
     if (!isScrolledToBottom) {
@@ -329,7 +353,7 @@ const Chat = () => {
     } else {
       markMessagesAsRead();
     }
-  }, [isScrolledToBottom, currentUser?.id, isMuted, messages, addStoreMessage, replaceTempMessage, markMessagesAsRead]);
+  }, [isScrolledToBottom, currentUser?.id, isMuted, messages, addStoreMessage, replaceTempMessage, markMessagesAsRead, queryClient, validChatId]);
 
   const handleDeleteMessage = useCallback((deletedId) => {
     // Mark as deleting first to trigger CSS animation
@@ -377,20 +401,8 @@ const Chat = () => {
     }
   };
 
-  // Initialize chat function - MUST BE DEFINED BEFORE useEffect that calls it
-  // Sync infinite query data to Zustand store
-  useEffect(() => {
-    if (infiniteData?.pages) {
-      // Flatten pages (newest first from hook) and reverse for UI (oldest first)
-      const allMsgs = infiniteData.pages.flatMap(page => page.data).reverse();
-      setStoreMessages(allMsgs);
-
-      // Persist to local storage in background
-      if (allMsgs.length > 0 && validChatId) {
-        saveMessagesToDevice(validChatId, allMsgs);
-      }
-    }
-  }, [infiniteData, setStoreMessages, validChatId]);
+  // Define validChatId check for messages already handled by paginate useEffect
+  // and remove redundant duplicate effect if present.
 
 
   const initializeChat = async () => {
@@ -687,11 +699,7 @@ const Chat = () => {
       } else {
         // 4. Offline: Add to sync queue with precision tempId
         await addToSyncQueue('send_message', { ...localSaveData, tempId });
-        toast.success('Message queued for sync (offline)');
       }
-
-      NotificationSound.playMessageNotification();
-
     } catch (error) {
       console.error('Error sending message:', error);
       // We don't rollback if it's already in Dexie/SyncQueue, but we show error if it failed online attempt
@@ -739,7 +747,7 @@ const Chat = () => {
       sender: currentUser,
       tempId: tempId,
       // Use the objectUrl for local preview if we don't have a storage path yet
-      media_url: objectUrl || (mediaPath ? getPublicMediaUrl(mediaPath) : null)
+      media_url: objectUrl || (mediaPath ? (mediaPath.startsWith('http') ? mediaPath : getPublicMediaUrl(mediaPath)) : null)
     };
 
     addStoreMessage(optimisticMsg);
@@ -783,9 +791,6 @@ const Chat = () => {
         });
         toast.success(localFile ? 'Media queued for upload/sync' : 'Media queued for sync (offline)');
       }
-
-      NotificationSound.playMessageNotification();
-
     } catch (error) {
       console.error('Error sending media message:', error);
       if (navigator.onLine) {
@@ -1290,16 +1295,8 @@ const Chat = () => {
   // Memoize the header and other static parts if needed, but defining a component inside a component is a bug
 
   return (
-    <motion.div
+    <div
       className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
-      // FIX: Added 'layout' prop to fix the Framer Motion transition bug
-      // This tells Framer Motion to properly handle layout changes during transitions
-      layout
-      initial="initial"
-      animate="animate"
-      variants={pageVariants}
-      // 👇 यह लाइन एनिमेशन के टाइम गैप बनने से रोकेगी 👇
-      style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
     >
       <div className="chat-main-area">
         {/* Chat Header - always render, even if otherUser is loading */}
@@ -1527,10 +1524,8 @@ const Chat = () => {
           </div>
         )}
 
-        {/* Messages Container */}
         <div
           className="messages-container"
-          ref={messagesContainerRef}
         >
           {/* Load More Indicator */}
           {isFetchingNextPage && (
@@ -1541,6 +1536,7 @@ const Chat = () => {
           )}
 
           <VirtualizedMessageList
+            ref={messagesContainerRef}
             messages={messages}
             currentUser={currentUser}
             selectedMessages={selectedMessages}
@@ -1571,7 +1567,7 @@ const Chat = () => {
             onScroll={handleScroll}
             followOutput="auto"
             typingUsers={typingUsers}
-            initialTopMostItemIndex={messages.length > 0 ? messages.length - 1 : 0}
+            initialTopMostItemIndex={undefined} // Let component handle default (bottom)
           />
 
           <div ref={messagesEndRef} />
@@ -1955,7 +1951,7 @@ const Chat = () => {
             setShowGroupInfoDrawer(false);
             // Reload group info to check if user is still a member
             if (chatId && (isGroupChat || otherUser?.is_group)) {
-              loadGroupInfo(chatId);
+              queryClient.invalidateQueries({ queryKey: ['group', chatId] });
             }
           }}
           group={otherUser}
@@ -1979,7 +1975,7 @@ const Chat = () => {
         onDownload={handleMediaDownload}
         onShare={handleShareAsForward}
       />
-    </motion.div>
+    </div>
   );
 };
 

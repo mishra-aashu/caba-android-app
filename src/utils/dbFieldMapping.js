@@ -14,6 +14,7 @@ export const DB_TO_FRONTEND_MAP = {
   'phone_number': 'phoneNumber',
   'profile_image': 'profileImage',
   'emoji_style': 'emojiStyle',
+  'preferred_emojis': 'preferredEmojis',
   'auth_provider': 'authProvider',
   'email_confirmed_at': 'emailConfirmedAt',
   'auth_password': 'authPassword',

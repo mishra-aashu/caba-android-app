@@ -4,6 +4,8 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
+import { useToggleReaction } from '../../hooks/useToggleReaction';
+import ReactionPicker from './ReactionPicker';
 import { getValidAvatarUrl } from '../../utils/avatarUtils';
 import { formatBubbleTime } from '../../utils/dateFormatter';
 import {
@@ -21,12 +23,14 @@ import {
   Send,
   UserCheck,
   UserX,
-  Reply
+  Reply,
+  Heart
 } from 'lucide-react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import MessageBubble from './MessageBubble';
 import DesktopContextMenu from './DesktopContextMenu';
 import toast from 'react-hot-toast';
+import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 
 const MessageItem = ({
   message,
@@ -55,22 +59,34 @@ const MessageItem = ({
   const [touchStartY, setTouchStartY] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [reactionPickerPos, setReactionPickerPos] = useState({ x: 0, y: 0 });
+  const [showHeartPop, setShowHeartPop] = useState(false);
+  const [lastTap, setLastTap] = useState(0);
   const bubbleRef = useRef(null);
   const messageRef = useRef(null);
   const dragConstraintsRef = useRef(null);
 
+  const safeMessage = message ?? {};
+  const { mutate: toggleReaction } = useToggleReaction(safeMessage.chat_id || safeMessage.chatId);
+  const { preferredEmojis, emojiStyle } = useEmojiStyle();
+
+  useEffect(() => {
+    window.handleReactionToggle = (messageId, emoji) => {
+      toggleReaction({ messageId, userId: currentUser?.id, reaction: emoji });
+    };
+  }, [toggleReaction, currentUser?.id]);
+
   // Animation controls for desktop highlight animation
   const highlightControls = useAnimation();
-  
+
   // Detect touch device for swipe functionality
-  const isTouchDevice = typeof window !== 'undefined' && 
+  const isTouchDevice = typeof window !== 'undefined' &&
     (window.matchMedia?.('(hover: none)').matches || 'ontouchstart' in window);
-  
+
   // Check if we're on mobile (smaller screen) for swipe to reply
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-  // Move these declarations before useEffect to fix initialization error
-  const safeMessage = message ?? {};
   const isSent = (safeMessage.senderId || safeMessage.sender_id) === currentUser?.id;
   const isReplied = !!(safeMessage.replyTo || safeMessage.reply_to);
 
@@ -105,10 +121,6 @@ const MessageItem = ({
   const senderAvatar = getValidAvatarUrl(sender.avatar || sender.profile_image || sender.profileImage);
   const senderInitial = (senderName || 'U').charAt(0).toUpperCase();
 
-  const myAvatar = getValidAvatarUrl(currentUser?.avatar || currentUser?.profile_image);
-  const myName = currentUser?.name || currentUser?.username || 'Me';
-  const myInitial = (myName || 'M').charAt(0).toUpperCase();
-
   const MENU_H = 220;
   const MENU_W = 180;
   const openContextMenu = (clientX, clientY) => {
@@ -126,11 +138,39 @@ const MessageItem = ({
 
   const handleLongPress = (e, touchX, touchY) => {
     e.preventDefault();
-    if (!isSelectionMode) openContextMenu(touchX ?? e.clientX, touchY ?? e.clientY);
+    if (isSelectionMode) return;
+
+    // Show reaction picker above the message
+    const rect = bubbleRef.current?.getBoundingClientRect() || messageRef.current?.getBoundingClientRect();
+    if (rect) {
+      setReactionPickerPos({
+        x: rect.left + rect.width / 2,
+        y: rect.top
+      });
+      setShowReactionPicker(true);
+    }
+
+    // Also show context menu
+    openContextMenu(touchX ?? e.clientX, touchY ?? e.clientY);
   };
 
-  const handleClick = () => {
-    if (isSelectionMode) onSelect();
+  const handleClick = (e) => {
+    if (isSelectionMode) {
+      onSelect();
+      return;
+    }
+
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (now - lastTap < DOUBLE_TAP_DELAY) {
+      // Double tap detected
+      handleReactionSelect('❤️');
+      setShowHeartPop(true);
+      setTimeout(() => setShowHeartPop(false), 1000);
+      setLastTap(0);
+    } else {
+      setLastTap(now);
+    }
   };
 
   const handleReply = () => {
@@ -170,15 +210,7 @@ const MessageItem = ({
           .eq('id', safeMessage.id);
         if (error) throw error;
 
-        // Update the local message object to reflect the change immediately
-        safeMessage.content = editContent.trim();
-        if (safeMessage.updatedAt) safeMessage.updatedAt = now;
-        if (safeMessage.updated_at) safeMessage.updated_at = now;
-        safeMessage.isEdited = true;
-        safeMessage.is_edited = true;
-
         // Force re-render by updating the parent component's state
-        // This will trigger the realtime update and show the "edited" indicator
         if (window.updateMessageInChat) {
           window.updateMessageInChat(safeMessage.id, {
             content: editContent.trim(),
@@ -251,8 +283,13 @@ const MessageItem = ({
     setReportReason('');
   };
 
-  // Using dayjs via formatBubbleTime from dateFormatter
-  // formatBubbleTime returns "h:mm A" format like "10:45 AM"
+  const handleReactionSelect = (reaction) => {
+    toggleReaction({
+      messageId: safeMessage.id,
+      userId: currentUser?.id,
+      reaction
+    });
+  };
 
   const handleTouchStart = (e) => {
     setTouchStartTime(Date.now());
@@ -271,17 +308,13 @@ const MessageItem = ({
     const absDeltaX = Math.abs(deltaX);
     const absDeltaY = Math.abs(deltaY);
 
-    // Sent messages: swipe LEFT to reply
-    // Received messages: swipe RIGHT to reply
     if (absDeltaX > 50 && absDeltaX > absDeltaY * 1.5 && !isSelectionMode) {
       if (isSent) {
-        // Sent messages: left swipe (negative deltaX)
         if (deltaX < 0) {
           onReply?.(safeMessage);
           return;
         }
       } else {
-        // Received messages: right swipe (positive deltaX)
         if (deltaX > 0) {
           onReply?.(safeMessage);
           return;
@@ -307,21 +340,9 @@ const MessageItem = ({
       return (
         <div className="message-edit-container">
           <textarea
-            ref={(textarea) => {
-              if (textarea) {
-                // Auto-resize textarea
-                textarea.style.height = 'auto';
-                textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-              }
-            }}
             className="message-edit-input"
             value={editContent}
-            onChange={(e) => {
-              setEditContent(e.target.value);
-              // Auto-resize
-              e.target.style.height = 'auto';
-              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-            }}
+            onChange={(e) => setEditContent(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -340,21 +361,8 @@ const MessageItem = ({
             }}
           />
           <div className="message-edit-actions">
-            <button
-              className="edit-cancel-btn"
-              onClick={cancelEdit}
-              title="Cancel (Esc)"
-            >
-              ✕
-            </button>
-            <button
-              className="edit-save-btn"
-              onClick={saveEdit}
-              title="Save (Enter)"
-              disabled={!editContent.trim() || editContent === (safeMessage.content ?? '')}
-            >
-              ✓
-            </button>
+            <button className="edit-cancel-btn" onClick={cancelEdit}>✕</button>
+            <button className="edit-save-btn" onClick={saveEdit}>✓</button>
           </div>
         </div>
       );
@@ -402,60 +410,23 @@ const MessageItem = ({
         status={isRead ? 'read' : 'sent'}
         edited={!!(safeMessage.updatedAt || safeMessage.updated_at)}
         sender={safeMessage.sender}
-        message={safeMessage} // Pass the full message object with timestamps
+        message={safeMessage}
       />
     );
   };
 
-  // In groups: received messages show sender avatar on left.
-  // We no longer show own avatar on the right for sent messages to reduce clutter.
   const showReceivedAvatar = isGroupChat && !isSent;
-  const showSentAvatar = false; // logic disabled as planned
 
-  // Framer Motion animation variants for swipe to reply (Mobile)
-  const swipeAnimation = {
-    rest: { x: 0, scale: 1 },
-    dragging: { x: 0, scale: 1.02 },
-    release: { x: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 30 } }
-  };
-
-  // Framer Motion animation for desktop highlight (click to reply)
-  const highlightAnimation = {
-    rest: { scale: 1, boxShadow: '0 0 0 0 transparent' },
-    highlight: { 
-      scale: 1.05, 
-      boxShadow: '0 0 0 4px rgba(124, 58, 237, 0.3)',
-      transition: { duration: 0.15, ease: 'easeOut' }
-    },
-    complete: { 
-      scale: 1, 
-      boxShadow: '0 0 0 0 transparent',
-      transition: { duration: 0.2, ease: 'easeIn' }
-    }
-  };
-
-  // Handle drag end for swipe to reply
-  // Sent messages: swipe LEFT (negative x) to reply
-  // Received messages: swipe RIGHT (positive x) to reply
   const handleDragEnd = (event, info) => {
-    const dragThreshold = 60; // pixels to drag before triggering reply
-    
+    const dragThreshold = 60;
     if (isSent) {
-      // For sent messages (right side), swipe LEFT (negative x) to reply
-      if (info.offset.x <= -dragThreshold) {
-        onReply?.(safeMessage);
-      }
+      if (info.offset.x <= -dragThreshold) onReply?.(safeMessage);
     } else {
-      // For received messages (left side), swipe RIGHT (positive x) to reply
-      if (info.offset.x >= dragThreshold) {
-        onReply?.(safeMessage);
-      }
+      if (info.offset.x >= dragThreshold) onReply?.(safeMessage);
     }
   };
 
-  // Modified handleReply to trigger highlight animation on desktop
   const handleReplyWithHighlight = () => {
-    // Trigger highlight animation on desktop
     if (!isMobile && !isTouchDevice) {
       highlightControls.start('highlight').then(() => {
         highlightControls.start('complete');
@@ -465,61 +436,12 @@ const MessageItem = ({
     setShowActions(false);
   };
 
-  // Render message bubble with framer-motion wrapper
-  const renderAnimatedContent = () => {
-    const messageContent = renderMessageContent();
-
-    // Always enable drag-to-reply functionality for all devices (mobile + desktop)
-    // This provides a consistent swipe/drag experience across all platforms
-    return (
-      <motion.div
-        className="message-bubble-wrapper"
-        ref={dragConstraintsRef}
-        drag="x"
-        dragConstraints={{ left: 0, right: 150 }}
-        dragElastic={0.3}
-        dragSnapToOrigin={false}
-        onDragEnd={handleDragEnd}
-        variants={swipeAnimation}
-        initial="rest"
-        whileHover="dragging"
-        whileTap="dragging"
-        style={{ position: 'relative' }}
-        // Add cursor style for desktop to indicate drag is available
-        {...(!(isMobile || isTouchDevice) && { 
-          whileFocus: "dragging",
-          style: { cursor: 'grab' }
-        })}
-      >
-        {/* Reply icon that reveals behind the message */}
-        <div 
-          className="swipe-reply-icon"
-          style={{
-            position: 'absolute',
-            left: -45,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            opacity: 0.7,
-            pointerEvents: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 0
-          }}
-        >
-          <Reply size={20} color="#7c3aed" />
-        </div>
-        {messageContent}
-      </motion.div>
-    );
-  };
-
   return (
     <>
       <div
         ref={messageRef}
         id={`message-${safeMessage.id}`}
-        className={`message-item ${isSent ? 'sent' : 'received'} ${isSelected ? 'selected' : ''} ${showActions ? 'highlighted' : ''} ${isGroupChat ? 'group-message' : ''} ${safeMessage.isDeleting ? 'is-deleting' : ''}`}
+        className={`message-item ${isSent ? 'sent' : 'received'} ${isSelected ? 'selected' : ''} ${showActions ? 'highlighted' : ''} ${isGroupChat ? 'group-message' : ''}`}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -530,50 +452,66 @@ const MessageItem = ({
           }
         }}
       >
-        {/* LEFT avatar — received group messages */}
         {showReceivedAvatar && (
-          <button
-            className="group-sender-avatar"
-            onClick={handleSenderAvatarClick}
-            title={`View ${senderName}'s profile`}
-            aria-label={`View ${senderName}'s profile`}
-          >
+          <button className="group-sender-avatar" onClick={handleSenderAvatarClick}>
             {senderAvatar ? (
-              <img
-                src={senderAvatar}
-                alt={senderName}
-                className="group-sender-avatar-img"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.parentElement.querySelector('.group-sender-avatar-initial').style.display = 'flex';
-                }}
-              />
-            ) : null}
-            <span
-              className="group-sender-avatar-initial"
-              style={{ display: senderAvatar ? 'none' : 'flex' }}
-            >
-              {senderInitial}
-            </span>
+              <img src={senderAvatar} alt={senderName} className="group-sender-avatar-img" />
+            ) : (
+              <span className="group-sender-avatar-initial">{senderInitial}</span>
+            )}
           </button>
         )}
 
         <div className={`message-content-wrapper ${isGroupChat ? 'with-avatar' : ''}`}>
-          {/* Sender name — received group messages only */}
           {showReceivedAvatar && (
-            <button className="group-sender-name" onClick={handleSenderAvatarClick} style={{ margin: 0, padding: '0 4px' }}>
+            <button className="group-sender-name" onClick={handleSenderAvatarClick}>
               {senderName}
             </button>
           )}
-          {/* Use animated content instead of direct render */}
-          {renderAnimatedContent()}
+
+          <motion.div
+            className="message-bubble-wrapper"
+            ref={dragConstraintsRef}
+            drag="x"
+            dragConstraints={{ left: 0, right: 150 }}
+            dragElastic={0.3}
+            onDragEnd={handleDragEnd}
+            style={{ position: 'relative' }}
+          >
+            <div className="swipe-reply-icon" style={{ position: 'absolute', left: -45, top: '50%', transform: 'translateY(-50%)', opacity: 0.7 }}>
+              <Reply size={20} color="#7c3aed" />
+            </div>
+
+            <AnimatePresence>
+              {showHeartPop && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0, y: 0 }}
+                  animate={{
+                    scale: [0, 1.5, 1.2],
+                    opacity: [0, 1, 0.8],
+                    y: [0, -40, -60]
+                  }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    marginLeft: '-24px',
+                    marginTop: '-24px',
+                    zIndex: 1000,
+                    pointerEvents: 'none'
+                  }}
+                >
+                  <Heart size={48} fill="#ff4d4d" color="#ff4d4d" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {renderMessageContent()}
+          </motion.div>
         </div>
-
       </div>
-
-      {showActions && !isSelectionMode && (
-        <div className="menu-overlay" onClick={() => setShowActions(false)} />
-      )}
 
       <DesktopContextMenu
         position={menuPos}
@@ -589,6 +527,9 @@ const MessageItem = ({
         onReport={!isSent ? () => { setShowActions(false); setShowReportModal(true); } : undefined}
         isSent={isSent}
         onClose={() => setShowActions(false)}
+        onReactionSelect={handleReactionSelect}
+        preferredEmojis={preferredEmojis}
+        emojiStyle={emojiStyle}
       />
 
       {showReportModal && (
@@ -618,18 +559,17 @@ const MessageItem = ({
   );
 };
 
-// Memoize MessageItem to prevent re-renders during scroll
 export default memo(MessageItem, (prevProps, nextProps) => {
-  // Only re-render if these specific props change
   if (prevProps.message?.id !== nextProps.message?.id) return false;
   if (prevProps.isSelected !== nextProps.isSelected) return false;
   if (prevProps.isSelectionMode !== nextProps.isSelectionMode) return false;
-  
-  // For content changes, check specific fields
+
+  // Check for metadata changes (reactions)
+  const prevMeta = JSON.stringify(prevProps.message?.metadata || {});
+  const nextMeta = JSON.stringify(nextProps.message?.metadata || {});
+  if (prevMeta !== nextMeta) return false;
+
   if (prevProps.message?.content !== nextProps.message?.content) return false;
-  if (prevProps.message?.isDeleting !== nextProps.message?.isDeleting) return false;
-  if (prevProps.message?.isEdited !== nextProps.message?.isEdited) return false;
-  if (prevProps.message?.is_edited !== nextProps.message?.is_edited) return false;
-  
+
   return true;
 });

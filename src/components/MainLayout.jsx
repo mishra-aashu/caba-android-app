@@ -21,8 +21,9 @@ import '../styles/theme.css';
 // Create context for user-details panel
 export const UserDetailsContext = createContext(null);
 
-// Lazy load UserDetails for desktop side panel
+// Lazy load UserDetails and GroupInfoDrawer for desktop side panel
 const UserDetails = lazy(() => import('./UserDetails'));
+const GroupInfoDrawer = lazy(() => import('./groups/GroupInfoDrawer'));
 import ContactsPage from './contacts/ContactsPage';
 import Sidebar from './layout/Sidebar';
 
@@ -63,9 +64,10 @@ const MainLayout = () => {
         location.pathname === '/profile',
         [location.pathname]);
 
-    // State for user-details panel - keeps Chat mounted!
-    const [showUserDetailsPanel, setShowUserDetailsPanel] = useState(false);
-    const [userDetailsTargetId, setUserDetailsTargetId] = useState(null);
+    // State for side panel (user or group details) - keeps Chat mounted!
+    const [sidePanelType, setSidePanelType] = useState(null); // 'user' or 'group'
+    const [sidePanelTargetId, setSidePanelTargetId] = useState(null);
+    const [sidePanelData, setSidePanelData] = useState(null); // Optional extra data (like group name)
 
     const chatListRef = useRef();
 
@@ -374,31 +376,50 @@ const MainLayout = () => {
         )
     }
 
-    // Callback function to show user-details panel - keeps Chat mounted!
+    // Callback functions to show side panel - keeps Chat mounted!
     const handleShowUserDetails = (userId) => {
         if (isDesktop) {
-            setUserDetailsTargetId(userId);
-            setShowUserDetailsPanel(true);
+            setSidePanelType('user');
+            setSidePanelTargetId(userId);
         } else {
             // Mobile: navigate to full page
             navigate(`/user-details/${userId}`);
         }
     };
 
-    const handleCloseUserDetails = () => {
-        setShowUserDetailsPanel(false);
-        setUserDetailsTargetId(null);
+    const handleShowGroupInfo = (groupId, groupData = null) => {
+        if (isDesktop) {
+            setSidePanelType('group');
+            setSidePanelTargetId(groupId);
+            setSidePanelData(groupData);
+        } else {
+            // Mobile: navigate to full page
+            navigate(`/chat/${groupId}/group/info`);
+        }
+    };
+
+    const handleCloseSidePanel = () => {
+        setSidePanelType(null);
+        setSidePanelTargetId(null);
+        setSidePanelData(null);
     };
 
     // Check if user-details route is active (for mobile)
     const isUserDetailsRoute = location.pathname.startsWith('/user-details/');
     const userDetailsUserId = isUserDetailsRoute ? location.pathname.split('/user-details/')[1] : null;
 
-    // Desktop: use state-based panel (Chat stays mounted)
-    // Mobile: use route-based full page
-    const userDetailsPanel = isDesktop && showUserDetailsPanel && userDetailsTargetId ? (
+    // Desktop side panel content
+    const sidePanel = isDesktop && sidePanelType && sidePanelTargetId ? (
         <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
-            <UserDetails userId={userDetailsTargetId} isPanel={true} onClose={handleCloseUserDetails} />
+            {sidePanelType === 'user' ? (
+                <UserDetails userId={sidePanelTargetId} isPanel={true} onClose={handleCloseSidePanel} />
+            ) : (
+                <GroupInfoDrawer
+                    isOpen={true}
+                    onClose={handleCloseSidePanel}
+                    group={sidePanelData || { id: sidePanelTargetId }}
+                />
+            )}
         </Suspense>
     ) : null;
 
@@ -416,7 +437,7 @@ const MainLayout = () => {
     // Always render Outlet - Chat component stays mounted on desktop!
     // On mobile, Outlet renders Chat or UserDetails based on route
     const chatComponent = mobileUserDetails || (
-        <UserDetailsContext.Provider value={handleShowUserDetails}>
+        <UserDetailsContext.Provider value={{ showUserDetails: handleShowUserDetails, showGroupInfo: handleShowGroupInfo }}>
             {isDesktop && (isContactsRoute || isProfileRoute) ? <ChatPlaceholder /> : <Outlet />}
         </UserDetailsContext.Provider>
     );
@@ -435,7 +456,7 @@ const MainLayout = () => {
         <DesktopLayout
             chatListPanel={sidebarPanel}
             chatComponent={chatComponent}
-            userDetailsPanel={userDetailsPanel}
+            userDetailsPanel={sidePanel}
             particleOverlay={<ParticleOverlay />}
         />
     );

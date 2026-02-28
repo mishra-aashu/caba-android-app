@@ -14,7 +14,6 @@ import useAuthStore from './store/authStore';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import '../src/styles/desktop.css';
 import '../src/styles/call-screen.css';
-
 // Lazy load components
 const Login = lazy(() => import('./components/auth/Login'));
 const Signup = lazy(() => import('./components/auth/Signup'));
@@ -26,7 +25,6 @@ const Privacy = lazy(() => import('./components/legal/Privacy'));
 const Profile = lazy(() => import('./components/profile/Profile'));
 const Settings = lazy(() => import('./components/settings'));
 const EmojiSettings = lazy(() => import('./components/settings/EmojiSettings'));
-
 const Reminders = lazy(() => import('./components/reminders'));
 const CreateReminder = lazy(() => import('./components/reminders/CreateReminder'));
 const Calls = lazy(() => import('./components/calls'));
@@ -41,6 +39,7 @@ const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
 const QRPage = lazy(() => import('./components/qr'));
 const Intro = lazy(() => import('./components/Intro'));
 const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
+const GroupChat = lazy(() => import('./components/chat/GroupChat'));
 const GroupInfoPage = lazy(() => import('./components/groups/GroupInfoPage'));
 const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
@@ -52,7 +51,6 @@ import DesktopNavbar from './components/common/DesktopNavbar';
 import Modal from './components/common/Modal';
 import useIsDesktop from './hooks/useIsDesktop';
 // AuthDebug is intentionally not imported or rendered
-
 import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import OfflineIndicator from './components/common/OfflineIndicator';
@@ -67,7 +65,6 @@ import { DialogProvider } from './contexts/DialogContext';
 import GlobalDialog from './components/common/GlobalDialog';
 import './styles/offline-indicator.css';
 import './styles/emoji-styles.css';
-
 import SyncIndicator from './components/common/SyncIndicator';
 
 // Initialize Capacitor Updater
@@ -115,12 +112,12 @@ const AppContent = () => {
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route index element={<ChatPlaceholder />} />
-          <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
-          {/* Group chat route - uses same Chat component but detects group */}
-          <Route path="chat/:chatId/group" element={<Chat key={location.pathname} />} />
-          <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
+          {/* Group chat route - uses dedicated GroupChat component */}
+          <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
           <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
-          <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
+          {/* Direct chat route - uses wildcard :otherUserId */}
+          <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
+          <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
           <Route path="user-details/:id" element={<UserDetails />} />
           <Route path="groups" element={<GroupsPage />} />
           <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />

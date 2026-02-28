@@ -46,6 +46,25 @@ const MessageInput = ({
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const sendSoundRef = useRef(null);
+  const baseUrl = import.meta.env.BASE_URL || '/';
+
+  // Initialize send sound
+  useEffect(() => {
+    sendSoundRef.current = new Audio(`${baseUrl}assets/audio/message_send.mp3`);
+    sendSoundRef.current.load();
+  }, [baseUrl]);
+
+  const playSendSound = useCallback(() => {
+    try {
+      if (sendSoundRef.current) {
+        sendSoundRef.current.currentTime = 0;
+        sendSoundRef.current.play().catch(e => console.warn('Send sound blocked:', e));
+      }
+    } catch (e) {
+      console.error('Error playing send sound:', e);
+    }
+  }, []);
 
   const lastLoadedChatIdRef = useRef(chatId);
 
@@ -122,6 +141,7 @@ const MessageInput = ({
   };
 
   const handleSend = async () => {
+    playSendSound();
     // Prioritize sending voice if available
     if (voiceBlob) {
       if (!navigator.onLine) {

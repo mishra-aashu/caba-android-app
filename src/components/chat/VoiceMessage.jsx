@@ -192,6 +192,35 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             {isSender && <span className={`tick-icon ${status === 'read' ? 'read' : ''}`}>{status === 'read' ? '✓✓' : '✓'}</span>}
           </div>
         </div>
+
+        {/* Reactions Display */}
+        {message?.metadata && Object.keys(message.metadata).length > 0 && (
+          <div className="message-reactions">
+            {Object.entries(
+              Object.values(message.metadata).reduce((acc, emoji) => {
+                acc[emoji] = (acc[emoji] || 0) + 1;
+                return acc;
+              }, {})
+            ).map(([emoji, count]) => {
+              const isMyReaction = message.metadata[currentUserId] === emoji;
+              return (
+                <div
+                  key={emoji}
+                  className={`reaction-badge ${isMyReaction ? 'user-reacted' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.handleReactionToggle) {
+                      window.handleReactionToggle(message.id, emoji);
+                    }
+                  }}
+                >
+                  <EmojiRenderer text={emoji} />
+                  {count > 1 && <span className="reaction-count">{count}</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
