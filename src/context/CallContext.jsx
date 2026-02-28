@@ -39,6 +39,13 @@ const initialState = {
   error: null
 };
 
+// Audio helper
+const createAudio = (src) => {
+  const audio = new Audio(src);
+  audio.loop = true;
+  return audio;
+};
+
 // Reducer
 function callReducer(state, action) {
   switch (action.type) {
@@ -79,6 +86,81 @@ export function CallProvider({ children, currentUser }) {
   const signalChannelRef = useRef(null);
   const durationIntervalRef = useRef(null);
   const callStartTimeRef = useRef(null);
+  const outgoingAudioRef = useRef(null);
+  const incomingAudioRef = useRef(null);
+  const baseUrl = import.meta.env.BASE_URL || '/';
+
+  // Initialize audio objects
+  useEffect(() => {
+    // Loaded once on mount, but incoming src will be updated dynamically
+    outgoingAudioRef.current = createAudio(`${baseUrl}assets/audio/outgoing_ring.mp3`);
+    incomingAudioRef.current = createAudio(`${baseUrl}assets/audio/fm-freemusic-give-me-a-smile(chosic.com).mp3`); // default
+
+    return () => {
+      if (outgoingAudioRef.current) {
+        outgoingAudioRef.current.pause();
+        outgoingAudioRef.current = null;
+      }
+      if (incomingAudioRef.current) {
+        incomingAudioRef.current.pause();
+        incomingAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Handle call state changes for audio playback
+  useEffect(() => {
+    const playAudio = async (audio) => {
+      try {
+        if (audio) {
+          audio.currentTime = 0;
+          await audio.play();
+        }
+      } catch (error) {
+        console.warn('Playback blocked by browser autoplay policy:', error);
+      }
+    };
+
+    const stopAudio = (audio) => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+
+    if (state.callState === 'calling') {
+      playAudio(outgoingAudioRef.current);
+      stopAudio(incomingAudioRef.current);
+    } else if (state.callState === 'ringing') {
+      // Update incoming ringtone from settings before playing
+      const savedRingtone = localStorage.getItem('callRingtone') || 'fm-freemusic-give-me-a-smile(chosic.com).mp3';
+      if (incomingAudioRef.current) {
+        incomingAudioRef.current.src = `${baseUrl}assets/audio/${savedRingtone}`;
+      }
+      playAudio(incomingAudioRef.current);
+      stopAudio(outgoingAudioRef.current);
+    } else {
+      stopAudio(outgoingAudioRef.current);
+      stopAudio(incomingAudioRef.current);
+    }
+
+    return () => {
+      // No cleanup here as we handle it inside the effect logic
+    };
+  }, [state.callState]);
+
+  // Manual triggers for autoplay unlocking
+  const playOutgoingRing = useCallback(() => {
+    if (outgoingAudioRef.current && state.callState === 'calling') {
+      outgoingAudioRef.current.play().catch(() => { });
+    }
+  }, [state.callState]);
+
+  const playIncomingRing = useCallback(() => {
+    if (incomingAudioRef.current && state.callState === 'ringing') {
+      incomingAudioRef.current.play().catch(() => { });
+    }
+  }, [state.callState]);
 
 
   // Start duration timer
@@ -344,7 +426,9 @@ export function CallProvider({ children, currentUser }) {
     toggleScreenShare,
     switchCamera,
     replaceLocalStream,
-    restoreCameraStream
+    restoreCameraStream,
+    playOutgoingRing,
+    playIncomingRing
   };
 
   return (
