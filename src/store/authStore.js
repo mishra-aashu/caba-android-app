@@ -271,6 +271,15 @@ const useAuthStore = create((set, get) => ({
     set({ isServerUnreachable: false }); // Reset error state on new attempt
     try {
       if (Capacitor.isNativePlatform()) {
+        try {
+          await GoogleAuth.initialize({
+            clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+            scopes: ['profile', 'email'],
+            grantOfflineAccess: true,
+          });
+        } catch (initError) {
+          console.warn('GoogleAuth already initialized or failed:', initError);
+        }
         const googleUser = await GoogleAuth.signIn();
         const { error } = await supabase.auth.signInWithIdToken({
           provider: 'google',

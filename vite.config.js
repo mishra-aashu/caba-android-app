@@ -10,6 +10,11 @@ export default defineConfig(({ mode }) => {
   return {
     // GitHub Pages: '/caba-android-app/', Android/Capacitor: '' (Root)
     base: isGitHubPages ? '/caba-android-app/' : '',
+    server: {
+      watch: {
+        ignored: ['**/android/**', '**/dist/**', '**/node_modules/**']
+      }
+    },
 
     plugins: [
       react(),

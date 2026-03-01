@@ -12,22 +12,32 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
 *.sw?
 
-# Database setup files
-.env
-.env.example
-\n# Google services JSON
+# Android / Mobile
 android/app/google-services.json
+android/local.properties
+*.jks
+*.keystore
+android/app/build/
+android/.gradle/
+android/capacitor-cordova-android-plugins
+
+# IDEs
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Database setup files
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Capgo keys (private)
 .capgo_key_v2
