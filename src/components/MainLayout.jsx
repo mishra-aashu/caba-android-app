@@ -19,7 +19,7 @@ import { formatTime } from '../utils/timeUtils';
 import '../styles/theme.css';
 
 // Create context for user-details panel
-export const UserDetailsContext = createContext(null);
+import { UserDetailsContext } from '../contexts/UserDetailsContext';
 
 // Lazy load UserDetails and GroupInfoDrawer for desktop side panel
 const UserDetails = lazy(() => import('./UserDetails'));

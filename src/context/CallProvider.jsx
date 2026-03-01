@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
+import React, { useReducer, useCallback, useEffect, useRef } from 'react';
 import { callService } from '../services/callService';
 import { webRTCService } from '../services/webrtcService';
-
-const CallContext = createContext(null);
+import { CallContext } from './CallContext';
 
 // Action Types
 const ACTIONS = {
@@ -437,15 +436,3 @@ export function CallProvider({ children, currentUser }) {
     </CallContext.Provider>
   );
 }
-
-
-// Custom Hook
-export function useCall() {
-  const context = useContext(CallContext);
-  if (!context) {
-    throw new Error('useCall must be used within a CallProvider');
-  }
-  return context;
-}
-
-export default CallContext;

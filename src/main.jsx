@@ -5,12 +5,13 @@ import './styles/theme-tokens.css';
 import './styles/theme-integration.css';
 import './styles/app.css';
 import App from './App.jsx'
-import { ThemeProvider } from './contexts/ThemeContext.jsx'
-import { ChatThemeProvider } from './contexts/ChatThemeContext.jsx'
-import { EmojiStyleProvider } from './contexts/EmojiStyleContext.jsx'
-import { SupabaseProvider } from './contexts/SupabaseContext.jsx'
-import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
-import { CallProvider } from './context/CallContext.jsx' // Import CallProvider
+import { ThemeProvider } from './contexts/ThemeProvider.jsx'
+import { ChatThemeProvider } from './contexts/ChatThemeProvider.jsx'
+import { EmojiStyleProvider } from './contexts/EmojiStyleProvider.jsx'
+import { SupabaseProvider } from './contexts/SupabaseProvider.jsx'
+import { AuthProvider } from './contexts/AuthProvider.jsx'
+import { useAuth } from './contexts/AuthContext.js'
+import { CallProvider } from './context/CallProvider.jsx'
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';

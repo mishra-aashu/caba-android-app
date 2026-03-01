@@ -2,9 +2,9 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth'; // Use the main auth hook
 // import { CallProvider } from './context/CallContext';
-import { ChatThemeProvider } from './contexts/ChatThemeContext';
-import { DataProvider } from './contexts/DataContext';
-import { GroupCallProvider } from './context/GroupCallContext';
+import { ChatThemeProvider } from './contexts/ChatThemeProvider';
+import { DataProvider } from './contexts/DataProvider';
+import { GroupCallProvider } from './context/GroupCallProvider';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
 import { Toaster } from 'react-hot-toast';
@@ -61,7 +61,7 @@ const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGalle
 import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
 import { requestPersistentStorage } from './db/db';
-import { DialogProvider } from './contexts/DialogContext';
+import { DialogProvider } from './contexts/DialogProvider';
 import GlobalDialog from './components/common/GlobalDialog';
 import './styles/offline-indicator.css';
 import './styles/emoji-styles.css';

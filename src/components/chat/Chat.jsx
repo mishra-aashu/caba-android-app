@@ -40,7 +40,7 @@ import groupCallService from '../../services/groupCallService';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import useUserStore from '../../store/userStore';
-import { UserDetailsContext } from '../MainLayout';
+import { UserDetailsContext } from '../../contexts/UserDetailsContext';
 import { useDialog } from '../../contexts/DialogContext';
 import WallpaperPicker from './WallpaperPicker';
 import useIsDesktop from '../../hooks/useIsDesktop';

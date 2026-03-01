@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-
-const AuthContext = createContext({});
+import { AuthContext } from './AuthContext';
 
 export const AuthProvider = ({ children }) => {
   const { user, loading, isAuthenticated, initializeAuth, signInWithGoogle, signOut } = useAuthStore();
@@ -36,6 +35,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);
-export default AuthContext;

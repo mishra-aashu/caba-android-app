@@ -1,9 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSupabase } from './SupabaseContext';
 import useUserStore from '../store/userStore';
-
-// Create the Emoji Style Context
-const EmojiStyleContext = createContext();
+import { EmojiStyleContext } from './EmojiStyleContext';
 
 // Emoji Style Provider Component
 export const EmojiStyleProvider = ({ children }) => {
@@ -116,14 +114,3 @@ export const EmojiStyleProvider = ({ children }) => {
     </EmojiStyleContext.Provider>
   );
 };
-
-// Custom hook to use the Emoji Style Context
-export const useEmojiStyle = () => {
-  const context = useContext(EmojiStyleContext);
-  if (!context) {
-    throw new Error('useEmojiStyle must be used within an EmojiStyleProvider');
-  }
-  return context;
-};
-
-export default EmojiStyleContext;

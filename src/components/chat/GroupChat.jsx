@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
-import { UserDetailsContext } from '../MainLayout';
+import { UserDetailsContext } from '../../contexts/UserDetailsContext';
 import { useCall } from '../../context/CallContext';
 import { useGroupCall } from '../../context/GroupCallContext';
 import { useAuth } from '../../hooks/useAuth';

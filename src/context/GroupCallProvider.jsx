@@ -1,10 +1,9 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
+import React, { useReducer, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../config/supabase';
 import { realtimeManager } from '../utils/realtimeManager';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-hot-toast';
-
-const GroupCallContext = createContext(null);
+import { GroupCallContext } from './GroupCallContext';
 
 // Action Types
 const ACTIONS = {
@@ -726,14 +725,3 @@ export function GroupCallProvider({ children, currentUser }) {
     </GroupCallContext.Provider>
   );
 }
-
-// Custom Hook
-export function useGroupCall() {
-  const context = useContext(GroupCallContext);
-  if (!context) {
-    throw new Error('useGroupCall must be used within a GroupCallProvider');
-  }
-  return context;
-}
-
-export default GroupCallContext;

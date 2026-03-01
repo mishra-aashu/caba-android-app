@@ -1,12 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSupabase } from './SupabaseContext';
 import { useAuth } from '../hooks/useAuth';
 import { useChatListRealtime } from '../hooks/useChatListRealtime';
 import { useContacts } from '../hooks/useCommonQueries';
-
-const DataContext = createContext();
-
-export const useData = () => useContext(DataContext);
+import { DataContext } from './DataContext';
 
 export const DataProvider = ({ children }) => {
   const { user, loading: authLoading } = useAuth();

@@ -1,10 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSupabase } from './SupabaseContext';
 import { useUserTheme } from '../hooks/useThemesData';
 import { useQueryClient } from '@tanstack/react-query';
-// Create the Theme Context
-const ThemeContext = createContext();
+import { ThemeContext } from './ThemeContext';
 
 // Theme Provider Component
 export const ThemeProvider = ({ children }) => {
@@ -85,14 +84,3 @@ export const ThemeProvider = ({ children }) => {
     </ThemeContext.Provider>
   );
 };
-
-// Custom hook to use the Theme Context
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-};
-
-export default ThemeContext;
