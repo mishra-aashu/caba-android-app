@@ -24,9 +24,9 @@
   width: fit-content;
   overflow: hidden;
 
-  /* Glassmorphism Design */
-  backdrop-filter: blur(8px) saturate(160%);
-  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  /* Removed backdrop-filter to prevent rendering flicker on mobile */
+  /* backdrop-filter: blur(8px) saturate(160%); */
+  /* -webkit-backdrop-filter: blur(8px) saturate(160%); */
   background-color: var(--received-message-bg, rgba(255, 255, 255, 0.85));
   border: 1px solid rgba(255, 255, 255, 0.1);
   /* Updated border */
@@ -43,8 +43,9 @@
   box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1),
     0 2px 6px -2px rgba(0, 0, 0, 0.05);
 
-  animation: media-bubble-appear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  will-change: transform, opacity;
+  /* Removed media-bubble-appear animation for instant look */
+  /* animation: media-bubble-appear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; */
+  transition: none !important;
 }
 
 @keyframes media-bubble-appear {
@@ -86,7 +87,7 @@
   width: 100%;
   display: flex;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  /* transition: opacity 0.2s ease;  - Removed for instant look */
 }
 
 .media-content:hover {

@@ -10,7 +10,24 @@ import { dpOptions } from '../../utils/dpOptions';
 import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
 import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
 import { db, addToSyncQueue } from '../../db/db';
-import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Reply, Gamepad2, X as CloseIcon } from 'lucide-react';
+import {
+    ArrowLeft,
+    MoreVertical,
+    ArrowDown,
+    Paperclip,
+    Mic,
+    Smile,
+    ArrowRight,
+    Search,
+    UserPlus,
+    UserMinus,
+    Trash2,
+    CheckCircle,
+    Info,
+    Ban,
+    Gamepad2,
+    Reply
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
@@ -31,7 +48,7 @@ import groupCallService from '../../services/groupCallService';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import useIsDesktop from '../../hooks/useIsDesktop';
-import useChatStore from '../../store/useChatStore';
+import useChatStore, { selectRoomMessages, selectRoomScrollPosition } from '../../store/useChatStore';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import ImageViewer from './ImageViewer';
 import MediaViewer from '../media/MediaViewer';
@@ -59,7 +76,9 @@ const GroupChat = () => {
     const updateStoreMessage = useChatStore(state => state.updateMessage);
     const removeStoreMessage = useChatStore(state => state.removeMessage);
     const replaceTempMessage = useChatStore(state => state.replaceTempMessage);
-    const messages = useChatStore(state => state.messages);
+    const saveScrollPosition = useChatStore(state => state.saveScrollPosition);
+    const messages = useChatStore(useCallback(selectRoomMessages(validChatId), [validChatId]));
+    const initialScrollPosition = useChatStore(selectRoomScrollPosition(validChatId));
 
     // Group Details
     const { data: groupDetails, isLoading: isGroupLoading } = useGroupDetails(validChatId);
@@ -135,22 +154,35 @@ const GroupChat = () => {
 
     // Message Sync
     useEffect(() => {
-        if (infiniteData?.pages) {
+        if (infiniteData?.pages && validChatId) {
             const allMsgs = infiniteData.pages.flatMap(page => page.data).reverse();
-            setStoreMessages(allMsgs);
-            if (allMsgs.length > 0 && validChatId) {
+            setStoreMessages(validChatId, allMsgs);
+            if (allMsgs.length > 0) {
                 saveMessagesToDevice(validChatId, allMsgs);
             }
         }
     }, [infiniteData, setStoreMessages, validChatId]);
 
+    // Debounced scroll position saver
+    const debouncedSaveScroll = useCallback(
+        debounce((id, index) => {
+            saveScrollPosition(id, index);
+        }, 500),
+        [saveScrollPosition]
+    );
+
     // Initial Load
     useEffect(() => {
         if (chatId) {
             setUnreadCount(0);
-            useChatStore.getState().clearMessages();
+            // NO LONGER CLEARING STORE.
             loadMessagesFromDevice(chatId).then(localMessages => {
-                if (localMessages?.length > 0) setStoreMessages(localMessages);
+                if (localMessages?.length > 0) {
+                    const currentRoomMsgs = useChatStore.getState().roomMessages[chatId];
+                    if (!currentRoomMsgs || currentRoomMsgs.length === 0) {
+                        setStoreMessages(chatId, localMessages);
+                    }
+                }
             });
         }
     }, [chatId, setStoreMessages]);
@@ -167,7 +199,7 @@ const GroupChat = () => {
 
     const handleNewMessage = useCallback((newMessage) => {
         const isOwnMessage = (newMessage.senderId || newMessage.sender_id) === currentUser?.id;
-        addStoreMessage(newMessage);
+        addStoreMessage(chatId, newMessage);
 
         if (!isScrolledToBottom) {
             setUnreadCount(prev => prev + 1);
@@ -178,8 +210,8 @@ const GroupChat = () => {
 
     useRealtimeMessages(validChatId, {
         onNewMessage: handleNewMessage,
-        onUpdateMessage: (msg) => updateStoreMessage(msg.id, msg),
-        onDeleteMessage: (id) => removeStoreMessage(id)
+        onUpdateMessage: (msg) => updateStoreMessage(chatId, msg.id, msg),
+        onDeleteMessage: (id) => removeStoreMessage(chatId, id)
     }, currentUser?.id);
 
     const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
@@ -220,12 +252,12 @@ const GroupChat = () => {
             created_at: new Date().toISOString(),
             status: navigator.onLine ? 'sending' : 'pending'
         };
-        addStoreMessage({ ...dbToFrontend(dbData), sender: currentUser, tempId });
+        addStoreMessage(chatId, { ...dbToFrontend(dbData), sender: currentUser, tempId });
         try {
             if (navigator.onLine) {
                 const { data, error } = await supabase.from('messages').insert(dbData).select().single();
                 if (error) throw error;
-                replaceTempMessage(tempId, { ...dbToFrontend(data), status: 'sent', sender: currentUser });
+                replaceTempMessage(chatId, tempId, { ...dbToFrontend(data), status: 'sent', sender: currentUser });
             } else {
                 await addToSyncQueue('send_message', { ...dbData, tempId });
             }
@@ -250,7 +282,7 @@ const GroupChat = () => {
         };
 
         const previewUrl = isFile ? URL.createObjectURL(fileOrPath) : fileOrPath;
-        addStoreMessage({ ...dbToFrontend(dbData), sender: currentUser, tempId, media_url: previewUrl });
+        addStoreMessage(chatId, { ...dbToFrontend(dbData), sender: currentUser, tempId, media_url: previewUrl });
 
         try {
             await addToSyncQueue('send_message', { ...dbData, tempId, file: isFile ? fileOrPath : null });
@@ -351,7 +383,7 @@ const GroupChat = () => {
         const ids = Array.from(selectedMessages);
         const prevMessages = [...messages];
 
-        ids.forEach(id => removeStoreMessage(id));
+        ids.forEach(id => removeStoreMessage(chatId, id));
         exitSelectionMode();
 
         try {
@@ -361,7 +393,7 @@ const GroupChat = () => {
         } catch (error) {
             console.error('Error deleting messages:', error);
             toast.error('Failed to delete messages');
-            setStoreMessages(prevMessages);
+            setStoreMessages(validChatId, prevMessages);
             queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
         }
     };
@@ -441,18 +473,14 @@ const GroupChat = () => {
         }
     };
 
-    const pageVariants = {
-        initial: { opacity: 0, x: 20 },
-        animate: { opacity: 1, x: 0, transition: { duration: 0.3 } }
-    };
+    // Removed page transitions for instant look
 
     if (authLoading) return <div className="loading"><div className="loading-spinner"></div></div>;
     if (!isAuthenticated) { navigate('/login'); return null; }
 
     return (
-        <motion.div
+        <div
             className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
-            layout initial="initial" animate="animate" variants={pageVariants}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100%' }}
         >
             <div className="chat-main-area">
@@ -539,9 +567,9 @@ const GroupChat = () => {
                         onReply={setReplyingTo}
                         onForward={handleForwardMessage}
                         onDelete={(messageId) => {
-                            updateStoreMessage(messageId, { isDeleting: true });
+                            updateStoreMessage(chatId, messageId, { isDeleting: true });
                             setTimeout(() => {
-                                removeStoreMessage(messageId);
+                                removeStoreMessage(chatId, messageId);
                             }, 500);
                         }}
                         selectedMessages={selectedMessages}
@@ -556,6 +584,8 @@ const GroupChat = () => {
                         isScrolledToBottom={isScrolledToBottom}
                         typingUsers={typingUsers}
                         onSenderClick={(userId) => navigate(`/chat/${userId}`)}
+                        initialTopMostItemIndex={initialScrollPosition}
+                        onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
                     />
                     {showScrollButton && (
                         <button className="scroll-bottom-btn" onClick={() => messagesContainerRef.current?.scrollToBottom('smooth')}>
@@ -683,7 +713,7 @@ const GroupChat = () => {
                     </div>
                 </div>
             </Modal>
-        </motion.div>
+        </div>
     );
 };
 

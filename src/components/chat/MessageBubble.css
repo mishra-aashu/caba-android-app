@@ -39,13 +39,12 @@
   /* Isolate rendering */
   /* Removed will-change to prevent blank screen during scrolling */
 
-  /* Removed transitions for uniform scrolling */
+  /* Removed backdrop-filter to prevent rendering flicker on mobile */
+  /* backdrop-filter: blur(8px) saturate(160%); */
+  /* -webkit-backdrop-filter: blur(8px) saturate(160%); */
 
-  /* Optimized Glassmorphism - lower blur for performance */
-  backdrop-filter: blur(8px) saturate(160%);
-  -webkit-backdrop-filter: blur(8px) saturate(160%);
-
-  /* Removed bubble appear animation for uniform scrolling */
+  /* Ensure no transitions for instant appearance */
+  transition: none !important;
 }
 
 /* Removed bubble-appear animation */

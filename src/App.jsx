@@ -37,7 +37,7 @@ const SupportChat = lazy(() => import('./components/SupportChat'));
 const Admin = lazy(() => import('./components/Admin'));
 const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
 const QRPage = lazy(() => import('./components/qr'));
-const Intro = lazy(() => import('./components/Intro'));
+import Intro from './components/Intro';
 const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
 const GroupChat = lazy(() => import('./components/chat/GroupChat'));
 const GroupInfoPage = lazy(() => import('./components/groups/GroupInfoPage'));
@@ -76,6 +76,7 @@ const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
   const isDesktop = useIsDesktop();
+  const [splashFinished, setSplashFinished] = useState(false);
   useOnlineStatus(); // Initialize online status tracking
 
   // Handle deep linking for OAuth callbacks
@@ -88,11 +89,11 @@ const AppContent = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="loading">
-        <div className="loading-spinner"></div>
-      </div>
-    );
+    return null; // Keep it silent during initial auth check
+  }
+
+  if (isAuthenticated && !splashFinished) {
+    return <Intro onComplete={() => setSplashFinished(true)} />;
   }
 
   return (
@@ -103,7 +104,6 @@ const AppContent = () => {
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-        <Route path="/intro" element={<PublicRoute><Intro /></PublicRoute>} />
         <Route path="/shared-profile/:userId" element={<SharedProfile />} />
         <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
         <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
@@ -248,11 +248,7 @@ const App = () => {
   useNetworkSync();
 
   return (
-    <Suspense fallback={
-      <div className="loading">
-        <div className="loading-spinner"></div>
-      </div>
-    }>
+    <Suspense fallback={<div className="loading" />}>
       {/* AuthProvider is provided in main.jsx */}
       {/* AuthProvider is provided in main.jsx */}
       {/* SupabaseProvider is provided in main.jsx */}

@@ -2,7 +2,7 @@ import React, { useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import MessageItem from './MessageItem';
 import TypingIndicator from './TypingIndicator';
-import useChatStore, { selectMessages } from '../../store/useChatStore';
+import useChatStore, { selectRoomMessages } from '../../store/useChatStore';
 
 /**
  * VirtualizedMessageList - A high-performance chat message list using react-virtuoso
@@ -34,11 +34,11 @@ const VirtualizedMessageList = React.forwardRef(({
   followOutput,
   typingUsers = {},
   initialTopMostItemIndex,
+  onRangeChanged,
+  chatId,
 }, ref) => {
-  // 🔥 OPTIMIZED: Subscribe ONLY to messages array from Zustand store
-  // This component ONLY re-renders when messages change
-  // The ChatScreen parent does NOT re-render because it won't subscribe to messages
-  const messages = useChatStore(selectMessages);
+  // 🔥 OPTIMIZED: Subscribe ONLY to messages for this specific room
+  const messages = useChatStore(useCallback(selectRoomMessages(chatId), [chatId]));
 
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
@@ -190,8 +190,9 @@ const VirtualizedMessageList = React.forwardRef(({
     return renderMessage(messageIndex, item.message);
   }, [itemsWithHeaders, messages, renderMessage]);
 
-  // Loading state
-  if (isLoading) {
+  // Loading state - Only show skeleton if we have ZERO messages in cache
+  // This prevents the "blanking" screen when switching back to a cached chat
+  if (isLoading && (!messages || messages.length === 0)) {
     return (
       <div className="messages-wrapper virtuoso-loading">
         <div className="skeleton-messages">
@@ -206,8 +207,8 @@ const VirtualizedMessageList = React.forwardRef(({
     );
   }
 
-  // Empty state
-  if (!messages || messages.length === 0) {
+  // Empty state - Only show if successfully loaded and still empty
+  if (!isLoading && (!messages || messages.length === 0)) {
     return (
       <div className="messages-wrapper virtuoso-empty">
         <div className="no-messages-placeholder">
@@ -246,6 +247,9 @@ const VirtualizedMessageList = React.forwardRef(({
         }}
         atTopStateChange={(isAtTop) => {
           if (onScroll) onScroll({ isAtTop });
+        }}
+        rangeChanged={(range) => {
+          if (onRangeChanged) onRangeChanged(range.startIndex);
         }}
         itemContent={renderItem}
         computeItemKey={(index, item) => item?.key || `item-${index}`}

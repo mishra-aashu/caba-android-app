@@ -469,13 +469,9 @@ const MessageItem = ({
             </button>
           )}
 
-          <motion.div
+          <div
             className="message-bubble-wrapper"
             ref={dragConstraintsRef}
-            drag="x"
-            dragConstraints={{ left: 0, right: 150 }}
-            dragElastic={0.3}
-            onDragEnd={handleDragEnd}
             style={{ position: 'relative' }}
           >
             <div className="swipe-reply-icon" style={{ position: 'absolute', left: -45, top: '50%', transform: 'translateY(-50%)', opacity: 0.7 }}>
@@ -509,7 +505,7 @@ const MessageItem = ({
             </AnimatePresence>
 
             {renderMessageContent()}
-          </motion.div>
+          </div>
         </div>
       </div>
 

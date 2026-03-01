@@ -15,75 +15,125 @@ import { create } from 'zustand';
 
 const useChatStore = create((set, get) => ({
   // ─── STATE ─────────────────────────────────────────────────────────────
-  messages: [],
+  roomMessages: {}, // Format: { [chatId]: messages[] }
+  roomScrollPositions: {}, // Format: { [chatId]: index }
   isSyncing: false,
 
   // ─── ACTIONS ──────────────────────────────────────────────────────────
 
   /**
-   * Add a new message to the messages array
+   * Add a new message to a specific chat room
+   * @param {string} chatId - The ID of the chat room
    * @param {Object} newMessage - The message object to add
    */
-  addMessage: (newMessage) => {
+  addMessage: (chatId, newMessage) => {
+    if (!chatId) return;
     set((state) => {
+      const currentMessages = state.roomMessages[chatId] || [];
       // Prevent duplicates
-      const exists = state.messages.some(msg => msg.id === newMessage.id);
+      const exists = currentMessages.some(msg => msg.id === newMessage.id);
       if (exists) return state;
 
       return {
-        messages: [...state.messages, newMessage]
+        roomMessages: {
+          ...state.roomMessages,
+          [chatId]: [...currentMessages, newMessage]
+        }
       };
     });
   },
 
   /**
-   * Add multiple messages at once (for initial load)
+   * Set multiple messages for a specific chat room
+   * @param {string} chatId - The ID of the chat room
    * @param {Array} newMessages - Array of message objects
    */
-  setMessages: (newMessages) => {
-    set({ messages: newMessages });
+  setMessages: (chatId, newMessages) => {
+    if (!chatId) return;
+    set((state) => ({
+      roomMessages: {
+        ...state.roomMessages,
+        [chatId]: newMessages
+      }
+    }));
   },
 
   /**
-   * Update a specific message
+   * Update a specific message in a chat room
+   * @param {string} chatId - The ID of the chat room
    * @param {string} messageId - The ID of the message to update
    * @param {Object} updates - The updates to apply
    */
-  updateMessage: (messageId, updates) => {
+  updateMessage: (chatId, messageId, updates) => {
+    if (!chatId) return;
     set((state) => ({
-      messages: state.messages.map(msg =>
-        msg.id === messageId ? { ...msg, ...updates } : msg
-      )
+      roomMessages: {
+        ...state.roomMessages,
+        [chatId]: (state.roomMessages[chatId] || []).map(msg =>
+          msg.id === messageId ? { ...msg, ...updates } : msg
+        )
+      }
     }));
   },
 
   /**
-   * Remove a message by ID
+   * Remove a message by ID from a chat room
+   * @param {string} chatId - The ID of the chat room
    * @param {string} messageId - The ID of the message to remove
    */
-  removeMessage: (messageId) => {
+  removeMessage: (chatId, messageId) => {
+    if (!chatId) return;
     set((state) => ({
-      messages: state.messages.filter(msg => msg.id !== messageId)
+      roomMessages: {
+        ...state.roomMessages,
+        [chatId]: (state.roomMessages[chatId] || []).filter(msg => msg.id !== messageId)
+      }
     }));
   },
 
   /**
-   * Clear all messages (when switching chats)
+   * Clear all messages for a specific room
+   * @param {string} chatId - The ID of the chat room
    */
-  clearMessages: () => {
-    set({ messages: [] });
+  clearRoomMessages: (chatId) => {
+    if (!chatId) return;
+    set((state) => {
+      const newRoomMessages = { ...state.roomMessages };
+      delete newRoomMessages[chatId];
+      return { roomMessages: newRoomMessages };
+    });
   },
 
   /**
-   * Replace a temp message with the real one
+   * Replace a temp message with the real one in a specific room
+   * @param {string} chatId - The ID of the chat room
    * @param {string|number} tempId - The temp ID of the message
    * @param {Object} realMessage - The real message from the server
    */
-  replaceTempMessage: (tempId, realMessage) => {
+  replaceTempMessage: (chatId, tempId, realMessage) => {
+    if (!chatId) return;
     set((state) => ({
-      messages: state.messages.map(msg =>
-        msg.tempId === tempId ? realMessage : msg
-      )
+      roomMessages: {
+        ...state.roomMessages,
+        [chatId]: (state.roomMessages[chatId] || []).map(msg =>
+          msg.tempId === tempId ? realMessage : msg
+        )
+      }
+    }));
+  },
+
+  /**
+   * Save the scroll position for a specific chat room
+   * @param {string} chatId 
+   * @param {number} index 
+   */
+  saveScrollPosition: (chatId, index) => {
+    if (!chatId) return;
+    set((state) => ({
+      roomScrollPositions: {
+        ...state.roomScrollPositions,
+        [chatId]: index
+      }
     }));
   },
 
@@ -93,11 +143,12 @@ const useChatStore = create((set, get) => ({
 // ─── SELECTORS ──────────────────────────────────────────────────────────
 // These selectors are designed for PERFECT granular re-render control
 
+const EMPTY_ARRAY = [];
+
 /**
- * Select only the messages array
- * Use this in VirtualizedMessageList to only re-render when messages change
+ * Select the messages array for a specific chatId
  */
-export const selectMessages = (state) => state.messages;
+export const selectRoomMessages = (chatId) => (state) => state.roomMessages[chatId] || EMPTY_ARRAY;
 
 /**
  * Select only the addMessage function
@@ -116,6 +167,11 @@ export const selectSetMessages = (state) => state.setMessages;
  * Select the entire store (for debugging)
  */
 export const selectAll = (state) => state;
+
+/**
+ * Select the scroll position for a specific chatId
+ */
+export const selectRoomScrollPosition = (chatId) => (state) => state.roomScrollPositions[chatId];
 
 /**
  * Select the sync status

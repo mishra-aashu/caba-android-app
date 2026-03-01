@@ -11,7 +11,6 @@ import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
 import { db, addToSyncQueue } from '../../db/db';
 import { validateEntity, Message } from '../../types/database';
 import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2, Play } from 'lucide-react';
-import { motion } from 'framer-motion';
 import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
 import VirtualizedMessageList from './VirtualizedMessageList';
@@ -44,7 +43,7 @@ import { UserDetailsContext } from '../../contexts/UserDetailsContext';
 import { useDialog } from '../../contexts/DialogContext';
 import WallpaperPicker from './WallpaperPicker';
 import useIsDesktop from '../../hooks/useIsDesktop';
-import useChatStore, { selectMessages, selectSetMessages } from '../../store/useChatStore';
+import useChatStore, { selectRoomMessages, selectRoomScrollPosition } from '../../store/useChatStore';
 import '../../styles/chat.css';
 import { getPublicMediaUrl } from '../../services/mediaService';
 
@@ -93,7 +92,9 @@ const Chat = () => {
   const updateStoreMessage = useChatStore(state => state.updateMessage);
   const removeStoreMessage = useChatStore(state => state.removeMessage);
   const replaceTempMessage = useChatStore(state => state.replaceTempMessage);
-  const messages = useChatStore(state => state.messages);
+  const saveScrollPosition = useChatStore(state => state.saveScrollPosition);
+  const messages = useChatStore(useCallback(selectRoomMessages(validChatId), [validChatId]));
+  const initialScrollPosition = useChatStore(selectRoomScrollPosition(validChatId));
 
   const [showGroupCallScreen, setShowGroupCallScreen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -194,40 +195,19 @@ const Chat = () => {
     }
   }, [groupDetails, currentUser?.id]);
 
-  useEffect(() => {
-    if (isGroupChat && chatId) {
-      setOtherUser(prev => {
-        // If we already have valid data for this group, keep it
-        if (prev?.id === chatId && prev?.is_group && prev?.name) {
-          return prev;
-        }
-        // Otherwise set placeholder to prevent "Loading..." state
-        return {
-          id: chatId,
-          name: 'Group Chat',
-          avatar: null,
-          is_group: true,
-          isGroup: true,
-          member_count: 0
-        };
-      });
-    }
-  }, [chatId, isGroupChat]);
-
-
   // ─── PAGINATION SYNC ──────────────────────────────────────────────────────
   // Sync infinite query data to Zustand store
   useEffect(() => {
-    if (infiniteData?.pages) {
+    if (infiniteData?.pages && validChatId) {
       // Flatten pages (newest first from hook) and reverse for UI (oldest first)
       const allMsgs = infiniteData.pages.flatMap(page => page.data).reverse();
 
       // Filter out any messages that are already in the store and NOT temp
       // This prevents duplicates during background refetches
-      setStoreMessages(allMsgs);
+      setStoreMessages(validChatId, allMsgs);
 
       // Persist to local storage in background
-      if (allMsgs.length > 0 && validChatId) {
+      if (allMsgs.length > 0) {
         saveMessagesToDevice(validChatId, allMsgs);
       }
     }
@@ -235,20 +215,23 @@ const Chat = () => {
 
   // When switching chats, pivot the state immediately.
   useEffect(() => {
-    if (chatId && chatId !== 'new') {
+    if (validChatId) {
       setUnreadCount(0);
 
-      // Clear store to prevent showing old chat's messages momentarily
-      useChatStore.getState().clearMessages();
+      // NO LONGER CLEARING STORE. We keep data in memory for instant switching.
 
       // Fallback: Check mobile filesystem for permanent backup/instant load
-      loadMessagesFromDevice(chatId).then(localMessages => {
+      loadMessagesFromDevice(validChatId).then(localMessages => {
         if (localMessages && localMessages.length > 0) {
-          setStoreMessages(localMessages);
+          // Only load from device if we don't already have messages in the store
+          const currentRoomMsgs = useChatStore.getState().roomMessages[validChatId];
+          if (!currentRoomMsgs || currentRoomMsgs.length === 0) {
+            setStoreMessages(validChatId, localMessages);
+          }
         }
       });
     }
-  }, [chatId, setStoreMessages]);
+  }, [validChatId, setStoreMessages]);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -282,6 +265,14 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
+  // Debounced scroll position saver
+  const debouncedSaveScroll = useCallback(
+    debounce((id, index) => {
+      saveScrollPosition(id, index);
+    }, 500),
+    [saveScrollPosition]
+  );
+
   const markMessagesAsRead = useCallback(async () => {
     try {
       if (!currentUser || !chatId || chatId === 'new') return;
@@ -310,12 +301,13 @@ const Chat = () => {
     // Check if we should replace a temp message or add as new
     if (isOwnMessage) {
       // Find matching temp message by content and recentness
-      const matchingMsg = messages.find(m =>
+      const currentRoomMsgs = useChatStore.getState().roomMessages[validChatId] || [];
+      const matchingMsg = currentRoomMsgs.find(m =>
         m.tempId && m.content === newMessage.content && (Date.now() - m.tempId < 30000)
       );
       if (matchingMsg) {
-        replaceTempMessage(matchingMsg.tempId, newMessage);
-        // Note: Replacing temp message in React Query cache is complex, 
+        replaceTempMessage(validChatId, matchingMsg.tempId, newMessage);
+        // Note: Replacing temp message in React Query cache is complex,
         // usually handled by the mutation success.
         return;
       }
@@ -345,7 +337,7 @@ const Chat = () => {
     });
 
     // Add as new message (Zustand addMessage handles duplicates)
-    addStoreMessage(newMessage);
+    addStoreMessage(validChatId, newMessage);
 
     // Unread logic
     if (!isScrolledToBottom) {
@@ -357,17 +349,17 @@ const Chat = () => {
 
   const handleDeleteMessage = useCallback((deletedId) => {
     // Mark as deleting first to trigger CSS animation
-    updateStoreMessage(deletedId, { isDeleting: true });
+    updateStoreMessage(validChatId, deletedId, { isDeleting: true });
 
     // Remove from state after animation finishes
     setTimeout(() => {
-      removeStoreMessage(deletedId);
+      removeStoreMessage(validChatId, deletedId);
     }, 450);
-  }, []);
+  }, [validChatId, updateStoreMessage, removeStoreMessage]);
 
   const handleStatusUpdate = useCallback((updatedMessage) => {
-    updateStoreMessage(updatedMessage.id, updatedMessage);
-  }, []);
+    updateStoreMessage(validChatId, updatedMessage.id, updatedMessage);
+  }, [validChatId, updateStoreMessage]);
 
   useRealtimeMessages(validChatId, {
     onNewMessage: handleNewMessage,
@@ -664,7 +656,7 @@ const Chat = () => {
       tempId: tempId
     };
 
-    addStoreMessage(optimisticMsg);
+    addStoreMessage(validChatId, optimisticMsg);
     setReplyingTo(null);
 
     try {
@@ -688,7 +680,7 @@ const Chat = () => {
 
         // Replace temporary message in state and Dexie
         const frontendData = dbToFrontend(data);
-        replaceTempMessage(tempId, { ...frontendData, status: 'sent', sender: currentUser });
+        replaceTempMessage(validChatId, tempId, { ...frontendData, status: 'sent', sender: currentUser });
 
         // Update Dexie with real record and remove temp one
         await db.transaction('rw', db.messages, async () => {
@@ -750,7 +742,7 @@ const Chat = () => {
       media_url: objectUrl || (mediaPath ? (mediaPath.startsWith('http') ? mediaPath : getPublicMediaUrl(mediaPath)) : null)
     };
 
-    addStoreMessage(optimisticMsg);
+    addStoreMessage(validChatId, optimisticMsg);
     setReplyingTo(null);
 
     try {
@@ -773,7 +765,7 @@ const Chat = () => {
 
         const frontendMsg = dbToFrontend(data);
         const realMsgWithSender = { ...dbToFrontend(data), sender: currentUser };
-        replaceTempMessage(tempId, realMsgWithSender);
+        replaceTempMessage(validChatId, tempId, realMsgWithSender);
 
         // Update Dexie
         await db.transaction('rw', db.messages, async () => {
@@ -1276,21 +1268,7 @@ const Chat = () => {
     setShowForwardModal(true);
   };
 
-  // Animation variants for framer motion
-  const pageVariants = {
-    initial: {
-      opacity: 0,
-      x: 20,
-    },
-    animate: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.3,
-        ease: 'easeOut',
-      },
-    },
-  };
+  // Removed page transitions for instant look
 
   // Memoize the header and other static parts if needed, but defining a component inside a component is a bug
 
@@ -1440,32 +1418,6 @@ const Chat = () => {
           </div>
         </header>
 
-        {/* Ongoing Call Banner */}
-        {activeCallData && (
-          <div className="active-call-banner">
-            <div className="banner-content">
-              <div className="call-icon">
-                {activeCallData.call_type === 'video' ? <Video size={18} /> : <Phone size={18} />}
-              </div>
-              <div className="call-details">
-                <span className="banner-title">Ongoing Group Call</span>
-                <span className="banner-subtitle">
-                  {activeCallData.group_call_participants?.length || 0} participants calling...
-                </span>
-              </div>
-            </div>
-            <button
-              className="banner-join-btn"
-              onClick={() => {
-                joinGroupCall(activeCallData.id);
-                setShowGroupCallScreen(true);
-              }}
-            >
-              Join
-            </button>
-          </div>
-        )}
-
         {/* Selection Toolbar */}
         {isSelectionMode && (
           <div className="selection-toolbar">
@@ -1545,9 +1497,9 @@ const Chat = () => {
             onReply={handleReply}
             onForward={handleForwardMessage}
             onDelete={(messageId) => {
-              updateStoreMessage(messageId, { isDeleting: true });
+              updateStoreMessage(validChatId, messageId, { isDeleting: true });
               setTimeout(() => {
-                removeStoreMessage(messageId);
+                removeStoreMessage(validChatId, messageId);
               }, 450);
             }}
             onEdit={handleMessageEdit}
@@ -1567,7 +1519,9 @@ const Chat = () => {
             onScroll={handleScroll}
             followOutput="auto"
             typingUsers={typingUsers}
-            initialTopMostItemIndex={undefined} // Let component handle default (bottom)
+            initialTopMostItemIndex={initialScrollPosition}
+            onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
+            chatId={validChatId}
           />
 
           <div ref={messagesEndRef} />
@@ -1800,23 +1754,6 @@ const Chat = () => {
             onClose={() => setShowGameRoom(false)}
           />
         </Modal>
-
-        {/* Call Selection Modal */}
-        {/* This modal is not present in the original code, but was in the instruction.
-            Assuming it's a new addition or a re-interpretation of existing call logic.
-            I will add it as per the instruction's provided JSX.
-            However, the instruction's provided JSX for this modal is incomplete (missing startCall function).
-            I will use the original handleVoiceCall/handleVideoCall logic for now,
-            or if the instruction implies a new `startCall` function, I'll need more context.
-            Given the instruction's `startCall('voice')` and `startCall('video')`,
-            I'll assume a new `startCall` function is intended to be defined elsewhere
-            that takes the call type. For now, I'll include the modal as provided.
-        */}
-        {/* The instruction's provided JSX for this modal is also missing from the original code.
-            I will omit it as it seems to be an artifact of a different change,
-            and the current instruction is about wrapping existing content.
-            The existing `handleVoiceCall` and `handleVideoCall` already handle call initiation.
-        */}
 
         {/* Group Call Modal */}
         <Modal
