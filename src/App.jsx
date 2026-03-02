@@ -62,6 +62,7 @@ import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
 import { requestPersistentStorage } from './db/db';
 import { DialogProvider } from './contexts/DialogProvider';
+import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
 import GlobalDialog from './components/common/GlobalDialog';
 import './styles/offline-indicator.css';
 import './styles/emoji-styles.css';
@@ -236,6 +237,9 @@ const ProtectedRoute = ({ children }) => {
 
 const App = () => {
   const { dbUser } = useAuth(); // Get dbUser from auth hook
+
+  // 🔌 Native device integrations: StatusBar color + Keyboard resize mode
+  useCapacitorPlugins();
 
   useEffect(() => {
     // App khulte hi notification system start karo

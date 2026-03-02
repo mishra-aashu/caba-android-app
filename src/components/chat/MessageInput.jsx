@@ -8,6 +8,7 @@ import { compressImage, handleVideo } from '../../utils/mediaCompressor';
 import { useDialog } from '../../contexts/DialogContext';
 import useIsDesktop from '../../hooks/useIsDesktop';
 import useDraftStore from '../../store/useDraftStore';
+import hapticsManager from '../../utils/hapticsManager';
 
 
 const MessageInput = ({
@@ -142,6 +143,7 @@ const MessageInput = ({
 
   const handleSend = async () => {
     playSendSound();
+    hapticsManager.impact();
     // Prioritize sending voice if available
     if (voiceBlob) {
       if (!navigator.onLine) {
@@ -211,12 +213,15 @@ const MessageInput = ({
       }
     }
   };
-
   const toggleEmojiPicker = () => {
     if (!showEmojiPicker && textareaRef.current) {
       textareaRef.current.blur();
     }
-    setShowEmojiPicker(prev => !prev);
+    setShowEmojiPicker(prev => {
+      const next = !prev;
+      if (next) hapticsManager.selectionChanged();
+      return next;
+    });
   };
 
   const toggleAttachmentMenu = () => {
@@ -251,6 +256,7 @@ const MessageInput = ({
     } else {
       // Regular emoji - append to message
       setMessage(prev => prev + emoji);
+      hapticsManager.selectionChanged();
     }
     setShowEmojiPicker(false);
   };

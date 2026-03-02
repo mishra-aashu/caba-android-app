@@ -38,6 +38,8 @@ import { realtimeManager } from '../../utils/realtimeManager';
 import groupCallService from '../../services/groupCallService';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
+import { Capacitor } from '@capacitor/core';
+import hapticsManager from '../../utils/hapticsManager';
 import useUserStore from '../../store/userStore';
 import { UserDetailsContext } from '../../contexts/UserDetailsContext';
 import { useDialog } from '../../contexts/DialogContext';
@@ -264,6 +266,52 @@ const Chat = () => {
   const [selectedVanishDuration, setSelectedVanishDuration] = useState(86400);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+
+  // ─── KEYBOARD HEIGHT (Native Android) ─────────────────────────────────────
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // ─── CAPACITOR KEYBOARD LISTENERS ──────────────────────────────────────────
+  // When the native keyboard opens, we get its *exact* pixel height and apply
+  // it as padding-bottom so the input area smoothly floats above the keyboard.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let keyboardPlugin;
+
+    const setupKeyboardListeners = async () => {
+      try {
+        const { Keyboard } = await import('@capacitor/keyboard');
+        keyboardPlugin = Keyboard;
+
+        // keyboard show: set exact height from event
+        await Keyboard.addListener('keyboardWillShow', (info) => {
+          setKeyboardHeight(info.keyboardHeight);
+          // Scroll to bottom so the last message stays visible
+          setTimeout(() => {
+            if (messagesContainerRef.current?.scrollToBottom) {
+              messagesContainerRef.current.scrollToBottom('auto');
+            }
+          }, 50);
+        });
+
+        // keyboard hide: reset padding
+        await Keyboard.addListener('keyboardWillHide', () => {
+          setKeyboardHeight(0);
+        });
+      } catch (err) {
+        console.warn('[Chat] Keyboard listeners failed:', err);
+      }
+    };
+
+    setupKeyboardListeners();
+
+    return () => {
+      // Clean up listeners when Chat unmounts
+      if (keyboardPlugin?.removeAllListeners) {
+        keyboardPlugin.removeAllListeners();
+      }
+    };
+  }, []);
 
   // Debounced scroll position saver
   const debouncedSaveScroll = useCallback(
@@ -621,6 +669,7 @@ const Chat = () => {
       navigate('/');
     } catch (error) {
       console.error('Error blocking user:', error);
+      hapticsManager.error();
       toast.error('Failed to block user');
     }
   };
@@ -660,6 +709,9 @@ const Chat = () => {
     setReplyingTo(null);
 
     try {
+      // 📳 Haptic feedback for sending
+      hapticsManager.impact();
+
       // 2. Persistent Save to local Dexie (for offline resilience)
       const { tempId: _, ...localSaveData } = dbMessageData;
       await db.messages.add({
@@ -694,8 +746,12 @@ const Chat = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      // 📳 Haptic feedback for error
+      hapticsManager.error();
+
       // We don't rollback if it's already in Dexie/SyncQueue, but we show error if it failed online attempt
       if (navigator.onLine) {
+        hapticsManager.error();
         toast.error('Failed to send message online.');
       }
     }
@@ -745,6 +801,9 @@ const Chat = () => {
     addStoreMessage(validChatId, optimisticMsg);
     setReplyingTo(null);
 
+    // 📳 Haptic feedback for sending
+    hapticsManager.impact();
+
     try {
       // 1. Persistent Save to local Dexie
       // We store the message record first
@@ -785,7 +844,11 @@ const Chat = () => {
       }
     } catch (error) {
       console.error('Error sending media message:', error);
+      // 📳 Haptic feedback for error
+      hapticsManager.error();
+
       if (navigator.onLine) {
+        hapticsManager.error();
         toast.error('Failed to send media online.');
       }
     }
@@ -852,6 +915,7 @@ const Chat = () => {
       if (error) throw error;
     } catch (error) {
       console.error('Error deleting messages:', error);
+      hapticsManager.error();
       toast.error('Failed to delete messages');
       setStoreMessages(prevMessages);
       queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
@@ -892,6 +956,7 @@ const Chat = () => {
       toast.success(`Message${messages.length > 1 ? 's' : ''} forwarded successfully`);
     } catch (error) {
       console.error('Error forwarding messages:', error);
+      hapticsManager.error();
       toast.error('Failed to forward messages');
     }
   };
@@ -1123,6 +1188,7 @@ const Chat = () => {
       setIsTempChat(newTempChatState);
     } catch (error) {
       console.error('Error toggling temp chat:', error);
+      hapticsManager.error();
       toast.error('Failed to toggle vanish mode');
     }
   };
@@ -1202,6 +1268,7 @@ const Chat = () => {
       await initializeGroupCall(chatId, callType);
     } catch (error) {
       console.error('Failed to start group call:', error);
+      hapticsManager.error();
       toast.error('Failed to start group call');
       setShowGroupCallScreen(false);
     }
@@ -1275,6 +1342,7 @@ const Chat = () => {
   return (
     <div
       className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
+      style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px`, transition: 'padding-bottom 0.25s ease' } : { transition: 'padding-bottom 0.25s ease' }}
     >
       <div className="chat-main-area">
         {/* Chat Header - always render, even if otherUser is loading */}

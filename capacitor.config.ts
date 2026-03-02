@@ -16,6 +16,18 @@ const config: CapacitorConfig = {
     CapacitorUpdater: {
       publicKey: process.env.CAPGO_PUBLIC_KEY,
     },
+    // ── Keyboard Plugin ────────────────────────────────────────────────────────
+    // resize + scrollAssist are set programmatically in useCapacitorPlugins.js
+    Keyboard: {
+      resizeOnFullScreen: true,
+    },
+    // ── StatusBar Plugin ───────────────────────────────────────────────────────
+    // Initial color matches dark theme (#1a1a2e). Overridden in useCapacitorPlugins too.
+    StatusBar: {
+      style: 'dark',
+      backgroundColor: '#1a1a2e',
+      overlaysWebView: false,
+    },
   },
 };
 
