@@ -162,6 +162,7 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, dbUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const [showPhoneAuth, setShowPhoneAuth] = useState(false);
   const [showPhoneCollect, setShowPhoneCollect] = useState(false);
 
@@ -201,7 +202,7 @@ const ProtectedRoute = ({ children }) => {
     return (
       <>
         <div className="app-layout">
-          <DesktopNavbar />
+          {isDesktop && <DesktopNavbar />}
           <main className="app-content">
             {children}
           </main>
@@ -219,7 +220,7 @@ const ProtectedRoute = ({ children }) => {
   return (
     <>
       <div className="app-layout">
-        <DesktopNavbar />
+        {isDesktop && <DesktopNavbar />}
         <main className="app-content">
           {children}
         </main>
