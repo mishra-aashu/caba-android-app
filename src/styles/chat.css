@@ -2108,17 +2108,18 @@ body.light-mode .load-more-indicator p {
 /* Received group messages: avatar is first in DOM, bubble flows right */
 .message-item.group-message.received {
   justify-content: flex-start;
+  align-items: flex-end;
+  gap: 0;
 }
 
-
-/* ── Circular Avatar Button ── */
+/* ── Circular Avatar Button (Group Chat DP) ── */
 .group-sender-avatar {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, #128c7e 0%, #25d366 100%);
-  border: none;
+  border: 2px solid transparent;
   cursor: pointer;
   padding: 0;
   overflow: hidden;
@@ -2126,43 +2127,37 @@ body.light-mode .load-more-indicator p {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  /* Align avatar to bottom of message row */
+  /* Subtle ring that appears on hover */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
   align-self: flex-end;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  margin-right: 8px;
 }
 
 .group-sender-avatar:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transform: scale(1.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .group-sender-avatar:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
+  transition-duration: 0.08s;
 }
 
-/* Own (sent) avatar — now interactive too */
-.group-sender-avatar--self {
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.group-sender-avatar--self:hover {
-  transform: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-}
-
-
-/* Ripple on tap for mobile */
+/* Ripple overlay on tap */
 .group-sender-avatar::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.28);
   opacity: 0;
   transition: opacity 0.15s ease;
+  pointer-events: none;
 }
 
 .group-sender-avatar:active::after {
@@ -2175,81 +2170,41 @@ body.light-mode .load-more-indicator p {
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+  display: block;
 }
 
 /* Initial fallback letter */
 .group-sender-avatar-initial {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #ffffff;
   line-height: 1;
   text-transform: uppercase;
   pointer-events: none;
   user-select: none;
+  letter-spacing: 0.02em;
 }
 
-/* ── Content wrapper (name + bubble) ── */
+/* ── Content wrapper (bubble only — no name shown) ── */
 .message-content-wrapper.with-avatar {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  max-width: 85%;
+  gap: 0;
+  max-width: 82%;
   flex-grow: 1;
-  /* Allow stretching to fill available row space up to max-width */
-  min-width: 140px;
-  /* Minimum width to prevent "meaningless lines" for short messages */
+  min-width: 120px;
 }
 
-/* ── Sender Name Label ── */
+/* ── Sender Name Label — HIDDEN (DP only mode) ── */
 .group-sender-name {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--brand-primary, #25d366);
-  padding: 0 4px;
-  cursor: pointer;
-  background: none;
-  border: none;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px;
-  transition: opacity 0.15s ease;
-  letter-spacing: 0.01em;
+  display: none !important;
 }
 
-.group-sender-name:hover {
-  opacity: 0.75;
-  text-decoration: underline;
+/* Matching avatar gradient per sender (color-coded DPs) */
+.message-item:nth-child(6n+1) .group-sender-avatar {
+  background: linear-gradient(135deg, #128c7e, #25d366);
 }
 
-/* Different accent colors per sender (cycling via nth-of-type)
-   Uses hsl rotation so each sender gets a distinct color            */
-.message-item:nth-child(6n+1) .group-sender-name {
-  color: #25d366;
-}
-
-.message-item:nth-child(6n+2) .group-sender-name {
-  color: #00bcd4;
-}
-
-.message-item:nth-child(6n+3) .group-sender-name {
-  color: #ff7043;
-}
-
-.message-item:nth-child(6n+4) .group-sender-name {
-  color: #ab47bc;
-}
-
-.message-item:nth-child(6n+5) .group-sender-name {
-  color: #ffa726;
-}
-
-.message-item:nth-child(6n+6) .group-sender-name {
-  color: #66bb6a;
-}
-
-/* Matching avatar gradient per sender */
 .message-item:nth-child(6n+2) .group-sender-avatar {
   background: linear-gradient(135deg, #0097a7, #00bcd4);
 }
@@ -2270,26 +2225,21 @@ body.light-mode .load-more-indicator p {
   background: linear-gradient(135deg, #2e7d32, #66bb6a);
 }
 
-/* Light mode: group-sender-name uses the brand primary color which is already readable. */
-
 /* ── Mobile ── */
 @media (max-width: 480px) {
   .group-sender-avatar {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
+    margin-right: 6px;
+    margin-bottom: 3px;
   }
 
   .group-sender-avatar-initial {
-    font-size: 12px;
-  }
-
-  .group-sender-name {
-    font-size: 11px;
-    max-width: 140px;
+    font-size: 13px;
   }
 
   .message-content-wrapper.with-avatar {
-    max-width: calc(100% - 42px);
+    max-width: calc(100% - 44px);
   }
 }
 

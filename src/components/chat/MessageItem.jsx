@@ -26,7 +26,7 @@ import {
   Reply,
   Heart
 } from 'lucide-react';
-import { motion, useAnimation, AnimatePresence } from 'framer-motion';
+import { motion, useAnimation, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import MessageBubble from './MessageBubble';
 import DesktopContextMenu from './DesktopContextMenu';
 import toast from 'react-hot-toast';
@@ -51,7 +51,6 @@ const MessageItem = ({
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
-  const [isUpwards, setIsUpwards] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message?.content ?? '');
   const [touchStartTime, setTouchStartTime] = useState(0);
@@ -66,6 +65,7 @@ const MessageItem = ({
   const bubbleRef = useRef(null);
   const messageRef = useRef(null);
   const dragConstraintsRef = useRef(null);
+  const dragX = useMotionValue(0);
 
   const safeMessage = message ?? {};
   const { mutate: toggleReaction } = useToggleReaction(safeMessage.chat_id || safeMessage.chatId);
@@ -122,18 +122,8 @@ const MessageItem = ({
   const senderAvatar = getValidAvatarUrl(sender.avatar_url || sender.avatar || sender.profile_image || sender.profileImage);
   const senderInitial = (senderName || 'U').charAt(0).toUpperCase();
 
-  const MENU_H = 220;
-  const MENU_W = 180;
   const openContextMenu = (clientX, clientY) => {
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
-    let x = clientX;
-    let y = clientY;
-    const openUpwards = (screenH - y) < MENU_H;
-    setIsUpwards(openUpwards);
-    if (openUpwards) y -= MENU_H;
-    if (screenW - x < MENU_W) x -= MENU_W;
-    setMenuPos({ x, y });
+    setMenuPos({ x: clientX, y: clientY });
     setShowActions(true);
   };
 
@@ -419,6 +409,9 @@ const MessageItem = ({
   const showReceivedAvatar = isGroupChat && !isSent;
 
   const handleDragEnd = (event, info) => {
+    // Always snap back to 0 with a spring
+    animate(dragX, 0, { type: 'spring', stiffness: 500, damping: 35 });
+
     const dragThreshold = 60;
     if (isSent) {
       if (info.offset.x <= -dragThreshold) onReply?.(safeMessage);
@@ -464,56 +457,73 @@ const MessageItem = ({
         )}
 
         <div className={`message-content-wrapper ${isGroupChat ? 'with-avatar' : ''}`}>
-          {showReceivedAvatar && (
-            <button className="group-sender-name" onClick={handleSenderAvatarClick}>
-              {senderName}
-            </button>
-          )}
-
           <div
             className="message-bubble-wrapper"
             ref={dragConstraintsRef}
             style={{ position: 'relative' }}
           >
-            <div className="swipe-reply-icon" style={{ position: 'absolute', left: -45, top: '50%', transform: 'translateY(-50%)', opacity: 0.7 }}>
-              <Reply size={20} color="#7c3aed" />
-            </div>
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: isSent ? -80 : 0, right: isSent ? 0 : 80 }}
+              dragElastic={0.6}
+              dragMomentum={false}
+              onDragEnd={handleDragEnd}
+              dragDirectionLock
+              style={{ position: 'relative', x: dragX }}
+              whileDrag={{ cursor: 'grabbing' }}
+            >
+              <motion.div
+                className="swipe-reply-icon"
+                style={{
+                  position: 'absolute',
+                  left: isSent ? 'auto' : -40,
+                  right: isSent ? -40 : 'auto',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  opacity: 0,
+                }}
+                whileDrag={{ opacity: 0.85 }}
+              >
+                <Reply size={18} color="#7c3aed" />
+              </motion.div>
 
-            <AnimatePresence>
-              {showHeartPop && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 0, y: 0 }}
-                  animate={{
-                    scale: [0, 1.5, 1.2],
-                    opacity: [0, 1, 0.8],
-                    y: [0, -40, -60]
-                  }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    marginLeft: '-24px',
-                    marginTop: '-24px',
-                    zIndex: 1000,
-                    pointerEvents: 'none'
-                  }}
-                >
-                  <Heart size={48} fill="#ff4d4d" color="#ff4d4d" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <AnimatePresence>
+                {showHeartPop && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0, y: 0 }}
+                    animate={{
+                      scale: [0, 1.5, 1.2],
+                      opacity: [0, 1, 0.8],
+                      y: [0, -40, -60]
+                    }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      marginLeft: '-24px',
+                      marginTop: '-24px',
+                      zIndex: 1000,
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <Heart size={48} fill="#ff4d4d" color="#ff4d4d" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            {renderMessageContent()}
+              {renderMessageContent()}
+            </motion.div>
           </div>
         </div>
+
       </div>
 
       <DesktopContextMenu
         position={menuPos}
         isVisible={showActions && !isSelectionMode}
-        isUpwards={isUpwards}
         onReply={handleReply}
         onReplyWithHighlight={handleReplyWithHighlight}
         onCopy={handleCopy}

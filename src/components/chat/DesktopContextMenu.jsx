@@ -1,12 +1,11 @@
-import React from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag, Heart } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import EmojiRenderer from '../common/EmojiRenderer';
 
 const DesktopContextMenu = ({
-  position,
+  position = { x: 0, y: 0 },
   isVisible,
-  isUpwards,
   onReply,
   onReplyWithHighlight,
   onCopy,
@@ -21,6 +20,42 @@ const DesktopContextMenu = ({
   preferredEmojis = [],
   emojiStyle = 'apple'
 }) => {
+  const menuRef = useRef(null);
+  const [adjustedPos, setAdjustedPos] = useState(position);
+
+  useLayoutEffect(() => {
+    if (isVisible && menuRef.current) {
+      const menuRect = menuRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const margin = 10;
+
+      let { x, y } = position;
+
+      // Vertical correction (Prioritize staying above the bottom edge)
+      if (y + menuRect.height > viewportHeight - margin) {
+        y = viewportHeight - menuRect.height - margin;
+      }
+
+      // Ensure it doesn't go above the top edge
+      if (y < margin) {
+        y = margin;
+      }
+
+      // Horizontal correction
+      if (x + menuRect.width > viewportWidth - margin) {
+        x = viewportWidth - menuRect.width - margin;
+      }
+
+      // Ensure it doesn't go off left edge
+      if (x < margin) {
+        x = margin;
+      }
+
+      setAdjustedPos({ x, y });
+    }
+  }, [isVisible, position]);
+
   if (!isVisible) return null;
 
   const handleReplyClick = () => {
@@ -39,11 +74,14 @@ const DesktopContextMenu = ({
 
   const menuContent = (
     <div
+      ref={menuRef}
       className="context-menu"
       style={{
-        top: position.y,
-        left: position.x,
-        transformOrigin: isUpwards ? 'bottom left' : 'top left'
+        position: 'fixed',
+        top: adjustedPos.y,
+        left: adjustedPos.x,
+        transformOrigin: 'center center',
+        zIndex: 10000,
       }}
     >
       {/* Reactions Row - Moved to TOP */}
