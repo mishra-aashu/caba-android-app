@@ -23,27 +23,22 @@
 
 /* --- THE UNIQUE BUBBLE --- */
 .bubble {
-  max-width: 82%;
-  /* Slightly wider for modern feel */
-  padding: 10px 14px;
+  max-width: 88%;
+  /* Increased for modern feel */
+  padding: 8px 12px;
   position: relative;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 14.5px;
-  line-height: 1.5;
+  line-height: 1.4;
+
+  /* Layout for content + timestamp alignment */
+  display: flex;
+  flex-direction: column;
 
   /* Performance Optimizations */
   transform: translateZ(0);
-  /* Force hardware acceleration */
   backface-visibility: hidden;
   contain: layout;
-  /* Isolate rendering */
-  /* Removed will-change to prevent blank screen during scrolling */
-
-  /* Removed backdrop-filter to prevent rendering flicker on mobile */
-  /* backdrop-filter: blur(8px) saturate(160%); */
-  /* -webkit-backdrop-filter: blur(8px) saturate(160%); */
-
-  /* Ensure no transitions for instant appearance */
   transition: none !important;
 }
 
@@ -56,11 +51,12 @@
 .bubble-sent {
   background: var(--sent-message-bg);
   color: var(--sent-message-text);
-  border-radius: 20px 20px 4px 20px;
+  border-radius: 12px 12px 0px 12px;
+  /* Professional 'tail' effect */
   box-shadow: var(--sent-message-shadow);
   border: var(--sent-message-border);
   min-width: 85px;
-  padding: 10px 16px 8px 14px;
+  padding: 8px 12px 6px 14px;
 }
 
 .bubble-sent .reply-quote-container {
@@ -79,25 +75,36 @@
 .bubble-received {
   background: var(--received-message-bg);
   color: var(--received-message-text);
-  border-radius: 20px 20px 20px 4px;
+  border-radius: 12px 12px 12px 0px;
+  /* Professional 'tail' effect */
   box-shadow: var(--received-message-shadow);
   border: var(--received-message-border);
   min-width: 85px;
+  padding: 8px 12px 6px 12px;
 }
 
 
 /* --- content alignment --- */
 .message-content {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 4px 8px;
+  /* Vertical gap 4px, Horizontal gap 8px */
   position: relative;
+  width: 100%;
 }
 
 .text {
+  flex: 1 1 auto;
+  min-width: 60px;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
-  min-width: 0;
-  margin-bottom: 4px;
+  margin-bottom: 0;
+  padding-right: 4px;
+  /* Prevent overlap */
 }
 
 /* Deleted Text Styling */
@@ -114,15 +121,17 @@
 .timestamp {
   font-size: 10px;
   color: var(--sent-message-meta);
-  opacity: 0.9;
-  align-self: flex-end;
-  display: flex;
+  opacity: 0.85;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
+  gap: 3px;
+  padding-bottom: 2px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
   white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+  /* Push to right in the flex container */
 }
 
 .bubble-received .timestamp {

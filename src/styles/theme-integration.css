@@ -19,17 +19,18 @@
 /* Message Bubbles */
 .bubble,
 .caba-bubble {
-  border-radius: 18px;
-  padding: 10px 14px;
-  margin: 4px 8px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin: 2px 8px;
   position: relative;
   backdrop-filter: var(--theme-backdrop-blur);
   -webkit-backdrop-filter: var(--theme-backdrop-blur);
   font-weight: 500;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   line-height: 1.4;
   word-wrap: break-word;
-  max-width: 75%;
+  overflow-wrap: anywhere;
+  max-width: 88%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   /* GPU Acceleration */
   transform: translateZ(0);
@@ -45,6 +46,7 @@
   box-shadow: var(--sent-message-shadow);
   margin-left: auto;
   margin-right: 12px;
+  border-radius: 12px 12px 0px 12px;
 }
 
 .bubble-received,
@@ -55,6 +57,7 @@
   box-shadow: var(--received-message-shadow);
   margin-left: 12px;
   margin-right: auto;
+  border-radius: 12px 12px 12px 0px;
 }
 
 /* Chat Header */
@@ -164,7 +167,7 @@
 /* Mobile Optimizations */
 @media (max-width: 768px) {
   .bubble {
-    max-width: 85%;
+    max-width: 92%;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
