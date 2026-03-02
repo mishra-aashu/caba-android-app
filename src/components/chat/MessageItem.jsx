@@ -117,8 +117,9 @@ const MessageItem = ({
   }, [showActions, safeMessage.id, isSent]);
 
   const sender = safeMessage.sender ?? {};
-  const senderName = sender.name || sender.username || 'User';
-  const senderAvatar = getValidAvatarUrl(sender.avatar || sender.profile_image || sender.profileImage);
+  // Support both standardized (full_name/avatar_url) and legacy (name/avatar) field names
+  const senderName = sender.full_name || sender.name || sender.username || 'User';
+  const senderAvatar = getValidAvatarUrl(sender.avatar_url || sender.avatar || sender.profile_image || sender.profileImage);
   const senderInitial = (senderName || 'U').charAt(0).toUpperCase();
 
   const MENU_H = 220;

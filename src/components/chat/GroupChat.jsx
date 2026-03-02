@@ -26,7 +26,14 @@ import {
     Info,
     Ban,
     Gamepad2,
-    Reply
+    Reply,
+    Phone,
+    Video,
+    User,
+    Palette,
+    Copy,
+    X as CloseIcon,
+    Image as ImageIcon
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DropdownMenu from '../common/DropdownMenu';
@@ -562,6 +569,7 @@ const GroupChat = () => {
                         ref={messagesContainerRef}
                         messages={messages}
                         currentUser={currentUser}
+                        chatId={validChatId}
                         isGroupChat={true}
                         onScroll={handleScroll}
                         onReply={setReplyingTo}
