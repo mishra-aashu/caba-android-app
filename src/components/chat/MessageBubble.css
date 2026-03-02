@@ -23,8 +23,8 @@
 
 /* --- THE UNIQUE BUBBLE --- */
 .bubble {
+  width: fit-content;
   max-width: 88%;
-  /* Increased for modern feel */
   padding: 8px 12px;
   position: relative;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -55,7 +55,7 @@
   /* Professional 'tail' effect */
   box-shadow: var(--sent-message-shadow);
   border: var(--sent-message-border);
-  min-width: 85px;
+  min-width: 60px;
   padding: 8px 12px 6px 14px;
 }
 
@@ -79,7 +79,7 @@
   /* Professional 'tail' effect */
   box-shadow: var(--received-message-shadow);
   border: var(--received-message-border);
-  min-width: 85px;
+  min-width: 60px;
   padding: 8px 12px 6px 12px;
 }
 
@@ -87,18 +87,19 @@
 /* --- content alignment --- */
 .message-content {
   display: flex;
+  flex-direction: row;
+  /* V2 Refinement */
   flex-wrap: wrap;
   align-items: flex-end;
-  justify-content: flex-end;
-  gap: 4px 8px;
-  /* Vertical gap 4px, Horizontal gap 8px */
+  justify-content: flex-start;
+  gap: 4px 12px;
   position: relative;
   width: 100%;
 }
 
 .text {
   flex: 1 1 auto;
-  min-width: 60px;
+  min-width: 40px;
   word-wrap: break-word;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -150,9 +151,12 @@
 }
 
 .edited-indicator {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 8.5px;
+  text-transform: lowercase;
+  opacity: 0.7;
+  margin-left: 4px;
+  font-style: italic;
+  font-weight: 400;
 }
 
 /* --- REPLY QUOTE BOX --- */

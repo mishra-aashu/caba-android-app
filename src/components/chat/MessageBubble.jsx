@@ -60,8 +60,11 @@ const MessageBubble = memo(({
   // This enables the "Jumbo Emoji" feature for Telegram-like emoji-only messages
   const isJumboEmoji = !isDeleted && !isLocked && isOnlyEmoji(text);
 
-  // Properly check if message was edited - only show "edited" if updated_at > created_at
-  const isEdited = isMessageEdited(message);
+  // Properly check if message was edited
+  const isEdited = useMemo(() => {
+    // Only trust explicit flags/props
+    return !!(edited || message?.is_edited || message?.isEdited);
+  }, [edited, message?.is_edited, message?.isEdited]);
 
   // Calculate time remaining for time capsule
   useEffect(() => {

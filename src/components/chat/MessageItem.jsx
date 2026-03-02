@@ -399,7 +399,7 @@ const MessageItem = ({
         isMine={isSent}
         isDeleted={safeMessage.isDeleted || safeMessage.is_deleted}
         status={isRead ? 'read' : 'sent'}
-        edited={!!(safeMessage.updatedAt || safeMessage.updated_at)}
+        edited={!!(safeMessage.is_edited || safeMessage.isEdited)}
         sender={safeMessage.sender}
         message={safeMessage}
       />

@@ -2593,14 +2593,22 @@ body.light-mode .load-more-indicator p {
 
 /* Ensure message content doesn't collapse */
 .message-content {
-  display: block;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 4px 12px;
   min-height: 1em;
   /* Prevent empty content from collapsing */
   overflow: visible;
+  width: 100%;
 }
 
 /* Message bubble container */
 .message-bubble {
+  width: fit-content;
+  max-width: 88%;
   display: block;
   overflow: hidden;
   /* Prevent margin collapse */
