@@ -332,11 +332,11 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
       {/* Edit Profile Modal */}
       {showEditModal && (
-        <div className="modal">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Edit Profile</h2>
-              <button className="close-modal" onClick={() => setShowEditModal(false)}>
+              <span className="modal-title">Edit Profile</span>
+              <button className="modal-close-btn" onClick={() => setShowEditModal(false)}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -347,6 +347,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                   <input
                     type="text"
                     id="editName"
+                    className="form-input"
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                     required
@@ -357,6 +358,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                   <label htmlFor="editAbout">About</label>
                   <textarea
                     id="editAbout"
+                    className="form-input"
                     rows="3"
                     maxLength="150"
                     value={editForm.about}
@@ -368,6 +370,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                   <input
                     type="email"
                     id="editEmail"
+                    className="form-input"
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                   />
@@ -385,7 +388,9 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Choose Profile Picture</span>
-              <button className="close-btn" onClick={() => setShowDpModal(false)}>&times;</button>
+              <button className="modal-close-btn" onClick={() => setShowDpModal(false)}>
+                <i className="fas fa-times"></i>
+              </button>
             </div>
             <div className="modal-body">
               <div className="avatar-grid">
@@ -409,8 +414,10 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
         <div className="modal-overlay" onClick={() => setShowQrModal(false)}>
           <div className="modal-content qr-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>My QR Code</h2>
-              <button className="close-btn" onClick={() => setShowQrModal(false)}>&times;</button>
+              <span className="modal-title">My QR Code</span>
+              <button className="modal-close-btn" onClick={() => setShowQrModal(false)}>
+                <i className="fas fa-times"></i>
+              </button>
             </div>
             <div className="modal-body centered">
               <UserQRCode
@@ -432,15 +439,15 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
       {/* User Found Modal */}
       {showUserFoundModal && foundUser && (
-        <div className="modal">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowUserFoundModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>User Found</h2>
-              <button className="close-modal" onClick={() => setShowUserFoundModal(false)}>
+              <span className="modal-title">User Found</span>
+              <button className="modal-close-btn" onClick={() => setShowUserFoundModal(false)}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            <div className="user-found-body-content">
+            <div className="modal-body">
               <div className="user-found-info-container">
                 <div className="user-found-details-row">
                   <div className="avatar-circle-small">

@@ -44,7 +44,6 @@ const DesktopNavbar = () => {
               className="desktop-nav-link"
               data-tooltip="Create Group"
               onClick={handleGroupsClick}
-              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
             >
               <Users className="desktop-nav-icon groups-icon" />
             </button>

@@ -33,10 +33,10 @@
   --app-height: 100vh;
   /* iOS Safari fallback */
   --app-height: -webkit-fill-available;
-  
+
   /* Keyboard height - updated by ViewportManager when keyboard opens */
   --keyboard-height: 0px;
-  
+
   /* Safe area insets for notched devices (iPhone X+) */
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -398,103 +398,8 @@ body.light-mode .chat-list-panel {
    ============================================= */
 
 /* --- Desktop Navbar (Mobile First) --- */
-.desktop-navbar {
-  display: none;
-  /* Hidden by default */
-}
+/* Sidebar styles moved to desktop.css to avoid conflicts and z-index issues */
 
-@media (min-width: 769px) {
-  .desktop-navbar {
-    display: block;
-    /* Show on desktop */
-    width: 80px;
-    background-color: var(--surface-color);
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    padding: 15px 5px;
-    box-shadow: var(--shadow-md);
-    z-index: 1000;
-    overflow: hidden;
-    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .desktop-navbar:hover {
-    width: 200px;
-  }
-
-  .desktop-navbar-nav {
-    list-style: none;
-  }
-
-  .desktop-nav-item {
-    margin-bottom: 8px;
-  }
-
-  .desktop-nav-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 50px;
-    padding: 0 10px;
-    margin: 0 10px;
-    border-radius: 12px;
-    text-decoration: none;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
-    position: relative;
-  }
-
-  .desktop-navbar:hover .desktop-nav-link {
-    justify-content: flex-start;
-  }
-
-  .desktop-nav-link:hover,
-  .desktop-nav-link.active {
-    background-color: var(--bg-color);
-    color: var(--brand-primary);
-  }
-
-  .desktop-nav-link.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 60%;
-    background: var(--brand-primary);
-    border-radius: 0 4px 4px 0;
-  }
-
-
-  .desktop-nav-icon {
-    margin-right: 0;
-    min-width: 28px;
-    height: 28px;
-    transition: margin-right 0.2s ease;
-  }
-
-  .desktop-navbar:hover .desktop-nav-icon {
-    margin-right: 15px;
-  }
-
-  .desktop-nav-text {
-    display: none;
-    font-size: 1rem;
-    font-weight: 500;
-    white-space: nowrap;
-    color: var(--text-secondary);
-    opacity: 0;
-    transition: opacity 0.2s 0.05s ease;
-  }
-
-  .desktop-navbar:hover .desktop-nav-text {
-    display: block;
-    opacity: 1;
-  }
-}
 
 /* --- Panel Header --- */
 .top-header {
@@ -758,30 +663,35 @@ body.light-mode .chat-list-panel {
 }
 
 .btn-primary {
-  background: var(--brand-gradient);
+  background: var(--brand-primary);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  filter: brightness(110%);
 }
 
 .form-input {
   width: 100%;
-  padding: 12px 15px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background-color: var(--surface-color);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-color);
+  background-color: rgba(var(--text-primary-rgb), 0.02);
   color: var(--text-primary);
-  font-size: 1rem;
-  transition: all 0.2s ease;
+  font-size: 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
 }
 
 .form-input:focus {
-  outline: none;
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(0, 191, 165, 0.3);
+  background-color: var(--surface-color);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 /* =============================================
