@@ -1,4 +1,4 @@
-import{j as i,m as r,k as H,I as R,V as W}from"./vendor-ui-BA2WeXqD.js";import{h as B,u as K,r as n}from"./vendor-react-Cp6DCcj1.js";import{a as Q}from"./vendor-query-C5afTtVQ.js";import{j as Z,s as J,a as X,g as Y,b as ee,S as ae,a3 as ie,Z as te,_ as se,$ as re,a4 as ne,z as S}from"./index-B5il2Qf1.js";import"./vendor-supabase-BZ0N5lZN.js";const oe=async(o,l=100)=>{if(!o)return[];const{data:c,error:d}=await Z.from("messages").select(`
+import{j as i,m as r,k as H,I as R,V as W}from"./vendor-ui-BA2WeXqD.js";import{h as B,u as K,r as n}from"./vendor-react-Cp6DCcj1.js";import{a as Q}from"./vendor-query-C5afTtVQ.js";import{j as Z,s as J,a as X,g as Y,b as ee,S as ae,a3 as ie,Z as te,_ as se,$ as re,a4 as ne,z as S}from"./index-B07JMljU.js";import"./vendor-supabase-BZ0N5lZN.js";const oe=async(o,l=100)=>{if(!o)return[];const{data:c,error:d}=await Z.from("messages").select(`
             *,
             sender:sender_id (id, name, avatar),
             receiver:receiver_id (id, name, avatar)
