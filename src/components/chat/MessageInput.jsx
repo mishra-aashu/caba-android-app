@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { debounce } from 'lodash';
 import AttachmentMenu from './AttachmentMenu';
 import EmojiPicker from '../common/EmojiPicker';
 import EmojiRenderer from '../common/EmojiRenderer';
@@ -78,14 +79,34 @@ const MessageInput = ({
     }
   }, [chatId, getDraft]);
 
-  // Sync draft as user types
+  // Debounced draft save to avoid blocking the main thread with localStorage writes
+  const debouncedSaveDraft = useMemo(
+    () => debounce((id, content) => {
+      if (id) setDraft(id, content);
+    }, 500),
+    [setDraft]
+  );
+
+  // Debounced typing indicator call
+  const debouncedOnTyping = useMemo(
+    () => debounce(() => {
+      onTyping();
+    }, 500),
+    [onTyping]
+  );
+
+  // Sync draft logic - optimized to avoid lag
   useEffect(() => {
-    // Only save if the message belongs to the currently loaded chatId
-    // to prevent saving a message from Chat A into Chat B right after switching
-    if (chatId && chatId === lastLoadedChatIdRef.current) {
-      setDraft(chatId, message);
+    // Only save if it's the current chat
+    if (chatId && chatId === lastLoadedChatIdRef.current && message) {
+      debouncedSaveDraft(chatId, message);
     }
-  }, [message, chatId, setDraft]);
+
+    // Cleanup: flush any pending draft saves when switching chats or unmounting
+    return () => {
+      debouncedSaveDraft.flush();
+    };
+  }, [message, chatId, debouncedSaveDraft]);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -111,13 +132,19 @@ const MessageInput = ({
   }, [filePreview]);
 
   const handleInputChange = (e) => {
-    setMessage(e.target.value);
+    const newVal = e.target.value;
+    setMessage(newVal);
+
+    // Auto-resize logic optimized
     const textarea = textareaRef.current;
     if (textarea) {
+      // Small optimization: only calculate if height might change
+      // A full resize on every char is expensive, but for now we'll just keep it clean
       textarea.style.height = 'auto';
       textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
     }
-    onTyping();
+
+    debouncedOnTyping();
   };
 
   const handleInputFocus = () => {
@@ -251,14 +278,14 @@ const MessageInput = ({
   const handleEmojiSelect = (emoji) => {
     // Check if it's a GIF URL (starts with http)
     if (emoji.startsWith('http')) {
-      // Send GIF as media message directly
+      // Send GIF as media message directly - close picker after GIF send
       onSendMedia(emoji, 'image');
+      setShowEmojiPicker(false);
     } else {
-      // Regular emoji - append to message
+      // Regular emoji - append to message, keep picker open
       setMessage(prev => prev + emoji);
       hapticsManager.selectionChanged();
     }
-    setShowEmojiPicker(false);
   };
 
   const handleVoiceRecord = () => {

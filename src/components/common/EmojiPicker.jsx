@@ -5,11 +5,6 @@ import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import KlipyGifPicker from '../chat/GifPicker.jsx';
 import './EmojiPicker.css';
 
-// Number of categories to render initially (top categories)
-const INITIAL_CATEGORIES_COUNT = 3;
-// Number of categories to load per scroll
-const CATEGORIES_PER_LOAD = 2;
-
 /**
  * Utility to convert emoji-mart unified hex (e.g. "1F602") to our lowercase hyphenated format.
  * Includes zero-padding to 4 digits for consistency with assets.
@@ -18,22 +13,22 @@ const formatHex = (unified) => {
     return unified.split('-').map(part => part.toLowerCase().padStart(4, '0')).join('-');
 };
 
-// Pre-process a single category - called lazily
-const processCategory = (cat) => ({
-    ...cat,
-    emojis: cat.emojis.map(id => {
-        const emoji = data.emojis[id];
-        return {
-            id,
-            name: emoji.name,
-            native: emoji.skins[0].native,
-            hex: formatHex(emoji.skins[0].unified)
-        };
-    })
-});
-
-// Get filtered categories (excluding 'frequent' which is usually empty)
-const getFilteredCategories = () => data.categories.filter(c => c.id !== 'frequent');
+// Pre-process ALL categories once at module load — pure JS, instant, no network calls.
+// This eliminates the "blank popup" flash caused by incremental lazy rendering.
+const ALL_PROCESSED_CATEGORIES = data.categories
+    .filter(c => c.id !== 'frequent')
+    .map(cat => ({
+        ...cat,
+        emojis: cat.emojis.map(id => {
+            const emoji = data.emojis[id];
+            return {
+                id,
+                name: emoji.name,
+                native: emoji.skins[0].native,
+                hex: formatHex(emoji.skins[0].unified)
+            };
+        })
+    }));
 
 const EmojiPicker = ({
     onEmojiSelect,
@@ -52,38 +47,22 @@ const EmojiPicker = ({
     const [activeCategory, setActiveCategory] = useState('smileys');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [hasBeenOpened, setHasBeenOpened] = useState(false);
-    // Lazy loading state
-    const [visibleCategoriesCount, setVisibleCategoriesCount] = useState(INITIAL_CATEGORIES_COUNT);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    
+
     const { emojiStyle } = useEmojiStyle();
-    const filteredCategories = useMemo(() => getFilteredCategories(), []);
 
     const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
     const pickerRef = useRef(null);
     const scrollRef = useRef(null);
-    const loadingRef = useRef(null);
 
-    // Reset visible categories when picker opens
+    // Show/hide animation state
     useEffect(() => {
         if (isOpen) {
             setHasBeenOpened(true);
             setIsVisible(true);
-            setVisibleCategoriesCount(INITIAL_CATEGORIES_COUNT);
         } else {
             setIsVisible(false);
         }
     }, [isOpen]);
-
-    // Get only the categories that should be visible (lazy loaded)
-    const visibleCategories = useMemo(() => {
-        return filteredCategories.slice(0, visibleCategoriesCount);
-    }, [filteredCategories, visibleCategoriesCount]);
-
-    // Process only visible categories
-    const processedVisibleCategories = useMemo(() => {
-        return visibleCategories.map(cat => processCategory(cat));
-    }, [visibleCategories]);
 
     // Filtered emojis based on search
     const filteredEmojis = useMemo(() => {
@@ -100,55 +79,11 @@ const EmojiPicker = ({
         }));
     }, [searchQuery]);
 
-    // Scroll handler for lazy loading
-    const handleScroll = useCallback(() => {
-        if (scrollRef.current && !searchQuery && visibleCategoriesCount < filteredCategories.length) {
-            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-            // Load more when user scrolls to 80% of content
-            if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-                if (!isLoadingMore) {
-                    setIsLoadingMore(true);
-                    // Small delay to prevent too many rapid loads
-                    setTimeout(() => {
-                        setVisibleCategoriesCount(prev => Math.min(prev + CATEGORIES_PER_LOAD, filteredCategories.length));
-                        setIsLoadingMore(false);
-                    }, 100);
-                }
-            }
-        }
-    }, [searchQuery, visibleCategoriesCount, filteredCategories.length, isLoadingMore]);
-
-    // Set up intersection observer for lazy loading
-    useEffect(() => {
-        if (!scrollRef.current || searchQuery) return;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting && !isLoadingMore && visibleCategoriesCount < filteredCategories.length) {
-                        setIsLoadingMore(true);
-                        setTimeout(() => {
-                            setVisibleCategoriesCount(prev => Math.min(prev + CATEGORIES_PER_LOAD, filteredCategories.length));
-                            setIsLoadingMore(false);
-                        }, 100);
-                    }
-                });
-            },
-            { rootMargin: '100px' }
-        );
-
-        // Observe the loading trigger element
-        if (loadingRef.current) {
-            observer.observe(loadingRef.current);
-        }
-
-        return () => observer.disconnect();
-    }, [searchQuery, isLoadingMore, visibleCategoriesCount, filteredCategories.length]);
-
     const handleEmojiSelect = useCallback((emojiData) => {
-        // Handle different emoji data formats
         const nativeEmoji = emojiData.native || (emojiData.skins && emojiData.skins[0]?.native);
         onEmojiSelect(nativeEmoji);
+        // Do NOT close the picker here — parent decides when to close.
+        // This lets users pick multiple emojis without the popup disappearing.
     }, [onEmojiSelect]);
 
     const handleToggle = useCallback(() => {
@@ -168,6 +103,7 @@ const EmojiPicker = ({
         }
     }, []);
 
+    // Close ONLY on outside click — not on emoji click
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (pickerRef.current && !pickerRef.current.contains(event.target)) {
@@ -176,6 +112,7 @@ const EmojiPicker = ({
                 } else {
                     setInternalIsOpen(false);
                 }
+                onClose && onClose();
             }
         };
 
@@ -183,7 +120,7 @@ const EmojiPicker = ({
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen, onOpenChange]);
+    }, [isOpen, onOpenChange, onClose]);
 
     return (
         <div className="emoji-picker-container" ref={pickerRef}>
@@ -264,21 +201,21 @@ const EmojiPicker = ({
                                 {/* CATEGORY BAR */}
                                 {!searchQuery && (
                                     <div className="emoji-category-bar">
-                                        {filteredCategories.map(cat => (
+                                        {ALL_PROCESSED_CATEGORIES.map(cat => (
                                             <button
                                                 key={cat.id}
                                                 className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`}
                                                 onClick={() => scrollToCategory(cat.id)}
                                                 title={cat.id}
                                             >
-                                                {data.emojis[cat.emojis[0]]?.skins[0].native}
+                                                {cat.emojis[0]?.native}
                                             </button>
                                         ))}
                                     </div>
                                 )}
 
-                                {/* EMOJI GRID - With lazy loading */}
-                                <div className="emoji-scroll-area" ref={scrollRef} onScroll={handleScroll}>
+                                {/* EMOJI GRID - All categories rendered upfront, no lazy loading */}
+                                <div className="emoji-scroll-area" ref={scrollRef}>
                                     {searchQuery ? (
                                         <div className="emoji-grid">
                                             {filteredEmojis.map(emoji => (
@@ -292,29 +229,20 @@ const EmojiPicker = ({
                                             {filteredEmojis.length === 0 && <div className="no-recent">No emojis found</div>}
                                         </div>
                                     ) : (
-                                        <>
-                                            {processedVisibleCategories.map(cat => (
-                                                <div key={cat.id} id={`cat-${cat.id}`} className="category-section">
-                                                    <div className="emoji-grid">
-                                                        {cat.emojis.map(emoji => (
-                                                            <EmojiItem
-                                                                key={emoji.id}
-                                                                emoji={emoji}
-                                                                style={emojiStyle}
-                                                                onSelect={handleEmojiSelect}
-                                                            />
-                                                        ))}
-                                                    </div>
+                                        ALL_PROCESSED_CATEGORIES.map(cat => (
+                                            <div key={cat.id} id={`cat-${cat.id}`} className="category-section">
+                                                <div className="emoji-grid">
+                                                    {cat.emojis.map(emoji => (
+                                                        <EmojiItem
+                                                            key={emoji.id}
+                                                            emoji={emoji}
+                                                            style={emojiStyle}
+                                                            onSelect={handleEmojiSelect}
+                                                        />
+                                                    ))}
                                                 </div>
-                                            ))}
-                                            
-                                            {/* Loading trigger element */}
-                                            {!searchQuery && visibleCategoriesCount < filteredCategories.length && (
-                                                <div ref={loadingRef} className="emoji-loading-trigger">
-                                                    {isLoadingMore && <div className="loading-spinner-small"></div>}
-                                                </div>
-                                            )}
-                                        </>
+                                            </div>
+                                        ))
                                     )}
                                 </div>
                             </>
@@ -347,7 +275,6 @@ const EmojiItem = memo(({ emoji, style, onSelect }) => {
                 <img
                     src={assetPath}
                     alt={emoji.name}
-                    loading="lazy"
                     onError={() => setHasError(true)}
                     className="emoji-img"
                 />
