@@ -1,4 +1,4 @@
-package com.CaBa.clone;
+package com.caba.app;
 
 import com.getcapacitor.BridgeActivity;
 
