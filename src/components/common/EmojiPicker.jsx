@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Smile, Search, X } from 'lucide-react';
 import data from '@emoji-mart/data';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
@@ -47,6 +48,8 @@ const EmojiPicker = ({
     const [activeCategory, setActiveCategory] = useState('smileys');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [hasBeenOpened, setHasBeenOpened] = useState(false);
+    // STAGED RENDERING: Show container immediately, defer heavy grid render
+    const [renderLevel, setRenderLevel] = useState(0);
 
     const { emojiStyle } = useEmojiStyle();
 
@@ -59,8 +62,21 @@ const EmojiPicker = ({
         if (isOpen) {
             setHasBeenOpened(true);
             setIsVisible(true);
+
+            // Step 1: Render first few emojis quickly (1 frame delay)
+            const timer1 = setTimeout(() => setRenderLevel(1), 16);
+            // Step 2: Render the rest after animation starts (heavy lift)
+            const timer2 = setTimeout(() => setRenderLevel(2), 100);
+
+            return () => {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+            };
         } else {
             setIsVisible(false);
+            // Reset render level when closed to ensure next open is also staged
+            const timer = setTimeout(() => setRenderLevel(0), 300);
+            return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
@@ -135,127 +151,148 @@ const EmojiPicker = ({
                 </button>
             )}
 
-            {(isOpen || hasBeenOpened) && (
-                <div className={`emoji-picker-popup ${isVisible ? 'visible' : ''} ${isInline ? 'inline' : ''}`}>
-                    <div className="picker-header">
-                        <div className="picker-tabs">
-                            <button
-                                className={`tab-btn ${activeTab === 'emoji' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('emoji')}
-                            >
-                                Emoji
-                            </button>
-                            <button
-                                className={`tab-btn ${activeTab === 'gif' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('gif')}
-                            >
-                                GIF
-                            </button>
+            <AnimatePresence>
+                {(isOpen || hasBeenOpened) && (
+                    <motion.div
+                        className={`emoji-picker-popup ${isVisible ? 'visible' : ''} ${isInline ? 'inline' : ''}`}
+                        initial={isInline ? false : { opacity: 0, scale: 0.9, y: 10 }}
+                        animate={isVisible ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.9, y: 10 }}
+                        exit={{ opacity: 0, scale: 0.8, y: 15 }}
+                        transition={{
+                            type: 'spring',
+                            damping: 25,
+                            stiffness: 300,
+                            opacity: { duration: 0.15 }
+                        }}
+                    >
+                        <div className="picker-header">
+                            <div className="picker-tabs">
+                                <button
+                                    className={`tab-btn ${activeTab === 'emoji' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('emoji')}
+                                >
+                                    Emoji
+                                </button>
+                                <button
+                                    className={`tab-btn ${activeTab === 'gif' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('gif')}
+                                >
+                                    GIF
+                                </button>
+                            </div>
+                            <div className="header-actions">
+                                {activeTab === 'emoji' && (
+                                    <button
+                                        className={`header-action-btn ${isSearchOpen ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setIsSearchOpen(!isSearchOpen);
+                                            if (isSearchOpen) setSearchQuery('');
+                                        }}
+                                        title="Search emojis"
+                                    >
+                                        <Search size={18} />
+                                    </button>
+                                )}
+                                {showCloseButton && (
+                                    <button
+                                        className="header-close-btn"
+                                        onClick={() => {
+                                            if (onOpenChange) onOpenChange(false);
+                                            else setInternalIsOpen(false);
+                                            onClose && onClose();
+                                        }}
+                                        title="Close"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                        <div className="header-actions">
+
+                        <div className="picker-body">
                             {activeTab === 'emoji' && (
-                                <button
-                                    className={`header-action-btn ${isSearchOpen ? 'active' : ''}`}
-                                    onClick={() => {
-                                        setIsSearchOpen(!isSearchOpen);
-                                        if (isSearchOpen) setSearchQuery('');
-                                    }}
-                                    title="Search emojis"
-                                >
-                                    <Search size={18} />
-                                </button>
+                                <>
+                                    {/* SEARCH BAR (Conditional) */}
+                                    {isSearchOpen && (
+                                        <div className="gif-search-bar">
+                                            <input
+                                                type="text"
+                                                placeholder="Search emojis..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                autoFocus
+                                            />
+                                            <Search className="search-icon" size={16} />
+                                        </div>
+                                    )}
+
+                                    {/* CATEGORY BAR */}
+                                    {!searchQuery && (
+                                        <div className="emoji-category-bar">
+                                            {ALL_PROCESSED_CATEGORIES.map(cat => (
+                                                <button
+                                                    key={cat.id}
+                                                    className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`}
+                                                    onClick={() => scrollToCategory(cat.id)}
+                                                    title={cat.id}
+                                                >
+                                                    {cat.emojis[0]?.native}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* EMOJI GRID - All categories rendered upfront, no lazy loading */}
+                                    <div className="emoji-scroll-area" ref={scrollRef}>
+                                        {searchQuery ? (
+                                            <div className="emoji-grid">
+                                                {filteredEmojis.map(emoji => (
+                                                    <EmojiItem
+                                                        key={emoji.id}
+                                                        emoji={emoji}
+                                                        style={emojiStyle}
+                                                        onSelect={handleEmojiSelect}
+                                                    />
+                                                ))}
+                                                {filteredEmojis.length === 0 && <div className="no-recent">No emojis found</div>}
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {/* Render level 1: Just top categories for instant visual feedback */}
+                                                {ALL_PROCESSED_CATEGORIES.slice(0, renderLevel === 1 ? 2 : (renderLevel === 2 ? 99 : 0)).map(cat => (
+                                                    <div key={cat.id} id={`cat-${cat.id}`} className="category-section">
+                                                        <div className="emoji-grid">
+                                                            {cat.emojis.map(emoji => (
+                                                                <EmojiItem
+                                                                    key={emoji.id}
+                                                                    emoji={emoji}
+                                                                    style={emojiStyle}
+                                                                    onSelect={handleEmojiSelect}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {/* Show a skeleton/placeholder if still rendering (unlikely with 100ms) */}
+                                                {renderLevel < 2 && (
+                                                    <div className="emoji-loading-placeholder" style={{ height: '300px' }}></div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                </>
                             )}
-                            {showCloseButton && (
-                                <button
-                                    className="header-close-btn"
-                                    onClick={() => {
-                                        if (onOpenChange) onOpenChange(false);
-                                        else setInternalIsOpen(false);
-                                        onClose && onClose();
-                                    }}
-                                    title="Close"
-                                >
-                                    <X size={18} />
-                                </button>
+
+                            {activeTab === 'gif' && (
+                                <KlipyGifPicker
+                                    onSelectGif={(gifUrl) => onEmojiSelect(gifUrl)}
+                                />
                             )}
                         </div>
-                    </div>
-
-                    <div className="picker-body">
-                        {activeTab === 'emoji' && (
-                            <>
-                                {/* SEARCH BAR (Conditional) */}
-                                {isSearchOpen && (
-                                    <div className="gif-search-bar">
-                                        <input
-                                            type="text"
-                                            placeholder="Search emojis..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            autoFocus
-                                        />
-                                        <Search className="search-icon" size={16} />
-                                    </div>
-                                )}
-
-                                {/* CATEGORY BAR */}
-                                {!searchQuery && (
-                                    <div className="emoji-category-bar">
-                                        {ALL_PROCESSED_CATEGORIES.map(cat => (
-                                            <button
-                                                key={cat.id}
-                                                className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`}
-                                                onClick={() => scrollToCategory(cat.id)}
-                                                title={cat.id}
-                                            >
-                                                {cat.emojis[0]?.native}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* EMOJI GRID - All categories rendered upfront, no lazy loading */}
-                                <div className="emoji-scroll-area" ref={scrollRef}>
-                                    {searchQuery ? (
-                                        <div className="emoji-grid">
-                                            {filteredEmojis.map(emoji => (
-                                                <EmojiItem
-                                                    key={emoji.id}
-                                                    emoji={emoji}
-                                                    style={emojiStyle}
-                                                    onSelect={handleEmojiSelect}
-                                                />
-                                            ))}
-                                            {filteredEmojis.length === 0 && <div className="no-recent">No emojis found</div>}
-                                        </div>
-                                    ) : (
-                                        ALL_PROCESSED_CATEGORIES.map(cat => (
-                                            <div key={cat.id} id={`cat-${cat.id}`} className="category-section">
-                                                <div className="emoji-grid">
-                                                    {cat.emojis.map(emoji => (
-                                                        <EmojiItem
-                                                            key={emoji.id}
-                                                            emoji={emoji}
-                                                            style={emojiStyle}
-                                                            onSelect={handleEmojiSelect}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {activeTab === 'gif' && (
-                            <KlipyGifPicker
-                                onSelectGif={(gifUrl) => onEmojiSelect(gifUrl)}
-                            />
-                        )}
-                    </div>
-                </div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

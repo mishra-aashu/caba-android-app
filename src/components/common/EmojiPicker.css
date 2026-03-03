@@ -30,7 +30,8 @@
 
       width: 380px;
       max-width: 95vw;
-      height: 480px;
+      height: 380px;
+      /* Reduced from 480px */
 
       /* Enhanced Glassmorphism Effect */
       background: rgba(30, 40, 45, 0.98);
@@ -51,15 +52,14 @@
       visibility: hidden;
       transform: scale(0.95) translateY(10px);
 
-      /* Snappy transition */
-      transition: opacity 0.2s cubic-bezier(0.1, 0.9, 0.2, 1),
-          transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1),
-          visibility 0.2s linear;
+      /* Removed CSS transitions to let Framer Motion handle everything */
+      transition: none;
 
       /* GPU Acceleration & Performance isolation */
       will-change: transform, opacity;
-      contain: strict;
-      
+      contain: content;
+      /* Changed from strict to content to allow internal layout freedom */
+
       /* Additional GPU Acceleration */
       transform: translateZ(0);
       -webkit-transform: translateZ(0);
@@ -288,23 +288,22 @@
       box-sizing: border-box;
       padding-right: 8px;
       /* Reduce right padding to fill space */
-      
+
       /* GPU Acceleration for smooth scrolling */
       transform: translateZ(0);
       -webkit-transform: translateZ(0);
       will-change: scroll-position;
       -webkit-overflow-scrolling: touch;
-      
+
       /* Performance optimizations */
-      contain: strict;
+      contain: content;
   }
 
   .category-section {
       margin-bottom: 16px;
-      /* Render optimization: only render what's visible */
+      /* Browser optimization: don't paint categories until they are near the viewport */
       content-visibility: auto;
-      contain-intrinsic-size: 1px 200px;
-      contain: layout style;
+      contain-intrinsic-size: 100% 200px;
   }
 
   .emoji-grid {
@@ -341,7 +340,7 @@
       /* Optimization: prevents layout shift */
       contain: layout paint;
       will-change: transform;
-      
+
       /* GPU Acceleration for smooth hover */
       transform: translateZ(0);
       -webkit-transform: translateZ(0);

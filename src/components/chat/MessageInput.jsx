@@ -655,9 +655,9 @@ const MessageInput = ({
       )}
 
       {/* Mobile Inline Picker - Renders BELOW the input bar */}
-      {showEmojiPicker && !isDesktop && (
+      {!isDesktop && (
         <EmojiPicker
-          isOpen={true}
+          isOpen={showEmojiPicker}
           isInline={true}
           onEmojiSelect={handleEmojiSelect}
           onClose={() => setShowEmojiPicker(false)}
@@ -669,20 +669,20 @@ const MessageInput = ({
         />
       )}
 
-      {showEmojiPicker && isDesktop && (
-        <div className="emoji-picker-overlay" onClick={() => setShowEmojiPicker(false)}>
-          <div className="emoji-picker-container" onClick={(e) => e.stopPropagation()}>
-            <EmojiPicker
-              isOpen={true}
-              onEmojiSelect={handleEmojiSelect}
-              onClose={() => setShowEmojiPicker(false)}
-              onOpenChange={setShowEmojiPicker}
-              showHeader={true}
-              showArrow={false}
-              showCloseButton={true}
-              showTrigger={false}
-            />
-          </div>
+      {/* Desktop Anchored Picker - Bubble style */}
+      {isDesktop && (
+        <div className="desktop-emoji-picker-anchor" onClick={(e) => e.stopPropagation()}>
+          <EmojiPicker
+            isOpen={showEmojiPicker}
+            isInline={false}
+            onEmojiSelect={handleEmojiSelect}
+            onClose={() => setShowEmojiPicker(false)}
+            onOpenChange={setShowEmojiPicker}
+            showHeader={true}
+            showArrow={true}
+            showCloseButton={true}
+            showTrigger={false}
+          />
         </div>
       )}
     </div>
