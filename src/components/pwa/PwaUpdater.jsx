@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import toast from 'react-hot-toast';
@@ -10,12 +10,22 @@ import { isOlderVersion } from '../../utils/versionUtils';
 // App's current local version synced with package.json
 const APP_VERSION = __APP_VERSION__;
 
-// Cooldown period after clicking refresh to prevent immediate re-prompting (30 seconds)
-const UPDATE_COOLDOWN_MS = 30000;
+// Cooldown after clicking "Refresh" — stored in localStorage so it survives reload
+const UPDATE_COOLDOWN_MS = 60 * 1000; // 1 minute
 
+// localStorage keys
+const LS_COOLDOWN_KEY = 'pwa_update_cooldown';
+const LS_DISMISSED_VERSION_KEY = 'pwa_dismissed_version';
+const LS_RUNNING_VERSION_KEY = 'digidad_running_version';
 
 /**
  * PwaUpdater handles Service Worker registration and database-driven version control.
+ *
+ * Fix summary:
+ * 1. Cooldown moved from sessionStorage → localStorage so it survives page reload.
+ * 2. "Dismissed version" tracking: once user taps Refresh for vX.Y.Z, we never
+ *    re-show the toast for that same version.
+ * 3. useAppVersions now has refetchOnWindowFocus:false, stopping focus-based re-triggers.
  */
 const PwaUpdater = () => {
     const {
@@ -27,82 +37,98 @@ const PwaUpdater = () => {
     });
 
     const { currentUser } = useAuth();
-    const [showUpdateBanner, setShowUpdateBanner] = useState(false);
-    const [updateInfo, setUpdateInfo] = useState(null);
     const { data: dbVersionData, refetch: refetchVersions } = useAppVersions();
     const location = useLocation();
     const isGameRoute = location.pathname.includes('/game');
 
-    // Aggressive cache clearing to prevent 404 on hashed assets
+    // Track latest version we know about (from DB) so handleUpdate can save it
+    const latestVersionRef = useRef(null);
+
+    // ─── Helpers ────────────────────────────────────────────────────────────
+
+    /** True if we are within the post-refresh cooldown window */
+    const isInCooldown = () => {
+        const ts = localStorage.getItem(LS_COOLDOWN_KEY);
+        if (!ts) return false;
+        return Date.now() - parseInt(ts, 10) < UPDATE_COOLDOWN_MS;
+    };
+
+    /**
+     * True if the user has already acknowledged (dismissed/refreshed) this version.
+     * Prevents the toast re-firing for the same version on every reload/focus.
+     */
+    const hasUserSeenVersion = (version) => {
+        if (!version) return false;
+        const dismissed = localStorage.getItem(LS_DISMISSED_VERSION_KEY);
+        // If dismissed version >= given version, user already saw it
+        if (!dismissed) return false;
+        return !isOlderVersion(dismissed, version);
+    };
+
+    // ─── Cache / SW helpers ─────────────────────────────────────────────────
+
     const clearAllCaches = async () => {
         try {
             const cacheNames = await caches.keys();
-            await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
-        } catch (error) {
-            console.error('[PwaUpdater] Cache clearing failed:', error);
+            await Promise.all(cacheNames.map(n => caches.delete(n)));
+        } catch (e) {
+            console.error('[PwaUpdater] Cache clearing failed:', e);
         }
     };
 
-    // Unregister all service workers
     const unregisterAllServiceWorkers = async () => {
         try {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registrations.map(reg => reg.unregister()));
-        } catch (error) {
-            console.error('[PwaUpdater] SW unregistration failed:', error);
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+        } catch (e) {
+            console.error('[PwaUpdater] SW unregistration failed:', e);
         }
     };
 
-    const handleUpdate = async () => {
+    // ─── Handle update click ────────────────────────────────────────────────
+
+    const handleUpdate = async (versionToMark) => {
         console.log('[PwaUpdater] Starting update process...');
         try {
-            // Set cooldown in sessionStorage to prevent loop if version doesn't bump immediately
-            sessionStorage.setItem('pwa_update_cooldown', Date.now().toString());
+            // 1. Mark cooldown in localStorage — SURVIVES the upcoming reload
+            localStorage.setItem(LS_COOLDOWN_KEY, Date.now().toString());
 
-            // Step 1: Clear all caches first
+            // 2. Record which version the user acknowledged — PREVENTS re-prompting
+            //    after reload for the SAME version
+            const versionToSave = versionToMark || latestVersionRef.current || APP_VERSION;
+            localStorage.setItem(LS_DISMISSED_VERSION_KEY, versionToSave);
+
+            // 3. Clear caches
             await clearAllCaches();
 
-            // Step 2: Handle Native vs Web update
+            // 4. Reload
             if (Capacitor.isNativePlatform()) {
-                console.log('[PwaUpdater] Native platform detected. Reloading.');
                 toast.loading('Restarting app...', { id: 'pwa-update-toast' });
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 1000);
+                setTimeout(() => window.location.reload(true), 1000);
             } else {
-                console.log('[PwaUpdater] Web/PWA detected. Unregistering SW and reloading.');
                 await unregisterAllServiceWorkers();
-
                 if (typeof updateServiceWorker === 'function') {
                     await updateServiceWorker(true);
                 }
-
                 window.location.reload(true);
             }
-        } catch (error) {
-            console.error('[PwaUpdater] Update failed:', error);
+        } catch (e) {
+            console.error('[PwaUpdater] Update failed:', e);
             window.location.reload(true);
         }
     };
 
-    const showUpdateToast = (isMandatory = false) => {
+    // ─── Toast UI ───────────────────────────────────────────────────────────
+
+    const showUpdateToast = (isMandatory = false, versionToMark = null) => {
         toast((t) => (
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '4px 0'
-            }}>
-                <span style={{
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: 'var(--text-primary)'
-                }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px 0' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
                     A new version of CaBa is ready! Tap to refresh.
                 </span>
                 <button
                     onClick={() => {
-                        handleUpdate();
+                        handleUpdate(versionToMark);
                         toast.dismiss(t.id);
                     }}
                     style={{
@@ -124,7 +150,14 @@ const PwaUpdater = () => {
                 </button>
                 {!isMandatory && (
                     <button
-                        onClick={() => toast.dismiss(t.id)}
+                        onClick={() => {
+                            // User dismissed without refreshing — still mark version
+                            // so it doesn't nag again this session
+                            if (versionToMark) {
+                                localStorage.setItem(LS_DISMISSED_VERSION_KEY, versionToMark);
+                            }
+                            toast.dismiss(t.id);
+                        }}
                         style={{
                             background: 'transparent',
                             color: 'var(--text-secondary, #666)',
@@ -140,7 +173,7 @@ const PwaUpdater = () => {
             </div>
         ), {
             id: 'pwa-update-toast',
-            duration: isMandatory ? Infinity : 15000, // Slightly longer duration
+            duration: isMandatory ? Infinity : 15000,
             position: 'bottom-center',
             style: {
                 background: 'var(--surface-color, #fff)',
@@ -155,70 +188,81 @@ const PwaUpdater = () => {
         });
     };
 
-    // Helper to check if we are in cooldown
-    const isInCooldown = () => {
-        const lastRefresh = sessionStorage.getItem('pwa_update_cooldown');
-        if (!lastRefresh) return false;
-        const elapsed = Date.now() - parseInt(lastRefresh, 10);
-        return elapsed < UPDATE_COOLDOWN_MS;
-    };
+    // ─── On mount: record running version ───────────────────────────────────
 
-    // Reset update banner if new version is installed
     useEffect(() => {
-        const storedVersion = localStorage.getItem('digidad_running_version');
-        if (storedVersion && storedVersion !== APP_VERSION) {
-            localStorage.setItem('digidad_running_version', APP_VERSION);
-            setShowUpdateBanner(false);
-            setUpdateInfo(null);
-
-            // Re-fetch versions query internally if the app just updated
-        } else if (!storedVersion) {
-            localStorage.setItem('digidad_running_version', APP_VERSION);
+        const stored = localStorage.getItem(LS_RUNNING_VERSION_KEY);
+        if (!stored) {
+            localStorage.setItem(LS_RUNNING_VERSION_KEY, APP_VERSION);
+        } else if (stored !== APP_VERSION) {
+            // App actually updated to a new bundle — clear dismissed marker so
+            // future DB-driven updates get shown again correctly
+            localStorage.setItem(LS_RUNNING_VERSION_KEY, APP_VERSION);
+            // Only clear dismissed if dismissed version <= new APP_VERSION
+            // (meaning this update resolved the pending nag)
+            const dismissed = localStorage.getItem(LS_DISMISSED_VERSION_KEY);
+            if (dismissed && !isOlderVersion(APP_VERSION, dismissed)) {
+                localStorage.removeItem(LS_DISMISSED_VERSION_KEY);
+            }
         }
     }, []);
 
-    // Periodic check for mandatory background updates
+    // ─── Periodic background version check (30 min) ─────────────────────────
+
     useEffect(() => {
         let interval;
         if (currentUser && !isGameRoute) {
-            // Check every 30 minutes
             interval = setInterval(() => {
-                if (navigator.onLine) {
-                    refetchVersions();
-                }
+                if (navigator.onLine) refetchVersions();
             }, 30 * 60 * 1000);
         }
-        return () => {
-            if (interval) clearInterval(interval);
-        };
+        return () => { if (interval) clearInterval(interval); };
     }, [currentUser, isGameRoute]);
+
+    // ─── Main version check logic ────────────────────────────────────────────
 
     useEffect(() => {
         const checkAppVersion = async () => {
+            // GUARD 1: Cooldown active (e.g. just reloaded after update)
             if (isInCooldown()) {
-                console.log('[PwaUpdater] Update check skipped (cooldown active)');
+                console.log('[PwaUpdater] Skipped — cooldown active');
                 return;
             }
 
             try {
-                const data = dbVersionData;
-                if (data) {
-                    const isMandatory = isOlderVersion(APP_VERSION, data.min_required_version);
-                    const isOptional = isOlderVersion(APP_VERSION, data.latest_version);
+                if (dbVersionData) {
+                    const { latest_version, min_required_version } = dbVersionData;
+
+                    // Keep ref updated for handleUpdate to use
+                    latestVersionRef.current = latest_version;
+
+                    const isMandatory = isOlderVersion(APP_VERSION, min_required_version);
+                    const isOptional = isOlderVersion(APP_VERSION, latest_version);
 
                     if (isMandatory) {
-                        showUpdateToast(true);
-                    } else if (isOptional || needRefresh) {
-                        // Delay optional prompts slightly to avoid jumpy UI on load
-                        setTimeout(() => showUpdateToast(false), 2000);
+                        // GUARD 2: Even for mandatory, skip if user already acknowledged
+                        if (!hasUserSeenVersion(min_required_version)) {
+                            showUpdateToast(true, min_required_version);
+                        }
+                    } else if (isOptional) {
+                        // GUARD 2: Skip if user already dismissed this exact version
+                        if (!hasUserSeenVersion(latest_version)) {
+                            setTimeout(() => showUpdateToast(false, latest_version), 2000);
+                        }
+                    } else if (needRefresh) {
+                        // SW detected a new asset bundle — show generic update toast
+                        if (!hasUserSeenVersion(latest_version)) {
+                            setTimeout(() => showUpdateToast(false, latest_version), 2000);
+                        }
                     }
                 } else if (needRefresh) {
-                    setTimeout(() => showUpdateToast(false), 2000);
+                    // No DB data — fall back to SW-driven prompt
+                    setTimeout(() => showUpdateToast(false, null), 2000);
                 }
             } catch (err) {
-                console.error('Version check failed:', err);
+                console.error('[PwaUpdater] Version check failed:', err);
                 if (needRefresh) {
-                    setTimeout(() => showUpdateToast(false), 2000);
+                    setTimeout(() => showUpdateToast(false, null), 2000);
                 }
             }
         };
@@ -228,6 +272,5 @@ const PwaUpdater = () => {
 
     return null;
 };
-
 
 export default PwaUpdater;

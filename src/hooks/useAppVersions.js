@@ -18,9 +18,9 @@ export const useAppVersions = () => {
             if (error) throw error;
             return data;
         },
-        staleTime: 30000, // 30 seconds
+        staleTime: 10 * 60 * 1000, // 10 minutes — periodic interval handles background checks
         gcTime: 1000 * 60 * 60 * 24, // 24 hours
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus: false, // FIXED: was causing toast re-fire on every app focus
         refetchOnMount: true,
         refetchOnReconnect: true,
     });
