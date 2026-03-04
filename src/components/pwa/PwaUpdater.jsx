@@ -10,6 +10,9 @@ import { isOlderVersion } from '../../utils/versionUtils';
 // App's current local version synced with package.json
 const APP_VERSION = __APP_VERSION__;
 
+// Cooldown period after clicking refresh to prevent immediate re-prompting (30 seconds)
+const UPDATE_COOLDOWN_MS = 30000;
+
 
 /**
  * PwaUpdater handles Service Worker registration and database-driven version control.
@@ -53,31 +56,31 @@ const PwaUpdater = () => {
     const handleUpdate = async () => {
         console.log('[PwaUpdater] Starting update process...');
         try {
+            // Set cooldown in sessionStorage to prevent loop if version doesn't bump immediately
+            sessionStorage.setItem('pwa_update_cooldown', Date.now().toString());
+
             // Step 1: Clear all caches first
             await clearAllCaches();
 
             // Step 2: Handle Native vs Web update
             if (Capacitor.isNativePlatform()) {
-                // Give user 1sec to see the toast before reload
-                setTimeout(async () => {
+                console.log('[PwaUpdater] Native platform detected. Reloading.');
+                toast.loading('Restarting app...', { id: 'pwa-update-toast' });
+                setTimeout(() => {
                     window.location.reload(true);
                 }, 1000);
             } else {
                 console.log('[PwaUpdater] Web/PWA detected. Unregistering SW and reloading.');
-                // Step 3: Unregister all service workers
                 await unregisterAllServiceWorkers();
 
-                // Step 4: Try standard SW update
                 if (typeof updateServiceWorker === 'function') {
                     await updateServiceWorker(true);
                 }
 
-                // Step 5: Force hard reload to ensure fresh assets
                 window.location.reload(true);
             }
         } catch (error) {
             console.error('[PwaUpdater] Update failed:', error);
-            // Emergency fallback - force hard reload anyway
             window.location.reload(true);
         }
     };
@@ -137,7 +140,7 @@ const PwaUpdater = () => {
             </div>
         ), {
             id: 'pwa-update-toast',
-            duration: isMandatory ? Infinity : 10000,
+            duration: isMandatory ? Infinity : 15000, // Slightly longer duration
             position: 'bottom-center',
             style: {
                 background: 'var(--surface-color, #fff)',
@@ -150,6 +153,14 @@ const PwaUpdater = () => {
                 marginBottom: '20px'
             }
         });
+    };
+
+    // Helper to check if we are in cooldown
+    const isInCooldown = () => {
+        const lastRefresh = sessionStorage.getItem('pwa_update_cooldown');
+        if (!lastRefresh) return false;
+        const elapsed = Date.now() - parseInt(lastRefresh, 10);
+        return elapsed < UPDATE_COOLDOWN_MS;
     };
 
     // Reset update banner if new version is installed
@@ -184,6 +195,11 @@ const PwaUpdater = () => {
 
     useEffect(() => {
         const checkAppVersion = async () => {
+            if (isInCooldown()) {
+                console.log('[PwaUpdater] Update check skipped (cooldown active)');
+                return;
+            }
+
             try {
                 const data = dbVersionData;
                 if (data) {
@@ -193,16 +209,16 @@ const PwaUpdater = () => {
                     if (isMandatory) {
                         showUpdateToast(true);
                     } else if (isOptional || needRefresh) {
-                        showUpdateToast(false);
+                        // Delay optional prompts slightly to avoid jumpy UI on load
+                        setTimeout(() => showUpdateToast(false), 2000);
                     }
                 } else if (needRefresh) {
-                    showUpdateToast(false);
+                    setTimeout(() => showUpdateToast(false), 2000);
                 }
             } catch (err) {
                 console.error('Version check failed:', err);
-                // Fallback to basic PWA refresh if DB check fails
                 if (needRefresh) {
-                    showUpdateToast(false);
+                    setTimeout(() => showUpdateToast(false), 2000);
                 }
             }
         };

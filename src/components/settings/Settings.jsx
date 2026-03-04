@@ -234,7 +234,13 @@ const Settings = () => {
       const confirmed = await showConfirm(`A new version (${remoteVersion}) is available! Update now?`, 'Update Available');
       if (confirmed) {
         toast.loading('Restarting app...');
-        setTimeout(() => window.location.reload(true), 1000);
+        setTimeout(() => {
+          if (Capacitor.isNativePlatform()) {
+            window.location.reload(true);
+          } else {
+            window.location.reload(true);
+          }
+        }, 1000);
       }
     } else {
       showAlert(`You are using the latest version (v${APP_VERSION})`, 'App Update');
