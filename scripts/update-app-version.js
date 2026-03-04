@@ -25,40 +25,28 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function updateAppVersion() {
-    console.log(`🚀 Updating app version to ${currentVersion} in Supabase...`);
+    console.log(`🚀 Updating app version to ${currentVersion} in Supabase (Row ID: 1)...`);
 
     try {
-        // 1. Check if this version already exists to avoid duplicates
-        const { data: existing, error: fetchError } = await supabase
+        // Update the single existing record (ID: 1)
+        // This ensures the table doesn't grow with duplicate/history rows
+        // and keeps the latest version info in one place.
+        const { error: updateError } = await supabase
             .from('app_versions')
-            .select('latest_version')
-            .eq('latest_version', currentVersion)
-            .maybeSingle();
+            .update({
+                latest_version: currentVersion,
+                min_required_version: currentVersion
+            })
+            .eq('id', 1);
 
-        if (fetchError) throw fetchError;
+        if (updateError) throw updateError;
 
-        if (existing) {
-            console.log(`ℹ️ Version ${currentVersion} already exists in Supabase. Skipping update.`);
-            return;
-        }
-
-        // 2. Insert the new version
-        // We set min_required_version equal to latest_version by default.
-        // This forces an update if the app checks for min_required_version.
-        const { error: insertError } = await supabase
-            .from('app_versions')
-            .insert([
-                {
-                    latest_version: currentVersion,
-                    min_required_version: currentVersion
-                }
-            ]);
-
-        if (insertError) throw insertError;
-
-        console.log(`✅ Successfully updated app_versions in Supabase to version ${currentVersion}!`);
+        console.log(`✅ Successfully updated row ID 1 in Supabase to version ${currentVersion}!`);
     } catch (error) {
         console.error('❌ Error updating app version in Supabase:', error.message);
+        if (error.message.includes('permission denied')) {
+            console.error('💡 TIP: Check if the "anon" role has INSERT permissions for the "app_versions" table in Supabase RLS.');
+        }
         process.exit(1);
     }
 }
