@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppVersions } from '../hooks/useAppVersions';
+import { isOlderVersion } from '../utils/versionUtils';
 import { ArrowLeft, Shield, Lock, Eye, MessageCircle, Phone, Users, Heart, Trash2, FileText } from 'lucide-react';
 import './about/About.css';
 
@@ -13,20 +14,6 @@ const About = () => {
 
   // Local version from package.json
   const localVersion = `v${APP_VERSION}`;
-
-  // Robust version comparison
-  const isOlderVersion = (local, server) => {
-    if (!server) return false;
-    const localParts = local.split('.').map(Number);
-    const serverParts = server.split('.').map(Number);
-    for (let i = 0; i < Math.max(localParts.length, serverParts.length); i++) {
-      const l = localParts[i] || 0;
-      const s = serverParts[i] || 0;
-      if (l < s) return true;
-      if (l > s) return false;
-    }
-    return false;
-  };
 
   const isUpdateAvailable = isOlderVersion(APP_VERSION, dbVersionData?.latest_version);
 

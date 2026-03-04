@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAppVersions } from '../../hooks/useAppVersions';
 import { Capacitor } from '@capacitor/core';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { isOlderVersion } from '../../utils/versionUtils';
 
 // App's current local version synced with package.json
 const APP_VERSION = __APP_VERSION__;
@@ -29,20 +30,6 @@ const PwaUpdater = () => {
     const { data: dbVersionData, refetch: refetchVersions } = useAppVersions();
     const location = useLocation();
     const isGameRoute = location.pathname.includes('/game');
-
-    // Version comparison helper
-    const isOlderVersion = (local, server) => {
-        if (!server) return false;
-        const localParts = local.split('.').map(Number);
-        const serverParts = server.split('.').map(Number);
-        for (let i = 0; i < Math.max(localParts.length, serverParts.length); i++) {
-            const l = localParts[i] || 0;
-            const s = serverParts[i] || 0;
-            if (l < s) return true;
-            if (l > s) return false;
-        }
-        return false;
-    };
 
     // Aggressive cache clearing to prevent 404 on hashed assets
     const clearAllCaches = async () => {
@@ -73,9 +60,11 @@ const PwaUpdater = () => {
             // Step 2: Handle Native vs Web update
             if (Capacitor.isNativePlatform()) {
                 console.log('[PwaUpdater] Native platform detected. Using CapacitorUpdater for reload.');
-                // For Capacitor apps, a simple location.reload() might not be enough
-                // to apply OTA updates or clear native-level caches.
-                await CapacitorUpdater.reload();
+                toast.loading('Restarting app to apply update...', { id: 'pwa-update-toast' });
+                // Give user 1sec to see the toast before reload
+                setTimeout(async () => {
+                    await CapacitorUpdater.reload();
+                }, 1000);
             } else {
                 console.log('[PwaUpdater] Web/PWA detected. Unregistering SW and reloading.');
                 // Step 3: Unregister all service workers

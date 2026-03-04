@@ -18,7 +18,7 @@ export const useAppVersions = () => {
             if (error) throw error;
             return data;
         },
-        staleTime: 1000 * 60 * 60, // 1 hour
+        staleTime: 30000, // 30 seconds
         gcTime: 1000 * 60 * 60 * 24, // 24 hours
         refetchOnWindowFocus: true,
         refetchOnMount: true,
