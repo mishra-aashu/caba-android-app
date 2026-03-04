@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appId: 'com.caba.app',
   appName: 'caba',
   webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+  },
   plugins: {
     extConfig: {},
     GoogleAuth: {

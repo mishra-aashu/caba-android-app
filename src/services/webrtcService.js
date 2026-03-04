@@ -115,35 +115,51 @@ class WebRTCService {
    */
   async requestMediaPermissions(video = true, audio = true) {
     if (!Capacitor.isNativePlatform()) {
-      // On web, getUserMedia will trigger the prompt, so we can just proceed.
-      console.log('On web, getUserMedia will handle permissions.');
-      return true;
+      console.log('Checking permissions on web...');
+      try {
+        // Just a check, the real stream is acquired later
+        const stream = await navigator.mediaDevices.getUserMedia({ video, audio });
+        stream.getTracks().forEach(track => track.stop());
+        return true;
+      } catch (e) {
+        console.error("❌ Web permission error:", e);
+        throw e;
+      }
     }
 
     // On native platforms (Android/iOS)
     try {
       if (video) {
+        console.log('Requesting camera permissions...');
         const cameraPermissions = await Camera.requestPermissions({ permissions: ['camera'] });
         if (cameraPermissions.camera !== 'granted') {
           throw new Error('Camera permission was denied.');
         }
       }
-      
+
       if (audio) {
-        // For microphone on native, the most reliable way to trigger the OS-level
-        // prompt (after declaring it in AndroidManifest.xml) is a direct,
-        // short-lived getUserMedia call.
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        // We immediately stop the tracks because we only used this call to trigger the prompt.
-        // The real, combined stream will be acquired in getLocalStream.
-        stream.getTracks().forEach(track => track.stop());
-        console.log('🎤 Microphone permission seems to be granted.');
+        console.log('Requesting microphone permissions via getUserMedia...');
+        // On Android, the WebView doesn't always automatically proxy the request to the OS
+        // unless you trigger it. Capacitor 6 bridge usually handles this if declared in manifest,
+        // but a direct getUserMedia call is the most reliable "trigger".
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          stream.getTracks().forEach(track => track.stop());
+          console.log('🎤 Microphone permission granted.');
+        } catch (audioError) {
+          console.error("❌ Microphone access failed:", audioError);
+          throw new Error("Microphone permission denied or hardware unavailable");
+        }
       }
-      
+
       return true;
     } catch (e) {
-      console.error("❌ Permission request error:", e);
-      throw new Error("Permissions denied");
+      console.error("❌ Native permission request error:", e);
+      // Re-throw with a more descriptive message if it's a known error
+      if (e.name === 'NotAllowedError' || e.message?.includes('denied')) {
+        throw new Error("Permissions denied by user");
+      }
+      throw e;
     }
   }
 
@@ -175,7 +191,7 @@ class WebRTCService {
     } catch (error) {
       console.error('❌ Error getting local stream:', error.name, error.message);
       if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-          throw new Error("Permission denied");
+        throw new Error("Permission denied");
       }
       throw error;
     }
@@ -591,15 +607,15 @@ class WebRTCService {
       try {
         this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = this.screenStream.getVideoTracks()[0];
-        
+
         this.originalVideoTrack = this.localStream.getVideoTracks()[0];
         await videoSender.replaceTrack(screenTrack);
-        
+
         // When the user stops sharing via the browser UI
         screenTrack.onended = () => {
           this.toggleScreenShare();
         };
-        
+
         this.isScreenSharing = true;
         console.log('📺 Screen sharing started');
         return true;
