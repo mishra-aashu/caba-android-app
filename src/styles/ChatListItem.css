@@ -205,16 +205,12 @@ body.light-mode .chat-last-message {
   color: #667781;
 }
 
-/* --- 6. Scrollbar Styling --- */
+/* --- 6. Scrollbar Styling (Hidden for Clean UI) --- */
 .scrollable-area::-webkit-scrollbar {
-  width: 6px;
+  display: none;
 }
 
-.scrollable-area::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-body.light-mode .scrollable-area::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
+.scrollable-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
