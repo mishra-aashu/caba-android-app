@@ -3,14 +3,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../config/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useCall } from '../../context/CallContext';
+import { useCall } from '../../contexts/CallContext';
 import { dpOptions } from '../../utils/dpOptions';
 import { CallHistory } from '../CallHistory';
 import { useDialog } from '../../contexts/DialogContext';
 import { CallButton } from '../CallButton';
 import { IncomingCallModal } from '../IncomingCallModal';
 import BottomNavigation from '../common/BottomNavigation';
-import { isUserOnline } from '../../utils/timeUtils';
+import { isUserOnline } from '../../utils/dateFormatter';
 import useAuthStore from '../../store/authStore';
 import '../../styles/calls.css';
 

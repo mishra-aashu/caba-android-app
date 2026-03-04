@@ -99,7 +99,7 @@ const ImageViewer = ({
         alert('Link copied to clipboard!');
       }
     } catch (error) {
-      console.log('Share cancelled or failed:', error);
+      // Silent catch for share cancellation
     }
   }, [imageUrl, onShare, message]);
 

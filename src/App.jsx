@@ -1,10 +1,10 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth'; // Use the main auth hook
-// import { CallProvider } from './context/CallContext';
+// import { CallProvider } from './contexts/CallContext';
 import { ChatThemeProvider } from './contexts/ChatThemeProvider';
 import { DataProvider } from './contexts/DataProvider';
-import { GroupCallProvider } from './context/GroupCallProvider';
+import { GroupCallProvider } from './contexts/GroupCallProvider';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
 import { Toaster } from 'react-hot-toast';
@@ -56,7 +56,7 @@ import useOnlineStatus from './hooks/useOnlineStatus';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import ViewportManager from './components/layout/ViewportManager';
 import MainLayout from './components/MainLayout';
-import Chat from './components/chat/Chat';
+const Chat = lazy(() => import('./components/chat/Chat'));
 const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
 import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';

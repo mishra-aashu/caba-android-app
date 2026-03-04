@@ -45,8 +45,6 @@ export const useWebRTCCalling = () => {
       setOnCallEnd(() => callbacks.onCallEnd);
       setOnCallStateChange(() => callbacks.onStateChange);
 
-      console.log(`📞 Starting ${callType} call to ${receiverId}...`);
-
       // Get current user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error('Not authenticated');
@@ -100,8 +98,6 @@ export const useWebRTCCalling = () => {
         callType: callType
       });
 
-      console.log('✅ Call initiated, waiting for answer...');
-
       return {
         success: true,
         callId: callData.id,
@@ -132,8 +128,6 @@ export const useWebRTCCalling = () => {
       setOnCallEnd(() => callbacks.onCallEnd);
       setOnCallStateChange(() => callbacks.onStateChange);
 
-      console.log(`📞 Answering ${callType} call...`);
-
       // Get current user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error('Not authenticated');
@@ -160,8 +154,6 @@ export const useWebRTCCalling = () => {
       // Subscribe to signals
       await subscribeToSignals();
 
-      console.log('✅ Ready to receive call...');
-
       return {
         success: true,
         localStream: localStream
@@ -182,7 +174,6 @@ export const useWebRTCCalling = () => {
    */
   const endCall = useCallback(async (reason = 'completed') => {
     try {
-      console.log('📞 Ending call...');
 
       // Stop call timer
       if (callTimerRef.current) {
@@ -263,8 +254,6 @@ export const useWebRTCCalling = () => {
         setLocalStream(stream);
       }
 
-      console.log('🎥 Local media acquired for', callType);
-
     } catch (error) {
       console.error('Get media error:', error);
       throw new Error(`Could not access ${callType === 'screen' ? 'screen' : 'camera/microphone'}`);
@@ -288,7 +277,6 @@ export const useWebRTCCalling = () => {
 
     // Handle remote tracks
     pc.ontrack = (event) => {
-      console.log('🎥 Remote track received:', event.track.kind);
 
       if (!remoteStream) {
         const remote = new MediaStream();
@@ -314,7 +302,6 @@ export const useWebRTCCalling = () => {
     // Connection state changes
     pc.onconnectionstatechange = () => {
       const state = pc.connectionState;
-      console.log('Connection state:', state);
 
       if (state === 'connected') {
         setIsConnected(true);
@@ -333,8 +320,6 @@ export const useWebRTCCalling = () => {
         endCall(state);
       }
     };
-
-    console.log('✅ Peer connection initialized');
   }, [localStream, remoteStream, onRemoteStream, callId, getTURNConfig]);
 
   /**
@@ -356,7 +341,6 @@ export const useWebRTCCalling = () => {
         }
       )
       .subscribe((status) => {
-        console.log('📡 Call signaling channel:', status);
       });
 
     setChannel(ch);
@@ -368,8 +352,6 @@ export const useWebRTCCalling = () => {
   const handleSignal = useCallback(async (signal) => {
     // Ignore own signals
     if (signal.sender_id === userId) return;
-
-    console.log(`📥 Signal received: ${signal.signal_type}`);
 
     try {
       switch (signal.signal_type) {
@@ -411,8 +393,6 @@ export const useWebRTCCalling = () => {
       sdp: answer.sdp,
       type: answer.type
     });
-
-    console.log('✅ Answer sent');
   }, [peerConnection]);
 
   /**
@@ -425,8 +405,6 @@ export const useWebRTCCalling = () => {
         sdp: payload.sdp
       })
     );
-
-    console.log('✅ Answer received');
   }, [peerConnection]);
 
   /**

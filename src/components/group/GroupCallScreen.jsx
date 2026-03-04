@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useGroupCall } from '../../context/GroupCallContext';
+import { useGroupCall } from '../../contexts/GroupCallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../config/supabase';
 import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Users, Settings, Monitor, MonitorOff, Crown, Volume2 } from 'lucide-react';

@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import { getDpById } from '../../utils/dpOptions';
-import { isUserOnline } from '../../utils/timeUtils';
+import { isUserOnline } from '../../utils/dateFormatter';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { MoreVertical, Crown, User, Phone, Trash2, ArrowUp, Flag } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';

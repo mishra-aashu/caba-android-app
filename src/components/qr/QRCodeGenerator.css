@@ -74,8 +74,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .qr-canvas-container {
@@ -208,7 +213,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-1, 0 10px 25px rgba(0,0,0,0.35));
+  box-shadow: var(--shadow-1, 0 10px 25px rgba(0, 0, 0, 0.35));
 }
 
 .qr-swiper-content {
@@ -262,11 +267,11 @@
   width: 100%;
   height: 100%;
   background-image:
-    radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 2%, transparent 2%),
-    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.3) 2%, transparent 2%),
-    radial-gradient(circle at 40% 40%, rgba(255,255,255,0.2) 1%, transparent 1%),
-    radial-gradient(circle at 60% 90%, rgba(255,255,255,0.2) 1%, transparent 1%),
-    radial-gradient(circle at 90% 60%, rgba(255,255,255,0.2) 1%, transparent 1%);
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.3) 2%, transparent 2%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.3) 2%, transparent 2%),
+    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.2) 1%, transparent 1%),
+    radial-gradient(circle at 60% 90%, rgba(255, 255, 255, 0.2) 1%, transparent 1%),
+    radial-gradient(circle at 90% 60%, rgba(255, 255, 255, 0.2) 1%, transparent 1%);
   background-size: 50px 50px, 30px 30px, 20px 20px, 15px 15px, 25px 25px;
   background-position: 0 0, 10px 10px, 20px 20px, 5px 5px, 15px 15px;
 }
@@ -311,8 +316,8 @@
 }
 
 /* Ensure high contrast for scanning */
-.qr-card-qr-box {
-  background: #ffffff !important;
+.qr-card .qr-card-qr-box {
+  background: #ffffff;
   border: 2px solid #ffffff;
 }
 
@@ -351,19 +356,19 @@
   .qr-generator-modal {
     padding: 10px;
   }
-  
+
   .qr-generator-content {
     border-radius: 15px;
   }
-  
+
   .qr-generator-header {
     padding: 15px 15px 0;
   }
-  
+
   .qr-generator-body {
     padding: 0 15px 15px;
   }
-  
+
   .qr-actions {
     flex-direction: column;
   }

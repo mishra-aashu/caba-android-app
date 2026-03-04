@@ -346,9 +346,9 @@ body.dark .settings-item:hover {
     color: var(--text-color);
 }
 
-.settings-item.danger .label,
-.settings-item.danger .icon {
-    color: var(--danger-action) !important;
+.user-details-screen .settings-item.danger .label,
+.user-details-screen .settings-item.danger .icon {
+    color: var(--danger-action);
 }
 
 /* Media Preview styling */

@@ -52,13 +52,10 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
 
     const result = await startCall(receiverId, type, {
       onRemoteStream: (stream) => {
-        console.log('Remote stream received');
       },
       onCallEnd: (data) => {
-        console.log('Call ended:', data);
       },
       onStateChange: (type, data) => {
-        console.log('Call state change:', type, data);
       }
     });
 

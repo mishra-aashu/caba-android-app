@@ -1,5 +1,5 @@
 .reminders-container {
-    height: 100vh;
+    height: var(--app-height);
     overflow-y: auto;
     background-color: var(--bg-1, #f8fafc);
     color: var(--text-0, #1e293b);
@@ -542,7 +542,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
+    height: var(--app-height);
     gap: 1.5rem;
 }
 

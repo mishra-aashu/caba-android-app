@@ -34,7 +34,6 @@ const useAuthStore = create((set, get) => ({
       }
 
       if (session?.user) {
-        console.log('✅ Initial session found:', session.user.email);
         set({
           user: session.user,
           session: session,
@@ -50,7 +49,6 @@ const useAuthStore = create((set, get) => ({
       // ✅ CLEAN auth state listener — no unnecessary side effects
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log('🔐 Auth event:', event);
 
           switch (event) {
             case 'INITIAL_SESSION':
@@ -83,7 +81,6 @@ const useAuthStore = create((set, get) => ({
                 set({ session });
                 supabase.realtime.setAuth(session.access_token);
                 lastRefreshTime = Date.now();
-                console.log('🔄 Token refreshed — realtime updated');
               }
               // ❌ DO NOT call handleUserSession here
               // ❌ DO NOT trigger any DB calls
@@ -111,10 +108,6 @@ const useAuthStore = create((set, get) => ({
 
         // ✅ CHECK 1: Don't refresh if refreshed recently
         if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
-          console.log(
-            `⏭️ Skip refresh (${eventName}) — ` +
-            `last refresh ${Math.round(timeSinceLastRefresh / 1000)}s ago`
-          );
           return;
         }
 
@@ -126,21 +119,13 @@ const useAuthStore = create((set, get) => ({
 
           if (timeUntilExpiry > 10 * 60 * 1000) {
             // Token valid for 10+ minutes — no refresh needed
-            console.log(
-              `⏭️ Skip refresh (${eventName}) — ` +
-              `token valid for ${Math.round(timeUntilExpiry / 60000)} min`
-            );
             return;
           }
         }
 
         // ✅ Token expiring soon — refresh it
-        if (isRefreshing) {
-          console.log(`⏭️ Skip refresh (${eventName}) — already in progress`);
-          return;
-        }
+        if (isRefreshing) return;
 
-        console.log(`🔄 Refreshing token (${eventName})`);
         isRefreshing = true;
         lastRefreshTime = now;
 
@@ -148,7 +133,6 @@ const useAuthStore = create((set, get) => ({
           const { error } = await supabase.auth.refreshSession();
           if (error) {
             console.error(`❌ Refresh failed (${eventName}):`, error);
-            // ✅ If refresh fails with specific auth errors, try to re-authenticate
             const fatalErrors = ['refresh_token_not_found', 'invalid_grant', 'expired_token'];
             if (fatalErrors.some(errMsg => error.message?.toLowerCase().includes(errMsg))) {
               console.warn('🔒 Fatal refresh error — signing out');
@@ -206,7 +190,6 @@ const useAuthStore = create((set, get) => ({
   handleUserSession: async (authUser) => {
     // ✅ Prevent duplicate calls
     if (isHandlingSession) {
-      console.log('⏭️ handleUserSession already running — skip');
       return;
     }
     isHandlingSession = true;
@@ -259,7 +242,6 @@ const useAuthStore = create((set, get) => ({
       }
 
       set({ dbUser: dbToFrontend(dbUser) });
-      console.log('✅ User session handled successfully for:', authUser.email);
     } catch (error) {
       console.error("❌ Error handling user session:", error);
     } finally {
@@ -289,7 +271,6 @@ const useAuthStore = create((set, get) => ({
         return { success: true };
       } else {
         const redirectUrl = getRedirectUrl();
-        console.log('🔗 Redirecting to:', redirectUrl);
 
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',

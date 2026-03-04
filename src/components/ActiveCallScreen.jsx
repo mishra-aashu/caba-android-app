@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useCall } from '../context/CallContext';
+import { useCall } from '../contexts/CallContext';
 import ARCamera from './media/ARCamera';
 import {
   Phone,

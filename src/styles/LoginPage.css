@@ -520,7 +520,7 @@ body.light-mode .art-login-container .checkbox-container .checkmark {
 
   .art-login-container .brand-badge {
     font-size: 16px;
-    padding: 10px 20px;
+    padding: var(--spacing-md) var(--spacing-xl);
   }
 
   .art-login-container .art-hero-headline {

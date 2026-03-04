@@ -102,7 +102,7 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
           url: currentMedia.media.objectUrl
         });
       } catch (error) {
-        console.log('Share cancelled or failed:', error);
+        // Silent catch for share cancellation
       }
     }
   };
@@ -155,7 +155,6 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
                       src={objectUrl}
                       alt={fileInfo.file_name}
                       className="viewer-image"
-                      onLoad={() => console.log('Image loaded')}
                       onError={() => console.error('Image failed to load')}
                     />
                   </div>
@@ -237,7 +236,6 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
               controls
               className="media-viewer-video"
               autoPlay={false}
-              onLoadedData={() => console.log('Video loaded')}
               onError={() => console.error('Video failed to load')}
             />
             {videoControls && (
@@ -262,7 +260,6 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
               src={objectUrl}
               controls
               className="media-viewer-audio"
-              onLoadedData={() => console.log('Audio loaded')}
               onError={() => console.error('Audio failed to load')}
             />
           </div>

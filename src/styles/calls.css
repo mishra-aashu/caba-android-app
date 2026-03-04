@@ -2,12 +2,12 @@
    CALLS PAGE — WhatsApp-style layout
    ============================================= */
 
-/* 1. Main Container — fills parent, no 100vh */
+/* 1. Main Container — fills parent, no var(--app-height) */
 .calls-container {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-color) !important;
+  background-color: var(--bg-color);
   color: var(--text-primary);
   overflow: hidden;
 }
@@ -18,18 +18,18 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  background-color: var(--primary-color) !important;
-  color: white !important;
+  background-color: var(--primary-color);
+  color: white;
   flex-shrink: 0;
   z-index: 10;
 }
 
 .calls-container .app-header h1 {
-  color: white !important;
+  color: white;
 }
 
 .calls-container .back-btn {
-  color: white !important;
+  color: white;
 }
 
 [data-theme='dark'] .calls-container .app-header {
@@ -137,7 +137,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background-color: var(--bg-color) !important;
+  background-color: var(--bg-color);
 }
 
 .calls-container .contacts-section {
@@ -295,7 +295,7 @@
   justify-content: center;
   height: 100%;
   color: var(--text-secondary);
-  background-color: var(--bg-color) !important;
+  background-color: var(--bg-color);
 }
 
 .calls-loading .loading-spinner {
@@ -603,22 +603,22 @@
 
   .calls-container .call-avatar,
   .call-item .call-avatar {
-    width: 48px !important;
-    height: 48px !important;
-    min-width: 48px !important;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
     font-size: 1rem;
-    margin-right: 12px !important;
+    margin-right: 12px;
   }
 
   .calls-container .contact-info h4,
   .call-name {
-    font-size: 1rem !important;
+    font-size: 1rem;
   }
 
   .call-item,
   .calls-container .contact-item {
-    padding: 0.75rem !important;
-    min-height: 70px !important;
+    padding: 0.75rem;
+    min-height: 70px;
   }
 }
 

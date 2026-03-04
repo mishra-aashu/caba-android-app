@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
+import './styles/tokens.css';
 import './index.css';
 import './styles/theme-tokens.css';
 import './styles/theme-integration.css';
@@ -11,7 +12,7 @@ import { EmojiStyleProvider } from './contexts/EmojiStyleProvider.jsx'
 import { SupabaseProvider } from './contexts/SupabaseProvider.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { useAuth } from './contexts/AuthContext.js'
-import { CallProvider } from './context/CallProvider.jsx'
+import { CallProvider } from './contexts/CallProvider.jsx'
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';

@@ -2,7 +2,7 @@ import React from 'react';
 import { Timer, Users, User } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchMessagesPage } from '../../hooks/useMessages';
-import { formatLastSeen, formatTime } from '../../utils/timeUtils';
+import { formatLastSeen, formatTime } from '../../utils/dateFormatter';
 import EmojiRenderer from '../common/EmojiRenderer';
 import '../../styles/ChatListItem.css';
 

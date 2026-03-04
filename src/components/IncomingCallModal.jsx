@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCall } from '../context/CallContext';
+import { useCall } from '../contexts/CallContext';
 import { Phone, PhoneOff, Video } from 'lucide-react';
 import { dpOptions } from '../utils/dpOptions';
 import '../styles/incoming-call-modal.css';

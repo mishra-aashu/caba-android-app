@@ -50,20 +50,20 @@ const parseTimestamp = (timestamp) => {
     // Handle PostgreSQL timestamp format: "2026-01-15 15:26:16.049+00"
     // Convert to ISO format for better parsing
     let normalizedTimestamp = timestamp;
-    
+
     if (timestamp.includes(' ') && !timestamp.includes('T')) {
       // Convert "2026-01-15 15:26:16.049+00" to "2026-01-15T15:26:16.049+00"
       normalizedTimestamp = timestamp.replace(' ', 'T');
     }
 
     const parsed = dayjs(normalizedTimestamp);
-    
+
     // If invalid, return current time
     if (!parsed.isValid()) {
       console.warn(`Invalid timestamp: ${timestamp}`);
       return dayjs();
     }
-    
+
     return parsed;
   }
 
@@ -81,6 +81,20 @@ const parseTimestamp = (timestamp) => {
  * @returns {string} Formatted time string (e.g., "10:45 AM")
  */
 export const formatBubbleTime = (timestamp) => {
+  const date = parseTimestamp(timestamp);
+  return date.format('h:mm A');
+};
+
+/**
+ * formatTime
+ *
+ * General-purpose time formatter. Returns time in "h:mm A" format.
+ * Alias for formatBubbleTime - previously exported from timeUtils.js.
+ *
+ * @param {string|Date|number|null|undefined} timestamp
+ * @returns {string} Formatted time string (e.g., "10:45 AM")
+ */
+export const formatTime = (timestamp) => {
   const date = parseTimestamp(timestamp);
   return date.format('h:mm A');
 };
@@ -141,8 +155,75 @@ export const formatChatDivider = (timestamp) => {
   return date.format('DD MMMM YYYY');
 };
 
+/**
+ * isUserOnline
+ * 
+ * Determines if a user should be considered "online" based on their
+ * status flag and last seen timestamp.
+ * 
+ * @param {boolean} isOnline - The user's online status flag from DB
+ * @param {string|Date|number} lastSeen - The user's last seen timestamp
+ * @returns {boolean} True if the user is considered online
+ */
+export const isUserOnline = (isOnline, lastSeen) => {
+  if (!isOnline) return false;
+  if (!lastSeen) return true;
+
+  const date = parseTimestamp(lastSeen);
+  const now = dayjs();
+  const diffMinutes = now.diff(date, 'minute');
+
+  return diffMinutes <= 5;
+};
+
+/**
+ * formatLastSeen
+ * 
+ * Formats the "last seen" timestamp for display (e.g., "just now", "5 minutes ago").
+ * 
+ * @param {string|Date|number} lastSeen - The last seen timestamp
+ * @returns {string} Formatted last seen string
+ */
+export const formatLastSeen = (lastSeen) => {
+  if (!lastSeen) {
+    return 'recently';
+  }
+
+  const date = parseTimestamp(lastSeen);
+  const now = dayjs();
+  const diffSeconds = now.diff(date, 'second');
+
+  // Check if it was less than a minute ago
+  if (diffSeconds < 60) {
+    return 'just now';
+  }
+
+  // Use relative time for recent times (up to 2 hours)
+  if (diffSeconds < 3600 * 2) {
+    return date.from(now);
+  }
+
+  if (date.isToday()) {
+    return `today at ${date.format('h:mm A')}`;
+  }
+
+  if (date.isYesterday()) {
+    return `yesterday at ${date.format('h:mm A')}`;
+  }
+
+  // If it's been less than 7 days, show the day of the week
+  const diffDays = now.diff(date, 'day');
+  if (diffDays < 7) {
+    return date.format('dddd');
+  }
+
+  return date.format('DD/MM/YYYY');
+};
+
 export default {
   formatBubbleTime,
   formatInboxTime,
   formatChatDivider,
+  isUserOnline,
+  formatLastSeen,
 };

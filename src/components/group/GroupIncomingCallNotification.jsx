@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useGroupCall } from '../../context/GroupCallContext';
+import { useGroupCall } from '../../contexts/GroupCallContext';
 import { Phone, PhoneOff, Video, VideoOff, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import '../../styles/group-call-notification.css';

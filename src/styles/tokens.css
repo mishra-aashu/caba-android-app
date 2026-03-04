@@ -1,0 +1,69 @@
+:root {
+    /* Colors - Core Palette */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #e9edef;
+
+    --text-primary: #1a1a1a;
+    --text-secondary: #54656f;
+    --text-muted: #667781;
+    --text-placeholder: #8696a0;
+
+    --brand-primary: #00a884;
+    --brand-secondary: #128c7e;
+    --brand-accent: #22d3ee;
+
+    --border-light: #e0e0e0;
+    --border-medium: #d1d7db;
+
+    /* Spacing Scale (4px base) */
+    --spacing-xxs: 2px;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --spacing-xl: 20px;
+    --spacing-2xl: 24px;
+    --spacing-3xl: 32px;
+    --spacing-4xl: 40px;
+
+    /* Z-Index Scale */
+    --z-negative: -1;
+    --z-base: 0;
+    --z-above: 1;
+    --z-sticky: 100;
+    --z-dropdown: 500;
+    --z-overlay: 1000;
+    --z-modal: 2000;
+    --z-toast: 5000;
+    --z-tooltip: 9999;
+    --z-max: 100000;
+
+    /* Mobile/Capacitor Specifics */
+    --app-height: 100dvh;
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+
+    /* Safe area abbreviations used in layout-utils.css and app.css */
+    --sat: var(--safe-area-top);
+    --sab: var(--safe-area-bottom);
+    --sal: var(--safe-area-left);
+    --sar: var(--safe-area-right);
+}
+
+/* Dark Mode Overrides (if applicable) */
+[data-theme='dark'] {
+    --bg-primary: #111b21;
+    --bg-secondary: #202c33;
+    --bg-tertiary: #2a3942;
+
+    --text-primary: #e9edef;
+    --text-secondary: #d1d7db;
+    --text-muted: #8696a0;
+    --text-placeholder: #667781;
+
+    --border-light: #222d34;
+    --border-medium: #3b4a54;
+}

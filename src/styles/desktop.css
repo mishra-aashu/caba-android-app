@@ -15,19 +15,19 @@
     background-color: #f5f5f5;
   }
 
-  .desktop-navbar {
+  body .desktop-navbar {
     width: 80px;
     background-color: var(--sidebar-background-color);
     color: var(--sidebar-text-color);
-    height: 100vh;
+    height: var(--app-height);
     position: fixed;
     top: 0;
     left: 0;
     padding: 10px 5px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-    z-index: 99999 !important;
+    z-index: 99999;
     /* Use a massive z-index to stay above ALL other components */
-    overflow: visible !important;
+    overflow: visible;
     /* Force overflow visibility to allow tooltips to escape the narrow sidebar */
 
     /* GPU Acceleration */
@@ -95,7 +95,7 @@
   }
 
   /* Tooltip - shows on right side with animation pointing to button */
-  .desktop-nav-link::after {
+  body .desktop-nav-link::after {
     content: attr(data-tooltip);
     position: absolute;
     left: 100%;
@@ -112,7 +112,7 @@
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
-    z-index: 100000 !important;
+    z-index: 100000;
     /* Tooltip z-index even higher than navbar */
     pointer-events: none;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -153,7 +153,7 @@
   .app-content {
     margin-left: 80px;
     flex-grow: 1;
-    height: 100vh;
+    height: var(--app-height);
     height: calc(var(--vh, 1vh) * 100);
     overflow: hidden;
     position: relative;

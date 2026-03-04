@@ -426,38 +426,38 @@ input:checked+.toggle-slider:before {
   z-index: 1000;
 }
 
-.modal-content {
-  background-color: #111b21 !important;
+.modal .modal-content {
+  background-color: #111b21;
   /* WhatsApp dark background */
-  background: #111b21 !important;
+  background: #111b21;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
   position: relative;
   z-index: 1001;
-  opacity: 1 !important;
+  opacity: 1;
 }
 
-.modal-header {
+.modal .modal-header {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20px;
   border-bottom: 1px solid #3a4a54;
-  background-color: #111b21 !important;
+  background-color: #111b21;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
 }
 
-.modal-body {
+.modal .modal-body {
   padding: 20px;
   color: #e9edf0;
-  background-color: #111b21 !important;
+  background-color: #111b21;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
 }

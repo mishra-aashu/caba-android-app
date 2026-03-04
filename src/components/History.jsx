@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useCall } from '../context/CallContext';
+import { useCall } from '../contexts/CallContext';
 import { dpOptions } from '../utils/dpOptions';
 import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Video, ArrowLeft } from 'lucide-react';
 import { callService } from '../services/callService';
 import BottomNavigation from './common/BottomNavigation';
-import { isUserOnline } from '../utils/timeUtils';
+import { isUserOnline } from '../utils/dateFormatter';
 import useAuthStore from '../store/authStore';
 import '../styles/calls.css';
 import '../styles/history.css';
@@ -88,15 +88,11 @@ const History = () => {
 
   const loadCallHistory = async (userId) => {
     try {
-      console.log('Loading call history for user:', userId);
-
       // Load user-specific history with pagination (20 at a time) - SERVER SIDE
       const result = await callService.getCallHistory(userId, 20, null);
-      console.log('Call history data for user:', result.calls);
 
       // Group calls by other_user_id to show count
       const groupedCalls = groupCallsByUser(result.calls);
-      console.log('Grouped calls:', groupedCalls);
 
       setHistory(groupedCalls);
       setHasMore(result.hasMore);
@@ -167,15 +163,12 @@ const History = () => {
   const loadMoreCalls = async () => {
     if (!currentUser || isLoadingMore || !hasMore || loadingLocked) return;
 
-    console.log('Loading more calls, current history count:', history.length);
-
     // Lock to prevent rapid multiple loads
     setLoadingLocked(true);
     setIsLoadingMore(true);
 
     try {
       const result = await callService.getCallHistory(currentUser.id, 20, lastCallId);
-      console.log('Loaded more calls:', result.calls.length, 'hasMore:', result.hasMore);
 
       if (!result.calls || result.calls.length === 0) {
         setHasMore(false);
@@ -184,7 +177,6 @@ const History = () => {
 
       // Group new calls by user
       const groupedNewCalls = groupCallsByUser(result.calls);
-      console.log('Grouped new calls:', groupedNewCalls.length);
 
       // Merge with existing grouped calls - use WhatsApp-style grouping
       setHistory(prev => {
@@ -221,7 +213,6 @@ const History = () => {
 
       setHasMore(result.hasMore);
       setLastCallId(result.lastCallId);
-      console.log('History after merge:', history.length);
     } catch (err) {
       console.error('Error loading more calls:', err);
     } finally {
@@ -257,7 +248,6 @@ const History = () => {
 
   const handleCall = async (otherUserId, callType) => {
     if (callState !== 'idle') {
-      console.log('Already in a call');
       return;
     }
 

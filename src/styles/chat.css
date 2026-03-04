@@ -578,7 +578,7 @@ body.light-mode .load-more-indicator p {
 .message-item {
   display: flex;
   width: 100%;
-  margin-bottom: 2px;
+  margin-bottom: var(--spacing-xxs);
   position: relative;
   /* transition: background-color 0.2s ease;  - Removed for instant look */
   /* GPU Acceleration */
@@ -738,24 +738,24 @@ body.light-mode .load-more-indicator p {
     /* Prevent overflow on tiny screens */
   }
 
-  .mobile-layout .action-buttons {
-    display: flex !important;
-    align-items: center !important;
-    flex-direction: row !important;
-    gap: 4px !important;
+  .chat-screen .mobile-layout .action-buttons {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    gap: 4px;
     margin-bottom: 6px;
     flex-shrink: 0;
   }
 
-  .mobile-layout .action-buttons button {
-    width: 32px !important;
-    height: 32px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
+  .chat-screen .mobile-layout .action-buttons button {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    padding: 0;
     color: #8696a0;
   }
 
@@ -772,12 +772,12 @@ body.light-mode .load-more-indicator p {
     /* Allow capsule to shrink */
   }
 
-  .mobile-layout .chat-input {
+  .chat-screen .mobile-layout .chat-input {
     flex: 1;
-    border: none !important;
-    background: transparent !important;
+    border: none;
+    background: transparent;
     color: #e9edef;
-    outline: none !important;
+    outline: none;
     resize: none;
     font-size: 16px;
     padding: 10px 4px;
@@ -788,67 +788,67 @@ body.light-mode .load-more-indicator p {
     line-height: normal;
   }
 
-  .mobile-layout .btn-attach-inline {
-    width: 36px !important;
-    height: 36px !important;
-    color: #8696a0 !important;
-    background: transparent !important;
-    border: none !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0 !important;
+  .chat-screen .mobile-layout .btn-attach-inline {
+    width: 36px;
+    height: 36px;
+    color: #8696a0;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
     flex-shrink: 0;
   }
 
-  .mobile-layout .mobile-action-btn {
-    width: 48px !important;
-    height: 48px !important;
-    border-radius: 50% !important;
-    background: var(--primary) !important;
-    color: white !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: none !important;
-    flex-shrink: 0 !important;
-    margin-bottom: 0 !important;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
-    cursor: pointer !important;
+  .chat-screen .mobile-layout .mobile-action-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    flex-shrink: 0;
+    margin-bottom: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 }
 
 /* Narrow phones shield */
 @media (max-width: 320px) {
-  .input-row.mobile-layout {
-    gap: 4px !important;
+  .chat-screen .input-row.mobile-layout {
+    gap: 4px;
   }
 
-  .mobile-layout .input-capsule {
-    padding: 4px !important;
+  .chat-screen .mobile-layout .input-capsule {
+    padding: 4px;
   }
 
-  .mobile-layout .chat-input {
-    font-size: 14px !important;
+  .chat-screen .mobile-layout .chat-input {
+    font-size: 14px;
   }
 
-  .mobile-layout .mobile-action-btn {
-    width: 42px !important;
-    height: 42px !important;
+  .chat-screen .mobile-layout .mobile-action-btn {
+    width: 42px;
+    height: 42px;
   }
 }
 
 /* --- General Button Styles to prevent weird borders --- */
-.btn-quick-reply,
-.btn-attach,
-.btn-emoji,
-.btn-mic,
-.btn-emoji-inline,
-.btn-mic-inline,
-.btn-send {
-  border: none !important;
-  outline: none !important;
+.chat-screen .btn-quick-reply,
+.chat-screen .btn-attach,
+.chat-screen .btn-emoji,
+.chat-screen .btn-mic,
+.chat-screen .btn-emoji-inline,
+.chat-screen .btn-mic-inline,
+.chat-screen .btn-send {
+  border: none;
+  outline: none;
   box-shadow: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -920,28 +920,28 @@ body.light-mode .load-more-indicator p {
 }
 
 /* Light Mode - Chat Input Icons Fix */
-[data-theme='light'] .btn-attach,
-[data-theme='light'] .btn-emoji,
-[data-theme='light'] .btn-mic,
-[data-theme='light'] .btn-quick-reply {
-  color: #54656f !important;
+body[data-theme='light'] .btn-attach,
+body[data-theme='light'] .btn-emoji,
+body[data-theme='light'] .btn-mic,
+body[data-theme='light'] .btn-quick-reply {
+  color: #54656f;
   /* WhatsApp standard dark grey */
 }
 
-[data-theme='light'] .input-row {
-  background-color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+body[data-theme='light'] .input-row {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 /* Message Timestamp - Better Contrast */
-[data-theme='light'] .message-time {
-  color: #54656f !important;
-  opacity: 1 !important;
+body[data-theme='light'] .message-time {
+  color: #54656f;
+  opacity: 1;
 }
 
-[data-theme='dark'] .message-time {
-  color: #9cabbb !important;
-  opacity: 1 !important;
+body[data-theme='dark'] .message-time {
+  color: #9cabbb;
+  opacity: 1;
 }
 
 /* Inline Recording UI */
@@ -1208,7 +1208,7 @@ body.light-mode .load-more-indicator p {
   align-items: center;
   gap: 12px;
   /* Icon aur text ke beech gap */
-  padding: 10px 20px;
+  padding: var(--spacing-md) var(--spacing-xl);
 
   font-size: 14px;
   font-weight: 500;
@@ -1332,7 +1332,7 @@ body.light-mode .load-more-indicator p {
   /* Same as border color */
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: var(--spacing-xxs);
 }
 
 .reply-message {
@@ -1395,7 +1395,7 @@ body.light-mode .load-more-indicator p {
   z-index: 100;
   background: var(--surface, #1f2c34);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1496,17 +1496,17 @@ body.light-mode .load-more-indicator p {
 
 /* --- Delete Confirmation Modal --- */
 /* Override modal title gradient for delete confirmation */
-.modal-title {
-  background: none !important;
-  -webkit-background-clip: initial !important;
-  -webkit-text-fill-color: initial !important;
-  background-clip: initial !important;
-  color: var(--text-primary, #333) !important;
-  text-shadow: none !important;
+.modal .modal-title {
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
+  background-clip: initial;
+  color: var(--text-primary, #333);
+  text-shadow: none;
 }
 
-[data-theme='dark'] .modal-title {
-  color: var(--text-primary, #e9edef) !important;
+[data-theme='dark'] .modal .modal-title {
+  color: var(--text-primary, #e9edef);
 }
 
 .delete-confirmation-content {
@@ -1997,7 +1997,7 @@ body.light-mode .load-more-indicator p {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
   background: var(--surface-light, rgba(255, 255, 255, 0.05));
   border-radius: 12px;
   margin-bottom: 16px;
@@ -2091,7 +2091,7 @@ body.light-mode .load-more-indicator p {
 }
 
 .modal-btn {
-  padding: 10px 20px;
+  padding: var(--spacing-md) var(--spacing-xl);
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
@@ -2205,8 +2205,8 @@ body.light-mode .load-more-indicator p {
 }
 
 /* ── Sender Name Label — HIDDEN (DP only mode) ── */
-.group-sender-name {
-  display: none !important;
+.message-item .group-sender-name {
+  display: none;
 }
 
 /* Matching avatar gradient per sender (color-coded DPs) */
@@ -2257,7 +2257,7 @@ body.light-mode .load-more-indicator p {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 20px;
+  padding: var(--spacing-md) var(--spacing-xl);
   background: linear-gradient(135deg, var(--brand-primary, #00a884) 0%, #128c7e 100%);
   color: white;
   z-index: 5;
@@ -2365,12 +2365,12 @@ body.light-mode .load-more-indicator p {
   flex-direction: column;
 }
 
-.virtuoso-container [data-virtuoso-scroller] {
+.virtuoso-container div[data-virtuoso-scroller] {
   will-change: scroll-position;
   transform: translateZ(0);
   /* Force GPU layer */
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   /* Enable momentum scrolling (Telegram-like) */
   scroll-behavior: smooth;
@@ -2378,20 +2378,20 @@ body.light-mode .load-more-indicator p {
 }
 
 /* Disable transitions during scroll to prevent blank screen */
-.virtuoso-container [data-virtuoso-scroller]:active,
-.virtuoso-container [data-virtuoso-scroller]:not(.virtuoso-scroll-inactive) {
-  transition: none !important;
-  animation: none !important;
+.virtuoso-container div[data-virtuoso-scroller]:active,
+.virtuoso-container div[data-virtuoso-scroller]:not(.virtuoso-scroll-inactive) {
+  transition: none;
+  animation: none;
 }
 
 /* Ensure messages don't have transitions that cause blank screen */
-.message-item,
-.message-bubble,
-.message-content,
-.virtuoso-message-wrapper {
-  transition: none !important;
-  animation: none !important;
-  transform: none !important;
+.virtuoso-container .message-item,
+.virtuoso-container .message-bubble,
+.virtuoso-container .message-content,
+.virtuoso-container .virtuoso-message-wrapper {
+  transition: none;
+  animation: none;
+  transform: none;
 }
 
 /* Message item optimization for virtualization */
@@ -2551,12 +2551,12 @@ body.light-mode .load-more-indicator p {
 /* Avatar images - fixed dimensions */
 .message-item .user-avatar img,
 .message-bubble .user-avatar img,
-.group-sender-avatar img,
-.sender-avatar img {
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  min-height: 40px !important;
+.message-item .group-sender-avatar img,
+.message-item .sender-avatar img {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   object-fit: cover;
 }
 

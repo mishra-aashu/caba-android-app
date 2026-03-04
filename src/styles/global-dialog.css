@@ -41,7 +41,7 @@
 }
 
 .dialog-btn {
-    padding: 10px 20px;
+    padding: var(--spacing-md) var(--spacing-xl);
     border-radius: 20px;
     font-weight: 600;
     font-size: 14px;

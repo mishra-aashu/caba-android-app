@@ -18,7 +18,7 @@
 }
 
 /* --- THE UNIQUE MEDIA BUBBLE --- */
-.media-bubble {
+.message-row .media-bubble {
   position: relative;
   max-width: 82%;
   width: fit-content;
@@ -45,7 +45,7 @@
 
   /* Removed media-bubble-appear animation for instant look */
   /* animation: media-bubble-appear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; */
-  transition: none !important;
+  transition: none;
 }
 
 @keyframes media-bubble-appear {
@@ -148,8 +148,8 @@
   color: var(--tick-color, var(--tick-color-default));
 }
 
-.tick-icon.read {
-  color: var(--tick-read-color, var(--tick-read-color-default)) !important;
+.media-bubble .tick-icon.read {
+  color: var(--tick-read-color, var(--tick-read-color-default));
   filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.5));
 }
 

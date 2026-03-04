@@ -13,7 +13,7 @@
     --chat-bg-gradient: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%);
 
     /* Sent Message Tokens */
-    --sent-message-bg: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    --sent-message-bg: linear-gradient(135deg, #6366f1 0%, rgb(79, 70, 229) 100%);
     --sent-message-text: #ffffff;
     --sent-message-border: 1px solid rgba(255, 255, 255, 0.1);
     --sent-message-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);

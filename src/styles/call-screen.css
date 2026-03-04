@@ -35,7 +35,7 @@ body.light-mode .control-button:hover {
 
 /* Main Container */
 .call-screen-container {
-  min-height: 100vh;
+  min-height: var(--app-height);
   background-color: #111827;
   position: relative;
 }
@@ -111,7 +111,7 @@ body.light-mode .control-button:hover {
 
 /* Main Call Area */
 .main-call-area {
-  height: 100vh;
+  height: var(--app-height);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -512,7 +512,7 @@ body.light-mode .control-button:hover {
 
 .call-screen-container.minimized .call-controls {
   bottom: 15px;
-  padding: 10px 20px;
+  padding: var(--spacing-md) var(--spacing-xl);
 }
 
 .call-screen-container.minimized .controls-container {

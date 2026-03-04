@@ -16,7 +16,7 @@ const PwaUpdater = () => {
         needRefresh: [needRefresh],
         updateServiceWorker,
     } = useRegisterSW({
-        onRegistered(r) { console.log('SW Registered'); },
+        onRegistered(r) { },
         onRegisterError(error) { console.error('SW Error', error); },
     });
 
@@ -45,9 +45,7 @@ const PwaUpdater = () => {
     const clearAllCaches = async () => {
         try {
             const cacheNames = await caches.keys();
-            console.log('[PwaUpdater] Clearing caches:', cacheNames);
             await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
-            console.log('[PwaUpdater] All caches cleared');
         } catch (error) {
             console.error('[PwaUpdater] Cache clearing failed:', error);
         }
@@ -57,9 +55,7 @@ const PwaUpdater = () => {
     const unregisterAllServiceWorkers = async () => {
         try {
             const registrations = await navigator.serviceWorker.getRegistrations();
-            console.log('[PwaUpdater] Unregistering SWs:', registrations.length);
             await Promise.all(registrations.map(reg => reg.unregister()));
-            console.log('[PwaUpdater] All service workers unregistered');
         } catch (error) {
             console.error('[PwaUpdater] SW unregistration failed:', error);
         }

@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import useAuthStore from '../store/authStore';
 import { isAdmin, verifyAdminTableAccess, fetchAdminData } from '../utils/adminVerification';
 import { dpOptions } from '../utils/dpOptions';
-import { isUserOnline } from '../utils/timeUtils';
+import { isUserOnline } from '../utils/dateFormatter';
 import { realtimeManager } from '../utils/realtimeManager';
 import toast from 'react-hot-toast';
 import {
@@ -200,7 +200,6 @@ const Admin = () => {
   const checkAdminAccess = async () => {
     try {
       if (!user) {
-        console.log('🔧 No valid user found in Admin, redirecting to login');
         navigate('/login');
         return;
       }
@@ -208,12 +207,10 @@ const Admin = () => {
       // Verify admin access
       const adminStatus = await isAdmin(user.id);
       if (!adminStatus) {
-        console.log('🔧 User is not an admin, redirecting to home');
         navigate('/');
         return;
       }
 
-      console.log('✅ Admin access verified');
       setCurrentUser(user);
       setLoading(false);
     } catch (error) {
@@ -976,13 +973,11 @@ const Admin = () => {
   // Add missing setActiveCall function for calls component compatibility
   const setActiveCall = (callData) => {
     // This is used in the calls component but not needed in admin
-    console.log('setActiveCall called with:', callData);
   };
 
   // Add missing setCallType function for calls component compatibility
   const setCallType = (type) => {
     // This is used in the calls component but not needed in admin
-    console.log('setCallType called with:', type);
   };
 
   // Filters are now handled server-side for better performance with large datasets

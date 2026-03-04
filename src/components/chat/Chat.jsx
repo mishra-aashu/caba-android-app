@@ -1,29 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
-import { useCall } from '../../context/CallContext';
-import { useGroupCall } from '../../context/GroupCallContext';
 import { useAuth } from '../../hooks/useAuth';
 import { dpOptions } from '../../utils/dpOptions';
-import { saveMessagesToDevice, loadMessagesFromDevice } from '../../utils/FileSystemManager';
-import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
 import { db, addToSyncQueue } from '../../db/db';
 import { validateEntity, Message } from '../../types/database';
-import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowDown, ArrowLeft, ArrowRight, Copy, Edit, Reply, Gamepad2, Play } from 'lucide-react';
-import DropdownMenu from '../common/DropdownMenu';
+import { ArrowDown, Edit, Play, Phone, Video, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowLeft, Gamepad2 } from 'lucide-react';
 import Modal from '../common/Modal';
 import VirtualizedMessageList from './VirtualizedMessageList';
 import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import MediaViewer from '../media/MediaViewer';
 import ImageViewer from './ImageViewer';
-import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
-import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
-import { useInfiniteMessages } from '../../hooks/useMessages';
-import { useGroupDetails } from '../../hooks/useGroupDetails';
-import { useQueryClient } from '@tanstack/react-query';
-import { useData } from '../../contexts/DataContext';
 import { messageReadsService } from '../../services/messageReadsService';
 import { useTruthDareGame } from '../../hooks/useTruthDareGame';
 import TruthDareModal from './TruthDareModal';
@@ -32,213 +20,84 @@ import ForwardModal from './ForwardModal';
 import GroupCallScreen from '../group/GroupCallScreen';
 import GroupCallButton from '../group/GroupCallButton';
 import GroupInfoDrawer from '../groups/GroupInfoDrawer';
-import { formatLastSeen, isUserOnline } from '../../utils/timeUtils';
 import NotificationSound from '../../utils/notificationSound';
-import { realtimeManager } from '../../utils/realtimeManager';
-import groupCallService from '../../services/groupCallService';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import { Capacitor } from '@capacitor/core';
 import hapticsManager from '../../utils/hapticsManager';
-import useUserStore from '../../store/userStore';
 import { UserDetailsContext } from '../../contexts/UserDetailsContext';
-import { useDialog } from '../../contexts/DialogContext';
 import WallpaperPicker from './WallpaperPicker';
 import useIsDesktop from '../../hooks/useIsDesktop';
-import useChatStore, { selectRoomMessages, selectRoomScrollPosition } from '../../store/useChatStore';
+import useChatStore from '../../store/useChatStore';
+import useChatRoom from '../../hooks/chat/useChatRoom';
+import ChatHeader from './parts/ChatHeader';
+import ChatActionsPanel from './parts/ChatActionsPanel';
 import '../../styles/chat.css';
 import { getPublicMediaUrl } from '../../services/mediaService';
-
 import '../../styles/game-modal.css';
-
 import './AttachmentMenu.css';
 
 const Chat = () => {
-  const { chatId, otherUserId } = useParams();
-  // Define validChatId early so it can be used in useState and hooks
-  // CRITICAL FIX: Don't set validChatId to null for 'new' chats only - groups need valid chatId
-  const validChatId = chatId === 'new' ? null : chatId;
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { supabase } = useSupabase();
-  const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
-  const { user: currentUser, session, loading: authLoading, isAuthenticated } = useAuth();
-  const { startCall } = useCall();
-  const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
-  const { showAlert } = useDialog();
-  const isDesktop = useIsDesktop();
-  const { showUserDetails } = React.useContext(UserDetailsContext) || {};
-  const queryClient = useQueryClient();
-  const { chats: allChats } = useData();
-
-  // State
-  // ─── PAGINATION (Infinite Query) ──────────────────────────────────────────
+  // ─── ALL BUSINESS LOGIC IS DELEGATED TO useChatRoom ─────────────────────────
+  // ─── ALL BUSINESS LOGIC IS DELEGATED TO useChatRoom ─────────────────────────
   const {
-    data: infiniteData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isMessagesLoading,
-    status: messagesStatus
-  } = useInfiniteMessages(validChatId);
-
-  // ─── UNIFIED GROUP DATA ───────────────────────────────────────────────────
-  const { data: groupDetails } = useGroupDetails(
-    (otherUserId === 'group' || location.pathname.endsWith('/group')) ? validChatId : null
-  );
-
-  // ─── INSTANT DATA INITIALIZATION (Frame 1) ─────────────────────────────────
-  // We sync local Zustand store with the React Query cache.
-  const setStoreMessages = useChatStore(state => state.setMessages);
-  const addStoreMessage = useChatStore(state => state.addMessage);
-  const updateStoreMessage = useChatStore(state => state.updateMessage);
-  const removeStoreMessage = useChatStore(state => state.removeMessage);
-  const replaceTempMessage = useChatStore(state => state.replaceTempMessage);
-  const saveScrollPosition = useChatStore(state => state.saveScrollPosition);
-  const messages = useChatStore(useCallback(selectRoomMessages(validChatId), [validChatId]));
-  const initialScrollPosition = useChatStore(selectRoomScrollPosition(validChatId));
-
-  const [showGroupCallScreen, setShowGroupCallScreen] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [activeCallData, setActiveCallData] = useState(null);
-  const [activeGroupCall, setActiveGroupCall] = useState(null);
-
-  // isGroupChat: Route "chat/:chatId/group" has NO :otherUserId param, so otherUserId is undefined.
-  // We must detect group by pathname. DM route gives otherUserId = UUID; group route gives path ending in /group.
-  const isGroupChat = otherUserId === 'group' || location.pathname.endsWith('/group');
-
-  // Initialise otherUser synchronously from router state (passed by GroupsPage on navigate).
-  // This means the header renders the real group name on frame 1 — zero Loading flash.
-  // For DMs or direct URL access, falls back to null and loads via initializeChat / useEffect.
-  const [otherUser, setOtherUser] = useState(() => {
-    const state = location.state;
-    // 1. Try to use rich state passed from router
-    if (isGroupChat && state?.groupName) {
-      return {
-        id: chatId,
-        name: state.groupName,
-        avatar: state.groupAvatar || null,
-        is_group: true,
-        isGroup: true,
-        member_count: state.memberCount || 0,
-      };
-    }
-
-    // 2. Try to use data from allChats cache (extremely fast, covers both DMs and Groups)
-    if (allChats && allChats.length > 0) {
-      const activeChat = allChats.find(c => c.id == chatId);
-      if (activeChat) {
-        // If it's a DM (has otherUserId), we MUST use otherUserId for the user fetch
-        // and only use activeChat properties as metadata.
-        const effectiveOtherUserId = isGroupChat ? chatId : otherUserId;
-
-        return {
-          ...activeChat,
-          ...(activeChat.otherUser || {}),
-          id: effectiveOtherUserId, // CRITICAL: Must be the user ID, not chat ID
-          is_group: !!activeChat.isGroup,
-          isGroup: !!activeChat.isGroup,
-          member_count: activeChat.member_count || activeChat.otherUser?.member_count || 0,
-        };
+    chatId, otherUserId, validChatId, isGroupChat, navigate, location,
+    currentUser, otherUser, setOtherUser, isInitializing,
+    messages, isFetchingNextPage, hasNextPage, fetchNextPage,
+    typingUsers, sendTyping,
+    isMuted, isTempChat, setIsTempChat, vanishPresets, setVanishPresets, selectedVanishDuration, setSelectedVanishDuration,
+    addStoreMessage, updateStoreMessage, removeStoreMessage, replaceTempMessage,
+    sendMessage, handleSendMedia, replyingTo, handleReply, cancelReply,
+    activeCallData, activeGroupCall, showGroupCallScreen, setShowGroupCallScreen,
+    handleVoiceCall, handleVideoCall, handleEndGroupCall, handleStartGroupCall,
+    handleMuteToggle, confirmClearChat, confirmBlockUser, confirmSelectionDelete,
+    handleShareAsForward, handleMediaDownload,
+    supabase, showAlert, initialScrollPosition, saveScrollPosition, queryClient,
+    isMessagesLoading, allChats, authLoading, isAuthenticated
+  } = useChatRoom({
+    onNewMessage: (msg) => {
+      // Unread logic (UI-only)
+      if (!isScrolledToBottom) {
+        setUnreadCount(prev => prev + 1);
+      } else {
+        markMessagesAsRead();
       }
     }
-
-    // 3. CRITICAL FIX: For group chats, ALWAYS return a valid placeholder
-    // This ensures the header never renders blank or null state for groups,
-    // even if we visited via direct URL with no cached data.
-    if (isGroupChat) {
-      return {
-        id: chatId,
-        name: 'Group Chat',
-        avatar: null,
-        is_group: true,
-        isGroup: true,
-        member_count: 0,
-      };
-    }
-
-    // 4. For DMs only, start null (we need to fetch the user to know their name)
-    return null;
   });
 
+  const onSelectionDelete = () => {
+    confirmSelectionDelete(Array.from(selectedMessages), () => {
+      setSelectedMessages(new Set());
+      setIsSelectionMode(false);
+      setShowDeleteConfirmModal(false);
+    });
+  };
+
+  const onDownloadMedia = async (url, message) => {
+    await handleMediaDownload(url, message);
+  };
+
+  const onShareAsForward = (message) => {
+    const forwardPayload = handleShareAsForward(null, message);
+    setMessagesToForward(forwardPayload);
+    setShowForwardModal(true);
+    setImageViewerOpen(false);
+  };
+
+  // ─── STALE LOCAL IMPORTS (kept for non-moved logic) ──────────────────────
+  const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
+  const isDesktop = useIsDesktop();
+  const { showUserDetails } = React.useContext(UserDetailsContext) || {};
+
   // Initialize chat theme when chatId changes
-  useEffect(() => {
-    if (chatId) {
-      setChatId(chatId);
-    }
-  }, [chatId, setChatId]);
+  useEffect(() => { if (chatId) setChatId(chatId); }, [chatId, setChatId]);
 
-  // Sync the cached group details into the otherUser state whenever they load natively
-  useEffect(() => {
-    if (groupDetails) {
-      // Safe extraction of member info mapped from deep join
-      const memberCount = groupDetails.group_members?.length || 0;
-      const memberPreviews = groupDetails.group_members?.slice(0, 5).map(m => ({
-        id: m.users?.id,
-        name: m.users?.name || 'Unknown',
-        avatar: m.users?.avatar,
-        role: m.role
-      })) || [];
-      const myRole = groupDetails.group_members?.find(m => m.user_id === currentUser?.id)?.role || 'member';
-
-      setOtherUser(prev => ({
-        ...(prev || {}),
-        ...groupDetails,
-        id: groupDetails.id,
-        name: groupDetails.name,
-        avatar: groupDetails.avatar_url,
-        is_group: true,
-        isGroup: true,
-        member_count: memberCount,
-        member_previews: memberPreviews,
-        my_role: myRole,
-        description: groupDetails.description
-      }));
-    }
-  }, [groupDetails, currentUser?.id]);
-
-  // ─── PAGINATION SYNC ──────────────────────────────────────────────────────
-  // Sync infinite query data to Zustand store
-  useEffect(() => {
-    if (infiniteData?.pages && validChatId) {
-      // Flatten pages (newest first from hook) and reverse for UI (oldest first)
-      const allMsgs = infiniteData.pages.flatMap(page => page.data).reverse();
-
-      // Filter out any messages that are already in the store and NOT temp
-      // This prevents duplicates during background refetches
-      setStoreMessages(validChatId, allMsgs);
-
-      // Persist to local storage in background
-      if (allMsgs.length > 0) {
-        saveMessagesToDevice(validChatId, allMsgs);
-      }
-    }
-  }, [infiniteData, setStoreMessages, validChatId]);
-
-  // When switching chats, pivot the state immediately.
-  useEffect(() => {
-    if (validChatId) {
-      setUnreadCount(0);
-
-      // NO LONGER CLEARING STORE. We keep data in memory for instant switching.
-
-      // Fallback: Check mobile filesystem for permanent backup/instant load
-      loadMessagesFromDevice(validChatId).then(localMessages => {
-        if (localMessages && localMessages.length > 0) {
-          // Only load from device if we don't already have messages in the store
-          const currentRoomMsgs = useChatStore.getState().roomMessages[validChatId];
-          if (!currentRoomMsgs || currentRoomMsgs.length === 0) {
-            setStoreMessages(validChatId, localMessages);
-          }
-        }
-      });
-    }
-  }, [validChatId, setStoreMessages]);
+  // ─── UI-ONLY STATE (stays in component) ──────────────────────────────────
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -248,7 +107,6 @@ const Chat = () => {
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState(null);
   const [currentImageMessage, setCurrentImageMessage] = useState(null);
-  const [replyingTo, setReplyingTo] = useState(null);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [messagesToForward, setMessagesToForward] = useState([]);
   const [showGameRoom, setShowGameRoom] = useState(false);
@@ -257,81 +115,42 @@ const Chat = () => {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [showBlockConfirmModal, setShowBlockConfirmModal] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isTempChat, setIsTempChat] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
-  const [vanishPresets, setVanishPresets] = useState([]);
-  const [selectedVanishDuration, setSelectedVanishDuration] = useState(86400);
+  const [showGroupCallModal, setShowGroupCallModal] = useState(false);
+  const [selectedCallType, setSelectedCallType] = useState('voice');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // ─── KEYBOARD HEIGHT (Native Android) ─────────────────────────────────────
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  // ─── CAPACITOR KEYBOARD LISTENERS ──────────────────────────────────────────
-  // When the native keyboard opens, we get its *exact* pixel height and apply
-  // it as padding-bottom so the input area smoothly floats above the keyboard.
+  // ─── CAPACITOR KEYBOARD LISTENERS ─────────────────────────────────────────
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-
     let keyboardPlugin;
-
     const setupKeyboardListeners = async () => {
       try {
         const { Keyboard } = await import('@capacitor/keyboard');
         keyboardPlugin = Keyboard;
-
-        // keyboard show: set exact height from event
         await Keyboard.addListener('keyboardWillShow', (info) => {
           setKeyboardHeight(info.keyboardHeight);
-          // Scroll to bottom so the last message stays visible
-          setTimeout(() => {
-            if (messagesContainerRef.current?.scrollToBottom) {
-              messagesContainerRef.current.scrollToBottom('auto');
-            }
-          }, 50);
+          setTimeout(() => { if (messagesContainerRef.current?.scrollToBottom) messagesContainerRef.current.scrollToBottom('auto'); }, 50);
         });
-
-        // keyboard hide: reset padding
-        await Keyboard.addListener('keyboardWillHide', () => {
-          setKeyboardHeight(0);
-        });
-      } catch (err) {
-        console.warn('[Chat] Keyboard listeners failed:', err);
-      }
+        await Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0));
+      } catch (err) { console.warn('[Chat] Keyboard listeners failed:', err); }
     };
-
     setupKeyboardListeners();
-
-    return () => {
-      // Clean up listeners when Chat unmounts
-      if (keyboardPlugin?.removeAllListeners) {
-        keyboardPlugin.removeAllListeners();
-      }
-    };
+    return () => { if (keyboardPlugin?.removeAllListeners) keyboardPlugin.removeAllListeners(); };
   }, []);
 
-  // Debounced scroll position saver
-  const debouncedSaveScroll = useCallback(
-    debounce((id, index) => {
-      saveScrollPosition(id, index);
-    }, 500),
-    [saveScrollPosition]
-  );
+  // ─── SCROLL & READ RECEIPTS ───────────────────────────────────────────────
+  const debouncedSaveScroll = useCallback(debounce((id, index) => saveScrollPosition(id, index), 500), [saveScrollPosition]);
 
   const markMessagesAsRead = useCallback(async () => {
     try {
       if (!currentUser || !chatId || chatId === 'new') return;
-
-      // Use messageReadsService for consistent read receipt tracking
       await messageReadsService.markAllAsRead(chatId, currentUser.id);
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
+    } catch (error) { console.error('Error marking messages as read:', error); }
   }, [currentUser, chatId]);
-
 
   const {
     isOpen: isGameOpen,
@@ -342,290 +161,6 @@ const Chat = () => {
     completeTurn,
     closeGame
   } = useTruthDareGame(chatId, currentUser?.id, { enabled: showGameRoom });
-
-  const handleNewMessage = useCallback((newMessage) => {
-    const isOwnMessage = (newMessage.senderId || newMessage.sender_id) === currentUser?.id;
-
-    // Check if we should replace a temp message or add as new
-    if (isOwnMessage) {
-      // Find matching temp message by content and recentness
-      const currentRoomMsgs = useChatStore.getState().roomMessages[validChatId] || [];
-      const matchingMsg = currentRoomMsgs.find(m =>
-        m.tempId && m.content === newMessage.content && (Date.now() - m.tempId < 30000)
-      );
-      if (matchingMsg) {
-        replaceTempMessage(validChatId, matchingMsg.tempId, newMessage);
-        // Note: Replacing temp message in React Query cache is complex,
-        // usually handled by the mutation success.
-        return;
-      }
-    }
-
-    // ROOT FIX: Update React Query Cache so it doesn't revert the store on next background fetch
-    queryClient.setQueryData(['messages', validChatId], (oldData) => {
-      if (!oldData || !oldData.pages) return oldData;
-
-      // Add to the FIRST page (newest data)
-      const newPages = [...oldData.pages];
-      const firstPage = newPages[0];
-
-      // Prevent duplicates in cache
-      const exists = firstPage.data.some(m => m.id === newMessage.id);
-      if (exists) return oldData;
-
-      newPages[0] = {
-        ...firstPage,
-        data: [newMessage, ...firstPage.data]
-      };
-
-      return {
-        ...oldData,
-        pages: newPages
-      };
-    });
-
-    // Add as new message (Zustand addMessage handles duplicates)
-    addStoreMessage(validChatId, newMessage);
-
-    // Unread logic
-    if (!isScrolledToBottom) {
-      setUnreadCount(prev => prev + 1);
-    } else {
-      markMessagesAsRead();
-    }
-  }, [isScrolledToBottom, currentUser?.id, isMuted, messages, addStoreMessage, replaceTempMessage, markMessagesAsRead, queryClient, validChatId]);
-
-  const handleDeleteMessage = useCallback((deletedId) => {
-    // Mark as deleting first to trigger CSS animation
-    updateStoreMessage(validChatId, deletedId, { isDeleting: true });
-
-    // Remove from state after animation finishes
-    setTimeout(() => {
-      removeStoreMessage(validChatId, deletedId);
-    }, 450);
-  }, [validChatId, updateStoreMessage, removeStoreMessage]);
-
-  const handleStatusUpdate = useCallback((updatedMessage) => {
-    updateStoreMessage(validChatId, updatedMessage.id, updatedMessage);
-  }, [validChatId, updateStoreMessage]);
-
-  useRealtimeMessages(validChatId, {
-    onNewMessage: handleNewMessage,
-    onUpdateMessage: handleStatusUpdate,
-    onDeleteMessage: handleDeleteMessage
-  }, currentUser?.id);
-
-  const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
-
-
-  const loadOtherUserInfo = async (userId) => {
-    try {
-      if (!userId) return;
-
-      // Root fix: Use centralized cache/fetch to avoid redundant calls
-      const user = await useUserStore.getState().fetchUserIfNeeded(userId);
-      if (user) {
-        setOtherUser(user);
-
-        if (currentUser?.id && allChats) {
-          // Check cached chats/contacts for name
-          const chat = allChats.find(c => c.metadata?.otherUserId === userId);
-          if (chat && chat.name) {
-            setOtherUser(prev => ({ ...prev, name: chat.name, contact_name: chat.name }));
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user info:', error);
-      setOtherUser({ id: userId, name: 'Unknown User', avatar: null });
-    }
-  };
-
-  // Define validChatId check for messages already handled by paginate useEffect
-  // and remove redundant duplicate effect if present.
-
-
-  const initializeChat = async () => {
-    if (!chatId || isInitializing) return;
-    setIsInitializing(true);
-
-    try {
-      if (!isGroupChat && otherUserId && otherUserId !== 'group') {
-        await loadOtherUserInfo(otherUserId);
-      }
-    } finally {
-      setIsInitializing(false);
-    }
-  };
-
-  // Initialize chat when auth is ready
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
-    if (!authLoading && isAuthenticated && currentUser) {
-      initializeChat();
-    }
-
-
-    // Root fix: Remove allChats from dependencies to stop infinite loop
-    // allChats updates on every status heartbeat, but we only need to init once per chatId/userId change
-  }, [chatId, otherUserId, authLoading, isAuthenticated, currentUser]);
-
-  // Scroll to bottom handled by VirtualizedMessageList - no manual intervention needed
-
-  // Load mute and temp chat preferences
-  useEffect(() => {
-    const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
-    setIsMuted(!!mutedChats[chatId]);
-
-    // Load temp chat state from DB
-    const loadTempChatState = async () => {
-      if (!chatId || !currentUser?.id) return;
-      try {
-        const { data } = await supabase
-          .from('temporary_chat_settings')
-          .select('is_enabled, vanish_duration')
-          .eq('chat_id', chatId)
-          .eq('user_id', currentUser.id)
-          .maybeSingle();
-        setIsTempChat(data?.is_enabled || false);
-        if (data?.vanish_duration) setSelectedVanishDuration(data.vanish_duration);
-      } catch (e) {
-        const tempChats = JSON.parse(localStorage.getItem('tempChats') || '{}');
-        setIsTempChat(!!tempChats[chatId]);
-      }
-    };
-
-    loadTempChatState();
-  }, [chatId, currentUser, supabase]);
-
-  const fetchVanishPresets = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('vanish_duration_presets')
-        .select('*')
-        .order('duration_seconds', { ascending: true });
-      if (data) setVanishPresets(data);
-    } catch (error) {
-      console.error('Error fetching vanish presets:', error);
-    }
-  };
-
-  // Subscribe to real-time updates for other user's online status using Presence
-  useEffect(() => {
-    if (isGroupChat || !otherUserId) return;
-
-    const channelName = 'online-presence';
-    console.log(`📡 Listening to Presence events for: ${otherUserId}`);
-
-    const handleSync = () => {
-      const channel = realtimeManager.subscriptions.get(channelName)?.values().next().value;
-      if (!channel) return;
-
-      const state = channel.presenceState();
-
-      // Flatten presence state to see if otherUserId is present
-      let isOnline = false;
-      let lastSeen = null;
-
-      Object.values(state).forEach((presences) => {
-        presences.forEach((p) => {
-          if (p.user_id === otherUserId) {
-            isOnline = true;
-            lastSeen = p.online_at;
-          }
-        });
-      });
-
-      setOtherUser(prev => {
-        if (!prev || (prev.is_online === isOnline && prev.last_seen === lastSeen)) return prev;
-        return {
-          ...prev,
-          is_online: isOnline,
-          last_seen: lastSeen || prev.last_seen
-        };
-      });
-    };
-
-    // Subscribing to online-presence (it might already be subscribed by useOnlineStatus)
-    realtimeManager.subscribe(
-      channelName,
-      {},
-      {
-        presence: {
-          event: 'sync',
-          callback: handleSync
-        }
-      }
-    );
-
-    return () => {
-      // Note: We don't necessarily want to unsubscribe here if useOnlineStatus is using it,
-      // but realtimeManager.unsubscribe should handle reference counting if implemented correctly.
-      // For now, we follow the pattern.
-      console.log(`🔌 Cleaning up presence listener for: ${otherUserId}`);
-    };
-  }, [otherUserId, isGroupChat]);
-
-  // Handle detecting ongoing group calls
-  useEffect(() => {
-    if (!isGroupChat || !chatId || !supabase) {
-      setActiveCallData(null);
-      return;
-    }
-
-    const checkActiveCall = async () => {
-      const activeCall = await groupCallService.getActiveGroupCall(chatId);
-      // Only show banner if user is NOT in the call already
-      if (activeCall) {
-        const isUserInCall = activeCall.group_call_participants?.some(p => p.user_id === currentUser?.id && !p.left_at);
-        if (!isUserInCall) {
-          setActiveCallData(activeCall);
-        } else {
-          setActiveCallData(null);
-        }
-      } else {
-        setActiveCallData(null);
-      }
-    };
-
-    checkActiveCall();
-
-    // Subscribe to call changes for this group
-    const channelName = `group_calls_${chatId}`;
-    realtimeManager.subscribe(
-      channelName,
-      {},
-      {
-        postgres_changes: [
-          {
-            event: '*',
-            schema: 'public',
-            table: 'calls',
-            filter: `group_id=eq.${chatId}`,
-            handler: () => checkActiveCall()
-          },
-          {
-            event: '*',
-            schema: 'public',
-            table: 'group_call_participants',
-            handler: (payload) => {
-              // Only trigger if it's related to a call in this group
-              // (Simplest is to re-check when any participant changes if we don't have call_id filter easily here)
-              checkActiveCall();
-            }
-          }
-        ]
-      }
-    );
-
-    return () => {
-      realtimeManager.unsubscribe(channelName);
-    };
-  }, [chatId, isGroupChat, supabase, currentUser?.id]);
 
 
   const handleScroll = (location) => {
@@ -651,208 +186,6 @@ const Chat = () => {
     setShowBlockConfirmModal(true);
   };
 
-  const confirmBlockUser = async () => {
-    setShowBlockConfirmModal(false);
-    if (!otherUser || !currentUser) return;
-
-    try {
-      const { error } = await supabase
-        .from('blocked_users')
-        .insert([
-          {
-            blocker_id: currentUser.id,
-            blocked_id: otherUser.id
-          }]);
-
-      if (error) throw error;
-      toast.success(`${otherUser.name} blocked`);
-      navigate('/');
-    } catch (error) {
-      console.error('Error blocking user:', error);
-      hapticsManager.error();
-      toast.error('Failed to block user');
-    }
-  };
-
-
-  const sendMessage = async (content) => {
-    if (!content.trim() || !currentUser) return;
-
-    // 1. Optimistic Update - Show message immediately
-    const tempId = Date.now();
-    const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
-
-    const dbMessageData = frontendToDb({
-      chatId: validChatId,
-      senderId: currentUser.id,
-      receiverId: isGroupChat ? null : otherUserId,
-      content: content.trim(),
-      mediaPath: null,
-      mediaType: null,
-      isGroupMessage: Boolean(isGroupChat),
-      replyTo: replyingTo ? replyingTo.id : null,
-      messageType: 'text',
-      createdAt: new Date().toISOString(),
-      vanishAt: vanishAt,
-      status: navigator.onLine ? 'sending' : 'pending',
-      tempId: tempId
-    });
-
-    // Optimistic message for UI
-    const optimisticMsg = {
-      ...dbToFrontend(dbMessageData),
-      sender: currentUser,
-      tempId: tempId
-    };
-
-    addStoreMessage(validChatId, optimisticMsg);
-    setReplyingTo(null);
-
-    try {
-      // 📳 Haptic feedback for sending
-      hapticsManager.impact();
-
-      // 2. Persistent Save to local Dexie (for offline resilience)
-      const { tempId: _, ...localSaveData } = dbMessageData;
-      await db.messages.add({
-        ...localSaveData,
-        id: `temp_${tempId}`, // local-only temp ID
-        tempId: tempId
-      });
-
-      // 3. Conditional Sending
-      if (navigator.onLine) {
-        const { data, error } = await supabase
-          .from('messages')
-          .insert(localSaveData)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Replace temporary message in state and Dexie
-        const frontendData = dbToFrontend(data);
-        replaceTempMessage(validChatId, tempId, { ...frontendData, status: 'sent', sender: currentUser });
-
-        // Update Dexie with real record and remove temp one
-        await db.transaction('rw', db.messages, async () => {
-          await db.messages.delete(`temp_${tempId}`);
-          await db.messages.add(data);
-        });
-
-      } else {
-        // 4. Offline: Add to sync queue with precision tempId
-        await addToSyncQueue('send_message', { ...localSaveData, tempId });
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // 📳 Haptic feedback for error
-      hapticsManager.error();
-
-      // We don't rollback if it's already in Dexie/SyncQueue, but we show error if it failed online attempt
-      if (navigator.onLine) {
-        hapticsManager.error();
-        toast.error('Failed to send message online.');
-      }
-    }
-  };
-
-
-  const handleSendMedia = async (mediaPathOrFile, mediaType) => {
-    if (!mediaPathOrFile || !currentUser) return;
-
-    const isFile = mediaPathOrFile instanceof File || mediaPathOrFile instanceof Blob;
-    const mediaPath = isFile ? null : mediaPathOrFile;
-    const localFile = isFile ? mediaPathOrFile : null;
-
-    const tempId = Date.now();
-    const vanishAt = isTempChat ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString() : null;
-    const content = mediaType === 'image' ? '📷 Photo'
-      : mediaType === 'video' ? '🎥 Video'
-        : '🎤 Voice Message';
-
-    const dbMessageData = {
-      chat_id: validChatId,
-      sender_id: currentUser.id,
-      receiver_id: isGroupChat ? null : otherUserId,
-      content: content,
-      media_path: mediaPath,
-      media_type: mediaType,
-      message_type: mediaType === 'voice' ? 'audio' : mediaType,
-      reply_to: replyingTo?.id || null,
-      is_group_message: Boolean(isGroupChat),
-      vanish_at: vanishAt,
-      status: navigator.onLine ? 'sending' : 'pending',
-      created_at: new Date().toISOString(),
-    };
-
-    // Optimistic UI update
-    // If it's a file (offline), create a temporary URL for immediate preview
-    const objectUrl = localFile ? URL.createObjectURL(localFile) : null;
-
-    const optimisticMsg = {
-      ...dbToFrontend(dbMessageData),
-      sender: currentUser,
-      tempId: tempId,
-      // Use the objectUrl for local preview if we don't have a storage path yet
-      media_url: objectUrl || (mediaPath ? (mediaPath.startsWith('http') ? mediaPath : getPublicMediaUrl(mediaPath)) : null)
-    };
-
-    addStoreMessage(validChatId, optimisticMsg);
-    setReplyingTo(null);
-
-    // 📳 Haptic feedback for sending
-    hapticsManager.impact();
-
-    try {
-      // 1. Persistent Save to local Dexie
-      // We store the message record first
-      await db.messages.add({
-        ...dbMessageData,
-        id: `temp_media_${tempId}`,
-        tempId: tempId
-      });
-
-      if (navigator.onLine && !localFile) {
-        const { data, error } = await supabase
-          .from('messages')
-          .insert(dbMessageData)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        const frontendMsg = dbToFrontend(data);
-        const realMsgWithSender = { ...dbToFrontend(data), sender: currentUser };
-        replaceTempMessage(validChatId, tempId, realMsgWithSender);
-
-        // Update Dexie
-        await db.transaction('rw', db.messages, async () => {
-          await db.messages.delete(`temp_media_${tempId}`);
-          await db.messages.add(data);
-        });
-
-      } else {
-        // 2. Offline OR File provided (needs upload): Add to sync queue
-        // For files, we add the actual file object to the payload
-        await addToSyncQueue('send_message', {
-          ...dbMessageData,
-          tempId,
-          file: localFile // This will be stored as a Blob in IndexedDB by Dexie
-        });
-        toast.success(localFile ? 'Media queued for upload/sync' : 'Media queued for sync (offline)');
-      }
-    } catch (error) {
-      console.error('Error sending media message:', error);
-      // 📳 Haptic feedback for error
-      hapticsManager.error();
-
-      if (navigator.onLine) {
-        hapticsManager.error();
-        toast.error('Failed to send media online.');
-      }
-    }
-  };
 
 
 
@@ -868,14 +201,6 @@ const Chat = () => {
     setIsScrolledToBottom(true);
   };
 
-
-  const handleReply = (message) => {
-    setReplyingTo(message);
-  };
-
-  const cancelReply = () => {
-    setReplyingTo(null);
-  };
 
   const handleMessageSelect = (messageId) => {
     setSelectedMessages(prev => {
@@ -900,27 +225,9 @@ const Chat = () => {
 
   const handleSelectionDelete = () => {
     if (selectedMessages.size === 0) return;
-    setShowDeleteModal(true);
+    setShowDeleteConfirmModal(true);
   };
 
-  const confirmSelectionDelete = async () => {
-    setShowDeleteModal(false);
-    const ids = Array.from(selectedMessages);
-    const prevMessages = messages;
-    ids.forEach(id => removeStoreMessage(id));
-    exitSelectionMode();
-
-    try {
-      const { error } = await supabase.from('messages').delete().in('id', ids);
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error deleting messages:', error);
-      hapticsManager.error();
-      toast.error('Failed to delete messages');
-      setStoreMessages(prevMessages);
-      queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
-    }
-  };
 
   const cancelSelectionDelete = () => {
     setShowDeleteModal(false);
@@ -982,34 +289,13 @@ const Chat = () => {
   };
 
   const handleSelectionEdit = () => {
-    // Only allow edit if single message and it's user's message
     if (selectedMessages.size !== 1) return;
-
     const messageId = Array.from(selectedMessages)[0];
     const message = messages.find(msg => msg.id === messageId);
 
     if (message && (message.senderId || message.sender_id) === currentUser.id) {
-      // Trigger edit mode for that message
-      setReplyingTo(null); // Clear reply if any
       exitSelectionMode();
-
-      // Find the MessageItem component and trigger edit mode
-      const messageElement = document.getElementById(`message-${messageId}`);
-      if (messageElement) {
-        // Find the edit button and click it, or trigger edit directly
-        const editBtn = messageElement.querySelector('.menu-item[onclick*="onEdit"]');
-        if (editBtn) {
-          editBtn.click();
-        } else {
-          // Fallback: trigger edit mode directly by finding the MessageItem
-          const messageItem = messageElement.closest('.message-item');
-          if (messageItem) {
-            // Dispatch a custom event to trigger edit mode
-            const editEvent = new CustomEvent('triggerEdit', { detail: { messageId } });
-            messageItem.dispatchEvent(editEvent);
-          }
-        }
-      }
+      window.dispatchEvent(new CustomEvent(`triggerEdit-${messageId}`));
     }
   };
 
@@ -1036,22 +322,6 @@ const Chat = () => {
 
   const handleCreateReminder = () => {
     navigate(`/create-reminder?userId=${otherUserId}`);
-  };
-
-  const handleMuteToggle = async () => {
-    try {
-      const newMutedState = !isMuted;
-      const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
-      if (newMutedState) {
-        mutedChats[chatId] = true;
-      } else {
-        delete mutedChats[chatId];
-      }
-      localStorage.setItem('mutedChats', JSON.stringify(mutedChats));
-      setIsMuted(newMutedState);
-    } catch (error) {
-      console.error('Error toggling mute:', error);
-    }
   };
 
   const handleSearchMessages = () => {
@@ -1194,92 +464,12 @@ const Chat = () => {
   };
 
   const handleTempChatSettings = () => {
-    fetchVanishPresets(); // Fetch on demand
     setShowVanishSettingsModal(true);
   };
 
   const handleClearChat = async () => {
     setShowClearConfirmModal(true);
   };
-
-  const confirmClearChat = async () => {
-    setShowClearConfirmModal(false);
-
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .delete()
-        .eq('chat_id', chatId);
-
-      if (error) throw error;
-
-      useChatStore.getState().clearMessages();
-
-      await supabase
-        .from('chats')
-        .update({
-          last_message: null,
-          last_message_time: new Date().toISOString()
-        })
-        .eq('id', chatId);
-    } catch (error) {
-      console.error('Error clearing chat:', error);
-      showAlert('Failed to clear chat. Please try again.');
-    }
-  };
-
-  // State for group call modal
-  const [showGroupCallModal, setShowGroupCallModal] = useState(false);
-  const [selectedCallType, setSelectedCallType] = useState('voice');
-
-  const handleVoiceCall = async () => {
-    if (isGroupChat) {
-      await handleStartGroupCall('voice');
-      return;
-    }
-
-    try {
-      const { callId } = await startCall(otherUser.id, 'voice');
-      navigate(`/call/${callId}`);
-    } catch (error) {
-      console.error('Failed to start voice call:', error);
-      showAlert('Failed to start call: ' + error.message);
-    }
-  };
-
-  const handleVideoCall = async () => {
-    if (isGroupChat) {
-      await handleStartGroupCall('video');
-      return;
-    }
-
-    try {
-      const { callId } = await startCall(otherUser.id, 'video');
-      navigate(`/call/${callId}`);
-    } catch (error) {
-      console.error('Failed to start video call:', error);
-      showAlert('Failed to start call: ' + error.message);
-    }
-  };
-
-  const handleStartGroupCall = async (callType) => {
-    try {
-      setShowGroupCallScreen(true);
-      await initializeGroupCall(chatId, callType);
-    } catch (error) {
-      console.error('Failed to start group call:', error);
-      hapticsManager.error();
-      toast.error('Failed to start group call');
-      setShowGroupCallScreen(false);
-    }
-  };
-
-  const handleEndGroupCall = () => {
-    leaveGroupCall();
-    setShowGroupCallScreen(false);
-    setActiveGroupCall(null);
-  };
-
 
 
   const scrollToBottomSmooth = () => {
@@ -1313,236 +503,49 @@ const Chat = () => {
     }
   };
 
-  const handleMediaDownload = async (mediaUrl, messageId) => {
-    try {
-      // Create a temporary link to download the file
-      const link = document.createElement('a');
-      link.href = mediaUrl;
-      link.download = `media_${messageId}`;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Download failed:', error);
-      showAlert('Failed to download media');
-    }
-  };
-
-  const handleShareAsForward = (message) => {
-    if (!message) return;
-    setMessagesToForward([message]);
-    setShowForwardModal(true);
-  };
-
-  // Removed page transitions for instant look
-
-  // Memoize the header and other static parts if needed, but defining a component inside a component is a bug
-
   return (
     <div
       className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
       style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px`, transition: 'padding-bottom 0.25s ease' } : { transition: 'padding-bottom 0.25s ease' }}
     >
       <div className="chat-main-area">
-        {/* Chat Header - always render, even if otherUser is loading */}
-        <header className="chat-header">
-          <button className="back-btn" onClick={() => navigate('/')}>
-            <ArrowLeft size={20} />
-          </button>
+        {/* Chat Header - delegated to ChatHeader sub-component */}
+        <ChatHeader
+          chatId={chatId}
+          otherUser={otherUser}
+          isGroupChat={isGroupChat}
+          isDesktop={isDesktop}
+          typingUsers={typingUsers}
+          isMuted={isMuted}
+          isTempChat={isTempChat}
+          onVoiceCall={handleVoiceCall}
+          onVideoCall={handleVideoCall}
+          onMuteToggle={handleMuteToggle}
+          onViewContact={handleViewContact}
+          onSearchMessages={handleSearchMessages}
+          onChangeTheme={handleChangeTheme}
+          onShowWallpaper={() => setShowWallpaperPicker(true)}
+          onShowGame={() => setShowGameRoom(true)}
+          onShowGroupInfo={() => setShowGroupInfoDrawer(true)}
+          onBlockUser={handleBlockUser}
+          onClearChat={handleClearChat}
+          onCreateReminder={handleCreateReminder}
+          onTempChatToggle={handleTempChatToggle}
+          onTempChatSettings={handleTempChatSettings}
+        />
 
-          <div className="chat-user-info" onClick={() => isGroupChat ? (isDesktop ? setShowGroupInfoDrawer(true) : navigate(`/chat/${chatId}/group/info`)) : handleViewContact()} style={{ cursor: otherUser ? 'pointer' : 'default' }}>
-            <div className="user-avatar">
-              {otherUser?.avatar ? (
-                parseInt(otherUser.avatar) ? (
-                  <img src={dpOptions.find(dp => dp.id === parseInt(otherUser.avatar))?.path || otherUser.avatar} alt={otherUser.name} />
-                ) : (
-                  <img src={otherUser.avatar} alt={otherUser.name} />
-                )
-              ) : (
-                <div className="user-avatar-loading"></div>
-              )}
-            </div>
-            <div className="user-details">
-              <h3 className="user-name">
-                {isGroupChat
-                  ? (otherUser?.name || 'Group Chat')
-                  : (otherUser ? (otherUser.contact_name || otherUser.name) : 'Loading...')
-                }
-              </h3>
-              <p className="user-status">
-                {isGroupChat ? (
-                  // Group-specific status: show member count
-                  otherUser?.member_count ? `${otherUser.member_count} members` : ''
-                ) : (
-                  // Regular user status
-                  otherUser ? (
-                    Object.keys(typingUsers).length > 0 ? 'typing...' : isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen) ? 'Online' : `Last seen ${formatLastSeen(otherUser.last_seen)}`
-                  ) : 'Loading...'
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="chat-actions">
-            <button className="icon-btn" onClick={handleVoiceCall} title="Voice Call">
-              <Phone size={20} />
-            </button>
-            <button className="icon-btn" onClick={handleVideoCall} title="Video Call">
-              <Video size={20} />
-            </button>
-            <DropdownMenu
-              items={[
-                // Show "View Group Info" for groups, "View Contact" for regular users
-                ...(isGroupChat ? [
-                  {
-                    icon: <User size={16} />,
-                    label: 'View Group Info',
-                    onClick: () => isDesktop ? setShowGroupInfoDrawer(true) : navigate(`/chat/${chatId}/group/info`)
-                  }
-                ] : [
-                  {
-                    icon: <User size={16} />,
-                    label: 'View Contact',
-                    onClick: handleViewContact
-                  }
-                ]),
-                {
-                  icon: <Bell size={16} />,
-                  label: 'Create Reminder',
-                  onClick: handleCreateReminder
-                },
-                {
-                  icon: isMuted ? <Bell size={16} /> : <BellOff size={16} />,
-                  label: isMuted ? 'Unmute Notifications' : 'Mute Notifications',
-                  onClick: handleMuteToggle
-                },
-                // Show Search only for non-group chats (groups can have their own search)
-                ...(!isGroupChat ? [{
-                  icon: <Search size={16} />,
-                  label: 'Search Messages',
-                  onClick: handleSearchMessages
-                }] : []),
-                {
-                  icon: <Palette size={16} />,
-                  label: 'Themes',
-                  onClick: handleChangeTheme
-                },
-                {
-                  icon: <ImageIcon size={16} />,
-                  label: 'Shared Media',
-                  onClick: () => navigate(`${location.pathname}/media`)
-                },
-                {
-                  icon: <ImageIcon size={16} />,
-                  label: 'Chat Wallpaper',
-                  onClick: () => setShowWallpaperPicker(true)
-                },
-                {
-                  icon: <Gamepad2 size={16} />,
-                  label: 'Game Room',
-                  onClick: () => setShowGameRoom(true)
-                },
-                { divider: true },
-                // Show "Clear Chat" only for non-group chats
-                ...(!isGroupChat ? [
-                  {
-                    icon: <Clock size={16} />,
-                    label: isTempChat ? 'Disable Temporary Chat' : 'Enable Temporary Chat',
-                    onClick: handleTempChatToggle
-                  },
-                  {
-                    icon: <SettingsIcon size={16} />,
-                    label: 'Temp Chat Settings',
-                    onClick: handleTempChatSettings,
-                    disabled: !isTempChat
-                  },
-                  {
-                    icon: <Trash2 size={16} />,
-                    label: 'Clear Chat',
-                    onClick: handleClearChat
-                  }
-                ] : []),
-                // Show "Leave Group" option for group chats (opens drawer with leave option)
-                ...(isGroupChat ? [
-                  { divider: true },
-                  {
-                    icon: <Ban size={16} />,
-                    label: 'Leave Group',
-                    onClick: () => isDesktop ? setShowGroupInfoDrawer(true) : navigate(`/chat/${chatId}/group/info`),
-                    danger: true
-                  }
-                ] : [
-                  { divider: true },
-                  {
-                    icon: <Ban size={16} />,
-                    label: 'Block User',
-                    onClick: handleBlockUser,
-                    danger: true
-                  }
-                ])
-              ]}
-            />
-          </div>
-        </header>
-
-        {/* Selection Toolbar */}
-        {isSelectionMode && (
-          <div className="selection-toolbar">
-            <button className="selection-close-btn" onClick={exitSelectionMode}>
-              ✕
-            </button>
-            <div className="selection-info">
-              {selectedMessages.size} selected
-            </div>
-            <div className="selection-actions">
-              {selectedMessages.size === 1 && (
-                <>
-                  <button
-                    className="selection-action-btn"
-                    title="Reply"
-                    onClick={() => {
-                      const messageId = Array.from(selectedMessages)[0];
-                      const message = messages.find(msg => msg.id === messageId);
-                      if (message) handleReply(message);
-                      exitSelectionMode();
-                    }}
-                  >
-                    <Reply size={16} />
-                  </button>
-                  <button className="selection-action-btn" title="Copy" onClick={handleSelectionCopy}>
-                    <Copy size={16} />
-                  </button>
-                  <button className="selection-action-btn" title="Forward" onClick={handleSelectionForward}>
-                    <ArrowRight size={16} />
-                  </button>
-                  {Array.from(selectedMessages).every(messageId => {
-                    const message = messages.find(msg => msg.id === messageId);
-                    const isMine = (message.senderId || message.sender_id) === currentUser.id;
-                    return message && isMine;
-                  }) && (
-                      <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                </>
-              )}
-              {selectedMessages.size > 1 && (
-                <>
-                  <button className="selection-action-btn" title="Copy" onClick={handleSelectionCopy}>
-                    <Copy size={16} />
-                  </button>
-                  <button className="selection-action-btn" title="Forward" onClick={handleSelectionForward}>
-                    <ArrowRight size={16} />
-                  </button>
-                  <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
-                    <Trash2 size={16} />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Selection Toolbar - delegated to ChatActionsPanel sub-component */}
+        <ChatActionsPanel
+          isSelectionMode={isSelectionMode}
+          selectedMessages={selectedMessages}
+          messages={messages}
+          currentUserId={currentUser?.id}
+          onExit={exitSelectionMode}
+          onReply={(message) => { handleReply(message); exitSelectionMode(); }}
+          onCopy={handleSelectionCopy}
+          onForward={handleSelectionForward}
+          onDelete={handleSelectionDelete}
+        />
 
         <div
           className="messages-container"
@@ -1672,25 +675,7 @@ const Chat = () => {
           </div>
         </Modal>
 
-        {/* Delete Confirmation Modal */}
-        <Modal
-          isOpen={showDeleteModal}
-          onClose={cancelSelectionDelete}
-          title={`Delete ${selectedMessages.size} message(s)?`}
-          size="small"
-        >
-          <div className="delete-confirmation-content">
-            <p>Are you sure you want to delete the selected messages? This action cannot be undone.</p>
-            <div className="delete-modal-actions">
-              <button className="delete-cancel-btn" onClick={cancelSelectionDelete}>
-                Cancel
-              </button>
-              <button className="delete-confirm-btn" onClick={confirmSelectionDelete}>
-                Confirm Delete
-              </button>
-            </div>
-          </div>
-        </Modal>
+
 
         {/* Theme Selector Modal */}
         <Modal
@@ -1840,7 +825,7 @@ const Chat = () => {
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button
                 className="btn-primary"
-                onClick={handleStartGroupCall}
+                onClick={() => handleStartGroupCall(selectedCallType)}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >
                 <Phone size={18} />
@@ -1899,7 +884,10 @@ const Chat = () => {
             <p>Are you sure you want to clear all messages? This cannot be undone.</p>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowClearConfirmModal(false)}>Cancel</button>
-              <button className="btn-danger" onClick={confirmClearChat}>Clear</button>
+              <button className="btn-danger" onClick={async () => {
+                await confirmClearChat();
+                setShowClearConfirmModal(false);
+              }}>Clear</button>
             </div>
           </div>
         </Modal>
@@ -1914,7 +902,10 @@ const Chat = () => {
             <p>Are you sure you want to block this user? They won't be able to message or call you.</p>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowBlockConfirmModal(false)}>Cancel</button>
-              <button className="btn-danger" onClick={confirmBlockUser}>Block</button>
+              <button className="btn-danger" onClick={async () => {
+                await confirmBlockUser();
+                setShowBlockConfirmModal(false);
+              }}>Block</button>
             </div>
           </div>
         </Modal>
@@ -1929,7 +920,7 @@ const Chat = () => {
             <p>Delete selected messages for everyone?</p>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowDeleteConfirmModal(false)}>Cancel</button>
-              <button className="btn-danger" onClick={confirmSelectionDelete}>Delete</button>
+              <button className="btn-danger" onClick={onSelectionDelete}>Delete</button>
             </div>
           </div>
         </Modal>
@@ -1977,8 +968,8 @@ const Chat = () => {
         }}
         imageUrl={currentImageUrl}
         message={currentImageMessage}
-        onDownload={handleMediaDownload}
-        onShare={handleShareAsForward}
+        onDownload={onDownloadMedia}
+        onShare={onShareAsForward}
       />
     </div>
   );

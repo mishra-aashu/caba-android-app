@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { realtimeManager } from '../utils/realtimeManager';
 import { initializeFileSystem, loadChatsFromDevice, saveChatsToDevice } from '../utils/FileSystemManager';
-import { isUserOnline } from '../utils/timeUtils';
+import { isUserOnline } from '../utils/dateFormatter';
 import { normalizeChat } from '../utils/chatHelpers';
 
 // Fetch chat list function for React Query - Unified (chats + groups)

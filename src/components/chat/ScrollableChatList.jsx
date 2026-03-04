@@ -1,7 +1,7 @@
 import React from 'react';
 import { MessageCircle, Search, Plus, Users } from 'lucide-react';
 import ChatListItem from './ChatListItem';
-import { isUserOnline } from '../../utils/timeUtils';
+import { isUserOnline } from '../../utils/dateFormatter';
 
 const ScrollableChatList = ({
     isDesktop,

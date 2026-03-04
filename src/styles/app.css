@@ -26,22 +26,7 @@
   /* --font-sans: 'Poppins', sans-serif; */
   /* <-- Uncomment to use Poppins */
 
-  /* --- DYNAMIC VIEWPORT & SAFE AREA VARIABLES (PWA Mobile Fix) --- */
-  /* Primary: Dynamic viewport height - adjusts when keyboard/URL bar appears */
-  --app-height: 100dvh;
-  /* Fallback: Standard viewport height */
-  --app-height: 100vh;
-  /* iOS Safari fallback */
-  --app-height: -webkit-fill-available;
-
-  /* Keyboard height - updated by ViewportManager when keyboard opens */
-  --keyboard-height: 0px;
-
-  /* Safe area insets for notched devices (iPhone X+) */
-  --sat: env(safe-area-inset-top, 0px);
-  --sab: env(safe-area-inset-bottom, 0px);
-  --sal: env(safe-area-inset-left, 0px);
-  --sar: env(safe-area-inset-right, 0px);
+  /* Safe area and viewport variables are now provided by tokens.css */
 
   /* --- REFINED LIGHT THEME --- */
   --bg-color: #F7FDF9;
@@ -223,7 +208,7 @@ body {
 
 @media (max-width: 768px) {
   .page-container {
-    padding-bottom: calc(var(--bottom-nav-height) + var(--sab));
+    padding-bottom: calc(var(--bottom-nav-height, 60px) + var(--sab, 0px));
     /* Space for BottomNavigation + Safe Area */
   }
 }
@@ -348,6 +333,8 @@ body.light-mode .chat-list-panel {
     left: 0;
     right: 0;
     bottom: 0;
+    display: flex;
+    flex-direction: column;
     /* Changed from height 100% to respect parent padding/pb-safe */
     transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     backface-visibility: hidden;
@@ -356,7 +343,7 @@ body.light-mode .chat-list-panel {
 
   /* When on list view (bottom nav is shown), add padding to list-view */
   .mobile-layout:not(.show-chat) .list-view {
-    bottom: calc(var(--bottom-nav-height) + var(--sab));
+    bottom: calc(var(--bottom-nav-height, 60px) + var(--sab, 0px));
   }
 
   .list-view {
@@ -549,7 +536,6 @@ body.light-mode .chat-list-panel {
   flex-grow: 1;
   padding: 0;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 }
 
 
@@ -604,8 +590,8 @@ body.light-mode .chat-list-panel {
 /* --- Message Bubbles --- */
 .message-container {
   display: flex;
-  margin-bottom: 2px;
-  padding: 0 5%;
+  margin-bottom: var(--spacing-xxs);
+  padding: 0 var(--spacing-xl);
   width: 100%;
 }
 
@@ -653,7 +639,7 @@ body.light-mode .chat-list-panel {
 }
 
 .btn {
-  padding: 10px 20px;
+  padding: var(--spacing-md) var(--spacing-xl);
   font-size: 1rem;
   border-radius: 8px;
   border: none;
@@ -678,7 +664,7 @@ body.light-mode .chat-list-panel {
 
 .form-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
   border-radius: 12px;
   border: 1.5px solid var(--border-color);
   background-color: rgba(var(--text-primary-rgb), 0.02);
@@ -1154,7 +1140,7 @@ body.light-mode .no-contacts {
   box-shadow: var(--shadow-sm);
   margin-top: 1rem;
   margin-bottom: 1rem;
-  min-height: calc(100vh - 2rem);
+  min-height: calc(var(--app-height) - 2rem);
 }
 
 /* Legal page header with back button */
@@ -1243,7 +1229,7 @@ body.light-mode .no-contacts {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 10px 20px;
+  padding: var(--spacing-md) var(--spacing-xl);
   background: var(--brand-gradient);
   color: white;
   border: none;
@@ -1270,7 +1256,7 @@ body.light-mode .no-contacts {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 10px 20px;
+  padding: var(--spacing-md) var(--spacing-xl);
   background: var(--brand-gradient);
   color: white;
   border: none;
@@ -1348,7 +1334,7 @@ body.light-mode .no-contacts {
 
 .search-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
   border: none;
   border-radius: 8px;
   background-color: var(--bg-color);

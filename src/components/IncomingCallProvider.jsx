@@ -18,7 +18,7 @@ export const IncomingCallProvider = ({ children }) => {
   }, [currentUser]);
 
   const setupIncomingCallListener = () => {
-    if (!currentUser) return () => {};
+    if (!currentUser) return () => { };
 
     const channel = supabase
       .channel('global-incoming-calls')
@@ -37,9 +37,7 @@ export const IncomingCallProvider = ({ children }) => {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Global incoming call listener:', status);
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -68,7 +66,7 @@ export const IncomingCallProvider = ({ children }) => {
         .eq('call_id', callId);
 
       // Send hangup signal if needed
-      console.log('📵 Call rejected');
+      // Send hangup signal if needed
     } catch (error) {
       console.error('Reject call error:', error);
     }

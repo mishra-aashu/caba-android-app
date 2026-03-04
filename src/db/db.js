@@ -47,7 +47,6 @@ export const markSyncItemCompleted = async (id) => {
 export const requestPersistentStorage = async () => {
     if (navigator.storage && navigator.storage.persist) {
         const isPersisted = await navigator.storage.persist();
-        console.log(`Persistent storage granted: ${isPersisted}`);
         return isPersisted;
     }
     return false;

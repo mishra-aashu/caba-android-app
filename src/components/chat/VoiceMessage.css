@@ -41,7 +41,8 @@
     background 0.3s ease; */
   /* Removed voice-bubble-appear animation for instant look */
   /* animation: voice-bubble-appear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; */
-  transition: none !important;
+  /* Transition disabled for instant mobile feel */
+  transition: none;
 }
 
 @keyframes voice-bubble-appear {
@@ -58,21 +59,21 @@
 
 .voice-card.voice-sent {
   background: var(--sent-message-bg, var(--sent-message-bg-default));
-  color: var(--sent-message-text, #ffffff) !important;
-  border-radius: 20px 20px 4px 20px !important;
+  color: var(--sent-message-text, #ffffff);
+  border-radius: 20px 20px 4px 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: var(--sent-message-shadow, var(--sent-message-shadow-default));
 }
 
 .voice-card.voice-received {
-  background: var(--received-message-bg, rgba(255, 255, 255, 0.85)) !important;
-  color: var(--received-message-text, #1a1a1a) !important;
-  border-radius: 20px 20px 20px 4px !important;
+  background: var(--received-message-bg, rgba(255, 255, 255, 0.85));
+  color: var(--received-message-text, #1a1a1a);
+  border-radius: 20px 20px 20px 4px;
   border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 [data-theme='dark'] .voice-card.voice-received {
-  background: var(--received-message-bg, rgba(30, 30, 30, 0.85)) !important;
+  background: var(--received-message-bg, rgba(30, 30, 30, 0.85));
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -179,7 +180,7 @@
 }
 
 .tick-icon.read {
-  color: var(--tick-read-color, var(--tick-read-color-default)) !important;
+  color: var(--tick-read-color, var(--tick-read-color-default));
   filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.5));
 }
 

@@ -22,7 +22,7 @@
 }
 
 /* --- THE UNIQUE BUBBLE --- */
-.bubble {
+.message-container .bubble {
   width: fit-content;
   max-width: 88%;
   padding: 8px 12px;
@@ -39,7 +39,7 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   contain: layout;
-  transition: none !important;
+  transition: none;
 }
 
 /* Removed bubble-appear animation */
@@ -59,16 +59,16 @@
   padding: 8px 12px 6px 14px;
 }
 
-.bubble-sent .reply-quote-container {
-  background: rgba(255, 255, 255, 0.1) !important;
+.message-container .bubble-sent .reply-quote-container {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.bubble-sent .reply-quote-user {
-  color: #ffffff !important;
+.message-container .bubble-sent .reply-quote-user {
+  color: #ffffff;
 }
 
-.bubble-sent .reply-quote-text {
-  color: rgba(255, 255, 255, 0.8) !important;
+.message-container .bubble-sent .reply-quote-text {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Received Messages - Progressive Radius */
@@ -277,13 +277,13 @@
 }
 
 /* Bubble for jumbo emoji - remove background, padding, and shadow */
-.bubble.jumbo-emoji-bubble {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-  padding: 0 !important;
-  min-width: auto !important;
-  max-width: none !important;
+.message-container.jumbo-emoji .bubble.jumbo-emoji-bubble {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  min-width: auto;
+  max-width: none;
 
   /* Ensure proper alignment */
   backdrop-filter: none;
@@ -308,11 +308,11 @@
 /* Make emojis significantly larger in jumbo emoji mode */
 .message-container.jumbo-emoji .text img,
 .message-container.jumbo-emoji .emoji-renderer-root img,
-.jumbo-emoji-bubble .custom-emoji-img {
-  width: 64px !important;
-  height: 64px !important;
-  margin: 0 !important;
-  object-fit: contain !important;
+.message-container .jumbo-emoji-bubble .custom-emoji-img {
+  width: 64px;
+  height: 64px;
+  margin: 0;
+  object-fit: contain;
 }
 
 /* Support for 4rem size as fallback */
@@ -320,9 +320,9 @@
 
   .message-container.jumbo-emoji .text img,
   .message-container.jumbo-emoji .emoji-renderer-root img,
-  .jumbo-emoji-bubble .custom-emoji-img {
-    width: 4rem !important;
-    height: 4rem !important;
+  .message-container .jumbo-emoji-bubble .custom-emoji-img {
+    width: 4rem;
+    height: 4rem;
   }
 }
 
@@ -335,13 +335,13 @@
 
 /* Native emoji fallback support for jumbo mode */
 .message-container.jumbo-emoji .native-emoji-fallback {
-  font-size: 48px !important;
-  line-height: 1 !important;
+  font-size: 48px;
+  line-height: 1;
 }
 
 @media (max-width: 480px) {
   .message-container.jumbo-emoji .native-emoji-fallback {
-    font-size: 3rem !important;
+    font-size: 3rem;
   }
 }
 
@@ -402,8 +402,8 @@
 }
 
 .reaction-badge .emoji-renderer-root img {
-  width: 16px !important;
-  height: 16px !important;
+  width: 16px;
+  height: 16px;
 }
 
 /* Removed jelly animation for uniform scrolling */

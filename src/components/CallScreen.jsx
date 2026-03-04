@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCall } from '../context/CallContext';
+import { useCall } from '../contexts/CallContext';
 import '../styles/call-screen.css';
 import { dpOptions } from '../utils/dpOptions';
 import {
@@ -69,34 +69,29 @@ function CallScreen() {
 
   // Set up video elements
   useEffect(() => {
-    console.log('CallScreen: localStream changed', localStream);
-    console.log('CallScreen: localStream tracks:', localStream?.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
     if (localVideoRef.current) {
       const stream = isSwapped ? remoteStream : localStream;
       if (stream) {
         localVideoRef.current.srcObject = stream;
-        console.log('CallScreen: set srcObject on pip video, tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
         // Ensure video plays
-        localVideoRef.current.play().catch(e => console.log('Play failed:', e));
+        localVideoRef.current.play().catch(e => {
+          // Playback might be blocked by browser policy until user interaction
+        });
       }
     }
   }, [localStream, remoteStream, isSwapped]);
 
   useEffect(() => {
-    console.log('CallScreen: remoteStream changed', remoteStream);
-    console.log('CallScreen: remoteStream tracks:', remoteStream?.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
     if (remoteVideoRef.current) {
       const stream = isSwapped ? localStream : remoteStream;
       if (stream) {
         remoteVideoRef.current.srcObject = stream;
-        console.log('CallScreen: set srcObject on main video, tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
       }
     }
     if (remoteAudioRef.current) {
       const stream = isSwapped ? localStream : remoteStream;
       if (stream) {
         remoteAudioRef.current.srcObject = stream;
-        console.log('CallScreen: set srcObject on remote audio, tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })));
       }
     }
   }, [localStream, remoteStream, isSwapped]);
@@ -266,7 +261,7 @@ function CallScreen() {
         {/* Local Video (Picture-in-Picture) */}
         {isVideoCall && localStream && (
           <div className="pip-container" onClick={() => setIsSwapped(!isSwapped)}>
-           {showDeepAR ? (
+            {showDeepAR ? (
               <Suspense fallback={<div>Loading AR...</div>}>
                 <DeepARComponent onStreamReady={(stream) => {
                   handleDeepARStream(stream);

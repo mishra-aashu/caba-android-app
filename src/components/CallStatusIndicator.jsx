@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useCall } from '../context/CallContext';
+import { useCall } from '../contexts/CallContext';
 import { Phone, PhoneOff, Video, VideoOff } from 'lucide-react';
 import '../styles/call-status-indicator.css';
 

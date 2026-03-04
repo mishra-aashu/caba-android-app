@@ -3,15 +3,7 @@
    ============================================= */
 
 :root {
-    /* Dynamic Viewport Height - fallback to 1vh if --vh is not yet set */
-    --vh-unit: var(--vh, 1vh);
-    --app-height: calc(var(--vh-unit) * 100);
-
-    /* Safe Area Insets - handled by env() but we provide variables for easier usage */
-    --sat: env(safe-area-inset-top, 0px);
-    --sar: env(safe-area-inset-right, 0px);
-    --sab: env(safe-area-inset-bottom, 0px);
-    --sal: env(safe-area-inset-left, 0px);
+    /* Safe area and viewport variables are now provided by tokens.css */
 
     /* Design Tokens for Layout */
     --header-height: 64px;

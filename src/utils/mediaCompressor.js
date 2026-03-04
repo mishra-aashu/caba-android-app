@@ -24,11 +24,9 @@ export const compressImage = async (file, quality = 'standard') => {
   }
 
   const options = quality === 'high' ? HIGH_QUALITY_OPTIONS : STANDARD_QUALITY_OPTIONS;
-  console.log(`Original image size: ${(file.size / 1024 / 1024).toFixed(2)} MB, compressing with '${quality}' setting.`);
 
   try {
     const compressedFile = await imageCompression(file, options);
-    console.log(`Compressed image size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
     return compressedFile;
   } catch (error) {
     console.error('Error during image compression:', error);
@@ -48,7 +46,6 @@ export const handleVideo = (file) => {
   }
 
   const fileSizeMB = file.size / 1024 / 1024;
-  console.log(`Video size: ${fileSizeMB.toFixed(2)} MB`);
 
   if (fileSizeMB > MAX_VIDEO_SIZE_MB) {
     alert(`Video is too large (${fileSizeMB.toFixed(2)} MB). Please upload a video smaller than ${MAX_VIDEO_SIZE_MB} MB.`);

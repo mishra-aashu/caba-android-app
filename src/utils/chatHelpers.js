@@ -7,7 +7,7 @@
  * The UI should use these normalized properties instead of conditional logic.
  */
 
-import { isUserOnline, formatTime } from './timeUtils';
+import { isUserOnline, formatTime } from './dateFormatter';
 import { formatBubbleTime } from './dateFormatter';
 
 /**

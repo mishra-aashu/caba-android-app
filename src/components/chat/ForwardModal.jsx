@@ -3,7 +3,7 @@ import Modal from '../common/Modal';
 import { ArrowRight, MessageCircle } from 'lucide-react';
 import { dpOptions } from '../../utils/dpOptions';
 import { getInitials } from '../../utils/stringUtils';
-import { isUserOnline } from '../../utils/timeUtils';
+import { isUserOnline } from '../../utils/dateFormatter';
 import './ForwardModal.css';
 
 const ForwardModal = ({

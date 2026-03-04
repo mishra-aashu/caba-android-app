@@ -22,7 +22,7 @@ import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import ChatListItem from './chat/ChatListItem';
 import { getInitials } from '../utils/stringUtils';
-import { isUserOnline } from '../utils/timeUtils';
+import { isUserOnline } from '../utils/dateFormatter';
 import CreateGroupModal from './groups/CreateGroupModal';
 import { useGroupActions } from '../hooks/useGroupActions';
 import ScrollableChatList from './chat/ScrollableChatList';

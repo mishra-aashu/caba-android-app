@@ -22,17 +22,13 @@
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
-  /* GPU Acceleration */
-  transform: translateZ(0);
-  will-change: scroll-position;
-  contain: content;
 }
 
 /* --- 2. The Chat Item (Unified Base) --- */
 .chat-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
   width: 100%;
   cursor: pointer;
   position: relative;
@@ -43,7 +39,6 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  contain: layout style;
 }
 
 /* ZERO-SHIFT INDICATOR (Absolute positioning) */
@@ -134,7 +129,7 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 2px;
+  margin-bottom: var(--spacing-xxs);
 }
 
 .chat-name {

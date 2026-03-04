@@ -152,9 +152,6 @@ const QRPage = () => {
     );
   }
 
-  // Debug: Log user object to console
-  console.log('QR Page - User object:', user);
-
   // Ensure user has required properties with fallbacks
   const userData = {
     id: user.id || '',

@@ -9,14 +9,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-primary, #fff) !important;
+  background: var(--bg-primary, #fff);
 }
 
 .history-content {
   flex: 1;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch !important;
-  scroll-behavior: smooth !important;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
   overscroll-behavior: contain;
   padding-bottom: 80px;
   /* Space for bottom nav */
@@ -27,9 +27,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--header-bg, #f0f2f5) !important;
-  border-bottom: 1px solid var(--border-color, #e8e8e8) !important;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--header-bg, #f0f2f5);
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
 }
 
 .history-container .header-left {
@@ -43,11 +43,11 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: none !important;
-  background: transparent !important;
-  color: var(--text-primary, #111) !important;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #111);
   cursor: pointer;
-  border-radius: 50% !important;
+  border-radius: 50%;
 }
 
 .history-container .header-center {
@@ -59,7 +59,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0;
-  color: var(--text-primary, #111) !important;
+  color: var(--text-primary, #111);
 }
 
 /* Content - already defined above, keeping this for backward compatibility if class exists */
@@ -73,120 +73,120 @@
    ============================================ */
 
 .history-item {
-  display: flex !important;
-  align-items: center !important;
-  padding: 12px 15px !important;
-  border-bottom: 1px solid var(--border-color, #f0f0f0) !important;
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
   cursor: pointer;
   min-height: 70px;
 }
 
 .history-item:hover {
-  background: var(--hover-bg, #f5f6f7) !important;
+  background: var(--hover-bg, #f5f6f7);
 }
 
 /* LEFT: Avatar */
 .history-item .call-avatar {
-  width: 50px !important;
-  height: 50px !important;
-  min-width: 50px !important;
-  border-radius: 50% !important;
-  overflow: hidden !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: var(--avatar-bg, #e8e8e8) !important;
-  color: var(--text-secondary, #666) !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  margin-right: 15px !important;
-  margin-left: 0 !important;
-  position: relative !important;
-  float: none !important;
-  left: auto !important;
-  right: auto !important;
-  transform: none !important;
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--avatar-bg, #e8e8e8);
+  color: var(--text-secondary, #666);
+  font-size: 16px;
+  font-weight: 600;
+  margin-right: 15px;
+  margin-left: 0;
+  position: relative;
+  float: none;
+  left: auto;
+  right: auto;
+  transform: none;
 }
 
 .history-item .call-avatar img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  border-radius: 50% !important;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 /* Override any nested avatar styling */
 .history-item .call-avatar .avatar {
-  width: 100% !important;
-  height: 100% !important;
-  border-radius: 50% !important;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 }
 
 /* MIDDLE: Info Column */
 .history-item .history-details {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-width: 0;
-  margin-right: 10px !important;
+  margin-right: 10px;
 }
 
 /* Name */
 .history-item .history-name {
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  color: var(--text-primary, #111) !important;
-  margin: 0 0 4px 0 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  display: flex !important;
-  align-items: center !important;
-  text-align: left !important;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  text-align: left;
 }
 
 .history-item .call-count {
-  font-weight: 400 !important;
-  color: #8696a0 !important;
-  margin-left: 5px !important;
-  font-size: 14px !important;
+  font-weight: 400;
+  color: #8696a0;
+  margin-left: 5px;
+  font-size: 14px;
 }
 
 /* Sub Info Row */
 .history-item .history-status-row {
-  display: flex !important;
-  align-items: center !important;
-  gap: 5px !important;
-  font-size: 13px !important;
-  color: #8696a0 !important;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #8696a0;
 }
 
 .history-item .history-status-row .status-icon {
-  width: 14px !important;
-  height: 14px !important;
-  flex-shrink: 0 !important;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .history-item .history-status-row .status-icon.missed {
-  color: #f44336 !important;
+  color: #f44336;
 }
 
 .history-item .history-status-row .status-icon.outgoing {
-  color: #25d366 !important;
+  color: #25d366;
 }
 
 .history-item .history-status-row .status-icon.incoming {
-  color: #0088ff !important;
+  color: #0088ff;
 }
 
 .history-item .time-text {
-  flex: 1 !important;
+  flex: 1;
 }
 
 .history-item .duration-text {
-  font-weight: 500 !important;
-  color: #25d366 !important;
+  font-weight: 500;
+  color: #25d366;
 }
 
 .history-loader {
@@ -206,28 +206,28 @@
 
 /* RIGHT: Action Button */
 .history-item .call-action-btn {
-  width: 44px !important;
-  height: 44px !important;
-  min-width: 44px !important;
-  border: none !important;
-  background: transparent !important;
-  color: #0088ff !important;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: none;
+  background: transparent;
+  color: #0088ff;
   cursor: pointer;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 50% !important;
-  margin-left: auto !important;
-  margin-right: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-left: auto;
+  margin-right: 0;
   transition: background-color 0.2s;
 }
 
 .history-item .call-action-btn:hover {
-  background: var(--btn-hover-bg, #e8f4ff) !important;
+  background: var(--btn-hover-bg, #e8f4ff);
 }
 
 .history-item .call-action-btn:active {
-  background: var(--btn-active-bg, #d0e9ff) !important;
+  background: var(--btn-active-bg, #d0e9ff);
 }
 
 .history-item .call-action-btn:disabled {
@@ -240,10 +240,10 @@
    ============================================ */
 
 .history-loading {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   height: 300px;
   gap: 16px;
 }
@@ -273,10 +273,10 @@
    ============================================ */
 
 .history-error {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   height: 300px;
   gap: 16px;
 }
@@ -306,10 +306,10 @@
    ============================================ */
 
 .history-content .empty-state {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 60px 20px;
   text-align: center;
 }
@@ -353,7 +353,7 @@
 }
 
 [data-theme="dark"] .history-item:hover {
-  background: #1a1a1a !important;
+  background: #1a1a1a;
 }
 
 /* Mobile Dark Mode Fix */
@@ -361,28 +361,28 @@
 
   [data-theme="dark"] .history-container,
   .dark .history-container {
-    background: #111b21 !important;
-    min-height: 100vh !important;
+    background: #111b21;
+    min-height: var(--app-height);
   }
 
   [data-theme="dark"] .history-item,
   .dark .history-item {
-    background: #111b21 !important;
+    background: #111b21;
   }
 }
 
 [data-theme="dark"] .history-item:hover {
-  background: #1a1a1a !important;
+  background: #1a1a1a;
 }
 
 [data-theme="dark"] .history-name {
-  color: #e8e8e8 !important;
+  color: #e8e8e8;
 }
 
 [data-theme="dark"] .history-status-row,
 [data-theme="dark"] .history-time-text,
 [data-theme="dark"] .history-duration {
-  color: #a0a0a0 !important;
+  color: #a0a0a0;
 }
 
 [data-theme="dark"] .history-loading .loading-spinner {
@@ -396,57 +396,57 @@
 
 @media (max-width: 600px) {
   .history-container {
-    min-height: 100vh !important;
-    background: #ffffff !important;
-    width: 100% !important;
+    min-height: var(--app-height);
+    background: #ffffff;
+    width: 100%;
   }
 
   .history-item {
-    padding: 10px !important;
+    padding: 10px;
     min-height: 60px;
-    background: #ffffff !important;
+    background: #ffffff;
   }
 
   /* Smaller Avatar */
   .history-item .call-avatar {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    margin-right: 12px !important;
-    font-size: 14px !important;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    margin-right: 12px;
+    font-size: 14px;
   }
 
   /* Smaller Name */
   .history-item .history-name {
-    font-size: 15px !important;
-    margin-bottom: 2px !important;
+    font-size: 15px;
+    margin-bottom: var(--spacing-xxs);
   }
 
   /* Smaller Sub Info */
   .history-item .history-status-row {
-    font-size: 12px !important;
-    gap: 4px !important;
+    font-size: 12px;
+    gap: 4px;
   }
 
   /* Smaller Button */
   .history-item .call-action-btn {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
   }
 
   /* Header */
   .history-container .header-center h1 {
-    font-size: 16px !important;
+    font-size: 16px;
   }
 
   .history-container .app-header {
-    padding: 10px 12px !important;
+    padding: 10px 12px;
   }
 
   .history-container .back-btn {
-    width: 36px !important;
-    height: 36px !important;
+    width: 36px;
+    height: 36px;
   }
 }
 
@@ -456,23 +456,23 @@
 
 @media (min-width: 768px) {
   .history-item {
-    padding: 14px 20px !important;
+    padding: 14px 20px;
   }
 
   .history-item .call-avatar {
-    width: 52px !important;
-    height: 52px !important;
-    min-width: 52px !important;
-    margin-right: 18px !important;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    margin-right: 18px;
   }
 
   .history-item .history-name {
-    font-size: 17px !important;
+    font-size: 17px;
   }
 
   .history-item .call-action-btn {
-    width: 48px !important;
-    height: 48px !important;
-    min-width: 48px !important;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
   }
 }

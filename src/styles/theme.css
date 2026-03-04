@@ -184,9 +184,9 @@ body {
 
 /* Message Disintegration & Shrink Animation */
 .message-item.is-deleting {
-  animation: message-shrink 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
-  pointer-events: none !important;
-  overflow: hidden !important;
+  animation: message-shrink 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+  overflow: hidden;
   z-index: 10;
 }
 

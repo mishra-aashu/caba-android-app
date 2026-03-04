@@ -1,5 +1,5 @@
 import React from 'react';
-import { useCall } from '../context/CallContext';
+import { useCall } from '../contexts/CallContext';
 import { Phone, Video } from 'lucide-react';
 
 export function CallButton({ receiverId, callType = 'video', size = 'md' }) {

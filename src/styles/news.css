@@ -3,7 +3,7 @@
      ============================================= */
 
 .news-container {
-  min-height: 100vh;
+  min-height: var(--app-height);
   background: var(--background);
   padding: var(--spacing-lg);
   color: var(--text-primary);

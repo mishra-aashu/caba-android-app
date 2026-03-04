@@ -15,7 +15,7 @@ import { useDialog } from '../contexts/DialogContext';
 import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
 import ParticleOverlay from './chat/ParticleOverlay';
-import { formatTime } from '../utils/timeUtils';
+import { formatTime } from '../utils/dateFormatter';
 import '../styles/theme.css';
 
 // Create context for user-details panel
@@ -364,7 +364,7 @@ const MainLayout = () => {
 
     if (!isDesktop) {
         return (
-            <div className={`mobile-layout ${isChatViewActive ? 'show-chat' : ''} pb-safe`}>
+            <div className={`mobile-layout ${isChatViewActive ? 'show-chat' : ''}`}>
                 <div className="list-view">
                     <ChatListPanel {...chatListPanelProps} />
                 </div>

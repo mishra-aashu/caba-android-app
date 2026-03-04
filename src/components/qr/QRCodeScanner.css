@@ -15,7 +15,7 @@
 
 .qr-scanner-content {
   background: var(--background, white);
-  border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
   border-radius: 20px;
   max-width: 400px;
   width: 100%;
@@ -39,7 +39,7 @@
   font-size: 20px;
   color: var(--text-primary);
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .qr-close-btn {
@@ -59,10 +59,10 @@
 }
 
 .qr-close-btn:hover {
-  background: var(--hover-color, rgba(0,0,0,0.1));
+  background: var(--hover-color, rgba(0, 0, 0, 0.1));
   color: var(--text-primary);
   transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .qr-scanner-body {
@@ -99,14 +99,14 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 }
 
 .qr-retry-btn:hover {
   background: var(--chat-input-icon-color, var(--primary-color-dark));
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .qr-reader-container {
@@ -185,8 +185,8 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 20px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .qr-start-btn:hover {
@@ -224,15 +224,15 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .qr-upload-btn:hover {
   background: var(--chat-header-bg, var(--primary-color));
   color: var(--chat-header-text, white);
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .qr-stop-btn {
@@ -256,24 +256,24 @@
 }
 
 /* Override html5-qrcode library styles */
-#qr-reader {
-  border: none !important;
-  border-radius: 15px !important;
-  overflow: hidden !important;
+.qr-scanner-content #qr-reader {
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
 }
 
-#qr-reader__dashboard {
-  display: none !important;
+.qr-scanner-content #qr-reader__dashboard {
+  display: none;
 }
 
-#qr-reader__camera_permission_button {
-  background: var(--primary-color) !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 10px !important;
-  padding: 12px 24px !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
+.qr-scanner-content #qr-reader__camera_permission_button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* Custom scanner overlay */
@@ -293,19 +293,19 @@
   .qr-scanner-modal {
     padding: 10px;
   }
-  
+
   .qr-scanner-content {
     border-radius: 15px;
   }
-  
+
   .qr-scanner-header {
     padding: 15px 15px 0;
   }
-  
+
   .qr-scanner-body {
     padding: 0 15px 15px;
   }
-  
+
   .qr-scanner-tips {
     flex-direction: column;
     gap: 10px;

@@ -2,7 +2,7 @@
 
 /* 1. Root and Layout */
 .app-shell {
-  height: 100vh;
+  height: var(--app-height);
   width: 100vw;
   background-color: var(--bg-color);
   color: var(--text-primary);

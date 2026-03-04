@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { supabase } from '../../config/supabase';
-import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
@@ -9,20 +8,8 @@ import ReactionPicker from './ReactionPicker';
 import { getValidAvatarUrl } from '../../utils/avatarUtils';
 import { formatBubbleTime } from '../../utils/dateFormatter';
 import {
-  Calendar,
   Check,
   CheckCheck,
-  MoreVertical,
-  Newspaper,
-  Bell,
-  Clock,
-  MapPin,
-  Play,
-  XCircle,
-  CheckCircle,
-  Send,
-  UserCheck,
-  UserX,
   Reply,
   Heart
 } from 'lucide-react';
@@ -107,12 +94,18 @@ const MessageItem = ({
       }
     };
 
+    const handleExternalEdit = () => {
+      if (isSent) handleEdit();
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
     messageRef.current?.addEventListener('triggerEdit', handleEditTrigger);
+    window.addEventListener(`triggerEdit-${safeMessage.id}`, handleExternalEdit);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       messageRef.current?.removeEventListener('triggerEdit', handleEditTrigger);
+      window.removeEventListener(`triggerEdit-${safeMessage.id}`, handleExternalEdit);
     };
   }, [showActions, safeMessage.id, isSent]);
 
@@ -223,31 +216,9 @@ const MessageItem = ({
     setIsEditing(false);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     setShowActions(false);
-
-    // Trigger particle effect locally for instant feedback
-    const element = document.getElementById(`message-${safeMessage.id}`);
-    if (element) {
-      const rect = element.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-      const color = isSent ? '#7c3aed' : '#555555';
-
-      import('../../utils/particleManager').then(m => {
-        m.default.spawn(x, y, color, rect.width, rect.height);
-      });
-    }
-
     if (onDelete) onDelete(safeMessage.id);
-    try {
-      const { error } = await supabase.from('messages').delete().eq('id', safeMessage.id);
-      if (error) throw error;
-      toast.success('Message deleted');
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      toast.error('Failed to delete message');
-    }
   };
 
   const handleReport = async () => {
@@ -520,6 +491,14 @@ const MessageItem = ({
         </div>
 
       </div>
+
+      {showReactionPicker && (
+        <ReactionPicker
+          position={reactionPickerPos}
+          onSelect={handleReactionSelect}
+          onClose={() => setShowReactionPicker(false)}
+        />
+      )}
 
       <DesktopContextMenu
         position={menuPos}

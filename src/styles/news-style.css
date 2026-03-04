@@ -29,7 +29,7 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: var(--news-background);
-    min-height: 100vh;
+    min-height: var(--app-height);
     padding: 20px;
     color: var(--news-text);
 }
@@ -179,7 +179,7 @@ body {
     background: #4CAF50;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: var(--spacing-md) var(--spacing-xl);
     border-radius: 8px;
     cursor: pointer;
     font-size: 1em;

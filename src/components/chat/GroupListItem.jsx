@@ -8,7 +8,7 @@ import { Users } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchMessagesPage } from '../../hooks/useMessages';
 import { getInitials } from '../../utils/stringUtils';
-import { isUserOnline } from '../../utils/timeUtils';
+import { isUserOnline } from '../../utils/dateFormatter';
 import { formatInboxTime } from '../../utils/dateFormatter';
 
 const GroupListItem = ({ group, onClick, isActive }) => {

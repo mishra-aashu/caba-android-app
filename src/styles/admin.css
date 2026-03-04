@@ -42,7 +42,7 @@
 
 /* Admin Container */
 .admin-container {
-    min-height: 100vh;
+    min-height: var(--app-height);
     background: var(--admin-light);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -73,7 +73,7 @@
     top: 0;
     left: 0;
     width: 250px;
-    height: 100vh;
+    height: var(--app-height);
     background: white;
     border-right: 1px solid var(--admin-border);
     padding-top: 80px;
@@ -126,7 +126,7 @@
 .admin-main {
     margin-left: 250px;
     padding: var(--admin-spacing-xl);
-    min-height: 100vh;
+    min-height: var(--app-height);
 }
 
 /* Header Actions */
@@ -539,18 +539,18 @@
 /* Print styles */
 @media print {
 
-    .admin-sidebar,
-    .header-actions,
-    .modal {
-        display: none !important;
+    html .admin-sidebar,
+    html .header-actions,
+    html .modal {
+        display: none;
     }
 
-    .admin-main {
-        margin-left: 0 !important;
+    html .admin-main {
+        margin-left: 0;
     }
 
-    .content-section {
-        display: block !important;
+    html .content-section {
+        display: block;
     }
 }
 

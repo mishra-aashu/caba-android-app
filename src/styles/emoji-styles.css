@@ -1,8 +1,8 @@
 /* Custom Emoji Styling */
-.emoji-image,
-.custom-emoji-img {
-    height: 1.2em !important;
-    width: 1.2em !important;
+img.emoji-image,
+img.custom-emoji-img {
+    height: 1.2em;
+    width: 1.2em;
     margin: 0 0.05em;
     vertical-align: middle;
     display: inline-block;

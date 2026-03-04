@@ -6,7 +6,7 @@
 .offline-indicator-wrapper {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  min-height: var(--app-height);
 }
 
 /* Offline Banner */
