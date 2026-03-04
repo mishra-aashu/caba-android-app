@@ -22,6 +22,17 @@ const CapacitorStorage = {
   },
 };
 
+// Connection error subscribers
+const connectionErrorSubscribers = new Set();
+export const onConnectionError = (callback) => {
+  connectionErrorSubscribers.add(callback);
+  return () => connectionErrorSubscribers.delete(callback);
+};
+
+const notifyConnectionError = () => {
+  connectionErrorSubscribers.forEach(cb => cb());
+};
+
 const createSupabaseClient = () => {
   if (instance) return instance;
 
@@ -55,7 +66,11 @@ const createSupabaseClient = () => {
             return response;
           } catch (error) {
             attempt++;
-            if (attempt === MAX_RETRIES) throw error;
+            if (attempt === MAX_RETRIES) {
+              // ✅ Circuit Breaker: Signal exhaustion
+              notifyConnectionError();
+              throw error;
+            }
             // Exponential backoff
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
             console.warn(`Supabase retry attempt ${attempt} for ${url}`);

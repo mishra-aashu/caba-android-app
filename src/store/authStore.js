@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../config/supabase';
+import { supabase, onConnectionError } from '../config/supabase';
 import { dbToFrontend } from '../utils/dbFieldMapping';
 import { getRedirectUrl } from '../utils/authUtils';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
@@ -11,6 +11,7 @@ let lastRefreshTime = 0;
 const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum
 let isHandlingSession = false; // Prevent duplicate handleUserSession calls
 let isRefreshing = false; // ✅ Prevent concurrent refreshSession calls
+let isGoogleAuthInitialized = false; // ✅ Optimized one-time init
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -168,9 +169,15 @@ const useAuthStore = create((set, get) => ({
         });
       }
 
+      // ✅ CIRCUIT BREAKER: Listen for terminal connectivity failures
+      const unsubConnectionError = onConnectionError(() => {
+        set({ isServerUnreachable: true });
+      });
+
       // ✅ REAL cleanup — removes actual listeners
       return () => {
         subscription?.unsubscribe();
+        unsubConnectionError(); // ✅ Stop listening for connection errors
         document.removeEventListener(
           'visibilitychange',
           handleVisibilityChange
@@ -253,14 +260,18 @@ const useAuthStore = create((set, get) => ({
     set({ isServerUnreachable: false }); // Reset error state on new attempt
     try {
       if (Capacitor.isNativePlatform()) {
-        try {
-          await GoogleAuth.initialize({
-            clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
-            scopes: ['profile', 'email'],
-            grantOfflineAccess: true,
-          });
-        } catch (initError) {
-          console.warn('GoogleAuth already initialized or failed:', initError);
+        if (!isGoogleAuthInitialized) {
+          try {
+            await GoogleAuth.initialize({
+              clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+              scopes: ['profile', 'email'],
+              grantOfflineAccess: true,
+            });
+            isGoogleAuthInitialized = true;
+          } catch (initError) {
+            console.warn('GoogleAuth already initialized or failed:', initError);
+            isGoogleAuthInitialized = true; // Mark as true anyway to prevent retries
+          }
         }
         const googleUser = await GoogleAuth.signIn();
         const { error } = await supabase.auth.signInWithIdToken({
