@@ -5,7 +5,6 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppVersions } from '../../hooks/useAppVersions';
 import { Capacitor } from '@capacitor/core';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { isOlderVersion } from '../../utils/versionUtils';
 
 // App's current local version synced with package.json
@@ -59,11 +58,9 @@ const PwaUpdater = () => {
 
             // Step 2: Handle Native vs Web update
             if (Capacitor.isNativePlatform()) {
-                console.log('[PwaUpdater] Native platform detected. Using CapacitorUpdater for reload.');
-                toast.loading('Restarting app to apply update...', { id: 'pwa-update-toast' });
                 // Give user 1sec to see the toast before reload
                 setTimeout(async () => {
-                    await CapacitorUpdater.reload();
+                    window.location.reload(true);
                 }, 1000);
             } else {
                 console.log('[PwaUpdater] Web/PWA detected. Unregistering SW and reloading.');

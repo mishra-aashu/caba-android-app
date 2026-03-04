@@ -16,9 +16,6 @@ const config: CapacitorConfig = {
       serverClientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
       forceCodeForRefreshToken: true,
     },
-    CapacitorUpdater: {
-      publicKey: process.env.CAPGO_PUBLIC_KEY,
-    },
     // ── Keyboard Plugin ────────────────────────────────────────────────────────
     // resize + scrollAssist are set programmatically in useCapacitorPlugins.js
     Keyboard: {

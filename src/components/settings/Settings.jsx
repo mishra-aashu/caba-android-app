@@ -9,7 +9,6 @@ import { useAppVersions } from '../../hooks/useAppVersions';
 import { clearAllCachedData } from '../../utils/FileSystemManager';
 import { isOlderVersion } from '../../utils/versionUtils';
 import { Capacitor } from '@capacitor/core';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { MoreVertical } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import toast from 'react-hot-toast';
@@ -234,12 +233,8 @@ const Settings = () => {
     if (isAvailable) {
       const confirmed = await showConfirm(`A new version (${remoteVersion}) is available! Update now?`, 'Update Available');
       if (confirmed) {
-        if (Capacitor.isNativePlatform()) {
-          toast.loading('Restarting app...');
-          setTimeout(() => CapacitorUpdater.reload(), 1000);
-        } else {
-          window.location.reload(true);
-        }
+        toast.loading('Restarting app...');
+        setTimeout(() => window.location.reload(true), 1000);
       }
     } else {
       showAlert(`You are using the latest version (v${APP_VERSION})`, 'App Update');

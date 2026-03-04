@@ -5,7 +5,6 @@ import { useAuth } from './hooks/useAuth'; // Use the main auth hook
 import { ChatThemeProvider } from './contexts/ChatThemeProvider';
 import { DataProvider } from './contexts/DataProvider';
 import { GroupCallProvider } from './contexts/GroupCallProvider';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
 import { Toaster } from 'react-hot-toast';
 import PhoneAuthModal from './components/auth/PhoneAuthModal';
@@ -68,10 +67,6 @@ import './styles/offline-indicator.css';
 import './styles/emoji-styles.css';
 import SyncIndicator from './components/common/SyncIndicator';
 
-// Initialize Capacitor Updater
-if (Capacitor.isNativePlatform()) {
-  CapacitorUpdater.notifyAppReady();
-}
 
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
