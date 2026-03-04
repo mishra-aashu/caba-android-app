@@ -4,6 +4,9 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppVersions } from '../../hooks/useAppVersions';
+import { Capacitor } from '@capacitor/core';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+
 // App's current local version synced with package.json
 const APP_VERSION = __APP_VERSION__;
 
@@ -62,22 +65,32 @@ const PwaUpdater = () => {
     };
 
     const handleUpdate = async () => {
+        console.log('[PwaUpdater] Starting update process...');
         try {
             // Step 1: Clear all caches first
             await clearAllCaches();
 
-            // Step 2: Unregister all service workers
-            await unregisterAllServiceWorkers();
+            // Step 2: Handle Native vs Web update
+            if (Capacitor.isNativePlatform()) {
+                console.log('[PwaUpdater] Native platform detected. Using CapacitorUpdater for reload.');
+                // For Capacitor apps, a simple location.reload() might not be enough
+                // to apply OTA updates or clear native-level caches.
+                await CapacitorUpdater.reload();
+            } else {
+                console.log('[PwaUpdater] Web/PWA detected. Unregistering SW and reloading.');
+                // Step 3: Unregister all service workers
+                await unregisterAllServiceWorkers();
 
-            // Step 3: Try standard SW update
-            if (typeof updateServiceWorker === 'function') {
-                await updateServiceWorker(true);
+                // Step 4: Try standard SW update
+                if (typeof updateServiceWorker === 'function') {
+                    await updateServiceWorker(true);
+                }
+
+                // Step 5: Force hard reload to ensure fresh assets
+                window.location.reload(true);
             }
-
-            // Step 4: Force hard reload to ensure fresh assets
-            window.location.reload(true);
         } catch (error) {
-            console.error('Update failed:', error);
+            console.error('[PwaUpdater] Update failed:', error);
             // Emergency fallback - force hard reload anyway
             window.location.reload(true);
         }

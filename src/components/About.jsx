@@ -4,10 +4,37 @@ import { useAppVersions } from '../hooks/useAppVersions';
 import { ArrowLeft, Shield, Lock, Eye, MessageCircle, Phone, Users, Heart, Trash2, FileText } from 'lucide-react';
 import './about/About.css';
 
+// App's current local version synced with package.json via Vite define
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.11';
+
 const About = () => {
   const navigate = useNavigate();
   const { data: dbVersionData } = useAppVersions();
-  const version = dbVersionData?.latest_version || '1.0.0';
+
+  // Local version from package.json
+  const localVersion = `v${APP_VERSION}`;
+
+  // Robust version comparison
+  const isOlderVersion = (local, server) => {
+    if (!server) return false;
+    const localParts = local.split('.').map(Number);
+    const serverParts = server.split('.').map(Number);
+    for (let i = 0; i < Math.max(localParts.length, serverParts.length); i++) {
+      const l = localParts[i] || 0;
+      const s = serverParts[i] || 0;
+      if (l < s) return true;
+      if (l > s) return false;
+    }
+    return false;
+  };
+
+  const isUpdateAvailable = isOlderVersion(APP_VERSION, dbVersionData?.latest_version);
+
+  useEffect(() => {
+    console.log('[About] Local Version:', APP_VERSION);
+    console.log('[About] DB Version:', dbVersionData?.latest_version);
+    console.log('[About] Update Available:', isUpdateAvailable);
+  }, [dbVersionData, isUpdateAvailable]);
 
   return (
     <div className="about-container">
@@ -25,7 +52,14 @@ const About = () => {
             <span className="logo-text">CB</span>
           </div>
           <h2>CaBa Messaging App</h2>
-          <p className="version">Version {version}</p>
+          <div className="version-badge-container">
+            <p className="version">Version {localVersion}</p>
+            {!isUpdateAvailable ? (
+              <span className="version-status latest">Latest Updated</span>
+            ) : (
+              <span className="version-status update">Update Available</span>
+            )}
+          </div>
           <p className="tagline">Connect, Communicate, Care</p>
         </div>
 
