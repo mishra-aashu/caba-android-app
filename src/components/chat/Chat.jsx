@@ -93,7 +93,7 @@ const Chat = () => {
   useEffect(() => { if (chatId) setChatId(chatId); }, [chatId, setChatId]);
 
   // ─── UI-ONLY STATE (stays in component) ──────────────────────────────────
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -123,23 +123,24 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // ─── CAPACITOR KEYBOARD LISTENERS ─────────────────────────────────────────
+  // ─── CAPACITOR KEYBOARD: scroll to bottom when keyboard appears ──────────────
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    let keyboardPlugin;
     const setupKeyboardListeners = async () => {
       try {
         const { Keyboard } = await import('@capacitor/keyboard');
-        keyboardPlugin = Keyboard;
-        await Keyboard.addListener('keyboardWillShow', (info) => {
-          setKeyboardHeight(info.keyboardHeight);
-          setTimeout(() => { if (messagesContainerRef.current?.scrollToBottom) messagesContainerRef.current.scrollToBottom('auto'); }, 50);
+        await Keyboard.addListener('keyboardWillShow', () => {
+          setTimeout(() => {
+            if (messagesContainerRef.current?.scrollToBottom)
+              messagesContainerRef.current.scrollToBottom('auto');
+          }, 50);
         });
-        await Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0));
+        return () => Keyboard.removeAllListeners();
       } catch (err) { console.warn('[Chat] Keyboard listeners failed:', err); }
     };
-    setupKeyboardListeners();
-    return () => { if (keyboardPlugin?.removeAllListeners) keyboardPlugin.removeAllListeners(); };
+    let cleanup;
+    setupKeyboardListeners().then(fn => { cleanup = fn; });
+    return () => { if (cleanup) cleanup(); };
   }, []);
 
   // ─── SCROLL & READ RECEIPTS ───────────────────────────────────────────────
@@ -506,7 +507,6 @@ const Chat = () => {
   return (
     <div
       className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
-      style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px`, transition: 'padding-bottom 0.25s ease' } : { transition: 'padding-bottom 0.25s ease' }}
     >
       <div className="chat-main-area">
         {/* Chat Header - delegated to ChatHeader sub-component */}

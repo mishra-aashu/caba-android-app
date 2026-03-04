@@ -48,6 +48,11 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
               if (processedIds.current.has(newRecord.id)) return;
               processedIds.current.add(newRecord.id);
 
+              // Skip our own sent messages — they are already shown as optimistic messages.
+              // `replaceTempMessage` in useChatRoom.js handles the temp→real swap.
+              // Firing onNewMessage here too would create a duplicate bubble before the swap.
+              if (newRecord.sender_id === currentUserId) return;
+
               const frontendMsg = dbToFrontend(newRecord);
 
               // Root fix: Fetch both sender and receiver concurrently from cache

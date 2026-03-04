@@ -272,22 +272,22 @@ const VirtualizedMessageList = React.forwardRef(({
 // Memoized export for performance - strict comparison to prevent flickering
 // Note: messages is now handled by Zustand store subscription, not props
 export default memo(VirtualizedMessageList, (prevProps, nextProps) => {
-  // Don't re-render for same current user
-  if (prevProps.currentUser !== nextProps.currentUser) return false;
+  // Re-render when messages array changes (new message, status update, etc)
+  if (prevProps.messages !== nextProps.messages) return false;
 
-  // Only re-render on loading state change
+  // Re-render on loading state change
   if (prevProps.isLoading !== nextProps.isLoading) return false;
 
-  // Only re-render on selection mode change
+  // Re-render on selection mode change
   if (prevProps.isSelectionMode !== nextProps.isSelectionMode) return false;
 
-  // Don't re-render for scroll state changes (causes flicker)
-  // We don't need to re-render the whole list just because user scrolled
+  // Re-render on currentUser change
+  if (prevProps.currentUser !== nextProps.currentUser) return false;
 
-  // Check selected messages count (not deep comparison to avoid flicker)
+  // Re-render on selected messages count change
   if (prevProps.selectedMessages?.size !== nextProps.selectedMessages?.size) return false;
 
-  // Check typing users
+  // Re-render on typing users count change
   const prevTypingCount = Object.keys(prevProps.typingUsers || {}).length;
   const nextTypingCount = Object.keys(nextProps.typingUsers || {}).length;
   if (prevTypingCount !== nextTypingCount) return false;

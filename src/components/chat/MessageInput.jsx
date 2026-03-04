@@ -148,16 +148,7 @@ const MessageInput = ({
   };
 
   const handleInputFocus = () => {
-    // Trigger viewport update on mobile when input is focused
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', () => {
-        // Force a reflow to ensure proper viewport adjustment
-        document.body.style.height = `${window.visualViewport.height}px`;
-        setTimeout(() => {
-          document.body.style.height = '';
-        }, 100);
-      });
-    }
+    // Close emoji picker when native keyboard opens
     setShowEmojiPicker(false);
   };
 

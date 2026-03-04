@@ -30,8 +30,12 @@ const useChatStore = create((set, get) => ({
     if (!chatId) return;
     set((state) => {
       const currentMessages = state.roomMessages[chatId] || [];
-      // Prevent duplicates
-      const exists = currentMessages.some(msg => msg.id === newMessage.id);
+      // Prevent duplicates by checking both real id AND tempId
+      const exists = currentMessages.some(
+        msg =>
+          (newMessage.id && msg.id === newMessage.id) ||
+          (newMessage.tempId && msg.tempId === newMessage.tempId)
+      );
       if (exists) return state;
 
       return {
@@ -44,18 +48,58 @@ const useChatStore = create((set, get) => ({
   },
 
   /**
-   * Set multiple messages for a specific chat room
-   * @param {string} chatId - The ID of the chat room
-   * @param {Array} newMessages - Array of message objects
+   * Set messages for a chat room — merges with existing optimistic (temp) messages.
+   * This prevents the blank-screen flash when React Query refetches after a send.
    */
   setMessages: (chatId, newMessages) => {
     if (!chatId) return;
-    set((state) => ({
-      roomMessages: {
-        ...state.roomMessages,
-        [chatId]: newMessages
-      }
-    }));
+    set((state) => {
+      const current = state.roomMessages[chatId] || [];
+      const now = new Date();
+
+      // PROTECT RECENT MESSAGES: Keep any message that is NOT in the new batch 
+      // but was either optimistic (tempId) OR sent very recently (within 5 mins).
+      // This prevents disappearance during the "stale refetch" window.
+      const protectedMessages = current.filter(msg => {
+        const isOptimistic = !!msg.tempId;
+        const msgTime = new Date(msg.createdAt || msg.created_at || now);
+        const isVeryRecent = (now - msgTime) < 1000 * 60 * 5; // 5 minutes grace period
+
+        const isInNewBatch = newMessages.some(m =>
+          (msg.id && m.id === msg.id) ||
+          (msg.tempId && m.tempId === msg.tempId) ||
+          (m.tempId && m.tempId === msg.id)
+        );
+
+        return (isOptimistic || isVeryRecent) && !isInNewBatch;
+      });
+
+      // Combine: Server messages take priority (newer first usually); append protected messages
+      // Note: We filter out any protected message that survived the isInNewBatch check but 
+      // is actually conceptually older than what we want to keep (though append is safest here).
+      const merged = [...newMessages];
+
+      // Add protected messages that aren't already there
+      protectedMessages.forEach(msg => {
+        if (!merged.some(m => m.id === msg.id || (msg.tempId && m.tempId === msg.tempId))) {
+          merged.push(msg);
+        }
+      });
+
+      // Sort merged array by created_at ascending (oldest first, newest at bottom)
+      merged.sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.created_at || 0);
+        const timeB = new Date(b.createdAt || b.created_at || 0);
+        return timeA - timeB;
+      });
+
+      return {
+        roomMessages: {
+          ...state.roomMessages,
+          [chatId]: merged
+        }
+      };
+    });
   },
 
   /**
@@ -70,7 +114,10 @@ const useChatStore = create((set, get) => ({
       roomMessages: {
         ...state.roomMessages,
         [chatId]: (state.roomMessages[chatId] || []).map(msg =>
-          msg.id === messageId ? { ...msg, ...updates } : msg
+          // Match by real id OR by tempId (for optimistic messages)
+          (msg.id === messageId || msg.tempId === messageId)
+            ? { ...msg, ...updates }
+            : msg
         )
       }
     }));

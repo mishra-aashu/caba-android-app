@@ -99,7 +99,7 @@
 .menu-reactions-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 6px 10px;
     background: rgba(0, 0, 0, 0.02);
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
@@ -107,7 +107,7 @@
 .menu-reaction-btn {
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 18px;
     cursor: pointer;
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     padding: 4px;

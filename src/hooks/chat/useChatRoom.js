@@ -39,7 +39,7 @@ import { getPublicMediaUrl } from '../../services/mediaService';
 const useChatRoom = (options = {}) => {
     const { onNewMessage } = options;
     const { chatId, otherUserId } = useParams();
-    const validChatId = chatId === 'new' ? null : chatId;
+    const validChatId = chatId; // Allow 'new' to flow through to the store for optimistic messages
     const navigate = useNavigate();
     const location = useLocation();
     const { supabase } = useSupabase();
@@ -103,8 +103,8 @@ const useChatRoom = (options = {}) => {
     const [replyingTo, setReplyingTo] = useState(null);
 
     // ─── REALTIME MESSAGING ───────────────────────────────────────────────────
-    const handleNewMessage = useCallback((message) => {
-        // 1. Sync React Query cache (critical for background fetch stability)
+    const syncMessageWithQueryCache = useCallback((message) => {
+        if (!validChatId) return;
         queryClient.setQueryData(['messages', validChatId], (oldData) => {
             if (!oldData?.pages) return oldData;
             const newPages = [...oldData.pages];
@@ -113,6 +113,11 @@ const useChatRoom = (options = {}) => {
             newPages[0] = { ...firstPage, data: [message, ...firstPage.data] };
             return { ...oldData, pages: newPages };
         });
+    }, [validChatId, queryClient]);
+
+    const handleNewMessage = useCallback((message) => {
+        // 1. Sync React Query cache (critical for background fetch stability)
+        syncMessageWithQueryCache(message);
 
         // 2. Update Zustand store
         addStoreMessage(validChatId, message);
@@ -343,6 +348,27 @@ const useChatRoom = (options = {}) => {
                 if (error) throw error;
 
                 const frontendData = dbToFrontend(data);
+
+                // IMPORTANT: Sync with React Query cache IMMEDIATELY.
+                // This prevents the message from disappearing if a refetch happens before Supabase indices update.
+                syncMessageWithQueryCache({ ...frontendData, sender: currentUser });
+
+                // If this was a 'new' chat, navigate to the newly created chatId.
+                // We seed BOTH the store and the query cache for the new ID to ensure an instant transition.
+                if (chatId === 'new') {
+                    const finalMsg = { ...frontendData, status: 'sent', sender: currentUser };
+
+                    // Seed Query Cache for the permanent ID
+                    queryClient.setQueryData(['messages', data.chat_id], (old) => ({
+                        pages: [{ data: [finalMsg], nextCursor: null }],
+                        pageParams: [null]
+                    }));
+
+                    addStoreMessage(data.chat_id, finalMsg);
+                    navigate(`/chat/${data.chat_id}/${otherUserId}`, { replace: true });
+                    return;
+                }
+
                 replaceTempMessage(validChatId, tempId, { ...frontendData, status: 'sent', sender: currentUser });
 
                 await db.transaction('rw', db.messages, async () => {
@@ -417,8 +443,27 @@ const useChatRoom = (options = {}) => {
 
                 if (error) throw error;
 
-                const realMsgWithSender = { ...dbToFrontend(data), sender: currentUser };
-                replaceTempMessage(validChatId, tempId, realMsgWithSender);
+                const frontendData = dbToFrontend(data);
+
+                // IMPORTANT: Sync with React Query cache IMMEDIATELY for media as well.
+                syncMessageWithQueryCache({ ...frontendData, sender: currentUser });
+
+                // Handle 'new' chat transition for media messages
+                if (chatId === 'new') {
+                    const finalMsg = { ...frontendData, status: 'sent', sender: currentUser };
+
+                    // Seed Query Cache for the permanent ID
+                    queryClient.setQueryData(['messages', data.chat_id], (old) => ({
+                        pages: [{ data: [finalMsg], nextCursor: null }],
+                        pageParams: [null]
+                    }));
+
+                    addStoreMessage(data.chat_id, finalMsg);
+                    navigate(`/chat/${data.chat_id}/${otherUserId}`, { replace: true });
+                    return;
+                }
+
+                replaceTempMessage(validChatId, tempId, { ...frontendData, status: 'sent', sender: currentUser });
 
                 await db.transaction('rw', db.messages, async () => {
                     await db.messages.delete(`temp_media_${tempId}`);

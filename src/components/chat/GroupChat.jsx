@@ -591,7 +591,7 @@ const GroupChat = () => {
                         isLoading={isMessagesLoading}
                         isScrolledToBottom={isScrolledToBottom}
                         typingUsers={typingUsers}
-                        onSenderClick={(userId) => navigate(`/chat/${userId}`)}
+                        onSenderClick={(userId) => navigate(`/chat/new/${userId}`)}
                         initialTopMostItemIndex={initialScrollPosition}
                         onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
                     />

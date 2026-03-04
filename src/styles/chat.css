@@ -232,15 +232,19 @@ body.light-mode .chat-loading p {
 .chat-screen {
   display: flex;
   flex-direction: column;
-  /* Use dynamic viewport height that adjusts when keyboard opens */
+  /*
+   * KEYBOARD FIX: 100dvh (dynamic viewport height) automatically
+   * shrinks when the keyboard opens on mobile — no JS needed.
+   * `interactive-widget=resizes-content` in index.html enables this on Android Chrome.
+   * 100vh is the fallback for older browsers.
+   */
+  height: 100vh;
   height: 100dvh;
-  height: var(--app-height, 100dvh);
   width: 100%;
   background: var(--background);
   position: relative;
   overflow: hidden;
   overscroll-behavior-y: none;
-  /* यह PWA को रबर की तरह खिंचने से रोकेगा */
   /* GPU acceleration */
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -629,32 +633,23 @@ body.light-mode .load-more-indicator p {
 
 /* Chat Input Area */
 /* --- Chat Input Container --- */
-/* FIX: Use flexbox instead of sticky to work with Framer Motion transitions */
+/*
+ * KEYBOARD FIX: flex-shrink: 0 keeps this pinned at the bottom.
+ * The .chat-screen uses 100dvh which shrinks when keyboard opens,
+ * so the messages-container (flex: 1) absorbs the size change
+ * and this input stays anchored at the bottom, just above the keyboard.
+ * NO JS-based paddingBottom or keyboard height manipulation needed.
+ */
 .chat-input-container {
   flex-shrink: 0;
-  /* यह कभी नहीं सिकुड़ेगा */
   width: 100%;
   padding: 0.5rem 1rem;
-  /* Ensure stable positioning for child elements */
+  padding-bottom: env(safe-area-inset-bottom, 8px);
   position: relative;
   z-index: 1000;
-  /* Removed isolation: isolate to allow z-index to escape if needed */
-  padding-bottom: env(safe-area-inset-bottom, 8px);
   background: var(--surface);
-  /* Ensure no transparency gaps */
-  transition: transform 0.3s cubic-bezier(0.1, 0.7, 0.1, 1);
   display: flex;
   flex-direction: column;
-  /* Dynamic margin-bottom if needed for non-dvh environments */
-  margin-bottom: 0px;
-}
-
-/* Adjust input container when keyboard is open on mobile */
-@media (max-width: 768px) {
-  .chat-input-container {
-    /* When keyboard is open, reduce bottom padding to minimize gap */
-    padding-bottom: calc(env(safe-area-inset-bottom, 8px) + max(0px, var(--keyboard-height, 0px) * 0.1));
-  }
 }
 
 /* --- Desktop Specific Layout (Original Style) --- */
@@ -1173,7 +1168,7 @@ body[data-theme='dark'] .message-time {
   /* Agar Glass effect chahiye to niche wali line use karein: */
   /* background: rgba(35, 49, 56, 0.95); backdrop-filter: blur(10px); */
 
-  min-width: 180px;
+  min-width: 140px;
   border-radius: 12px;
   /* Smooth rounded corners */
   padding: 8px 0;
@@ -1206,11 +1201,11 @@ body[data-theme='dark'] .message-time {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   /* Icon aur text ke beech gap */
-  padding: var(--spacing-md) var(--spacing-xl);
+  padding: 8px 16px;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #e9edef;
   /* Off-white text */
@@ -1228,7 +1223,7 @@ body[data-theme='dark'] .message-time {
 
 /* Icons styling */
 .menu-item .icon {
-  font-size: 16px;
+  font-size: 14px;
   opacity: 0.8;
   width: 20px;
   /* Fixed width taaki text align rahe */

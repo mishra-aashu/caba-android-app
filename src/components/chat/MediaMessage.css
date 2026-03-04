@@ -112,7 +112,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -120,6 +120,8 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
+  padding: 20px;
+  /* Better internal breathing room */
 }
 
 .media-placeholder::before {
@@ -147,7 +149,8 @@
 }
 
 .media-placeholder .icon {
-  font-size: 2.8rem;
+  font-size: 2.4rem;
+  /* Slightly smaller for better fit */
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   margin: 0;
@@ -155,40 +158,42 @@
 }
 
 .media-content:hover .media-placeholder .icon {
-  transform: scale(1.15) translateY(-4px);
+  transform: scale(1.1) translateY(-2px);
 }
 
 .media-placeholder .text {
-  /* Resetting everything to avoid boxy expansion */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: auto;
-  min-width: 120px;
+  width: fit-content;
+  max-width: 90%;
+  /* Prevent hitting edges */
   height: auto;
 
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  /* Slightly smaller */
+  font-weight: 800;
   color: #ffffff;
   text-transform: uppercase;
   letter-spacing: 0.8px;
+  white-space: nowrap;
+  /* PREVENT WRAPPING */
 
-  padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50px;
-  /* Force pill shape */
+  padding: 8px 18px;
+  /* Balanced padding */
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 40px;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
 }
 
 .media-content:hover .media-placeholder .text {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transform: scale(1.02);
 }
 
 /* Light theme overrides for placeholder */
@@ -199,8 +204,8 @@
 
 [data-theme='light'] .media-placeholder .text {
   color: #111b21;
-  background: rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 /* Timestamp Overlay */
