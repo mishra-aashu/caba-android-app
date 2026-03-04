@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { useSupabase } from '../../contexts/SupabaseContext';
-import { useAuth } from '../../hooks/useAuth';
-import { UserQRCode, QRScanner } from '../qr';
-import { dpOptions } from '../../utils/dpOptions';
-import '../../styles/profile.css';
-import '../qr/QRCodeGenerator.css';
-import '../qr/QRCodeScanner.css';
-import FullscreenImageModal from './FullscreenImageModal';
-import { useDialog } from '../../contexts/DialogContext';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { useSupabase } from "../../contexts/SupabaseContext";
+import { useAuth } from "../../hooks/useAuth";
+import { UserQRCode, QRScanner } from "../qr";
+import { dpOptions } from "../../utils/dpOptions";
+import "../../styles/profile.css";
+import "../qr/QRCodeGenerator.css";
+import "../qr/QRCodeScanner.css";
+import FullscreenImageModal from "./FullscreenImageModal";
+import { useDialog } from "../../contexts/DialogContext";
+import toast from "react-hot-toast";
 
 const Profile = ({ isModal = false, isSidebar = false }) => {
   const isOverlay = isModal || isSidebar;
@@ -27,39 +27,45 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
   const [showScanQrModal, setShowScanQrModal] = useState(false);
   const [showUserFoundModal, setShowUserFoundModal] = useState(false);
   const [foundUser, setFoundUser] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', about: '', email: '' });
+  const [editForm, setEditForm] = useState({ name: "", about: "", email: "" });
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
-  const [fullscreenImageUrl, setFullscreenImageUrl] = useState('');
+  const [fullscreenImageUrl, setFullscreenImageUrl] = useState("");
 
   // NEW: Use React Query for efficient caching
-  const { data: userProfile, isLoading: profileLoading, error: profileError } = useQuery({
-    queryKey: ['userProfile', authUser?.id],
+  const {
+    data: userProfile,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery({
+    queryKey: ["userProfile", authUser?.id],
     queryFn: async () => {
       if (!authUser) return null;
 
       const { data: existingUser, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
+        .from("users")
+        .select("*")
+        .eq("id", authUser.id)
         .single();
 
       let currentUser;
-      if (error && error.code === 'PGRST116') {
+      if (error && error.code === "PGRST116") {
         // User doesn't exist, create new profile
         const { data: newProfile, error: createError } = await supabase
-          .from('users')
-          .insert([{
-            id: authUser.id,
-            name: authUser.name || 'User',
-            phone: authUser.phone || '',
-            email: authUser.email,
-            avatar: authUser.avatar || null,
-            about: 'Hey there! I am using CaBa',
-            is_online: false,
-            last_seen: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }])
+          .from("users")
+          .insert([
+            {
+              id: authUser.id,
+              name: authUser.name || "User",
+              phone: authUser.phone || "",
+              email: authUser.email,
+              avatar: authUser.avatar || null,
+              about: "Hey there! I am using CaBa",
+              is_online: false,
+              last_seen: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ])
           .select()
           .single();
 
@@ -72,7 +78,10 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
       }
 
       // Cache the profile locally for offline access
-      localStorage.setItem(`digidad_profile_${authUser.id}`, JSON.stringify(currentUser));
+      localStorage.setItem(
+        `digidad_profile_${authUser.id}`,
+        JSON.stringify(currentUser),
+      );
       return currentUser;
     },
     enabled: !!authUser && !authLoading, // Only run when user is authenticated and auth is loaded
@@ -94,23 +103,28 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
   }, [authLoading, profileLoading]);
 
   const loadProfileStats = () => {
-    const contacts = JSON.parse(localStorage.getItem('CaBa_contacts') || '[]');
+    const contacts = JSON.parse(localStorage.getItem("CaBa_contacts") || "[]");
     setStats({
       chats: contacts.length || 0,
       calls: 0,
-      contacts: contacts.length || 0
+      contacts: contacts.length || 0,
     });
   };
 
   const getInitials = (name) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const handleEditProfile = () => {
     setEditForm({
       name: user.name,
-      about: user.about || '',
-      email: user.email || ''
+      about: user.about || "",
+      email: user.email || "",
     });
     setShowEditModal(true);
   };
@@ -120,51 +134,55 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
       const { name, about, email } = editForm;
 
       if (name.length < 3) {
-        showAlert('Name must be at least 3 characters');
+        showAlert("Name must be at least 3 characters");
         return;
       }
 
       const { error } = await supabase
-        .from('users')
+        .from("users")
         .update({ name, about, email: email || null })
-        .eq('id', authUser.id);
+        .eq("id", authUser.id);
 
       if (error) throw error;
 
       const updatedUser = { ...user, name, about, email };
       setUser(updatedUser);
-      localStorage.setItem(`digidad_profile_${authUser.id}`, JSON.stringify(updatedUser));
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      localStorage.setItem(
+        `digidad_profile_${authUser.id}`,
+        JSON.stringify(updatedUser),
+      );
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
 
       setShowEditModal(false);
-      toast.success('Profile updated successfully');
-
+      toast.success("Profile updated successfully");
     } catch (error) {
-      console.error('Error updating profile:', error);
-      showAlert('Failed to update profile');
+      console.error("Error updating profile:", error);
+      showAlert("Failed to update profile");
     }
   };
 
   const selectDp = async (dpId) => {
     try {
       const { error } = await supabase
-        .from('users')
+        .from("users")
         .update({ avatar: dpId.toString() })
-        .eq('id', authUser.id);
+        .eq("id", authUser.id);
 
       if (error) throw error;
 
       const updatedUser = { ...user, avatar: dpId.toString() };
       setUser(updatedUser);
-      localStorage.setItem(`digidad_profile_${authUser.id}`, JSON.stringify(updatedUser));
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      localStorage.setItem(
+        `digidad_profile_${authUser.id}`,
+        JSON.stringify(updatedUser),
+      );
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
 
       setShowDpModal(false);
-      toast.success('Profile picture updated');
-
+      toast.success("Profile picture updated");
     } catch (error) {
-      console.error('Error selecting DP:', error);
-      showAlert('Failed to update profile picture');
+      console.error("Error selecting DP:", error);
+      showAlert("Failed to update profile picture");
     }
   };
 
@@ -177,25 +195,25 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
         setShowUserFoundModal(true);
       }
     } catch (error) {
-      showAlert('Invalid QR code format');
+      showAlert("Invalid QR code format");
     }
   };
 
   const addToContacts = () => {
-    let contacts = JSON.parse(localStorage.getItem('CaBa_contacts') || '[]');
-    if (!contacts.some(c => c.id === foundUser.id)) {
+    let contacts = JSON.parse(localStorage.getItem("CaBa_contacts") || "[]");
+    if (!contacts.some((c) => c.id === foundUser.id)) {
       contacts.push({
         id: foundUser.id,
         name: foundUser.name,
         phone: foundUser.phone,
         about: foundUser.about,
-        addedAt: new Date().toISOString()
+        addedAt: new Date().toISOString(),
       });
-      localStorage.setItem('CaBa_contacts', JSON.stringify(contacts));
+      localStorage.setItem("CaBa_contacts", JSON.stringify(contacts));
       showAlert(`${foundUser.name} added to contacts`);
       loadProfileStats();
     } else {
-      showAlert('User already in contacts');
+      showAlert("User already in contacts");
     }
     setShowUserFoundModal(false);
   };
@@ -212,15 +230,24 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
   if (!user) {
     return (
       <div className="profile-screen">
-        <div className="profile-no-user-message">Please log in to view profile</div>
+        <div className="profile-no-user-message">
+          Please log in to view profile
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`profile-screen ${isOverlay ? 'profile-modal' : ''} ${isSidebar ? 'is-sidebar' : ''}`}>
+    <div
+      className={`profile-screen ${isOverlay ? "profile-modal" : ""} ${isSidebar ? "is-sidebar" : ""}`}
+    >
       <header className="profile-header">
-        <button className="back-btn" onClick={isOverlay ? () => navigate('/') : () => window.history.back()}>
+        <button
+          className="back-btn"
+          onClick={
+            isOverlay ? () => navigate("/") : () => window.history.back()
+          }
+        >
           <span className="icon">←</span>
         </button>
         <h1>Profile</h1>
@@ -231,17 +258,28 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
       <div className="profile-content">
         <div className="profile-picture-section">
-          <div className="profile-avatar" onClick={() => {
-            if (user.avatar) {
-              setFullscreenImageUrl(parseInt(user.avatar) ? dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path : user.avatar);
-              setShowFullscreenImage(true);
-            }
-          }}>
+          <div
+            className="profile-avatar"
+            onClick={() => {
+              if (user.avatar) {
+                setFullscreenImageUrl(
+                  parseInt(user.avatar)
+                    ? dpOptions.find((dp) => dp.id === parseInt(user.avatar))
+                        ?.path
+                    : user.avatar,
+                );
+                setShowFullscreenImage(true);
+              }
+            }}
+          >
             {user.avatar ? (
               <img
-                src={parseInt(user.avatar) ?
-                  dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path :
-                  user.avatar}
+                src={
+                  parseInt(user.avatar)
+                    ? dpOptions.find((dp) => dp.id === parseInt(user.avatar))
+                        ?.path
+                    : user.avatar
+                }
                 alt="Profile Picture"
               />
             ) : (
@@ -258,8 +296,6 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
             onClose={() => setShowFullscreenImage(false)}
           />
         )}
-
-
 
         <div className="profile-info-section">
           <div className="info-item">
@@ -278,7 +314,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
               <span className="label">About</span>
             </div>
             <div className="info-value">
-              <span>{user.about || 'Hey there! I am using CaBa'}</span>
+              <span>{user.about || "Hey there! I am using CaBa"}</span>
             </div>
           </div>
 
@@ -298,7 +334,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
               <span className="label">Email</span>
             </div>
             <div className="info-value">
-              <span>{user.email || 'Not set'}</span>
+              <span>{user.email || "Not set"}</span>
             </div>
           </div>
         </div>
@@ -323,7 +359,10 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
             <i className="fas fa-qrcode"></i>
             <span className="label">My QR Code</span>
           </button>
-          <button className="action-btn" onClick={() => setShowScanQrModal(true)}>
+          <button
+            className="action-btn"
+            onClick={() => setShowScanQrModal(true)}
+          >
             <i className="fas fa-camera"></i>
             <span className="label">Scan QR Code</span>
           </button>
@@ -336,12 +375,20 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Edit Profile</span>
-              <button className="modal-close-btn" onClick={() => setShowEditModal(false)}>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowEditModal(false)}
+              >
                 <i className="fas fa-times"></i>
               </button>
             </div>
             <div className="modal-body">
-              <form onSubmit={(e) => { e.preventDefault(); saveProfileChanges(); }}>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  saveProfileChanges();
+                }}
+              >
                 <div className="input-group">
                   <label htmlFor="editName">Full Name</label>
                   <input
@@ -349,7 +396,9 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                     id="editName"
                     className="form-input"
                     value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, name: e.target.value })
+                    }
                     required
                     minLength="3"
                   />
@@ -362,7 +411,9 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                     rows="3"
                     maxLength="150"
                     value={editForm.about}
-                    onChange={(e) => setEditForm({ ...editForm, about: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, about: e.target.value })
+                    }
                   />
                 </div>
                 <div className="input-group">
@@ -372,10 +423,14 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                     id="editEmail"
                     className="form-input"
                     value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, email: e.target.value })
+                    }
                   />
                 </div>
-                <button type="submit" className="btn-primary">Save Changes</button>
+                <button type="submit" className="btn-primary">
+                  Save Changes
+                </button>
               </form>
             </div>
           </div>
@@ -388,13 +443,16 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Choose Profile Picture</span>
-              <button className="modal-close-btn" onClick={() => setShowDpModal(false)}>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowDpModal(false)}
+              >
                 <i className="fas fa-times"></i>
               </button>
             </div>
             <div className="modal-body">
               <div className="avatar-grid">
-                {dpOptions.map(option => (
+                {dpOptions.map((option) => (
                   <img
                     key={option.id}
                     src={option.path}
@@ -412,17 +470,23 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
       {/* QR Code Modal */}
       {showQrModal && user && (
         <div className="modal-overlay" onClick={() => setShowQrModal(false)}>
-          <div className="modal-content qr-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content qr-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <span className="modal-title">My QR Code</span>
-              <button className="modal-close-btn" onClick={() => setShowQrModal(false)}>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowQrModal(false)}
+              >
                 <i className="fas fa-times"></i>
               </button>
             </div>
             <div className="modal-body centered">
               <UserQRCode
                 userId={user.id}
-                publicKey={user.public_key || 'not-generated-yet'}
+                publicKey={user.public_key || "not-generated-yet"}
                 userName={user.name}
               />
             </div>
@@ -432,18 +496,22 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
       {/* Scan QR Modal */}
       {showScanQrModal && (
-        <QRScanner
-          onClose={() => setShowScanQrModal(false)}
-        />
+        <QRScanner onClose={() => setShowScanQrModal(false)} />
       )}
 
       {/* User Found Modal */}
       {showUserFoundModal && foundUser && (
-        <div className="modal-overlay" onClick={() => setShowUserFoundModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowUserFoundModal(false)}
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">User Found</span>
-              <button className="modal-close-btn" onClick={() => setShowUserFoundModal(false)}>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowUserFoundModal(false)}
+              >
                 <i className="fas fa-times"></i>
               </button>
             </div>
