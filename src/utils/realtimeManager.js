@@ -20,7 +20,7 @@ class RealtimeManager {
   async subscribe(channelName, config, callbacks = {}) {
     // Root fix: If a subscription is already in progress for this name, return that promise
     if (this.pendingSubscriptions.has(channelName)) {
-      console.log(`⏳ Subscription already in progress for ${channelName}, joining existing request...`);
+
       return this.pendingSubscriptions.get(channelName);
     }
 
@@ -29,7 +29,7 @@ class RealtimeManager {
         // 1. Root fix: Check if subscription already exists and CLEAN UP FIRST
         // This prevents "dirty" channels from causing CHANNEL_ERROR on re-subscribe
         if (this.subscriptions.has(channelName)) {
-          console.log(`🔄 Pre-cleaning existing subscription: ${channelName}`);
+
           await this.unsubscribe(channelName);
         }
 
@@ -67,7 +67,7 @@ class RealtimeManager {
         // 3. Subscribe with error handling
         channel.subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log(`✅ Successfully subscribed to ${channelName}`);
+
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.error(`❌ Subscription failed for ${channelName}:`, status);
             this.handleSubscriptionError(channelName, channel, config, callbacks);
@@ -107,7 +107,7 @@ class RealtimeManager {
         return;
       }
       retryCount++;
-      console.log(`Retrying subscription ${channelName} (${retryCount}/${this.maxRetries})`);
+
       await new Promise(resolve => setTimeout(resolve, this.retryDelay * retryCount));
       const newChannel = await this.subscribe(channelName, config, callbacks);
       if (!newChannel) retry();
@@ -130,7 +130,7 @@ class RealtimeManager {
       this.subscriptions.forEach((channels, channelName) => {
         if (channels.has(channel)) {
           channels.delete(channel);
-          console.log(`🗑️ Removed channel from ${channelName}`);
+
 
           // Clean up empty subscription sets
           if (channels.size === 0) {
@@ -152,7 +152,7 @@ class RealtimeManager {
   async unsubscribe(channelName) {
     // Root fix: If a subscription is pending, wait for it before unsubscribing
     if (this.pendingSubscriptions.has(channelName)) {
-      console.log(`⏳ Waiting for pending subscription to ${channelName} before unsubscribing...`);
+
       try {
         await this.pendingSubscriptions.get(channelName);
       } catch (e) {
@@ -166,7 +166,7 @@ class RealtimeManager {
       const channelArray = Array.from(channels);
       await Promise.all(channelArray.map(channel => this.removeChannel(channel)));
       this.subscriptions.delete(channelName);
-      console.log(`🗑️ Unsubscribed from all channels: ${channelName}`);
+
     }
   }
 
@@ -174,7 +174,7 @@ class RealtimeManager {
    * Remove all subscriptions (cleanup)
    */
   unsubscribeAll() {
-    console.log('🧹 Cleaning up all real-time subscriptions...');
+
 
     // Remove all specific subscriptions
     this.subscriptions.forEach((channels, channelName) => {
@@ -188,7 +188,7 @@ class RealtimeManager {
     this.subscriptions.clear();
     this.globalSubscriptions.clear();
 
-    console.log('✅ All subscriptions cleaned up');
+
   }
 
   /**
@@ -213,7 +213,7 @@ class RealtimeManager {
    */
   async healthCheck() {
     const stats = this.getStats();
-    console.log('📊 Real-time subscription stats:', stats);
+
 
     // Warn if too many subscriptions
     if (stats.totalChannels > 50) {
