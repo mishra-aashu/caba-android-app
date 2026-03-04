@@ -9,7 +9,16 @@ export const AuthProvider = ({ children }) => {
   const location = useLocation(); // Get current location
 
   useEffect(() => {
-    initializeAuth();
+    let cleanup;
+    const init = async () => {
+      cleanup = await initializeAuth();
+    };
+    init();
+    return () => {
+      if (cleanup && typeof cleanup === 'function') {
+        cleanup();
+      }
+    };
   }, [initializeAuth]);
 
   useEffect(() => {
