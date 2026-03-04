@@ -1,17 +1,22 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import WebRTCManager from '../utils/WebRTCManager';
+import WebRTCManager from './WebRTCManager';
 
 export const useWebRTC = (roomId, userId, onDataReceived) => {
     const [status, setStatus] = useState('initializing');
     const [isConnected, setIsConnected] = useState(false);
     const managerRef = useRef(null);
+    const onDataReceivedRef = useRef(onDataReceived);
+
+    useEffect(() => {
+        onDataReceivedRef.current = onDataReceived;
+    }, [onDataReceived]);
 
     useEffect(() => {
         if (!roomId || !userId) return;
 
         const handleMessage = (from, data) => {
             console.log(`[useWebRTC] Data received from ${from}:`, data);
-            if (onDataReceived) onDataReceived(from, data);
+            if (onDataReceivedRef.current) onDataReceivedRef.current(from, data);
         };
 
         const handleStatusChange = (newStatus) => {

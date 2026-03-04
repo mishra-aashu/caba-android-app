@@ -12,7 +12,8 @@ import {
   Check,
   CheckCheck,
   Reply,
-  Heart
+  Heart,
+  Gamepad2
 } from 'lucide-react';
 import { motion, useAnimation, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import MessageBubble from './MessageBubble';
@@ -29,11 +30,12 @@ const MessageItem = ({
   onSelect,
   onReply,
   onForward,
-  onDelete,
   onMediaView,
   onMediaDownload,
   onAcceptGame,
   onRejectGame,
+  onJoinGame,
+  onDelete,
   isGroupChat,
   onSenderClick,
 }) => {
@@ -361,6 +363,61 @@ const MessageItem = ({
           time={formatBubbleTime(safeMessage.createdAt || safeMessage.created_at)}
           status={isRead ? 'read' : 'sent'}
         />
+      );
+    }
+
+    const msgType = safeMessage.messageType || safeMessage.message_type;
+    if (msgType === 'game_invite') {
+      const status = safeMessage.metadata?.status;
+      const isPending = status === 'pending';
+      const isReceiver = (safeMessage.receiverId || safeMessage.receiver_id) === currentUser?.id;
+
+      return (
+        <div className={`game-invite-card ${isSent ? 'sent' : 'received'}`}>
+          <div className="invite-header">
+            <Gamepad2 size={24} className="invite-icon" />
+            <span className="invite-title">BATTLE ARENA</span>
+          </div>
+          <div className="invite-body">
+            <h3>Truth or Dare</h3>
+            <p>{safeMessage.content}</p>
+          </div>
+          <div className="invite-actions">
+            {isReceiver && isPending ? (
+              <>
+                <button
+                  className="game-accept-btn"
+                  onClick={() => onAcceptGame?.(safeMessage)}
+                >
+                  ACCEPT
+                </button>
+                <button
+                  className="game-reject-btn"
+                  onClick={() => onRejectGame?.(safeMessage)}
+                >
+                  DECLINE
+                </button>
+              </>
+            ) : isSent && status === 'accepted' ? (
+              <div className="invite-accepted-host">
+                <span className="status-label">Accepted! Join?</span>
+                <button
+                  className="game-join-btn"
+                  onClick={() => onJoinGame?.(safeMessage)}
+                >
+                  YES
+                </button>
+              </div>
+            ) : (
+              <div className="invite-status-text">
+                {status === 'accepted' ? 'Combat Started! 🔥' :
+                  status === 'rejected' ? 'Battle Declined ❌' :
+                    status === 'completed' ? 'Battle Finished 🏁' :
+                      isPending ? 'Waiting for opponent...' : 'Game Ended'}
+              </div>
+            )}
+          </div>
+        </div>
       );
     }
 

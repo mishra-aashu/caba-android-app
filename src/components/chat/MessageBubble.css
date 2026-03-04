@@ -408,3 +408,170 @@
 }
 
 /* Removed jelly animation for uniform scrolling */
+
+/* --- GAME INVITATION CARD --- */
+.game-invite-card {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  min-width: 260px;
+  max-width: 300px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  margin: 4px 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-invite-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.invite-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.75rem;
+}
+
+.invite-icon {
+  color: #ec4899;
+  /* Pink-500 */
+  filter: drop-shadow(0 0 5px rgba(236, 72, 153, 0.5));
+}
+
+.invite-title {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: #818cf8;
+  /* Indigo-400 */
+  text-transform: uppercase;
+}
+
+.invite-body h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: white;
+  font-weight: 700;
+}
+
+.invite-body p {
+  margin: 0.25rem 0 1.25rem 0;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.invite-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.game-accept-btn {
+  flex: 2;
+  background: linear-gradient(90deg, #ec4899, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  font-weight: 800;
+  font-size: 0.8125rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.game-accept-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(236, 72, 153, 0.4);
+  filter: brightness(1.1);
+}
+
+.game-reject-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-reject-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.invite-status-text {
+  width: 100%;
+  text-align: center;
+  padding: 0.625rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Sent/Received alignment adjustment */
+.game-invite-card.sent {
+  border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+  align-self: flex-end;
+}
+
+.game-invite-card.received {
+  border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+  align-self: flex-start;
+}
+
+.invite-accepted-host {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: rgba(129, 140, 248, 0.1);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(129, 140, 248, 0.2);
+}
+
+.invite-accepted-host .status-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #818cf8;
+}
+
+.game-join-btn {
+  background: #818cf8;
+  color: white;
+  border: none;
+  padding: 0.4rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 900;
+  font-size: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(129, 140, 248, 0.4);
+  transition: all 0.2s ease;
+}
+
+.game-join-btn:hover {
+  background: #6366f1;
+  transform: scale(1.05);
+}

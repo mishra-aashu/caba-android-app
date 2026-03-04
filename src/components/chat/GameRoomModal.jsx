@@ -1,6 +1,5 @@
-// components/GameRoomModal.jsx
 import React, { useState } from 'react';
-import { Flame, Grid3X3, X } from 'lucide-react';
+import { Flame, Grid3X3, X, ChevronLeft, Gamepad2 } from 'lucide-react';
 import TruthDareGame from './TruthDareGame';
 
 const GameRoomModal = ({
@@ -20,77 +19,101 @@ const GameRoomModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="game-overlay fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="game-card w-full max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl">
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-300">
+      <div className="w-full max-w-4xl h-full sm:h-[85vh] flex flex-col overflow-hidden bg-[#05070a] sm:rounded-[2.5rem] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative">
+
+        {/* Decorative Glows */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-pink-600/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-600/10 rounded-full blur-[100px] pointer-events-none" />
 
         {/* --- ROOM HEADER --- */}
-        <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-            <h2 className="font-bold text-white">Game Room #{roomId?.slice(0, 4)}</h2>
+        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] backdrop-blur-md relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/20">
+              <Gamepad2 size={20} className="text-white" />
+            </div>
+            <div>
+              <h2 className="font-black text-white italic tracking-tight text-xl uppercase">ARENA LOBBY</h2>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Room #{roomId?.slice(0, 6)}</p>
+              </div>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all active:scale-90"
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* --- MAIN CONTENT --- */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto relative z-10 custom-scrollbar">
 
-          {/* LOBBY */}
+          {/* LOBBY VIEW */}
           {!activeGame && (
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={() => setActiveGame('truth-dare')}
-                className="group relative p-8 bg-gradient-to-br from-pink-900/40 to-violet-900/40 rounded-3xl border border-pink-500/20 hover:border-pink-500/50 transition-all hover:scale-[1.02] text-left overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Flame size={120} />
-                </div>
-                <div className="relative z-10">
-                  <div className="w-12 h-12 bg-pink-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-pink-600/20">
-                    <Flame size={24} className="text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white">Truth or Dare</h3>
-                  <p className="text-gray-400 text-sm mt-2">Reveal secrets or demonstrate courage!</p>
-                </div>
-              </button>
+            <div className="p-8 space-y-8">
+              <div className="px-1 text-center sm:text-left">
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-6">Select Battle Type</h3>
+              </div>
 
-              <button
-                disabled
-                className="group relative p-8 bg-gray-800/50 rounded-3xl border border-gray-700 opacity-50 cursor-not-allowed text-left"
-              >
-                <div className="w-12 h-12 bg-gray-700 rounded-2xl flex items-center justify-center mb-6">
-                  <Grid3X3 size={24} className="text-gray-400" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <button
+                  onClick={() => setActiveGame('truth-dare')}
+                  className="group relative p-10 bg-white/[0.03] rounded-[2.5rem] border border-white/5 hover:border-pink-500/30 transition-all hover:scale-[1.02] text-left overflow-hidden shadow-2xl"
+                >
+                  <div className="absolute -top-10 -right-10 p-6 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-110 transition-all text-pink-500">
+                    <Flame size={200} />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="w-16 h-16 bg-pink-600/20 rounded-2xl flex items-center justify-center mb-8 border border-pink-500/20 shadow-inner">
+                      <Flame size={32} className="text-pink-500 animate-pulse" />
+                    </div>
+                    <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-2">Truth or Dare</h3>
+                    <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-[200px]">Reveal the unknown or face the heat of the challenge.</p>
+                  </div>
+                </button>
+
+                <div
+                  className="group relative p-10 bg-white/[0.01] rounded-[2.5rem] border border-dashed border-white/5 opacity-40 grayscale flex flex-col items-center justify-center text-center gap-4 py-20"
+                >
+                  <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center border border-white/5">
+                    <Grid3X3 size={32} className="text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-600 italic uppercase">Coming Soon</h3>
+                    <p className="text-slate-700 text-[10px] font-bold tracking-[0.3em] mt-1">Tic Tac Toe & More</p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-400">Tic Tac Toe</h3>
-                <p className="text-gray-500 text-sm mt-2">Coming Soon...</p>
-              </button>
+              </div>
             </div>
           )}
 
-          {/* ACTIVE GAME */}
+          {/* ACTIVE GAME VIEW */}
           {activeGame === 'truth-dare' && (
-            <div className="h-full flex flex-col">
-              <div className="px-6 pt-6">
+            <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="px-8 pt-6">
                 <button
                   onClick={() => setActiveGame(null)}
-                  className="self-start text-sm text-gray-400 hover:text-white py-2 px-4 bg-gray-800 rounded-full flex items-center gap-2 transition-colors"
+                  className="group self-start text-[10px] font-black text-slate-400 hover:text-white py-3 px-6 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center gap-2 transition-all tracking-widest uppercase border border-white/5"
                 >
-                  ← Back to Lobby
+                  <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Back to Lobby
                 </button>
               </div>
 
-              <TruthDareGame
-                gameState={gameState}
-                userId={userId}
-                partnerId={partnerId}
-                onPick={onPick}
-                onSend={onSend}
-                onComplete={onComplete}
-                onStart={onStart}
-                isEmbedded={true}
-              />
+              <div className="flex-1 flex flex-col">
+                <TruthDareGame
+                  gameState={gameState}
+                  userId={userId}
+                  partnerId={partnerId}
+                  onPick={onPick}
+                  onSend={onSend}
+                  onComplete={onComplete}
+                  onStart={onStart}
+                  isEmbedded={true}
+                />
+              </div>
             </div>
           )}
 

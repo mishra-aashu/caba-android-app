@@ -13,9 +13,6 @@ import TypingIndicator from './TypingIndicator';
 import MediaViewer from '../media/MediaViewer';
 import ImageViewer from './ImageViewer';
 import { messageReadsService } from '../../services/messageReadsService';
-import { useTruthDareGame } from '../../hooks/useTruthDareGame';
-import TruthDareModal from './TruthDareModal';
-import GameRoom from './GameRoom';
 import ForwardModal from './ForwardModal';
 import GroupCallScreen from '../group/GroupCallScreen';
 import GroupCallButton from '../group/GroupCallButton';
@@ -52,6 +49,7 @@ const Chat = () => {
     handleVoiceCall, handleVideoCall, handleEndGroupCall, handleStartGroupCall,
     handleMuteToggle, confirmClearChat, confirmBlockUser, confirmSelectionDelete,
     handleShareAsForward, handleMediaDownload,
+    handleAcceptGame, handleRejectGame, handleJoinGame,
     supabase, showAlert, initialScrollPosition, saveScrollPosition, queryClient,
     isMessagesLoading, allChats, authLoading, isAuthenticated
   } = useChatRoom({
@@ -109,7 +107,6 @@ const Chat = () => {
   const [currentImageMessage, setCurrentImageMessage] = useState(null);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [messagesToForward, setMessagesToForward] = useState([]);
-  const [showGameRoom, setShowGameRoom] = useState(false);
   const [showGroupInfoDrawer, setShowGroupInfoDrawer] = useState(false);
   const [showVanishSettingsModal, setShowVanishSettingsModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
@@ -153,16 +150,6 @@ const Chat = () => {
     } catch (error) { console.error('Error marking messages as read:', error); }
   }, [currentUser, chatId]);
 
-  const {
-    isOpen: isGameOpen,
-    gameState,
-    startGame,
-    pickType,
-    sendChallenge,
-    completeTurn,
-    closeGame,
-    setIsOpen
-  } = useTruthDareGame(chatId, currentUser?.id, { enabled: showGameRoom });
 
 
   const handleScroll = (location) => {
@@ -526,7 +513,7 @@ const Chat = () => {
           onSearchMessages={handleSearchMessages}
           onChangeTheme={handleChangeTheme}
           onShowWallpaper={() => setShowWallpaperPicker(true)}
-          onShowGame={() => setShowGameRoom(true)}
+          onShowGame={() => navigate(`${location.pathname}/arena`)}
           onShowGroupInfo={() => setShowGroupInfoDrawer(true)}
           onBlockUser={handleBlockUser}
           onClearChat={handleClearChat}
@@ -577,6 +564,9 @@ const Chat = () => {
             onEdit={handleMessageEdit}
             onMediaView={handleMediaView}
             onMediaDownload={handleMediaDownload}
+            onAcceptGame={handleAcceptGame}
+            onRejectGame={handleRejectGame}
+            onJoinGame={handleJoinGame}
             isLoading={isMessagesLoading}
             isGroupChat={Boolean(isGroupChat)}
             onSenderClick={(senderId) => {
@@ -780,41 +770,6 @@ const Chat = () => {
           onForward={handleForwardMessages}
           currentUser={currentUser}
         />
-
-        {/* Truth or Dare Game Modal */}
-        <TruthDareModal
-          isOpen={isGameOpen}
-          onClose={closeGame}
-          gameState={gameState}
-          userId={currentUser?.id}
-          partnerId={otherUser?.id}
-          onPick={pickType}
-          onSend={sendChallenge}
-          onComplete={completeTurn}
-          onStart={() => startGame(otherUser?.id)}
-        />
-
-        {/* Game Room Modal */}
-        <Modal
-          isOpen={showGameRoom}
-          onClose={() => setShowGameRoom(false)}
-          title="Game Room"
-          size="large"
-        >
-          <GameRoom
-            chatId={chatId}
-            otherUserId={otherUserId}
-            onClose={() => setShowGameRoom(false)}
-            onStartTruthDare={() => {
-              setShowGameRoom(false);
-              startGame(otherUserId);
-            }}
-            onResumeGame={() => {
-              setShowGameRoom(false);
-              setIsOpen(true);
-            }}
-          />
-        </Modal>
 
         {/* Group Call Modal */}
         <Modal

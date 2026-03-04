@@ -29,6 +29,9 @@ const VirtualizedMessageList = React.forwardRef(({
   isLoading,
   isGroupChat,
   onSenderClick,
+  onAcceptGame,
+  onRejectGame,
+  onJoinGame,
   isScrolledToBottom,
   onScroll,
   followOutput,
@@ -140,6 +143,9 @@ const VirtualizedMessageList = React.forwardRef(({
             onEdit={onEdit}
             onMediaView={onMediaView}
             onMediaDownload={onMediaDownload}
+            onAcceptGame={onAcceptGame}
+            onRejectGame={onRejectGame}
+            onJoinGame={onJoinGame}
             isGroupChat={isGroupChat}
             onSenderClick={onSenderClick}
           />
@@ -160,6 +166,9 @@ const VirtualizedMessageList = React.forwardRef(({
     onMediaDownload,
     isGroupChat,
     onSenderClick,
+    onAcceptGame,
+    onRejectGame,
+    onJoinGame,
   ]);
 
 

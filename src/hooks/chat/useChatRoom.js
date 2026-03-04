@@ -551,6 +551,69 @@ const useChatRoom = (options = {}) => {
         }
     };
 
+    const handleAcceptGame = async (message) => {
+        const { invitationId } = message.metadata || {};
+        if (!invitationId) return;
+
+        try {
+            // 1. Update the invitation status to accepted
+            const { error: invError } = await supabase
+                .from('game_invitations')
+                .update({ status: 'accepted', updated_at: new Date().toISOString() })
+                .eq('id', invitationId);
+
+            if (invError) throw invError;
+
+            // 2. Update the chat message metadata and content
+            const { error: msgError } = await supabase
+                .from('messages')
+                .update({
+                    content: 'Battle Accepted! Prepare for combat. 🔥',
+                    metadata: { ...message.metadata, status: 'accepted' },
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', message.id);
+
+            if (msgError) throw msgError;
+
+            toast.success('Battle Accepted!');
+            // Transition is handled by useTruthDareGame listener
+            navigate(`/arena/${chatId}/${otherUserId}`);
+        } catch (error) {
+            console.error('Error accepting game:', error);
+            toast.error('Failed to accept battle');
+        }
+    };
+
+    const handleJoinGame = (message) => {
+        navigate(`/arena/${chatId}/${otherUserId}`);
+    };
+
+    const handleRejectGame = async (message) => {
+        const { invitationId } = message.metadata || {};
+        if (!invitationId) return;
+
+        try {
+            await supabase
+                .from('game_invitations')
+                .update({ status: 'rejected', updated_at: new Date().toISOString() })
+                .eq('id', invitationId);
+
+            await supabase
+                .from('messages')
+                .update({
+                    content: 'Battle Declined. ❌',
+                    metadata: { ...message.metadata, status: 'rejected' },
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', message.id);
+
+            toast.error('Battle Declined');
+        } catch (error) {
+            console.error('Error rejecting game:', error);
+        }
+    };
+
     // ─── MUTE HANDLER ─────────────────────────────────────────────────────────
     const handleMuteToggle = () => {
         const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
@@ -578,6 +641,9 @@ const useChatRoom = (options = {}) => {
         // Handlers
         handleMuteToggle, confirmClearChat, confirmBlockUser, confirmSelectionDelete,
         handleShareAsForward, handleMediaDownload,
+        handleAcceptGame,
+        handleRejectGame,
+        handleJoinGame,
         // Misc
         supabase, isAuthenticated, authLoading, allChats, queryClient,
         showAlert, initialScrollPosition, saveScrollPosition,

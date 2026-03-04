@@ -9,6 +9,7 @@ const Modal = ({
     children,
     size = 'medium', // 'small', 'medium', 'large', 'full'
     showCloseButton = true,
+    showHeader = true,
     closeOnOverlayClick = true,
     className = '',
     bodyClassName = ''
@@ -46,8 +47,8 @@ const Modal = ({
 
     return (
         <div className="modal-overlay" onClick={handleOverlayClick}>
-            <div className={`modal-container modal-${size} ${className}`}>
-                {(title || showCloseButton) && (
+            <div className={`modal-content modal-${size} ${className}`}>
+                {showHeader && (title || showCloseButton) && (
                     <div className="modal-header">
                         {title && <h2 className="modal-title">{title}</h2>}
                         {showCloseButton && (

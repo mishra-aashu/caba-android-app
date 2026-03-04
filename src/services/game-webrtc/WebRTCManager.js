@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import { supabase } from '../../config/supabase';
 
 class WebRTCManager {
     constructor(roomId, userId, onMessage, onStatusChange) {
@@ -10,9 +10,47 @@ class WebRTCManager {
         this.dataChannels = new Map(); // remoteUserId -> RTCDataChannel
         this.channel = null;
         this.iceServers = [
+            // Google STUN servers (Fast & Free)
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+
+            // OpenRelay TURN (FREE - no signup required)
+            {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+
+            // Metered.ca Free TURN (50GB Tier)
+            {
+                urls: 'turn:a.relay.metered.ca:80',
+                username: 'df4e050fc5de5dc26b25b85a',
+                credential: 'Pxdp2PK0b5ZXljOm'
+            },
+            {
+                urls: 'turn:a.relay.metered.ca:443',
+                username: 'df4e050fc5de5dc26b25b85a',
+                credential: 'Pxdp2PK0b5ZXljOm'
+            },
+
+            // Extra STUN fallback
+            { urls: 'stun:stun.services.mozilla.com' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
         ];
+        this.iceCandidatePoolSize = 10;
     }
 
     async initialize() {
@@ -62,7 +100,10 @@ class WebRTCManager {
     }
 
     _createPeerConnection(remoteUserId) {
-        const pc = new RTCPeerConnection({ iceServers: this.iceServers });
+        const pc = new RTCPeerConnection({
+            iceServers: this.iceServers,
+            iceCandidatePoolSize: this.iceCandidatePoolSize
+        });
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {

@@ -41,6 +41,7 @@ const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
 const GroupChat = lazy(() => import('./components/chat/GroupChat'));
 const GroupInfoPage = lazy(() => import('./components/groups/GroupInfoPage'));
 const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
+const ArenaPage = lazy(() => import('./components/chat/ArenaPage'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 // import CallScreen from './components/CallScreen';
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
@@ -105,7 +106,9 @@ const AppContent = () => {
         <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
         <Route path="/about" element={<About />} />
 
-        {/* Protected routes */}
+        {/* Arena Route - Independent of MainLayout sidebar */}
+        <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
+
         <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route index element={<ChatPlaceholder />} />
           {/* Group chat route - uses dedicated GroupChat component */}
