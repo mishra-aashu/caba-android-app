@@ -11,6 +11,7 @@ import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette,
 import DropdownMenu from '../../common/DropdownMenu';
 import { dpOptions } from '../../../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../../../utils/dateFormatter';
+import { useResolveName } from '../../../hooks/useResolveName';
 
 const ChatHeader = ({
     chatId,
@@ -39,6 +40,7 @@ const ChatHeader = ({
 }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const resolvedName = useResolveName(!isGroupChat ? otherUser?.id : null, otherUser?.name);
 
     const resolvedNavigate = onNavigate || navigate;
 
@@ -112,7 +114,7 @@ const ChatHeader = ({
                     <h3 className="user-name">
                         {isGroupChat
                             ? (otherUser?.name || 'Group Chat')
-                            : (otherUser ? (otherUser.contact_name || otherUser.name) : 'Loading...')}
+                            : resolvedName}
                     </h3>
                     <p className="user-status">{statusText}</p>
                 </div>

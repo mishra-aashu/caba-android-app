@@ -7,6 +7,7 @@ import { useToggleReaction } from '../../hooks/useToggleReaction';
 import ReactionPicker from './ReactionPicker';
 import { getValidAvatarUrl } from '../../utils/avatarUtils';
 import { formatBubbleTime } from '../../utils/dateFormatter';
+import { useResolveName } from '../../hooks/useResolveName';
 import {
   Check,
   CheckCheck,
@@ -38,6 +39,8 @@ const MessageItem = ({
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const senderId = message?.senderId || message?.sender_id;
+  const resolvedSenderName = useResolveName(isGroupChat && currentUser?.id !== senderId ? senderId : null, message?.sender?.name || 'User');
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message?.content ?? '');
   const [touchStartTime, setTouchStartTime] = useState(0);
@@ -111,7 +114,7 @@ const MessageItem = ({
 
   const sender = safeMessage.sender ?? {};
   // Support both standardized (full_name/avatar_url) and legacy (name/avatar) field names
-  const senderName = sender.full_name || sender.name || sender.username || 'User';
+  const senderName = isGroupChat && !isSent ? resolvedSenderName : (sender.full_name || sender.name || sender.username || 'User');
   const senderAvatar = getValidAvatarUrl(sender.avatar_url || sender.avatar || sender.profile_image || sender.profileImage);
   const senderInitial = (senderName || 'U').charAt(0).toUpperCase();
 

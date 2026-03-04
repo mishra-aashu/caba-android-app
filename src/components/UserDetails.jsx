@@ -8,6 +8,7 @@ import { useCall } from '../contexts/CallContext';
 import useAuthStore from '../store/authStore';
 import { dpOptions } from '../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../utils/dateFormatter';
+import { useResolveName } from '../hooks/useResolveName';
 import { ArrowLeft, Phone, Video, MessageCircle, Image, Link as LinkIcon, FileText, Bell, BellOff, UserPlus, Share2, Download, Ban, Flag, Trash2, Edit, MoreVertical, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DropdownMenu from './common/DropdownMenu';
@@ -32,6 +33,8 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         isError,
         error
     } = useUserFullProfile(userId, currentUser?.id);
+
+    const resolvedName = useResolveName(userId, profileData?.name);
 
     // Derived State from consolidated hook
     const user = profileData;
@@ -609,7 +612,12 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                         <div className="dp-preview-initials" id="userDetailInitials">{getInitials(user.name)}</div>
                     )}
                 </div>
-                <h2 className="user-detail-name" id="userDetailName">{user.contact_name || user.name}</h2>
+                <h2 className="user-detail-name" id="userDetailName">{resolvedName}</h2>
+                {resolvedName !== user.name && (
+                    <p className="user-detail-global-name" style={{ opacity: 0.6, fontSize: '0.9rem', marginTop: '-10px' }}>
+                        @{user.name}
+                    </p>
+                )}
                 <p className="user-detail-phone" id="userDetailPhone">{user.phone || '+91 0000000000'}</p>
                 <p className="user-detail-status">
                     {isUserOnline(Boolean(currentOnlineStatus?.is_online), currentOnlineStatus?.last_seen || user.last_seen) ? 'Online' : `Last seen ${formatLastSeen(currentOnlineStatus?.last_seen || user.last_seen)}`}

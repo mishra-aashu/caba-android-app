@@ -127,15 +127,45 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
     };
 
     const handleStartChatWithContact = async (contact) => {
-        if (!contact.contact_user_id) {
-            return toast.error("This contact can't be messaged.");
+        let contactUserId = contact.contact_user_id;
+
+        // FIX: If contact_user_id is missing, try one last time to find the user by phone
+        if (!contactUserId) {
+            const phone = contact.otherUser?.phone || contact.contact_phone; // Assuming phone might be available
+            if (!phone) {
+                return toast.error("This contact has no phone number and can't be messaged.");
+            }
+
+            try {
+                const { data: existingUser } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('phone', phone)
+                    .single();
+
+                if (existingUser) {
+                    contactUserId = existingUser.id;
+                    // Auto-update the contact record so we don't have to do this again
+                    await supabase
+                        .from('contacts')
+                        .update({ contact_user_id: contactUserId })
+                        .eq('id', contact.id);
+
+                    queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
+                } else {
+                    return toast.error(`${contact.contact_name} is not on Caba yet. Ask them to join!`);
+                }
+            } catch (err) {
+                console.error('Error during fallback user lookup:', err);
+                return toast.error("Could not find this user on the app.");
+            }
         }
 
         try {
             const { data: chat, error: chatError } = await supabase
                 .from('chats')
                 .select('id')
-                .or(`and(user1_id.eq.${user.id},user2_id.eq.${contact.contact_user_id}),and(user1_id.eq.${contact.contact_user_id},user2_id.eq.${user.id})`)
+                .or(`and(user1_id.eq.${user.id},user2_id.eq.${contactUserId}),and(user1_id.eq.${contactUserId},user2_id.eq.${user.id})`)
                 .single();
 
             if (chatError && chatError.code !== 'PGRST116') {
@@ -143,10 +173,10 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
             }
 
             if (chat) {
-                navigate(`/chat/${chat.id}/${contact.contact_user_id}`);
+                navigate(`/chat/${chat.id}/${contactUserId}`);
                 if (onClose) onClose();
             } else {
-                const newChat = { user1_id: user.id, user2_id: contact.contact_user_id };
+                const newChat = { user1_id: user.id, user2_id: contactUserId };
                 const { data: newChatData, error: newChatError } = await supabase
                     .from('chats')
                     .insert([newChat])
@@ -156,7 +186,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                 if (newChatError) throw newChatError;
 
                 if (newChatData) {
-                    navigate(`/chat/${newChatData.id}/${contact.contact_user_id}`);
+                    navigate(`/chat/${newChatData.id}/${contactUserId}`);
                     if (onClose) onClose();
                 } else {
                     throw new Error('Failed to create chat');

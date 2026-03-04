@@ -58,9 +58,9 @@
     align-items: center;
     gap: 0.4rem;
     cursor: pointer;
-    min-width: 60px;
-    max-width: 70px;
-    transition: transform 0.2s;
+    min-width: 62px;
+    max-width: 72px;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     will-change: transform;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -70,33 +70,16 @@
 }
 
 .sidebar-group-item:hover {
-    transform: translateY(-2px);
+    transform: scale(1.05);
 }
 
-/* ZERO-SHIFT INDICATOR for Groups */
-.sidebar-group-item::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 3px;
-    background-color: transparent;
-    border-radius: 2px;
-    transition: background-color 0.2s ease;
-    z-index: 2;
-}
-
-.sidebar-group-item.active::before {
-    background-color: var(--brand-primary);
-}
+/* Active state handled via avatar ring below */
 
 .sidebar-group-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-primary, #00a884), var(--brand-secondary, #00c398));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -104,11 +87,29 @@
     font-weight: 700;
     font-size: 1.1rem;
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid transparent;
-    /* Static border to prevent shift */
-    padding: 2px;
+    padding: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.sidebar-group-item.active .sidebar-group-avatar {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px var(--surface-color), 0 0 0 4px var(--brand-primary);
+    transform: scale(1.02);
+}
+
+.sidebar-group-avatar .group-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    /* Gradient is on parent */
+    color: white;
 }
 
 .sidebar-group-avatar img {

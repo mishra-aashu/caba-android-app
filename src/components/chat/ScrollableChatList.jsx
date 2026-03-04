@@ -58,8 +58,8 @@ const ScrollableChatList = ({
                                             }}
                                         />
                                     ) : null}
-                                    <div className="group-avatar-fallback" style={{ display: group.avatar ? 'none' : 'flex' }}>
-                                        <Users size={20} />
+                                    <div className="group-avatar-fallback">
+                                        <Users size={22} />
                                     </div>
                                 </div>
                                 <div className="sidebar-group-info">

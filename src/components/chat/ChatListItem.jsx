@@ -3,6 +3,7 @@ import { Timer, Users, User } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchMessagesPage } from '../../hooks/useMessages';
 import { formatLastSeen, formatTime } from '../../utils/dateFormatter';
+import { useResolveName } from '../../hooks/useResolveName';
 import EmojiRenderer from '../common/EmojiRenderer';
 import '../../styles/ChatListItem.css';
 
@@ -23,6 +24,7 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
   } = chat;
 
   const queryClient = useQueryClient();
+  const resolvedName = useResolveName(!isGroup ? chat.otherUserId : null, name);
 
   // ─── AGGRESSIVE PRE-FETCH ──────────────────────────────────────────────────
   // Pre-loading data on 'hover' or 'touch start' (pointer down) ensures that
@@ -88,7 +90,7 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
                 </svg>
               </span>
             )}
-            {name || 'Unknown'}
+            {resolvedName}
             {is_vanish_enabled && (
               <Timer size={14} className="vanish-icon" />
             )}
