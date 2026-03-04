@@ -6,7 +6,9 @@ const config: CapacitorConfig = {
   appName: 'caba',
   webDir: 'dist',
   server: {
+    url: 'https://caba-android-app.vercel.app',
     androidScheme: 'https',
+    cleartext: false,
   },
   plugins: {
     extConfig: {},
