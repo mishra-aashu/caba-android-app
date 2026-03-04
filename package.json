@@ -1,7 +1,7 @@
 {
   "name": "caba",
   "private": true,
-  "version": "0.0.11",
+  "version": "2.0.0",
   "homepage": "/",
   "type": "module",
   "scripts": {
@@ -9,6 +9,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "version-sync": "node scripts/update-app-version.js",
+    "postversion": "npm run version-sync",
     "deploy": "cross-env GITHUB_PAGES=true vite build && gh-pages -d dist"
   },
   "dependencies": {
