@@ -1,41 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
-import { useTruthDareGame } from '../../hooks/useTruthDareGame';
-import { 
-  Gamepad2, 
-  Users, 
-  Trophy, 
-  Clock, 
-  Plus, 
-  Play, 
-  Sparkles,
+import {
+  Gamepad2,
+  Play,
   Shield,
-  Zap,
-  MessageCircle,
   CheckCircle,
   XCircle,
-  Flame
+  Flame,
+  Plus,
+  Clock
 } from 'lucide-react';
-import { dpOptions } from '../../utils/dpOptions';
 import { toast } from 'react-hot-toast';
-import TruthDareModal from './TruthDareModal';
 import './GameRoom.css';
 
-const GameRoom = ({ isOpen, onClose, chatId, otherUserId }) => {
+const GameRoom = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
   const { supabase } = useSupabase();
   const { user } = useAuth();
-  const { startGame, sendChallenge } = useTruthDareGame(chatId, user?.id);
+
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
-  const [showTruthDareModal, setShowTruthDareModal] = useState(false);
 
   useEffect(() => {
-    if (isOpen && chatId) {
+    if (chatId) {
       loadGames();
     }
-  }, [isOpen, chatId]);
+  }, [chatId]);
 
   const loadGames = async () => {
     setLoading(true);
@@ -44,18 +35,11 @@ const GameRoom = ({ isOpen, onClose, chatId, otherUserId }) => {
         .from('game_invitations')
         .select(`
           *,
-          sender:sender_id (
-            id,
-            name,
-            avatar
-          ),
-          receiver:receiver_id (
-            id,
-            name,
-            avatar
-          )
+          sender:sender_id (id, name, avatar),
+          receiver:receiver_id (id, name, avatar)
         `)
         .eq('chat_id', chatId)
+        .in('status', ['pending', 'accepted'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -67,242 +51,142 @@ const GameRoom = ({ isOpen, onClose, chatId, otherUserId }) => {
     }
   };
 
-  const handleStartGame = (game) => {
-    setSelectedGame(game);
-  };
-
-  const handleBackToGames = () => {
-    setSelectedGame(null);
-    loadGames();
-  };
-
-  const handleStartTruthDare = () => {
-    setShowTruthDareModal(true);
-  };
-
   const handleAcceptGame = async (game) => {
     try {
-      // Update invitation status to accepted
-      const { error: inviteError } = await supabase
+      const { error } = await supabase
         .from('game_invitations')
         .update({ status: 'accepted' })
         .eq('id', game.id);
 
-      if (inviteError) throw inviteError;
+      if (error) throw error;
+      toast.success('Accepted!');
 
-      toast.success('Game invitation accepted!');
-      setSelectedGame({ ...game, status: 'accepted' }); // Go to game detail view
+      // Notify partner immediately via broadcast for instant UI response
+      const channelName = `game_room_${chatId}`;
+      const channel = supabase.channel(channelName);
+      await channel.send({
+        type: 'broadcast',
+        event: 'game_update',
+        payload: {
+          gameId: game.id,
+          gameState: { ...game.invitation_data, stage: 'picking' } // Start the game move
+        },
+      });
+
+      loadGames();
+      if (onResumeGame) onResumeGame();
     } catch (error) {
-      console.error('Error accepting game:', error);
-      toast.error('Failed to accept game');
+      toast.error('Failed to accept');
     }
   };
 
   const handleRejectGame = async (game) => {
     try {
-      // Update invitation status to rejected
-      const { error: inviteError } = await supabase
+      const { error } = await supabase
         .from('game_invitations')
         .update({ status: 'rejected' })
         .eq('id', game.id);
 
-      if (inviteError) throw inviteError;
-
-      toast.success('Game invitation rejected');
-      loadGames(); // Refresh the game list
+      if (error) throw error;
+      loadGames();
     } catch (error) {
-      console.error('Error rejecting game:', error);
-      toast.error('Failed to reject game');
+      toast.error('Failed to reject');
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <>
-      <div className="game-room-overlay">
-        <div className="game-room-container">
-          <div className="game-room-header">
-            <div className="room-title-section">
-              <div className="room-icon-container">
-                <Gamepad2 size={36} className="room-icon" />
-                <Sparkles size={20} className="sparkle-effect" />
-              </div>
-              <div className="room-title-text">
-                <h2>Game Room</h2>
-                <p className="room-subtitle">All games in this chat</p>
+    <div className="game-room-content-wrapper h-full flex flex-col p-4 rounded-3xl bg-slate-900 shadow-2xl overflow-hidden">
+      <div className="game-room-header-simple border-b border-slate-800 pb-4 mb-4">
+        <div className="room-title-section flex items-center gap-4">
+          <div className="room-icon-container-small w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center shadow-lg shadow-green-900/20">
+            <Gamepad2 size={24} className="text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white tracking-tight">Game Room</h3>
+            <p className="text-xs text-slate-400">Play, challenge, and connect</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="game-room-content flex-1 overflow-y-auto space-y-8 pr-1 custom-scrollbar">
+        {!selectedGame ? (
+          <>
+            {/* 1. AVAILABLE GAMES (TEMPLATES) */}
+            <div className="game-section">
+              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <Plus size={12} strokeWidth={3} /> Available Games
+              </h4>
+              <div className="games-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="game-card bg-slate-800/50 border border-slate-700/50 hover:border-pink-500/50 transition-all rounded-3xl p-5 flex flex-col gap-4">
+                  <div className="flex justify-between items-start">
+                    <div className="truth-dare-badge bg-pink-500/10 text-pink-500 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-2">
+                      <Flame size={12} /> Truth or Dare
+                    </div>
+                    <div className="text-[10px] font-bold text-green-500 flex items-center gap-1 bg-green-500/10 px-2 py-0.5 rounded">
+                      <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" /> FREE
+                    </div>
+                  </div>
+
+                  <div className="game-message bg-slate-900/50 border border-slate-700/30 p-4 rounded-2xl text-center">
+                    <p className="text-sm font-medium italic text-slate-300">"Raaz kholo ya himmat dikhao!" 🔥</p>
+                  </div>
+
+                  <button className="start-game-btn bg-gradient-to-r from-pink-600 to-pink-500 hover:from-pink-500 hover:to-pink-400 text-white py-3 rounded-2xl font-bold text-sm shadow-lg shadow-pink-900/20 flex items-center justify-center gap-3 transition-all active:scale-95" onClick={onStartTruthDare}>
+                    <Play size={16} fill="white" /> NEW GAME
+                  </button>
+                </div>
+
+                <div className="game-card bg-slate-800/20 border border-dashed border-slate-700/50 rounded-3xl p-5 flex flex-col items-center justify-center gap-2 grayscale">
+                  <Shield size={32} className="text-slate-700" />
+                  <span className="text-[10px] font-black text-slate-600 tracking-[0.3em]">COMING SOON</span>
+                </div>
               </div>
             </div>
-            <button className="close-room-btn" onClick={onClose}>
-              ✕
-            </button>
-          </div>
 
-          <div className="game-room-content">
-            {!selectedGame ? (
-              // Game List View
-              <div className="game-list">
-                {loading ? (
-                  <div className="loading-games">
-                    <div className="loading-spinner"></div>
-                    <p>Loading games...</p>
-                  </div>
-                ) : games.length === 0 ? (
-                  <div className="games-grid">
-                    {/* Truth or Dare Game Card */}
-                    <div className="game-card game-card-interactive">
-                      <div className="game-card-header">
-                        <div className="game-type-badge truth-dare-badge">
-                          <Flame size={16} />
-                          <span>TRUTH OR DARE</span>
-                        </div>
-                        <div className="game-status available">
-                          <Zap size={16} />
-                          <span>AVAILABLE</span>
-                        </div>
-                      </div>
-                      
-                      <div className="game-card-content">
-                        <div className="game-icon-large">
-                          <Flame size={64} className="flame-icon" />
-                        </div>
-                        <div className="game-message">
-                          Raaz kholo ya himmat dikhao! 🔥
-                        </div>
-                        <div className="game-description">
-                          Challenge your friend with questions or dares. 
-                          Perfect for breaking the ice or spicing up the conversation!
-                        </div>
-                      </div>
+            {/* 2. ACTIVE GAMES / INVITATIONS */}
+            {(loading || games.length > 0) && (
+              <div className="game-section">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                  <Clock size={12} strokeWidth={3} /> Active Sessions
+                </h4>
 
-                      <div className="game-card-actions">
-                        <button className="start-game-btn truth-dare-btn" onClick={handleStartTruthDare}>
-                          <Play size={16} />
-                          Start Truth or Dare
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Coming Soon Placeholder */}
-                    <div className="game-card coming-soon-card">
-                      <div className="game-card-header">
-                        <div className="game-type-badge coming-soon-badge">
-                          <Zap size={16} />
-                          <span>COMING SOON</span>
-                        </div>
-                        <div className="game-status coming-soon">
-                          <Clock size={16} />
-                          <span>SOON</span>
-                        </div>
-                      </div>
-                      
-                      <div className="game-card-content">
-                        <div className="game-icon-large">
-                          <Gamepad2 size={64} className="gamepad-icon" />
-                        </div>
-                        <div className="game-message">
-                          More Games Coming!
-                        </div>
-                        <div className="game-description">
-                          Stay tuned for Tic Tac Toe, 
-                          Word Chain, and more exciting games!
-                        </div>
-                      </div>
-
-                      <div className="game-card-actions">
-                        <button className="coming-soon-btn" disabled>
-                          <Plus size={16} />
-                          Coming Soon
-                        </button>
-                      </div>
-                    </div>
+                {loading && games.length === 0 ? (
+                  <div className="flex flex-col items-center py-10 gap-4 text-slate-500">
+                    <div className="w-6 h-6 border-2 border-slate-700 border-t-green-500 rounded-full animate-spin" />
+                    <p className="text-[10px] font-bold tracking-widest uppercase">Checking activity...</p>
                   </div>
                 ) : (
-                  <div className="games-grid">
+                  <div className="games-grid grid grid-cols-1 md:grid-cols-2 gap-4">
                     {games.map((game) => (
-                      <div key={game.id} className="game-card">
-                        <div className="game-card-header">
-                          <div className="game-type-badge">
-                            <Shield size={16} />
-                            <span>{game.game_type.replace('_', ' ').toUpperCase()}</span>
-                          </div>
-                          <div className={`game-status ${game.status}`}>
-                            {game.status === 'pending' && <Clock size={16} />}
-                            {game.status === 'accepted' && <CheckCircle size={16} />}
-                            {game.status === 'rejected' && <XCircle size={16} />}
-                            <span>{game.status.toUpperCase()}</span>
-                          </div>
+                      <div key={game.id} className="game-card bg-slate-800/40 border border-slate-700/40 rounded-3xl p-5 flex flex-col gap-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{game.game_type.replace('_', ' ')}</span>
+                          <span className={`text-[9px] font-black px-2 py-1 rounded-full ${game.status === 'accepted' ? 'text-green-500 bg-green-500/10' : 'text-amber-500 bg-amber-500/10'}`}>{game.status.toUpperCase()}</span>
                         </div>
-                        
-                        <div className="game-card-content">
-                          <div className="game-message">
-                            {game.invitation_message}
+
+                        <div className="flex items-center justify-between bg-slate-900/30 p-4 rounded-2xl border border-slate-700/20">
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div className="w-10 h-10 rounded-2xl bg-slate-700 flex items-center justify-center text-sm font-black text-white shadow-inner">{game.sender?.name?.charAt(0)}</div>
+                            <span className="text-[10px] font-bold text-slate-400 truncate w-16 text-center">{game.sender?.name}</span>
                           </div>
-                          
-                          <div className="game-participants">
-                            <div className="participant">
-                              <div className="avatar">
-                                {game.sender?.avatar ? (
-                                  parseInt(game.sender.avatar) ? (
-                                    <img src={dpOptions.find(dp => dp.id === parseInt(game.sender.avatar))?.path || game.sender.avatar} alt={game.sender.name} />
-                                  ) : (
-                                    <img src={game.sender.avatar} alt={game.sender.name} />
-                                  )
-                                ) : (
-                                  game.sender?.name?.charAt(0)?.toUpperCase() || 'U'
-                                )}
-                              </div>
-                              <span>{game.sender?.name || 'Unknown'}</span>
-                            </div>
-                            <div className="vs-separator">vs</div>
-                            <div className="participant">
-                              <div className="avatar">
-                                {game.receiver?.avatar ? (
-                                  parseInt(game.receiver.avatar) ? (
-                                    <img src={dpOptions.find(dp => dp.id === parseInt(game.receiver.avatar))?.path || game.receiver.avatar} alt={game.receiver.name} />
-                                  ) : (
-                                    <img src={game.receiver.avatar} alt={game.receiver.name} />
-                                  )
-                                ) : (
-                                  game.receiver?.name?.charAt(0)?.toUpperCase() || 'U'
-                                )}
-                              </div>
-                              <span>{game.receiver?.name || 'Unknown'}</span>
-                            </div>
+                          <div className="text-[10px] font-black text-slate-700 tracking-tighter">VS</div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div className="w-10 h-10 rounded-2xl bg-slate-700 flex items-center justify-center text-sm font-black text-white shadow-inner">{game.receiver?.name?.charAt(0)}</div>
+                            <span className="text-[10px] font-bold text-slate-400 truncate w-16 text-center">{game.receiver?.name}</span>
                           </div>
                         </div>
 
-                        <div className="game-card-actions">
-                          {game.status === 'pending' ? (
-                            user?.id === game.receiver_id ? (
-                              <div className="flex gap-2">
-                                <button 
-                                  onClick={() => handleAcceptGame(game)}
-                                  className="accept-btn"
-                                >
-                                  <CheckCircle size={20} />
-                                  Accept Game
-                                </button>
-                                <button 
-                                  onClick={() => handleRejectGame(game)}
-                                  className="reject-btn"
-                                >
-                                  <XCircle size={20} />
-                                  Reject Game
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="text-yellow-500 text-sm">Waiting for response...</div>
-                            )
-                          ) : game.status === 'accepted' ? (
-                            <button className="join-game-btn" onClick={() => handleStartGame(game)}>
-                              <Play size={16} />
-                              Start Truth or Dare
-                            </button>
+                        <div className="flex gap-2">
+                          {game.status === 'pending' && user?.id === game.receiver_id ? (
+                            <>
+                              <button onClick={() => handleAcceptGame(game)} className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white text-xs font-black rounded-xl transition-colors shadow-lg shadow-green-900/10 flex items-center justify-center gap-2">
+                                <CheckCircle size={14} /> ACCEPT
+                              </button>
+                              <button onClick={() => handleRejectGame(game)} className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-black rounded-xl transition-colors">SKIP</button>
+                            </>
                           ) : (
-                            <button className="game-ended-btn" disabled>
-                              <XCircle size={16} />
-                              Game Ended
+                            <button className="w-full py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-2" onClick={() => setSelectedGame(game)}>
+                              OPEN SESSION <Play size={12} fill="currentColor" />
                             </button>
                           )}
                         </div>
@@ -311,86 +195,30 @@ const GameRoom = ({ isOpen, onClose, chatId, otherUserId }) => {
                   </div>
                 )}
               </div>
-            ) : (
-              // Game Detail View
-              <div className="game-detail">
-                <div className="game-detail-header">
-                  <button className="back-btn" onClick={handleBackToGames}>
-                    ← Back to Games
-                  </button>
-                  <div className="game-detail-title">
-                    <h3>{selectedGame.game_type.replace('_', ' ').toUpperCase()}</h3>
-                    <span className={`status-badge ${selectedGame.status}`}>
-                      {selectedGame.status.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="game-detail-content">
-                  <div className="game-info">
-                    <div className="game-message-detail">
-                      <h4>Invitation Message</h4>
-                      <p>{selectedGame.invitation_message}</p>
-                    </div>
-                    
-                    <div className="game-timestamp">
-                      <Clock size={16} />
-                      <span>Created: {new Date(selectedGame.created_at).toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  <div className="game-actions">
-                    {selectedGame.status === 'pending' ? (
-                      <div className="pending-actions">
-                        <button className="accept-btn">
-                          <CheckCircle size={20} />
-                          Accept Game
-                        </button>
-                        <button className="reject-btn">
-                          <XCircle size={20} />
-                          Reject Game
-                        </button>
-                      </div>
-                    ) : selectedGame.status === 'accepted' ? (
-                      <div className="accepted-actions">
-                        <button className="play-btn" onClick={handleStartTruthDare}>
-                          <Play size={24} />
-                          <span>Start Playing</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="ended-actions">
-                        <button className="new-game-btn">
-                          <Plus size={20} />
-                          Start New Game
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
             )}
+          </>
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center gap-6 animate-in fade-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-green-500/10 rounded-[2.5rem] flex items-center justify-center border border-green-500/20 relative">
+              <Play size={48} className="text-green-500" fill="currentColor" />
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-ping" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-white tracking-tight mb-2 uppercase italic">Battle Ready!</h3>
+              <p className="text-sm text-slate-400 font-medium">Invitation accepted. Time to play!</p>
+            </div>
+            <div className="w-full max-w-xs flex flex-col gap-3">
+              <button className="w-full py-4 bg-gradient-to-r from-green-600 to-green-500 text-white font-black rounded-2xl hover:from-green-500 hover:to-green-400 shadow-xl shadow-green-900/20 flex items-center justify-center gap-3 transition-all active:scale-95" onClick={onResumeGame}>
+                <Play size={20} fill="white" /> RESUME GAME
+              </button>
+              <button className="w-full py-2 text-slate-500 font-bold text-xs" onClick={() => setSelectedGame(null)}>
+                CLOSE
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Truth or Dare Modal */}
-      {showTruthDareModal && (
-        <TruthDareModal
-          isOpen={showTruthDareModal}
-          onClose={() => setShowTruthDareModal(false)}
-          gameState={null}
-          userId={user?.id}
-          partnerId={otherUserId}
-          onPick={() => {}}
-          onSend={sendChallenge}
-          onComplete={() => {}}
-          onCloseModal={() => setShowTruthDareModal(false)}
-          onStart={startGame}
-          chatId={chatId}
-        />
-      )}
-    </>
+    </div>
   );
 };
 

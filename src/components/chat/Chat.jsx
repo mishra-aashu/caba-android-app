@@ -160,7 +160,8 @@ const Chat = () => {
     pickType,
     sendChallenge,
     completeTurn,
-    closeGame
+    closeGame,
+    setIsOpen
   } = useTruthDareGame(chatId, currentUser?.id, { enabled: showGameRoom });
 
 
@@ -783,15 +784,14 @@ const Chat = () => {
         {/* Truth or Dare Game Modal */}
         <TruthDareModal
           isOpen={isGameOpen}
+          onClose={closeGame}
           gameState={gameState}
           userId={currentUser?.id}
           partnerId={otherUser?.id}
           onPick={pickType}
           onSend={sendChallenge}
           onComplete={completeTurn}
-          onClose={closeGame}
-          onStart={startGame}
-          chatId={chatId}
+          onStart={() => startGame(otherUser?.id)}
         />
 
         {/* Game Room Modal */}
@@ -803,8 +803,16 @@ const Chat = () => {
         >
           <GameRoom
             chatId={chatId}
-            currentUser={currentUser}
+            otherUserId={otherUserId}
             onClose={() => setShowGameRoom(false)}
+            onStartTruthDare={() => {
+              setShowGameRoom(false);
+              startGame(otherUserId);
+            }}
+            onResumeGame={() => {
+              setShowGameRoom(false);
+              setIsOpen(true);
+            }}
           />
         </Modal>
 

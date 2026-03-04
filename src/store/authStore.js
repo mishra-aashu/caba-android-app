@@ -5,6 +5,10 @@ import { getRedirectUrl } from '../utils/authUtils';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { createClient } from '@supabase/supabase-js';
+
+// Direct Supabase URL for bypassing proxy during OAuth redirects
+const DIRECT_SUPABASE_URL = 'https://riekjnqllkrqkmqxmtfu.supabase.co';
 
 // ✅ Track refresh timing OUTSIDE store to prevent loops
 let lastRefreshTime = 0;
@@ -258,6 +262,7 @@ const useAuthStore = create((set, get) => ({
 
   signInWithGoogle: async () => {
     set({ isServerUnreachable: false }); // Reset error state on new attempt
+    console.log('[Auth] signInWithGoogle initialized, platform:', Capacitor.getPlatform(), 'isNative:', Capacitor.isNativePlatform());
     try {
       if (Capacitor.isNativePlatform()) {
         if (!isGoogleAuthInitialized) {
@@ -282,15 +287,19 @@ const useAuthStore = create((set, get) => ({
         return { success: true };
       } else {
         const redirectUrl = getRedirectUrl();
+        console.log('[Auth] Using Web OAuth flow with direct bypass redirect...');
 
-        const { error } = await supabase.auth.signInWithOAuth({
+        // Create a temporary client pointing DIRECTLY to Supabase to avoid proxy CSP blocks
+        const directClient = createClient(DIRECT_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+
+        const { error } = await directClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: redirectUrl,
-            flowType: 'pkce', // ✅ Use PKCE flow for better mobile compatibility
+            flowType: 'pkce',
             queryParams: {
               access_type: 'offline',
-              prompt: 'consent',
+              prompt: 'select_account',
             }
           }
         });

@@ -1,8 +1,5 @@
-// hooks/useTruthDareGame.js
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../config/supabase';
-import { realtimeManager } from '../utils/realtimeManager';
 import { prepareDataForDB } from '../utils/dbSchemaCompatibility';
+import { useWebRTC } from './useWebRTC';
 
 export const useTruthDareGame = (roomId, userId, { enabled = true } = {}) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,6 +10,64 @@ export const useTruthDareGame = (roomId, userId, { enabled = true } = {}) => {
     type: null,
     content: '',
   });
+  const [isHost, setIsHost] = useState(false);
+
+  // 1. Initialize WebRTC
+  const handleDataReceived = useCallback((from, data) => {
+    if (data.type === 'GAME_UPDATE') {
+      // Clients receive authoritative state from Host
+      setGameState(data.gameState);
+      setGameId(data.gameId);
+      if (data.gameState.stage !== 'idle') {
+        setIsOpen(true);
+      }
+    } else if (data.type === 'GAME_EVENT' && isHost) {
+      // Host receives event from Client, processes it, and broadcasts new state
+      handleClientEvent(from, data.event);
+    }
+  }, [isHost]);
+
+  const { connectToPeer, sendData } = useWebRTC(roomId, userId, handleDataReceived);
+
+  const handleClientEvent = (from, event) => {
+    let newState = { ...stateRef.current };
+
+    switch (event.type) {
+      case 'PICK_TYPE':
+        newState = { ...newState, type: event.payload, stage: 'writing' };
+        break;
+      case 'SEND_CHALLENGE':
+        newState = { ...newState, content: event.payload, stage: 'performing' };
+        break;
+      case 'COMPLETE_TURN':
+        newState = {
+          ...newState,
+          turn: from, // Now it's the person who completed the turn's turn to ask
+          stage: 'picking',
+          type: null,
+          content: ''
+        };
+        break;
+      default:
+        break;
+    }
+
+    // Host updates local state and broadcasts
+    setGameState(newState);
+    sendData({ type: 'GAME_UPDATE', gameId: gameIdRef.current, gameState: newState });
+  };
+
+  // Keep track of the current turn and gameId in refs for logic
+  const stateRef = useRef(gameState);
+  const gameIdRef = useRef(gameId);
+
+  useEffect(() => {
+    stateRef.current = gameState;
+  }, [gameState]);
+
+  useEffect(() => {
+    gameIdRef.current = gameId;
+  }, [gameId]);
 
   const fetchActiveGame = useCallback(async () => {
     if (!roomId || !userId) return;
@@ -30,97 +85,83 @@ export const useTruthDareGame = (roomId, userId, { enabled = true } = {}) => {
         setGameId(data.id);
         if (data.invitation_data) {
           setGameState(data.invitation_data);
+          // If I was the sender, I am the Host
+          setIsHost(data.sender_id === userId);
+          // Connect to the other player if it's already accepted
+          const partnerId = data.sender_id === userId ? data.receiver_id : data.sender_id;
+          connectToPeer(partnerId);
         }
       }
     } catch (err) {
       console.error('Error fetching active game:', err);
     }
-  }, [roomId, userId]);
+  }, [roomId, userId, connectToPeer]);
 
-  // 1. Initial Load: Fetch active/pending game for this room
   useEffect(() => {
     if (enabled) {
       fetchActiveGame();
     }
   }, [enabled, fetchActiveGame]);
 
-  // 2. Real-time Subscription
   useEffect(() => {
     if (!roomId) return;
 
-    const channelName = `game_room_${roomId}`;
+    // We still listen for DB changes for NEW games (Initial Handshake)
+    const channel = supabase
+      .channel(`game_init_${roomId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'game_invitations',
+        filter: `chat_id=eq.${roomId}`
+      }, (payload) => {
+        if (payload.new.invitation_data) {
+          setGameId(payload.new.id);
+          setGameState(payload.new.invitation_data);
+          setIsOpen(true);
+          setIsHost(payload.new.sender_id === userId);
 
-    realtimeManager.subscribe(
-      channelName,
-      {},
-      {
-        broadcast: {
-          event: 'game_update',
-          callback: ({ payload }) => {
-            setGameState(payload.gameState);
-            setGameId(payload.gameId);
-            if (payload.gameState.stage !== 'idle') {
-              setIsOpen(true);
-            }
-          }
-        },
-        postgres_changes: [
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'game_invitations',
-            filter: `chat_id=eq.${roomId}`,
-            handler: (payload) => {
-              if (payload.new.invitation_data) {
-                setGameState(payload.new.invitation_data);
-                setGameId(payload.new.id);
-              }
-            }
-          }
-        ]
-      }
-    );
+          // Connect to peer for WebRTC
+          const partnerId = payload.new.sender_id === userId ? payload.new.receiver_id : payload.new.sender_id;
+          connectToPeer(partnerId);
+        }
+      })
+      .subscribe();
 
     return () => {
-      realtimeManager.unsubscribe(channelName);
+      supabase.removeChannel(channel);
     };
-  }, [roomId]);
+  }, [roomId, userId, connectToPeer]);
 
-  // Helper: Persist and Broadcast
-  const syncGame = useCallback(async (newId, newState) => {
+  const syncGame = useCallback((newId, newState) => {
+    // 1. Host updates context
     setGameId(newId);
     setGameState(newState);
 
-    // 1. Broadcast for instant UI (Transient)
-    const channel = supabase.channel(`game_room_${roomId}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'game_update',
-      payload: { gameId: newId, gameState: newState },
-    });
+    // 2. Broadcast authoritative state via WebRTC
+    sendData({ type: 'GAME_UPDATE', gameId: newId, gameState: newState });
 
-    // 2. Update DB (Persistent)
-    if (newId) {
-      await supabase
-        .from('game_invitations')
-        .update({
-          invitation_data: newState,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', newId);
-    }
-  }, [roomId]);
+    // NO DATABASE UPDATES FOR GAMEPLAY EVENTS (User Rule)
+  }, [sendData]);
 
-  // Actions
+  // --- ACTIONS WITH TURN VALIDATION ---
+
   const startGame = useCallback(async (partnerId) => {
     setIsOpen(true);
-    const initialState = { turn: userId, stage: 'picking', type: null, content: '' };
+    setIsHost(true);
+    const initialState = {
+      turn: userId,
+      stage: 'picking',
+      type: null,
+      content: '',
+      partnerId: partnerId || userId
+    };
 
-    // Create new invitation in DB
+    // We only use DB to INITIATE the game session (Initial signaling/handshake)
     const invitation = prepareDataForDB({
       chat_id: roomId,
       sender_id: userId,
-      receiver_id: partnerId || userId, // Fallback to self for group/testing
+      receiver_id: partnerId || userId,
       game_type: 'truth_or_dare',
       invitation_data: initialState,
       status: 'pending'
@@ -133,34 +174,63 @@ export const useTruthDareGame = (roomId, userId, { enabled = true } = {}) => {
       .single();
 
     if (!error && data) {
-      syncGame(data.id, initialState);
-    } else {
-      console.error('Failed to persist game start:', error);
-      // Fallback to transient only if DB fails
-      syncGame(null, initialState);
+      setGameId(data.id);
+      setGameState(initialState);
+      connectToPeer(partnerId);
+      // Wait a bit for DC to open before initial sync if needed, 
+      // but usually the first interaction will trigger a sync.
     }
-  }, [userId, roomId, syncGame]);
+  }, [userId, roomId, connectToPeer]);
 
   const pickType = useCallback((type) => {
-    const newState = { ...gameState, type, stage: 'writing' };
-    syncGame(gameId, newState);
-  }, [gameState, gameId, syncGame]);
+    // SECURITY: Ensure it's your turn
+    if (stateRef.current.turn !== userId) return;
+
+    if (isHost) {
+      const newState = { ...stateRef.current, type, stage: 'writing' };
+      syncGame(gameIdRef.current, newState);
+    } else {
+      // Client sends event to Host
+      sendData({ type: 'GAME_EVENT', event: { type: 'PICK_TYPE', payload: type } });
+    }
+  }, [isHost, userId, sendData, syncGame]);
 
   const sendChallenge = useCallback((text) => {
-    const newState = { ...gameState, content: text, stage: 'performing' };
-    syncGame(gameId, newState);
-  }, [gameState, gameId, syncGame]);
+    // SECURITY: Ensure it's your turn
+    if (stateRef.current.turn !== userId) return;
 
-  const completeTurn = useCallback((partnerId) => {
-    const newState = { turn: partnerId, stage: 'picking', type: null, content: '' };
-    syncGame(gameId, newState);
-  }, [gameId, syncGame]);
+    if (isHost) {
+      const newState = { ...stateRef.current, content: text, stage: 'performing' };
+      syncGame(gameIdRef.current, newState);
+    } else {
+      // Client sends event to Host
+      sendData({ type: 'GAME_EVENT', event: { type: 'SEND_CHALLENGE', payload: text } });
+    }
+  }, [isHost, userId, sendData, syncGame]);
+
+  const completeTurn = useCallback(() => {
+    if (stateRef.current.stage !== 'performing') return;
+    if (stateRef.current.turn === userId) return; // Challenger cannot complete their own set task
+
+    if (isHost) {
+      const newState = {
+        ...stateRef.current,
+        turn: userId, // Host completed it
+        stage: 'picking',
+        type: null,
+        content: ''
+      };
+      syncGame(gameIdRef.current, newState);
+    } else {
+      // Client sends event to Host
+      sendData({ type: 'GAME_EVENT', event: { type: 'COMPLETE_TURN' } });
+    }
+  }, [isHost, userId, sendData, syncGame]);
 
   const closeGame = useCallback(async () => {
     setIsOpen(false);
     const idleState = { turn: null, stage: 'idle', type: null, content: '' };
 
-    // Mark as completed in DB if it was active
     if (gameId) {
       await supabase
         .from('game_invitations')
