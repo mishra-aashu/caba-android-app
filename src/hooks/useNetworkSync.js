@@ -103,13 +103,18 @@ const useNetworkSync = () => {
                                         });
                                     });
 
-                                    // [FIX 2] Real-time UI Invalidation (Zustand)
+                                    // [FIX 2] Real-time UI Invalidation (TanStack Query)
                                     // Instantly update the UI status from 'pending' to 'sent'
-                                    if (tempId) {
-                                        useChatStore.getState().replaceTempMessage(tempId, {
-                                            ...msgData,
-                                            status: 'sent',
-                                            sender: useChatStore.getState().messages.find(m => m.tempId === tempId)?.sender
+                                    if (tempId && finalPayload.chat_id) {
+                                        queryClient.setQueryData(['messages', finalPayload.chat_id], (old) => {
+                                            if (!old) return old;
+                                            return {
+                                                ...old,
+                                                pages: old.pages.map(page => ({
+                                                    ...page,
+                                                    data: page.data.map(m => m.tempId === tempId ? { ...msgData, status: 'sent', sender: m.sender } : m)
+                                                }))
+                                            };
                                         });
                                     }
 

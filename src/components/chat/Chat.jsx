@@ -43,8 +43,7 @@ const Chat = () => {
     messages, isFetchingNextPage, hasNextPage, fetchNextPage,
     typingUsers, sendTyping,
     isMuted, isTempChat, setIsTempChat, vanishPresets, setVanishPresets, selectedVanishDuration, setSelectedVanishDuration,
-    addStoreMessage, updateStoreMessage, removeStoreMessage, replaceTempMessage,
-    sendMessage, handleSendMedia, replyingTo, handleReply, cancelReply,
+    sendMessage, handleSendMedia, replyingTo, handleReply, cancelReply, deleteMessage,
     activeCallData, activeGroupCall, showGroupCallScreen, setShowGroupCallScreen,
     handleVoiceCall, handleVideoCall, handleEndGroupCall, handleStartGroupCall,
     handleMuteToggle, confirmClearChat, confirmBlockUser, confirmSelectionDelete,
@@ -570,12 +569,7 @@ const Chat = () => {
             onMessageSelect={handleMessageSelect}
             onReply={handleReply}
             onForward={handleForwardMessage}
-            onDelete={(messageId) => {
-              updateStoreMessage(validChatId, messageId, { isDeleting: true });
-              setTimeout(() => {
-                removeStoreMessage(validChatId, messageId);
-              }, 450);
-            }}
+            onDelete={(messageId) => deleteMessage(messageId)}
             onEdit={handleMessageEdit}
             onMediaView={handleMediaView}
             onMediaDownload={handleMediaDownload}

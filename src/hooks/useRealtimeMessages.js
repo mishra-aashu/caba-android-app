@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { realtimeManager } from '../utils/realtimeManager';
 import { supabase } from '../config/supabase';
 import useUserStore from '../store/userStore';
@@ -32,6 +33,8 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, [handlers, currentUserId, chatId]);
+
+  const queryClient = useQueryClient();
 
   const handlePayload = useCallback(async (payload) => {
     if (!mountedRef.current) return;
@@ -75,19 +78,65 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
         sender: sender || enrichSender(frontendMsg.senderId)
       };
 
+      // SYNC WITH TANSTACK QUERY
+      queryClient.setQueryData(['messages', chatId], (old) => {
+        if (!old) return old;
+
+        // Prevent duplicate if already exists (e.g. from optimistic update)
+        const allMessages = old.pages.flatMap(p => p.data);
+        if (allMessages.some(m => m.id === enrichedMsg.id)) return old;
+
+        return {
+          ...old,
+          pages: old.pages.map((page, i) =>
+            i === 0
+              ? { ...page, data: [enrichedMsg, ...page.data] }
+              : page
+          ),
+        };
+      });
+
       if (mountedRef.current && handlersRef.current.onNewMessage) {
         handlersRef.current.onNewMessage(enrichedMsg);
       }
     } else if (eventType === 'UPDATE' && newRecord) {
+      const updatedMsg = safeDbConversion(newRecord);
+
+      // SYNC WITH TANSTACK QUERY
+      queryClient.setQueryData(['messages', chatId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            data: page.data.map((msg) =>
+              msg.id === updatedMsg.id ? { ...msg, ...updatedMsg } : msg
+            ),
+          })),
+        };
+      });
+
       if (mountedRef.current && handlersRef.current.onUpdateMessage) {
-        handlersRef.current.onUpdateMessage(safeDbConversion(newRecord));
+        handlersRef.current.onUpdateMessage(updatedMsg);
       }
     } else if (eventType === 'DELETE' && oldRecord?.id) {
+      // SYNC WITH TANSTACK QUERY
+      queryClient.setQueryData(['messages', chatId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            data: page.data.filter((msg) => msg.id !== oldRecord.id),
+          })),
+        };
+      });
+
       if (handlersRef.current.onDeleteMessage) {
         handlersRef.current.onDeleteMessage(oldRecord.id);
       }
     }
-  }, [chatId]);
+  }, [chatId, queryClient]);
 
   /**
    * Rule 2: Anchor Catch-up to Last Known Message (Monotonic)
@@ -134,6 +183,36 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
           ...m,
           sender: useUserStore.getState().getUser(m.senderId) || enrichSender(m.senderId)
         }));
+
+        // SYNC WITH TANSTACK QUERY (Catch-up)
+        queryClient.setQueryData(['messages', chatId], (old) => {
+          if (!old) return old;
+
+          // Merge catch-up messages and sort
+          const allMessages = [...enriched];
+          old.pages.forEach(page => {
+            page.data.forEach(msg => {
+              if (!allMessages.some(m => m.id === msg.id)) {
+                allMessages.push(msg);
+              }
+            });
+          });
+
+          const sorted = allMessages.sort((a, b) =>
+            new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+          );
+
+          // Re-paginate (simple approach: put all in first page or just reset)
+          // For catch-up, we might just want to invalidate or prepend.
+          // Prepending is better for UX.
+          return {
+            ...old,
+            pages: [
+              { ...old.pages[0], data: sorted.slice(0, 50) },
+              ...old.pages.slice(1)
+            ]
+          };
+        });
 
         handlersRef.current.onCatchup(enriched);
       }

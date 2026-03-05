@@ -18,7 +18,8 @@ const DesktopContextMenu = ({
   onClose,
   onReactionSelect,
   preferredEmojis = [],
-  emojiStyle = 'apple'
+  emojiStyle = 'apple',
+  isDeleted = false
 }) => {
   const menuRef = useRef(null);
   const [adjustedPos, setAdjustedPos] = useState(position);
@@ -85,27 +86,29 @@ const DesktopContextMenu = ({
       }}
     >
       {/* Reactions Row - Moved to TOP */}
-      <div className="menu-reactions-row">
-        {emojisToDisplay.map((emoji) => (
-          <button
-            key={emoji}
-            className="menu-reaction-btn"
-            onClick={() => {
-              onReactionSelect(emoji);
-              onClose();
-            }}
-            title={`React with ${emoji}`}
-          >
-            <EmojiRenderer
-              text={emoji}
-              styleOverride={emojiStyle}
-              className={emojiStyle === 'native' ? 'native-emoji' : 'custom-emoji-img'}
-            />
-          </button>
-        ))}
-      </div>
+      {!isDeleted && (
+        <div className="menu-reactions-row">
+          {emojisToDisplay.map((emoji) => (
+            <button
+              key={emoji}
+              className="menu-reaction-btn"
+              onClick={() => {
+                onReactionSelect(emoji);
+                onClose();
+              }}
+              title={`React with ${emoji}`}
+            >
+              <EmojiRenderer
+                text={emoji}
+                styleOverride={emojiStyle}
+                className={emojiStyle === 'native' ? 'native-emoji' : 'custom-emoji-img'}
+              />
+            </button>
+          ))}
+        </div>
+      )}
 
-      <div className="menu-divider"></div>
+      {!isDeleted && <div className="menu-divider"></div>}
 
       {/* Actions Below Reactions */}
       <div className="menu-item" onClick={() => { onSelect(); onClose(); }}>
@@ -113,32 +116,36 @@ const DesktopContextMenu = ({
         <span>Select</span>
       </div>
 
-      <div className="menu-item" onClick={handleReplyClick}>
-        <span className="icon"><Reply size={16} /></span>
-        <span>Reply</span>
-      </div>
-
-      <div className="menu-item" onClick={() => { onCopy(); onClose(); }}>
-        <span className="icon"><Copy size={16} /></span>
-        <span>Copy</span>
-      </div>
-
-      <div className="menu-item" onClick={() => { onForward(); onClose(); }}>
-        <span className="icon"><Share2 size={16} /></span>
-        <span>Forward</span>
-      </div>
-
-      {isSent && (
+      {!isDeleted && (
         <>
-          <div className="menu-item" onClick={() => { onEdit(); onClose(); }}>
-            <span className="icon"><Edit size={16} /></span>
-            <span>Edit</span>
+          <div className="menu-item" onClick={handleReplyClick}>
+            <span className="icon"><Reply size={16} /></span>
+            <span>Reply</span>
           </div>
 
-          <div className="menu-item delete" onClick={() => { onDelete(); onClose(); }}>
-            <span className="icon"><Trash2 size={16} /></span>
-            <span>Delete</span>
+          <div className="menu-item" onClick={() => { onCopy(); onClose(); }}>
+            <span className="icon"><Copy size={16} /></span>
+            <span>Copy</span>
           </div>
+
+          <div className="menu-item" onClick={() => { onForward(); onClose(); }}>
+            <span className="icon"><Share2 size={16} /></span>
+            <span>Forward</span>
+          </div>
+
+          {isSent && (
+            <>
+              <div className="menu-item" onClick={() => { onEdit(); onClose(); }}>
+                <span className="icon"><Edit size={16} /></span>
+                <span>Edit</span>
+              </div>
+
+              <div className="menu-item delete" onClick={() => { onDelete(); onClose(); }}>
+                <span className="icon"><Trash2 size={16} /></span>
+                <span>Delete</span>
+              </div>
+            </>
+          )}
         </>
       )}
 

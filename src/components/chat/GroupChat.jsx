@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
@@ -55,7 +55,8 @@ import groupCallService from '../../services/groupCallService';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import useIsDesktop from '../../hooks/useIsDesktop';
-import useChatStore, { selectRoomMessages, selectRoomScrollPosition } from '../../store/useChatStore';
+import useChatStore, { selectRoomScrollPosition } from '../../store/useChatStore';
+import { useDeleteMessage } from '../../hooks/useDeleteMessage';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import ImageViewer from './ImageViewer';
 import MediaViewer from '../media/MediaViewer';
@@ -78,14 +79,11 @@ const GroupChat = () => {
     const { showGroupInfo } = React.useContext(UserDetailsContext) || {};
 
     // Store actions
-    const setStoreMessages = useChatStore(state => state.setMessages);
-    const addStoreMessage = useChatStore(state => state.addMessage);
-    const updateStoreMessage = useChatStore(state => state.updateMessage);
-    const removeStoreMessage = useChatStore(state => state.removeMessage);
-    const replaceTempMessage = useChatStore(state => state.replaceTempMessage);
     const saveScrollPosition = useChatStore(state => state.saveScrollPosition);
-    const messages = useChatStore(useCallback(selectRoomMessages(validChatId), [validChatId]));
     const initialScrollPosition = useChatStore(selectRoomScrollPosition(validChatId));
+
+    // Delete Mutation
+    const { mutate: deleteMessageMutation } = useDeleteMessage(validChatId);
 
     // Group Details
     const { data: groupDetails, isLoading: isGroupLoading } = useGroupDetails(validChatId);
@@ -98,6 +96,15 @@ const GroupChat = () => {
         isFetchingNextPage,
         isLoading: isMessagesLoading
     } = useInfiniteMessages(validChatId);
+
+    // Derive messages from infinite data
+    const messages = useMemo(() => {
+        if (!infiniteData?.pages) return [];
+        const allMsgs = infiniteData.pages.flatMap(page => page.data);
+        // Important: VirtualizedMessageList usually expects them in order, 
+        // but let's check what it expects. Usually it's reversed for infinite scroll.
+        return [...allMsgs].reverse();
+    }, [infiniteData]);
 
     const [group, setGroup] = useState(() => {
         const state = location.state;
@@ -161,14 +168,10 @@ const GroupChat = () => {
 
     // Message Sync
     useEffect(() => {
-        if (infiniteData?.pages && validChatId) {
-            const allMsgs = infiniteData.pages.flatMap(page => page.data).reverse();
-            setStoreMessages(validChatId, allMsgs);
-            if (allMsgs.length > 0) {
-                saveMessagesToDevice(validChatId, allMsgs);
-            }
+        if (messages.length > 0 && validChatId) {
+            saveMessagesToDevice(validChatId, messages);
         }
-    }, [infiniteData, setStoreMessages, validChatId]);
+    }, [messages, validChatId]);
 
     // Debounced scroll position saver
     const debouncedSaveScroll = useCallback(
@@ -182,17 +185,8 @@ const GroupChat = () => {
     useEffect(() => {
         if (chatId) {
             setUnreadCount(0);
-            // NO LONGER CLEARING STORE.
-            loadMessagesFromDevice(chatId).then(localMessages => {
-                if (localMessages?.length > 0) {
-                    const currentRoomMsgs = useChatStore.getState().roomMessages[chatId];
-                    if (!currentRoomMsgs || currentRoomMsgs.length === 0) {
-                        setStoreMessages(chatId, localMessages);
-                    }
-                }
-            });
         }
-    }, [chatId, setStoreMessages]);
+    }, [chatId]);
 
     // Realtime
     const markMessagesAsRead = useCallback(async () => {
@@ -204,21 +198,14 @@ const GroupChat = () => {
         }
     }, [currentUser, chatId]);
 
-    const handleNewMessage = useCallback((newMessage) => {
-        const isOwnMessage = (newMessage.senderId || newMessage.sender_id) === currentUser?.id;
-        addStoreMessage(chatId, newMessage);
-
-        if (!isScrolledToBottom) {
-            setUnreadCount(prev => prev + 1);
-        } else {
-            markMessagesAsRead();
-        }
-    }, [currentUser?.id, isScrolledToBottom, addStoreMessage, markMessagesAsRead]);
-
     const { status: connectionStatus, retry: retryConnection } = useRealtimeMessages(validChatId, {
-        onNewMessage: handleNewMessage,
-        onUpdateMessage: (msg) => updateStoreMessage(chatId, msg.id, msg),
-        onDeleteMessage: (id) => removeStoreMessage(chatId, id)
+        onNewMessage: (newMessage) => {
+            if (!isScrolledToBottom) {
+                setUnreadCount(prev => prev + 1);
+            } else {
+                markMessagesAsRead();
+            }
+        }
     }, currentUser?.id);
 
     const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
@@ -249,7 +236,7 @@ const GroupChat = () => {
     // Handlers
     const sendMessage = async (content) => {
         if (!content.trim() || !currentUser) return;
-        const tempId = Date.now();
+        const tempId = Date.now().toString();
         const dbData = {
             chat_id: validChatId,
             sender_id: currentUser.id,
@@ -259,24 +246,45 @@ const GroupChat = () => {
             created_at: new Date().toISOString(),
             status: navigator.onLine ? 'sending' : 'pending'
         };
-        addStoreMessage(chatId, { ...dbToFrontend(dbData), sender: currentUser, tempId });
+
+        const tempMessage = { ...dbToFrontend(dbData), sender: currentUser, id: tempId, tempId };
+
+        // Optimistic Update
+        queryClient.setQueryData(['messages', validChatId], (old) => {
+            if (!old) return { pages: [{ data: [tempMessage] }], pageParams: [null] };
+            const newPages = [...old.pages];
+            newPages[0] = { ...newPages[0], data: [tempMessage, ...newPages[0].data] };
+            return { ...old, pages: newPages };
+        });
+
         try {
             if (navigator.onLine) {
                 const { data, error } = await supabase.from('messages').insert(dbData).select().single();
                 if (error) throw error;
-                replaceTempMessage(chatId, tempId, { ...dbToFrontend(data), status: 'sent', sender: currentUser });
+
+                // Replace temp message with real one
+                queryClient.setQueryData(['messages', validChatId], (old) => {
+                    if (!old) return old;
+                    const newPages = old.pages.map(page => ({
+                        ...page,
+                        data: page.data.map(m => m.tempId === tempId ? { ...dbToFrontend(data), sender: currentUser } : m)
+                    }));
+                    return { ...old, pages: newPages };
+                });
             } else {
                 await addToSyncQueue('send_message', { ...dbData, tempId });
             }
         } catch (e) {
             toast.error('Send failed');
+            // Rollback optimistic update
+            queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
         }
     };
 
     const handleSendMedia = async (fileOrPath, mediaType) => {
         if (!fileOrPath || !currentUser) return;
         const isFile = fileOrPath instanceof File;
-        const tempId = Date.now();
+        const tempId = Date.now().toString();
         const dbData = {
             chat_id: validChatId,
             sender_id: currentUser.id,
@@ -289,13 +297,23 @@ const GroupChat = () => {
         };
 
         const previewUrl = isFile ? URL.createObjectURL(fileOrPath) : fileOrPath;
-        addStoreMessage(chatId, { ...dbToFrontend(dbData), sender: currentUser, tempId, media_url: previewUrl });
+        const tempMessage = { ...dbToFrontend(dbData), sender: currentUser, id: tempId, tempId, media_url: previewUrl };
+
+        // Optimistic Update
+        queryClient.setQueryData(['messages', validChatId], (old) => {
+            if (!old) return { pages: [{ data: [tempMessage] }], pageParams: [null] };
+            const newPages = [...old.pages];
+            newPages[0] = { ...newPages[0], data: [tempMessage, ...newPages[0].data] };
+            return { ...old, pages: newPages };
+        });
 
         try {
             await addToSyncQueue('send_message', { ...dbData, tempId, file: isFile ? fileOrPath : null });
             if (navigator.onLine) toast.success('Media uploading...');
         } catch (e) {
             toast.error('Media upload failed');
+            // Rollback
+            queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
         }
     };
 
@@ -388,19 +406,31 @@ const GroupChat = () => {
     const confirmSelectionDelete = async () => {
         setShowDeleteModal(false);
         const ids = Array.from(selectedMessages);
-        const prevMessages = [...messages];
-
-        ids.forEach(id => removeStoreMessage(chatId, id));
         exitSelectionMode();
 
         try {
-            const { error } = await supabase.from('messages').delete().in('id', ids);
+            // Optimistic update for multiple deletion (optional, but good for UX)
+            queryClient.setQueryData(['messages', validChatId], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map(page => ({
+                        ...page,
+                        data: page.data.map(m => ids.includes(m.id) ? { ...m, is_deleted: true, isDeleted: true } : m)
+                    }))
+                };
+            });
+
+            const { error } = await supabase
+                .from('messages')
+                .update({ is_deleted: true })
+                .in('id', ids);
+
             if (error) throw error;
             toast.success('Deleted successfully');
         } catch (error) {
             console.error('Error deleting messages:', error);
             toast.error('Failed to delete messages');
-            setStoreMessages(validChatId, prevMessages);
             queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
         }
     };
@@ -587,12 +617,7 @@ const GroupChat = () => {
                         onScroll={handleScroll}
                         onReply={setReplyingTo}
                         onForward={handleForwardMessage}
-                        onDelete={(messageId) => {
-                            updateStoreMessage(chatId, messageId, { isDeleting: true });
-                            setTimeout(() => {
-                                removeStoreMessage(chatId, messageId);
-                            }, 500);
-                        }}
+                        onDelete={(messageId) => deleteMessageMutation(messageId)}
                         selectedMessages={selectedMessages}
                         isSelectionMode={isSelectionMode}
                         onMessageSelect={handleMessageSelect}

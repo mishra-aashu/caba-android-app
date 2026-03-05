@@ -81,6 +81,7 @@ const MessageItem = ({
 
   const isSent = (safeMessage.senderId || safeMessage.sender_id) === currentUser?.id;
   const isReplied = !!(safeMessage.replyTo || safeMessage.reply_to);
+  const isDeleted = safeMessage.isDeleted || safeMessage.is_deleted;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -153,9 +154,11 @@ const MessageItem = ({
     const DOUBLE_TAP_DELAY = 300;
     if (now - lastTap < DOUBLE_TAP_DELAY) {
       // Double tap detected
-      handleReactionSelect('❤️');
-      setShowHeartPop(true);
-      setTimeout(() => setShowHeartPop(false), 1000);
+      if (!isDeleted) {
+        handleReactionSelect('❤️');
+        setShowHeartPop(true);
+        setTimeout(() => setShowHeartPop(false), 1000);
+      }
       setLastTap(0);
     } else {
       setLastTap(now);
@@ -338,6 +341,22 @@ const MessageItem = ({
     const mediaPath = safeMessage.mediaPath || safeMessage.media_path;
     const mediaType = safeMessage.mediaType || safeMessage.media_type;
     const isRead = safeMessage.isRead || safeMessage.is_read;
+
+    if (isDeleted) {
+      return (
+        <MessageBubble
+          text="This message was deleted"
+          repliedMsg={repliedMsg}
+          currentUserId={currentUser?.id}
+          time={formatBubbleTime(safeMessage.createdAt || safeMessage.created_at)}
+          isMine={isSent}
+          isDeleted={true}
+          status={isRead ? 'read' : 'sent'}
+          sender={safeMessage.sender}
+          message={safeMessage}
+        />
+      );
+    }
 
     if (mediaPath && (mediaType === 'image' || mediaType === 'video')) {
       return (
@@ -572,6 +591,7 @@ const MessageItem = ({
         onSelect={onSelect}
         onReport={!isSent ? () => { setShowActions(false); setShowReportModal(true); } : undefined}
         isSent={isSent}
+        isDeleted={isDeleted}
         onClose={() => setShowActions(false)}
         onReactionSelect={handleReactionSelect}
         preferredEmojis={preferredEmojis}

@@ -9,8 +9,8 @@ import './ForwardModal.css';
 const ForwardModal = ({
   isOpen,
   onClose,
-  chats,
-  messagesToForward,
+  chats = [],
+  messagesToForward = [],
   onForward,
   currentUser
 }) => {
@@ -23,16 +23,16 @@ const ForwardModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Forward ${messagesToForward.length} message${messagesToForward.length > 1 ? 's' : ''}`}
+      title={`Forward ${(messagesToForward || []).length} message${(messagesToForward || []).length > 1 ? 's' : ''}`}
       size="medium"
     >
       <div className="forward-modal-content">
         <div className="forward-modal-list">
-          {chats.length > 0 ? (
+          {chats && chats.length > 0 ? (
             chats.map(chat => {
               const contact = null; // We'll need to pass savedContacts if we want contact names
               const isGroup = chat.isGroup || chat.is_group || false;
-              const displayName = isGroup 
+              const displayName = isGroup
                 ? (chat.name || chat.groupName || 'Group Chat')
                 : (contact?.contact_name || chat.otherUser?.name || 'Unknown');
 

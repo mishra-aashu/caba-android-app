@@ -2,7 +2,9 @@ import React, { useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import MessageItem from './MessageItem';
 import TypingIndicator from './TypingIndicator';
-import useChatStore, { selectRoomMessages } from '../../store/useChatStore';
+import useChatStore from '../../store/useChatStore';
+import { useInfiniteMessages } from '../../hooks/useMessages';
+import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 
 /**
  * VirtualizedMessageList - A high-performance chat message list using react-virtuoso
@@ -40,8 +42,28 @@ const VirtualizedMessageList = React.forwardRef(({
   onRangeChanged,
   chatId,
 }, ref) => {
-  // 🔥 OPTIMIZED: Subscribe ONLY to messages for this specific room
-  const messages = useChatStore(useCallback(selectRoomMessages(chatId), [chatId]));
+  // 🔥 NEW ARCHITECTURE: TanStack Query for data
+  const {
+    data,
+    isLoading: isQueryLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteMessages(chatId);
+
+  // Sync with Realtime
+  useRealtimeMessages(chatId, {}, currentUser?.id);
+
+  // Flatten messages from infinite query pages
+  const messages = useMemo(() => {
+    if (!data) return [];
+    // TanStack Query Infinite Query data is in pages. Reverse them if needed.
+    // fetchMessagesPage returns newest first, so we reverse it to show in order (oldest at top).
+    const allMsgs = data.pages.flatMap(page => page.data);
+    return [...allMsgs].reverse();
+  }, [data]);
+
+  const isLoadingTotal = isQueryLoading && messages.length === 0;
 
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
@@ -200,8 +222,7 @@ const VirtualizedMessageList = React.forwardRef(({
   }, [itemsWithHeaders, messages, renderMessage]);
 
   // Loading state - Only show skeleton if we have ZERO messages in cache
-  // This prevents the "blanking" screen when switching back to a cached chat
-  if (isLoading && (!messages || messages.length === 0)) {
+  if (isLoadingTotal) {
     return (
       <div className="messages-wrapper virtuoso-loading">
         <div className="skeleton-messages">
@@ -217,7 +238,7 @@ const VirtualizedMessageList = React.forwardRef(({
   }
 
   // Empty state - Only show if successfully loaded and still empty
-  if (!isLoading && (!messages || messages.length === 0)) {
+  if (!isLoadingTotal && messages.length === 0) {
     return (
       <div className="messages-wrapper virtuoso-empty">
         <div className="no-messages-placeholder">
@@ -264,6 +285,11 @@ const VirtualizedMessageList = React.forwardRef(({
         computeItemKey={(index, item) => item?.key || `item-${index}`}
         overscan={200}
         alignToBottom={true}
+        startReached={() => {
+          if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+          }
+        }}
         style={{
           flex: 1,
           width: '100%',

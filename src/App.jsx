@@ -36,6 +36,7 @@ const SupportChat = lazy(() => import('./components/SupportChat'));
 const Admin = lazy(() => import('./components/Admin'));
 const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
 const QRPage = lazy(() => import('./components/qr'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 import Intro from './components/Intro';
 const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
 const GroupChat = lazy(() => import('./components/chat/GroupChat'));
@@ -109,7 +110,7 @@ const AppContent = () => {
         {/* Arena Route - Independent of MainLayout sidebar */}
         <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
 
-        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        <Route path="/" element={isAuthenticated ? <ProtectedRoute><MainLayout /></ProtectedRoute> : <LandingPage />}>
           <Route index element={<ChatPlaceholder />} />
           {/* Group chat route - uses dedicated GroupChat component */}
           <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
