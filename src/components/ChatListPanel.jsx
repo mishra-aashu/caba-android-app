@@ -91,7 +91,7 @@ const ChatListPanel = ({
     },
     ...(isAdmin ? [{
       icon: <Crown size={16} />,
-      label: 'Admin Panel',
+      label: 'Admin',
       onClick: () => handleNavigation('/admin')
     }] : []),
     { divider: true },

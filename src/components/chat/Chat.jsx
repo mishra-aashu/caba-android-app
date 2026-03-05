@@ -521,6 +521,7 @@ const Chat = () => {
           onCreateReminder={handleCreateReminder}
           onTempChatToggle={handleTempChatToggle}
           onTempChatSettings={handleTempChatSettings}
+          isAdmin={currentUser?.isAdmin}
         />
 
         {!navigator.onLine && connectionStatus === 'connecting' && (

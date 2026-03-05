@@ -541,6 +541,9 @@ const GroupChat = () => {
                             { icon: <Palette size={16} />, label: 'Themes', onClick: () => setShowThemeModal(true) },
                             { icon: <ImageIcon size={16} />, label: 'Shared Media', onClick: () => navigate(`${location.pathname}/media`) },
                             { icon: <Gamepad2 size={16} />, label: 'Game Room', onClick: () => setShowGameRoom(true) },
+                            ...(currentUser?.isAdmin ? [
+                                { icon: <Crown size={16} />, label: 'Admin', onClick: () => navigate('/admin') }
+                            ] : []),
                             { divider: true },
                             { icon: <Ban size={16} />, label: 'Leave Group', onClick: () => setShowGroupInfoDrawer(true), danger: true }
                         ]} />

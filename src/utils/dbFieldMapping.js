@@ -142,6 +142,9 @@ export const DB_TO_FRONTEND_MAP = {
   'invitation_data': 'invitationData',
   'game_type': 'gameType',
 
+  // Custom Admin fields
+  'message_count': 'messageCount',
+
   // Common fields
   'user_id': 'userId'
 };

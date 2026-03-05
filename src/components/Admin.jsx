@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDialog } from '../contexts/DialogContext';
 import { useSupabase } from '../contexts/SupabaseContext';
@@ -9,6 +9,7 @@ import { dpOptions } from '../utils/dpOptions';
 import { isUserOnline } from '../utils/dateFormatter';
 import { realtimeManager } from '../utils/realtimeManager';
 import toast from 'react-hot-toast';
+import { safeDbConversion } from '../utils/dbFieldMapping';
 import {
   ArrowLeft, MessageSquare, Users, Settings, BarChart3, Shield,
   UserCheck, UserX, User, MessageCircle, Newspaper, Flag, Activity,
@@ -148,10 +149,16 @@ const Admin = () => {
   loadDashboardDataRef.current = loadDashboardData;
 
   useEffect(() => {
+    console.log('[Admin] currentUser changed:', {
+      hasUser: !!user,
+      hasDbUser: !!currentUser,
+      isAdmin: currentUser?.isAdmin,
+      activeTab
+    });
     if (currentUser) {
       loadDashboardData();
     }
-  }, [currentUser, loadDashboardData]);
+  }, [currentUser, loadDashboardData, user, activeTab]);
 
   // Real-time subscriptions for Admin: new reports and support messages
   useEffect(() => {
@@ -250,8 +257,23 @@ const Admin = () => {
   };
 
   const loadStats = async () => {
+    const authId = user?.id || supabase.auth.session?.()?.user?.id || 'unknown';
+    console.log('[Admin] loadStats starting, authId:', authId);
     try {
       // Load all stats in parallel
+      const queries = [
+        supabase.from('users').select('id, is_online, last_seen'),
+        supabase.from('messages').select('*', { count: 'exact', head: true }),
+        supabase.from('chats').select('*', { count: 'exact', head: true }),
+        supabase.from('news_articles').select('*', { count: 'exact', head: true }),
+        supabase.from('reports').select('*', { count: 'exact', head: true }),
+        supabase.from('media').select('*', { count: 'exact', head: true }),
+        supabase.from('call_history').select('*', { count: 'exact', head: true })
+      ];
+
+      const results = await Promise.all(queries);
+      console.log('[Admin] loadStats results received:', results.map(r => ({ error: r.error, count: r.count, dataLength: r.data?.length })));
+
       const [
         usersResult,
         messagesResult,
@@ -260,15 +282,7 @@ const Admin = () => {
         reportsResult,
         mediaResult,
         callsResult
-      ] = await Promise.all([
-        supabase.from('users').select('id, is_online, last_seen'),
-        supabase.from('messages').select('*', { count: 'exact', head: true }),
-        supabase.from('chats').select('*', { count: 'exact', head: true }),
-        supabase.from('news_articles').select('*', { count: 'exact', head: true }),
-        supabase.from('reports').select('*', { count: 'exact', head: true }),
-        supabase.from('media').select('*', { count: 'exact', head: true }),
-        supabase.from('call_history').select('*', { count: 'exact', head: true })
-      ]);
+      ] = results;
 
       const convertedUsers = safeDbConversion(usersResult.data);
       const onlineUsers = convertedUsers?.filter(u => isUserOnline(Boolean(u.isOnline), u.lastSeen)).length || 0;
@@ -301,11 +315,17 @@ const Admin = () => {
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
       }
 
+      console.log('[Admin] loadUsers query executing for range:', { from, to, searchTerm });
       const { data: usersData, error: usersError, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (usersError) throw usersError;
+      console.log('[Admin] loadUsers raw result:', { usersDataLength: usersData?.length, usersError, count });
+
+      if (usersError) {
+        console.error('[Admin] loadUsers error:', usersError);
+        throw usersError;
+      }
 
       if (usersData && usersData.length > 0) {
         const userIds = usersData.map(user => user.id);
@@ -324,7 +344,7 @@ const Admin = () => {
           message_count: messageCountMap[user.id] || 0
         }));
 
-        setUsers(usersWithCounts); // safeDbConversion is not needed here
+        setUsers(safeDbConversion(usersWithCounts));
       } else {
         setUsers([]);
       }
@@ -370,7 +390,7 @@ const Admin = () => {
           users: userMap[message.sender_id] || { name: 'Unknown User', avatar: null }
         }));
 
-        setMessages(messagesWithUsers); // safeDbConversion is not needed here
+        setMessages(safeDbConversion(messagesWithUsers));
       } else {
         setMessages([]);
       }
@@ -392,7 +412,7 @@ const Admin = () => {
         .range(from, to);
 
       if (!error && data) {
-        setNewsArticles(data); // safeDbConversion is not needed here
+        setNewsArticles(safeDbConversion(data));
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
@@ -418,7 +438,7 @@ const Admin = () => {
         .range(from, to);
 
       if (!error && data && mountedRef.current) {
-        setReports(data); // safeDbConversion is not needed here
+        setReports(safeDbConversion(data));
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
@@ -444,7 +464,7 @@ const Admin = () => {
         .range(from, to);
 
       if (!error && data) {
-        setAdminLogs(data); // safeDbConversion is not needed here
+        setAdminLogs(safeDbConversion(data));
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
@@ -462,17 +482,18 @@ const Admin = () => {
       const { data, error } = await supabase.rpc('get_support_messages_for_admin');
 
       if (!error && data && mountedRef.current) {
-        setSupportMessages(data); // safeDbConversion is not needed here
+        setSupportMessages(safeDbConversion(data));
       } else {
-        if (currentUser?.isAdmin) {
-          console.error('Error loading support messages:', error);
-        }
+        console.error('[Admin] Error loading support messages:', {
+          error,
+          errorCode: error?.code,
+          errorMessage: error?.message,
+          errorDetails: error?.details
+        });
         if (mountedRef.current) setSupportMessages([]);
       }
     } catch (error) {
-      if (currentUser?.isAdmin) {
-        console.error('Error loading support messages:', error);
-      }
+      console.error('[Admin] Exception in loadSupportMessages:', error);
       if (mountedRef.current) setSupportMessages([]);
     } finally {
       if (mountedRef.current) setSupportLoading(false);

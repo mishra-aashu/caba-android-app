@@ -37,6 +37,7 @@ const ChatHeader = ({
     onTempChatToggle,
     onTempChatSettings,
     onNavigate,
+    isAdmin,
 }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -80,6 +81,12 @@ const ChatHeader = ({
         { icon: <ImageIcon size={16} />, label: 'Shared Media', onClick: () => resolvedNavigate(`${location.pathname}/media`) },
         { icon: <ImageIcon size={16} />, label: 'Chat Wallpaper', onClick: onShowWallpaper },
         { icon: <Gamepad2 size={16} />, label: 'Game Room', onClick: onShowGame },
+        { divider: true },
+        ...(isAdmin ? [{
+            icon: <Crown size={16} />,
+            label: 'Admin',
+            onClick: () => (onNavigate || navigate)('/admin')
+        }] : []),
         { divider: true },
         ...(!isGroupChat ? [
             { icon: <Clock size={16} />, label: isTempChat ? 'Disable Temporary Chat' : 'Enable Temporary Chat', onClick: onTempChatToggle },

@@ -28,7 +28,7 @@ import ContactsPage from './contacts/ContactsPage';
 import Sidebar from './layout/Sidebar';
 
 const MainLayout = () => {
-    const { user, session } = useAuth();
+    const { user, dbUser, session } = useAuth();
     const { supabase } = useSupabase();
     const { showAlert } = useDialog();
     const navigate = useNavigate();
@@ -330,7 +330,7 @@ const MainLayout = () => {
         handleAboutApp: () => navigate('/about'),
         handleHelp: () => showAlert('Help Support Coming Soon', 'Support'),
         handleLogout,
-        isAdmin: false,
+        isAdmin: dbUser?.isAdmin || false,
         savedContacts,
         showNewContactModal,
         showContactForm,
