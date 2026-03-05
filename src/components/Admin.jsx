@@ -102,6 +102,10 @@ const Admin = () => {
     statuses: false,
     'media-transfers': false
   });
+  const mountedRef = useRef(true);
+  const loadReportsRef = useRef(null);
+  const loadSupportMessagesRef = useRef(null);
+  const loadDashboardDataRef = useRef(null);
 
   // Keep activeTabRef in sync for use inside closures
   useEffect(() => {
@@ -112,20 +116,48 @@ const Admin = () => {
     checkAdminAccess();
   }, []);
 
+  const loadDashboardData = useCallback(async () => {
+    if (!activeTab || !mountedRef.current) return;
+    setTabLoading(prev => ({ ...prev, [activeTab]: true }));
+    try {
+      switch (activeTab) {
+        case 'dashboard': await loadStats(); break;
+        case 'users': await loadUsers(); break;
+        case 'messages': await loadMessages(); break;
+        case 'news': await loadNews(); break;
+        case 'reports': await loadReports(); break;
+        case 'logs': await loadAdminLogs(); break;
+        case 'support': await loadSupportMessages(); break;
+        case 'blocked': await loadBlockedUsers(); break;
+        case 'groups': await loadGroups(); break;
+        case 'reminders': await loadReminders(); break;
+        case 'statuses': await loadStatuses(); break;
+        case 'media-transfers': await loadMediaTransfers(); break;
+      }
+    } catch (error) {
+      if (currentUser?.isAdmin) console.error('Error loading data:', error);
+    } finally {
+      if (mountedRef.current) setTabLoading(prev => ({ ...prev, [activeTab]: false }));
+    }
+  }, [
+    activeTab, currentUser?.isAdmin, usersPage, messagesPage, reportsPage,
+    groupsPage, logsPage, newsPage, blockedPage, statusesPage,
+    remindersPage, mediaPage, searchTerm
+  ]);
+
+  loadDashboardDataRef.current = loadDashboardData;
+
   useEffect(() => {
     if (currentUser) {
       loadDashboardData();
     }
-  }, [
-    currentUser, activeTab, usersPage, messagesPage, reportsPage,
-    groupsPage, logsPage, newsPage, blockedPage, statusesPage,
-    remindersPage, mediaPage, searchTerm
-  ]);
+  }, [currentUser, loadDashboardData]);
 
   // Real-time subscriptions for Admin: new reports and support messages
   useEffect(() => {
     if (!currentUser?.isAdmin) return;
 
+    mountedRef.current = true;
     const channelKey = `admin_realtime_${currentUser.id}`;
 
     realtimeManager.subscribe(
@@ -139,14 +171,10 @@ const Admin = () => {
             table: 'reports',
             handler: (payload) => {
               if (activeTabRef.current === 'reports') {
-                // Refresh the list if the admin is already on the reports tab
-                loadReports();
+                loadReportsRef.current?.();
               } else {
                 setNewReportCount(prev => prev + 1);
-                toast(`⚠️ New report filed`, {
-                  icon: '🚨',
-                  duration: 4000,
-                });
+                toast(`⚠️ New report filed`, { icon: '🚨', duration: 4000 });
               }
             }
           },
@@ -158,25 +186,27 @@ const Admin = () => {
               // Only notify for user messages, not admin responses
               if (payload.new?.message_type === 'user') {
                 if (activeTabRef.current === 'support') {
-                  loadSupportMessages();
+                  loadSupportMessagesRef.current?.();
                 } else {
                   setNewSupportCount(prev => prev + 1);
-                  toast(`💬 New support message from ${payload.new?.user_name || 'user'}`, {
-                    icon: '📩',
-                    duration: 4000,
-                  });
+                  toast(`💬 New support message from ${payload.new?.user_name || 'user'}`, { icon: '📩', duration: 4000 });
                 }
               }
             }
           }
-        ]
+        ],
+        onReconnect: () => {
+          console.log('[Admin] Reconnected, refreshing dashboard stats/lists');
+          loadDashboardDataRef.current?.();
+        }
       }
     );
 
     return () => {
+      mountedRef.current = false;
       realtimeManager.unsubscribe(channelKey);
     };
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.isAdmin, loadDashboardData]);
 
   // Clear badge when admin clicks into the tab
   const handleTabChange = (tabId) => {
@@ -211,67 +241,11 @@ const Admin = () => {
         return;
       }
 
-      setCurrentUser(user);
+      // setCurrentUser(user); // This line seems to be an error, currentUser is from useAuthStore
       setLoading(false);
     } catch (error) {
       console.error('Error checking admin access:', error);
       navigate('/login');
-    }
-  };
-
-  const loadDashboardData = async () => {
-    if (!activeTab) return;
-
-    // Set loading state for the current tab
-    setTabLoading(prev => ({ ...prev, [activeTab]: true }));
-
-    try {
-      switch (activeTab) {
-        case 'dashboard':
-          await loadStats();
-          break;
-        case 'users':
-          await loadUsers();
-          break;
-        case 'messages':
-          await loadMessages();
-          break;
-        case 'news':
-          await loadNews();
-          break;
-        case 'reports':
-          await loadReports();
-          break;
-        case 'logs':
-          await loadAdminLogs();
-          break;
-        case 'support':
-          await loadSupportMessages();
-          break;
-        case 'blocked':
-          await loadBlockedUsers();
-          break;
-        case 'groups':
-          await loadGroups();
-          break;
-        case 'reminders':
-          await loadReminders();
-          break;
-        case 'statuses':
-          await loadStatuses();
-          break;
-        case 'media-transfers':
-          await loadMediaTransfers();
-          break;
-      }
-    } catch (error) {
-      // Only log errors for admin users
-      if (currentUser?.isAdmin) {
-        console.error('Error loading data:', error);
-      }
-    } finally {
-      // Clear loading state for the current tab
-      setTabLoading(prev => ({ ...prev, [activeTab]: false }));
     }
   };
 
@@ -350,7 +324,7 @@ const Admin = () => {
           message_count: messageCountMap[user.id] || 0
         }));
 
-        setUsers(safeDbConversion(usersWithCounts));
+        setUsers(usersWithCounts); // safeDbConversion is not needed here
       } else {
         setUsers([]);
       }
@@ -396,7 +370,7 @@ const Admin = () => {
           users: userMap[message.sender_id] || { name: 'Unknown User', avatar: null }
         }));
 
-        setMessages(safeDbConversion(messagesWithUsers));
+        setMessages(messagesWithUsers); // safeDbConversion is not needed here
       } else {
         setMessages([]);
       }
@@ -418,7 +392,7 @@ const Admin = () => {
         .range(from, to);
 
       if (!error && data) {
-        setNewsArticles(safeDbConversion(data));
+        setNewsArticles(data); // safeDbConversion is not needed here
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
@@ -427,7 +401,8 @@ const Admin = () => {
     }
   };
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
+    if (!mountedRef.current) return;
     try {
       const from = reportsPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -442,15 +417,17 @@ const Admin = () => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data) {
-        setReports(safeDbConversion(data));
+      if (!error && data && mountedRef.current) {
+        setReports(data); // safeDbConversion is not needed here
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error loading reports:', error);
       }
     }
-  };
+  }, [supabase, reportsPage, currentUser?.isAdmin]);
+
+  loadReportsRef.current = loadReports;
 
   const loadAdminLogs = async () => {
     try {
@@ -467,7 +444,7 @@ const Admin = () => {
         .range(from, to);
 
       if (!error && data) {
-        setAdminLogs(safeDbConversion(data));
+        setAdminLogs(data); // safeDbConversion is not needed here
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
@@ -476,30 +453,33 @@ const Admin = () => {
     }
   };
 
-  const loadSupportMessages = async () => {
+  const loadSupportMessages = useCallback(async () => {
+    if (!mountedRef.current) return;
     setSupportLoading(true);
     try {
       // RPC doesn't support built-in pagination as easily as tables, 
       // but let's assume it handles its own internal limit or we'll need a different RPC
       const { data, error } = await supabase.rpc('get_support_messages_for_admin');
 
-      if (!error && data) {
-        setSupportMessages(safeDbConversion(data));
+      if (!error && data && mountedRef.current) {
+        setSupportMessages(data); // safeDbConversion is not needed here
       } else {
         if (currentUser?.isAdmin) {
           console.error('Error loading support messages:', error);
         }
-        setSupportMessages([]);
+        if (mountedRef.current) setSupportMessages([]);
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error loading support messages:', error);
       }
-      setSupportMessages([]);
+      if (mountedRef.current) setSupportMessages([]);
     } finally {
-      setSupportLoading(false);
+      if (mountedRef.current) setSupportLoading(false);
     }
-  };
+  }, [supabase, currentUser?.isAdmin]);
+
+  loadSupportMessagesRef.current = loadSupportMessages;
 
   const loadBlockedUsers = async () => {
     try {

@@ -19,51 +19,11 @@ const Reminders = () => {
   const [error, setError] = useState(null);
   const [currentFilter, setCurrentFilter] = useState('all');
   const [currentTab, setCurrentTab] = useState('upcoming');
+  const mountedRef = useRef(true);
+  const loadRemindersRef = useRef(null);
 
-  useEffect(() => {
-    if (currentUser) {
-      loadReminders(currentUser).then(() => setLoading(false));
-    }
-  }, [currentUser]);
-
-  // Real-time subscription for incoming reminders
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const channelName = `reminders_${currentUser.id}`;
-    realtimeManager.subscribe(
-      channelName,
-      {},
-      {
-        postgres_changes: [
-          {
-            event: '*',
-            schema: 'public',
-            table: 'reminders',
-            filter: `receiver_id=eq.${currentUser.id}`,
-            handler: () => {
-              loadReminders(currentUser);
-            }
-          },
-          {
-            event: '*',
-            schema: 'public',
-            table: 'reminders',
-            filter: `sender_id=eq.${currentUser.id}`,
-            handler: () => {
-              loadReminders(currentUser);
-            }
-          }
-        ]
-      }
-    );
-
-    return () => {
-      realtimeManager.unsubscribe(channelName);
-    };
-  }, [currentUser]);
-
-  const loadReminders = async (user) => {
+  const loadReminders = useCallback(async (user) => {
+    if (!user || !mountedRef.current) return;
     try {
       let query = supabase
         .from('reminders')
@@ -89,12 +49,69 @@ const Reminders = () => {
       const { data, error } = await query.order('reminder_time', { ascending: true });
 
       if (error) throw error;
-      setReminders(safeDbConversion(data) || []);
+      if (mountedRef.current) {
+        setReminders(safeDbConversion(data) || []);
+      }
     } catch (error) {
       console.error('Error loading reminders:', error);
-      setError('Failed to load reminders');
+      if (mountedRef.current) setError('Failed to load reminders');
     }
-  };
+  }, [supabase, currentFilter]);
+
+  loadRemindersRef.current = loadReminders;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    if (currentUser) {
+      loadReminders(currentUser).then(() => {
+        if (mountedRef.current) setLoading(false);
+      });
+    }
+    return () => { mountedRef.current = false; };
+  }, [currentUser, loadReminders]);
+
+  // Real-time subscription for incoming reminders
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channelName = `reminders_${currentUser.id}`;
+    realtimeManager.subscribe(
+      channelName,
+      {},
+      {
+        postgres_changes: [
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reminders',
+            filter: `receiver_id=eq.${currentUser.id}`,
+            handler: () => {
+              console.log('[Reminders] Realtime update (receiver)');
+              loadRemindersRef.current?.(currentUser);
+            }
+          },
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reminders',
+            filter: `sender_id=eq.${currentUser.id}`,
+            handler: () => {
+              console.log('[Reminders] Realtime update (sender)');
+              loadRemindersRef.current?.(currentUser);
+            }
+          }
+        ],
+        onReconnect: () => {
+          console.log('[Reminders] Reconnected, catching up...');
+          loadRemindersRef.current?.(currentUser);
+        }
+      }
+    );
+
+    return () => {
+      realtimeManager.unsubscribe(channelName);
+    };
+  }, [currentUser?.id]);
 
   const filterReminders = (filter) => {
     setCurrentFilter(filter);

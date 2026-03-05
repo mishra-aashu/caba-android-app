@@ -15,12 +15,92 @@ const News = () => {
   const [recentStatuses, setRecentStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const mountedRef = useRef(true);
+  const initializeNewsRef = useRef(null);
+  const loadMyStatusRef = useRef(null);
+  const loadRecentStatusesRef = useRef(null);
+
+  const loadMyStatus = useCallback(async (user) => {
+    if (!user || !mountedRef.current) return;
+    try {
+      const { data: statuses, error } = await supabase
+        .from('statuses')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (mountedRef.current) setMyStatuses(statuses || []);
+    } catch (error) {
+      console.error('Error loading my status:', error);
+    }
+  }, [supabase]);
+
+  const loadRecentStatuses = useCallback(async (user) => {
+    if (!user || !mountedRef.current) return;
+    try {
+      const cacheKey = `digidad_statuses_${user.id}`;
+      // Fetch fresh data
+      const { data: statuses, error } = await supabase
+        .from('statuses')
+        .select(`*, user:users(*)`)
+        .neq('user_id', user.id)
+        .gte('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Group statuses by user
+      const statusesByUser = {};
+      if (statuses && statuses.length > 0) {
+        statuses.forEach(status => {
+          if (!statusesByUser[status.user_id]) {
+            statusesByUser[status.user_id] = { user: status.user, statuses: [] };
+          }
+          statusesByUser[status.user_id].statuses.push(status);
+        });
+      }
+      const statusData = Object.values(statusesByUser);
+
+      if (mountedRef.current) {
+        setRecentStatuses(statusData);
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(statusData));
+        } catch (e) {
+          console.warn('Error caching statuses:', e);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading recent statuses:', error);
+    }
+  }, [supabase]);
+
+  const initializeNews = useCallback(async (user) => {
+    if (!user || !mountedRef.current) return;
+    setLoading(true);
+    setError(null); // Clear previous errors
+    try {
+      await Promise.all([loadMyStatus(user), loadRecentStatuses(user)]);
+    } catch (err) {
+      console.error('Error initializing news:', err);
+      if (mountedRef.current) setError('Failed to load news');
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [loadMyStatus, loadRecentStatuses]);
+
+  initializeNewsRef.current = initializeNews;
+  loadMyStatusRef.current = loadMyStatus;
+  loadRecentStatusesRef.current = loadRecentStatuses;
 
   useEffect(() => {
+    mountedRef.current = true;
     if (currentUser) {
       initializeNews(currentUser);
     }
-  }, [currentUser]);
+    return () => { mountedRef.current = false; };
+  }, [currentUser, initializeNews]);
 
   // Real-time subscription for statuses
   useEffect(() => {
@@ -37,109 +117,23 @@ const News = () => {
             schema: 'public',
             table: 'statuses',
             handler: () => {
-              loadRecentStatuses(currentUser);
-              loadMyStatus(currentUser);
+              console.log('[News] Realtime status update');
+              loadRecentStatusesRef.current?.(currentUser);
+              loadMyStatusRef.current?.(currentUser);
             }
           }
-        ]
+        ],
+        onReconnect: () => {
+          console.log('[News] Reconnected, refreshing news feed...');
+          initializeNewsRef.current?.(currentUser);
+        }
       }
     );
 
     return () => {
       realtimeManager.unsubscribe(channelName);
     };
-  }, [currentUser]);
-
-  const initializeNews = async (user) => {
-    try {
-      await loadMyStatus(user);
-      await loadRecentStatuses(user);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error initializing news:', error);
-      setError('Failed to load news');
-      setLoading(false);
-    }
-  };
-
-  const loadMyStatus = async (user) => {
-    try {
-      const { data: statuses, error } = await supabase
-        .from('statuses')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setMyStatuses(statuses || []);
-    } catch (error) {
-      console.error('Error loading my status:', error);
-    }
-  };
-
-  const loadRecentStatuses = async (user) => {
-    try {
-      const cacheKey = `digidad_statuses_${user.id}`;
-      let cachedStatuses = null;
-
-      // Try to load from cache
-      try {
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          cachedStatuses = JSON.parse(cached);
-          setRecentStatuses(cachedStatuses);
-        }
-      } catch (e) {
-        console.warn('Error loading cached statuses:', e);
-      }
-
-      // Fetch fresh data
-      const { data: statuses, error } = await supabase
-        .from('statuses')
-        .select(`
-          *,
-          user:users(*)
-        `)
-        .neq('user_id', user.id)
-        .gte('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Group statuses by user
-      const statusesByUser = {};
-      if (statuses && statuses.length > 0) {
-        statuses.forEach(status => {
-          if (!statusesByUser[status.user_id]) {
-            statusesByUser[status.user_id] = {
-              user: status.user,
-              statuses: []
-            };
-          }
-          statusesByUser[status.user_id].statuses.push(status);
-        });
-      }
-
-      const statusData = Object.values(statusesByUser);
-
-      // Cache the fresh data
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify(statusData));
-      } catch (e) {
-        console.warn('Error caching statuses:', e);
-      }
-
-      // Update state
-      setRecentStatuses(statusData);
-    } catch (error) {
-      console.error('Error loading recent statuses:', error);
-      // If network fails and no cache, show error
-      if (!recentStatuses.length) {
-        setError('Failed to load recent updates');
-      }
-    }
-  };
+  }, [currentUser?.id]);
 
   const getInitials = (name) => {
     if (!name) return 'U';

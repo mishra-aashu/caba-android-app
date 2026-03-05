@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { realtimeManager } from '../utils/realtimeManager';
 import { normalizeChat } from '../utils/chatHelpers';
@@ -99,6 +99,7 @@ const fetchGroupList = async ({ supabase, userId }) => {
 
 export const useMixedChatList = (currentUserId, dmChats, setDmChats, dmLoading) => {
     const { supabase } = useSupabase();
+    const queryClient = useQueryClient();
 
     // TanStack Query for group list caching
     const { data: groupData, isLoading: groupLoading } = useQuery({
@@ -161,10 +162,23 @@ export const useMixedChatList = (currentUserId, dmChats, setDmChats, dmLoading) 
 
 
     // Real-time subscription for groups
+    const currentUserIdRef = useRef(currentUserId);
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        currentUserIdRef.current = currentUserId;
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, [currentUserId]);
+
+    const handleGroupMemberChangeRef = useRef(handleGroupMemberChange);
+    handleGroupMemberChangeRef.current = handleGroupMemberChange;
+
     useEffect(() => {
         if (!currentUserId) return;
 
         const channelName = `mixed_list_groups_${currentUserId}`;
+        console.log(`[useMixedChatList] Subscribing: ${currentUserId}`);
 
         realtimeManager.subscribe(
             channelName,
@@ -175,20 +189,23 @@ export const useMixedChatList = (currentUserId, dmChats, setDmChats, dmLoading) 
                         event: 'INSERT',
                         schema: 'public',
                         table: 'group_members',
-                        handler: (payload) => {
-                            if (payload.new.user_id === currentUserId) {
-                                // Query will be invalidated by useChatListRealtime's global listener
-                            }
-                        }
+                        handler: (payload) => handleGroupMemberChangeRef.current?.(payload)
                     }
-                ]
+                ],
+                onReconnect: () => {
+                    if (mountedRef.current) {
+                        console.log('[useMixedChatList] Reconnected, refreshing group list');
+                        queryClient.invalidateQueries({ queryKey: ['groupList', currentUserIdRef.current] });
+                    }
+                }
             }
         );
 
         return () => {
+            console.log(`[useMixedChatList] Unsubscribing: ${currentUserId}`);
             realtimeManager.unsubscribe(channelName);
         };
-    }, [currentUserId]);
+    }, [currentUserId, handleGroupMemberChange]);
 
     return {
         mixedList,

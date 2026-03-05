@@ -215,7 +215,7 @@ const GroupChat = () => {
         }
     }, [currentUser?.id, isScrolledToBottom, addStoreMessage, markMessagesAsRead]);
 
-    useRealtimeMessages(validChatId, {
+    const { status: connectionStatus, retry: retryConnection } = useRealtimeMessages(validChatId, {
         onNewMessage: handleNewMessage,
         onUpdateMessage: (msg) => updateStoreMessage(chatId, msg.id, msg),
         onDeleteMessage: (id) => removeStoreMessage(chatId, id)
@@ -523,6 +523,19 @@ const GroupChat = () => {
                             <span>Ongoing Group Call ({activeCallData.group_call_participants?.length} joined)</span>
                         </div>
                         <button className="banner-join-btn" onClick={() => { joinGroupCall(activeCallData.id); setShowGroupCallScreen(true); }}>Join</button>
+                    </div>
+                )}
+
+                {!navigator.onLine && connectionStatus === 'connecting' && (
+                    <div className="connection-banner connecting">
+                        <div className="spinner"></div>
+                        Waiting for network...
+                    </div>
+                )}
+
+                {!navigator.onLine && connectionStatus === 'disconnected' && (
+                    <div className="connection-banner disconnected" onClick={retryConnection} style={{ cursor: 'pointer' }}>
+                        Offline. Tap to retry.
                     </div>
                 )}
 

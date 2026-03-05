@@ -135,10 +135,23 @@ const useChatRoom = (options = {}) => {
         updateStoreMessage(validChatId, updatedMessage.id, updatedMessage);
     }, [validChatId, updateStoreMessage]);
 
-    useRealtimeMessages(validChatId, {
+    const handleCatchup = useCallback((missedMessages) => {
+        if (!validChatId || !missedMessages?.length) return;
+        console.log(`[useChatRoom] Catching up ${missedMessages.length} messages`);
+
+        // setStoreMessages (mapped to setMessages in store) handles merging and sorting
+        setStoreMessages(validChatId, missedMessages);
+
+        // Also sync each to query cache
+        missedMessages.forEach(syncMessageWithQueryCache);
+    }, [validChatId, setStoreMessages, syncMessageWithQueryCache]);
+
+    const { status: connectionStatus, retry: retryConnection } = useRealtimeMessages(validChatId, {
         onNewMessage: handleNewMessage,
         onUpdateMessage: handleStatusUpdate,
-        onDeleteMessage: handleDeleteMessage
+        onDeleteMessage: handleDeleteMessage,
+        onCatchup: handleCatchup,
+        onConnectionError: () => toast.error('Check your internet connection', { id: 'realtime-error' })
     }, currentUser?.id);
 
     const { typingUsers, sendTyping } = useRealtimeTyping(validChatId, currentUser?.id);
@@ -211,24 +224,39 @@ const useChatRoom = (options = {}) => {
     }, [supabase]);
 
     // Presence listener for DM online status
+    const handleSyncRef = useRef();
+    handleSyncRef.current = () => {
+        const channelName = `presence:${otherUserId}`;
+        const entry = realtimeManager.getChannel(channelName);
+        if (!entry || !entry.channel) return;
+        const state = entry.channel.presenceState();
+
+        let isOnline = false;
+        let lastSeen = null;
+
+        // The channel is already sharded to otherUserId, but we still pick the latest presence entry
+        Object.values(state).forEach(presences => {
+            presences.forEach(p => {
+                if (p.user_id === otherUserId) {
+                    isOnline = true;
+                    lastSeen = p.online_at;
+                }
+            });
+        });
+
+        setOtherUser(prev => {
+            if (!prev || (prev.is_online === isOnline && prev.last_seen === lastSeen)) return prev;
+            return { ...prev, is_online: isOnline, last_seen: lastSeen || prev.last_seen };
+        });
+    };
+
     useEffect(() => {
         if (isGroupChat || !otherUserId) return;
-        const channelName = 'online-presence';
-        const handleSync = () => {
-            const channel = realtimeManager.subscriptions.get(channelName)?.values().next().value;
-            if (!channel) return;
-            const state = channel.presenceState();
-            let isOnline = false;
-            let lastSeen = null;
-            Object.values(state).forEach(presences => presences.forEach(p => {
-                if (p.user_id === otherUserId) { isOnline = true; lastSeen = p.online_at; }
-            }));
-            setOtherUser(prev => {
-                if (!prev || (prev.is_online === isOnline && prev.last_seen === lastSeen)) return prev;
-                return { ...prev, is_online: isOnline, last_seen: lastSeen || prev.last_seen };
-            });
-        };
-        realtimeManager.subscribe(channelName, {}, { presence: { event: 'sync', callback: handleSync } });
+        const channelName = `presence:${otherUserId}`;
+        realtimeManager.subscribe(channelName, {}, {
+            presence: { event: 'sync', callback: () => handleSyncRef.current() }
+        });
+        return () => realtimeManager.unsubscribe(channelName);
     }, [otherUserId, isGroupChat]);
 
     // Detect ongoing group calls
@@ -317,7 +345,8 @@ const useChatRoom = (options = {}) => {
             createdAt: new Date().toISOString(),
             vanishAt: vanishAt,
             status: navigator.onLine ? 'sending' : 'pending',
-            tempId: tempId
+            tempId: tempId,
+            client_id: tempId // Rule 6: Send correlation ID
         });
 
         const optimisticMsg = {
@@ -332,6 +361,7 @@ const useChatRoom = (options = {}) => {
         try {
             hapticsManager.impact();
             const { tempId: _, ...localSaveData } = dbMessageData;
+            // localSaveData now contains client_id
             await db.messages.add({
                 ...localSaveData,
                 id: `temp_${tempId}`,
@@ -411,6 +441,7 @@ const useChatRoom = (options = {}) => {
             vanish_at: vanishAt,
             status: navigator.onLine ? 'sending' : 'pending',
             created_at: new Date().toISOString(),
+            client_id: tempId, // Rule 6: Correlation ID
         };
 
         const objectUrl = localFile ? URL.createObjectURL(localFile) : null;
@@ -650,6 +681,9 @@ const useChatRoom = (options = {}) => {
         isMessagesLoading,
         // Messaging
         sendMessage, handleSendMedia, replyingTo, setReplyingTo, handleReply, cancelReply,
+        // Connection
+        connectionStatus,
+        retryConnection
     };
 };
 

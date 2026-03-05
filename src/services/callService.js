@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { realtimeManager } from '../utils/realtimeManager';
 
 class CallService {
 
@@ -99,7 +100,7 @@ class CallService {
   async getCallHistory(userId, limit = 20, lastCallId = null) {
     try {
       console.log('getCallHistory called with userId:', userId, 'limit:', limit, 'lastCallId:', lastCallId);
-      
+
       let query = supabase
         .from('call_history')
         .select('*')
@@ -115,7 +116,7 @@ class CallService {
           .select('started_at')
           .eq('id', lastCallId)
           .single();
-        
+
         if (lastCall) {
           query = query.lt('started_at', lastCall.started_at);
         }
@@ -137,7 +138,7 @@ class CallService {
 
       // Get all unique user IDs
       const userIds = [...new Set(calls.flatMap(call => [call.caller_id, call.receiver_id]))];
-      
+
       // Fetch user details
       const { data: users, error: usersError } = await supabase
         .from('users')
@@ -160,7 +161,7 @@ class CallService {
       const transformedData = calls.map(call => {
         const otherUserId = call.caller_id === userId ? call.receiver_id : call.caller_id;
         const otherUser = userMap[otherUserId] || {};
-        
+
         return {
           ...call,
           other_user_id: otherUserId,
@@ -170,13 +171,13 @@ class CallService {
       });
 
       console.log('Transformed data:', transformedData);
-      
+
       // Return the calls and whether there are more
       const hasMore = calls.length === limit;
       const newLastCallId = calls.length > 0 ? calls[calls.length - 1].id : null;
-      
-      return { 
-        calls: transformedData, 
+
+      return {
+        calls: transformedData,
         hasMore,
         lastCallId: newLastCallId
       };
@@ -287,56 +288,75 @@ class CallService {
    * Subscribe to incoming signals
    */
   subscribeToSignals(userId, onSignal) {
-    const channel = supabase
-      .channel(`signals:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'call_signaling',
-          filter: `to_user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('📨 New signal received:', payload.new);
-          onSignal(payload.new);
-        }
-      )
-      .subscribe();
+    const channelName = `signals:${userId}`;
 
-    return channel;
+    realtimeManager.subscribe(
+      channelName,
+      {
+        table: 'call_signaling',
+        filter: `to_user_id=eq.${userId}`
+      },
+      {
+        postgres_changes: [
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'call_signaling',
+            filter: `to_user_id=eq.${userId}`,
+            handler: (payload) => {
+              console.log('📨 New signal received:', payload.new);
+              onSignal(payload.new);
+            }
+          }
+        ]
+      }
+    );
+
+    return channelName;
   }
 
   /**
    * Subscribe to call history changes
    */
   subscribeToCallHistory(userId, onCallUpdate) {
-    const channel = supabase
-      .channel(`calls:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'call_history',
-          filter: `receiver_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('📞 Call update:', payload);
-          onCallUpdate(payload);
-        }
-      )
-      .subscribe();
+    const channelName = `calls:${userId}`;
 
-    return channel;
+    realtimeManager.subscribe(
+      channelName,
+      {
+        table: 'call_history',
+        filter: `receiver_id=eq.${userId}`
+      },
+      {
+        postgres_changes: [
+          {
+            event: '*',
+            schema: 'public',
+            table: 'call_history',
+            filter: `receiver_id=eq.${userId}`,
+            handler: (payload) => {
+              console.log('📞 Call update:', payload);
+              onCallUpdate(payload);
+            }
+          }
+        ]
+      }
+    );
+
+    return channelName;
   }
 
   /**
    * Unsubscribe from channel
    */
-  unsubscribe(channel) {
-    if (channel) {
-      supabase.removeChannel(channel);
+  unsubscribe(channelOrName) {
+    if (!channelOrName) return;
+
+    if (typeof channelOrName === 'string') {
+      realtimeManager.unsubscribe(channelOrName);
+    } else {
+      // Fallback for raw Supabase channels if any are still passed
+      supabase.removeChannel(channelOrName);
     }
   }
 

@@ -274,7 +274,7 @@ export const useSendMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ chatId, senderId, receiverId, content, mediaPath, mediaType, isGroupMessage, vanishAt }) => {
+    mutationFn: async ({ chatId, senderId, receiverId, content, mediaPath, mediaType, isGroupMessage, vanishAt, tempId }) => {
       // Prepare message data
       let message_type = 'text';
       if (mediaType === 'image') message_type = 'image';
@@ -294,18 +294,20 @@ export const useSendMessage = () => {
         vanish_at: vanishAt,
         status: navigator.onLine ? 'sending' : 'pending',
         created_at: new Date().toISOString(),
+        client_id: tempId, // Rule 6: Monotonic correlation ID
       };
 
-      const tempId = Date.now();
-
       try {
-        // 1. Always save to local Dexie for offline support
         const { addToSyncQueue, db } = await import('../db/db');
-        await db.messages.add({
-          ...messageData,
-          id: `temp_${tempId}`,
-          tempId
-        });
+
+        // 1. Only write to local Dexie if offline - online confirms instantly via Supabase
+        if (!navigator.onLine) {
+          await db.messages.add({
+            ...messageData,
+            id: `temp_${tempId}`,
+            tempId
+          });
+        }
 
         if (navigator.onLine) {
           const { data, error } = await supabase
@@ -315,14 +317,13 @@ export const useSendMessage = () => {
             .single();
 
           if (error) throw error;
+          const confirms = dbToFrontend(data);
 
-          // 2. Reconcile Dexie
-          await db.transaction('rw', db.messages, async () => {
-            await db.messages.delete(`temp_${tempId}`);
-            await db.messages.add(data);
-          });
+          // 2. Reconciliation: Only needed if we previously wrote a temp record (unlikely in this path now, but safe)
+          await db.messages.delete(`temp_${tempId}`);
+          await db.messages.add(data);
 
-          return dbToFrontend(data);
+          return confirms;
         } else {
           // 3. Queue for sync with precision tempId
           await addToSyncQueue('send_message', { ...messageData, tempId });
@@ -342,7 +343,8 @@ export const useSendMessage = () => {
       const previousMessages = queryClient.getQueryData(queryKey);
 
       const optimisticMessage = {
-        id: `temp_${Date.now()}`,
+        id: `temp_${variables.tempId}`,
+        tempId: variables.tempId,
         chat_id: variables.chatId,
         sender_id: variables.senderId,
         content: variables.content,
@@ -356,6 +358,15 @@ export const useSendMessage = () => {
       };
 
       queryClient.setQueryData(queryKey, (old) => {
+        // Handle both simple array (legacy) and infinite query pages structure
+        if (old?.pages) {
+          const newPages = [...old.pages];
+          newPages[0] = {
+            ...newPages[0],
+            data: [optimisticMessage, ...newPages[0].data]
+          };
+          return { ...old, pages: newPages };
+        }
         return old ? [...old, optimisticMessage] : [optimisticMessage];
       });
 
@@ -369,9 +380,13 @@ export const useSendMessage = () => {
         toast.error('Failed to send message online');
       }
     },
-    onSettled: (_, __, variables) => {
-      const queryKey = ['messages', variables.chatId];
-      queryClient.invalidateQueries({ queryKey });
+    onSettled: (_, error, variables) => {
+      // Root fix: Only invalidate on error. 
+      // On success, the optimistic update + mutation function confirm are enough.
+      if (error) {
+        const queryKey = ['messages', variables.chatId];
+        queryClient.invalidateQueries({ queryKey });
+      }
     },
   });
 };

@@ -174,86 +174,90 @@ export function GroupCallProvider({ children, currentUser }) {
   }, [currentUser?.id]);
 
   // Global listener for new group calls
+  const currentUserRef = useRef(currentUser);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, [currentUser]);
+
+  const handleGlobalCallPayload = useCallback(async (payload) => {
+    if (!mountedRef.current) return;
+    const currentId = currentUserRef.current?.id;
+    if (!currentId) return;
+
+    if (payload.eventType === 'INSERT') {
+      const newCall = payload.new;
+      console.log('[GroupCallProvider] Global call INSERT:', newCall);
+
+      if (!newCall.is_group_call) return;
+      if (newCall.caller_id === currentId) return;
+      if (newCall.status !== 'initiated') return;
+
+      const isMember = userGroupsRef.current.includes(newCall.group_id);
+      console.log(`[GroupCallProvider] Group membership for ${newCall.group_id}: ${isMember}`, userGroupsRef.current);
+
+      if (!isMember) return;
+
+      try {
+        const [{ data: group }, { data: caller }] = await Promise.all([
+          supabase.from('groups').select('name').eq('id', newCall.group_id).single(),
+          supabase.from('users').select('name, avatar').eq('id', newCall.caller_id).single()
+        ]);
+
+        if (mountedRef.current) {
+          dispatch({
+            type: ACTIONS.SET_INCOMING_GROUP_CALL,
+            payload: {
+              ...newCall,
+              groupName: group?.name || 'Group',
+              callerName: caller?.name || 'Someone',
+              callerAvatar: caller?.avatar
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching incoming group call info:', err);
+      }
+    } else if (payload.eventType === 'UPDATE') {
+      const updatedCall = payload.new;
+      if (!updatedCall.is_group_call) return;
+
+      console.log('[GroupCallProvider] Global call UPDATE:', updatedCall.status);
+      if (['ended', 'cancelled', 'completed'].includes(updatedCall.status)) {
+        dispatch({ type: ACTIONS.SET_INCOMING_GROUP_CALL, payload: null });
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    console.log('📡 Setting up global group call listener...');
+    const channelName = 'global_group_calls';
+    console.log('[GroupCallProvider] Setting up global group call listener...');
 
     realtimeManager.subscribe(
-      'global_group_calls',
+      channelName,
       {},
       {
         postgres_changes: [
           {
-            event: 'INSERT',
+            event: '*', // Listen to both INSERT and UPDATE
             schema: 'public',
             table: 'calls',
-            handler: async (payload) => {
-              const newCall = payload.new;
-              console.log('📞 Global call INSERT:', newCall);
-              // Debug: Immediate toast on any insert
-              toast.success(`Debug: Call insert detected!`, { id: 'realtime-insert' });
-
-              if (!newCall.is_group_call) return;
-              if (newCall.caller_id === currentUser.id) return;
-              if (newCall.status !== 'initiated') return;
-
-              const isMember = userGroupsRef.current.includes(newCall.group_id);
-              console.log(`🔍 Group membership for ${newCall.group_id}: ${isMember}`, userGroupsRef.current);
-
-              if (!isMember) {
-                toast.error(`Debug: Not a member of group ${newCall.group_id}`, { id: 'realtime-not-member' });
-                return;
-              }
-
-              // Debug toast to confirm listener passed filters
-              toast.success(`Debug: All filters passed! Fetching details...`, { id: 'debug-filters-passed' });
-
-              try {
-                const [{ data: group }, { data: caller }] = await Promise.all([
-                  supabase.from('groups').select('name').eq('id', newCall.group_id).single(),
-                  supabase.from('users').select('name, avatar').eq('id', newCall.caller_id).single()
-                ]);
-
-                console.log('📦 Dispatching SET_INCOMING_GROUP_CALL', newCall.group_id);
-                dispatch({
-                  type: ACTIONS.SET_INCOMING_GROUP_CALL,
-                  payload: {
-                    ...newCall,
-                    groupName: group?.name || 'Group',
-                    callerName: caller?.name || 'Someone',
-                    callerAvatar: caller?.avatar
-                  }
-                });
-                toast.success('Debug: SET_INCOMING_GROUP_CALL dispatched!');
-              } catch (err) {
-                console.error('Error fetching incoming group call info:', err);
-                toast.error(`Error: Failed to fetch call details: ${err.message}`);
-              }
-            }
-          },
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'calls',
-            handler: (payload) => {
-              const updatedCall = payload.new;
-              if (!updatedCall.is_group_call) return;
-
-              console.log('📞 Global call UPDATE:', updatedCall.status);
-              if (['ended', 'cancelled', 'completed'].includes(updatedCall.status)) {
-                dispatch({ type: ACTIONS.SET_INCOMING_GROUP_CALL, payload: null });
-              }
-            }
+            handler: handleGlobalCallPayload
           }
         ]
       }
     );
 
     return () => {
-      realtimeManager.unsubscribe('global_group_calls');
+      console.log('[GroupCallProvider] Unsubscribing global_group_calls');
+      realtimeManager.unsubscribe(channelName);
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, handleGlobalCallPayload]);
 
   // Start duration timer
   const startDurationTimer = useCallback(() => {
@@ -317,39 +321,6 @@ export function GroupCallProvider({ children, currentUser }) {
   }, []);
 
   // Setup room signaling
-  const setupRoomSignaling = useCallback(async (callId, roomId) => {
-    try {
-      // Subscribe to room signaling channel
-      const channelName = `group_call_${roomId}`;
-
-      roomChannelRef.current = realtimeManager.subscribe(
-        channelName,
-        {},
-        {
-          postgres_changes: [
-            {
-              event: '*',
-              schema: 'public',
-              table: 'group_call_participants',
-              filter: `call_id=eq.${callId}`,
-              handler: (payload) => handleParticipantChange(payload)
-            },
-            {
-              event: '*',
-              schema: 'public',
-              table: 'webrtc_signals',
-              filter: `call_id=eq.${callId}`,
-              handler: (payload) => handleWebRTCSignal(payload.new)
-            }
-          ]
-        }
-      );
-
-    } catch (error) {
-      console.error('Error setting up room signaling:', error);
-    }
-  }, []);
-
   // Handle participant changes
   const handleParticipantChange = useCallback((payload) => {
     const { eventType, new: record, old: oldRecord } = payload;
@@ -378,40 +349,25 @@ export function GroupCallProvider({ children, currentUser }) {
     }
   }, []);
 
-  // Handle WebRTC signals
-  const handleWebRTCSignal = useCallback(async (signal) => {
+  // Send WebRTC signal
+  const sendWebRTCSignal = useCallback(async (toUserId, signalType, signalData) => {
     try {
-      if (signal.to_user_id === currentUser.id) {
-        await processWebRTCSignal(signal);
-      }
+      await supabase
+        .from('webrtc_signals')
+        .insert({
+          from_user_id: currentUser.id,
+          to_user_id: toUserId,
+          call_id: state.callId,
+          group_id: state.groupId,
+          signal_type: signalType,
+          signal_data: signalData,
+          room_id: state.roomConnection?.roomId,
+          broadcast_type: 'room'
+        });
     } catch (error) {
-      console.error('Error processing WebRTC signal:', error);
+      console.error('Error sending WebRTC signal:', error);
     }
-  }, [currentUser?.id]);
-
-  // Process WebRTC signal
-  const processWebRTCSignal = useCallback(async (signal) => {
-    const { signal_type, signal_data, from_user_id } = signal;
-    let peerConnection = peerConnectionsRef.current.get(from_user_id);
-
-    if (signal_type === 'offer') {
-      if (!peerConnection) {
-        peerConnection = await createPeerConnection(from_user_id);
-        peerConnectionsRef.current.set(from_user_id, peerConnection);
-      }
-
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal_data));
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-
-      // Send answer back
-      await sendWebRTCSignal(from_user_id, 'answer', answer);
-    } else if (signal_type === 'answer') {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal_data));
-    } else if (signal_type === 'ice_candidate') {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(signal_data));
-    }
-  }, []);
+  }, [currentUser?.id, state.callId, state.groupId, state.roomConnection]);
 
   // Create peer connection
   const createPeerConnection = useCallback(async (userId) => {
@@ -445,27 +401,79 @@ export function GroupCallProvider({ children, currentUser }) {
     };
 
     return peerConnection;
-  }, [state.localStream, state.participantStreams]);
+  }, [state.localStream, state.participantStreams, sendWebRTCSignal]);
 
-  // Send WebRTC signal
-  const sendWebRTCSignal = useCallback(async (toUserId, signalType, signalData) => {
-    try {
-      await supabase
-        .from('webrtc_signals')
-        .insert({
-          from_user_id: currentUser.id,
-          to_user_id: toUserId,
-          call_id: state.callId,
-          group_id: state.groupId,
-          signal_type: signalType,
-          signal_data: signalData,
-          room_id: state.roomConnection?.roomId,
-          broadcast_type: 'room'
-        });
-    } catch (error) {
-      console.error('Error sending WebRTC signal:', error);
+  // Process WebRTC signal
+  const processWebRTCSignal = useCallback(async (signal) => {
+    const { signal_type, signal_data, from_user_id } = signal;
+    let peerConnection = peerConnectionsRef.current.get(from_user_id);
+
+    if (signal_type === 'offer') {
+      if (!peerConnection) {
+        peerConnection = await createPeerConnection(from_user_id);
+        peerConnectionsRef.current.set(from_user_id, peerConnection);
+      }
+
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal_data));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+
+      // Send answer back
+      await sendWebRTCSignal(from_user_id, 'answer', answer);
+    } else if (signal_type === 'answer') {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(signal_data));
+    } else if (signal_type === 'ice_candidate') {
+      await peerConnection.addIceCandidate(new RTCIceCandidate(signal_data));
     }
-  }, [currentUser?.id, state.callId, state.groupId, state.roomConnection]);
+  }, [createPeerConnection, sendWebRTCSignal]);
+
+  // Handle WebRTC signals
+  const handleWebRTCSignal = useCallback(async (signal) => {
+    try {
+      const currentId = currentUserRef.current?.id;
+      if (signal.to_user_id === currentId && currentId) {
+        await processWebRTCSignal(signal);
+      }
+    } catch (error) {
+      console.error('Error processing WebRTC signal:', error);
+    }
+  }, [processWebRTCSignal]);
+
+  // Setup room signaling
+  const setupRoomSignaling = useCallback(async (callId, roomId) => {
+    try {
+      const channelName = `group_call_${roomId}`;
+      console.log(`[GroupCallProvider] Setting up room signaling: ${channelName}`);
+
+      roomChannelRef.current = realtimeManager.subscribe(
+        channelName,
+        {},
+        {
+          postgres_changes: [
+            {
+              event: '*',
+              schema: 'public',
+              table: 'group_call_participants',
+              filter: `call_id=eq.${callId}`,
+              handler: handleParticipantChange
+            },
+            {
+              event: '*',
+              schema: 'public',
+              table: 'webrtc_signals',
+              filter: `call_id=eq.${callId}`,
+              handler: (payload) => {
+                if (payload.new) handleWebRTCSignal(payload.new);
+              }
+            }
+          ]
+        }
+      );
+
+    } catch (error) {
+      console.error('Error setting up room signaling:', error);
+    }
+  }, [handleParticipantChange, handleWebRTCSignal]);
 
   // Initialize group call
   const initializeGroupCall = useCallback(async (groupId, callType = 'video') => {

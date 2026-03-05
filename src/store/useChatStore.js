@@ -21,76 +21,50 @@ const useChatStore = create((set, get) => ({
 
   // ─── ACTIONS ──────────────────────────────────────────────────────────
 
-  /**
-   * Add a new message to a specific chat room
-   * @param {string} chatId - The ID of the chat room
-   * @param {Object} newMessage - The message object to add
-   */
   addMessage: (chatId, newMessage) => {
     if (!chatId) return;
     set((state) => {
       const currentMessages = state.roomMessages[chatId] || [];
-      // Prevent duplicates by checking both real id AND tempId
-      const exists = currentMessages.some(
-        msg =>
-          (newMessage.id && msg.id === newMessage.id) ||
-          (newMessage.tempId && msg.tempId === newMessage.tempId)
-      );
-      if (exists) return state;
 
-      return {
-        roomMessages: {
-          ...state.roomMessages,
-          [chatId]: [...currentMessages, newMessage]
-        }
-      };
-    });
-  },
+      const map = new Map();
+      const clientIdMap = new Map(); // client_id -> messageId
 
-  /**
-   * Set messages for a chat room — merges with existing optimistic (temp) messages.
-   * This prevents the blank-screen flash when React Query refetches after a send.
-   */
-  setMessages: (chatId, newMessages) => {
-    if (!chatId) return;
-    set((state) => {
-      const current = state.roomMessages[chatId] || [];
-      const now = new Date();
+      // Load existing
+      currentMessages.forEach(msg => {
+        const id = msg.id || msg.clientId || msg.client_id || msg.tempId;
+        if (!id) return;
+        map.set(id, msg);
 
-      // PROTECT RECENT MESSAGES: Keep any message that is NOT in the new batch 
-      // but was either optimistic (tempId) OR sent very recently (within 5 mins).
-      // This prevents disappearance during the "stale refetch" window.
-      const protectedMessages = current.filter(msg => {
-        const isOptimistic = !!msg.tempId;
-        const msgTime = new Date(msg.createdAt || msg.created_at || now);
-        const isVeryRecent = (now - msgTime) < 1000 * 60 * 5; // 5 minutes grace period
-
-        const isInNewBatch = newMessages.some(m =>
-          (msg.id && m.id === msg.id) ||
-          (msg.tempId && m.tempId === msg.tempId) ||
-          (m.tempId && m.tempId === msg.id)
-        );
-
-        return (isOptimistic || isVeryRecent) && !isInNewBatch;
+        const cId = msg.clientId || msg.client_id || msg.tempId;
+        if (cId) clientIdMap.set(cId, id);
       });
 
-      // Combine: Server messages take priority (newer first usually); append protected messages
-      // Note: We filter out any protected message that survived the isInNewBatch check but 
-      // is actually conceptually older than what we want to keep (though append is safest here).
-      const merged = [...newMessages];
-
-      // Add protected messages that aren't already there
-      protectedMessages.forEach(msg => {
-        if (!merged.some(m => m.id === msg.id || (msg.tempId && m.tempId === msg.tempId))) {
-          merged.push(msg);
+      // Correlation Logic (Rule 6)
+      // If this is a server message that has a correlation ID, find and remove the optimistic version
+      const incomingClientId = newMessage.clientId || newMessage.client_id || newMessage.tempId;
+      if (newMessage.id && incomingClientId && clientIdMap.has(incomingClientId)) {
+        const oldId = clientIdMap.get(incomingClientId);
+        if (oldId !== newMessage.id) {
+          map.delete(oldId);
         }
-      });
+      }
 
-      // Sort merged array by created_at ascending (oldest first, newest at bottom)
-      merged.sort((a, b) => {
-        const timeA = new Date(a.createdAt || a.created_at || 0);
-        const timeB = new Date(b.createdAt || b.created_at || 0);
-        return timeA - timeB;
+      // Add/Update
+      map.set(newMessage.id || incomingClientId, newMessage);
+
+      // Rule 1: Map-based sort and back to array
+      const merged = Array.from(map.values()).sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.created_at || 0);
+        const dateB = new Date(b.createdAt || b.created_at || 0);
+        const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+        const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+
+        if (timeA !== timeB) return timeA - timeB;
+
+        // Tiebreaker: stable IDs
+        const idA = String(a.id || a.clientId || a.client_id || a.tempId || '');
+        const idB = String(b.id || b.clientId || b.client_id || b.tempId || '');
+        return idA.localeCompare(idB);
       });
 
       return {
@@ -102,20 +76,77 @@ const useChatStore = create((set, get) => ({
     });
   },
 
-  /**
-   * Update a specific message in a chat room
-   * @param {string} chatId - The ID of the chat room
-   * @param {string} messageId - The ID of the message to update
-   * @param {Object} updates - The updates to apply
-   */
+  setMessages: (chatId, newMessages) => {
+    if (!chatId) return;
+    set((state) => {
+      const current = state.roomMessages[chatId] || [];
+      const now = new Date();
+
+      const map = new Map();
+      const clientIdMap = new Map();
+
+      // 1. Identify "Protected" messages (Optimistic or very recent)
+      current.forEach(msg => {
+        const hasId = !!msg.id;
+        const cId = msg.clientId || msg.client_id || msg.tempId;
+        const isOptimistic = !!cId && !hasId;
+
+        const msgTime = new Date(msg.createdAt || msg.created_at || now);
+        const timeValue = isNaN(msgTime.getTime()) ? now.getTime() : msgTime.getTime();
+        const isVeryRecent = (now.getTime() - timeValue) < 1000 * 60 * 5; // 5 min grace
+
+        if (isOptimistic || isVeryRecent) {
+          const id = msg.id || cId;
+          if (id) {
+            map.set(id, msg);
+            if (cId) clientIdMap.set(cId, id);
+          }
+        }
+      });
+
+      // 2. Merge Server batch
+      newMessages.forEach(msg => {
+        const incomingClientId = msg.clientId || msg.client_id || msg.tempId;
+        // Reconcile
+        if (msg.id && incomingClientId && clientIdMap.has(incomingClientId)) {
+          const oldId = clientIdMap.get(incomingClientId);
+          if (oldId !== msg.id) {
+            map.delete(oldId);
+          }
+        }
+        map.set(msg.id || incomingClientId, msg);
+      });
+
+      const merged = Array.from(map.values()).sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.created_at || 0);
+        const dateB = new Date(b.createdAt || b.created_at || 0);
+        const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+        const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+
+        if (timeA !== timeB) return timeA - timeB;
+
+        const idA = String(a.id || a.clientId || a.client_id || a.tempId || '');
+        const idB = String(b.id || b.clientId || b.client_id || b.tempId || '');
+        return idA.localeCompare(idB);
+      });
+
+      return {
+        roomMessages: {
+          ...state.roomMessages,
+          [chatId]: merged
+        }
+      };
+    });
+  },
+
   updateMessage: (chatId, messageId, updates) => {
     if (!chatId) return;
     set((state) => ({
       roomMessages: {
         ...state.roomMessages,
         [chatId]: (state.roomMessages[chatId] || []).map(msg =>
-          // Match by real id OR by tempId (for optimistic messages)
-          (msg.id === messageId || msg.tempId === messageId)
+          // Match by real id OR by correlation id
+          (msg.id === messageId || msg.client_id === messageId || msg.tempId === messageId)
             ? { ...msg, ...updates }
             : msg
         )

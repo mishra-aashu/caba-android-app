@@ -1,6 +1,48 @@
-/* =============================================
-    CHAT SCREEN STYLES - THEME-AWARE
-   ============================================= */
+/* --- Connection Status Banner --- */
+.connection-banner {
+  width: 100%;
+  padding: 6px 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 4;
+  animation: slideInDown 0.3s ease-out;
+}
+
+.connection-banner.connecting {
+  background: rgba(255, 183, 0, 0.9);
+  color: #000;
+}
+
+.connection-banner.disconnected {
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+}
+
+.connection-banner .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 
 /* --- Message Edit Mode Styles --- */
 .message-edit-container {

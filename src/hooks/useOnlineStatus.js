@@ -1,65 +1,69 @@
-import { useEffect, useRef } from 'react';
-import { supabase } from '../config/supabase';
-import { useAuth } from './useAuth';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { realtimeManager } from '../utils/realtimeManager';
+import { useAuth } from './useAuth';
 
 /**
  * useOnlineStatus Hook
  * 
  * Root fix: Replaced database heartbeats with Supabase Presence.
- * This drastically reduces Postgres CPU and IO by handling online state in memory.
+ * This handles online state in memory, reducing database load.
  */
 export const useOnlineStatus = () => {
   const { dbUser } = useAuth();
+  const [isConnected, setIsConnected] = useState(false);
   const presenceChannelRef = useRef(null);
+  const dbUserRef = useRef(dbUser);
+  const mountedRef = useRef(true);
+
+  // Sync dbUser to ref
+  useEffect(() => {
+    dbUserRef.current = dbUser;
+  }, [dbUser]);
 
   useEffect(() => {
     if (!dbUser?.id) return;
 
-    const channelName = 'online-presence';
+    mountedRef.current = true;
+    const channelName = `presence:${dbUser.id}`;
 
     const initPresence = async () => {
-      // Root fix: Track user in the 'online-presence' channel
-      const channel = await realtimeManager.subscribe(
+      await realtimeManager.subscribe(
         channelName,
         {},
         {
-          presence: {
-            event: 'sync',
-            callback: () => {
-              const state = presenceChannelRef.current.presenceState();
-              console.log('Presence sync:', state);
+          onStatusChange: (status) => {
+            if (mountedRef.current) {
+              setIsConnected(status === 'SUBSCRIBED');
+
+              // Automatically re-track whenever we hit SUBSCRIBED state
+              if (status === 'SUBSCRIBED') {
+                const channel = realtimeManager.getChannel(channelName)?.channel;
+                if (channel) {
+                  channel.track({
+                    user_id: dbUserRef.current.id,
+                    online_at: new Date().toISOString(),
+                    name: dbUserRef.current.name
+                  }).catch(err => console.error('[RT] Presence track failed:', err));
+                }
+              }
             }
           }
         }
       );
-
-      if (channel) {
-        presenceChannelRef.current = channel;
-
-        // Root fix: Start tracking this user
-        await channel.track({
-          user_id: dbUser.id,
-          online_at: new Date().toISOString(),
-          name: dbUser.name
-        });
-
-        console.log(`📡 Presence tracking started for user: ${dbUser.id}`);
-      }
     };
 
     initPresence();
 
-    // Clean up
     return () => {
-      console.log('🚿 Cleaning up presence tracking');
+      mountedRef.current = false;
+      console.log('[useOnlineStatus] Cleaning up presence tracking');
       realtimeManager.unsubscribe(channelName);
       presenceChannelRef.current = null;
     };
   }, [dbUser?.id]);
 
   return {
-    isOnline: true, // Local user is obviously online if this hook is running
+    isOnline: isConnected,
     lastSeen: new Date().toISOString()
   };
 };

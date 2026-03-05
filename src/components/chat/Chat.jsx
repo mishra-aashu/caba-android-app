@@ -51,7 +51,9 @@ const Chat = () => {
     handleShareAsForward, handleMediaDownload,
     handleAcceptGame, handleRejectGame, handleJoinGame,
     supabase, showAlert, initialScrollPosition, saveScrollPosition, queryClient,
-    isMessagesLoading, allChats, authLoading, isAuthenticated
+    isMessagesLoading, allChats, authLoading, isAuthenticated,
+    connectionStatus,
+    retryConnection
   } = useChatRoom({
     onNewMessage: (msg) => {
       // Unread logic (UI-only)
@@ -521,6 +523,19 @@ const Chat = () => {
           onTempChatToggle={handleTempChatToggle}
           onTempChatSettings={handleTempChatSettings}
         />
+
+        {!navigator.onLine && connectionStatus === 'connecting' && (
+          <div className="connection-banner connecting">
+            <div className="spinner"></div>
+            Waiting for network...
+          </div>
+        )}
+
+        {!navigator.onLine && connectionStatus === 'disconnected' && (
+          <div className="connection-banner disconnected" onClick={retryConnection} style={{ cursor: 'pointer' }}>
+            Offline. Tap to retry.
+          </div>
+        )}
 
         {/* Selection Toolbar - delegated to ChatActionsPanel sub-component */}
         <ChatActionsPanel

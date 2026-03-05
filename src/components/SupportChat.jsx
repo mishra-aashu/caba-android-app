@@ -15,84 +15,99 @@ const SupportChat = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const mountedRef = useRef(true);
 
-  // Load messages from support_messages table
-  useEffect(() => {
-    if (!currentUser) return;
+  // Use a ref for the latest loadMessages to avoid stale closure in realtime handler
+  const loadMessagesRef = useRef(null);
 
-    const loadMessages = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('support_messages')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .order('created_at', { ascending: true });
+  const loadMessages = useCallback(async () => {
+    if (!currentUser || !mountedRef.current) return;
+    try {
+      const { data, error } = await supabase
+        .from('support_messages')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: true });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        const formatted = (data || []).map((msg) => ({
-          id: msg.id,
-          text: msg.message_type === 'user' ? msg.message : msg.response || msg.message,
-          sender: msg.message_type === 'user' ? 'user' : 'support',
-          timestamp: new Date(msg.created_at),
-          status: msg.is_read ? 'read' : 'sent',
-          dbRow: msg,
-        }));
+      const formatted = (data || []).map((msg) => ({
+        id: msg.id,
+        text: msg.message_type === 'user' ? msg.message : msg.response || msg.message,
+        sender: msg.message_type === 'user' ? 'user' : 'support',
+        timestamp: new Date(msg.created_at),
+        status: msg.is_read ? 'read' : 'sent',
+        dbRow: msg,
+      }));
 
-        // If no messages yet, show a welcome message locally (not stored in DB)
-        if (formatted.length === 0) {
-          formatted.push(
-            {
-              id: 'welcome-1',
-              text: '👋 Welcome to CaBa Support!',
-              sender: 'support',
-              timestamp: new Date(),
-              status: 'read',
-              isLocal: true,
-            },
-            {
-              id: 'welcome-2',
-              text: "How can we help you today? Feel free to share your questions, suggestions, or any issues you're facing with the app.",
-              sender: 'support',
-              timestamp: new Date(),
-              status: 'read',
-              isLocal: true,
-            }
-          );
-        }
-
-        setMessages(formatted);
-      } catch (error) {
-        console.error('Error loading support messages:', error);
-      } finally {
-        setLoading(false);
+      // If no messages yet, show a welcome message locally (not stored in DB)
+      if (formatted.length === 0) {
+        formatted.push(
+          {
+            id: 'welcome-1',
+            text: '👋 Welcome to CaBa Support!',
+            sender: 'support',
+            timestamp: new Date(),
+            status: 'read',
+            isLocal: true,
+          },
+          {
+            id: 'welcome-2',
+            text: "How can we help you today? Feel free to share your questions, suggestions, or any issues you're facing with the app.",
+            sender: 'support',
+            timestamp: new Date(),
+            status: 'read',
+            isLocal: true,
+          }
+        );
       }
-    };
 
+      setMessages(formatted);
+    } catch (error) {
+      console.error('Error loading support messages:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, supabase]);
+
+  loadMessagesRef.current = loadMessages;
+
+  useEffect(() => {
+    mountedRef.current = true;
     loadMessages();
 
-    // Real-time subscription for admin responses using centralized realtimeManager
-    const channel = realtimeManager.subscribe(
-      `support_${currentUser.id}`,
-      {},
-      {
-        postgres_changes: [{
-          event: '*',
-          schema: 'public',
-          table: 'support_messages',
-          filter: `user_id=eq.${currentUser.id}`,
-          handler: (payload) => {
-            // Refresh messages on any change to ensure consistency and avoid duplicates
-            loadMessages();
+    // Real-time subscription for admin responses
+    const channelName = `support_${currentUser?.id}`;
+    if (currentUser?.id) {
+      realtimeManager.subscribe(
+        channelName,
+        {},
+        {
+          postgres_changes: [{
+            event: '*',
+            schema: 'public',
+            table: 'support_messages',
+            filter: `user_id=eq.${currentUser.id}`,
+            handler: (payload) => {
+              console.log('[SupportChat] Realtime update:', payload.eventType);
+              loadMessagesRef.current?.();
+            }
+          }],
+          onReconnect: () => {
+            console.log('[SupportChat] Reconnected, catching up...');
+            loadMessagesRef.current?.();
           }
-        }]
-      }
-    );
+        }
+      );
+    }
 
     return () => {
-      realtimeManager.unsubscribe(`support_${currentUser.id}`);
+      mountedRef.current = false;
+      if (currentUser?.id) {
+        realtimeManager.unsubscribe(channelName);
+      }
     };
-  }, [currentUser, supabase]);
+  }, [currentUser?.id, loadMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
