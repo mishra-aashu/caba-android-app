@@ -8,7 +8,7 @@ import { App } from '@capacitor/app';
 import { createClient } from '@supabase/supabase-js';
 
 // Direct Supabase URL for bypassing proxy during OAuth redirects
-const DIRECT_SUPABASE_URL = 'https://riekjnqllkrqkmqxmtfu.supabase.co';
+const DIRECT_SUPABASE_URL = import.meta.env.VITE_SUPABASE_DIRECT_URL;
 
 // ✅ Track refresh timing OUTSIDE store to prevent loops
 let lastRefreshTime = 0;
