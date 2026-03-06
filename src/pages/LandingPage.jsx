@@ -484,6 +484,9 @@ const LandingPage = () => {
                     className="hero-content"
                     style={{ transform: `translateY(${parallaxOffset}px)` }}
                 >
+                    {/* Background Glow for Readability */}
+                    <div className="hero-text-glow" />
+
                     {/* Animated Logo */}
                     <div className="hero-logo-wrap">
                         <div className="hero-logo-rings">
