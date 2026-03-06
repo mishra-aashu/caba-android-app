@@ -29,10 +29,18 @@ body.light-mode .art-login-container .glow-2 {
 
 body.light-mode .art-login-container .art-hero-headline {
   color: #1a1a1a;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: initial;
 }
 
 body.light-mode .art-login-container .italic-text {
   color: #128c7e;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: initial;
 }
 
 body.light-mode .art-login-container .art-desc {
@@ -223,6 +231,10 @@ body.light-mode .art-login-container .checkbox-container .checkmark {
   line-height: 1.1;
   margin-bottom: 20px;
   color: #e2e8f0;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: initial;
 
   /* GPU acceleration */
   transform: translateZ(0);
