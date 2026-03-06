@@ -169,45 +169,72 @@ const useInView = (options = {}) => {
 // ═══════════════════════════════════════════════════════
 
 const BackgroundMarquee = () => {
-    const row1 = [...FEATURES.slice(0, 6), ...FEATURES.slice(0, 6)];
-    const row2 = [...FEATURES.slice(6, 12), ...FEATURES.slice(6, 12)];
-    const row3 = [...FEATURES.slice(3, 9), ...FEATURES.slice(3, 9)];
+    const row1 = [...FEATURES, ...FEATURES];
+    const row2 = [...FEATURES, ...FEATURES];
+    const row3 = [...FEATURES, ...FEATURES];
 
-    const MarqueeRow = ({ items, direction = 1, speed = 25 }) => (
-        <div className="marquee-row-wrapper">
-            <motion.div
-                className="marquee-row-inner"
-                animate={{ x: direction > 0 ? [0, '-50%'] : ['-50%', 0] }}
-                style={{ translateZ: 0 }} /* Performance hint */
-                transition={{
-                    duration: speed,
-                    ease: "linear",
-                    repeat: Infinity,
-                }}
-            >
-                {items.map((f, i) => (
-                    <div key={i} className="marquee-item" style={{ '--accent': f.color }}>
-                        <div className="m-icon-box">{f.icon}</div>
-                        <div className="m-text">
-                            <span className="m-title">{f.title}</span>
-                            <span className="m-desc">{f.desc}</span>
+    const MarqueeRow = ({ items, direction = 1, speed = 25 }) => {
+        // Calculate stepped keyframes: move for 30%, pause for 70%
+        const numItems = FEATURES.length; // 12
+        const xKeyframes = ['0%'];
+        const tKeyframes = [0];
+
+        for (let i = 1; i <= numItems; i++) {
+            const percentage = -(i / (numItems * 2)) * 100; // *2 because row is 2x duplication
+            const moveTime = (i - 1) / numItems + 0.02; // Take 2% of time to move
+            const pauseTime = i / numItems; // Pause until next segment
+
+            xKeyframes.push(`${percentage}%`);
+            tKeyframes.push(moveTime);
+
+            if (i < numItems) {
+                xKeyframes.push(`${percentage}%`);
+                tKeyframes.push(pauseTime);
+            }
+        }
+
+        // For reverse direction, we just invert the values
+        const finalX = direction > 0 ? xKeyframes : xKeyframes.map(v => `${-50 - parseFloat(v)}%`);
+
+        return (
+            <div className="marquee-row-wrapper">
+                <motion.div
+                    className="marquee-row-inner"
+                    animate={{ x: finalX }}
+                    style={{ translateZ: 0 }}
+                    transition={{
+                        duration: speed * 3, // Slower to allow for pauses
+                        ease: "easeInOut",
+                        repeat: Infinity,
+                        times: tKeyframes
+                    }}
+                >
+                    {items.map((f, i) => (
+                        <div key={i} className="marquee-item-container">
+                            <div className="marquee-item" style={{ '--accent': f.color }}>
+                                <div className="m-icon-box">{f.icon}</div>
+                                <div className="m-text">
+                                    <span className="m-title">{f.title}</span>
+                                    <span className="m-desc">{f.desc}</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </motion.div>
-        </div>
-    );
+                    ))}
+                </motion.div>
+            </div>
+        );
+    };
 
     return (
         <div className="hero-marquee">
-            <MarqueeRow items={row1} direction={1} speed={30} />
-            <MarqueeRow items={row2} direction={-1} speed={40} />
-            <MarqueeRow items={row3} direction={1} speed={35} />
+            <MarqueeRow items={row1} direction={1} speed={15} />
+            <MarqueeRow items={row2} direction={-1} speed={20} />
+            <MarqueeRow items={row3} direction={1} speed={18} />
         </div>
     );
 };
 
-const HeroCanvas = () => {
+const HeroCanvas = ({ isMobile }) => {
     const canvasRef = useRef(null);
     const particlesRef = useRef([]);
     const animRef = useRef(null);
@@ -231,12 +258,13 @@ const HeroCanvas = () => {
             canvas.style.height = `${h}px`;
             ctx.scale(dpr, dpr);
 
-            // Re-init particles
-            particlesRef.current = Array.from({ length: 40 }, () => ({
+            // Re-init particles (fewer on mobile for better performance)
+            const count = isMobile ? 25 : 45;
+            particlesRef.current = Array.from({ length: count }, () => ({
                 x: Math.random() * w,
                 y: Math.random() * h,
-                vx: (Math.random() - 0.5) * 0.4,
-                vy: (Math.random() - 0.5) * 0.4,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
                 r: Math.random() * 2 + 0.5,
                 o: Math.random() * 0.3 + 0.1
             }));
@@ -257,18 +285,20 @@ const HeroCanvas = () => {
             const connectionDistance = isMobile ? 80 : 150; // Dynamic distance based on mobile detected in parent
 
             // Draw connections
+            const distSq = connectionDistance * connectionDistance;
             for (let i = 0; i < ps.length; i++) {
-                // Optimization: Skip connection check for every single pair if we have many particles
-                // But with 40 particles, it's manageable.
+                const p1 = ps[i];
                 for (let j = i + 1; j < ps.length; j++) {
-                    const dx = ps[i].x - ps[j].x;
-                    const dy = ps[i].y - ps[j].y;
-                    const d = dx * dx + dy * dy; // Use squared distance to avoid sqrt
-                    if (d < connectionDistance * connectionDistance) {
+                    const p2 = ps[j];
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 < distSq) {
+                        const d = Math.sqrt(d2);
                         ctx.beginPath();
-                        ctx.moveTo(ps[i].x, ps[i].y);
-                        ctx.lineTo(ps[j].x, ps[j].y);
-                        ctx.strokeStyle = `rgba(124,58,237,${(1 - Math.sqrt(d) / connectionDistance) * 0.08})`;
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = `rgba(124,58,237,${(1 - d / connectionDistance) * 0.08})`;
                         ctx.lineWidth = 0.5;
                         ctx.stroke();
                     }
@@ -445,7 +475,7 @@ const LandingPage = () => {
           HERO SECTION
           ═══════════════════════════════════════════════ */}
             <section className="hero" id="hero">
-                <HeroCanvas />
+                <HeroCanvas isMobile={isMobile} />
                 <BackgroundMarquee />
 
                 <div className="hero-gradient" />
@@ -742,7 +772,7 @@ const LandingPage = () => {
                     </div>
 
                     <div className="footer-links">
-                        <a href="https://github.com/AshutoshBuilds/caba-app" target="_blank" rel="noopener noreferrer">
+                        <a href="https://github.com/mishra-aashu/caba-android-app" target="_blank" rel="noopener noreferrer">
                             GitHub
                         </a>
                         <button onClick={() => scrollTo('features')}>Features</button>

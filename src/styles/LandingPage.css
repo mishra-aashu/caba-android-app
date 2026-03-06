@@ -138,7 +138,7 @@
 
 .landing-nav.scrolled {
     background: rgba(7, 9, 13, 0.85);
-    backdrop-filter: blur(16px) saturate(180%);
+    /* backdrop-filter: blur(16px) saturate(180%);  <-- Only keep one level of blur */
     border-bottom: 1px solid var(--lp-border);
 }
 
@@ -471,7 +471,6 @@
     background: var(--lp-bg-card);
     color: var(--lp-text);
     border: 1px solid var(--lp-border);
-    backdrop-filter: blur(8px);
 }
 
 .btn-hero.secondary:hover {
@@ -675,6 +674,7 @@
     opacity: 0;
     transform: translateY(24px) translateZ(0);
     will-change: transform, opacity;
+    /* backdrop-filter removed for performance */
 }
 
 .feature-card.animate {
@@ -974,18 +974,17 @@ blockquote em {
     gap: 12px;
 }
 
-.tech-card {
+.tech-c.marquee-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 16px;
     padding: 12px 20px;
     background: var(--lp-bg-card);
     border: 1px solid var(--lp-border);
     border-radius: 12px;
-    opacity: 0;
-    transform: translateY(16px) translateZ(0);
-    transition: all 0.3s;
-    will-change: transform, opacity;
+    white-space: nowrap;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    /* backdrop-filter removed for performance */
 }
 
 .tech-card.animate {
@@ -1484,35 +1483,36 @@ blockquote em {
 
 .marquee-row-inner {
     display: flex;
-    gap: 24px;
+    gap: 0;
+    /* Remove gap for perfect seamless loop calculation */
     width: max-content;
-    padding: 10px;
+    padding: 0;
     will-change: transform;
     transform: translateZ(0);
 }
 
+.marquee-item-container {
+    padding: 10px 12px;
+    /* Add spacing here instead of gap */
+}
+
 .marquee-item {
     background: var(--lp-bg-card);
-    backdrop-filter: blur(8px);
     border: 1px solid var(--lp-border);
     border-radius: 20px;
     padding: 16px 20px;
     display: flex;
     align-items: center;
     gap: 16px;
-    min-width: 260px;
-    max-width: 300px;
+    width: 280px;
+    /* Critical: Fixed width for exact seamless loop math */
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     opacity: 0.3;
-    /* Low opacity as requested */
-    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-    transform: scale(0.9);
+    transition: opacity 0.5s ease;
 }
 
 .marquee-item:hover {
     opacity: 0.8;
-    transform: scale(1);
-    border-color: var(--accent);
 }
 
 .m-icon-box {
