@@ -21,31 +21,31 @@ const FEATURES = [
         icon: <MessageCircle size={24} />,
         title: 'Real-time Messaging',
         desc: 'Instant text with typing indicators, read receipts & reactions',
-        color: '#3b82f6'
+        color: '#00a884'
     },
     {
         icon: <Phone size={24} />,
         title: 'Voice & Video Calls',
         desc: 'Crystal-clear WebRTC calls with global TURN server support',
-        color: '#8b5cf6'
+        color: '#14b8a6'
     },
     {
         icon: <ImageIcon size={24} />,
         title: 'Rich Media Sharing',
         desc: 'Share images, videos, voice notes & documents seamlessly',
-        color: '#ec4899'
+        color: '#059669'
     },
     {
         icon: <Users size={24} />,
         title: 'Group Conversations',
         desc: 'Create rooms, manage members & chat with your whole crew',
-        color: '#14b8a6'
+        color: '#10b981'
     },
     {
         icon: <Lock size={24} />,
         title: 'Privacy First',
         desc: 'End-to-end security with vanishing messages & blocking',
-        color: '#f59e0b'
+        color: '#065f46'
     },
     {
         icon: <Smartphone size={24} />,
@@ -57,37 +57,37 @@ const FEATURES = [
         icon: <Palette size={24} />,
         title: 'Custom Themes',
         desc: 'Personalize chat wallpapers, colors & dark/light modes',
-        color: '#f97316'
+        color: '#16a34a'
     },
     {
         icon: <QrCode size={24} />,
         title: 'QR Code Sharing',
         desc: 'Add contacts instantly by scanning their unique QR code',
-        color: '#06b6d4'
+        color: '#0d9488'
     },
     {
         icon: <Clock size={24} />,
         title: 'Smart Reminders',
         desc: 'Set personal reminders so you never forget important things',
-        color: '#a855f7'
+        color: '#15803d'
     },
     {
         icon: <Newspaper size={24} />,
         title: 'News Feed',
         desc: 'Stay updated with integrated news right inside the app',
-        color: '#ef4444'
+        color: '#25d366'
     },
     {
         icon: <History size={24} />,
         title: 'Call History',
         desc: 'Complete call logs with duration, time & missed call tracking',
-        color: '#64748b'
+        color: '#0f766e'
     },
     {
         icon: <Bell size={24} />,
         title: 'Push Notifications',
         desc: 'Never miss a message with Firebase-powered instant alerts',
-        color: '#eab308'
+        color: '#34d399'
     }
 ];
 
@@ -298,7 +298,8 @@ const HeroCanvas = ({ isMobile }) => {
                         ctx.beginPath();
                         ctx.moveTo(p1.x, p1.y);
                         ctx.lineTo(p2.x, p2.y);
-                        ctx.strokeStyle = `rgba(124,58,237,${(1 - d / connectionDistance) * 0.08})`;
+                        // Emerald Green connections
+                        ctx.strokeStyle = `rgba(0,168,132,${(1 - d / connectionDistance) * 0.12})`;
                         ctx.lineWidth = 0.5;
                         ctx.stroke();
                     }
@@ -314,7 +315,7 @@ const HeroCanvas = ({ isMobile }) => {
 
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(167,139,250,${p.o})`;
+                ctx.fillStyle = `rgba(37,211,102,${p.o * 1.5})`; // Emerald Green particles
                 ctx.fill();
             });
 
@@ -432,7 +433,8 @@ const LandingPage = () => {
     const parallaxOffset = scrollY * 0.3;
 
     return (
-        <div className="landing">
+        <div className="landing" data-theme={theme}>
+            <div className="noise-overlay" />
             {/* ═══════════════════════════════════════════════
           NAVIGATION
           ═══════════════════════════════════════════════ */}
@@ -493,16 +495,14 @@ const LandingPage = () => {
                             <div className="h-ring r1" />
                             <div className="h-ring r2" />
                         </div>
-                        <img
-                            src="/pwa-192x192.png"
-                            alt="CaBa Messenger"
-                            className="hero-logo-img"
-                        />
+                        <div className="hero-logo-text">
+                            CABA
+                        </div>
                     </div>
 
                     <h1 className="hero-title">
-                        <span className="title-line">Communication,</span>
-                        <span className="title-line accent">Reimagined.</span>
+                        <span className="title-line">More Than Just</span>
+                        <span className="title-line italic-accent">Chat.</span>
                     </h1>
 
                     <p className="hero-subtitle">
