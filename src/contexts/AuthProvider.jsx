@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
   }, [initializeAuth]);
 
   useEffect(() => {
-    const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy', '/intro'];
+    const publicPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy', '/intro'];
     const isPublicPage = publicPaths.includes(location.pathname) || location.pathname.startsWith('/shared-profile');
 
     if (!loading && !isAuthenticated && !isPublicPage) {

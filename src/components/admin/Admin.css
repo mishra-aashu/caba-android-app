@@ -59,7 +59,7 @@
    DARK MODE VARIABLES
    =========================================== */
 
-[data-theme='dark'] {
+[data-theme="dark"] {
   --admin-bg-primary: #1a1d21;
   --admin-bg-secondary: #121416;
   --admin-bg-tertiary: #2a2d32;
@@ -104,8 +104,9 @@
   height: 100vh;
   background-color: var(--admin-bg-secondary);
   color: var(--admin-text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   overflow: hidden;
 }
 
@@ -275,7 +276,9 @@
   flex-direction: column;
   overflow-y: auto;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
-  transition: left 0.3s ease, transform 0.3s ease;
+  transition:
+    left 0.3s ease,
+    transform 0.3s ease;
 }
 
 .admin-root .sidebar-header {
@@ -346,7 +349,6 @@
 }
 
 @keyframes adminBadgePulse {
-
   0%,
   100% {
     transform: scale(1);
@@ -409,7 +411,9 @@
   padding: 8px 14px;
   min-width: 220px;
   max-width: 340px;
-  transition: border-color var(--admin-transition), box-shadow var(--admin-transition);
+  transition:
+    border-color var(--admin-transition),
+    box-shadow var(--admin-transition);
 }
 
 .admin-root .search-bar:focus-within {
@@ -479,7 +483,9 @@
   gap: 16px;
   box-shadow: var(--admin-shadow-sm);
   border: 1px solid var(--admin-border-light);
-  transition: transform var(--admin-transition), box-shadow var(--admin-transition);
+  transition:
+    transform var(--admin-transition),
+    box-shadow var(--admin-transition);
 }
 
 .admin-root .stat-card:hover {
@@ -1961,7 +1967,7 @@
 }
 
 .admin-root .detail-value.id-text {
-  font-family: 'Courier New', Courier, monospace;
+  font-family: "Courier New", Courier, monospace;
   font-size: 12px;
   color: var(--admin-text-muted);
   background: var(--admin-bg-tertiary);

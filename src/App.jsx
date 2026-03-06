@@ -37,6 +37,7 @@ const Admin = lazy(() => import('./components/Admin'));
 const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
 const QRPage = lazy(() => import('./components/qr'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const DownloadAPK = lazy(() => import('./pages/DownloadAPK'));
 import Intro from './components/Intro';
 const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
 const GroupChat = lazy(() => import('./components/chat/GroupChat'));
@@ -94,9 +95,17 @@ const AppContent = () => {
     return <Intro onComplete={() => setSplashFinished(true)} />;
   }
 
+  // 📱 Native App Optimization: Direct redirect to login for unauthenticated users
+  // This avoids showing the LandingPage on mobile apps.
+  const isNative = Capacitor.isNativePlatform();
+  if (!isAuthenticated && isNative && location.pathname === '/') {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
     <>
       <Routes>
+        <Route path="/download-apk" element={<PublicRoute><DownloadAPK /></PublicRoute>} />
         {/* Public routes */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
