@@ -55,10 +55,10 @@ const Intro = ({ onComplete }) => {
     window.addEventListener('resize', resize);
 
     const isDark = !document.documentElement.getAttribute('data-theme') ||
-                   document.documentElement.getAttribute('data-theme') === 'dark';
+      document.documentElement.getAttribute('data-theme') === 'dark';
 
-    const dotColor = isDark ? '255,255,255' : '100,80,200';
-    const lineColor = isDark ? '255,255,255' : '124,58,237';
+    const dotColor = isDark ? '255,255,255' : '79,70,229';
+    const lineColor = isDark ? '255,255,255' : '99,102,241';
 
     const animate = () => {
       if (!mountedRef.current) return;
@@ -112,8 +112,8 @@ const Intro = ({ onComplete }) => {
       // Center glow (subtle)
       const glowRadius = Math.min(w, h) * 0.3 * prog;
       const glow = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, glowRadius);
-      glow.addColorStop(0, `rgba(124, 58, 237, ${0.06 * prog})`);
-      glow.addColorStop(1, 'rgba(124, 58, 237, 0)');
+      glow.addColorStop(0, `rgba(99, 102, 241, ${0.06 * prog})`);
+      glow.addColorStop(1, 'rgba(99, 102, 241, 0)');
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, w, h);
 
@@ -216,13 +216,9 @@ const Intro = ({ onComplete }) => {
         {/* App Name */}
         <div className="intro-title">
           <span className="title-char" style={{ animationDelay: '0.1s' }}>C</span>
-          <span className="title-char" style={{ animationDelay: '0.15s' }}>h</span>
-          <span className="title-char" style={{ animationDelay: '0.2s' }}>a</span>
-          <span className="title-char" style={{ animationDelay: '0.25s' }}>t</span>
-          <span className="title-char space" style={{ animationDelay: '0.3s' }}>&nbsp;</span>
-          <span className="title-char" style={{ animationDelay: '0.35s' }}>A</span>
-          <span className="title-char" style={{ animationDelay: '0.4s' }}>p</span>
-          <span className="title-char" style={{ animationDelay: '0.45s' }}>p</span>
+          <span className="title-char" style={{ animationDelay: '0.15s' }}>A</span>
+          <span className="title-char" style={{ animationDelay: '0.2s' }}>B</span>
+          <span className="title-char" style={{ animationDelay: '0.25s' }}>A</span>
         </div>
 
         {/* Tagline */}
