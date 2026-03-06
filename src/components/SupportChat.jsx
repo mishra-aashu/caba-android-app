@@ -31,14 +31,30 @@ const SupportChat = () => {
 
       if (error) throw error;
 
-      const formatted = (data || []).map((msg) => ({
-        id: msg.id,
-        text: msg.message_type === 'user' ? msg.message : msg.response || msg.message,
-        sender: msg.message_type === 'user' ? 'user' : 'support',
-        timestamp: new Date(msg.created_at),
-        status: msg.is_read ? 'read' : 'sent',
-        dbRow: msg,
-      }));
+      const formatted = [];
+      (data || []).forEach((msg) => {
+        // Add the user's message
+        formatted.push({
+          id: msg.id,
+          text: msg.message,
+          sender: msg.message_type === 'user' ? 'user' : 'support',
+          timestamp: new Date(msg.created_at),
+          status: msg.is_read ? 'read' : 'sent',
+          dbRow: msg,
+        });
+
+        // If there's an admin response on this specific message row, add it as a separate message
+        if (msg.admin_response) {
+          formatted.push({
+            id: `${msg.id}-reply`,
+            text: msg.admin_response,
+            sender: 'support',
+            timestamp: new Date(msg.responded_at || msg.updated_at),
+            status: 'read',
+            isReply: true
+          });
+        }
+      });
 
       // If no messages yet, show a welcome message locally (not stored in DB)
       if (formatted.length === 0) {

@@ -18,6 +18,7 @@ import {
   Calendar, Phone, FileText, Image,
   Video, Music, Archive, Upload, X, Clock, Mail, MapPin
 } from 'lucide-react';
+import NetworkVisualization from './admin/NetworkVisualization';
 import './admin/Admin.css';
 
 // ─── Helper: Avatar URL ─────────────────────────────────────────
@@ -60,6 +61,7 @@ const TABS = [
   { id: 'reports', label: 'Reports', icon: Flag },
   { id: 'logs', label: 'Admin Logs', icon: Activity },
   { id: 'support', label: 'Support', icon: MessageCircle },
+  { id: 'network', label: 'Network', icon: Users },
   { id: 'system', label: 'System Settings', icon: Settings },
   { id: 'maintenance', label: 'Maintenance', icon: Database }
 ];
@@ -92,6 +94,8 @@ const Admin = () => {
   const [reports, setReports] = useState([]);
   const [adminLogs, setAdminLogs] = useState([]);
   const [supportMessages, setSupportMessages] = useState([]);
+  const [supportConversations, setSupportConversations] = useState([]);
+  const [selectedSupportUser, setSelectedSupportUser] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [reminders, setReminders] = useState([]);
@@ -472,21 +476,66 @@ const Admin = () => {
   }, [supabase, logsPage]);
 
   // ─── Support Messages ──────────────────────────────────────
-  const loadSupportMessages = useCallback(async () => {
+  const loadSupportConversations = useCallback(async () => {
     if (!mountedRef.current) return;
     setSupportLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_support_messages_for_admin');
+      const { data, error } = await supabase.rpc('get_support_conversations');
+      if (mountedRef.current) {
+        setSupportConversations(!error && data ? safeDbConversion(data) : []);
+      }
+    } catch (error) {
+      console.error('[Admin] loadSupportConversations error:', error);
+      if (mountedRef.current) setSupportConversations([]);
+    } finally {
+      if (mountedRef.current) setSupportLoading(false);
+    }
+  }, [supabase]);
+
+  const loadSupportConversation = useCallback(async (userId) => {
+    if (!mountedRef.current) return;
+    setSupportLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_support_messages_for_user_admin', { p_user_id: userId });
       if (mountedRef.current) {
         setSupportMessages(!error && data ? safeDbConversion(data) : []);
       }
     } catch (error) {
-      console.error('[Admin] loadSupportMessages error:', error);
+      console.error('[Admin] loadSupportConversation error:', error);
       if (mountedRef.current) setSupportMessages([]);
     } finally {
       if (mountedRef.current) setSupportLoading(false);
     }
   }, [supabase]);
+
+  const submitSupportResponseFromView = async (messageId) => {
+    if (!responseText.trim() || !authUser) return;
+
+    setSupportLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('respond_to_support_message', {
+        p_message_id: messageId,
+        p_response: responseText.trim(),
+        p_admin_id: authUser.id
+      });
+
+      if (error) throw error;
+
+      setResponseText('');
+      toast.success('Response sent');
+      if (selectedSupportUser) {
+        loadSupportConversation(selectedSupportUser.userId);
+      }
+      loadSupportConversations();
+    } catch (error) {
+      console.error('[Admin] submitSupportResponseFromView error:', error);
+      toast.error('Failed to send response');
+    } finally {
+      setSupportLoading(false);
+    }
+  };
+
+  const loadSupportMessages = loadSupportConversations;
 
   loadSupportMessagesRef.current = loadSupportMessages;
 
@@ -771,7 +820,10 @@ const Admin = () => {
           handler: (payload) => {
             if (payload.new?.message_type === 'user') {
               if (activeTabRef.current === 'support') {
-                loadSupportMessagesRef.current?.();
+                loadSupportConversations();
+                if (selectedSupportUser?.userId === payload.new?.user_id) {
+                  loadSupportConversation(selectedSupportUser.userId);
+                }
               } else {
                 setNewSupportCount(prev => prev + 1);
                 toast(`💬 New support message`, { icon: '📩', duration: 4000 });
@@ -793,7 +845,10 @@ const Admin = () => {
     setActiveTab(tabId);
     setSidebarOpen(false);
     if (tabId === 'reports') setNewReportCount(0);
-    if (tabId === 'support') setNewSupportCount(0);
+    if (tabId === 'support') {
+      setNewSupportCount(0);
+      setSelectedSupportUser(null);
+    }
     setSearchTerm('');
 
     // Reset ALL pagination
@@ -1128,7 +1183,7 @@ const Admin = () => {
   // ═══════════════════════════════════════════════════════════
   if (loading || (authUser && !currentUser)) {
     return (
-      <div className="admin-loading">
+      <div className="admin-root admin-loading">
         <div className="loading-spinner"></div>
         <p>Verifying admin access...</p>
       </div>
@@ -1137,7 +1192,7 @@ const Admin = () => {
 
   if (!currentUser?.isAdmin) {
     return (
-      <div className="admin-container">
+      <div className="admin-root admin-container">
         <div className="admin-blank">
           <div className="blank-content">
             <Shield size={64} />
@@ -1156,7 +1211,7 @@ const Admin = () => {
   // MAIN RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div className="admin-container">
+    <div className="admin-root admin-container">
       {/* ─── HEADER ──────────────────────────────────────────── */}
       <header className="admin-header">
         <div className="header-left">
@@ -1628,80 +1683,159 @@ const Admin = () => {
             </div>
           )}
 
+          {/* ═══ NETWORK ═══ */}
+          {activeTab === 'network' && (
+            <div className="network-content">
+              <div className="section-header">
+                <h2>Network Visualization</h2>
+                <div className="header-actions">
+                  <button className="action-btn" onClick={() => {
+                    // Refresh network data
+                  }}>
+                    <RefreshCw size={20} /> Refresh
+                  </button>
+                </div>
+              </div>
+
+              <TabLoader tabKey="network">
+                <div className="network-visualization">
+                  <NetworkVisualization />
+                </div>
+              </TabLoader>
+            </div>
+          )}
+
           {/* ═══ SUPPORT ═══ */}
           {activeTab === 'support' && (
             <div className="support-content">
               <div className="section-header">
-                <h2>Support Messages</h2>
-                <button className="action-btn" onClick={loadSupportMessages}>
-                  <RefreshCw size={20} /> Refresh
-                </button>
+                <h2>Support Center</h2>
+                <div className="header-actions">
+                  <button className="action-btn" onClick={loadSupportConversations}>
+                    <RefreshCw size={20} />
+                  </button>
+                </div>
               </div>
 
-              <TabLoader tabKey="support">
-                <div className="support-messages-list">
-                  {supportMessages.length > 0 ? (
-                    supportMessages.map(msg => (
-                      <div
-                        key={msg.id}
-                        className={`support-message-item ${msg.isRead ? 'read' : 'unread'}`}
-                      >
-                        <div className="message-header">
-                          <div className="user-info">
-                            <div className="user-avatar">
-                              {msg.userName ? (
-                                <div>{getInitials(msg.userName)}</div>
-                              ) : (
-                                <User size={20} />
-                              )}
-                            </div>
-                            <div>
-                              <span className="user-name">{msg.userName || 'Unknown'}</span>
-                              <span className="user-phone">({msg.userPhone || 'N/A'})</span>
-                              <div className="user-email">{msg.userEmail}</div>
-                            </div>
+              <div className="support-layout">
+                {/* ─── Sidebar: Conversation List ─── */}
+                <div className="conversations-sidebar">
+                  <div className="sidebar-header">
+                    <h3>Recent Conversations</h3>
+                  </div>
+                  <div className="conversations-list">
+                    {supportConversations.length > 0 ? (
+                      supportConversations.map(conv => (
+                        <div
+                          key={conv.userId}
+                          className={`conversation-item ${selectedSupportUser?.userId === conv.userId ? 'active' : ''}`}
+                          onClick={() => {
+                            setSelectedSupportUser(conv);
+                            loadSupportConversation(conv.userId);
+                          }}
+                        >
+                          <div className="user-avatar">
+                            {getInitials(conv.userName || 'U')}
                           </div>
-                          <div className="message-meta">
-                            <span className="message-time">{formatTime(msg.createdAt)}</span>
-                            {!msg.isRead && <span className="unread-indicator">New</span>}
-                          </div>
-                        </div>
-                        <div className="message-content">
-                          <div className="user-message">
-                            <strong>User:</strong> {msg.message}
-                          </div>
-                          {msg.adminResponse && (
-                            <div className="admin-response">
-                              <strong>Admin ({msg.adminName}):</strong> {msg.adminResponse}
-                              <small>Responded: {formatTime(msg.respondedAt)}</small>
+                          <div className="conversation-info">
+                            <div className="conv-header">
+                              <span className="conv-name">{conv.userName || 'Unknown User'}</span>
+                              <span className="conv-time">
+                                {new Date(conv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
                             </div>
+                            <div className="conv-last-msg">{conv.lastMessage}</div>
+                          </div>
+                          {conv.unreadCount > 0 && (
+                            <span className="unread-badge">{conv.unreadCount}</span>
                           )}
                         </div>
-                        {!msg.adminResponse && (
-                          <div className="message-actions">
-                            <button
-                              className="action-btn small success"
-                              onClick={() => respondToSupportMessage(msg.id)}
-                            >
-                              <MessageCircle size={16} /> Respond
-                            </button>
-                            {!msg.isRead && (
-                              <button
-                                className="action-btn small"
-                                onClick={() => markSupportMessageRead(msg.id)}
-                              >
-                                <CheckCircle size={16} /> Mark Read
-                              </button>
-                            )}
+                      ))
+                    ) : (
+                      <EmptyState icon={MessageCircle} message="No conversations yet" />
+                    )}
+                  </div>
+                </div>
+
+                {/* ─── Main: Message View ─── */}
+                <div className="conversation-detail">
+                  {selectedSupportUser ? (
+                    <>
+                      <div className="detail-header">
+                        <div className="detail-user">
+                          <div className="user-avatar">
+                            {getInitials(selectedSupportUser.userName)}
                           </div>
-                        )}
+                          <div>
+                            <h3>{selectedSupportUser.userName}</h3>
+                            <small>{selectedSupportUser.userEmail || selectedSupportUser.userPhone}</small>
+                          </div>
+                        </div>
+                        <button className="btn-secondary small" onClick={() => setSelectedSupportUser(null)}>
+                          <X size={16} /> Close
+                        </button>
                       </div>
-                    ))
+
+                      <div className="detail-messages">
+                        {supportMessages.map(msg => (
+                          <React.Fragment key={msg.id}>
+                            <div className="message-bubble-wrapper user-side">
+                              <div className="user-bubble">
+                                {msg.message}
+                              </div>
+                              <span className="bubble-time">{formatTime(msg.createdAt)}</span>
+                            </div>
+                            {msg.adminResponse && (
+                              <div className="message-bubble-wrapper admin-side">
+                                <div className="admin-bubble">
+                                  {msg.adminResponse}
+                                </div>
+                                <span className="bubble-time">
+                                  Support · {formatTime(msg.respondedAt)}
+                                </span>
+                              </div>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
+
+                      <div className="detail-input">
+                        <textarea
+                          placeholder="Type your response..."
+                          value={responseText}
+                          onChange={(e) => setResponseText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              const lastMsgId = supportMessages[supportMessages.length - 1]?.id;
+                              if (lastMsgId) {
+                                submitSupportResponseFromView(lastMsgId);
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          className="action-btn"
+                          disabled={!responseText.trim() || supportLoading}
+                          onClick={() => {
+                            const lastMsgId = supportMessages[supportMessages.length - 1]?.id;
+                            if (lastMsgId) {
+                              submitSupportResponseFromView(lastMsgId);
+                            }
+                          }}
+                        >
+                          <Send size={18} />
+                        </button>
+                      </div>
+                    </>
                   ) : (
-                    <EmptyState icon={MessageCircle} message="No support messages yet" />
+                    <div className="empty-chat">
+                      <MessageCircle size={48} strokeWidth={1} />
+                      <p>Select a conversation to view messages</p>
+                    </div>
                   )}
                 </div>
-              </TabLoader>
+              </div>
             </div>
           )}
 

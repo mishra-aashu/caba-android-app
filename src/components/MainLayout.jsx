@@ -328,7 +328,7 @@ const MainLayout = () => {
         currentUser: user,
         handleNavigation,
         handleAboutApp: () => navigate('/about'),
-        handleHelp: () => showAlert('Help Support Coming Soon', 'Support'),
+        handleHelp: () => navigate('/support'),
         handleLogout,
         isAdmin: dbUser?.isAdmin || false,
         savedContacts,

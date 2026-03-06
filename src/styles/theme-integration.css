@@ -16,50 +16,8 @@
 
 /* Base Component Styles (Theme-Aware) */
 
-/* Message Bubbles */
-.bubble,
-.caba-bubble {
-  width: fit-content;
-  max-width: 88%;
-  border-radius: 12px;
-  padding: 8px 12px;
-  margin: 2px 8px;
-  position: relative;
-  backdrop-filter: var(--theme-backdrop-blur);
-  -webkit-backdrop-filter: var(--theme-backdrop-blur);
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  line-height: 1.4;
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  /* GPU Acceleration */
-  transform: translateZ(0);
-  will-change: transform;
-  backface-visibility: hidden;
-}
-
-.bubble-sent,
-.caba-bubble--sent {
-  background: var(--sent-message-bg);
-  color: var(--sent-message-text);
-  border: var(--sent-message-border);
-  box-shadow: var(--sent-message-shadow);
-  margin-left: auto;
-  margin-right: 12px;
-  border-radius: 12px 12px 0px 12px;
-}
-
-.bubble-received,
-.caba-bubble--received {
-  background: var(--received-message-bg);
-  color: var(--received-message-text);
-  border: var(--received-message-border);
-  box-shadow: var(--received-message-shadow);
-  margin-left: 12px;
-  margin-right: auto;
-  border-radius: 12px 12px 12px 0px;
-}
+/* Message Bubbles - Structural styles moved to MessageBubble.css. 
+   Theme-aware variables are used directly there. */
 
 /* Chat Header */
 .chat-header {
@@ -124,55 +82,11 @@
   opacity: 0.5;
 }
 
-/* Meta & Status */
-.message-time {
-  font-size: 11px;
-  opacity: 0.8;
-  margin-top: 2px;
-  text-align: right;
-}
 
-.bubble-sent .message-time {
-  color: var(--sent-message-meta);
-}
-
-.bubble-received .message-time {
-  color: var(--received-message-meta);
-}
-
-.tick-icon {
-  color: var(--tick-color);
-}
-
-.tick-icon.read {
-  color: var(--tick-read-color);
-}
-
-/* Animations */
-@keyframes bubbleSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.bubble {
-  animation: bubbleSlideIn 0.3s ease-out;
-}
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
-  .bubble {
-    width: fit-content;
-    max-width: 92%;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+  /* Mobile optimizations for bubbles handled in MessageBubble.css */
 
   .chat-header,
   .message-input-area {

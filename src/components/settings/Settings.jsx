@@ -220,7 +220,7 @@ const Settings = () => {
   const showBlockedUsers = () => navigate('/blocked');
   const showAutoDownloadSettings = () => showAlert('Auto download settings coming soon');
   const showHelpCenter = () => showAlert('Help center coming soon');
-  const showContactSupport = () => showAlert('Contact support coming soon');
+  const showContactSupport = () => navigate('/support');
   const showTerms = () => showAlert('Terms & Privacy coming soon');
 
   const checkForUpdates = async () => {
