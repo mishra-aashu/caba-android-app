@@ -211,7 +211,10 @@ export const convertFrontendField = (frontendField) => {
  * @returns {Array|Object} Converted data with frontend field names
  */
 export const safeDbConversion = (data) => {
+  if (data === null || data === undefined) return data;
+
   if (Array.isArray(data)) {
+    if (data.length === 0) return [];
     return data.map(item => safeDbConversion(item));
   } else if (data && typeof data === 'object') {
     const converted = dbToFrontend(data);

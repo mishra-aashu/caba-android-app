@@ -62,6 +62,7 @@ const Admin = () => {
   const [reminders, setReminders] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [mediaTransfers, setMediaTransfers] = useState([]);
+  const [systemSettings, setSystemSettings] = useState([]);
   const [usersPage, setUsersPage] = useState(0);
   const [messagesPage, setMessagesPage] = useState(0);
   const [reportsPage, setReportsPage] = useState(0);
@@ -101,7 +102,8 @@ const Admin = () => {
     groups: false,
     reminders: false,
     statuses: false,
-    'media-transfers': false
+    'media-transfers': false,
+    system: false
   });
   const mountedRef = useRef(true);
   const loadReportsRef = useRef(null);
@@ -113,12 +115,20 @@ const Admin = () => {
     activeTabRef.current = activeTab;
   }, [activeTab]);
 
+  // Mount tracking
   useEffect(() => {
+    mountedRef.current = true;
     checkAdminAccess();
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const loadDashboardData = useCallback(async () => {
-    if (!activeTab || !mountedRef.current) return;
+    console.log('[Admin] loadDashboardData triggered for tab:', activeTab);
+    if (!activeTab) return;
+
+    // Check mounted inside each async step rather than a hard return at the start
     setTabLoading(prev => ({ ...prev, [activeTab]: true }));
     try {
       switch (activeTab) {
@@ -134,8 +144,10 @@ const Admin = () => {
         case 'reminders': await loadReminders(); break;
         case 'statuses': await loadStatuses(); break;
         case 'media-transfers': await loadMediaTransfers(); break;
+        case 'system': await loadSystemSettings(); break;
       }
     } catch (error) {
+      console.error('[Admin] Error in loadDashboardData:', error);
       if (currentUser?.isAdmin) console.error('Error loading data:', error);
     } finally {
       if (mountedRef.current) setTabLoading(prev => ({ ...prev, [activeTab]: false }));
@@ -143,7 +155,7 @@ const Admin = () => {
   }, [
     activeTab, currentUser?.isAdmin, usersPage, messagesPage, reportsPage,
     groupsPage, logsPage, newsPage, blockedPage, statusesPage,
-    remindersPage, mediaPage, searchTerm
+    remindersPage, mediaPage, searchTerm, supabase
   ]);
 
   loadDashboardDataRef.current = loadDashboardData;
@@ -164,9 +176,7 @@ const Admin = () => {
   useEffect(() => {
     if (!currentUser?.isAdmin) return;
 
-    mountedRef.current = true;
     const channelKey = `admin_realtime_${currentUser.id}`;
-
     realtimeManager.subscribe(
       channelKey,
       {},
@@ -210,7 +220,6 @@ const Admin = () => {
     );
 
     return () => {
-      mountedRef.current = false;
       realtimeManager.unsubscribe(channelKey);
     };
   }, [currentUser?.id, currentUser?.isAdmin, loadDashboardData]);
@@ -237,68 +246,105 @@ const Admin = () => {
   const checkAdminAccess = async () => {
     try {
       if (!user) {
+        console.warn('[Admin] No user detected in useAuth, redirecting to login');
         navigate('/login');
         return;
       }
 
-      // Verify admin access
+      console.log('[Admin] Verifying admin status for user:', user.id);
+      // Verify admin access via utility to be double sure
       const adminStatus = await isAdmin(user.id);
+      console.log('[Admin] Admin verification result:', adminStatus);
+
+      // If user is admin in DB but not in our store, update store immediately
+      // This prevents the user from being locked out if they were just granted admin rights
+      if (adminStatus && currentUser && !currentUser.isAdmin) {
+        console.info('[Admin] Updating stale local admin status');
+        useAuthStore.setState({
+          dbUser: { ...currentUser, isAdmin: true }
+        });
+      }
+
       if (!adminStatus) {
+        console.warn('[Admin] User is not an admin, redirecting to home');
+        toast.error('Access denied: Admin privileges required');
         navigate('/');
         return;
       }
 
-      // setCurrentUser(user); // This line seems to be an error, currentUser is from useAuthStore
       setLoading(false);
     } catch (error) {
-      console.error('Error checking admin access:', error);
+      console.error('[Admin] Error checking admin access:', error);
+      toast.error('Error verifying admin permissions');
       navigate('/login');
     }
   };
 
   const loadStats = async () => {
-    const authId = user?.id || supabase.auth.session?.()?.user?.id || 'unknown';
-    console.log('[Admin] loadStats starting, authId:', authId);
+    if (!currentUser?.isAdmin) {
+      console.log('[Admin] Skipping loadStats: user is not admin in store');
+      return;
+    }
+
+    const authId = user?.id || 'unknown';
+    console.log('[Admin] loadStats starting for admin:', authId);
+
     try {
-      // Load all stats in parallel
-      const queries = [
-        supabase.from('users').select('id, is_online, last_seen'),
-        supabase.from('messages').select('*', { count: 'exact', head: true }),
-        supabase.from('chats').select('*', { count: 'exact', head: true }),
-        supabase.from('news_articles').select('*', { count: 'exact', head: true }),
-        supabase.from('reports').select('*', { count: 'exact', head: true }),
-        supabase.from('media').select('*', { count: 'exact', head: true }),
-        supabase.from('call_history').select('*', { count: 'exact', head: true })
+      // Load all stats in parallel, but handle individual failures
+      const statDefinitions = [
+        { key: 'totalUsers', table: 'users', options: { count: 'exact', head: true } },
+        { key: 'totalMessages', table: 'messages', options: { count: 'exact', head: true } },
+        { key: 'totalChats', table: 'chats', options: { count: 'exact', head: true } },
+        { key: 'totalNews', table: 'news_articles', options: { count: 'exact', head: true } },
+        { key: 'totalReports', table: 'reports', options: { count: 'exact', head: true } },
+        { key: 'totalMedia', table: 'media', options: { count: 'exact', head: true } },
+        { key: 'totalCalls', table: 'call_history', options: { count: 'exact', head: true } }
       ];
 
-      const results = await Promise.all(queries);
-      console.log('[Admin] loadStats results received:', results.map(r => ({ error: r.error, count: r.count, dataLength: r.data?.length })));
+      console.log('[Admin] Fetching counts for tables:', statDefinitions.map(d => d.table).join(', '));
+      const results = await Promise.all(
+        statDefinitions.map(async (def) => {
+          try {
+            const { count, error } = await supabase.from(def.table).select('*', def.options);
+            if (error) {
+              console.error(`[Admin] Error fetching stats for ${def.table}:`, error);
+              return { key: def.key, count: 0 };
+            }
+            return { key: def.key, count: count || 0 };
+          } catch (e) {
+            console.error(`[Admin] Exception fetching stats for ${def.table}:`, e);
+            return { key: def.key, count: 0 };
+          }
+        })
+      );
 
-      const [
-        usersResult,
-        messagesResult,
-        chatsResult,
-        newsResult,
-        reportsResult,
-        mediaResult,
-        callsResult
-      ] = results;
-
-      const convertedUsers = safeDbConversion(usersResult.data);
-      const onlineUsers = convertedUsers?.filter(u => isUserOnline(Boolean(u.isOnline), u.lastSeen)).length || 0;
-
-      setStats({
-        totalUsers: usersResult.data?.length || 0,
-        totalMessages: messagesResult.count || 0,
-        onlineUsers,
-        totalChats: chatsResult.count || 0,
-        totalNews: newsResult.count || 0,
-        totalReports: reportsResult.count || 0,
-        totalMedia: mediaResult.count || 0,
-        totalCalls: callsResult.count || 0
+      const newStats = { ...stats };
+      results.forEach(res => {
+        newStats[res.key] = res.count;
       });
+
+      // Special handling for online users (needs data, not just count)
+      try {
+        console.log('[Admin] Fetching online users status...');
+        const { data: onlineUsersData, error: onlineError } = await supabase.from('users').select('id, is_online, last_seen');
+        if (onlineError) throw onlineError;
+
+        const convertedUsers = safeDbConversion(onlineUsersData);
+        newStats.onlineUsers = convertedUsers?.filter(u => isUserOnline(Boolean(u.isOnline), u.lastSeen)).length || 0;
+
+        // Also update total users from data if count was null
+        if (newStats.totalUsers === 0 && onlineUsersData?.length > 0) {
+          newStats.totalUsers = onlineUsersData.length;
+        }
+        console.log('[Admin] Online users calculated:', newStats.onlineUsers);
+      } catch (e) {
+        console.error('[Admin] Error calculating online users:', e);
+      }
+
+      console.log('[Admin] All dashboard stats updated:', newStats);
+      setStats(newStats);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('[Admin] loadStats top-level exception:', error);
     }
   };
 
@@ -307,6 +353,7 @@ const Admin = () => {
       const from = usersPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadUsers starting...', { from, to, searchTerm });
       let query = supabase
         .from('users')
         .select('*', { count: 'exact' });
@@ -315,24 +362,31 @@ const Admin = () => {
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
       }
 
-      console.log('[Admin] loadUsers query executing for range:', { from, to, searchTerm });
       const { data: usersData, error: usersError, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      console.log('[Admin] loadUsers raw result:', { usersDataLength: usersData?.length, usersError, count });
-
       if (usersError) {
-        console.error('[Admin] loadUsers error:', usersError);
+        console.error('[Admin] loadUsers database error:', usersError);
+        toast.error('Failed to load users');
         throw usersError;
       }
 
+      console.log(`[Admin] loadUsers: found ${usersData?.length || 0} users (Total: ${count})`);
+
       if (usersData && usersData.length > 0) {
         const userIds = usersData.map(user => user.id);
-        const { data: messageCounts } = await supabase
+
+        // Optimize: Only fetch counts if there are users
+        console.log('[Admin] Fetching message counts for current page users...');
+        const { data: messageCounts, error: countError } = await supabase
           .from('messages')
           .select('sender_id')
           .in('sender_id', userIds);
+
+        if (countError) {
+          console.warn('[Admin] Could not fetch message counts:', countError);
+        }
 
         const messageCountMap = {};
         messageCounts?.forEach(msg => {
@@ -344,12 +398,23 @@ const Admin = () => {
           message_count: messageCountMap[user.id] || 0
         }));
 
-        setUsers(safeDbConversion(usersWithCounts));
+        const finalUsers = safeDbConversion(usersWithCounts);
+        console.log('[Admin] SUCCESS: Loaded and converted users. Count:', finalUsers.length);
+        if (finalUsers.length > 0) {
+          console.log('[Admin] Data sample (first user):', {
+            id: finalUsers[0].id,
+            name: finalUsers[0].name,
+            isAdmin: finalUsers[0].isAdmin,
+            raw_is_admin: usersWithCounts[0].is_admin
+          });
+        }
+        setUsers(finalUsers);
       } else {
+        console.log('[Admin] No users found on this page');
         setUsers([]);
       }
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('[Admin] Error loading users:', error);
       setUsers([]);
     }
   };
@@ -359,6 +424,7 @@ const Admin = () => {
       const from = messagesPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadMessages starting...', { from, to, searchTerm });
       let query = supabase
         .from('messages')
         .select('*', { count: 'exact' });
@@ -367,18 +433,29 @@ const Admin = () => {
         query = query.ilike('content', `%${searchTerm}%`);
       }
 
-      const { data: messagesData, error: messagesError } = await query
+      const { data: messagesData, error: messagesError, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (messagesError) throw messagesError;
+      if (messagesError) {
+        console.error('[Admin] loadMessages error:', messagesError);
+        toast.error('Failed to load messages');
+        throw messagesError;
+      }
+
+      console.log(`[Admin] loadMessages: found ${messagesData?.length || 0} messages (Total: ${count})`);
 
       if (messagesData && messagesData.length > 0) {
         const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
-        const { data: senderUsers } = await supabase
+        console.log(`[Admin] Fetching sender info for ${senderIds.length} unique senders...`);
+        const { data: senderUsers, error: senderError } = await supabase
           .from('users')
           .select('id, name, avatar')
           .in('id', senderIds);
+
+        if (senderError) {
+          console.warn('[Admin] Could not fetch sender details:', senderError);
+        }
 
         const userMap = {};
         senderUsers?.forEach(user => {
@@ -390,12 +467,15 @@ const Admin = () => {
           users: userMap[message.sender_id] || { name: 'Unknown User', avatar: null }
         }));
 
-        setMessages(safeDbConversion(messagesWithUsers));
+        const finalMessages = safeDbConversion(messagesWithUsers);
+        console.log('[Admin] Converted messages data sample:', finalMessages[0]);
+        setMessages(finalMessages);
       } else {
+        console.log('[Admin] No messages found on this page');
         setMessages([]);
       }
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error('[Admin] Error loading messages:', error);
       setMessages([]);
     }
   };
@@ -405,13 +485,20 @@ const Admin = () => {
       const from = newsPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadNews starting...', { from, to });
       const { data, error } = await supabase
         .from('news_articles')
         .select('*')
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data) {
+      if (error) {
+        console.error('[Admin] loadNews error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadNews: found ${data?.length || 0} articles`);
+      if (data && mountedRef.current) {
         setNewsArticles(safeDbConversion(data));
       }
     } catch (error) {
@@ -427,6 +514,7 @@ const Admin = () => {
       const from = reportsPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadReports starting...', { from, to });
       const { data, error } = await supabase
         .from('reports')
         .select(`
@@ -437,7 +525,13 @@ const Admin = () => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data && mountedRef.current) {
+      if (error) {
+        console.error('[Admin] loadReports error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadReports: found ${data?.length || 0} reports`);
+      if (data && mountedRef.current) {
         setReports(safeDbConversion(data));
       }
     } catch (error) {
@@ -454,6 +548,7 @@ const Admin = () => {
       const from = logsPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadAdminLogs starting...', { from, to });
       const { data, error } = await supabase
         .from('admin_logs')
         .select(`
@@ -463,7 +558,13 @@ const Admin = () => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data) {
+      if (error) {
+        console.error('[Admin] loadAdminLogs error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadAdminLogs: found ${data?.length || 0} logs`);
+      if (data && mountedRef.current) {
         setAdminLogs(safeDbConversion(data));
       }
     } catch (error) {
@@ -507,6 +608,7 @@ const Admin = () => {
       const from = blockedPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadBlockedUsers starting...', { from, to });
       const { data, error } = await supabase
         .from('blocked_users')
         .select(`
@@ -517,7 +619,13 @@ const Admin = () => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data) {
+      if (error) {
+        console.error('[Admin] loadBlockedUsers error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadBlockedUsers: found ${data?.length || 0} blocked entries`);
+      if (data && mountedRef.current) {
         setBlockedUsers(safeDbConversion(data));
       }
     } catch (error) {
@@ -532,6 +640,7 @@ const Admin = () => {
       const from = groupsPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadGroups starting...', { from, to });
       const { data, error } = await supabase
         .from('groups')
         .select(`
@@ -542,7 +651,13 @@ const Admin = () => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data) {
+      if (error) {
+        console.error('[Admin] loadGroups error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadGroups: found ${data?.length || 0} groups`);
+      if (data && mountedRef.current) {
         setGroups(safeDbConversion(data));
       }
     } catch (error) {
@@ -557,6 +672,7 @@ const Admin = () => {
       const from = remindersPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadReminders starting...', { from, to });
       const { data, error } = await supabase
         .from('reminders')
         .select(`
@@ -567,7 +683,13 @@ const Admin = () => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data) {
+      if (error) {
+        console.error('[Admin] loadReminders error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadReminders: found ${data?.length || 0} reminders`);
+      if (data && mountedRef.current) {
         setReminders(safeDbConversion(data));
       }
     } catch (error) {
@@ -582,6 +704,7 @@ const Admin = () => {
       const from = statusesPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadStatuses starting...', { from, to });
       const { data, error } = await supabase
         .from('statuses')
         .select(`
@@ -591,7 +714,13 @@ const Admin = () => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data) {
+      if (error) {
+        console.error('[Admin] loadStatuses error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadStatuses: found ${data?.length || 0} statuses`);
+      if (data && mountedRef.current) {
         setStatuses(safeDbConversion(data));
       }
     } catch (error) {
@@ -606,6 +735,7 @@ const Admin = () => {
       const from = mediaPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      console.log('[Admin] loadMediaTransfers starting...', { from, to });
       const { data, error } = await supabase
         .from('media_transfers')
         .select(`
@@ -616,13 +746,66 @@ const Admin = () => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (!error && data) {
+      if (error) {
+        console.error('[Admin] loadMediaTransfers error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadMediaTransfers: found ${data?.length || 0} transfers`);
+      if (data && mountedRef.current) {
         setMediaTransfers(safeDbConversion(data));
       }
     } catch (error) {
       if (currentUser?.isAdmin) {
         console.error('Error loading media transfers:', error);
       }
+    }
+  };
+
+  const loadSystemSettings = async () => {
+    try {
+      console.log('[Admin] loadSystemSettings starting...');
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select(`
+          *,
+          updated_by_user:users!updated_by(name)
+        `)
+        .order('key', { ascending: true });
+
+      if (error) {
+        console.error('[Admin] loadSystemSettings error:', error);
+        throw error;
+      }
+
+      console.log(`[Admin] loadSystemSettings: found ${data?.length || 0} settings`);
+      if (data && mountedRef.current) {
+        setSystemSettings(safeDbConversion(data));
+      }
+    } catch (error) {
+      console.error('[Admin] Error loading system settings:', error);
+    }
+  };
+
+  const updateSystemSetting = async (key, value) => {
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .update({
+          value: JSON.stringify(value),
+          updated_by: user.id,
+          updated_at: new Promise(resolve => resolve(new Date().toISOString()))
+        })
+        .eq('key', key);
+
+      if (error) throw error;
+
+      await logAdminAction('update_setting', `Updated system setting ${key} to ${JSON.stringify(value)}`);
+      loadSystemSettings();
+      showAlert('Setting updated successfully');
+    } catch (error) {
+      console.error('[Admin] Error updating setting:', error);
+      showAlert('Error updating setting: ' + error.message);
     }
   };
 
@@ -674,6 +857,32 @@ const Admin = () => {
         console.error('Error promoting to admin:', error);
       }
       showAlert('Error granting admin privileges');
+    }
+  };
+
+  const toggleUserBan = async (userId, currentBanStatus) => {
+    const action = currentBanStatus ? 'unban' : 'ban';
+    const confirmed = await showConfirm(`Are you sure you want to ${action} this user?`);
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_banned: !currentBanStatus })
+        .eq('id', userId);
+
+      if (!error) {
+        await logAdminAction(`${action}_user`, `${action === 'ban' ? 'Banned' : 'Unbanned'} user ${userId}`);
+        loadUsers();
+        showAlert(`User ${action === 'ban' ? 'banned' : 'unbanned'} successfully`);
+      } else {
+        showAlert(`Error ${action}ning user: ` + error.message);
+      }
+    } catch (error) {
+      if (currentUser?.isAdmin) {
+        console.error(`Error ${action}ning user:`, error);
+      }
+      showAlert(`Error ${action}ning user`);
     }
   };
 
@@ -983,11 +1192,12 @@ const Admin = () => {
 
   // Filters are now handled server-side for better performance with large datasets
 
-  if (loading && !currentUser) {
+  // Show loading spinner while auth is initializing OR while we have a user but haven't loaded their DB profile yet
+  if (loading || (user && !currentUser)) {
     return (
       <div className="admin-loading">
         <div className="loading-spinner"></div>
-        <p>Loading admin panel...</p>
+        <p>Verifying admin access...</p>
       </div>
     );
   }
@@ -1001,6 +1211,10 @@ const Admin = () => {
             <Shield size={64} />
             <h2>Access Restricted</h2>
             <p>You don't have permission to access this panel.</p>
+            <button className="action-btn" onClick={() => navigate('/')}>
+              <ArrowLeft size={16} />
+              Back to Home
+            </button>
           </div>
         </div>
       </div>
@@ -1044,6 +1258,7 @@ const Admin = () => {
               { id: 'reports', label: 'Reports', icon: Flag, badge: newReportCount },
               { id: 'logs', label: 'Admin Logs', icon: Activity },
               { id: 'support', label: 'Support', icon: MessageCircle, badge: newSupportCount },
+              { id: 'system', label: 'System Settings', icon: Settings },
               { id: 'maintenance', label: 'Maintenance', icon: Database }
             ].map(tab => (
               <button
@@ -1206,6 +1421,7 @@ const Admin = () => {
                           <span className={`status ${isUserOnline(Boolean(user.isOnline), user.lastSeen) ? 'online' : 'offline'}`}>
                             {isUserOnline(Boolean(user.isOnline), user.lastSeen) ? 'Online' : 'Offline'}
                           </span>
+                          {user.isBanned && <span className="ban-tag">Banned</span>}
                           {user.isAdmin && <span className="admin-tag">Admin</span>}
                         </div>
 
@@ -1239,6 +1455,14 @@ const Admin = () => {
                               Promote
                             </button>
                           )}
+                          <button
+                            className={`action-btn small ${user.isBanned ? 'success' : 'danger'}`}
+                            onClick={() => toggleUserBan(user.id, user.isBanned)}
+                            title={user.isBanned ? 'Unban User' : 'Ban User'}
+                          >
+                            {user.isBanned ? <CheckCircle size={16} /> : <Ban size={16} />}
+                            {user.isBanned ? 'Unban' : 'Ban'}
+                          </button>
                         </div>
                       </div>
                     ))
@@ -1519,6 +1743,107 @@ const Admin = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Support Tab */}
+          {activeTab === 'system' && (
+            <div className="system-content">
+              <div className="section-header">
+                <h2>System Settings</h2>
+                <button className="action-btn" onClick={loadSystemSettings}>
+                  <RefreshCw size={20} />
+                  Refresh
+                </button>
+              </div>
+
+              {tabLoading.system ? (
+                <div className="loading-container">
+                  <div className="loading-spinner"></div>
+                  <p>Loading settings...</p>
+                </div>
+              ) : (
+                <div className="settings-grid">
+                  {systemSettings.map(setting => (
+                    <div key={setting.key} className="setting-card">
+                      <div className="setting-header">
+                        <div className="setting-title">
+                          <h4>{setting.key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h4>
+                          <p>{setting.description}</p>
+                        </div>
+                        <div className="setting-status">
+                          {typeof setting.value === 'boolean' ? (
+                            <button
+                              className={`status-toggle ${setting.value ? 'on' : 'off'}`}
+                              onClick={() => updateSystemSetting(setting.key, !setting.value)}
+                            >
+                              <div className="toggle-handle"></div>
+                            </button>
+                          ) : (
+                            <span className="value-badge">JSON</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {setting.key === 'global_announcement' && (
+                        <div className="setting-editor">
+                          <textarea
+                            value={typeof setting.value === 'string' ? setting.value : JSON.stringify(setting.value)}
+                            onChange={(e) => {
+                              const newSettings = [...systemSettings];
+                              const idx = newSettings.findIndex(s => s.key === 'global_announcement');
+                              newSettings[idx].value = e.target.value;
+                              setSystemSettings(newSettings);
+                            }}
+                            placeholder="Enter announcement text..."
+                          />
+                          <button
+                            className="action-btn small"
+                            onClick={() => updateSystemSetting('global_announcement', systemSettings.find(s => s.key === 'global_announcement').value)}
+                          >
+                            Save Announcement
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="setting-footer">
+                        <small>Last updated: {setting.updatedAt ? formatTime(setting.updatedAt) : 'Never'}</small>
+                        {setting.updatedByUser?.name && (
+                          <small>By: {setting.updatedByUser.name}</small>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* App Version Management */}
+                  <div className="setting-card full-width">
+                    <div className="setting-header">
+                      <div className="setting-title">
+                        <h4>App Version Control</h4>
+                        <p>Manage software version requirements</p>
+                      </div>
+                      <Shield size={24} className="icon-muted" />
+                    </div>
+                    <div className="version-form">
+                      {/* This would ideally load from app_versions table */}
+                      <p className="hint-text">Use this to force updates or notify users of new versions.</p>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Latest Version</label>
+                          <input type="text" placeholder="e.g. 1.5.2" />
+                        </div>
+                        <div className="form-group">
+                          <label>Min. Required Version</label>
+                          <input type="text" placeholder="e.g. 1.0.0" />
+                        </div>
+                      </div>
+                      <button className="action-btn" onClick={() => showAlert('Version management logic pending backend integration')}>
+                        Update Version Info
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
