@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { dpOptions } from '../../utils/dpOptions';
-import './GameRoom.css';
+import styles from './GameRoom.module.css';
 
 const GameRoom = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
   const { supabase } = useSupabase();
@@ -110,48 +110,48 @@ const GameRoom = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
   };
 
   return (
-    <div className="lobby-container">
+    <div className={styles['lobby-container']}>
       {/* Lobby Title */}
-      <div className="lobby-header">
-        <div className="header-info">
-          <h3 className="lobby-title">Lobby</h3>
-          <div className="status-row">
-            <span className="online-dot" />
-            <p className="status-text">Select your battle</p>
+      <div className={styles['lobby-header']}>
+        <div className={styles['header-info']}>
+          <h3 className={styles['lobby-title']}>Lobby</h3>
+          <div className={styles['status-row']}>
+            <span className={styles['online-dot']} />
+            <p className={styles['status-text']}>Select your battle</p>
           </div>
         </div>
       </div>
 
-      <div className="lobby-content custom-scrollbar">
+      <div className={`${styles['lobby-content']} ${styles['custom-scrollbar']}`}>
         {!selectedGame ? (
-          <div className="lobby-sections">
+          <div className={styles['lobby-sections']}>
             {/* 1. DISCOVER SECTION */}
-            <div className="lobby-section">
-              <div className="section-header">
-                <h4 className="section-title">Featured Games</h4>
-                <TrendingUp size={14} className="accent-color" />
+            <div className={styles['lobby-section']}>
+              <div className={styles['section-header']}>
+                <h4 className={styles['section-title']}>Featured Games</h4>
+                <TrendingUp size={14} className={styles['accent-color']} />
               </div>
 
-              <div className="games-grid">
-                <div className="game-card featured">
-                  <div className="card-top">
-                    <div className="game-info">
-                      <div className="badge trending">
+              <div className={styles['games-grid']}>
+                <div className={`${styles['game-card']} ${styles.featured}`}>
+                  <div className={styles['card-top']}>
+                    <div className={styles['game-info']}>
+                      <div className={`${styles.badge} ${styles.trending}`}>
                         <Flame size={14} /> Hot & Trending
                       </div>
-                      <h2 className="game-title">TRUTH OR DARE</h2>
+                      <h2 className={styles['game-title']}>TRUTH OR DARE</h2>
                     </div>
-                    <div className="price-tag">
+                    <div className={styles['price-tag']}>
                       <span>Free Play</span>
                     </div>
                   </div>
 
-                  <div className="game-quote">
+                  <div className={styles['game-quote']}>
                     <p>"Break the ice, reveal secrets, and take wild risks!"</p>
                   </div>
 
                   <button
-                    className="start-game-btn"
+                    className={styles['start-game-btn']}
                     onClick={onStartTruthDare}
                   >
                     <span>START BATTLE</span>
@@ -159,8 +159,8 @@ const GameRoom = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
                   </button>
                 </div>
 
-                <div className="game-card placeholder">
-                  <div className="placeholder-content">
+                <div className={`${styles['game-card']} ${styles.placeholder}`}>
+                  <div className={styles['placeholder-content']}>
                     <Shield size={32} />
                     <span>MYSTERY GAME</span>
                   </div>
@@ -170,70 +170,70 @@ const GameRoom = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
 
             {/* 2. SESSIONS SECTION */}
             {(loading || games.length > 0) && (
-              <div className="lobby-section">
-                <div className="section-header">
-                  <h4 className="section-title">Active Sessions</h4>
-                  <Clock size={14} className="accent-color-alt" />
+              <div className={styles['lobby-section']}>
+                <div className={styles['section-header']}>
+                  <h4 className={styles['section-title']}>Active Sessions</h4>
+                  <Clock size={14} className={styles['accent-color-alt']} />
                 </div>
 
                 {loading && games.length === 0 ? (
-                  <div className="loading-area">
-                    <div className="spinner" />
+                  <div className={styles['loading-area']}>
+                    <div className={styles.spinner} />
                     <p>Checking Arena...</p>
                   </div>
                 ) : (
-                  <div className="sessions-list">
+                  <div className={styles['sessions-list']}>
                     {games.map((game) => (
-                      <div key={game.id} className="session-card">
-                        <div className="session-top">
-                          <span className="game-type">
+                      <div key={game.id} className={styles['session-card']}>
+                        <div className={styles['session-top']}>
+                          <span className={styles['game-type']}>
                             {game.game_type?.replaceAll('_', ' ') || 'UNNAMED BATTLE'}
                           </span>
-                          <span className={`status-badge ${game.status}`}>
+                          <span className={`${styles['status-badge']} ${styles[game.status]}`}>
                             {game.status}
                           </span>
                         </div>
 
-                        <div className="versus-display">
-                          <div className="participant">
-                            <div className="avatar">
+                        <div className={styles['versus-display']}>
+                          <div className={styles.participant}>
+                            <div className={styles.avatar}>
                               {game.sender?.avatar ? (
-                                <img src={getAvatarPath(game.sender.avatar)} alt="" className="avatar-img" />
+                                <img src={getAvatarPath(game.sender.avatar)} alt="" className={styles['avatar-img']} />
                               ) : (
-                                <span className="initials">{getInitials(game.sender?.name)}</span>
+                                <span className={styles.initials}>{getInitials(game.sender?.name)}</span>
                               )}
                             </div>
-                            <span className="name">{game.sender?.name}</span>
+                            <span className={styles.name}>{game.sender?.name}</span>
                           </div>
 
-                          <div className="vs-divider">
+                          <div className={styles['vs-divider']}>
                             <span>VS</span>
                           </div>
 
-                          <div className="participant">
-                            <div className="avatar">
+                          <div className={styles.participant}>
+                            <div className={styles.avatar}>
                               {game.receiver?.avatar ? (
-                                <img src={getAvatarPath(game.receiver.avatar)} alt="" className="avatar-img" />
+                                <img src={getAvatarPath(game.receiver.avatar)} alt="" className={styles['avatar-img']} />
                               ) : (
-                                <span className="initials">{getInitials(game.receiver?.name)}</span>
+                                <span className={styles.initials}>{getInitials(game.receiver?.name)}</span>
                               )}
                             </div>
-                            <span className="name">{game.receiver?.name}</span>
+                            <span className={styles.name}>{game.receiver?.name}</span>
                           </div>
                         </div>
 
-                        <div className="session-actions">
+                        <div className={styles['session-actions']}>
                           {game.status === 'pending' && user?.id === game.receiver_id ? (
                             <>
-                              <button onClick={() => handleAcceptGame(game)} className="accept-btn">
+                              <button onClick={() => handleAcceptGame(game)} className={styles['accept-btn']}>
                                 ACCEPT
                               </button>
-                              <button onClick={() => handleRejectGame(game)} className="skip-btn">
+                              <button onClick={() => handleRejectGame(game)} className={styles['skip-btn']}>
                                 SKIP
                               </button>
                             </>
                           ) : (
-                            <button className="resume-session-btn" onClick={() => setSelectedGame(game)}>
+                            <button className={styles['resume-session-btn']} onClick={() => setSelectedGame(game)}>
                               RESUME <Play size={14} fill="currentColor" />
                             </button>
                           )}
@@ -246,30 +246,30 @@ const GameRoom = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
             )}
           </div>
         ) : (
-          <div className="entry-view">
-            <div className="entry-icon-wrapper">
-              <div className="icon-bg">
+          <div className={styles['entry-view']}>
+            <div className={styles['entry-icon-wrapper']}>
+              <div className={styles['icon-bg']}>
                 <Gamepad2 size={64} />
               </div>
-              <div className="play-overlay">
+              <div className={styles['play-overlay']}>
                 <Play size={20} fill="white" />
               </div>
             </div>
 
-            <div className="entry-text">
-              <h3 className="entry-title">BATTLE READY</h3>
-              <p className="entry-subtitle">Prepare for impact</p>
+            <div className={styles['entry-text']}>
+              <h3 className={styles['entry-title']}>BATTLE READY</h3>
+              <p className={styles['entry-subtitle']}>Prepare for impact</p>
             </div>
 
-            <div className="entry-actions">
+            <div className={styles['entry-actions']}>
               <button
-                className="enter-arena-btn"
+                className={styles['enter-arena-btn']}
                 onClick={onResumeGame}
               >
                 <span>ENTER ARENA</span>
                 <ChevronRight size={20} />
               </button>
-              <button className="cancel-entry-btn" onClick={() => setSelectedGame(null)}>
+              <button className={styles['cancel-entry-btn']} onClick={() => setSelectedGame(null)}>
                 Back to Lobby
               </button>
             </div>

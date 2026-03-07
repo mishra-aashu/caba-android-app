@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import styles from './GifPicker.module.css';
 
 // Tenor API Configuration (Google's GIF service, used by WhatsApp)
 const TENOR_API_KEY = "LIVDSRZULELA";
@@ -55,10 +56,10 @@ const KlipyGifPicker = ({ onSelectGif }) => {
   };
 
   return (
-    <div className="gif-picker-container">
+    <div className={styles['gif-picker-container']}>
 
       {/* Search Bar */}
-      <div className="gif-search-bar">
+      <div className={styles['gif-search-bar']}>
         <input
           type="text"
           placeholder="Search Tenor GIFs..."
@@ -66,25 +67,25 @@ const KlipyGifPicker = ({ onSelectGif }) => {
           onChange={(e) => setSearch(e.target.value)}
           autoFocus
         />
-        {loading && <div className="search-spinner"></div>}
-        {!loading && <span className="search-icon">🔍</span>}
+        {loading && <div className={styles['search-spinner']}></div>}
+        {!loading && <span className={styles['search-icon']}>🔍</span>}
       </div>
 
       {/* GIF Grid */}
-      <div className="gif-grid-scroll">
+      <div className={styles['gif-grid-scroll']}>
         {loading && gifs.length === 0 ? (
-          <div className="loading-container">
-            <div className="spinner-big"></div>
+          <div className={styles['loading-container']}>
+            <div className={styles['spinner-big']}></div>
             <p>Searching...</p>
           </div>
         ) : error ? (
-          <div className="empty-state">❌ Failed to load GIFs. Check connection.</div>
+          <div className={styles['empty-state']}>❌ Failed to load GIFs. Check connection.</div>
         ) : gifs.length === 0 && !loading ? (
-          <div className="empty-state">No GIFs found for "{search}"</div>
+          <div className={styles['empty-state']}>No GIFs found for "{search}"</div>
         ) : (
-          <div className="gif-masonry">
+          <div className={styles['gif-masonry']}>
             {gifs.map((gif) => (
-              <div key={gif.id} className="gif-item" onClick={() => handleSelect(gif)}>
+              <div key={gif.id} className={styles['gif-item']} onClick={() => handleSelect(gif)}>
                 <img
                   src={gif.media[0].nanogif.url} // Nano GIF for fast preview
                   alt="gif"
@@ -96,7 +97,7 @@ const KlipyGifPicker = ({ onSelectGif }) => {
         )}
       </div>
 
-      {!loading && <div className="tenor-branding">Via Tenor</div>}
+      {!loading && <div className={styles['tenor-branding']}>Via Tenor</div>}
     </div>
   );
 };

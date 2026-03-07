@@ -5,7 +5,7 @@ import { fetchMessagesPage } from '../../hooks/useMessages';
 import { formatLastSeen, formatTime } from '../../utils/dateFormatter';
 import { useResolveName } from '../../hooks/useResolveName';
 import EmojiRenderer from '../common/EmojiRenderer';
-import '../../styles/ChatListItem.css';
+import styles from '../../styles/ChatListItem.module.css';
 
 const ChatListItem = ({ chat, onClick, isActive }) => {
   if (!chat) return null;
@@ -47,19 +47,19 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
 
   // Determine message prefix (You: or Name:)
   const messagePrefix = chat.isMyMessage
-    ? <span className="message-sender-prefix me">You: </span>
-    : (isGroup && chat.lastMessageSenderName ? <span className="message-sender-prefix">{chat.lastMessageSenderName}: </span> : null);
+    ? <span className={`${styles['message-sender-prefix']} ${styles.me}`}>You: </span>
+    : (isGroup && chat.lastMessageSenderName ? <span className={styles['message-sender-prefix']}>{chat.lastMessageSenderName}: </span> : null);
 
   return (
     <div
-      className={`chat-item ${isActive ? 'active' : ''} ${isGroup ? 'group-item' : ''} ${is_vanish_enabled ? 'vanish-mode' : ''}`}
+      className={`${styles['chat-item']} ${isActive ? styles.active : ''} ${isGroup ? styles['group-item'] : ''} ${is_vanish_enabled ? styles['vanish-mode'] : ''}`}
       onClick={onClick}
       onMouseEnter={handlePrefetch}
       onPointerDown={handlePrefetch}
     >
-      <div className="chat-avatar-container">
+      <div className={styles['chat-avatar-container']}>
         {isGroup ? (
-          <div className="group-avatar-fallback">
+          <div className={styles['group-avatar-fallback']}>
             <Users size={24} />
           </div>
         ) : (
@@ -67,47 +67,47 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
             <img
               src={avatar || "/default-avatar.png"}
               alt={name || 'User'}
-              className="chat-avatar"
+              className={styles['chat-avatar']}
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'flex';
               }}
             />
-            <div className="avatar-fallback" style={{ display: 'none' }}>
+            <div className={`${styles['avatar-fallback']} ${styles.hidden}`}>
               <User size={24} />
             </div>
           </>
         )}
       </div>
 
-      <div className="chat-info">
-        <div className="chat-header-row">
-          <div className="chat-name">
+      <div className={styles['chat-info']}>
+        <div className={styles['chat-header-row']}>
+          <div className={styles['chat-name']}>
             {isGroup && (
-              <span className="group-indicator" title="Group Chat">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="group-icon">
+              <span className={styles['group-indicator']} title="Group Chat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className={styles['group-icon']}>
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
                 </svg>
               </span>
             )}
             {resolvedName}
             {is_vanish_enabled && (
-              <Timer size={14} className="vanish-icon" />
+              <Timer size={14} className={styles['vanish-icon']} />
             )}
           </div>
-          <span className="chat-time">
+          <span className={styles['chat-time']}>
             {displayTime}
           </span>
         </div>
 
-        <div className="chat-footer-row">
-          <p className="chat-last-message">
+        <div className={styles['chat-footer-row']}>
+          <p className={styles['chat-last-message']}>
             {messagePrefix}
             <EmojiRenderer text={lastMessage} />
           </p>
 
           {unreadCount > 0 && (
-            <span className="unread-badge">{unreadCount}</span>
+            <span className={styles['unread-badge']}>{unreadCount}</span>
           )}
         </div>
       </div>

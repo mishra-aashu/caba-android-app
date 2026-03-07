@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeContext } from '../contexts/ThemeContext';
-import '../styles/LandingPage.css';
+import styles from '../styles/LandingPage.module.css';
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
@@ -197,9 +197,9 @@ const BackgroundMarquee = () => {
         const finalX = direction > 0 ? xKeyframes : xKeyframes.map(v => `${-50 - parseFloat(v)}%`);
 
         return (
-            <div className="marquee-row-wrapper">
+            <div className={styles['marquee-row-wrapper']}>
                 <motion.div
-                    className="marquee-row-inner"
+                    className={styles['marquee-row-inner']}
                     animate={{ x: finalX }}
                     style={{ translateZ: 0 }}
                     transition={{
@@ -210,12 +210,12 @@ const BackgroundMarquee = () => {
                     }}
                 >
                     {items.map((f, i) => (
-                        <div key={i} className="marquee-item-container">
-                            <div className="marquee-item" style={{ '--accent': f.color }}>
-                                <div className="m-icon-box">{f.icon}</div>
-                                <div className="m-text">
-                                    <span className="m-title">{f.title}</span>
-                                    <span className="m-desc">{f.desc}</span>
+                        <div key={i} className={styles['marquee-item-container']}>
+                            <div className={styles['marquee-item']} style={{ '--accent': f.color }}>
+                                <div className={styles['m-icon-box']}>{f.icon}</div>
+                                <div className={styles['m-text']}>
+                                    <span className={styles['m-title']}>{f.title}</span>
+                                    <span className={styles['m-desc']}>{f.desc}</span>
                                 </div>
                             </div>
                         </div>
@@ -226,7 +226,7 @@ const BackgroundMarquee = () => {
     };
 
     return (
-        <div className="hero-marquee">
+        <div className={styles['hero-marquee']}>
             <MarqueeRow items={row1} direction={1} speed={15} />
             <MarqueeRow items={row2} direction={-1} speed={20} />
             <MarqueeRow items={row3} direction={1} speed={18} />
@@ -331,7 +331,7 @@ const HeroCanvas = ({ isMobile }) => {
         };
     }, []);
 
-    return <canvas ref={canvasRef} className="hero-canvas" />;
+    return <canvas ref={canvasRef} className={styles['hero-canvas']} />;
 };
 
 // ═══════════════════════════════════════════════════════
@@ -341,11 +341,11 @@ const HeroCanvas = ({ isMobile }) => {
 const StatCard = ({ value, suffix, label, inView }) => {
     const count = useCountUp(value, 1800, inView);
     return (
-        <div className="stat-card">
-            <div className="stat-number">
-                {count}<span className="stat-suffix">{suffix}</span>
+        <div className={styles['stat-card']}>
+            <div className={styles['stat-number']}>
+                {count}<span className={styles['stat-suffix']}>{suffix}</span>
             </div>
-            <div className="stat-label">{label}</div>
+            <div className={styles['stat-label']}>{label}</div>
         </div>
     );
 };
@@ -423,8 +423,8 @@ const LandingPage = () => {
 
     if (isRedirecting) {
         return (
-            <div className="splash-redirect">
-                <div className="splash-spinner" />
+            <div className={styles['splash-redirect']}>
+                <div className={styles['splash-spinner']} />
                 <p>Loading CaBa...</p>
             </div>
         );
@@ -433,42 +433,42 @@ const LandingPage = () => {
     const parallaxOffset = scrollY * 0.3;
 
     return (
-        <div className="landing" data-theme={theme}>
-            <div className="noise-overlay" />
+        <div className={styles.landing} data-theme={theme}>
+            <div className={styles['noise-overlay']} />
             {/* ═══════════════════════════════════════════════
           NAVIGATION
           ═══════════════════════════════════════════════ */}
-            <nav className={`landing-nav ${scrollY > 60 ? 'scrolled' : ''}`}>
-                <div className="nav-inner">
-                    <div className="nav-brand" onClick={() => scrollTo('hero')}>
-                        <img src="/pwa-192x192.png" alt="CaBa" className="nav-logo" />
-                        <span className="nav-name">CaBa</span>
+            <nav className={`${styles['landing-nav']} ${scrollY > 60 ? styles.scrolled : ''}`}>
+                <div className={styles['nav-inner']}>
+                    <div className={styles['nav-brand']} onClick={() => scrollTo('hero')}>
+                        <img src="/pwa-192x192.png" alt="CaBa" className={styles['nav-logo']} />
+                        <span className={styles['nav-name']}>CaBa</span>
                     </div>
 
-                    <div className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
+                    <div className={`${styles['nav-links']} ${mobileMenuOpen ? styles.open : ''}`}>
                         <button onClick={() => scrollTo('features')}>Features</button>
                         <button onClick={() => scrollTo('story')}>Story</button>
                         <button onClick={() => scrollTo('tech')}>Tech</button>
                         <button
-                            className="theme-toggle-btn"
+                            className={styles['theme-toggle-btn']}
                             onClick={toggleTheme}
                             aria-label="Toggle theme"
                         >
                             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
                         {!isMobile && (
-                            <button className="nav-cta" onClick={handleLogin}>
+                            <button className={styles['nav-cta']} onClick={handleLogin}>
                                 Open Web App <ChevronRight size={16} />
                             </button>
                         )}
                     </div>
 
                     <button
-                        className="nav-hamburger"
+                        className={styles['nav-hamburger']}
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         aria-label="Toggle menu"
                     >
-                        <span className={mobileMenuOpen ? 'open' : ''} />
+                        <span className={mobileMenuOpen ? styles.open : ''} />
                     </button>
                 </div>
             </nav>
@@ -476,69 +476,69 @@ const LandingPage = () => {
             {/* ═══════════════════════════════════════════════
           HERO SECTION
           ═══════════════════════════════════════════════ */}
-            <section className="hero" id="hero">
+            <section className={styles.hero} id="hero">
                 <HeroCanvas isMobile={isMobile} />
                 <BackgroundMarquee />
 
-                <div className="hero-gradient" />
+                <div className={styles['hero-gradient']} />
 
                 <div
-                    className="hero-content"
+                    className={styles['hero-content']}
                     style={{ transform: `translateY(${parallaxOffset}px)` }}
                 >
                     {/* Background Glow for Readability */}
-                    <div className="hero-text-glow" />
+                    <div className={styles['hero-text-glow']} />
 
                     {/* Animated Logo */}
-                    <div className="hero-logo-wrap">
-                        <div className="hero-logo-rings">
-                            <div className="h-ring r1" />
-                            <div className="h-ring r2" />
+                    <div className={styles['hero-logo-wrap']}>
+                        <div className={styles['hero-logo-rings']}>
+                            <div className={`${styles['h-ring']} ${styles.r1}`} />
+                            <div className={`${styles['h-ring']} ${styles.r2}`} />
                         </div>
-                        <div className="hero-logo-text">
+                        <div className={styles['hero-logo-text']}>
                             CABA
                         </div>
                     </div>
 
-                    <h1 className="hero-title">
-                        <span className="title-line">More Than Just</span>
-                        <span className="title-line italic-accent">Chat.</span>
+                    <h1 className={styles['hero-title']}>
+                        <span className={styles['title-line']}>More Than Just</span>
+                        <span className={`${styles['title-line']} ${styles['italic-accent']}`}>Chat.</span>
                     </h1>
 
-                    <p className="hero-subtitle">
+                    <p className={styles['hero-subtitle']}>
                         CaBa brings people together through secure messaging, crystal-clear
                         calls & a modern experience that just works — everywhere.
                     </p>
 
-                    <div className="hero-actions">
+                    <div className={styles['hero-actions']}>
                         {!isMobile && (
-                            <button className="btn-hero primary" onClick={handleLogin}>
+                            <button className={`${styles['btn-hero']} ${styles.primary}`} onClick={handleLogin}>
                                 <span>Open Web App</span>
                                 <ChevronRight size={18} />
                             </button>
                         )}
                         {isMobile && (
-                            <button className="btn-hero secondary" onClick={handleDownloadAPK}>
+                            <button className={`${styles['btn-hero']} ${styles.secondary}`} onClick={handleDownloadAPK}>
                                 <Download size={18} />
                                 <span>Download APK</span>
                             </button>
                         )}
                     </div>
 
-                    <div className="hero-badges">
-                        <span className="badge-item">
+                    <div className={styles['hero-badges']}>
+                        <span className={styles['badge-item']}>
                             <Shield size={14} />
                             Secure
                         </span>
-                        <span className="badge-item">
+                        <span className={styles['badge-item']}>
                             <Zap size={14} />
                             Fast
                         </span>
-                        <span className="badge-item">
+                        <span className={styles['badge-item']}>
                             <Globe size={14} />
                             Global
                         </span>
-                        <span className="badge-item">
+                        <span className={styles['badge-item']}>
                             <Layers size={14} />
                             Open Source
                         </span>
@@ -546,17 +546,17 @@ const LandingPage = () => {
                 </div>
 
                 {/* Scroll indicator */}
-                <div className="scroll-indicator">
+                <div className={styles['scroll-indicator']}>
                     <span>Scroll to explore</span>
-                    <div className="scroll-arrow" />
+                    <div className={styles['scroll-arrow']} />
                 </div>
             </section>
 
             {/* ═══════════════════════════════════════════════
           STATS BAR
           ═══════════════════════════════════════════════ */}
-            <section className="stats-section" ref={statsRef}>
-                <div className="stats-grid">
+            <section className={styles['stats-section']} ref={statsRef}>
+                <div className={styles['stats-grid']}>
                     {STATS.map((s, i) => (
                         <StatCard key={i} {...s} inView={statsInView} />
                     ))}
@@ -566,10 +566,10 @@ const LandingPage = () => {
             {/* ═══════════════════════════════════════════════
           FEATURES
           ═══════════════════════════════════════════════ */}
-            <section className="features-section" id="features" ref={featuresRef}>
-                <div className="section-inner">
-                    <div className={`section-header ${featuresInView ? 'animate' : ''}`}>
-                        <span className="section-tag">Features</span>
+            <section className={styles['features-section']} id="features" ref={featuresRef}>
+                <div className={styles['section-inner']}>
+                    <div className={`${styles['section-header']} ${featuresInView ? styles.animate : ''}`}>
+                        <span className={styles['section-tag']}>Features</span>
                         <h2>Everything you need,<br />nothing you don't.</h2>
                         <p>
                             CaBa packs powerful communication tools into a clean,
@@ -577,23 +577,23 @@ const LandingPage = () => {
                         </p>
                     </div>
 
-                    <div className="features-grid">
+                    <div className={styles['features-grid']}>
                         {FEATURES.map((f, i) => (
                             <div
                                 key={i}
-                                className={`feature-card ${featuresInView ? 'animate' : ''} ${activeFeature === i ? 'glow' : ''}`}
+                                className={`${styles['feature-card']} ${featuresInView ? styles.animate : ''} ${activeFeature === i ? styles.glow : ''}`}
                                 style={{
                                     animationDelay: `${i * 0.06}s`,
                                     '--accent': f.color
                                 }}
                                 onMouseEnter={() => setActiveFeature(i)}
                             >
-                                <div className="feature-icon-wrap">
-                                    <span className="feature-icon">{f.icon}</span>
+                                <div className={styles['feature-icon-wrap']}>
+                                    <span className={styles['feature-icon']}>{f.icon}</span>
                                 </div>
                                 <h3>{f.title}</h3>
                                 <p>{f.desc}</p>
-                                <div className="feature-shine" />
+                                <div className={styles['feature-shine']} />
                             </div>
                         ))}
                     </div>
@@ -603,14 +603,14 @@ const LandingPage = () => {
             {/* ═══════════════════════════════════════════════
           ORIGIN STORY
           ═══════════════════════════════════════════════ */}
-            <section className="story-section" id="story" ref={storyRef}>
-                <div className="section-inner">
-                    <div className={`story-content ${storyInView ? 'animate' : ''}`}>
-                        <div className="story-text">
-                            <span className="section-tag">Our Story</span>
+            <section className={styles['story-section']} id="story" ref={storyRef}>
+                <div className={styles['section-inner']}>
+                    <div className={`${styles['story-content']} ${storyInView ? styles.animate : ''}`}>
+                        <div className={styles['story-text']}>
+                            <span className={styles['section-tag']}>Our Story</span>
                             <h2>What does "CaBa" mean?</h2>
-                            <div className="story-quote">
-                                <div className="quote-mark">"</div>
+                            <div className={styles['story-quote']}>
+                                <div className={styles['quote-mark']}>"</div>
                                 <blockquote style={{ border: 'none', background: 'none', padding: 0 }}>
                                     <strong>CaBa</strong> comes from the Bhojpuri greeting
                                     <em> "Kaa Baa?"</em> — meaning
@@ -630,18 +630,18 @@ const LandingPage = () => {
                             </p>
                         </div>
 
-                        <div className="story-visual">
-                            <div className="story-card">
-                                <div className="story-emoji">
-                                    <Sparkles size={48} className="sparkle-icon" />
+                        <div className={styles['story-visual']}>
+                            <div className={styles['story-card']}>
+                                <div className={styles['story-emoji']}>
+                                    <Sparkles size={48} className={styles['sparkle-icon']} />
                                 </div>
-                                <div className="story-greeting">
-                                    <span className="bhojpuri">Kaa Baa?</span>
-                                    <span className="english">What's up?</span>
+                                <div className={styles['story-greeting']}>
+                                    <span className={styles.bhojpuri}>Kaa Baa?</span>
+                                    <span className={styles.english}>What's up?</span>
                                 </div>
-                                <div className="story-arrow"><ChevronRight size={24} /></div>
-                                <div className="story-brand">
-                                    <img src="/pwa-192x192.png" alt="CaBa" className="story-logo" />
+                                <div className={styles['story-arrow']}><ChevronRight size={24} /></div>
+                                <div className={styles['story-brand']}>
+                                    <img src="/pwa-192x192.png" alt="CaBa" className={styles['story-logo']} />
                                     <span>CaBa</span>
                                 </div>
                             </div>
@@ -653,22 +653,22 @@ const LandingPage = () => {
             {/* ═══════════════════════════════════════════════
           HOW IT WORKS
           ═══════════════════════════════════════════════ */}
-            <section className="how-section">
-                <div className="section-inner">
-                    <div className="section-header animate">
-                        <span className="section-tag">Simple</span>
+            <section className={styles['how-section']}>
+                <div className={styles['section-inner']}>
+                    <div className={`${styles['section-header']} ${styles.animate}`}>
+                        <span className={styles['section-tag']}>Simple</span>
                         <h2>Up and running in seconds</h2>
                     </div>
 
-                    <div className="steps-grid">
+                    <div className={styles['steps-grid']}>
                         {[
                             { num: '01', title: 'Sign Up', desc: 'Create your account with email or phone — takes 30 seconds', icon: <UserPlus size={32} /> },
                             { num: '02', title: 'Add Contacts', desc: 'Find friends by phone, email, or scan their QR code instantly', icon: <QrCode size={32} /> },
                             { num: '03', title: 'Start Talking', desc: 'Send messages, make calls, share media — it just works', icon: <Send size={32} /> }
                         ].map((step, i) => (
-                            <div key={i} className="step-card">
-                                <div className="step-num">{step.num}</div>
-                                <div className="step-icon">{step.icon}</div>
+                            <div key={i} className={styles['step-card']}>
+                                <div className={styles['step-num']}>{step.num}</div>
+                                <div className={styles['step-icon']}>{step.icon}</div>
                                 <h3>{step.title}</h3>
                                 <p>{step.desc}</p>
                             </div>
@@ -680,24 +680,24 @@ const LandingPage = () => {
             {/* ═══════════════════════════════════════════════
           TECH STACK
           ═══════════════════════════════════════════════ */}
-            <section className="tech-section" id="tech" ref={techRef}>
-                <div className="section-inner">
-                    <div className={`section-header ${techInView ? 'animate' : ''}`}>
-                        <span className="section-tag">Technology</span>
+            <section className={styles['tech-section']} id="tech" ref={techRef}>
+                <div className={styles['section-inner']}>
+                    <div className={`${styles['section-header']} ${techInView ? styles.animate : ''}`}>
+                        <span className={styles['section-tag']}>Technology</span>
                         <h2>Built with the best</h2>
                         <p>Modern, battle-tested technologies powering every conversation.</p>
                     </div>
 
-                    <div className="tech-grid">
+                    <div className={styles['tech-grid']}>
                         {TECH_STACK.map((t, i) => (
                             <div
                                 key={i}
-                                className={`tech-card ${techInView ? 'animate' : ''}`}
+                                className={`${styles['tech-card']} ${techInView ? styles.animate : ''}`}
                                 style={{ animationDelay: `${i * 0.1}s`, '--tc': t.color }}
                             >
-                                <div className="tech-dot" style={{ background: t.color }} />
-                                <span className="tech-name">{t.name}</span>
-                                <span className="tech-ver">{t.version}</span>
+                                <div className={styles['tech-dot']} style={{ background: t.color }} />
+                                <span className={styles['tech-name']}>{t.name}</span>
+                                <span className={styles['tech-ver']}>{t.version}</span>
                             </div>
                         ))}
                     </div>
@@ -707,10 +707,10 @@ const LandingPage = () => {
             {/* ═══════════════════════════════════════════════
           SECURITY
           ═══════════════════════════════════════════════ */}
-            <section className="security-section">
-                <div className="section-inner">
-                    <div className="security-content">
-                        <div className="security-icon">
+            <section className={styles['security-section']}>
+                <div className={styles['section-inner']}>
+                    <div className={styles['security-content']}>
+                        <div className={styles['security-icon']}>
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
                                 stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -723,7 +723,7 @@ const LandingPage = () => {
                             Vanishing messages, user blocking, and encrypted connections
                             ensure every conversation remains private.
                         </p>
-                        <div className="security-badges">
+                        <div className={styles['security-badges']}>
                             <span><ShieldCheck size={14} /> Encrypted Connections</span>
                             <span><Shield size={14} /> Row Level Security</span>
                             <span><Ghost size={14} /> Vanishing Messages</span>
@@ -736,26 +736,26 @@ const LandingPage = () => {
             {/* ═══════════════════════════════════════════════
           FINAL CTA
           ═══════════════════════════════════════════════ */}
-            <section className="cta-section" id="download" ref={ctaRef}>
-                <div className={`cta-content ${ctaInView ? 'animate' : ''}`}>
+            <section className={styles['cta-section']} id="download" ref={ctaRef}>
+                <div className={`${styles['cta-content']} ${ctaInView ? styles.animate : ''}`}>
                     <h2>Ready to start talking?</h2>
                     <p>Join CaBa today — it's free, open source, and built for everyone.</p>
 
-                    <div className="cta-buttons">
+                    <div className={styles['cta-buttons']}>
                         {!isMobile && (
-                            <button className="btn-hero primary large" onClick={handleLogin}>
+                            <button className={`${styles['btn-hero']} ${styles.primary} ${styles.large}`} onClick={handleLogin}>
                                 Open Web App <ChevronRight size={20} />
                             </button>
                         )}
                         {isMobile && (
-                            <button className="btn-hero secondary large" onClick={handleDownloadAPK}>
+                            <button className={`${styles['btn-hero']} ${styles.secondary} ${styles.large}`} onClick={handleDownloadAPK}>
                                 <Download size={20} />
                                 <span>Download Android APK</span>
                             </button>
                         )}
                     </div>
 
-                    <div className="cta-note">
+                    <div className={styles['cta-note']}>
                         Free forever • No ads • Open source
                     </div>
                 </div>
@@ -764,17 +764,17 @@ const LandingPage = () => {
             {/* ═══════════════════════════════════════════════
           FOOTER
           ═══════════════════════════════════════════════ */}
-            <footer className="landing-footer">
-                <div className="footer-inner">
-                    <div className="footer-brand">
-                        <img src="/pwa-192x192.png" alt="CaBa" className="footer-logo" />
+            <footer className={styles['landing-footer']}>
+                <div className={styles['footer-inner']}>
+                    <div className={styles['footer-brand']}>
+                        <img src="/pwa-192x192.png" alt="CaBa" className={styles['footer-logo']} />
                         <div>
-                            <span className="footer-name">CaBa Messenger</span>
-                            <span className="footer-tagline">The Art of Conversation</span>
+                            <span className={styles['footer-name']}>CaBa Messenger</span>
+                            <span className={styles['footer-tagline']}>The Art of Conversation</span>
                         </div>
                     </div>
 
-                    <div className="footer-links">
+                    <div className={styles['footer-links']}>
                         <a href="https://github.com/mishra-aashu/caba-android-app" target="_blank" rel="noopener noreferrer">
                             GitHub
                         </a>
@@ -783,9 +783,9 @@ const LandingPage = () => {
                         {!isMobile && <button onClick={handleLogin}>Web App</button>}
                     </div>
 
-                    <div className="footer-bottom">
-                        <p>© {new Date().getFullYear()} CaBa Messenger. Made with <Heart size={14} className="footer-heart" /> for better communication.</p>
-                        <p className="footer-license">MIT License • Open Source</p>
+                    <div className={styles['footer-bottom']}>
+                        <p>© {new Date().getFullYear()} CaBa Messenger. Made with <Heart size={14} className={styles['footer-heart']} /> for better communication.</p>
+                        <p className={styles['footer-license']}>MIT License • Open Source</p>
                     </div>
                 </div>
             </footer>

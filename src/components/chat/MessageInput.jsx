@@ -10,6 +10,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import useIsDesktop from '../../hooks/useIsDesktop';
 import useDraftStore from '../../store/useDraftStore';
 import hapticsManager from '../../utils/hapticsManager';
+import styles from '../../styles/chat.module.css';
 
 
 const MessageInput = ({
@@ -408,9 +409,9 @@ const MessageInput = ({
   };
 
   return (
-    <div className={`chat-input-container ${showEmojiPicker ? 'emoji-open' : ''}`} ref={containerRef} style={{ position: 'relative', zIndex: 1 }}>
+    <div className={`${styles['chat-input-container']} ${showEmojiPicker ? styles['emoji-open'] : ''}`} ref={containerRef}>
       {/* Attachment Menu - Positioned relative to input container */}
-      <div className="attachment-menu-wrapper">
+      <div className={styles['attachment-menu-wrapper']}>
         <AttachmentMenu
           isOpen={showAttachmentMenu}
           onClose={() => setShowAttachmentMenu(false)}
@@ -423,29 +424,29 @@ const MessageInput = ({
 
       {/* Quick Replies Menu */}
       {showQuickReplies && (
-        <div className="quick-replies-menu">
-          <div className="quick-reply-option" onClick={() => handleQuickReply("Hello!")}>
+        <div className={styles['quick-replies-menu']}>
+          <div className={styles['quick-reply-option']} onClick={() => handleQuickReply("Hello!")}>
             Hello!
           </div>
-          <div className="quick-reply-option" onClick={() => handleQuickReply("How are you?")}>
+          <div className={styles['quick-reply-option']} onClick={() => handleQuickReply("How are you?")}>
             How are you?
           </div>
-          <div className="quick-reply-option" onClick={() => handleQuickReply("Thank you!")}>
+          <div className={styles['quick-reply-option']} onClick={() => handleQuickReply("Thank you!")}>
             Thank you!
           </div>
-          <div className="quick-reply-option" onClick={() => handleQuickReply("See you later!")}>
+          <div className={styles['quick-reply-option']} onClick={() => handleQuickReply("See you later!")}>
             See you later!
           </div>
-          <div className="quick-reply-option" onClick={() => handleQuickReply("I'm on my way!")}>
+          <div className={styles['quick-reply-option']} onClick={() => handleQuickReply("I'm on my way!")}>
             I'm on my way!
           </div>
-          <div className="quick-reply-option" onClick={() => handleQuickReply("Yes")}>
+          <div className={styles['quick-reply-option']} onClick={() => handleQuickReply("Yes")}>
             Yes
           </div>
-          <div className="quick-reply-option" onClick={() => handleQuickReply("No")}>
+          <div className={styles['quick-reply-option']} onClick={() => handleQuickReply("No")}>
             No
           </div>
-          <div className="quick-reply-option" onClick={() => handleQuickReply("Okay")}>
+          <div className={styles['quick-reply-option']} onClick={() => handleQuickReply("Okay")}>
             Okay
           </div>
         </div>
@@ -453,18 +454,18 @@ const MessageInput = ({
 
       {/* NEW: Media Preview Area */}
       {filePreview && (
-        <div className="media-preview-container">
-          <button onClick={cancelFilePreview} className="cancel-preview-btn"><X size={18} /></button>
+        <div className={styles['media-preview-container']}>
+          <button onClick={cancelFilePreview} className={styles['cancel-preview-btn']}><X size={18} /></button>
           {filePreview.file.type.startsWith('image/') ? (
-            <img src={filePreview.url} alt="Preview" className="media-thumbnail" />
+            <img src={filePreview.url} alt="Preview" className={styles['media-thumbnail']} />
           ) : (
-            <div className="media-thumbnail video">
+            <div className={`${styles['media-thumbnail']} ${styles.video}`}>
               <VideoIcon size={40} />
             </div>
           )}
 
           {filePreview.file.type.startsWith('image/') && (
-            <div className="quality-selector">
+            <div className={styles['quality-selector']}>
               <label>
                 <input
                   type="radio"
@@ -491,15 +492,15 @@ const MessageInput = ({
       )}
 
       {replyingTo && (
-        <div className="reply-preview-container">
+        <div className={styles['reply-preview-container']}>
 
-          <div className="reply-content">
+          <div className={styles['reply-content']}>
             {/* Accent Line + Content */}
-            <div className="reply-border"></div>
+            <div className={styles['reply-border']}></div>
 
-            <div className="reply-details">
-              <span className="reply-title">Replying to {replyingTo.sender_id === currentUser?.id ? 'You' : 'Them'}</span>
-              <p className="reply-message">
+            <div className={styles['reply-details']}>
+              <span className={styles['reply-title']}>Replying to {replyingTo.sender_id === currentUser?.id ? 'You' : 'Them'}</span>
+              <p className={styles['reply-message']}>
                 {/* Agar text lamba ho to cut jayega */}
                 {(replyingTo.media_type === 'voice' || replyingTo.media_type === 'audio' || replyingTo.message_type === 'audio')
                   ? <EmojiRenderer text="🎤 Voice Message" />
@@ -509,20 +510,20 @@ const MessageInput = ({
           </div>
 
           {/* Close Button */}
-          <button className="close-reply-btn" onClick={onCancelReply}>
+          <button className={styles['close-reply-btn']} onClick={onCancelReply}>
             ✕
           </button>
         </div>
       )}
 
       {isRecording && (
-        <div className="recording-row">
-          <div className="recording-waveform">
+        <div className={styles['recording-row']}>
+          <div className={styles['recording-waveform']}>
             <canvas ref={canvasRef} width={300} height={60}></canvas>
-            <div className="recording-timer">{formatTime(recordingTime)}</div>
+            <div className={styles['recording-timer']}>{formatTime(recordingTime)}</div>
           </div>
-          <div className="recording-controls">
-            <button onClick={stopRecording} className="btn-stop-recording" title="Stop Recording">
+          <div className={styles['recording-controls']}>
+            <button onClick={stopRecording} className={styles['btn-stop-recording']} title="Stop Recording">
               <Square size={24} />
             </button>
           </div>
@@ -531,10 +532,10 @@ const MessageInput = ({
 
       {!isRecording && (
         isDesktop ? (
-          <div className="input-row desktop-layout">
-            <div className="left-buttons">
+          <div className={`${styles['input-row']} ${styles['desktop-layout']}`}>
+            <div className={styles['left-buttons']}>
               <button
-                className="btn-quick-reply"
+                className={styles['btn-quick-reply']}
                 onClick={toggleQuickReplies}
                 title="Quick Messages"
                 disabled={isUploading || externalDisabled}
@@ -542,7 +543,7 @@ const MessageInput = ({
                 <MessageSquarePlus size={22} />
               </button>
               <button
-                className="btn-attach"
+                className={styles['btn-attach']}
                 onClick={toggleAttachmentMenu}
                 title="Attach Media"
                 disabled={isUploading || externalDisabled}
@@ -550,7 +551,7 @@ const MessageInput = ({
                 <Paperclip size={22} />
               </button>
               <button
-                className="btn-emoji"
+                className={styles['btn-emoji']}
                 onClick={toggleEmojiPicker}
                 title="Add emoji"
                 disabled={isUploading || externalDisabled}
@@ -558,7 +559,7 @@ const MessageInput = ({
                 <Smile size={22} />
               </button>
               <button
-                className="btn-mic"
+                className={styles['btn-mic']}
                 onClick={handleVoiceRecord}
                 title="Record Voice"
                 disabled={isUploading || externalDisabled}
@@ -569,7 +570,7 @@ const MessageInput = ({
 
             <textarea
               ref={textareaRef}
-              className="chat-input"
+              className={styles['chat-input']}
               placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
               value={message}
               onFocus={handleInputFocus}
@@ -584,18 +585,18 @@ const MessageInput = ({
             />
 
             <button
-              className="btn-send"
+              className={styles['btn-send']}
               onClick={handleSend}
               disabled={(!message.trim() && !filePreview && !voiceBlob) || isUploading || externalDisabled}
             >
-              {isUploading ? <LoaderCircle size={24} className="animate-spin" /> : <Send size={22} />}
+              {isUploading ? <LoaderCircle size={24} className={styles['animate-spin']} /> : <Send size={22} />}
             </button>
           </div>
         ) : (
-          <div className="input-row mobile-layout">
-            <div className="action-buttons">
+          <div className={`${styles['input-row']} ${styles['mobile-layout']}`}>
+            <div className={styles['action-buttons']}>
               <button
-                className="btn-emoji-inline-left"
+                className={styles['btn-emoji-inline-left']}
                 onClick={toggleEmojiPicker}
                 title="Add emoji"
                 disabled={isUploading || externalDisabled}
@@ -604,10 +605,10 @@ const MessageInput = ({
               </button>
             </div>
 
-            <div className="input-capsule">
+            <div className={styles['input-capsule']}>
               <textarea
                 ref={textareaRef}
-                className="chat-input"
+                className={styles['chat-input']}
                 placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
                 value={message}
                 onFocus={handleInputFocus}
@@ -618,7 +619,7 @@ const MessageInput = ({
               />
 
               <button
-                className="btn-attach-inline"
+                className={styles['btn-attach-inline']}
                 onClick={toggleAttachmentMenu}
                 title="Attach Media"
                 disabled={isUploading || externalDisabled}
@@ -628,7 +629,7 @@ const MessageInput = ({
             </div>
 
             <button
-              className="btn-send mobile-action-btn"
+              className={`${styles['btn-send']} ${styles['mobile-action-btn']}`}
               onClick={(message.trim() || filePreview || voiceBlob) ? handleSend : handleVoiceRecord}
               disabled={isUploading || externalDisabled}
               title={(message.trim() || filePreview || voiceBlob) ? "Send" : "Record Voice"}
@@ -662,7 +663,7 @@ const MessageInput = ({
 
       {/* Desktop Anchored Picker - Bubble style */}
       {isDesktop && (
-        <div className="desktop-emoji-picker-anchor" onClick={(e) => e.stopPropagation()}>
+        <div className={styles['desktop-emoji-picker-anchor']} onClick={(e) => e.stopPropagation()}>
           <EmojiPicker
             isOpen={showEmojiPicker}
             isInline={false}

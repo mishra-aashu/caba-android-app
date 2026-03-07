@@ -3,7 +3,7 @@ import { getPublicMediaUrl } from '../../services/mediaService';
 import { useAudioBlob } from '../../hooks/useAudioBlob';
 import EmojiRenderer from '../common/EmojiRenderer';
 import { Play, Pause, LoaderCircle, AlertTriangle } from 'lucide-react';
-import './VoiceMessage.css';
+import styles from './VoiceMessage.module.css';
 
 const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUserId }) => {
   const { audioUrl, isLoading, error: hookError } = useAudioBlob(message.mediaPath || message.media_path);
@@ -17,7 +17,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
   const error = hookError || playbackError;
   const setError = setPlaybackError;
 
-  const handlePlayPause = () => {
+  const togglePlay = () => {
     if (!audioRef.current || isLoading || error) return;
 
     if (isPlaying) {
@@ -63,7 +63,6 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Simple waveform visualization (static bars)
   const renderWaveform = () => {
     const bars = 40;
     const barElements = [];
@@ -71,16 +70,13 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
 
     for (let i = 0; i < bars; i++) {
       const barProgress = i / bars;
-      // Highlight played bars with white, unplayed with lighter shade
       const isPlayed = barProgress < progress;
       barElements.push(
         <div
           key={i}
-          className="waveform-bar"
+          className={`${styles['waveform-bar']} ${isPlayed ? styles.played : styles.unplayed}`}
           style={{
-            height: `${10 + Math.random() * 10}px`,
-            backgroundColor: isPlayed ? '#fff' : 'rgba(255,255,255,0.5)',
-            borderRadius: '1px'
+            height: `${10 + Math.random() * 10}px`
           }}
         />
       );
@@ -88,44 +84,12 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
     return barElements;
   };
 
-  const togglePlay = () => {
-    if (!audioRef.current || isLoading || error) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(err => {
-        console.error("Playback error:", err);
-        setError("Could not play audio.");
-        setIsPlaying(false);
-      });
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleSliderChange = (e) => {
-    if (!audioRef.current || !duration) return;
-    const newTime = (e.target.value / 100) * duration;
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
-
-  const renderPlayButton = () => {
-    if (isLoading) {
-      return <LoaderCircle size={20} className="animate-spin" />;
-    }
-    if (error) {
-      return <AlertTriangle size={20} color="red" />;
-    }
-    return isPlaying ? "⏸" : "▶";
-  }
-
   return (
-    <div className={`message-row ${isSender ? 'sent' : 'received'}`}>
-      <div className={`voice-card ${isSender ? "voice-sent" : "voice-received"}`}>
+    <div className={`${styles['message-row']} ${isSender ? styles.sent : styles.received}`}>
+      <div className={`${styles['voice-card']} ${isSender ? styles["voice-sent"] : styles["voice-received"]}`}>
         {repliedMsg && repliedMsg.id && (
           <div
-            className="reply-quote-container"
+            className={styles['reply-quote-container']}
             onClick={() => {
               if (repliedMsg?.id) {
                 const element = document.getElementById(`message-${repliedMsg.id}`);
@@ -137,11 +101,11 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
               }
             }}
           >
-            <div className="reply-quote-content">
-              <span className="reply-quote-user">
+            <div className={styles['reply-quote-content']}>
+              <span className={styles['reply-quote-user']}>
                 {(repliedMsg.senderId || repliedMsg.sender_id) === currentUserId ? "You" : "User"}
               </span>
-              <p className="reply-quote-text">
+              <p className={styles['reply-quote-text']}>
                 {(repliedMsg.mediaType || repliedMsg.media_type) === 'voice'
                   ? <EmojiRenderer text="🎤 Voice Message" />
                   : <EmojiRenderer text={repliedMsg.content?.substring(0, 60) || "..."} />}
@@ -150,25 +114,24 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
           </div>
         )}
 
-        <div className="voice-content">
-          <div className="play-btn-wrapper" onClick={togglePlay}>
-            <span className="play-icon">
+        <div className={styles['voice-content']}>
+          <div className={styles['play-btn-wrapper']} onClick={togglePlay}>
+            <span className={styles['play-icon']}>
               {isLoading ? <LoaderCircle size={20} className="animate-spin" /> : error ? <AlertTriangle size={20} color="red" /> : isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </span>
           </div>
 
-          <div className="waveform-container" ref={waveformRef} onClick={handleSeek}>
-            <div className="waveform">
+          <div className={styles['waveform-container']} ref={waveformRef} onClick={handleSeek}>
+            <div className={styles.waveform}>
               {renderWaveform()}
             </div>
-            {/* Progress Indicator */}
             <div
-              className="waveform-progress"
+              className={styles['waveform-progress']}
               style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
             ></div>
           </div>
 
-          <div className="voice-time">
+          <div className={styles['voice-time']}>
             <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
           </div>
 
@@ -187,15 +150,14 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             />
           )}
 
-          <div className="voice-time-overlay">
+          <div className={styles['voice-time-overlay']}>
             <span>{time}</span>
-            {isSender && <span className={`tick-icon ${status === 'read' ? 'read' : ''}`}>{status === 'read' ? '✓✓' : '✓'}</span>}
+            {isSender && <span className={`${styles['tick-icon']} ${status === 'read' ? styles.read : ''}`}>{status === 'read' ? '✓✓' : '✓'}</span>}
           </div>
         </div>
 
-        {/* Reactions Display */}
         {message?.metadata && Object.keys(message.metadata).length > 0 && (
-          <div className="message-reactions">
+          <div className={styles['message-reactions']}>
             {Object.entries(
               Object.values(message.metadata).reduce((acc, emoji) => {
                 acc[emoji] = (acc[emoji] || 0) + 1;
@@ -206,7 +168,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
               return (
                 <div
                   key={emoji}
-                  className={`reaction-badge ${isMyReaction ? 'user-reacted' : ''}`}
+                  className={`${styles['reaction-badge']} ${isMyReaction ? styles['user-reacted'] : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (window.handleReactionToggle) {
@@ -215,7 +177,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
                   }}
                 >
                   <EmojiRenderer text={emoji} />
-                  {count > 1 && <span className="reaction-count">{count}</span>}
+                  {count > 1 && <span className={styles['reaction-count']}>{count}</span>}
                 </div>
               );
             })}

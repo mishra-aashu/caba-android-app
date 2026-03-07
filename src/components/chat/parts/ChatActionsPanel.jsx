@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { Reply, Copy, ArrowRight, Trash2 } from 'lucide-react';
+import styles from '../../../styles/chat.module.css';
 
 const ChatActionsPanel = ({
     isSelectionMode,
@@ -34,23 +35,23 @@ const ChatActionsPanel = ({
     };
 
     return (
-        <div className="selection-toolbar">
-            <button className="selection-close-btn" onClick={onExit}>✕</button>
-            <div className="selection-info">{selectedCount} selected</div>
-            <div className="selection-actions">
+        <div className={styles['selection-toolbar']}>
+            <button className={styles['selection-close-btn']} onClick={onExit}>✕</button>
+            <div className={styles['selection-info']}>{selectedCount} selected</div>
+            <div className={styles['selection-actions']}>
                 {selectedCount === 1 && (
                     <>
-                        <button className="selection-action-btn" title="Reply" onClick={handleReply}>
+                        <button className={styles['selection-action-btn']} title="Reply" onClick={handleReply}>
                             <Reply size={16} />
                         </button>
-                        <button className="selection-action-btn" title="Copy" onClick={onCopy}>
+                        <button className={styles['selection-action-btn']} title="Copy" onClick={onCopy}>
                             <Copy size={16} />
                         </button>
-                        <button className="selection-action-btn" title="Forward" onClick={onForward}>
+                        <button className={styles['selection-action-btn']} title="Forward" onClick={onForward}>
                             <ArrowRight size={16} />
                         </button>
                         {allMine && (
-                            <button className="selection-action-btn" title="Delete" onClick={onDelete}>
+                            <button className={styles['selection-action-btn']} title="Delete" onClick={onDelete}>
                                 <Trash2 size={16} />
                             </button>
                         )}
@@ -58,13 +59,13 @@ const ChatActionsPanel = ({
                 )}
                 {selectedCount > 1 && (
                     <>
-                        <button className="selection-action-btn" title="Copy" onClick={onCopy}>
+                        <button className={styles['selection-action-btn']} title="Copy" onClick={onCopy}>
                             <Copy size={16} />
                         </button>
-                        <button className="selection-action-btn" title="Forward" onClick={onForward}>
+                        <button className={styles['selection-action-btn']} title="Forward" onClick={onForward}>
                             <ArrowRight size={16} />
                         </button>
-                        <button className="selection-action-btn" title="Delete" onClick={onDelete}>
+                        <button className={styles['selection-action-btn']} title="Delete" onClick={onDelete}>
                             <Trash2 size={16} />
                         </button>
                     </>

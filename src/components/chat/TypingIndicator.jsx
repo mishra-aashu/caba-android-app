@@ -1,16 +1,17 @@
 import React from 'react';
+import styles from '../../styles/chat.module.css';
 
 const TypingIndicator = ({ isVisible }) => {
   if (!isVisible) return null;
 
   return (
-    <div className="typing-indicator">
-      <span className="typing-dots">
+    <div className={styles['typing-indicator']}>
+      <span className={styles['typing-dots']}>
         <span></span>
         <span></span>
         <span></span>
       </span>
-      <span className="typing-text">typing...</span>
+      <span className={styles['typing-text']}>typing...</span>
     </div>
   );
 };

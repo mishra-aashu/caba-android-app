@@ -46,3 +46,6 @@ Thumbs.db
 # Firebase
 firebase-debug.log
 firebase-debug.log.*
+
+# Cloudflare Worker
+supabase-worker.js

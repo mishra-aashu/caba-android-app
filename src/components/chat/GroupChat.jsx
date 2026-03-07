@@ -62,7 +62,7 @@ import ImageViewer from './ImageViewer';
 import MediaViewer from '../media/MediaViewer';
 import WallpaperPicker from './WallpaperPicker';
 import GameRoom from './GameRoom';
-import '../../styles/chat.css';
+import styles from '../../styles/chat.module.css';
 
 const GroupChat = () => {
     const { chatId } = useParams();
@@ -517,24 +517,24 @@ const GroupChat = () => {
 
     return (
         <div
-            className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
+            className={`${styles['chat-screen']} ${showGroupInfoDrawer ? styles['drawer-open'] : ''}`}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100%' }}
         >
-            <div className="chat-main-area">
-                <header className="chat-header">
-                    <button className="back-btn" onClick={() => navigate('/')}><ArrowLeft size={20} /></button>
-                    <div className="chat-user-info" onClick={() => isDesktop ? showGroupInfo(chatId, group) : navigate(`/chat/${chatId}/group/info`)}>
-                        <div className="user-avatar">
-                            {group?.avatar ? <img src={group.avatar} alt={group.name} /> : <div className="user-avatar-placeholder">{group?.name?.charAt(0)}</div>}
+            <div className={styles['chat-main-area']}>
+                <header className={styles['chat-header']}>
+                    <button className={styles['back-btn']} onClick={() => navigate('/')}><ArrowLeft size={20} /></button>
+                    <div className={styles['chat-user-info']} onClick={() => isDesktop ? showGroupInfo(chatId, group) : navigate(`/chat/${chatId}/group/info`)}>
+                        <div className={styles['user-avatar']}>
+                            {group?.avatar ? <img src={group.avatar} alt={group.name} /> : <div className={styles['user-avatar-placeholder']}>{group?.name?.charAt(0)}</div>}
                         </div>
-                        <div className="user-details">
-                            <h3 className="user-name">{group?.name}</h3>
-                            <p className="user-status">{group?.member_count} members</p>
+                        <div className={styles['user-details']}>
+                            <h3 className={styles['user-name']}>{group?.name}</h3>
+                            <p className={styles['user-status']}>{group?.member_count} members</p>
                         </div>
                     </div>
-                    <div className="chat-actions">
-                        <button className="icon-btn" onClick={() => setShowGroupCallScreen(true)}><Phone size={20} /></button>
-                        <button className="icon-btn" onClick={() => setShowGroupCallScreen(true)}><Video size={20} /></button>
+                    <div className={styles['chat-actions']}>
+                        <button className={styles['icon-btn']} onClick={() => setShowGroupCallScreen(true)}><Phone size={20} /></button>
+                        <button className={styles['icon-btn']} onClick={() => setShowGroupCallScreen(true)}><Video size={20} /></button>
                         <DropdownMenu items={[
                             { icon: <User size={16} />, label: 'Group Info', onClick: () => isDesktop ? showGroupInfo(chatId, group) : navigate(`/chat/${chatId}/group/info`) },
                             { icon: <Search size={16} />, label: 'Search Messages', onClick: handleSearchMessages },
@@ -560,31 +560,31 @@ const GroupChat = () => {
                 )}
 
                 {!navigator.onLine && connectionStatus === 'connecting' && (
-                    <div className="connection-banner connecting">
-                        <div className="spinner"></div>
+                    <div className={`${styles['connection-banner']} ${styles.connecting}`}>
+                        <div className={styles.spinner}></div>
                         Waiting for network...
                     </div>
                 )}
 
                 {!navigator.onLine && connectionStatus === 'disconnected' && (
-                    <div className="connection-banner disconnected" onClick={retryConnection} style={{ cursor: 'pointer' }}>
+                    <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection} style={{ cursor: 'pointer' }}>
                         Offline. Tap to retry.
                     </div>
                 )}
 
                 {/* Selection Toolbar */}
                 {isSelectionMode && (
-                    <div className="selection-toolbar">
-                        <button className="selection-close-btn" onClick={exitSelectionMode}>
+                    <div className={styles['selection-toolbar']}>
+                        <button className={styles['selection-close-btn']} onClick={exitSelectionMode}>
                             <CloseIcon size={20} />
                         </button>
-                        <div className="selection-info">
+                        <div className={styles['selection-info']}>
                             {selectedMessages.size} selected
                         </div>
-                        <div className="selection-actions">
+                        <div className={styles['selection-actions']}>
                             {selectedMessages.size === 1 && (
                                 <button
-                                    className="selection-action-btn"
+                                    className={styles['selection-action-btn']}
                                     title="Reply"
                                     onClick={() => {
                                         const messageId = Array.from(selectedMessages)[0];
@@ -596,21 +596,21 @@ const GroupChat = () => {
                                     <Reply size={16} />
                                 </button>
                             )}
-                            <button className="selection-action-btn" title="Copy" onClick={handleSelectionCopy}>
+                            <button className={styles['selection-action-btn']} title="Copy" onClick={handleSelectionCopy}>
                                 <Copy size={16} />
                             </button>
-                            <button className="selection-action-btn" title="Forward" onClick={handleSelectionForward}>
+                            <button className={styles['selection-action-btn']} title="Forward" onClick={handleSelectionForward}>
                                 <ArrowRight size={16} />
                             </button>
-                            <button className="selection-action-btn" title="Delete" onClick={handleSelectionDelete}>
+                            <button className={styles['selection-action-btn']} title="Delete" onClick={handleSelectionDelete}>
                                 <Trash2 size={16} />
                             </button>
                         </div>
                     </div>
                 )}
 
-                <div className="messages-container">
-                    {isFetchingNextPage && <div className="load-more-indicator"><div className="loading-spinner"></div></div>}
+                <div className={styles['messages-container']}>
+                    {isFetchingNextPage && <div className={styles['load-more-indicator']}><div className={styles['loading-spinner']}></div></div>}
                     <VirtualizedMessageList
                         ref={messagesContainerRef}
                         messages={messages}
@@ -637,9 +637,9 @@ const GroupChat = () => {
                         onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
                     />
                     {showScrollButton && (
-                        <button className="scroll-bottom-btn" onClick={() => messagesContainerRef.current?.scrollToBottom('smooth')}>
+                        <button className={styles['scroll-bottom-btn']} onClick={() => messagesContainerRef.current?.scrollToBottom('smooth')}>
                             <ArrowDown size={20} />
-                            {unreadCount > 0 && <span className="unread-count">{unreadCount}</span>}
+                            {unreadCount > 0 && <span className={styles['unread-count']}>{unreadCount}</span>}
                         </button>
                     )}
                 </div>
@@ -682,9 +682,9 @@ const GroupChat = () => {
             />
 
             <Modal isOpen={showThemeModal} onClose={() => setShowThemeModal(false)} title="Themes">
-                <div className="theme-grid">
+                <div className={styles['theme-grid']}>
                     {Object.entries(chatThemes).map(([key, t]) => (
-                        <div key={key} className="theme-card" onClick={() => { selectTheme(key); setShowThemeModal(false); }}>
+                        <div key={key} className={styles['theme-card']} onClick={() => { selectTheme(key); setShowThemeModal(false); }}>
                             <span>{t.name}</span>
                         </div>
                     ))}
@@ -709,11 +709,11 @@ const GroupChat = () => {
                 onClose={() => setShowDeleteModal(false)}
                 title="Delete Messages"
             >
-                <div className="delete-confirm-modal">
+                <div className={styles['delete-confirm-modal']}>
                     <p>Are you sure you want to delete {selectedMessages.size} message{selectedMessages.size > 1 ? 's' : ''}?</p>
-                    <div className="modal-actions">
-                        <button className="modal-btn secondary" onClick={() => setShowDeleteModal(false)}>Cancel</button>
-                        <button className="modal-btn danger" onClick={confirmSelectionDelete}>Delete</button>
+                    <div className={styles['modal-actions']}>
+                        <button className={`${styles['modal-btn']} ${styles.secondary}`} onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                        <button className={`${styles['modal-btn']} ${styles.danger}`} onClick={confirmSelectionDelete}>Delete</button>
                     </div>
                 </div>
             </Modal>
@@ -724,40 +724,40 @@ const GroupChat = () => {
                 onClose={() => setShowSearchModal(false)}
                 title="Search Messages"
             >
-                <div className="search-modal-content">
-                    <div className="search-input-container">
+                <div className={styles['search-modal-content']}>
+                    <div className={styles['search-input-container']}>
                         <Search size={18} />
                         <input
                             type="text"
                             placeholder="Search in group..."
-                            className="search-input"
+                            className={styles['search-input']}
                             value={searchQuery}
                             onChange={handleSearchQueryChange}
                             autoFocus
                         />
                     </div>
 
-                    <div className="search-results">
+                    <div className={styles['search-results']}>
                         {isSearching ? (
-                            <div className="search-loading">Searching...</div>
+                            <div className={styles['search-loading']}>Searching...</div>
                         ) : searchResults.length > 0 ? (
                             searchResults.map(result => (
                                 <div
                                     key={result.id}
-                                    className="search-result-item"
+                                    className={styles['search-result-item']}
                                     onClick={() => scrollToMessage(result.id)}
                                 >
-                                    <div className="result-header">
-                                        <span className="result-sender">{result.sender_name || 'Member'}</span>
-                                        <span className="result-time">{new Date(result.created_at).toLocaleDateString()}</span>
+                                    <div className={styles['result-header']}>
+                                        <span className={styles['result-sender']}>{result.sender_name || 'Member'}</span>
+                                        <span className={styles['result-time']}>{new Date(result.created_at).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="result-content">{result.content}</p>
+                                    <p className={styles['result-content']}>{result.content}</p>
                                 </div>
                             ))
                         ) : searchQuery ? (
-                            <div className="no-results">No messages found</div>
+                            <div className={styles['no-results']}>No messages found</div>
                         ) : (
-                            <div className="search-placeholder">Type to search messages</div>
+                            <div className={styles['search-placeholder']}>Type to search messages</div>
                         )}
                     </div>
                 </div>

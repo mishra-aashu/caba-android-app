@@ -4,7 +4,7 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { dpOptions } from '../../utils/dpOptions';
 import { getInitials } from '../../utils/stringUtils';
 import { isUserOnline } from '../../utils/dateFormatter';
-import './ForwardModal.css';
+import styles from './ForwardModal.module.css';
 
 const ForwardModal = ({
   isOpen,
@@ -26,8 +26,8 @@ const ForwardModal = ({
       title={`Forward ${(messagesToForward || []).length} message${(messagesToForward || []).length > 1 ? 's' : ''}`}
       size="medium"
     >
-      <div className="forward-modal-content">
-        <div className="forward-modal-list">
+      <div className={styles['forward-modal-content']}>
+        <div className={styles['forward-modal-list']}>
           {chats && chats.length > 0 ? (
             chats.map(chat => {
               const contact = null; // We'll need to pass savedContacts if we want contact names
@@ -37,15 +37,15 @@ const ForwardModal = ({
                 : (contact?.contact_name || chat.otherUser?.name || 'Unknown');
 
               return (
-                <div key={chat.id} className="forward-modal-item">
-                  <div className="forward-modal-info">
-                    <div className="forward-modal-avatar">
+                <div key={chat.id} className={styles['forward-modal-item']}>
+                  <div className={styles['forward-modal-info']}>
+                    <div className={styles['forward-modal-avatar']}>
                       {isGroup ? (
                         chat.avatar || chat.groupAvatar || chat.avatar_url ? (
                           <img
                             src={chat.avatar || chat.groupAvatar || chat.avatar_url}
                             alt={displayName}
-                            className="forward-modal-avatar-img"
+                            className={styles['forward-modal-avatar-img']}
                           />
                         ) : (
                           <div>{getInitials(displayName)}</div>
@@ -57,30 +57,30 @@ const ForwardModal = ({
                               <img
                                 src={dpOptions.find(dp => dp.id === parseInt(chat.otherUser.avatar))?.path || chat.otherUser.avatar}
                                 alt={displayName}
-                                className="forward-modal-avatar-img"
+                                className={styles['forward-modal-avatar-img']}
                               />
                             ) : (
-                              <img src={chat.otherUser.avatar} alt={displayName} className="forward-modal-avatar-img" />
+                              <img src={chat.otherUser.avatar} alt={displayName} className={styles['forward-modal-avatar-img']} />
                             )
                           ) : (
                             <div>{getInitials(displayName)}</div>
                           )}
-                          <span className={`forward-modal-online-status ${isUserOnline(Boolean(chat.otherUser?.is_online), chat.otherUser?.last_seen) ? 'online' : ''}`}></span>
+                          <span className={`${styles['forward-modal-online-status']} ${isUserOnline(Boolean(chat.otherUser?.is_online), chat.otherUser?.last_seen) ? styles.online : ''}`}></span>
                         </>
                       )}
                     </div>
-                    <div className="forward-modal-details">
-                      <div className="forward-modal-name">
+                    <div className={styles['forward-modal-details']}>
+                      <div className={styles['forward-modal-name']}>
                         {displayName}
-                        {isGroup && <span className="forward-modal-group-badge">Group</span>}
+                        {isGroup && <span className={styles['forward-modal-group-badge']}>Group</span>}
                       </div>
-                      <div className="forward-modal-last-message">
+                      <div className={styles['forward-modal-last-message']}>
                         {chat.last_message || 'No messages yet'}
                       </div>
                     </div>
                   </div>
                   <button
-                    className="forward-modal-btn"
+                    className={styles['forward-modal-btn']}
                     onClick={() => handleForward(chat)}
                     title="Forward message"
                   >
@@ -90,9 +90,9 @@ const ForwardModal = ({
               );
             })
           ) : (
-            <div className="forward-modal-no-chats">
-              <MessageCircle className="forward-modal-no-chats-icon" size={48} />
-              <p className="forward-modal-no-chats-text">No chats available</p>
+            <div className={styles['forward-modal-no-chats']}>
+              <MessageCircle className={styles['forward-modal-no-chats-icon']} size={48} />
+              <p className={styles['forward-modal-no-chats-text']}>No chats available</p>
             </div>
           )}
         </div>

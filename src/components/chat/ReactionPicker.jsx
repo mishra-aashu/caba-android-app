@@ -1,7 +1,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import EmojiRenderer from '../common/EmojiRenderer';
-import './ReactionPicker.css';
+import styles from './ReactionPicker.module.css';
 
 const ReactionPicker = ({ onSelect, onClose, position = { x: 0, y: 0 } }) => {
     const { preferredEmojis, emojiStyle } = useEmojiStyle();
@@ -46,22 +46,20 @@ const ReactionPicker = ({ onSelect, onClose, position = { x: 0, y: 0 } }) => {
 
     return (
         <>
-            <div className="reaction-picker-overlay" onClick={onClose} />
+            <div className={styles['reaction-picker-overlay']} onClick={onClose} />
             <div
                 ref={pickerRef}
-                className="reaction-picker-container"
+                className={`${styles['reaction-picker-container']} ${styles['picker-fixed']}`}
                 style={{
-                    position: 'fixed',
                     left: `${adjustedPos.x}px`,
                     top: `${adjustedPos.y}px`,
                     transform: 'translate(-50%, -100%)',
-                    zIndex: 10001
                 }}
             >
                 {emojisToDisplay.map((emoji) => (
                     <button
                         key={emoji}
-                        className="reaction-option-btn"
+                        className={styles['reaction-option-btn']}
                         onClick={() => {
                             onSelect(emoji);
                             onClose();

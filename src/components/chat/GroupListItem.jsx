@@ -10,6 +10,7 @@ import { fetchMessagesPage } from '../../hooks/useMessages';
 import { getInitials } from '../../utils/stringUtils';
 import { isUserOnline } from '../../utils/dateFormatter';
 import { formatInboxTime } from '../../utils/dateFormatter';
+import styles from '../../styles/ChatListItem.module.css';
 
 const GroupListItem = ({ group, onClick, isActive }) => {
   const queryClient = useQueryClient();
@@ -60,18 +61,18 @@ const GroupListItem = ({ group, onClick, isActive }) => {
 
   return (
     <div
-      className={`chat-item ${isActive ? 'active' : ''} group-item`}
+      className={`${styles['chat-item']} ${isActive ? styles.active : ''} ${styles['group-item']}`}
       onClick={onClick}
       onMouseEnter={handlePrefetch}
       onPointerDown={handlePrefetch}
     >
       {/* Group Avatar */}
-      <div className="chat-avatar-container">
+      <div className={styles['chat-avatar-container']}>
         {group.avatar_url ? (
           <img
             src={group.avatar_url}
             alt={group.name}
-            className="chat-avatar"
+            className={styles['chat-avatar']}
             onError={(e) => {
               e.target.style.display = 'none';
               e.target.nextSibling.style.display = 'flex';
@@ -79,7 +80,7 @@ const GroupListItem = ({ group, onClick, isActive }) => {
           />
         ) : null}
         <div
-          className="avatar-placeholder"
+          className={styles['avatar-placeholder']}
           style={{
             display: group.avatar_url ? 'none' : 'flex',
             background: 'linear-gradient(135deg, #25d366, #128c7e)',
@@ -95,29 +96,29 @@ const GroupListItem = ({ group, onClick, isActive }) => {
 
         {/* Unread Badge on Avatar (Legacy position, but let's keep it functional) */}
         {group.unreadCount > 0 && (
-          <span className="unread-badge" style={{ position: 'absolute', bottom: '-2px', right: '-2px', marginLeft: 0 }}>
+          <span className={styles['unread-badge']} style={{ position: 'absolute', bottom: '-2px', right: '-2px', marginLeft: 0 }}>
             {group.unreadCount}
           </span>
         )}
       </div>
 
       {/* Chat Info */}
-      <div className="chat-info">
-        <div className="chat-header-row">
-          <span className="chat-name">{group.name || 'Unnamed Group'}</span>
-          <span className="chat-time">
+      <div className={styles['chat-info']}>
+        <div className={styles['chat-header-row']}>
+          <span className={styles['chat-name']}>{group.name || 'Unnamed Group'}</span>
+          <span className={styles['chat-time']}>
             {formatInboxTime(group.last_message_time)}
           </span>
         </div>
 
-        <div className="chat-footer-row">
+        <div className={styles['chat-footer-row']}>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
             {/* Show member count for groups */}
-            <span className="member-count-badge" style={{ marginRight: '6px' }}>
+            <span className={styles['member-count-badge']} style={{ marginRight: '6px' }}>
               <Users size={12} style={{ marginRight: '4px' }} />
               {getMemberCountText()}
             </span>
-            <span className="chat-last-message">
+            <span className={styles['chat-last-message']}>
               {getMemberPreview()}
             </span>
           </div>

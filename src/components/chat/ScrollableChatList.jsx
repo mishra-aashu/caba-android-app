@@ -2,6 +2,7 @@ import React from 'react';
 import { MessageCircle, Search, Plus, Users } from 'lucide-react';
 import ChatListItem from './ChatListItem';
 import { isUserOnline } from '../../utils/dateFormatter';
+import styles from '../../styles/ChatListItem.module.css';
 
 const ScrollableChatList = ({
     isDesktop,
@@ -19,35 +20,27 @@ const ScrollableChatList = ({
 }) => {
     return (
         <div
-            className="chat-list-wrapper chat-list-container scrollable-area"
+            className={`${styles['chat-list-container']} ${styles['scrollable-area']}`}
             onScroll={handleChatListScroll}
             ref={chatListRef}
-            style={{
-                flex: 1,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                minHeight: 0,
-                display: 'flex',
-                flexDirection: 'column'
-            }}
         >
             {/* Desktop Groups Sidebar Section */}
             {isDesktop && groupChats.length > 0 && !searchTerm && (
-                <div className="sidebar-groups-section">
-                    <div className="sidebar-section-header">
+                <div className={styles['sidebar-groups-section']}>
+                    <div className={styles['sidebar-section-header']}>
                         <h3>Groups</h3>
-                        <button className="create-group-icon-btn" onClick={() => setShowCreateGroupModal(true)}>
+                        <button className={styles['create-group-icon-btn']} onClick={() => setShowCreateGroupModal(true)}>
                             <Plus size={16} />
                         </button>
                     </div>
-                    <div className="sidebar-groups-list">
+                    <div className={styles['sidebar-groups-list']}>
                         {groupChats.map(group => (
                             <div
                                 key={group.id}
-                                className={`sidebar-group-item ${currentChatId === group.id ? 'active' : ''}`}
+                                className={`${styles['sidebar-group-item']} ${currentChatId === group.id ? styles.active : ''}`}
                                 onClick={() => handleChatClick(group)}
                             >
-                                <div className="sidebar-group-avatar">
+                                <div className={styles['sidebar-group-avatar']}>
                                     {group.avatar ? (
                                         <img
                                             src={group.avatar}
@@ -58,13 +51,13 @@ const ScrollableChatList = ({
                                             }}
                                         />
                                     ) : null}
-                                    <div className="group-avatar-fallback">
+                                    <div className={styles['group-avatar-fallback']}>
                                         <Users size={22} />
                                     </div>
                                 </div>
-                                <div className="sidebar-group-info">
-                                    <span className="sidebar-group-name">{group.name}</span>
-                                    {group.unreadCount > 0 && <span className="unread-dot"></span>}
+                                <div className={styles['sidebar-group-info']}>
+                                    <span className={styles['sidebar-group-name']}>{group.name}</span>
+                                    {group.unreadCount > 0 && <span className={styles['unread-dot']}></span>}
                                 </div>
                             </div>
                         ))}
@@ -73,15 +66,15 @@ const ScrollableChatList = ({
             )}
 
             {/* Main Chat List (DMs on Desktop, Unified on Mobile) */}
-            <div className="chat-items-section" style={{ display: 'flex', flexDirection: 'column' }}>
-                {isDesktop && !searchTerm && <div className="sidebar-section-header"><h3>Messages</h3></div>}
+            <div className={styles['chat-items-section']}>
+                {isDesktop && !searchTerm && <div className={styles['sidebar-section-header']}><h3>Messages</h3></div>}
 
                 {(isDesktop ? dmChats : filteredChats).length > 0 ? (
                     (isDesktop ? dmChats : filteredChats).map(renderChatItem)
                 ) : (
                     !isDesktop && groupChats.length === 0 && (
-                        <div className="empty-state">
-                            <MessageCircle size={48} className="empty-state-icon" />
+                        <div className={styles['empty-state']}>
+                            <MessageCircle size={48} className={styles['empty-state-icon']} />
                             <h3>No conversations yet</h3>
                             <p>Start messaging your contacts</p>
                         </div>
@@ -90,8 +83,8 @@ const ScrollableChatList = ({
 
                 {/* Search results placeholder when searching */}
                 {searchTerm && filteredChats.length === 0 && (
-                    <div className="empty-state">
-                        <Search size={48} className="empty-state-icon" />
+                    <div className={styles['empty-state']}>
+                        <Search size={48} className={styles['empty-state-icon']} />
                         <h3>No results found</h3>
                         <p>Try searching with another name or phone</p>
                     </div>
@@ -99,8 +92,8 @@ const ScrollableChatList = ({
             </div>
 
             {loadingMore && (
-                <div className="load-more-chats">
-                    <div className="loading-spinner"></div>
+                <div className={styles['load-more-chats']}>
+                    <div className={styles['loading-spinner']}></div>
                     <p>Loading more chats...</p>
                 </div>
             )}

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Minimize2, Fullscreen } from 'lucide-react';
 import { getValidAvatarUrl } from '../../utils/avatarUtils';
-import './ImageViewer.css';
+import styles from './ImageViewer.module.css';
 
 const ImageViewer = ({
   isOpen,
@@ -321,7 +321,7 @@ const ImageViewer = ({
       {isOpen && (
         <motion.div
           ref={viewerRef}
-          className="image-viewer-overlay"
+          className={styles['image-viewer-overlay']}
           variants={overlayVariants}
           initial="hidden"
           animate="visible"
@@ -331,7 +331,7 @@ const ImageViewer = ({
         >
           {/* Top Bar - All Actions */}
           <motion.div
-            className="image-viewer-header"
+            className={styles['image-viewer-header']}
             initial={{ y: -80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -339,27 +339,27 @@ const ImageViewer = ({
             style={{ willChange: 'transform, opacity' }}
           >
             {/* Left Side - Sender Info */}
-            <div className="viewer-sender-info">
+            <div className={styles['viewer-sender-info']}>
               {validSenderAvatar ? (
-                <img src={validSenderAvatar} alt={senderName} className="viewer-sender-avatar" />
+                <img src={validSenderAvatar} alt={senderName} className={styles['viewer-sender-avatar']} />
               ) : (
-                <div className="viewer-sender-avatar viewer-sender-avatar-placeholder">
+                <div className={`${styles['viewer-sender-avatar']} ${styles['viewer-sender-avatar-placeholder']}`}>
                   {senderName.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className="viewer-sender-details">
-                <span className="viewer-sender-name">{senderName}</span>
+              <div className={styles['viewer-sender-details']}>
+                <span className={styles['viewer-sender-name']}>{senderName}</span>
                 {messageTime && (
-                  <span className="viewer-message-time">{messageTime}</span>
+                  <span className={styles['viewer-message-time']}>{messageTime}</span>
                 )}
               </div>
             </div>
 
             {/* Right Side - Only Close Button */}
-            <div className="viewer-actions">
+            <div className={styles['viewer-actions']}>
               {/* Close */}
               <motion.button
-                className="viewer-action-btn viewer-close-btn"
+                className={`${styles['viewer-action-btn']} ${styles['viewer-close-btn']}`}
                 variants={buttonVariants}
                 whileHover="hover"
                 whileTap="tap"
@@ -374,7 +374,7 @@ const ImageViewer = ({
           {/* Image Container with GPU acceleration */}
           <div
             ref={imageContainerRef}
-            className="image-viewer-content"
+            className={styles['image-viewer-content']}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
@@ -385,15 +385,15 @@ const ImageViewer = ({
             }}
           >
             {!isImageLoaded && (
-              <div className="image-viewer-loading">
-                <div className="viewer-spinner"></div>
+              <div className={styles['image-viewer-loading']}>
+                <div className={styles['viewer-spinner']}></div>
               </div>
             )}
 
             <motion.img
               src={imageUrl}
               alt="Full screen media"
-              className="viewer-image"
+              className={styles['viewer-image']}
               variants={imageVariants}
               initial="hidden"
               animate="visible"
@@ -417,7 +417,7 @@ const ImageViewer = ({
 
           {/* Bottom Controls - All Action Buttons */}
           <motion.div
-            className="viewer-bottom-controls"
+            className={styles['viewer-bottom-controls']}
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -426,7 +426,7 @@ const ImageViewer = ({
           >
             {/* Zoom Controls */}
             <motion.button
-              className="viewer-action-btn"
+              className={styles['viewer-action-btn']}
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -436,12 +436,12 @@ const ImageViewer = ({
               <ZoomOut size={22} />
             </motion.button>
 
-            <div className="viewer-zoom-level">
+            <div className={styles['viewer-zoom-level']}>
               {Math.round(zoom * 100)}%
             </div>
 
             <motion.button
-              className="viewer-action-btn"
+              className={styles['viewer-action-btn']}
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -453,7 +453,7 @@ const ImageViewer = ({
 
             {/* Rotate */}
             <motion.button
-              className="viewer-action-btn"
+              className={styles['viewer-action-btn']}
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -465,7 +465,7 @@ const ImageViewer = ({
 
             {/* Reset */}
             <motion.button
-              className="viewer-action-btn"
+              className={styles['viewer-action-btn']}
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -477,7 +477,7 @@ const ImageViewer = ({
 
             {/* Share */}
             <motion.button
-              className="viewer-action-btn"
+              className={styles['viewer-action-btn']}
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -489,7 +489,7 @@ const ImageViewer = ({
 
             {/* Download */}
             <motion.button
-              className="viewer-action-btn"
+              className={styles['viewer-action-btn']}
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -501,7 +501,7 @@ const ImageViewer = ({
 
             {/* Fullscreen */}
             <motion.button
-              className="viewer-action-btn"
+              className={styles['viewer-action-btn']}
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"

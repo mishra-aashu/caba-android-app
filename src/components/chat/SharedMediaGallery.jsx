@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 import { useData } from '../../contexts/DataContext';
 import ForwardModal from './ForwardModal';
 import toast from 'react-hot-toast';
-import './SharedMediaGallery.css';
+import styles from './SharedMediaGallery.module.css';
 
 const SharedMediaGallery = () => {
     const { chatId } = useParams();
@@ -165,19 +165,19 @@ const SharedMediaGallery = () => {
 
     return (
         <motion.div
-            className="shared-media-gallery"
+            className={styles['shared-media-gallery']}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
         >
             <motion.header
-                className="gallery-header"
+                className={styles['gallery-header']}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
             >
                 <motion.button
-                    className="back-btn"
+                    className={styles['back-btn']}
                     onClick={() => navigate(-1)}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -186,7 +186,7 @@ const SharedMediaGallery = () => {
                     <ArrowLeft size={22} />
                 </motion.button>
                 <motion.div
-                    className="header-info"
+                    className={styles['header-info']}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.4, delay: 0.1 }}
@@ -198,13 +198,13 @@ const SharedMediaGallery = () => {
 
             {isLoading && messages.length === 0 ? (
                 <motion.div
-                    className="gallery-loading"
+                    className={styles['gallery-loading']}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
                 >
                     <motion.div
-                        className="loading-spinner"
+                        className={styles['loading-spinner']}
                         animate={{ rotate: 360 }}
                         transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
                     />
@@ -218,13 +218,13 @@ const SharedMediaGallery = () => {
                 </motion.div>
             ) : mediaMessages.length === 0 ? (
                 <motion.div
-                    className="gallery-empty"
+                    className={styles['gallery-empty']}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
                 >
                     <motion.div
-                        className="empty-icon"
+                        className={styles['empty-icon']}
                         initial={{ opacity: 0, scale: 0.5 }}
                         animate={{ opacity: 0.6, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.1, type: "spring", stiffness: 200 }}
@@ -248,7 +248,7 @@ const SharedMediaGallery = () => {
                 </motion.div>
             ) : (
                 <motion.div
-                    className="gallery-scroll-area"
+                    className={styles['gallery-scroll-area']}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
@@ -256,13 +256,13 @@ const SharedMediaGallery = () => {
                     {Object.entries(groupedMedia).map(([date, items], sectionIndex) => (
                         <motion.div
                             key={date}
-                            className="gallery-section"
+                            className={styles['gallery-section']}
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.3 + sectionIndex * 0.1 }}
                         >
                             <motion.h2
-                                className="gallery-date-header"
+                                className={styles['gallery-date-header']}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.4, delay: 0.4 + sectionIndex * 0.1 }}
@@ -270,7 +270,7 @@ const SharedMediaGallery = () => {
                                 {date}
                             </motion.h2>
                             <motion.div
-                                className="media-grid"
+                                className={styles['media-grid']}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.4, delay: 0.5 + sectionIndex * 0.1 }}
@@ -278,7 +278,7 @@ const SharedMediaGallery = () => {
                                 {items.map((msg, itemIndex) => (
                                     <motion.div
                                         key={msg.id}
-                                        className="media-tile"
+                                        className={styles['media-tile']}
                                         initial={{ opacity: 0, scale: 0.8, y: 20 }}
                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                         transition={{
@@ -305,12 +305,12 @@ const SharedMediaGallery = () => {
                                                 loading="lazy"
                                             />
                                         ) : (
-                                            <div className="video-tile">
+                                            <div className={styles['video-tile']}>
                                                 <video
                                                     src={resolveMediaUrl(msg.mediaPath || msg.media_path)}
                                                     muted
                                                 />
-                                                <div className="video-overlay">
+                                                <div className={styles['video-overlay']}>
                                                     <Video size={20} color="white" />
                                                 </div>
                                             </div>

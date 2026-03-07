@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { X, Check, Image as ImageIcon, Trash2 } from 'lucide-react';
-import './WallpaperPicker.css';
+import styles from './WallpaperPicker.module.css';
 
 const WallpaperPicker = ({ onClose }) => {
     const { supabase } = useSupabase();
@@ -54,20 +54,20 @@ const WallpaperPicker = ({ onClose }) => {
     };
 
     return (
-        <div className="wallpaper-picker-overlay" onClick={onClose}>
-            <div className="wallpaper-picker-container" onClick={e => e.stopPropagation()}>
-                <div className="wallpaper-picker-header">
+        <div className={styles['wallpaper-picker-overlay']} onClick={onClose}>
+            <div className={styles['wallpaper-picker-container']} onClick={e => e.stopPropagation()}>
+                <div className={styles['wallpaper-picker-header']}>
                     <h3>Chat Wallpaper</h3>
-                    <button className="close-btn" onClick={onClose}>
+                    <button className={styles['close-btn']} onClick={onClose}>
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="wallpaper-categories">
+                <div className={styles['wallpaper-categories']}>
                     {categories.map(cat => (
                         <button
                             key={cat}
-                            className={`category-btn ${activeCategory === cat ? 'active' : ''}`}
+                            className={`${styles['category-btn']} ${activeCategory === cat ? styles.active : ''}`}
                             onClick={() => setActiveCategory(cat)}
                         >
                             {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -75,24 +75,24 @@ const WallpaperPicker = ({ onClose }) => {
                     ))}
                 </div>
 
-                <div className="wallpaper-grid">
+                <div className={styles['wallpaper-grid']}>
                     {/* Default / Remove wallpaper tile */}
                     <div
-                        className={`wallpaper-item default-none ${selectedId === null && !chatWallpaper ? 'selected' : ''}`}
+                        className={`${styles['wallpaper-item']} ${styles['default-none']} ${selectedId === null && !chatWallpaper ? styles.selected : ''}`}
                         onClick={handleRemove}
                     >
-                        <div className="wallpaper-preview none-preview">
+                        <div className={`${styles['wallpaper-preview']} ${styles['none-preview']}`}>
                             <ImageIcon size={24} />
                             <span>Default</span>
                         </div>
                         {selectedId === null && !chatWallpaper && (
-                            <div className="selected-badge"><Check size={14} /></div>
+                            <div className={styles['selected-badge']}><Check size={14} /></div>
                         )}
                     </div>
 
                     {loading ? (
-                        <div className="loading-placeholder">
-                            <div className="loading-spinner" />
+                        <div className={styles['loading-placeholder']}>
+                            <div className={styles['loading-spinner']} />
                             Loading wallpapers...
                         </div>
                     ) : (
@@ -101,26 +101,26 @@ const WallpaperPicker = ({ onClose }) => {
                             return (
                                 <div
                                     key={wp.id}
-                                    className={`wallpaper-item ${isSelected ? 'selected' : ''}`}
+                                    className={`${styles['wallpaper-item']} ${isSelected ? styles.selected : ''}`}
                                     onClick={() => handleSelect(wp)}
                                 >
-                                    <div className="wallpaper-preview">
+                                    <div className={styles['wallpaper-preview']}>
                                         <img src={wp.thumbnail_url || wp.url} alt={wp.name} loading="lazy" />
                                     </div>
                                     {isSelected && (
-                                        <div className="selected-badge">
+                                        <div className={styles['selected-badge']}>
                                             <Check size={14} />
                                         </div>
                                     )}
-                                    <div className="wallpaper-name">{wp.name}</div>
+                                    <div className={styles['wallpaper-name']}>{wp.name}</div>
                                 </div>
                             );
                         })
                     )}
                 </div>
 
-                <div className="wallpaper-picker-footer">
-                    <button className="remove-btn" onClick={handleRemove}>
+                <div className={styles['wallpaper-picker-footer']}>
+                    <button className={styles['remove-btn']} onClick={handleRemove}>
                         <Trash2 size={16} />
                         Reset to Default
                     </button>

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Check, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Send, Check, CheckCheck, Plus, X, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { realtimeManager } from '../utils/realtimeManager';
 import useAuthStore from '../store/authStore';
@@ -14,6 +15,11 @@ const SupportChat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showNewRequest, setShowNewRequest] = useState(false);
+  const [category, setCategory] = useState('general');
+  const [subject, setSubject] = useState('');
+  const [attachment, setAttachment] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const messagesEndRef = useRef(null);
   const mountedRef = useRef(true);
 
@@ -40,6 +46,9 @@ const SupportChat = () => {
           sender: msg.message_type === 'user' ? 'user' : 'support',
           timestamp: new Date(msg.created_at),
           status: msg.is_read ? 'read' : 'sent',
+          category: msg.category,
+          subject: msg.subject,
+          attachment_url: msg.attachment_url,
           dbRow: msg,
         });
 
@@ -134,35 +143,79 @@ const SupportChat = () => {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !currentUser) return;
+    if ((!newMessage.trim() && !showNewRequest) || !currentUser) return;
 
-    const messageText = newMessage.trim();
+    const messageContent = newMessage.trim();
+    const currentCategory = category;
+    const currentSubject = subject;
+    const currentAttachment = attachment;
+
     setNewMessage('');
+    setAttachment(null);
+    if (showNewRequest) {
+      setIsSubmitting(true);
+    }
 
     // Optimistic update
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg = {
       id: tempId,
-      text: messageText,
+      text: messageContent,
       sender: 'user',
       timestamp: new Date(),
       status: 'sending',
+      category: currentCategory,
+      subject: currentSubject,
+      attachment_url: currentAttachment ? URL.createObjectURL(currentAttachment) : null
     };
     setMessages((prev) => [...prev, optimisticMsg]);
 
     try {
+      let attachmentUrl = null;
+      let attachmentType = null;
+
+      if (currentAttachment) {
+        const fileExt = currentAttachment.name.split('.').pop();
+        const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
+        const filePath = `support/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('media')
+          .upload(filePath, currentAttachment);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(filePath);
+
+        attachmentUrl = publicUrl;
+        attachmentType = currentAttachment.type.startsWith('image/') ? 'image' : 'document';
+      }
+
       const { data, error } = await supabase
         .from('support_messages')
         .insert({
           user_id: currentUser.id,
-          message: messageText,
+          message: messageContent,
           message_type: 'user',
           is_read: false,
+          category: currentCategory,
+          subject: currentSubject,
+          status: 'open',
+          attachment_url: attachmentUrl,
+          attachment_type: attachmentType
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      if (showNewRequest) {
+        setShowNewRequest(false);
+        setSubject('');
+        setCategory('general');
+      }
 
       // Replace optimistic message with real one
       setMessages((prev) =>
@@ -171,11 +224,15 @@ const SupportChat = () => {
             ? { ...msg, id: data.id, status: 'sent', dbRow: data }
             : msg
         )
-      );
+      )
     } catch (error) {
       console.error('Error sending support message:', error);
       // Rollback optimistic update
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+    } finally {
+      if (showNewRequest) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -196,18 +253,22 @@ const SupportChat = () => {
         <header className="support-chat-header">
           <div className="header-left">
             <button className="back-btn" onClick={() => navigate('/')}>
-              <ArrowLeft size={24} />
+              <ArrowLeft size={20} />
             </button>
           </div>
           <div className="header-center">
             <div className="support-info">
-              <h3>CaBa Support</h3>
+              <h3>Support Center</h3>
               <span className="support-status">Loading...</span>
             </div>
           </div>
         </header>
         <div className="support-messages" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p>Loading messages...</p>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            style={{ width: 30, height: 30, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#38bdf8', borderRadius: '50%' }}
+          />
         </div>
       </div>
     );
@@ -219,7 +280,7 @@ const SupportChat = () => {
       <header className="support-chat-header">
         <div className="header-left">
           <button className="back-btn" onClick={() => navigate('/')}>
-            <ArrowLeft size={24} />
+            <ArrowLeft size={20} />
           </button>
         </div>
         <div className="header-center">
@@ -232,9 +293,14 @@ const SupportChat = () => {
           </div>
         </div>
         <div className="header-right">
-          <span className="support-verified">
-            <CheckCheck size={16} />
-          </span>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="new-request-btn"
+            onClick={() => setShowNewRequest(true)}
+          >
+            <Plus size={16} /> New Request
+          </motion.button>
         </div>
       </header>
 
@@ -242,12 +308,22 @@ const SupportChat = () => {
       <div className="support-messages">
         <div className="messages-list">
           {messages.map((message) => (
-            <div
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               key={message.id}
               className={`message-item ${message.sender === 'user' ? 'user-message' : 'support-message'}`}
             >
               <div className="message-content">
+                {message.subject && <div className="message-subject">Re: {message.subject}</div>}
+                {message.category && <div className="message-category">#{message.category}</div>}
                 <p>{message.text}</p>
+                {message.attachment_url && (
+                  <div className="message-attachment">
+                    <img src={message.attachment_url} alt="Attachment" />
+                  </div>
+                )}
                 <div className="message-footer">
                   <span className="message-time">{formatTime(message.timestamp)}</span>
                   {message.sender === 'user' && (
@@ -263,7 +339,7 @@ const SupportChat = () => {
                   )}
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
           <div ref={messagesEndRef} />
         </div>
@@ -274,21 +350,118 @@ const SupportChat = () => {
         <div className="input-container">
           <input
             type="text"
-            placeholder="Type your message..."
+            placeholder="How can we help?"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             className="message-input"
           />
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             className="send-btn"
             onClick={handleSendMessage}
             disabled={!newMessage.trim()}
           >
-            <Send size={20} />
-          </button>
+            <Send size={18} />
+          </motion.button>
         </div>
       </div>
+
+      {/* New Request Modal */}
+      <AnimatePresence>
+        {showNewRequest && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="new-request-overlay"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="new-request-modal"
+            >
+              <header className="modal-header">
+                <h3>Submit New Feedback</h3>
+                <button className="close-btn" onClick={() => setShowNewRequest(false)}>
+                  <X size={20} />
+                </button>
+              </header>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Subject</label>
+                  <input
+                    type="text"
+                    placeholder="Brief summary..."
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Category</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                    <option value="general">General Inquiry</option>
+                    <option value="technical">Technical Issue</option>
+                    <option value="billing">Billing/Payment</option>
+                    <option value="bug">Report a Bug</option>
+                    <option value="suggestion">Feature Suggestion</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Message</label>
+                  <textarea
+                    placeholder="Tell us what happened..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Attachment</label>
+                  <div className="file-upload-container">
+                    <input
+                      type="file"
+                      id="support-file"
+                      accept="image/*"
+                      onChange={(e) => setAttachment(e.target.files[0])}
+                      style={{ display: 'none' }}
+                    />
+                    <label htmlFor="support-file" className="file-upload-label" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <ImageIcon size={18} />
+                      {attachment ? attachment.name : 'Click to upload screenshot'}
+                    </label>
+                    {attachment && (
+                      <button className="clear-attachment" onClick={() => setAttachment(null)} style={{ border: 'none', background: 'transparent', color: '#ef4444', marginTop: '8px', cursor: 'pointer' }}>Remove</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <footer className="modal-footer">
+                <button
+                  className="cancel-btn"
+                  onClick={() => setShowNewRequest(false)}
+                  disabled={isSubmitting}
+                  style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="submit-btn"
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || !subject.trim() || isSubmitting}
+                  style={{ border: 'none', color: 'white', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  {isSubmitting ? 'Sending...' : 'Send Request'}
+                </motion.button>
+              </footer>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

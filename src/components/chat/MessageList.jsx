@@ -1,5 +1,6 @@
 import React from 'react';
 import MessageItem from './MessageItem';
+import styles from '../../styles/chat.module.css';
 
 const MessageList = ({
   messages,
@@ -43,23 +44,23 @@ const MessageList = ({
   if (!messages || messages.length === 0) {
     if (isLoading) {
       return (
-        <div className="messages-wrapper">
-          <div className="skeleton-messages">
-            <div className="skeleton-message received"></div>
-            <div className="skeleton-message sent"></div>
-            <div className="skeleton-message received"></div>
-            <div className="skeleton-message sent"></div>
-            <div className="skeleton-message received"></div>
-            <div className="skeleton-message sent"></div>
+        <div className={styles['messages-wrapper']}>
+          <div className={styles['skeleton-messages']}>
+            <div className={`${styles['skeleton-message']} ${styles.received}`}></div>
+            <div className={`${styles['skeleton-message']} ${styles.sent}`}></div>
+            <div className={`${styles['skeleton-message']} ${styles.received}`}></div>
+            <div className={`${styles['skeleton-message']} ${styles.sent}`}></div>
+            <div className={`${styles['skeleton-message']} ${styles.received}`}></div>
+            <div className={`${styles['skeleton-message']} ${styles.sent}`}></div>
           </div>
         </div>
       );
     }
     return (
-      <div className="messages-wrapper">
-        <div className="no-messages-placeholder">
-          <div className="no-messages-content">
-            <div className="no-messages-icon">💬</div>
+      <div className={styles['messages-wrapper']}>
+        <div className={styles['no-messages-placeholder']}>
+          <div className={styles['no-messages-content']}>
+            <div className={styles['no-messages-icon']}>💬</div>
             <h3>No messages yet</h3>
             <p>Start the conversation by sending a message!</p>
           </div>
@@ -69,11 +70,11 @@ const MessageList = ({
   }
 
   return (
-    <div className="messages-wrapper">
+    <div className={styles['messages-wrapper']}>
       {Object.entries(groupedMessages).map(([dateKey, dateMessages], groupIdx) => (
         <React.Fragment key={`group-${dateKey}-${groupIdx}`}>
-          <div className="date-separator">
-            <div className="date-pill">
+          <div className={styles['date-separator']}>
+            <div className={styles['date-pill']}>
               {new Date(dateMessages[0].created_at ?? dateMessages[0].createdAt).toLocaleDateString()}
             </div>
           </div>

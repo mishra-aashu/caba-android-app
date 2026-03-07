@@ -2,38 +2,40 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;0,900;1,400;1,600;1,800;1,900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 /* ─── Variables ────────────────────────────────────────── */
-:root {
-    --lp-bg: #050a0e;
-    --lp-bg-2: #0b141a;
-    --lp-bg-3: #111b21;
-    --lp-bg-card: rgba(255, 255, 255, 0.03);
-    --lp-bg-card-hover: rgba(255, 255, 255, 0.06);
-    --lp-text: #e9edef;
-    --lp-text-dim: #94a3b8;
-    --lp-text-muted: #64748b;
-    --lp-accent: #00a884;
-    --lp-accent-light: #25d366;
-    --lp-accent-glow: rgba(0, 168, 132, 0.25);
-    --lp-border: rgba(255, 255, 255, 0.08);
-    --lp-border-hover: rgba(255, 255, 255, 0.15);
-    --lp-gradient: linear-gradient(135deg, #00a884 0%, #005c4b 100%);
-    --lp-max-width: 1200px;
-    --lp-section-pad: 120px 24px;
-    --lp-nav-height: 64px;
-}
+:global {
+    :root {
+        --lp-bg: #050a0e;
+        --lp-bg-2: #0b141a;
+        --lp-bg-3: #111b21;
+        --lp-bg-card: rgba(255, 255, 255, 0.03);
+        --lp-bg-card-hover: rgba(255, 255, 255, 0.06);
+        --lp-text: #e9edef;
+        --lp-text-dim: #94a3b8;
+        --lp-text-muted: #64748b;
+        --lp-accent: #00a884;
+        --lp-accent-light: #25d366;
+        --lp-accent-glow: rgba(0, 168, 132, 0.25);
+        --lp-border: rgba(255, 255, 255, 0.08);
+        --lp-border-hover: rgba(255, 255, 255, 0.15);
+        --lp-gradient: linear-gradient(135deg, #00a884 0%, #005c4b 100%);
+        --lp-max-width: 1200px;
+        --lp-section-pad: 120px 24px;
+        --lp-nav-height: 64px;
+    }
 
-[data-theme='light'] {
-    --lp-bg: #f8fafc;
-    --lp-bg-2: #f1f5f9;
-    --lp-bg-3: #e2e8f0;
-    --lp-bg-card: rgba(0, 0, 0, 0.03);
-    --lp-bg-card-hover: rgba(0, 0, 0, 0.06);
-    --lp-text: #0f172a;
-    --lp-text-dim: #475569;
-    --lp-text-muted: #94a3b8;
-    --lp-border: rgba(0, 0, 0, 0.08);
-    --lp-border-hover: rgba(0, 0, 0, 0.15);
-    --lp-accent-glow: rgba(0, 168, 132, 0.15);
+    [data-theme='light'] {
+        --lp-bg: #f8fafc;
+        --lp-bg-2: #f1f5f9;
+        --lp-bg-3: #e2e8f0;
+        --lp-bg-card: rgba(0, 0, 0, 0.03);
+        --lp-bg-card-hover: rgba(0, 0, 0, 0.06);
+        --lp-text: #0f172a;
+        --lp-text-dim: #475569;
+        --lp-text-muted: #94a3b8;
+        --lp-border: rgba(0, 0, 0, 0.08);
+        --lp-border-hover: rgba(0, 0, 0, 0.15);
+        --lp-accent-glow: rgba(0, 168, 132, 0.15);
+    }
 }
 
 /* ─── Theme Toggle Button ─── */

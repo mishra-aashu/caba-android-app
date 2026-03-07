@@ -26,6 +26,7 @@ import { isUserOnline } from '../utils/dateFormatter';
 import CreateGroupModal from './groups/CreateGroupModal';
 import { useGroupActions } from '../hooks/useGroupActions';
 import ScrollableChatList from './chat/ScrollableChatList';
+import styles from '../styles/ChatListItem.module.css';
 
 const ChatListPanel = ({
   searchTerm,
@@ -150,28 +151,28 @@ const ChatListPanel = ({
   };
 
   return (
-    <main className="chat-list-panel-content">
-      <header className="top-header">
-        <div className="header-left">
-          <h1 className="chats-title">Chats</h1>
+    <main className={styles['chat-list-panel-content']}>
+      <header className={styles['top-header']}>
+        <div className={styles['header-left']}>
+          <h1 className={styles['chats-title']}>Chats</h1>
         </div>
-        <div className="header-right">
+        <div className={styles['header-right']}>
           <button
-            className="icon-btn"
+            className={styles['icon-btn']}
             onClick={() => setShowCreateGroupModal(true)}
             title="Create Group"
           >
             <Users size={20} />
           </button>
           <button
-            className="icon-btn"
+            className={styles['icon-btn']}
             onClick={() => setShowNewContactModal(true)}
             title="Contacts"
           >
             <User size={20} />
           </button>
           <button
-            className="icon-btn"
+            className={styles['icon-btn']}
             onClick={() => setShowSearch(!showSearch)}
             title="Search"
           >
@@ -183,8 +184,8 @@ const ChatListPanel = ({
       </header>
 
       {showSearch && (
-        <div className="search-bar">
-          <Search size={16} className="search-input-icon" />
+        <div className={styles['search-bar']}>
+          <Search size={16} className={styles['search-input-icon']} />
           <input
             type="text"
             placeholder="Search by phone number..."
@@ -193,7 +194,7 @@ const ChatListPanel = ({
             autoFocus
           />
           <button
-            className="close-search"
+            className={styles['close-search']}
             onClick={() => {
               setShowSearch(false);
               setSearchTerm('');
@@ -207,25 +208,25 @@ const ChatListPanel = ({
       )}
 
       {showSearch && showSuggestions && searchSuggestions.length > 0 && (
-        <div className="search-suggestions">
+        <div className={styles['search-suggestions']}>
           {searchSuggestions.map(user => (
             <div
               key={user.id}
-              className="search-suggestion-item"
+              className={styles['search-suggestion-item']}
               onClick={() => handleSuggestionClick(user)}
             >
-              <div className="suggestion-avatar">
+              <div className={styles['suggestion-avatar']}>
                 <img
                   src={user.avatar && parseInt(user.avatar)
                     ? dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path
                     : (user.avatar || "https://ionicframework.com/docs/img/demos/avatar.svg")}
                   alt={user.name}
                 />
-                <span className={`online-status ${isUserOnline(Boolean(user.is_online), user.last_seen) ? 'online' : ''}`}></span>
+                <span className={`${styles['online-status']} ${isUserOnline(Boolean(user.is_online), user.last_seen) ? styles.online : ''}`}></span>
               </div>
-              <div className="suggestion-info">
-                <div className="suggestion-name">{user.name}</div>
-                <div className="suggestion-phone">{user.phone}</div>
+              <div className={styles['suggestion-info']}>
+                <div className={styles['suggestion-name']}>{user.name}</div>
+                <div className={styles['suggestion-phone']}>{user.phone}</div>
               </div>
             </div>
           ))}

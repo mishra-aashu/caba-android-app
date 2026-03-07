@@ -2,11 +2,11 @@ import React, { memo, useState, useEffect, useMemo } from 'react';
 // Removed framer-motion for uniform scrolling
 import EmojiRenderer from '../common/EmojiRenderer';
 import { isOnlyEmoji } from '../../utils/emojiUtils';
-import './MessageBubble.css';
+import styles from './MessageBubble.module.css';
 
 // Icon for deleted messages
 const BlockIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: '5px', verticalAlign: 'middle', opacity: 0.7 }}>
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" className={styles['deleted-icon']}>
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-4.41 3.59-8 8-8 4.41 0 8 3.59 8 8 0 4.41-3.59 8-8 8zm3.88-11.71L10.7 13.47l-1.59-1.59L7.7 13.3l4.59 4.59 6.6-6.6-1.42-1.42zM12 4c-1.86 0-3.57.65-4.93 1.74l9.67 9.67C17.91 13.88 18.5 12.02 18.5 10c0-4.41-3.59-8-8-8zM5.26 8.26C4.48 9.38 4 10.63 4 12c0 4.41 3.59 8 8 8 1.37 0 2.62-.48 3.74-1.26L5.26 8.26z"></path>
     <path fill="none" d="M0 0h24v24H0z"></path>
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
@@ -16,7 +16,7 @@ const BlockIcon = () => (
 
 // Spy icon for anonymous messages
 const SpyIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style={{ marginRight: '4px' }}>
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" className={styles['spy-icon']}>
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.41 0 8 3.59 8 8 0 1.85-.63 3.55-1.69 4.9z" />
     <circle cx="12" cy="10" r="3" />
     <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
@@ -25,7 +25,7 @@ const SpyIcon = () => (
 
 // Lock icon for time capsule
 const LockIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: '4px' }}>
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" className={styles['lock-icon']}>
     <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
   </svg>
 );
@@ -122,17 +122,17 @@ const MessageBubble = memo(({
 
   return (
     <div
-      className={`message-container ${isMine ? 'mine' : 'theirs'} ${isAnonymous ? 'anonymous' : ''} ${isLocked ? 'locked' : ''} ${isJumboEmoji ? 'jumbo-emoji' : ''}`}
+      className={`${styles['message-container']} ${isMine ? styles.mine : styles.theirs} ${isAnonymous ? styles.anonymous : ''} ${isLocked ? styles.locked : ''} ${isJumboEmoji ? styles['jumbo-emoji'] : ''}`}
     >
       {/* Bubble Box */}
-      <div className={`bubble caba-bubble ${isMine ? 'bubble-sent caba-bubble--sent' : 'bubble-received caba-bubble--received'} ${isJumboEmoji ? 'jumbo-emoji-bubble' : ''}`}>
+      <div className={`${styles.bubble} ${styles['caba-bubble']} ${isMine ? `${styles['bubble-sent']} ${styles['caba-bubble--sent']}` : `${styles['bubble-received']} ${styles['caba-bubble--received']}`} ${isJumboEmoji ? styles['jumbo-emoji-bubble'] : ''}`}>
         {/* Anonymous sender info inside bubble (Only for truly anonymous messages) */}
         {!isMine && isAnonymous && (
-          <div className="sender-info">
-            <div className="sender-avatar">
+          <div className={styles['sender-info']}>
+            <div className={styles['sender-avatar']}>
               {avatar}
             </div>
-            <span className="sender-name anonymous-name">
+            <span className={`${styles['sender-name']} ${styles['anonymous-name']}`}>
               {senderName}
             </span>
           </div>
@@ -140,16 +140,16 @@ const MessageBubble = memo(({
 
         {/* Time Capsule Lock */}
         {isLocked && (
-          <div className="time-capsule-locked">
+          <div className={styles['time-capsule-locked']}>
             <LockIcon />
-            <span className="lock-text">{unlockCountdown || 'Locked'}</span>
+            <span className={styles['lock-text']}>{unlockCountdown || 'Locked'}</span>
           </div>
         )}
 
         {/* Reply Block */}
         {repliedMsg && !isLocked && repliedMsg.id && (
           <div
-            className="reply-quote-container"
+            className={styles['reply-quote-container']}
             onClick={() => {
               if (repliedMsg?.id) {
                 const element = document.getElementById(`message-${repliedMsg.id}`);
@@ -161,11 +161,11 @@ const MessageBubble = memo(({
               }
             }}
           >
-            <div className="reply-quote-content">
-              <span className="reply-quote-user">
+            <div className={styles['reply-quote-content']}>
+              <span className={styles['reply-quote-user']}>
                 {(repliedMsg.senderId || repliedMsg.sender_id) === currentUserId ? "You" : "User"}
               </span>
-              <p className="reply-quote-text">
+              <p className={styles['reply-quote-text']}>
                 {(repliedMsg.mediaType || repliedMsg.media_type) === 'image' || (repliedMsg.messageType || repliedMsg.message_type) === 'image'
                   ? <EmojiRenderer text="📷 Photo" />
                   : (repliedMsg.mediaType === 'voice' || repliedMsg.media_type === 'voice' || repliedMsg.mediaType === 'audio' || repliedMsg.media_type === 'audio' || repliedMsg.messageType === 'audio' || repliedMsg.message_type === 'audio')
@@ -177,9 +177,9 @@ const MessageBubble = memo(({
         )}
 
         {/* Actual Message Content */}
-        <div className="message-content">
+        <div className={styles['message-content']}>
           {/* Text Area */}
-          <span className={`text ${isDeleted ? 'deleted-text' : ''} ${isLocked ? 'blurred' : ''} ${isJumboEmoji ? 'jumbo-emoji-text' : ''}`}>
+          <span className={`${styles.text} ${isDeleted ? styles['deleted-text'] : ''} ${isLocked ? styles.blurred : ''} ${isJumboEmoji ? styles['jumbo-emoji-text'] : ''}`}>
             {isDeleted && <BlockIcon />}
             {isLocked ? <LockIcon /> : null}
             <EmojiRenderer
@@ -190,7 +190,7 @@ const MessageBubble = memo(({
 
           {/* Reactions Display */}
           {message?.metadata && Object.keys(message.metadata).length > 0 && (
-            <div className="message-reactions">
+            <div className={styles['message-reactions']}>
               {Object.entries(
                 Object.values(message.metadata).reduce((acc, emoji) => {
                   acc[emoji] = (acc[emoji] || 0) + 1;
@@ -207,7 +207,7 @@ const MessageBubble = memo(({
                 return (
                   <div
                     key={emoji}
-                    className={`reaction-badge ${isMyReaction ? 'user-reacted' : ''}`}
+                    className={`${styles['reaction-badge']} ${isMyReaction ? styles['user-reacted'] : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       // Toggling via badge
@@ -217,7 +217,7 @@ const MessageBubble = memo(({
                     }}
                   >
                     <EmojiRenderer text={emoji} />
-                    {count > 1 && <span className="reaction-count">{count}</span>}
+                    {count > 1 && <span className={styles['reaction-count']}>{count}</span>}
                   </div>
                 );
               })}
@@ -225,14 +225,14 @@ const MessageBubble = memo(({
           )}
 
           {/* Time Area */}
-          <span className="timestamp">
+          <span className={styles.timestamp}>
             {isTimeCapsule && !isLocked && '⏰ '}
             {time}
-            {isEdited && <span className="edited-indicator">edited</span>}
+            {isEdited && <span className={styles['edited-indicator']}>edited</span>}
             {isMine && (
-              <span className={`tick tick-icon ${status === 'read' ? 'read' : ''}`}>
+              <span className={`${styles.tick} ${styles['tick-icon']} ${status === 'read' ? styles.read : ''}`}>
                 {status === 'pending' ? (
-                  <span className="pending-indicator">🕒</span>
+                  <span className={styles['pending-indicator']}>🕒</span>
                 ) : (
                   status === 'read' || status === 'delivered' ? '✓✓' : '✓'
                 )}

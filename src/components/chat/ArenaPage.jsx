@@ -5,7 +5,7 @@ import { useTruthDareGame } from '../../hooks/useTruthDareGame';
 import GameRoom from './GameRoom';
 import TruthDareGame from './TruthDareGame';
 import { ArrowLeft, Gamepad2 } from 'lucide-react';
-import './GameRoom.css';
+import styles from './GameRoom.module.css';
 
 const ArenaPage = () => {
     const { chatId, otherUserId } = useParams();
@@ -57,33 +57,33 @@ const ArenaPage = () => {
     const isGameActive = gameState && gameState.stage !== 'idle';
 
     return (
-        <div className="arena-page-container">
+        <div className={styles['arena-page-container']}>
             {/* Premium Navbar */}
-            <nav className="arena-navbar">
+            <nav className={styles['arena-navbar']}>
                 <button
                     onClick={handleBack}
-                    className="back-btn"
+                    className={styles['back-btn']}
                 >
                     <ArrowLeft size={20} />
                     <span>Back</span>
                 </button>
 
-                <div className="arena-logo">
-                    <div className="logo-icon">
-                        <Gamepad2 size={24} className="text-white" />
+                <div className={styles['arena-logo']}>
+                    <div className={styles['logo-icon']}>
+                        <Gamepad2 size={24} className={styles['text-white']} />
                     </div>
-                    <div className="logo-text">
+                    <div className={styles['logo-text']}>
                         <h1>BATTLE ARENA</h1>
                         <span>Live Battle</span>
                     </div>
                 </div>
 
-                <div className="spacer" style={{ width: '40px' }} />
+                <div className={styles['navbar-spacer']} />
             </nav>
 
-            <main className="arena-main custom-scrollbar">
+            <main className={`${styles['arena-main']} ${styles['custom-scrollbar']}`}>
                 {view === 'lobby' ? (
-                    <div className="game-container-wide">
+                    <div className={styles['game-container-wide']}>
                         <GameRoom
                             chatId={chatId}
                             otherUserId={otherUserId}
@@ -92,17 +92,17 @@ const ArenaPage = () => {
                         />
                     </div>
                 ) : (
-                    <div className="game-container-wide">
-                        <div className="game-actions-row" style={{ marginBottom: '1.5rem', display: 'flex' }}>
+                    <div className={styles['game-container-wide']}>
+                        <div className={styles['game-actions-row']}>
                             <button
                                 onClick={() => closeGame()}
-                                className="abandon-btn"
+                                className={styles['abandon-btn']}
                             >
                                 Abandon Battle ×
                             </button>
                         </div>
 
-                        <div className="game-content-area">
+                        <div className={styles['game-content-area']}>
                             <TruthDareGame
                                 gameState={gameState}
                                 userId={dbUser?.id}
@@ -124,8 +124,8 @@ const ArenaPage = () => {
             </main>
 
             {/* Decorative Background Glows */}
-            <div className="absolute -top-40 -left-40 w-80 h-80 bg-pink-500/5 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-violet-600/5 rounded-full blur-[100px] pointer-events-none" />
+            <div className={styles['deco-glow-top']} />
+            <div className={styles['deco-glow-bottom']} />
         </div>
     );
 };

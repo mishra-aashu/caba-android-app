@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { FaGoogle, FaCheckCircle, FaInfoCircle } from 'react-icons/fa';
-import '../../styles/LoginPage.css'; // Correctly import the dedicated CSS file
+import styles from '../../styles/LoginPage.module.css'; // Correctly import the dedicated CSS module
 
 const Login = () => {
   const { signInWithGoogle, isServerUnreachable, clearServerError } = useAuthStore();
@@ -47,59 +47,59 @@ const Login = () => {
   };
 
   return (
-    <div className="art-login-container gpu-max">
+    <div className={`${styles['art-login-container']} ${styles['gpu-max']}`}>
 
       {/* About Button - Top Right */}
-      <button className="about-btn-top-right" onClick={handleAboutClick} title="About">
+      <button className={styles['about-btn-top-right']} onClick={handleAboutClick} title="About">
         <FaInfoCircle />
       </button>
 
       {/* Background Ambience (Painting Effects) - GPU Accelerated */}
-      <div className="ambient-glow glow-1 gpu-accelerated"></div>
-      <div className="ambient-glow glow-2 gpu-accelerated"></div>
-      <div className="noise-overlay gpu-accelerated"></div>
+      <div className={`${styles['ambient-glow']} ${styles['glow-1']} ${styles['gpu-accelerated']}`}></div>
+      <div className={`${styles['ambient-glow']} ${styles['glow-2']} ${styles['gpu-accelerated']}`}></div>
+      <div className={`${styles['noise-overlay']} ${styles['gpu-accelerated']}`}></div>
 
-      <div className="art-content">
+      <div className={styles['art-content']}>
 
         {/* --- LEFT SIDE: The Art/Story --- */}
-        <div className="art-hero-section gpu-accelerated">
-          <div className="brand-badge gpu-accelerated">CaBa Messenger</div>
-          <h1 className="art-hero-headline gpu-accelerated">
+        <div className={`${styles['art-hero-section']} ${styles['gpu-accelerated']}`}>
+          <div className={`${styles['brand-badge']} ${styles['gpu-accelerated']}`}>CaBa Messenger</div>
+          <h1 className={`${styles['art-hero-headline']} ${styles['gpu-accelerated']}`}>
             The Art of <br />
-            <span className="italic-text gpu-accelerated">Conversation.</span>
+            <span className={`${styles['italic-text']} ${styles['gpu-accelerated']}`}>Conversation.</span>
           </h1>
-          <p className="art-desc gpu-accelerated">
+          <p className={`${styles['art-desc']} ${styles['gpu-accelerated']}`}>
             Experience messaging that feels as authentic as a handwritten letter.
             Secure, simple, and beautifully designed for you.
           </p>
 
-          <div className="art-features gpu-accelerated">
-            <div className="feat-item gpu-accelerated"><FaCheckCircle /> Private by default</div>
-            <div className="feat-item gpu-accelerated"><FaCheckCircle /> Infinite history</div>
+          <div className={`${styles['art-features']} ${styles['gpu-accelerated']}`}>
+            <div className={`${styles['feat-item']} ${styles['gpu-accelerated']}`}><FaCheckCircle /> Private by default</div>
+            <div className={`${styles['feat-item']} ${styles['gpu-accelerated']}`}><FaCheckCircle /> Infinite history</div>
           </div>
         </div>
 
         {/* --- RIGHT SIDE: The Login Paper --- */}
-        <div className="login-wrapper gpu-accelerated">
-          <div className="paper-card gpu-accelerated">
-            <div className="card-texture"></div> {/* Paper Grain */}
+        <div className={`${styles['login-wrapper']} ${styles['gpu-accelerated']}`}>
+          <div className={`${styles['paper-card']} ${styles['gpu-accelerated']}`}>
+            <div className={styles['card-texture']}></div> {/* Paper Grain */}
 
-            <div className="card-header">
+            <div className={styles['card-header']}>
               <h2>Welcome Back</h2>
               <p>Sign in to continue your story</p>
             </div>
 
             {isServerUnreachable && (
-              <div className="error-message server-error-banner">
+              <div className={`${styles['error-message']} ${styles['server-error-banner']}`}>
                 <FaInfoCircle /> facing some issue with the server, try after sometime!!!
               </div>
             )}
 
-            {error && <div className="error-message">{error}</div>}
+            {error && <div className={styles['error-message']}>{error}</div>}
 
-            <button className="google-art-btn gpu-accelerated" onClick={handleGoogleLogin} disabled={loading || !agreed}>
+            <button className={`${styles['google-art-btn']} ${styles['gpu-accelerated']}`} onClick={handleGoogleLogin} disabled={loading || !agreed}>
               {loading ? (
-                <div className="spinner"></div>
+                <div className={styles.spinner}></div>
               ) : (
                 <>
                   <FaGoogle className="icon" />
@@ -108,11 +108,11 @@ const Login = () => {
               )}
             </button>
 
-            <div className="card-footer">
-              <label className="checkbox-container">
+            <div className={styles['card-footer']}>
+              <label className={styles['checkbox-container']}>
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-                <span className="checkmark"></span>
-                I accept the <a href="/terms" onClick={handleTermsClick} className="link">Terms</a> & <a href="/privacy" onClick={handlePrivacyClick} className="link">Privacy</a>
+                <span className={styles.checkmark}></span>
+                I accept the <a href="/terms" onClick={handleTermsClick} className={styles.link}>Terms</a> & <a href="/privacy" onClick={handlePrivacyClick} className={styles.link}>Privacy</a>
               </label>
             </div>
           </div>

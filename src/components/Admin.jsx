@@ -1744,7 +1744,14 @@ const Admin = () => {
                                 {new Date(conv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
-                            <div className="conv-last-msg">{conv.lastMessage}</div>
+                            {conv.lastSubject && <div className="conv-subject">Re: {conv.lastSubject}</div>}
+                            <div className="conv-last-msg">
+                              {conv.lastCategory && <span className="category-tag">{conv.lastCategory}</span>}
+                              {conv.lastMessage}
+                            </div>
+                            <div className={`conv-status ${conv.threadStatus || 'open'}`}>
+                              {conv.threadStatus || 'open'}
+                            </div>
                           </div>
                           {conv.unreadCount > 0 && (
                             <span className="unread-badge">{conv.unreadCount}</span>
@@ -1771,9 +1778,35 @@ const Admin = () => {
                             <small>{selectedSupportUser.userEmail || selectedSupportUser.userPhone}</small>
                           </div>
                         </div>
-                        <button className="btn-secondary small" onClick={() => setSelectedSupportUser(null)}>
-                          <X size={16} /> Close
-                        </button>
+                        <div className="header-actions">
+                          <button
+                            className={`btn-secondary small ${selectedSupportUser.threadStatus === 'resolved' ? 'success' : ''}`}
+                            onClick={async () => {
+                              if (await showConfirm(`Mark this conversation as ${selectedSupportUser.threadStatus === 'resolved' ? 'Open' : 'Resolved'}?`)) {
+                                try {
+                                  const nextStatus = selectedSupportUser.threadStatus === 'resolved' ? 'open' : 'resolved';
+                                  const { error } = await supabase
+                                    .from('support_messages')
+                                    .update({ status: nextStatus })
+                                    .eq('user_id', selectedSupportUser.userId);
+
+                                  if (error) throw error;
+                                  toast.success(`Marked as ${nextStatus}`);
+                                  loadSupportConversations();
+                                  setSelectedSupportUser(prev => ({ ...prev, threadStatus: nextStatus }));
+                                } catch (err) {
+                                  toast.error('Failed to update status');
+                                }
+                              }
+                            }}
+                          >
+                            {selectedSupportUser.threadStatus === 'resolved' ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                            {selectedSupportUser.threadStatus === 'resolved' ? 'Resolved' : 'Mark Resolved'}
+                          </button>
+                          <button className="btn-secondary small" onClick={() => setSelectedSupportUser(null)}>
+                            <X size={16} /> Close
+                          </button>
+                        </div>
                       </div>
 
                       <div className="detail-messages">
@@ -1781,7 +1814,14 @@ const Admin = () => {
                           <React.Fragment key={msg.id}>
                             <div className="message-bubble-wrapper user-side">
                               <div className="user-bubble">
-                                {msg.message}
+                                {msg.subject && <div className="admin-msg-subject">Subject: {msg.subject}</div>}
+                                {msg.category && <span className="admin-msg-category">#{msg.category}</span>}
+                                <div className="msg-text">{msg.message}</div>
+                                {msg.attachmentUrl && (
+                                  <div className="admin-msg-attachment">
+                                    <img src={msg.attachmentUrl} alt="Attachment" onClick={() => window.open(msg.attachmentUrl, '_blank')} />
+                                  </div>
+                                )}
                               </div>
                               <span className="bubble-time">{formatTime(msg.createdAt)}</span>
                             </div>

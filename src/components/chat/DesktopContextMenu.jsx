@@ -2,6 +2,7 @@ import React, { useRef, useLayoutEffect, useState } from 'react';
 import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag, Heart } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import EmojiRenderer from '../common/EmojiRenderer';
+import styles from './DesktopContextMenu.module.css';
 
 const DesktopContextMenu = ({
   position = { x: 0, y: 0 },
@@ -76,7 +77,7 @@ const DesktopContextMenu = ({
   const menuContent = (
     <div
       ref={menuRef}
-      className="context-menu"
+      className={styles['context-menu']}
       style={{
         position: 'fixed',
         top: adjustedPos.y,
@@ -87,11 +88,11 @@ const DesktopContextMenu = ({
     >
       {/* Reactions Row - Moved to TOP */}
       {!isDeleted && (
-        <div className="menu-reactions-row">
+        <div className={styles['menu-reactions-row']}>
           {emojisToDisplay.map((emoji) => (
             <button
               key={emoji}
-              className="menu-reaction-btn"
+              className={styles['menu-reaction-btn']}
               onClick={() => {
                 onReactionSelect(emoji);
                 onClose();
@@ -108,40 +109,40 @@ const DesktopContextMenu = ({
         </div>
       )}
 
-      {!isDeleted && <div className="menu-divider"></div>}
+      {!isDeleted && <div className={styles['menu-divider']}></div>}
 
       {/* Actions Below Reactions */}
-      <div className="menu-item" onClick={() => { onSelect(); onClose(); }}>
-        <span className="icon"><MousePointer size={16} /></span>
+      <div className={styles['menu-item']} onClick={() => { onSelect(); onClose(); }}>
+        <span className={styles.icon}><MousePointer size={16} /></span>
         <span>Select</span>
       </div>
 
       {!isDeleted && (
         <>
-          <div className="menu-item" onClick={handleReplyClick}>
-            <span className="icon"><Reply size={16} /></span>
+          <div className={styles['menu-item']} onClick={handleReplyClick}>
+            <span className={styles.icon}><Reply size={16} /></span>
             <span>Reply</span>
           </div>
 
-          <div className="menu-item" onClick={() => { onCopy(); onClose(); }}>
-            <span className="icon"><Copy size={16} /></span>
+          <div className={styles['menu-item']} onClick={() => { onCopy(); onClose(); }}>
+            <span className={styles.icon}><Copy size={16} /></span>
             <span>Copy</span>
           </div>
 
-          <div className="menu-item" onClick={() => { onForward(); onClose(); }}>
-            <span className="icon"><Share2 size={16} /></span>
+          <div className={styles['menu-item']} onClick={() => { onForward(); onClose(); }}>
+            <span className={styles.icon}><Share2 size={16} /></span>
             <span>Forward</span>
           </div>
 
           {isSent && (
             <>
-              <div className="menu-item" onClick={() => { onEdit(); onClose(); }}>
-                <span className="icon"><Edit size={16} /></span>
+              <div className={styles['menu-item']} onClick={() => { onEdit(); onClose(); }}>
+                <span className={styles.icon}><Edit size={16} /></span>
                 <span>Edit</span>
               </div>
 
-              <div className="menu-item delete" onClick={() => { onDelete(); onClose(); }}>
-                <span className="icon"><Trash2 size={16} /></span>
+              <div className={`${styles['menu-item']} ${styles.delete}`} onClick={() => { onDelete(); onClose(); }}>
+                <span className={styles.icon}><Trash2 size={16} /></span>
                 <span>Delete</span>
               </div>
             </>
@@ -151,9 +152,9 @@ const DesktopContextMenu = ({
 
       {!isSent && onReport && (
         <>
-          <div className="menu-divider"></div>
-          <div className="menu-item" onClick={() => { onReport(); onClose(); }}>
-            <span className="icon"><Flag size={16} /></span>
+          <div className={styles['menu-divider']}></div>
+          <div className={styles['menu-item']} onClick={() => { onReport(); onClose(); }}>
+            <span className={styles.icon}><Flag size={16} /></span>
             <span>Report</span>
           </div>
         </>

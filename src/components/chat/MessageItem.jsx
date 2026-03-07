@@ -20,6 +20,8 @@ import MessageBubble from './MessageBubble';
 import DesktopContextMenu from './DesktopContextMenu';
 import toast from 'react-hot-toast';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
+import styles from '../../styles/chat.module.css';
+import bubbleStyles from './MessageBubble.module.css';
 
 const MessageItem = ({
   message,
@@ -308,9 +310,9 @@ const MessageItem = ({
   const renderMessageContent = () => {
     if (isEditing) {
       return (
-        <div className="message-edit-container">
+        <div className={styles['message-edit-container']}>
           <textarea
-            className="message-edit-input"
+            className={`${styles['message-edit-input']}`}
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             onKeyDown={(e) => {
@@ -323,16 +325,10 @@ const MessageItem = ({
             }}
             autoFocus
             rows={1}
-            style={{
-              resize: 'none',
-              minHeight: '30px',
-              maxHeight: '120px',
-              overflowY: 'auto'
-            }}
           />
-          <div className="message-edit-actions">
-            <button className="edit-cancel-btn" onClick={cancelEdit}>✕</button>
-            <button className="edit-save-btn" onClick={saveEdit}>✓</button>
+          <div className={styles['message-edit-actions']}>
+            <button className={styles['edit-cancel-btn']} onClick={cancelEdit}>✕</button>
+            <button className={styles['edit-save-btn']} onClick={saveEdit}>✓</button>
           </div>
         </div>
       );
@@ -392,43 +388,43 @@ const MessageItem = ({
       const isReceiver = (safeMessage.receiverId || safeMessage.receiver_id) === currentUser?.id;
 
       return (
-        <div className={`game-invite-card ${isSent ? 'sent' : 'received'}`}>
-          <div className="invite-header">
-            <Gamepad2 size={24} className="invite-icon" />
-            <span className="invite-title">BATTLE ARENA</span>
+        <div className={`${bubbleStyles['game-invite-card']} ${isSent ? bubbleStyles.sent : bubbleStyles.received}`}>
+          <div className={bubbleStyles['invite-header']}>
+            <Gamepad2 size={24} className={bubbleStyles['invite-icon']} />
+            <span className={bubbleStyles['invite-title']}>BATTLE ARENA</span>
           </div>
-          <div className="invite-body">
+          <div className={bubbleStyles['invite-body']}>
             <h3>Truth or Dare</h3>
             <p>{safeMessage.content}</p>
           </div>
-          <div className="invite-actions">
+          <div className={bubbleStyles['invite-actions']}>
             {isReceiver && isPending ? (
               <>
                 <button
-                  className="game-accept-btn"
+                  className={bubbleStyles['game-accept-btn']}
                   onClick={() => onAcceptGame?.(safeMessage)}
                 >
                   ACCEPT
                 </button>
                 <button
-                  className="game-reject-btn"
+                  className={bubbleStyles['game-reject-btn']}
                   onClick={() => onRejectGame?.(safeMessage)}
                 >
                   DECLINE
                 </button>
               </>
             ) : isSent && status === 'accepted' ? (
-              <div className="invite-accepted-host">
-                <span className="status-label">Accepted! Join?</span>
+              <div className={bubbleStyles['invite-accepted-host']}>
+                <span className={bubbleStyles['status-label']}>Accepted! Join?</span>
                 <button
-                  className="game-join-btn"
+                  className={bubbleStyles['game-join-btn']}
                   onClick={() => onJoinGame?.(safeMessage)}
                 >
                   YES
                 </button>
               </div>
             ) : (
-              <div className="invite-status-text">
+              <div className={bubbleStyles['invite-status-text']}>
                 {status === 'accepted' ? 'Combat Started! 🔥' :
                   status === 'rejected' ? 'Battle Declined ❌' :
                     status === 'completed' ? 'Battle Finished 🏁' :
@@ -485,7 +481,7 @@ const MessageItem = ({
       <div
         ref={messageRef}
         id={`message-${safeMessage.id}`}
-        className={`message-item ${isSent ? 'sent' : 'received'} ${isSelected ? 'selected' : ''} ${showActions ? 'highlighted' : ''} ${isGroupChat ? 'group-message' : ''}`}
+        className={`${styles['message-item']} ${isSent ? styles.sent : styles.received} ${isSelected ? styles.selected : ''} ${showActions ? styles.highlighted : ''} ${isGroupChat ? styles['group-message'] : ''}`}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -497,20 +493,19 @@ const MessageItem = ({
         }}
       >
         {showReceivedAvatar && (
-          <button className="group-sender-avatar" onClick={handleSenderAvatarClick}>
+          <button className={styles['group-sender-avatar']} onClick={handleSenderAvatarClick}>
             {senderAvatar ? (
-              <img src={senderAvatar} alt={senderName} className="group-sender-avatar-img" />
+              <img src={senderAvatar} alt={senderName} className={styles['group-sender-avatar-img']} />
             ) : (
-              <span className="group-sender-avatar-initial">{senderInitial}</span>
+              <span className={styles['group-sender-avatar-initial']}>{senderInitial}</span>
             )}
           </button>
         )}
 
-        <div className={`message-content-wrapper ${isGroupChat ? 'with-avatar' : ''}`}>
+        <div className={`${styles['message-content-wrapper']} ${isGroupChat ? styles['with-avatar'] : ''}`}>
           <div
-            className="message-bubble-wrapper"
+            className={`${styles['message-bubble-wrapper']} ${styles.relative}`}
             ref={dragConstraintsRef}
-            style={{ position: 'relative' }}
           >
             <motion.div
               drag="x"
@@ -519,19 +514,15 @@ const MessageItem = ({
               dragMomentum={false}
               onDragEnd={handleDragEnd}
               dragDirectionLock
-              style={{ position: 'relative', x: dragX }}
+              className={styles.relative}
+              style={{ x: dragX }}
               whileDrag={{ cursor: 'grabbing' }}
             >
               <motion.div
-                className="swipe-reply-icon"
+                className={`${styles['swipe-reply-icon']} ${styles['swipe-reply-icon-static']}`}
                 style={{
-                  position: 'absolute',
                   left: isSent ? 'auto' : -40,
                   right: isSent ? -40 : 'auto',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
-                  opacity: 0,
                 }}
                 whileDrag={{ opacity: 0.85 }}
               >
@@ -549,15 +540,7 @@ const MessageItem = ({
                     }}
                     exit={{ opacity: 0, scale: 0.5 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      marginLeft: '-24px',
-                      marginTop: '-24px',
-                      zIndex: 1000,
-                      pointerEvents: 'none'
-                    }}
+                    className={styles['heart-pop-static']}
                   >
                     <Heart size={48} fill="#ff4d4d" color="#ff4d4d" />
                   </motion.div>
@@ -598,29 +581,31 @@ const MessageItem = ({
         emojiStyle={emojiStyle}
       />
 
-      {showReportModal && (
-        <div className="report-modal-overlay" onClick={() => setShowReportModal(false)}>
-          <div className="report-modal" onClick={(e) => e.stopPropagation()}>
-            <h4>Report Message</h4>
-            <p>Choose a reason for your report:</p>
-            <select
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              className="report-select"
-            >
-              <option value="">Select a reason...</option>
-              <option value="spam">Spam</option>
-              <option value="harassment">Harassment</option>
-              <option value="inappropriate">Inappropriate</option>
-              <option value="other">Other</option>
-            </select>
-            <div className="report-modal-actions">
-              <button className="btn-cancel" onClick={() => setShowReportModal(false)}>Cancel</button>
-              <button className="btn-report" onClick={handleReport}>Submit Report</button>
+      {
+        showReportModal && (
+          <div className={styles['report-modal-overlay']} onClick={() => setShowReportModal(false)}>
+            <div className={styles['report-modal']} onClick={(e) => e.stopPropagation()}>
+              <h4>Report Message</h4>
+              <p>Choose a reason for your report:</p>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className={styles['report-select']}
+              >
+                <option value="">Select a reason...</option>
+                <option value="spam">Spam</option>
+                <option value="harassment">Harassment</option>
+                <option value="inappropriate">Inappropriate</option>
+                <option value="other">Other</option>
+              </select>
+              <div className={styles['report-modal-actions']}>
+                <button className={styles['btn-cancel']} onClick={() => setShowReportModal(false)}>Cancel</button>
+                <button className={styles['btn-report']} onClick={handleReport}>Submit Report</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </>
   );
 };

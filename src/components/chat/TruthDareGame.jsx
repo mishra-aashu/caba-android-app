@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Send, Gamepad2, Flame, Sparkles, Zap, ShieldAlert, User, Swords } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import styles from './GameRoom.module.css';
 
 const TruthDareGame = ({
     gameState,
@@ -32,19 +33,19 @@ const TruthDareGame = ({
 
     if (stage === 'idle') {
         return (
-            <div className="td-container">
-                <div className="logo-icon" style={{ width: '80px', height: '80px', borderRadius: '2rem', marginBottom: '2rem' }}>
-                    <Flame size={48} className="text-white" />
+            <div className={styles['td-container']}>
+                <div className={styles['logo-icon-large']}>
+                    <Flame size={48} className={styles['text-white']} />
                 </div>
 
-                <div className="td-header">
-                    <h2 className="td-title">TRUTH OR DARE</h2>
-                    <p className="td-subtitle">Reveal your deepest secrets or face the ultimate challenge.</p>
+                <div className={styles['td-header']}>
+                    <h2 className={styles['td-title']}>TRUTH OR DARE</h2>
+                    <p className={styles['td-subtitle']}>Reveal your deepest secrets or face the ultimate challenge.</p>
                 </div>
 
                 <button
                     onClick={onStart}
-                    className="launch-btn"
+                    className={styles['launch-btn']}
                 >
                     <Gamepad2 size={20} />
                     START BATTLE
@@ -56,18 +57,18 @@ const TruthDareGame = ({
     if (stage === 'inviting') {
         if (isHost) {
             return (
-                <div className="td-container inviting-view">
-                    <div className="inviting-status">
+                <div className={`${styles['td-container']} ${styles['inviting-view']}`}>
+                    <div className={styles['inviting-status']}>
                         <motion.div
                             animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
                             transition={{ duration: 2, repeat: Infinity }}
-                            className="pulse-icon"
+                            className={styles['pulse-icon']}
                         >
-                            <Gamepad2 size={48} className="text-pink-500" />
+                            <Gamepad2 size={48} className={styles['text-pink-500']} />
                         </motion.div>
-                        <h2 className="td-title gradient-text">Waiting for Opponent...</h2>
-                        <p className="td-subtitle">They've been challenged. Are they brave enough?</p>
-                        <div className="loading-dots">
+                        <h2 className={`${styles['td-title']} ${styles['gradient-text']}`}>Waiting for Opponent...</h2>
+                        <p className={styles['td-subtitle']}>They've been challenged. Are they brave enough?</p>
+                        <div className={styles['loading-dots']}>
                             <span>.</span><span>.</span><span>.</span>
                         </div>
                     </div>
@@ -75,23 +76,23 @@ const TruthDareGame = ({
             );
         } else {
             return (
-                <div className="td-container inviting-view">
-                    <div className="inviting-status">
+                <div className={`${styles['td-container']} ${styles['inviting-view']}`}>
+                    <div className={styles['inviting-status']}>
                         <motion.div
                             initial={{ y: -20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
-                            className="pulse-icon glow-pink"
+                            className={`${styles['pulse-icon']} ${styles['glow-pink']}`}
                         >
-                            <Swords size={64} className="text-pink-500" />
+                            <Swords size={64} className={styles['text-pink-500']} />
                         </motion.div>
-                        <h2 className="td-title gradient-text">Challenge Received!</h2>
-                        <p className="td-subtitle">You've been invited to a Battle of Truth and Dare</p>
+                        <h2 className={`${styles['td-title']} ${styles['gradient-text']}`}>Challenge Received!</h2>
+                        <p className={styles['td-subtitle']}>You've been invited to a Battle of Truth and Dare</p>
 
-                        <div className="arena-invitation-actions">
-                            <button className="game-accept-btn arena-btn" onClick={onAccept}>
+                        <div className={styles['arena-invitation-actions']}>
+                            <button className={`${styles['accept-btn']} ${styles['arena-btn']}`} onClick={onAccept}>
                                 ACCEPT BATTLE
                             </button>
-                            <button className="game-reject-btn arena-btn" onClick={onReject}>
+                            <button className={`${styles['skip-btn']} ${styles['arena-btn']}`} onClick={onReject}>
                                 DECLINE
                             </button>
                         </div>
@@ -103,20 +104,20 @@ const TruthDareGame = ({
 
     if (stage === 'accepted') {
         return (
-            <div className="td-container inviting-view">
-                <div className="inviting-status">
+            <div className={`${styles['td-container']} ${styles['inviting-view']}`}>
+                <div className={styles['inviting-status']}>
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="pulse-icon glow-pink"
+                        className={`${styles['pulse-icon']} ${styles['glow-pink']}`}
                     >
-                        <Zap size={64} className="text-yellow-400 fill-yellow-400" />
+                        <Zap size={64} className={`${styles['text-yellow-400']} ${styles['fill-yellow-400']}`} />
                     </motion.div>
-                    <h2 className="td-title gradient-text">Accepted! 🔥</h2>
-                    <p className="td-subtitle">Your opponent is ready. Ready to enter the arena?</p>
+                    <h2 className={`${styles['td-title']} ${styles['gradient-text']}`}>Accepted! 🔥</h2>
+                    <p className={styles['td-subtitle']}>Your opponent is ready. Ready to enter the arena?</p>
 
-                    <div className="arena-invitation-actions">
-                        <button className="game-accept-btn arena-btn" onClick={onJoin}>
+                    <div className={styles['arena-invitation-actions']}>
+                        <button className={`${styles['accept-btn']} ${styles['arena-btn']}`} onClick={onJoin}>
                             YES, LET'S GO!
                         </button>
                     </div>
@@ -130,24 +131,24 @@ const TruthDareGame = ({
         const winnerName = isWinner ? "YOU" : "PARTNER";
 
         return (
-            <div className="td-container">
-                <div className="td-header">
-                    <h2 className="td-title gradient-text">WHO GOES FIRST?</h2>
-                    <p className="td-subtitle">Destiny is choosing...</p>
+            <div className={styles['td-container']}>
+                <div className={styles['td-header']}>
+                    <h2 className={`${styles['td-title']} ${styles['gradient-text']}`}>WHO GOES FIRST?</h2>
+                    <p className={styles['td-subtitle']}>Destiny is choosing...</p>
                 </div>
 
-                <div className="spinner-arena">
-                    <div className="players-row">
-                        <div className={`player-marker ${gameState.winnerId === userId ? 'winner' : ''}`}>
-                            <div className="player-avatar">
+                <div className={styles['spinner-arena']}>
+                    <div className={styles['players-row']}>
+                        <div className={`${styles['player-marker']} ${gameState.winnerId === userId ? styles.winner : ''}`}>
+                            <div className={styles['player-avatar']}>
                                 <User size={40} />
                             </div>
                             <span>ME</span>
                         </div>
 
-                        <div className="spinner-container">
+                        <div className={styles['spinner-container']}>
                             <motion.div
-                                className="circular-indicator"
+                                className={styles['circular-indicator']}
                                 animate={{
                                     rotate: gameState.winnerId ? (gameState.winnerId === userId ? 1800 : 1980) : 0
                                 }}
@@ -156,15 +157,15 @@ const TruthDareGame = ({
                                     ease: [0.45, 0.05, 0.55, 0.95]
                                 }}
                             >
-                                <div className="spinner-needle"></div>
+                                <div className={styles['spinner-needle']}></div>
                             </motion.div>
-                            <div className="spinner-center">
-                                <Sparkles size={24} className="text-pink-500" />
+                            <div className={styles['spinner-center']}>
+                                <Sparkles size={24} className={styles['text-pink-500']} />
                             </div>
                         </div>
 
-                        <div className={`player-marker ${gameState.winnerId && gameState.winnerId !== userId ? 'winner' : ''}`}>
-                            <div className="player-avatar">
+                        <div className={`${styles['player-marker']} ${gameState.winnerId && gameState.winnerId !== userId ? styles.winner : ''}`}>
+                            <div className={styles['player-avatar']}>
                                 <User size={40} />
                             </div>
                             <span>OPPONENT</span>
@@ -173,7 +174,7 @@ const TruthDareGame = ({
                 </div>
 
                 {isHost && !gameState.winnerId && (
-                    <button className="launch-btn" onClick={onSpin}>
+                    <button className={styles['launch-btn']} onClick={onSpin}>
                         SPIN DESTINY
                     </button>
                 )}
@@ -183,9 +184,9 @@ const TruthDareGame = ({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 3.8 }}
-                        className="winner-announcement"
+                        className={styles['winner-announcement']}
                     >
-                        <h3 className="gradient-text">{winnerName} CHOOSE FIRST!</h3>
+                        <h3 className={styles['gradient-text']}>{winnerName} CHOOSE FIRST!</h3>
                     </motion.div>
                 )}
             </div>
@@ -194,40 +195,40 @@ const TruthDareGame = ({
 
     if (stage === 'picking') {
         return (
-            <div className="td-container">
-                <div className="td-header">
-                    <h2 className="td-title" style={{ fontSize: '2rem' }}>
+            <div className={styles['td-container']}>
+                <div className={styles['td-header']}>
+                    <h2 className={`${styles['td-title']} ${styles['td-title-large']}`}>
                         {isAsker ? "YOUR FATE! 🔥" : "DESTINY AWAITS..."}
                     </h2>
-                    <p className="td-subtitle">
+                    <p className={styles['td-subtitle']}>
                         {isAsker ? "Choose your weapon" : "Partner is deciding your path"}
                     </p>
                 </div>
 
                 {isAsker ? (
-                    <div className="td-choices">
+                    <div className={styles['td-choices']}>
                         <button
                             onClick={() => onPick('truth')}
-                            className="td-btn truth"
+                            className={`${styles['td-btn']} ${styles.truth}`}
                         >
                             TRUTH
                         </button>
 
                         <button
                             onClick={() => onPick('dare')}
-                            className="td-btn dare"
+                            className={`${styles['td-btn']} ${styles.dare}`}
                         >
                             DARE
                         </button>
                     </div>
                 ) : (
-                    <div className="td-waiting">
-                        <div className="loading-dots" style={{ display: 'flex', gap: '8px', marginBottom: '1rem' }}>
-                            <div className="dot" style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ec4899' }}></div>
-                            <div className="dot" style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#8b5cf6' }}></div>
-                            <div className="dot" style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#06b6d4' }}></div>
+                    <div className={styles['td-waiting']}>
+                        <div className={styles['loading-dots']}>
+                            <div className={styles.dot}></div>
+                            <div className={styles.dot}></div>
+                            <div className={styles.dot}></div>
                         </div>
-                        <p className="td-subtitle">Waiting for the choice of legends...</p>
+                        <p className={styles['td-subtitle']}>Waiting for the choice of legends...</p>
                     </div>
                 )}
             </div>
@@ -236,40 +237,40 @@ const TruthDareGame = ({
 
     if (stage === 'writing') {
         return (
-            <div className="td-container">
-                <div className="td-header">
-                    <h2 className="td-title" style={{ fontSize: '2rem' }}>
+            <div className={styles['td-container']}>
+                <div className={styles['td-header']}>
+                    <h2 className={`${styles['td-title']} ${styles['td-title-large']}`}>
                         {isAsker ? `SET THE ${gameState.type.toUpperCase()}` : `CHALLENGE CREATION`}
                     </h2>
-                    <p className="td-subtitle">
+                    <p className={styles['td-subtitle']}>
                         {isAsker ? "Make it juicy" : "Partner is crafting your fate"}
                     </p>
                 </div>
 
                 {isAsker ? (
-                    <div className="td-writing-field" style={{ width: '100%', maxWidth: '450px' }}>
-                        <div className="td-input-card">
+                    <div className={styles['td-writing-field']}>
+                        <div className={styles['td-input-card']}>
                             <textarea
                                 value={challengeText}
                                 onChange={(e) => setChallengeText(e.target.value)}
                                 placeholder={gameState.type === 'truth' ? "Ask a risky question..." : "Give them a wild task..."}
-                                className="td-textarea"
+                                className={styles['td-textarea']}
                             />
                         </div>
 
                         <button
                             onClick={handleSendChallenge}
                             disabled={!challengeText.trim()}
-                            className="launch-btn"
+                            className={styles['launch-btn']}
                         >
                             <Send size={18} />
                             LAUNCH CHALLENGE
                         </button>
                     </div>
                 ) : (
-                    <div className="td-loading">
-                        <div className="spinner" style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.1)', borderTopColor: '#ec4899', borderRadius: '50%', marginBottom: '1rem', animation: 'activeTurnPulse 1s linear infinite' }} />
-                        <p className="td-subtitle">Thinking of something wild...</p>
+                    <div className={styles['td-loading']}>
+                        <div className={styles['td-spinner-large']} />
+                        <p className={styles['td-subtitle']}>Thinking of something wild...</p>
                     </div>
                 )}
             </div>
@@ -278,33 +279,32 @@ const TruthDareGame = ({
 
     if (stage === 'performing') {
         return (
-            <div className="td-container">
-                <div className="td-header">
-                    <h2 className="td-title" style={{ fontSize: '2rem' }}>
+            <div className={styles['td-container']}>
+                <div className={styles['td-header']}>
+                    <h2 className={`${styles['td-title']} ${styles['td-title-large']}`}>
                         {isPerformer ? 'ACTION TIME! 🎯' : "IN PROGRESS"}
                     </h2>
-                    <p className="td-subtitle">
+                    <p className={styles['td-subtitle']}>
                         {isPerformer ? "Show them what you're made of" : "They are executing the task"}
                     </p>
                 </div>
 
-                <div className="td-challenge-display">
+                <div className={styles['td-challenge-display']}>
                     <p>{gameState.content}</p>
                 </div>
 
                 {isPerformer ? (
                     <button
                         onClick={onComplete}
-                        className="launch-btn"
-                        style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)' }}
+                        className={`${styles['launch-btn']} ${styles['mission-complete-btn']}`}
                     >
                         <Check size={20} />
                         MISSION COMPLETE
                     </button>
                 ) : (
-                    <div className="td-status-badge" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <div className="status-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ec4899', animation: 'activeTurnPulse 1s infinite' }} />
-                        <span style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live Performance</span>
+                    <div className={styles['td-status-badge']}>
+                        <div className={styles['status-dot']} />
+                        <span>Live Performance</span>
                     </div>
                 )
                 }

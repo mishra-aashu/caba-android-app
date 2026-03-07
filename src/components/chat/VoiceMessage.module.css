@@ -131,8 +131,16 @@
 
 .waveform-bar {
   width: 2.5px;
-  border-radius: 10px;
+  border-radius: 1px;
   transition: background 0.2s ease;
+}
+
+.waveform-bar.played {
+  background-color: #fff;
+}
+
+.waveform-bar.unplayed {
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Progress Indicator Overlay */

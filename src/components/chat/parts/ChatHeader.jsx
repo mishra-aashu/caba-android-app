@@ -7,11 +7,12 @@
  */
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowLeft, Gamepad2 } from 'lucide-react';
+import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowLeft, Gamepad2, Crown } from 'lucide-react';
 import DropdownMenu from '../../common/DropdownMenu';
 import { dpOptions } from '../../../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../../../utils/dateFormatter';
 import { useResolveName } from '../../../hooks/useResolveName';
+import styles from '../../../styles/chat.module.css';
 
 const ChatHeader = ({
     chatId,
@@ -100,38 +101,38 @@ const ChatHeader = ({
     ];
 
     return (
-        <header className="chat-header">
-            <button className="back-btn" onClick={() => resolvedNavigate('/')}>
+        <header className={styles['chat-header']}>
+            <button className={styles['back-btn']} onClick={() => resolvedNavigate('/')}>
                 <ArrowLeft size={20} />
             </button>
 
             <div
-                className="chat-user-info"
+                className={styles['chat-user-info']}
                 onClick={handleAvatarClick}
                 style={{ cursor: otherUser ? 'pointer' : 'default' }}
             >
-                <div className="user-avatar">
+                <div className={styles['user-avatar']}>
                     {avatarSrc ? (
                         <img src={avatarSrc} alt={otherUser?.name} />
                     ) : (
-                        <div className="user-avatar-loading" />
+                        <div className={styles['user-avatar-loading']} />
                     )}
                 </div>
-                <div className="user-details">
-                    <h3 className="user-name">
+                <div className={styles['user-details']}>
+                    <h3 className={styles['user-name']}>
                         {isGroupChat
                             ? (otherUser?.name || 'Group Chat')
                             : resolvedName}
                     </h3>
-                    <p className="user-status">{statusText}</p>
+                    <p className={styles['user-status']}>{statusText}</p>
                 </div>
             </div>
 
-            <div className="chat-actions">
-                <button className="icon-btn" onClick={onVoiceCall} title="Voice Call">
+            <div className={styles['chat-actions']}>
+                <button className={styles['icon-btn']} onClick={onVoiceCall} title="Voice Call">
                     <Phone size={20} />
                 </button>
-                <button className="icon-btn" onClick={onVideoCall} title="Video Call">
+                <button className={styles['icon-btn']} onClick={onVideoCall} title="Video Call">
                     <Video size={20} />
                 </button>
                 <DropdownMenu items={menuItems} />

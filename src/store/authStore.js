@@ -206,55 +206,86 @@ const useAuthStore = create((set, get) => ({
     isHandlingSession = true;
 
     try {
-      const { data: existingUser, error: dbError } = await supabase
+      console.log("🔍 Handling session for user:", authUser.email);
+
+      // Step 1: Try to fetch existing user profile
+      const { data: existingUser, error: fetchError } = await supabase
         .from('users')
         .select('*')
-        .eq('email', authUser.email)
-        .single();
+        .eq('id', authUser.id)
+        .maybeSingle(); // ← Use .maybeSingle() to avoid 406 if not found
+
+      if (fetchError) {
+        console.error("⚠️ Error fetching user profile:", fetchError);
+        // Don't throw, proceed to session mapping if possible
+      }
 
       const metaName = authUser.user_metadata?.full_name
         || authUser.user_metadata?.name
-        || authUser.email.split('@')[0];
+        || authUser.email?.split('@')[0]
+        || "User";
       const metaAvatar = authUser.user_metadata?.avatar_url || null;
 
       let dbUser;
 
-      if (dbError && dbError.code === 'PGRST116') {
-        // ✅ User doesn't exist — create new
+      // Step 2: If profile doesn't exist, create it
+      if (!existingUser) {
+        console.log("✨ Creating new profile for:", authUser.email);
         const { data: newUser, error: insertError } = await supabase
           .from('users')
-          .insert([{
+          .upsert({
             id: authUser.id,
             email: authUser.email,
             name: metaName,
-            phone: '',
             avatar: metaAvatar,
-            is_online: true
-          }])
+            is_online: true,
+            last_seen: new Date().toISOString()
+          }, { onConflict: 'id' })
           .select()
           .single();
 
-        if (insertError) throw insertError;
-        dbUser = newUser;
-
-      } else if (existingUser) {
-        // ✅ User exists — update online status
-        // But ONLY if not already online (prevent unnecessary UPDATE)
-        if (!existingUser.is_online) {
-          await supabase
-            .from('users')
-            .update({
-              is_online: true,
-              last_seen: new Date().toISOString()
-            })
-            .eq('id', existingUser.id);
+        if (insertError) {
+          console.error("❌ Profile insertion failed:", insertError);
+          // Fallback to basic data from auth session
+          dbUser = {
+            id: authUser.id,
+            email: authUser.email,
+            name: metaName,
+            avatar: metaAvatar,
+            is_online: true
+          };
+        } else {
+          dbUser = newUser;
+        }
+      } else {
+        // Step 3: User exists — update online status (don't block if this fails)
+        try {
+          if (!existingUser.is_online) {
+            await supabase
+              .from('users')
+              .update({
+                is_online: true,
+                last_seen: new Date().toISOString()
+              })
+              .eq('id', existingUser.id);
+          }
+        } catch (updateError) {
+          console.warn("⚠️ Online status update failed:", updateError);
         }
         dbUser = existingUser;
       }
 
       set({ dbUser: dbToFrontend(dbUser) });
     } catch (error) {
-      console.error("❌ Error handling user session:", error);
+      console.error("❌ Fatal error in handleUserSession:", error);
+      // Ensure we still have basic user info in store
+      set({
+        dbUser: dbToFrontend({
+          id: authUser.id,
+          email: authUser.email,
+          name: authUser.user_metadata?.full_name || "User"
+        })
+      });
     } finally {
       isHandlingSession = false;
     }

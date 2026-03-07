@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Modal from '../common/Modal';
 import { Mic, Pause, Play, Square, Send, Trash2 } from 'lucide-react';
-import '../../styles/VoiceRecorder.css';
+import styles from '../../styles/VoiceRecorder.module.css';
 
 const VoiceRecorder = ({ isOpen, onClose, onSend }) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -116,7 +116,7 @@ const VoiceRecorder = ({ isOpen, onClose, onSend }) => {
 
     const startRecording = () => {
         if (!streamRef.current) return;
-        
+
         setBlob(null); // Clear previous recording if any
 
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -137,7 +137,7 @@ const VoiceRecorder = ({ isOpen, onClose, onSend }) => {
         setIsPaused(false);
         visualize();
     };
-    
+
     const togglePauseResume = () => {
         if (!mediaRecorderRef.current) return;
         if (isPaused) {
@@ -169,7 +169,7 @@ const VoiceRecorder = ({ isOpen, onClose, onSend }) => {
             onClose(); // Let the parent close the modal
         }
     };
-    
+
     const deleteRecording = () => {
         setBlob(null);
         setTime(0);
@@ -179,63 +179,63 @@ const VoiceRecorder = ({ isOpen, onClose, onSend }) => {
         // For simplicity, we can close and re-open the modal. Or just re-enable the start button.
         requestMicrophonePermission(); // Ensure stream is active for a new recording
     };
-    
+
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     };
-    
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Record Voice Message" size="small">
-            <div className="voice-recorder">
-                {hasPermission === false && <div className="error-bar">{error}</div>}
-                
-                <div className="waveform-display">
+            <div className={styles['voice-recorder']}>
+                {hasPermission === false && <div className={styles['error-bar']}>{error}</div>}
+
+                <div className={styles['waveform-display']}>
                     <canvas ref={canvasRef} width={300} height={60}></canvas>
-                    <div className="timer">{formatTime(time)}</div>
+                    <div className={styles.timer}>{formatTime(time)}</div>
                 </div>
 
                 {blob && (
-                    <div className="playback-controls">
+                    <div className={styles['playback-controls']}>
                         <p>Preview</p>
                         <audio src={URL.createObjectURL(blob)} controls />
                     </div>
                 )}
-                
-                <div className="main-controls">
+
+                <div className={styles['main-controls']}>
                     {blob ? (
-                        <button onClick={deleteRecording} className="control-btn delete-btn" title="Delete">
+                        <button onClick={deleteRecording} className={`${styles['control-btn']} ${styles['delete-btn']}`} title="Delete">
                             <Trash2 size={24} />
                         </button>
                     ) : (
-                        <div className="control-btn-placeholder"></div>
+                        <div className={styles['control-btn-placeholder']}></div>
                     )}
 
                     {!isRecording && !blob && (
-                        <button onClick={startRecording} disabled={!hasPermission} className="control-btn record-btn" title="Record">
+                        <button onClick={startRecording} disabled={!hasPermission} className={`${styles['control-btn']} ${styles['record-btn']}`} title="Record">
                             <Mic size={28} />
                         </button>
                     )}
 
                     {isRecording && (
-                        <button onClick={togglePauseResume} className="control-btn pause-resume-btn" title={isPaused ? "Resume" : "Pause"}>
+                        <button onClick={togglePauseResume} className={`${styles['control-btn']} ${styles['pause-resume-btn']}`} title={isPaused ? "Resume" : "Pause"}>
                             {isPaused ? <Play size={28} /> : <Pause size={28} />}
                         </button>
                     )}
-                    
+
                     {isRecording && (
-                         <button onClick={stopRecording} className="control-btn stop-btn" title="Stop">
+                        <button onClick={stopRecording} className={`${styles['control-btn']} ${styles['stop-btn']}`} title="Stop">
                             <Square size={24} />
                         </button>
                     )}
 
                     {blob ? (
-                        <button onClick={sendRecording} className="control-btn send-btn" title="Send">
+                        <button onClick={sendRecording} className={`${styles['control-btn']} ${styles['send-btn']}`} title="Send">
                             <Send size={24} />
                         </button>
                     ) : (
-                         <div className="control-btn-placeholder"></div>
+                        <div className={styles['control-btn-placeholder']}></div>
                     )}
                 </div>
             </div>

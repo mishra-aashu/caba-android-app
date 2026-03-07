@@ -29,10 +29,8 @@ import useChatStore from '../../store/useChatStore';
 import useChatRoom from '../../hooks/chat/useChatRoom';
 import ChatHeader from './parts/ChatHeader';
 import ChatActionsPanel from './parts/ChatActionsPanel';
-import '../../styles/chat.css';
+import styles from '../../styles/chat.module.css';
 import { getPublicMediaUrl } from '../../services/mediaService';
-import '../../styles/game-modal.css';
-import './AttachmentMenu.css';
 
 const Chat = () => {
   // ─── ALL BUSINESS LOGIC IS DELEGATED TO useChatRoom ─────────────────────────
@@ -118,7 +116,6 @@ const Chat = () => {
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const [showGroupCallModal, setShowGroupCallModal] = useState(false);
   const [selectedCallType, setSelectedCallType] = useState('voice');
-  const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
   // ─── CAPACITOR KEYBOARD: scroll to bottom when keyboard appears ──────────────
@@ -129,8 +126,7 @@ const Chat = () => {
         const { Keyboard } = await import('@capacitor/keyboard');
         await Keyboard.addListener('keyboardWillShow', () => {
           setTimeout(() => {
-            if (messagesContainerRef.current?.scrollToBottom)
-              messagesContainerRef.current.scrollToBottom('auto');
+            handleScrollToBottom('auto');
           }, 50);
         });
         return () => Keyboard.removeAllListeners();
@@ -170,25 +166,27 @@ const Chat = () => {
     }
   };
 
+  const handleScrollToBottom = (behavior = 'auto') => {
+    if (messagesContainerRef.current?.scrollToBottom) {
+      messagesContainerRef.current.scrollToBottom(behavior);
+    }
 
+    if (behavior === 'smooth') {
+      setShowScrollButton(false);
+      setUnreadCount(0);
+      setIsScrolledToBottom(true);
+      markMessagesAsRead();
+    } else {
+      setIsScrolledToBottom(true);
+    }
+  };
 
   const handleBlockUser = async () => {
     setShowBlockConfirmModal(true);
   };
 
-
-
-
   const handleTyping = () => {
     sendTyping();
-  };
-
-  const scrollToBottom = () => {
-    // Use VirtualizedMessageList's scrollToBottom if available
-    if (messagesContainerRef.current?.scrollToBottom) {
-      messagesContainerRef.current.scrollToBottom('auto');
-    }
-    setIsScrolledToBottom(true);
   };
 
 
@@ -462,16 +460,6 @@ const Chat = () => {
   };
 
 
-  const scrollToBottomSmooth = () => {
-    // Use VirtualizedMessageList's scrollToBottom if available
-    if (messagesContainerRef.current?.scrollToBottom) {
-      messagesContainerRef.current.scrollToBottom('smooth');
-    }
-    setShowScrollButton(false);
-    setUnreadCount(0);
-    setIsScrolledToBottom(true);
-    markMessagesAsRead();
-  };
 
   const handleMediaView = (mediaUrl, mediaType, message) => {
     // For images, use the new Framer Motion ImageViewer
@@ -495,9 +483,9 @@ const Chat = () => {
 
   return (
     <div
-      className={`chat-screen ${showGroupInfoDrawer ? 'drawer-open' : ''}`}
+      className={`${styles['chat-screen']} ${showGroupInfoDrawer ? styles['drawer-open'] : ''}`}
     >
-      <div className="chat-main-area">
+      <div className={styles['chat-main-area']}>
         {/* Chat Header - delegated to ChatHeader sub-component */}
         <ChatHeader
           chatId={chatId}
@@ -525,14 +513,14 @@ const Chat = () => {
         />
 
         {!navigator.onLine && connectionStatus === 'connecting' && (
-          <div className="connection-banner connecting">
-            <div className="spinner"></div>
+          <div className={`${styles['connection-banner']} ${styles.connecting}`}>
+            <div className={styles.spinner}></div>
             Waiting for network...
           </div>
         )}
 
         {!navigator.onLine && connectionStatus === 'disconnected' && (
-          <div className="connection-banner disconnected" onClick={retryConnection} style={{ cursor: 'pointer' }}>
+          <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection}>
             Offline. Tap to retry.
           </div>
         )}
@@ -551,12 +539,12 @@ const Chat = () => {
         />
 
         <div
-          className="messages-container"
+          className={styles['messages-container']}
         >
           {/* Load More Indicator */}
           {isFetchingNextPage && (
-            <div className="load-more-indicator">
-              <div className="loading-spinner"></div>
+            <div className={styles['load-more-indicator']}>
+              <div className={styles['loading-spinner']}></div>
               <p>Loading older messages...</p>
             </div>
           )}
@@ -596,14 +584,13 @@ const Chat = () => {
             chatId={validChatId}
           />
 
-          <div ref={messagesEndRef} />
 
           {/* Scroll to Bottom Button */}
           {showScrollButton && (
-            <button className="scroll-bottom-btn" onClick={scrollToBottomSmooth}>
+            <button className={styles['scroll-bottom-btn']} onClick={() => handleScrollToBottom('smooth')}>
               <ArrowDown size={20} />
               {unreadCount > 0 && (
-                <span className="unread-count">{unreadCount}</span>
+                <span className={styles['unread-count']}>{unreadCount}</span>
               )}
             </button>
           )}
@@ -634,43 +621,43 @@ const Chat = () => {
           title="Search Messages"
           size="medium"
         >
-          <div className="search-modal-content">
-            <div className="search-input-container">
+          <div className={styles['search-modal-content']}>
+            <div className={styles['search-input-container']}>
               <input
                 type="text"
                 placeholder="Search messages..."
                 value={searchQuery}
                 onChange={handleSearchQueryChange}
-                className="search-input"
+                className={styles['search-input']}
                 autoFocus
               />
             </div>
 
-            <div className="search-results">
+            <div className={styles['search-results']}>
               {isSearching ? (
-                <div className="search-loading">
-                  <div className="loading-spinner"></div>
+                <div className={styles['search-loading']}>
+                  <div className={styles['loading-spinner']}></div>
                   <p>Searching...</p>
                 </div>
               ) : searchResults.length > 0 ? (
                 searchResults.map(message => (
                   <div
                     key={message.id}
-                    className="search-result-item"
+                    className={styles['search-result-item']}
                     onClick={() => scrollToMessage(message.id)}
                   >
-                    <div className="search-result-content">
+                    <div className={styles['search-result-content']}>
                       {message.content}
                     </div>
-                    <div className="search-result-time">
+                    <div className={styles['search-result-time']}>
                       {new Date(message.createdAt || message.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 ))
               ) : searchQuery.trim() ? (
-                <div className="no-results">No messages found</div>
+                <div className={styles['no-results']}>No messages found</div>
               ) : (
-                <div className="search-placeholder">Type to search messages</div>
+                <div className={styles['search-placeholder']}>Type to search messages</div>
               )}
             </div>
           </div>
@@ -685,33 +672,17 @@ const Chat = () => {
           title="Choose Theme"
           size="large"
         >
-          <div className="theme-selector">
-            <div className="theme-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '20px' }}>
+          <div className={styles['theme-selector']}>
+            <div className={styles['theme-grid']}>
               {Object.entries(chatThemes).map(([key, theme]) => (
                 <div
                   key={key}
-                  className={`theme-card ${chatTheme === key ? 'active' : ''}`}
+                  className={`${styles['theme-card']} ${chatTheme === key ? styles.active : ''}`}
                   onClick={() => handleThemeSelect(key)}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    transform: chatTheme === key ? 'scale(1.05)' : 'scale(1)',
-                    filter: chatTheme === key ? 'brightness(1.1)' : 'brightness(1)'
-                  }}
                 >
                   <div
-                    className="theme-preview-card"
+                    className={styles['theme-preview-card']}
                     style={{
-                      width: '120px',
-                      height: '80px',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      border: chatTheme === key ? '3px solid #25d366' : '2px solid rgba(0,0,0,0.1)',
-                      boxShadow: chatTheme === key ? '0 8px 25px rgba(37, 211, 102, 0.3)' : '0 4px 15px rgba(0,0,0,0.1)',
-                      position: 'relative',
                       background: 'white'
                     }}
                   >
@@ -722,15 +693,7 @@ const Chat = () => {
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
                     }}></div>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '6px 10px',
-                      height: '35%',
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      backdropFilter: 'blur(10px)'
-                    }}>
+                    <div className={styles['theme-preview-footer']}>
                       <div style={{
                         width: '32px',
                         height: '10px',
@@ -747,7 +710,7 @@ const Chat = () => {
                       }}></div>
                     </div>
                   </div>
-                  <span style={{ marginTop: '8px', fontSize: '0.85rem', fontWeight: chatTheme === key ? '600' : '500', color: chatTheme === key ? '#25d366' : 'var(--text-primary)' }}>
+                  <span className={styles['theme-card-name']}>
                     {theme.name}
                   </span>
                 </div>
@@ -788,30 +751,28 @@ const Chat = () => {
           title={`Start Group ${selectedCallType === 'voice' ? 'Voice' : 'Video'} Call`}
           size="small"
         >
-          <div className="group-call-modal-content" style={{ padding: '20px', textAlign: 'center' }}>
-            <div className="call-illustration" style={{ marginBottom: '20px' }}>
+          <div className={styles['group-call-modal-content']}>
+            <div className={styles['call-illustration']}>
               {selectedCallType === 'voice' ? <Phone size={48} color="#25D366" /> : <Video size={48} color="#25D366" />}
             </div>
-            <p style={{ marginBottom: '25px', color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+            <p className={styles['call-modal-text']}>
               Start a group {selectedCallType} call with <strong>{otherUser?.name}</strong>?
             </p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <div className={styles['modal-actions']}>
               <button
-                className="btn-primary"
+                className={styles['btn-primary']}
                 onClick={() => handleStartGroupCall(selectedCallType)}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >
                 <Phone size={18} />
                 Start {selectedCallType === 'voice' ? 'Voice' : 'Video'} Call
               </button>
+              <button
+                className={styles['btn-secondary']}
+                onClick={() => setShowGroupCallModal(false)}
+              >
+                Cancel
+              </button>
             </div>
-            <button
-              className="btn-secondary"
-              onClick={() => setShowGroupCallModal(false)}
-              style={{ marginTop: '15px' }}
-            >
-              Cancel
-            </button>
           </div>
         </Modal>
 
@@ -822,11 +783,11 @@ const Chat = () => {
           title="Vanish Mode Settings"
           size="small"
         >
-          <div className="vanish-settings-content">
+          <div className={styles['vanish-settings-content']}>
             <p>Choose how long messages should stay after being seen:</p>
-            <div className="duration-options">
+            <div className={styles['duration-options']}>
               {vanishPresets.map(preset => (
-                <label key={preset.id} className="duration-option">
+                <label key={preset.id} className={styles['duration-option']}>
                   <input
                     type="radio"
                     name="vanishDuration"
@@ -838,8 +799,8 @@ const Chat = () => {
                 </label>
               ))}
             </div>
-            <div className="modal-actions">
-              <button className="btn-primary" onClick={() => setShowVanishSettingsModal(false)}>
+            <div className={styles['modal-actions']}>
+              <button className={styles['btn-primary']} onClick={() => setShowVanishSettingsModal(false)}>
                 Done
               </button>
             </div>
@@ -853,11 +814,11 @@ const Chat = () => {
           title="Clear Chat?"
           size="small"
         >
-          <div className="confirm-modal-content">
+          <div className={styles['confirm-modal-content']}>
             <p>Are you sure you want to clear all messages? This cannot be undone.</p>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowClearConfirmModal(false)}>Cancel</button>
-              <button className="btn-danger" onClick={async () => {
+            <div className={styles['modal-actions']}>
+              <button className={styles['btn-secondary']} onClick={() => setShowClearConfirmModal(false)}>Cancel</button>
+              <button className={styles['btn-danger']} onClick={async () => {
                 await confirmClearChat();
                 setShowClearConfirmModal(false);
               }}>Clear</button>
@@ -871,11 +832,11 @@ const Chat = () => {
           title="Block User?"
           size="small"
         >
-          <div className="confirm-modal-content">
+          <div className={styles['confirm-modal-content']}>
             <p>Are you sure you want to block this user? They won't be able to message or call you.</p>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowBlockConfirmModal(false)}>Cancel</button>
-              <button className="btn-danger" onClick={async () => {
+            <div className={styles['modal-actions']}>
+              <button className={styles['btn-secondary']} onClick={() => setShowBlockConfirmModal(false)}>Cancel</button>
+              <button className={styles['btn-danger']} onClick={async () => {
                 await confirmBlockUser();
                 setShowBlockConfirmModal(false);
               }}>Block</button>
@@ -889,11 +850,11 @@ const Chat = () => {
           title="Delete Messages?"
           size="small"
         >
-          <div className="confirm-modal-content">
+          <div className={styles['confirm-modal-content']}>
             <p>Delete selected messages for everyone?</p>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowDeleteConfirmModal(false)}>Cancel</button>
-              <button className="btn-danger" onClick={onSelectionDelete}>Delete</button>
+            <div className={styles['modal-actions']}>
+              <button className={styles['btn-secondary']} onClick={() => setShowDeleteConfirmModal(false)}>Cancel</button>
+              <button className={styles['btn-danger']} onClick={onSelectionDelete}>Delete</button>
             </div>
           </div>
         </Modal>

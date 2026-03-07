@@ -13,6 +13,20 @@
   /* Hardware acceleration */
 }
 
+.deleted-icon {
+  margin-right: 5px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.spy-icon {
+  margin-right: 4px;
+}
+
+.lock-icon {
+  margin-right: 4px;
+}
+
 .message-container.mine {
   justify-content: flex-end;
 }
@@ -172,7 +186,7 @@
   transition: background 0.2s ease;
 }
 
-[data-theme='dark'] .reply-quote-container {
+:global([data-theme='dark']) .reply-quote-container {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
@@ -307,9 +321,9 @@
 }
 
 /* Make emojis significantly larger in jumbo emoji mode */
-.message-container.jumbo-emoji .text img,
-.message-container.jumbo-emoji .emoji-renderer-root img,
-.message-container .jumbo-emoji-bubble .custom-emoji-img {
+.message-container.jumbo-emoji .text :global(.custom-emoji-img),
+.message-container.jumbo-emoji :global(.emoji-renderer-root) :global(.custom-emoji-img),
+.message-container .jumbo-emoji-bubble :global(.custom-emoji-img) {
   width: 64px;
   height: 64px;
   margin: 0;
@@ -335,7 +349,7 @@
 }
 
 /* Native emoji fallback support for jumbo mode */
-.message-container.jumbo-emoji .native-emoji-fallback {
+.message-container.jumbo-emoji :global(.native-emoji-fallback) {
   font-size: 48px;
   line-height: 1;
 }
@@ -368,7 +382,7 @@
   user-select: none;
 }
 
-[data-theme='dark'] .reaction-badge {
+:global([data-theme='dark']) .reaction-badge {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -378,7 +392,7 @@
   transform: scale(1.05);
 }
 
-[data-theme='dark'] .reaction-badge:hover {
+:global([data-theme='dark']) .reaction-badge:hover {
   background: rgba(255, 255, 255, 0.15);
 }
 
@@ -387,7 +401,7 @@
   border-color: rgba(124, 58, 237, 0.4);
 }
 
-[data-theme='dark'] .reaction-badge.user-reacted {
+:global([data-theme='dark']) .reaction-badge.user-reacted {
   background: rgba(139, 92, 246, 0.2);
   border-color: rgba(139, 92, 246, 0.5);
 }
@@ -402,7 +416,7 @@
   color: #ffffff;
 }
 
-.reaction-badge .emoji-renderer-root img {
+.reaction-badge :global(.emoji-renderer-root) :global(.custom-emoji-img) {
   width: 16px;
   height: 16px;
 }

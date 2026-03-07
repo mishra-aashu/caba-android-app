@@ -5,6 +5,7 @@ import TypingIndicator from './TypingIndicator';
 import useChatStore from '../../store/useChatStore';
 import { useInfiniteMessages } from '../../hooks/useMessages';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
+import styles from '../../styles/chat.module.css';
 
 /**
  * VirtualizedMessageList - A high-performance chat message list using react-virtuoso
@@ -121,8 +122,7 @@ const VirtualizedMessageList = React.forwardRef(({
         // Return a placeholder with minimum height to prevent zero-sized element
         return (
           <div
-            className="message-item-placeholder"
-            style={{ minHeight: '24px', width: '100%', display: 'block' }}
+            className={`${styles['message-item-placeholder']} ${styles['virtuoso-message-wrapper-static']}`}
           />
         );
       }
@@ -142,14 +142,7 @@ const VirtualizedMessageList = React.forwardRef(({
       // Using stable dimensions
       return (
         <div
-          className="virtuoso-message-wrapper"
-          style={{
-            minHeight: '24px',
-            width: '100%',
-            overflow: 'hidden',
-            display: 'block',
-            boxSizing: 'border-box',
-          }}
+          className={`${styles['virtuoso-message-wrapper']} ${styles['virtuoso-message-wrapper-static']}`}
         >
           <MessageItem
             key={msgId}
@@ -205,11 +198,10 @@ const VirtualizedMessageList = React.forwardRef(({
     if (item.type === 'date-header') {
       return (
         <div
-          className="virtuoso-header-wrapper"
-          style={{ minHeight: '40px', width: '100%', display: 'block' }}
+          className={`${styles['virtuoso-header-wrapper']} ${styles['date-header-wrapper-static']}`}
         >
-          <div className="date-separator">
-            <div className="date-pill">
+          <div className={styles['date-separator']}>
+            <div className={styles['date-pill']}>
               {new Date(item.date).toLocaleDateString()}
             </div>
           </div>
@@ -224,14 +216,14 @@ const VirtualizedMessageList = React.forwardRef(({
   // Loading state - Only show skeleton if we have ZERO messages in cache
   if (isLoadingTotal) {
     return (
-      <div className="messages-wrapper virtuoso-loading">
-        <div className="skeleton-messages">
-          <div className="skeleton-message received"></div>
-          <div className="skeleton-message sent"></div>
-          <div className="skeleton-message received"></div>
-          <div className="skeleton-message sent"></div>
-          <div className="skeleton-message received"></div>
-          <div className="skeleton-message sent"></div>
+      <div className={`${styles['messages-wrapper']} ${styles['virtuoso-loading']}`}>
+        <div className={styles['skeleton-messages']}>
+          <div className={`${styles['skeleton-message']} ${styles.received}`}></div>
+          <div className={`${styles['skeleton-message']} ${styles.sent}`}></div>
+          <div className={`${styles['skeleton-message']} ${styles.received}`}></div>
+          <div className={`${styles['skeleton-message']} ${styles.sent}`}></div>
+          <div className={`${styles['skeleton-message']} ${styles.received}`}></div>
+          <div className={`${styles['skeleton-message']} ${styles.sent}`}></div>
         </div>
       </div>
     );
@@ -240,10 +232,10 @@ const VirtualizedMessageList = React.forwardRef(({
   // Empty state - Only show if successfully loaded and still empty
   if (!isLoadingTotal && messages.length === 0) {
     return (
-      <div className="messages-wrapper virtuoso-empty">
-        <div className="no-messages-placeholder">
-          <div className="no-messages-content">
-            <div className="no-messages-icon">💬</div>
+      <div className={`${styles['messages-wrapper']} ${styles['virtuoso-empty']}`}>
+        <div className={styles['no-messages-placeholder']}>
+          <div className={styles['no-messages-content']}>
+            <div className={styles['no-messages-icon']}>💬</div>
             <h3>No messages yet</h3>
             <p>Start the conversation by sending a message!</p>
           </div>
@@ -254,18 +246,8 @@ const VirtualizedMessageList = React.forwardRef(({
 
   return (
     <div
-      className="messages-wrapper virtuoso-container"
+      className={`${styles['messages-wrapper']} ${styles['virtuoso-container']} ${styles['full-size-flex-column']}`}
       ref={containerRef}
-      style={{
-        contain: 'content',
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        paddingTop: 0,
-        marginTop: 0,
-        /* Removed GPU hints to prevent blank screen */
-      }}
     >
       <Virtuoso
         ref={virtuosoRef}
