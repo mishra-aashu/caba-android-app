@@ -15,10 +15,9 @@ import '../src/styles/desktop.css';
 import '../src/styles/call-screen.css';
 // Lazy load components
 const Login = lazy(() => import('./components/auth/Login'));
-const Signup = lazy(() => import('./components/auth/Signup'));
-const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
-const ResetPassword = lazy(() => import('./components/auth/ResetPassword'));
 const ChatPlaceholder = lazy(() => import('./components/common/ChatPlaceholder'));
+
+
 const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
 const Profile = lazy(() => import('./components/profile/Profile'));
@@ -108,9 +107,9 @@ const AppContent = () => {
         <Route path="/download-apk" element={<PublicRoute><DownloadAPK /></PublicRoute>} />
         {/* Public routes */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+
+
+
         <Route path="/shared-profile/:userId" element={<SharedProfile />} />
         <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
         <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
