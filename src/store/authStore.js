@@ -206,47 +206,54 @@ const useAuthStore = create((set, get) => ({
     isHandlingSession = true;
 
     try {
-      console.log("🔍 Handling session for user:", authUser.email);
+      console.log("🔍 Handling session for:", authUser.email);
 
-      // Step 1: Try to fetch existing user profile
+      // Step 1: Users table me profile dhundho
       const { data: existingUser, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
-        .maybeSingle(); // ← Use .maybeSingle() to avoid 406 if not found
+        .maybeSingle(); // ← IMPORTANT: .single() mat use karo! (406 fix)
 
       if (fetchError) {
-        console.error("⚠️ Error fetching user profile:", fetchError);
-        // Don't throw, proceed to session mapping if possible
+        console.error("⚠️ Fetch error:", fetchError);
       }
 
+      // Metadata mapping for Google Login
       const metaName = authUser.user_metadata?.full_name
         || authUser.user_metadata?.name
         || authUser.email?.split('@')[0]
         || "User";
-      const metaAvatar = authUser.user_metadata?.avatar_url || null;
+
+      const metaAvatar = authUser.user_metadata?.avatar_url
+        || authUser.user_metadata?.picture
+        || null;
 
       let dbUser;
 
-      // Step 2: If profile doesn't exist, create it
+      // Step 2: Agar profile NAHI mila → pehli baar login hai → CREATE karo
       if (!existingUser) {
-        console.log("✨ Creating new profile for:", authUser.email);
+        console.log("✨ First time Google login - creating profile for:", authUser.email);
+
+        const profileData = {
+          id: authUser.id,
+          email: authUser.email,
+          name: metaName,
+          avatar: metaAvatar, // Correct DB column name is 'avatar'
+          is_online: true,
+          last_seen: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        };
+
         const { data: newUser, error: insertError } = await supabase
           .from('users')
-          .upsert({
-            id: authUser.id,
-            email: authUser.email,
-            name: metaName,
-            avatar: metaAvatar,
-            is_online: true,
-            last_seen: new Date().toISOString()
-          }, { onConflict: 'id' })
+          .upsert(profileData, { onConflict: 'id' })
           .select()
-          .single();
+          .maybeSingle();
 
         if (insertError) {
-          console.error("❌ Profile insertion failed:", insertError);
-          // Fallback to basic data from auth session
+          console.error("❌ Profile create error:", insertError);
+          // ✅ Crash mat karo - session se basic data use karo
           dbUser = {
             id: authUser.id,
             email: authUser.email,
@@ -255,35 +262,34 @@ const useAuthStore = create((set, get) => ({
             is_online: true
           };
         } else {
+          console.log("✅ Profile created successfully!");
           dbUser = newUser;
         }
       } else {
-        // Step 3: User exists — update online status (don't block if this fails)
-        try {
-          if (!existingUser.is_online) {
-            await supabase
-              .from('users')
-              .update({
-                is_online: true,
-                last_seen: new Date().toISOString()
-              })
-              .eq('id', existingUser.id);
-          }
-        } catch (updateError) {
-          console.warn("⚠️ Online status update failed:", updateError);
-        }
+        // Step 3: Profile mil gaya → online status update karo
         dbUser = existingUser;
+        supabase
+          .from('users')
+          .update({
+            is_online: true,
+            last_seen: new Date().toISOString()
+          })
+          .eq('id', authUser.id)
+          .then(() => console.log("🟢 Online status updated"))
+          .catch((err) => console.warn("⚠️ Online update failed:", err));
       }
 
       set({ dbUser: dbToFrontend(dbUser) });
     } catch (error) {
-      console.error("❌ Fatal error in handleUserSession:", error);
-      // Ensure we still have basic user info in store
+      console.error("❌ handleUserSession crashed:", error);
+      // ✅ KABHI BHI "Login to View" mat dikhao agar session valid hai
       set({
         dbUser: dbToFrontend({
           id: authUser.id,
           email: authUser.email,
-          name: authUser.user_metadata?.full_name || "User"
+          name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || "User",
+          avatar: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
+          _fallback: true
         })
       });
     } finally {
