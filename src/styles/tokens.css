@@ -4,6 +4,10 @@
     --bg-secondary: #f5f5f5;
     --bg-tertiary: #e9edef;
 
+    /* Core Backgrounds for backward compatibility */
+    --bg-0: #ffffff;
+    --bg-1: #f0f2f5;
+
     --text-primary: #1a1a1a;
     --text-secondary: #54656f;
     --text-muted: #667781;
@@ -58,6 +62,10 @@
     --bg-primary: #111b21;
     --bg-secondary: #202c33;
     --bg-tertiary: #2a3942;
+
+    /* Core Backgrounds for backward compatibility */
+    --bg-0: #0b141a;
+    --bg-1: #1f2c33;
 
     --text-primary: #e9edef;
     --text-secondary: #d1d7db;

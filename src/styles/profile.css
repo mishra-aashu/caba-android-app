@@ -1,149 +1,28 @@
 /* =============================================
-     PROFILE COMPONENT STYLES
-     ============================================= */
+   PROFILE COMPONENT — Emerald Theme
+   =============================================
+   
+   ✅ All variables mapped to actual token system
+   ✅ Emerald colors throughout (no INDIGO/PURPLE)
+   ✅ Base styles first, then Light/Dark overrides
+   ✅ Proper rounded corners on all elements
+   ✅ Logical issues fixed
+   ============================================= */
 
-/* --- Light Mode Support (.light-mode class) --- */
-body.light-mode .profile-screen {
-  background: #ffffff;
-  color: #1a1a1a;
-}
 
-body.light-mode .profile-header {
-  background: #ffffff;
-  border-bottom-color: #e0e0e0;
-}
-
-body.light-mode .profile-header h1 {
-  color: #1a1a1a;
-}
-
-body.light-mode .profile-header .back-btn,
-body.light-mode .profile-header .icon-btn,
-body.light-mode .profile-header .icon-btn i {
-  color: #54656f;
-}
-
-body.light-mode .profile-content {
-  background: #f5f5f5;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-body.light-mode .info-item {
-  background: #ffffff;
-  border-color: #e0e0e0;
-}
-
-body.light-mode .info-label {
-  color: #667781;
-}
-
-body.light-mode .info-label i {
-  color: #54656f;
-}
-
-body.light-mode .info-value {
-  color: #1a1a1a;
-}
-
-body.light-mode .profile-stats {
-  background: #ffffff;
-  border-color: #e0e0e0;
-}
-
-body.light-mode .profile-stats::before,
-body.light-mode .profile-stats::after {
-  background: #e0e0e0;
-}
-
-body.light-mode .stat-item h3 {
-  color: #128c7e;
-}
-
-body.light-mode .stat-item p {
-  color: #667781;
-}
-
-body.light-mode .action-btn {
-  background: #ffffff;
-  border-color: #e0e0e0;
-  color: #1a1a1a;
-}
-
-body.light-mode .action-btn i {
-  color: #54656f;
-}
-
-body.light-mode .action-btn:hover i {
-  color: #128c7e;
-}
-
-/* Modal Light Mode */
-body.light-mode .modal-overlay {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-body.light-mode .modal-content {
-  background-color: #ffffff;
-  color: #1a1a1a;
-  border-color: #e0e0e0;
-}
-
-body.light-mode .modal-header {
-  border-bottom-color: #e0e0e0;
-}
-
-body.light-mode .modal-title {
-  color: #1a1a1a;
-}
-
-body.light-mode .close-btn {
-  color: #667781;
-}
-
-body.light-mode .close-btn:hover {
-  color: #1a1a1a;
-}
-
-body.light-mode .modal-header h2 {
-  color: #1a1a1a;
-}
-
-body.light-mode .modal-header .close-modal {
-  color: #667781;
-}
-
-body.light-mode .modal-header .close-modal:hover {
-  background: #f5f5f5;
-  color: #1a1a1a;
-}
-
-body.light-mode .input-group label {
-  color: #667781;
-}
-
-body.light-mode .input-group input[type="text"],
-body.light-mode .input-group input[type="email"],
-body.light-mode .input-group textarea {
-  background: #f5f5f5;
-  border-color: #e0e0e0;
-  color: #1a1a1a;
-}
-
-body.light-mode .input-group input::placeholder,
-body.light-mode .input-group textarea::placeholder {
-  color: #667781;
-}
+/* =============================================
+   1. PROFILE SCREEN — Base Container
+   ============================================= */
 
 .profile-screen {
   display: flex;
   flex-direction: column;
   min-height: var(--app-height);
-  background: var(--background);
-  /* Use global background variable */
-  color: var(--text-primary);
-  /* Use global text variable */
+  background: var(--bg-color, #0b141a);
+  color: var(--text-primary, #e9edef);
   overflow-x: hidden;
-  /* Hide horizontal overflow */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .profile-screen.profile-modal {
@@ -154,7 +33,7 @@ body.light-mode .input-group textarea::placeholder {
 .profile-screen.is-sidebar {
   min-height: 100%;
   height: 100%;
-  background: var(--surface);
+  background: var(--surface-color, #1f2c33);
 }
 
 .profile-screen.is-sidebar .profile-content {
@@ -168,20 +47,22 @@ body.light-mode .input-group textarea::placeholder {
 
 .profile-screen.is-sidebar .profile-header {
   box-shadow: none;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color, #2a3942);
 }
+
+
+/* =============================================
+   2. PROFILE HEADER — Sticky Top Bar
+   ============================================= */
 
 .profile-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 15px 20px;
-  background: var(--surface);
-  /* Use global surface variable */
-  border-bottom: 1px solid var(--border-color);
-  /* Use global border variable */
-  box-shadow: var(--shadow-sm);
-  /* Use global shadow variable */
+  background: var(--surface-color, #1f2c33);
+  border-bottom: 1px solid var(--border-color, #2a3942);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.3));
   position: sticky;
   top: 0;
   z-index: 10;
@@ -190,72 +71,86 @@ body.light-mode .input-group textarea::placeholder {
 .profile-header h1 {
   margin: 0;
   font-size: 22px;
-  /* Slightly larger for prominence */
   font-weight: 700;
-  /* Bolder */
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
   letter-spacing: -0.5px;
-  /* Tighter for modern feel */
 }
 
 .profile-header .back-btn {
   background: none;
   border: none;
   font-size: 24px;
-  color: var(--icon-primary);
+  color: var(--text-secondary, #8696a0);
   cursor: pointer;
-  padding: 5px;
+  padding: 8px;
   border-radius: 50%;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .profile-header .back-btn:hover {
-  background: var(--hover-color);
-  color: var(--icon-accent);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
+  color: var(--brand-primary, #00a884);
 }
 
 .profile-header .icon-btn {
   background: none;
   border: none;
   font-size: 18px;
-  color: var(--icon-primary);
+  color: var(--text-secondary, #8696a0);
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .profile-header .icon-btn:hover {
-  background: var(--hover-color);
-  color: var(--icon-accent);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
+  color: var(--brand-primary, #00a884);
 }
 
 .profile-header .icon-btn i {
-  color: var(--icon-primary);
-  /* Ensure icon color uses global variable */
+  color: inherit;
 }
 
-.profile-header .icon-btn:hover i {
-  color: var(--icon-accent);
+/* Scrolled state — avatar moves into header */
+.profile-screen.profile-scrolled .profile-header {
+  padding-left: 60px;
+  transition: padding-left 0.3s ease;
 }
+
+
+/* =============================================
+   3. PROFILE CONTENT — Main Card
+   ============================================= */
 
 .profile-content {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 30px;
+  gap: 28px;
   max-width: 700px;
   margin: 20px auto;
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  background: var(--surface-color, #1f2c33);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.4));
 }
+
+
+/* =============================================
+   4. PROFILE PICTURE — Avatar Section
+   ============================================= */
 
 .profile-picture-section {
   position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .profile-avatar {
@@ -265,8 +160,14 @@ body.light-mode .input-group textarea::placeholder {
   overflow: hidden;
   position: relative;
   cursor: pointer;
-  border: 4px solid var(--surface);
-  box-shadow: var(--shadow-lg);
+  border: 4px solid var(--surface-color, #1f2c33);
+  box-shadow: var(--shadow-lg, 0 16px 48px rgba(0, 0, 0, 0.5));
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.03);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
 .profile-avatar img {
@@ -275,22 +176,26 @@ body.light-mode .input-group textarea::placeholder {
   object-fit: cover;
 }
 
+/* ✅ FIX: Was var(--primary-color) — undefined */
 .profile-avatar .profile-initials {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-color);
-  color: var(--text-on-primary);
-  font-size: 60px;
+  background: linear-gradient(135deg, var(--brand-primary, #00a884), var(--brand-secondary, #00876a));
+  color: #ffffff;
+  font-size: 56px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
+/* ✅ FIX: Was var(--primary-color) — undefined */
 .edit-dp-btn {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--primary-color);
+  bottom: 4px;
+  right: 4px;
+  background: var(--brand-primary, #00a884);
   color: white;
   border: none;
   border-radius: 50%;
@@ -300,186 +205,183 @@ body.light-mode .input-group textarea::placeholder {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.35);
+  transition: all 0.2s ease;
+  border: 3px solid var(--surface-color, #1f2c33);
 }
 
 .edit-dp-btn:hover {
-  filter: brightness(110%);
+  background: var(--brand-secondary, #00876a);
   transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 168, 132, 0.45);
 }
 
 .edit-dp-btn i {
-  font-size: 20px;
+  font-size: 18px;
 }
+
+
+/* =============================================
+   5. PROFILE INFO — Details Cards
+   ============================================= */
 
 .profile-info-section {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* Reduced gap for a tighter, cleaner look */
 }
 
+/* ✅ FIX: Was var(--surface-secondary) — undefined */
 .info-item {
   display: flex;
   flex-direction: column;
-  padding: 15px 20px;
-  /* Generous padding for content */
-  background: var(--surface-secondary);
-  /* Use secondary surface for item background */
-  border-radius: var(--radius-md);
-  /* Rounded corners */
-  box-shadow: var(--shadow-sm);
-  /* Subtle shadow */
-  border: 1px solid var(--border-color);
-  /* Light border */
-  transition: all var(--transition-fast);
+  padding: 14px 18px;
+  background: var(--bg-color, #0b141a);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.3));
+  border: 1px solid var(--border-color, #2a3942);
+  transition: all 0.2s ease;
 }
 
+/* ✅ FIX: Was var(--primary-color) — undefined */
 .info-item:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.4));
+  border-color: var(--brand-primary, #00a884);
 }
 
 .info-item:last-child {
   border-bottom: none;
-  /* No border needed with new styling */
 }
 
 .info-label {
   display: flex;
   align-items: center;
-  gap: 12px;
-  /* Slightly larger gap for icons */
-  font-size: 14px;
+  gap: 10px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  /* More space below label */
+  color: var(--text-secondary, #8696a0);
+  margin-bottom: 6px;
 }
 
+/* ✅ FIX: Was var(--icon-primary) — undefined */
 .info-label i {
-  color: var(--icon-primary);
+  color: var(--brand-primary, #00a884);
   vertical-align: middle;
-  font-size: 18px;
-  /* Slightly larger icons */
+  font-size: 16px;
 }
 
 .info-value {
-  font-size: 16px;
-  color: var(--text-primary);
+  font-size: 15px;
+  color: var(--text-primary, #e9edef);
   font-weight: 400;
-  padding-left: 30px;
-  /* Align with label text */
-  word-break: break-all;
-  /* Prevent overflow for long text */
+  padding-left: 26px;
+  /* ✅ FIX: Was break-all (breaks mid-character) */
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
+
+/* =============================================
+   6. PROFILE STATS — Numbers Row
+   ============================================= */
+
+/* ✅ FIX: Was var(--surface-secondary) — undefined */
 .profile-stats {
   width: 100%;
   display: flex;
   justify-content: space-around;
-  padding: 20px 0;
-  /* Increased vertical padding */
-  margin-top: 20px;
-  /* Add margin to separate from info section */
-  background: var(--surface-secondary);
-  /* Subtle background */
-  border-radius: var(--radius-md);
-  /* Rounded corners */
-  box-shadow: var(--shadow-sm);
-  /* Subtle shadow */
-  border: 1px solid var(--border-color);
+  padding: 18px 0;
+  margin-top: 8px;
+  background: var(--bg-color, #0b141a);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.3));
+  border: 1px solid var(--border-color, #2a3942);
   position: relative;
   overflow: hidden;
-  /* For pseudo-element */
 }
 
+/* Vertical dividers between stats */
 .profile-stats::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 15%;
+  bottom: 15%;
+  left: calc(100% / 3);
   width: 1px;
-  height: 100%;
-  background: var(--border-color);
-  /* Vertical divider */
-  opacity: 0.5;
+  background: var(--border-color, #2a3942);
 }
 
 .profile-stats::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: calc(100% / 3);
+  top: 15%;
+  bottom: 15%;
+  left: calc(200% / 3);
   width: 1px;
-  height: 100%;
-  background: var(--border-color);
-  opacity: 0.5;
+  background: var(--border-color, #2a3942);
 }
 
 .stat-item {
   text-align: center;
   flex: 1;
   padding: 0 10px;
-  /* Add horizontal padding to stat items */
   position: relative;
 }
 
+/* ✅ FIX: Was var(--primary-color) — undefined */
 .stat-item h3 {
-  margin: 0 0 5px 0;
-  font-size: 26px;
-  /* Slightly larger numbers */
+  margin: 0 0 4px 0;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--primary-color);
-  text-shadow: 0 1px 3px rgba(var(--primary-color-rgb), 0.3);
+  color: var(--brand-primary, #00a884);
   letter-spacing: -0.5px;
 }
 
 .stat-item p {
   margin: 0;
-  font-size: 13px;
-  /* Slightly smaller label */
-  color: var(--text-secondary);
+  font-size: 12px;
+  color: var(--text-secondary, #8696a0);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+
+/* =============================================
+   7. PROFILE ACTIONS — Button List
+   ============================================= */
+
 .profile-actions {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  /* Slightly reduced gap for a tighter look */
-  margin-top: 20px;
-  /* Add some top margin */
+  gap: 8px;
+  margin-top: 8px;
 }
 
+/* ✅ FIX: Multiple undefined vars replaced */
 .action-btn {
   width: 100%;
-  padding: 15px 20px;
-  background: var(--surface);
-  /* Use primary surface for a cleaner look */
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  /* More rounded corners */
+  padding: 14px 18px;
+  background: var(--bg-color, #0b141a);
+  border: 1px solid var(--border-color, #2a3942);
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  gap: 15px;
-  font-size: 16px;
+  gap: 14px;
+  font-size: 15px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
   cursor: pointer;
-  transition: all var(--transition-normal);
-  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.3));
   position: relative;
   overflow: hidden;
 }
 
+/* Shimmer hover effect — Emerald */
 .action-btn::before {
   content: '';
   position: absolute;
@@ -487,8 +389,8 @@ body.light-mode .input-group textarea::placeholder {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(var(--primary-color-rgb), 0.1), transparent);
-  transition: left 0.6s;
+  background: linear-gradient(90deg, transparent, rgba(0, 168, 132, 0.08), transparent);
+  transition: left 0.5s ease;
 }
 
 .action-btn:hover::before {
@@ -496,27 +398,33 @@ body.light-mode .input-group textarea::placeholder {
 }
 
 .action-btn:hover {
-  background: var(--hover-color);
-  border-color: var(--primary-color);
-  transform: translateY(-3px) scale(1.005);
-  /* Slightly more pronounced lift and slight scale */
-  box-shadow: var(--shadow-lg);
-  /* Larger shadow on hover */
+  background: var(--hover-color, rgba(0, 168, 132, 0.06));
+  border-color: var(--brand-primary, #00a884);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.4));
 }
 
+.action-btn:active {
+  transform: translateY(0);
+  transition: transform 0.1s ease;
+}
+
+/* ✅ FIX: Was var(--icon-primary) — undefined */
 .action-btn i {
-  color: var(--icon-primary);
+  color: var(--text-secondary, #8696a0);
   font-size: 20px;
-  vertical-align: middle;
-  /* Ensure vertical alignment */
+  transition: color 0.2s ease;
 }
 
 .action-btn:hover i {
-  color: var(--primary-color);
+  color: var(--brand-primary, #00a884);
 }
 
-/* Modal Specific Styles for Profile.jsx */
-/* Using Overlay + Modal Pattern for Professional Look */
+
+/* =============================================
+   8. MODAL — Overlay + Content
+   ============================================= */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -524,170 +432,207 @@ body.light-mode .input-group textarea::placeholder {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.7);
-  /* 70% opacity black overlay */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   backdrop-filter: blur(5px);
-  /* Blur background content */
+  -webkit-backdrop-filter: blur(5px);
 }
 
+/* ✅ FIX: Was hardcoded #1e1e1e, #333 */
 .modal-content {
-  background-color: #1e1e1e;
-  /* Solid dark grey - NO TRANSPARENCY */
-  color: white;
+  background-color: var(--surface-color, #1f2c33);
+  color: var(--text-primary, #e9edef);
   width: 90%;
   max-width: 500px;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   position: relative;
-  border: 1px solid #333;
+  border: 1px solid var(--border-color, #2a3942);
   max-height: 90vh;
   overflow-y: auto;
 }
 
-/* Legacy modal support - keep for backward compatibility */
+/* Legacy modal support */
 .modal[style*="display: flex"] {
-  /* Targeting the inline display flex */
   display: flex;
-  /* Ensure it's always flex when visible */
   align-items: center;
   justify-content: center;
 }
 
 .modal[style*="display: flex"] .modal-content {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
+  background: var(--surface-color, #1f2c33);
+  border-radius: 20px;
   padding: 25px;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg, 0 16px 48px rgba(0, 0, 0, 0.5));
   position: relative;
 }
 
-/* Modal Header Styling */
+
+/* =============================================
+   9. MODAL HEADER
+   ============================================= */
+
+/* ✅ FIX: Was hardcoded #333 border */
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  border-bottom: 1px solid #333;
-  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color, #2a3942);
+  padding-bottom: 12px;
 }
 
 .modal-title {
   font-size: 1.2rem;
   font-weight: 600;
+  color: var(--text-primary, #e9edef);
 }
 
+/* ✅ FIX: Was hardcoded #888 */
 .close-btn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--text-secondary, #8696a0);
   font-size: 1.5rem;
   cursor: pointer;
-  transition: color 0.3s;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-btn:hover {
-  color: white;
+  color: var(--text-primary, #e9edef);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
 }
 
-/* Legacy modal header support */
+/* Legacy modal header */
 .modal-header h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
 }
 
 .modal-header .close-modal {
   background: none;
   border: none;
   font-size: 24px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
   cursor: pointer;
-  padding: 5px;
+  padding: 6px;
   border-radius: 50%;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-header .close-modal:hover {
-  background: var(--hover-color);
-  color: var(--text-primary);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
+  color: var(--text-primary, #e9edef);
 }
 
 .modal-body {
   padding: 0;
-  /* Remove default modal body padding if any */
 }
 
-/* Edit Form */
+
+/* =============================================
+   10. FORM ELEMENTS — Edit Profile
+   ============================================= */
+
 .input-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .input-group label {
   display: block;
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
 }
 
+/* ✅ FIX: Was var(--surface-secondary) — undefined */
 .input-group input[type="text"],
 .input-group input[type="email"],
 .input-group textarea {
   width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--surface-secondary);
-  color: var(--text-primary);
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-color, #2a3942);
+  border-radius: 12px;
+  background: var(--bg-color, #0b141a);
+  color: var(--text-primary, #e9edef);
   font-size: 15px;
+  font-family: inherit;
   outline: none;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
+.input-group input::placeholder,
+.input-group textarea::placeholder {
+  color: var(--text-secondary, #8696a0);
+  opacity: 0.7;
+}
+
+/* ✅ FIX: Was var(--primary-color) — undefined */
 .input-group input:focus,
 .input-group textarea:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.2);
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.15);
+  background: var(--surface-color, #1f2c33);
 }
 
+/* ✅ FIX: Was var(--primary-color) — undefined */
 .btn-primary {
   width: 100%;
   padding: 12px;
   margin-top: 20px;
-  background: var(--primary-color);
-  color: var(--text-on-primary);
+  background: var(--brand-primary, #00a884);
+  color: #ffffff;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.25);
 }
 
 .btn-primary:hover {
-  filter: brightness(110%);
+  background: var(--brand-secondary, #00876a);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 18px rgba(0, 168, 132, 0.35);
 }
 
-/* DP Options Grid */
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+
+/* =============================================
+   11. DP OPTIONS — Avatar Picker Grid
+   ============================================= */
+
 .avatar-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  /* 4 images per row */
   gap: 15px;
   max-height: 400px;
-  /* If list is long, allow scrolling */
   overflow-y: auto;
+  justify-items: center;
 }
 
 .avatar-item {
@@ -695,17 +640,24 @@ body.light-mode .input-group textarea::placeholder {
   height: 60px;
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid transparent;
-  transition: transform 0.2s, border-color 0.2s;
+  border: 3px solid transparent;
+  transition: all 0.2s ease;
+  object-fit: cover;
 }
 
+/* ✅ CRITICAL FIX: Was #667eea (INDIGO!) */
 .avatar-item:hover {
   transform: scale(1.1);
-  border-color: #667eea;
-  /* Highlight color on hover */
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
 }
 
-/* Legacy DP Options Grid support */
+.avatar-item.selected {
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 0 0 2px var(--surface-color, #1f2c33), 0 0 0 4px var(--brand-primary, #00a884);
+}
+
+/* Legacy DP grid */
 .dp-options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -714,48 +666,56 @@ body.light-mode .input-group textarea::placeholder {
   justify-items: center;
 }
 
+/* ✅ FIX: Was var(--primary-color) — undefined */
 .dp-options-grid img {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  /* Make them circular */
   cursor: pointer;
   object-fit: cover;
-  border: 2px solid transparent;
-  transition: all var(--transition-fast);
+  border: 3px solid transparent;
+  transition: all 0.2s ease;
 }
 
 .dp-options-grid img:hover {
-  border-color: var(--primary-color);
+  border-color: var(--brand-primary, #00a884);
   transform: scale(1.1);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
 }
 
-/* User Found Modal (from QR scan) */
-.modal-body>div[style] {
-  /* Targeting the inner div with inline style */
+.dp-options-grid img.selected {
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.3);
+}
+
+
+/* =============================================
+   12. USER FOUND MODAL (QR Scan)
+   ============================================= */
+
+.modal-body > div[style] {
   margin-bottom: 20px;
 }
 
-.modal-body>div[style]>div[style] {
-  /* Targeting the inner div with display: flex */
+.modal-body > div[style] > div[style] {
   display: flex;
   align-items: center;
   margin-bottom: 15px;
   gap: 15px;
 }
 
+/* ✅ FIX: Was var(--primary-color) — undefined */
 .modal-body .avatar-circle-small {
-  /* Custom class for found user avatar */
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: var(--primary-color);
+  background: linear-gradient(135deg, var(--brand-primary, #00a884), var(--brand-secondary, #00876a));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-on-primary);
+  color: #ffffff;
   font-size: 24px;
+  font-weight: 700;
   flex-shrink: 0;
 }
 
@@ -765,13 +725,14 @@ body.light-mode .input-group textarea::placeholder {
 
 .modal-body .user-found-info h3 {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
   font-size: 18px;
+  font-weight: 600;
 }
 
 .modal-body .user-found-info p {
   margin: 5px 0;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
   font-size: 14px;
 }
 
@@ -782,204 +743,11 @@ body.light-mode .input-group textarea::placeholder {
   margin-top: 20px;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .profile-content {
-    margin: 10px auto;
-    padding: 15px;
-    gap: 20px;
-  }
 
-  .stat-item h3 {
-    font-size: 20px;
-  }
+/* =============================================
+   13. QR MODAL — Special Styling
+   ============================================= */
 
-  .action-btn {
-    padding: 12px 15px;
-    font-size: 15px;
-  }
-
-  .modal-content {
-    padding: 20px;
-  }
-
-  .modal-header h2 {
-    font-size: 20px;
-  }
-}
-
-.profile-screen.profile-scrolled .profile-header {
-  padding-left: 60px;
-  /* Make space for the fixed avatar (40px width + 10px left + 10px margin) */
-  transition: padding-left var(--transition-normal) ease-in-out;
-  /* Smooth transition for padding */
-}
-
-
-
-@media (max-width: 480px) {
-  .profile-header {
-    padding: 10px 0;
-    /* Remove horizontal padding */
-  }
-
-  .profile-content {
-    padding: 0 10px;
-    /* Add small horizontal padding */
-    gap: 15px;
-    border-radius: 0;
-    /* Full width on small screens */
-    box-shadow: none;
-    width: 100%;
-    /* Ensure it takes full width */
-  }
-
-  .profile-stats {
-    flex-direction: row;
-    /* Keep them horizontal */
-    gap: 5px;
-    /* Reduce gap */
-    padding: 10px 0;
-    /* Adjust vertical padding */
-  }
-
-  .stat-item {
-    padding: 5px;
-    /* Adjust padding for smaller screens */
-    border-bottom: none;
-    /* No border when horizontal */
-    flex: 1;
-    /* Allow them to take equal space */
-  }
-
-  .stat-item:last-child {
-    border-bottom: none;
-    /* Remove border from last item */
-  }
-
-  .info-value {
-    padding-left: 0;
-    /* Remove padding-left on small screens */
-    text-align: left;
-    /* Ensure text aligns correctly */
-  }
-
-  .profile-info-section {
-    gap: 10px;
-    /* Reduce gap between info items */
-  }
-
-  .info-item {
-    padding: 8px 0;
-    /* Adjust vertical padding */
-  }
-
-  .info-label {
-    font-size: 13px;
-    /* Smaller font size for labels */
-  }
-
-  .info-value {
-    font-size: 15px;
-    /* Smaller font size for values */
-  }
-
-  .profile-actions {
-    gap: 10px;
-    /* Reduce gap between action buttons */
-  }
-
-  .action-btn {
-    padding: 10px 15px;
-    /* Adjust padding for smaller buttons */
-    font-size: 14px;
-    /* Smaller font size for buttons */
-  }
-
-  .modal-content {
-    border-radius: 0;
-    max-width: 100%;
-    height: var(--app-height);
-    box-shadow: none;
-  }
-
-  .dp-options-grid {
-    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    gap: 10px;
-    /* Adjust gap for smaller items */
-  }
-
-  .dp-options-grid img {
-    width: 50px;
-    /* Further reduce image size */
-    height: 50px;
-  }
-}
-
-/* Custom Scrollbar Styling (for WebKit browsers) */
-::-webkit-scrollbar {
-  width: 8px;
-  /* Width for vertical scrollbar */
-  height: 8px;
-  /* Height for horizontal scrollbar */
-}
-
-::-webkit-scrollbar-track {
-  background: var(--surface-secondary);
-  /* Color of the track */
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--primary-color);
-  /* Color of the scroll thumb */
-  border-radius: 10px;
-  border: 2px solid var(--surface-secondary);
-  /* Padding around thumb */
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-color-dark);
-  /* Color when hovered */
-}
-
-/* Fullscreen Image Modal */
-.fullscreen-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.fullscreen-modal-content {
-  max-width: 90%;
-  max-height: 90%;
-}
-
-.fullscreen-modal-content img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.close-fullscreen-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: none;
-  border: none;
-  color: white;
-  font-size: 30px;
-  cursor: pointer;
-}
-
-/* QR Modal Specifics - High Specificity to override general modal styles */
 .modal-overlay .modal-content.qr-content {
   max-width: 380px;
   padding: 0;
@@ -1006,4 +774,403 @@ body.light-mode .input-group textarea::placeholder {
   justify-content: center;
   align-items: center;
   min-height: 400px;
+}
+
+
+/* =============================================
+   14. FULLSCREEN IMAGE MODAL
+   ============================================= */
+
+.fullscreen-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.fullscreen-modal-content {
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.fullscreen-modal-content img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.close-fullscreen-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.close-fullscreen-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: scale(1.1);
+}
+
+
+/* =============================================
+   15. LIGHT MODE — [data-theme='light'] + body.light-mode
+   ============================================= */
+
+/* 
+ * ✅ FIX: All hardcoded colors replaced with Emerald variables
+ * Both selectors supported for compatibility
+ */
+
+body.light-mode .profile-screen,
+[data-theme='light'] .profile-screen {
+  background: var(--bg-color, #f0faf4);
+  color: var(--text-primary, #0c1e17);
+}
+
+body.light-mode .profile-header,
+[data-theme='light'] .profile-header {
+  background: var(--surface-color, #ffffff);
+  border-bottom-color: var(--border-color, #d1e8da);
+}
+
+body.light-mode .profile-header h1,
+[data-theme='light'] .profile-header h1 {
+  color: var(--text-primary, #0c1e17);
+}
+
+body.light-mode .profile-header .back-btn,
+body.light-mode .profile-header .icon-btn,
+body.light-mode .profile-header .icon-btn i,
+[data-theme='light'] .profile-header .back-btn,
+[data-theme='light'] .profile-header .icon-btn,
+[data-theme='light'] .profile-header .icon-btn i {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+body.light-mode .profile-content,
+[data-theme='light'] .profile-content {
+  background: var(--surface-color, #ffffff);
+  box-shadow: 0 4px 12px rgba(0, 60, 40, 0.08);
+}
+
+body.light-mode .info-item,
+[data-theme='light'] .info-item {
+  background: var(--bg-color, #f0faf4);
+  border-color: var(--border-color, #d1e8da);
+}
+
+body.light-mode .info-label,
+[data-theme='light'] .info-label {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+body.light-mode .info-label i,
+[data-theme='light'] .info-label i {
+  color: var(--brand-primary, #00a884);
+}
+
+body.light-mode .info-value,
+[data-theme='light'] .info-value {
+  color: var(--text-primary, #0c1e17);
+}
+
+body.light-mode .profile-stats,
+[data-theme='light'] .profile-stats {
+  background: var(--bg-color, #f0faf4);
+  border-color: var(--border-color, #d1e8da);
+}
+
+body.light-mode .profile-stats::before,
+body.light-mode .profile-stats::after,
+[data-theme='light'] .profile-stats::before,
+[data-theme='light'] .profile-stats::after {
+  background: var(--border-color, #d1e8da);
+}
+
+body.light-mode .stat-item h3,
+[data-theme='light'] .stat-item h3 {
+  color: var(--brand-primary, #00a884);
+}
+
+body.light-mode .stat-item p,
+[data-theme='light'] .stat-item p {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+body.light-mode .action-btn,
+[data-theme='light'] .action-btn {
+  background: var(--bg-color, #f0faf4);
+  border-color: var(--border-color, #d1e8da);
+  color: var(--text-primary, #0c1e17);
+}
+
+body.light-mode .action-btn i,
+[data-theme='light'] .action-btn i {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+body.light-mode .action-btn:hover i,
+[data-theme='light'] .action-btn:hover i {
+  color: var(--brand-primary, #00a884);
+}
+
+/* Light Mode — Modal */
+body.light-mode .modal-content,
+[data-theme='light'] .modal-content {
+  background-color: var(--surface-color, #ffffff);
+  color: var(--text-primary, #0c1e17);
+  border-color: var(--border-color, #d1e8da);
+}
+
+body.light-mode .modal-header,
+[data-theme='light'] .modal-header {
+  border-bottom-color: var(--border-color, #d1e8da);
+}
+
+body.light-mode .modal-title,
+body.light-mode .modal-header h2,
+[data-theme='light'] .modal-title,
+[data-theme='light'] .modal-header h2 {
+  color: var(--text-primary, #0c1e17);
+}
+
+body.light-mode .close-btn,
+body.light-mode .modal-header .close-modal,
+[data-theme='light'] .close-btn,
+[data-theme='light'] .modal-header .close-modal {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+body.light-mode .close-btn:hover,
+body.light-mode .modal-header .close-modal:hover,
+[data-theme='light'] .close-btn:hover,
+[data-theme='light'] .modal-header .close-modal:hover {
+  color: var(--text-primary, #0c1e17);
+  background: var(--hover-color, rgba(0, 168, 132, 0.06));
+}
+
+body.light-mode .input-group label,
+[data-theme='light'] .input-group label {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+body.light-mode .input-group input[type="text"],
+body.light-mode .input-group input[type="email"],
+body.light-mode .input-group textarea,
+[data-theme='light'] .input-group input[type="text"],
+[data-theme='light'] .input-group input[type="email"],
+[data-theme='light'] .input-group textarea {
+  background: var(--bg-color, #f0faf4);
+  border-color: var(--border-color, #d1e8da);
+  color: var(--text-primary, #0c1e17);
+}
+
+body.light-mode .input-group input::placeholder,
+body.light-mode .input-group textarea::placeholder,
+[data-theme='light'] .input-group input::placeholder,
+[data-theme='light'] .input-group textarea::placeholder {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+
+/* =============================================
+   16. RESPONSIVE — Tablet
+   ============================================= */
+
+@media (max-width: 768px) {
+  .profile-content {
+    margin: 10px auto;
+    padding: 16px;
+    gap: 20px;
+    border-radius: 14px;
+  }
+
+  .stat-item h3 {
+    font-size: 20px;
+  }
+
+  .action-btn {
+    padding: 12px 15px;
+    font-size: 14px;
+  }
+
+  .modal-content {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 18px;
+  }
+}
+
+
+/* =============================================
+   17. RESPONSIVE — Mobile
+   ============================================= */
+
+@media (max-width: 480px) {
+  .profile-header {
+    padding: 10px 12px;
+  }
+
+  .profile-content {
+    padding: 12px;
+    gap: 15px;
+    border-radius: 0;
+    box-shadow: none;
+    width: 100%;
+    margin: 0;
+  }
+
+  .profile-avatar {
+    width: 120px;
+    height: 120px;
+  }
+
+  .profile-avatar .profile-initials {
+    font-size: 44px;
+  }
+
+  .profile-stats {
+    flex-direction: row;
+    gap: 5px;
+    padding: 12px 0;
+  }
+
+  .profile-stats::before {
+    top: 20%;
+    bottom: 20%;
+  }
+
+  .profile-stats::after {
+    top: 20%;
+    bottom: 20%;
+  }
+
+  .stat-item {
+    padding: 5px;
+    flex: 1;
+  }
+
+  .info-value {
+    padding-left: 0;
+    text-align: left;
+  }
+
+  .profile-info-section {
+    gap: 8px;
+  }
+
+  .info-item {
+    padding: 10px 14px;
+    border-radius: 12px;
+  }
+
+  .info-label {
+    font-size: 12px;
+  }
+
+  .info-value {
+    font-size: 14px;
+  }
+
+  .profile-actions {
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  .modal-content {
+    border-radius: 16px 16px 0 0;
+    max-width: 100%;
+    max-height: 90vh;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .dp-options-grid {
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 10px;
+  }
+
+  .dp-options-grid img {
+    width: 56px;
+    height: 56px;
+  }
+
+  .edit-dp-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .edit-dp-btn i {
+    font-size: 16px;
+  }
+}
+
+
+/* =============================================
+   18. PROFILE-SCOPED SCROLLBAR — Emerald
+   ============================================= */
+
+/* 
+ * ✅ FIX: Was GLOBAL scrollbar (conflicts with app.css)
+ * Now scoped to profile only
+ */
+
+.profile-screen::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.profile-screen::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.profile-screen::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 168, 132, 0.2);
+  border-radius: 10px;
+}
+
+.profile-screen::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 168, 132, 0.4);
+}
+
+/* Firefox */
+.profile-screen,
+.modal-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 168, 132, 0.2) transparent;
 }

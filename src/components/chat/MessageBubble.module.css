@@ -1,30 +1,26 @@
-/* Message Bubble Redesign - Unique, Premium, Floating Look */
+/* =============================================
+   MESSAGE BUBBLE — Emerald Premium Design
+   =============================================
+   
+   ✅ All colors use Emerald CSS variables
+   ✅ No INDIGO, no PURPLE, no random PINK
+   ✅ Professional floating bubbles
+   ✅ Performance optimized (contain, GPU)
+   ============================================= */
+
+
+/* =============================================
+   1. MESSAGE CONTAINER — Layout
+   ============================================= */
 
 .message-container {
   display: flex;
   margin-bottom: 6px;
-  /* Increased margin for floating effect */
   width: 100%;
   max-width: 100%;
   padding: 0 12px;
-  /* PERFORMANCE: CSS Containment - isolates rendering for better scroll performance */
   contain: content;
   transform: translateZ(0);
-  /* Hardware acceleration */
-}
-
-.deleted-icon {
-  margin-right: 5px;
-  vertical-align: middle;
-  opacity: 0.7;
-}
-
-.spy-icon {
-  margin-right: 4px;
-}
-
-.lock-icon {
-  margin-right: 4px;
 }
 
 .message-container.mine {
@@ -35,7 +31,11 @@
   justify-content: flex-start;
 }
 
-/* --- THE UNIQUE BUBBLE --- */
+
+/* =============================================
+   2. BUBBLE — Base Structure
+   ============================================= */
+
 .message-container .bubble {
   width: fit-content;
   max-width: 88%;
@@ -43,66 +43,66 @@
   position: relative;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 14.5px;
-  line-height: 1.4;
-
-  /* Layout for content + timestamp alignment */
+  line-height: 1.45;
   display: flex;
   flex-direction: column;
-
-  /* Performance Optimizations */
   transform: translateZ(0);
   backface-visibility: hidden;
   contain: layout;
   transition: none;
 }
 
-/* Removed bubble-appear animation */
 
-/* Removed hover effect for uniform scrolling */
+/* =============================================
+   3. SENT BUBBLE — Emerald Themed
+   ============================================= */
 
-/* Sent Messages - Progressive Radius & Universal Indigo */
 .bubble-sent {
-  background: var(--sent-message-bg);
-  color: var(--sent-message-text);
-  border-radius: 12px 12px 0px 12px;
-  /* Professional 'tail' effect */
-  box-shadow: var(--sent-message-shadow);
-  border: var(--sent-message-border);
+  background: var(--sent-message-bg, linear-gradient(135deg, #00a884, #00876a));
+  color: var(--sent-message-text, #ffffff);
+  border-radius: 14px 14px 2px 14px;
+  box-shadow: var(--sent-message-shadow, 0 2px 10px rgba(0, 168, 132, 0.25));
+  border: var(--sent-message-border, 1px solid rgba(255, 255, 255, 0.18));
   min-width: 60px;
   padding: 8px 12px 6px 14px;
-  /* Will be enhanced with gradient by gradient-accents.css */
 }
 
+/* Reply quote inside sent bubble */
 .message-container .bubble-sent .reply-quote-container {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--reply-bg-sent, rgba(255, 255, 255, 0.12));
 }
 
 .message-container .bubble-sent .reply-quote-user {
-  color: #ffffff;
+  color: var(--reply-name-sent, rgba(255, 255, 255, 0.95));
 }
 
 .message-container .bubble-sent .reply-quote-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--reply-text-sent, rgba(255, 255, 255, 0.75));
 }
 
-/* Received Messages - Progressive Radius */
+
+/* =============================================
+   4. RECEIVED BUBBLE
+   ============================================= */
+
 .bubble-received {
-  background: var(--received-message-bg);
-  color: var(--received-message-text);
-  border-radius: 12px 12px 12px 0px;
-  /* Professional 'tail' effect */
-  box-shadow: var(--received-message-shadow);
-  border: var(--received-message-border);
+  background: var(--received-message-bg, #ffffff);
+  color: var(--received-message-text, #111b21);
+  border-radius: 14px 14px 14px 2px;
+  box-shadow: var(--received-message-shadow, 0 1px 4px rgba(0, 0, 0, 0.05));
+  border: var(--received-message-border, 1px solid rgba(0, 0, 0, 0.05));
   min-width: 60px;
   padding: 8px 12px 6px 12px;
 }
 
 
-/* --- content alignment --- */
+/* =============================================
+   5. MESSAGE CONTENT — Text Layout
+   ============================================= */
+
 .message-content {
   display: flex;
   flex-direction: row;
-  /* V2 Refinement */
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: flex-start;
@@ -119,10 +119,14 @@
   white-space: pre-wrap;
   margin-bottom: 0;
   padding-right: 4px;
-  /* Prevent overlap */
 }
 
-/* Deleted Text Styling */
+
+/* =============================================
+   6. SPECIAL TEXT STYLES
+   ============================================= */
+
+/* Deleted Message */
 .deleted-text {
   font-style: italic;
   opacity: 0.7;
@@ -132,10 +136,35 @@
   font-size: 13px;
 }
 
-/* --- TIMESTAMP DESIGN --- */
+.deleted-icon {
+  margin-right: 5px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.spy-icon {
+  margin-right: 4px;
+}
+
+.lock-icon {
+  margin-right: 4px;
+}
+
+/* Blurred locked message */
+.text.blurred {
+  filter: blur(8px);
+  user-select: none;
+  pointer-events: none;
+}
+
+
+/* =============================================
+   7. TIMESTAMP — Meta Info
+   ============================================= */
+
 .timestamp {
   font-size: 10px;
-  color: var(--sent-message-meta);
+  color: var(--sent-message-meta, rgba(255, 255, 255, 0.85));
   opacity: 0.85;
   display: inline-flex;
   align-items: center;
@@ -146,23 +175,23 @@
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: auto;
-  /* Push to right in flex container */
-  /* Will be enhanced with gradient by gradient-accents.css */
 }
 
 .bubble-received .timestamp {
-  color: var(--received-message-meta);
+  color: var(--received-message-meta, rgba(0, 0, 0, 0.45));
 }
 
+/* ✅ FIX: Tick colors use variables */
 .tick-icon {
   font-size: 12px;
   font-weight: bold;
-  color: var(--tick-color);
+  color: var(--tick-color, rgba(255, 255, 255, 0.5));
 }
 
+/* ✅ FIX: Was blue filter → Emerald-aware */
 .tick-icon.read {
-  color: var(--tick-read-color);
-  filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.2));
+  color: var(--tick-read-color, #a7f3d0);
+  filter: drop-shadow(0 0 2px rgba(0, 168, 132, 0.25));
 }
 
 .edited-indicator {
@@ -174,15 +203,19 @@
   font-weight: 400;
 }
 
-/* --- REPLY QUOTE BOX --- */
+
+/* =============================================
+   8. REPLY QUOTE BOX
+   ============================================= */
+
 .reply-quote-container {
   display: flex;
-  background-color: rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
+  background-color: var(--reply-bg-received, rgba(0, 0, 0, 0.06));
+  border-radius: 10px;
   overflow: hidden;
   margin-bottom: 8px;
   cursor: pointer;
-  border-left: 4px solid var(--brand-primary);
+  border-left: 4px solid var(--reply-bar-color, var(--brand-primary, #00a884));
   transition: background 0.2s ease;
 }
 
@@ -191,41 +224,50 @@
 }
 
 .reply-quote-container:hover {
-  background-color: rgba(0, 0, 0, 0.12);
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+:global([data-theme='dark']) .reply-quote-container:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .reply-quote-content {
   padding: 6px 10px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .reply-quote-user {
   font-size: 11px;
-  font-weight: 800;
-  color: var(--brand-primary);
+  font-weight: 700;
+  color: var(--reply-name-received, var(--brand-primary, #00a884));
   margin-bottom: 1px;
 }
 
 .reply-quote-text {
   font-size: 12px;
-  opacity: 0.8;
+  opacity: 0.75;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  color: var(--reply-text-received, var(--text-secondary, #667781));
 }
 
-/* Removed highlight animation */
 
-/* --- ANONYMOUS MESSAGE STYLES --- */
+/* =============================================
+   9. ANONYMOUS MESSAGE STYLES
+   ============================================= */
+
+/* Anonymous messages have their own unique design — intentional */
 .message-container.anonymous .bubble {
   background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
   color: #00ff00;
-  border: 1px solid rgba(0, 255, 0, 0.3);
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.25);
+  box-shadow: 0 2px 12px rgba(0, 255, 0, 0.08);
 }
 
 .message-container.anonymous .sender-info {
@@ -252,9 +294,14 @@
   font-weight: bold;
   letter-spacing: 1px;
   color: #00ff00;
+  text-transform: uppercase;
 }
 
-/* --- TIME CAPSULE STYLES --- */
+
+/* =============================================
+   10. TIME CAPSULE STYLES
+   ============================================= */
+
 .message-container.locked .bubble {
   background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
   border: 1px dashed rgba(251, 191, 36, 0.3);
@@ -276,22 +323,15 @@
   font-weight: 600;
 }
 
-/* Blurred effect for locked messages */
-.text.blurred {
-  filter: blur(8px);
-  user-select: none;
-}
 
-/* --- JUMBO EMOJI (Telegram-like Emoji-Only Messages) --- */
-/* Applied when message contains only 1-3 emojis and zero text */
+/* =============================================
+   11. JUMBO EMOJI — Large Emoji-Only Messages
+   ============================================= */
 
-/* Container for jumbo emoji messages */
 .message-container.jumbo-emoji {
-  /* Remove bottom margin for cleaner emoji display */
   margin-bottom: 10px;
 }
 
-/* Bubble for jumbo emoji - remove background, padding, and shadow */
 .message-container.jumbo-emoji .bubble.jumbo-emoji-bubble {
   background: transparent;
   box-shadow: none;
@@ -299,28 +339,18 @@
   padding: 0;
   min-width: auto;
   max-width: none;
-
-  /* Ensure proper alignment */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
-/* Hide timestamp for jumbo emoji messages */
-.message-container.jumbo-emoji .timestamp {
-  display: none;
-}
-
-/* Hide reply quote for jumbo emoji messages */
-.message-container.jumbo-emoji .reply-quote-container {
-  display: none;
-}
-
-/* Hide sender info for jumbo emoji messages */
+/* Hide meta for jumbo emoji */
+.message-container.jumbo-emoji .timestamp,
+.message-container.jumbo-emoji .reply-quote-container,
 .message-container.jumbo-emoji .sender-info {
   display: none;
 }
 
-/* Make emojis significantly larger in jumbo emoji mode */
+/* Large custom emojis */
 .message-container.jumbo-emoji .text :global(.custom-emoji-img),
 .message-container.jumbo-emoji :global(.emoji-renderer-root) :global(.custom-emoji-img),
 .message-container .jumbo-emoji-bubble :global(.custom-emoji-img) {
@@ -330,37 +360,36 @@
   object-fit: contain;
 }
 
-/* Support for 4rem size as fallback */
-@media (max-width: 480px) {
-
-  .message-container.jumbo-emoji .text img,
-  .message-container.jumbo-emoji .emoji-renderer-root img,
-  .message-container .jumbo-emoji-bubble .custom-emoji-img {
-    width: 4rem;
-    height: 4rem;
-  }
-}
-
-/* Ensure the message content container has minimal padding for jumbo emojis */
 .message-container.jumbo-emoji .message-content {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Native emoji fallback support for jumbo mode */
+/* Native emoji fallback */
 .message-container.jumbo-emoji :global(.native-emoji-fallback) {
   font-size: 48px;
   line-height: 1;
 }
 
 @media (max-width: 480px) {
+  .message-container.jumbo-emoji .text img,
+  .message-container.jumbo-emoji .emoji-renderer-root img,
+  .message-container .jumbo-emoji-bubble .custom-emoji-img {
+    width: 4rem;
+    height: 4rem;
+  }
+
   .message-container.jumbo-emoji .native-emoji-fallback {
     font-size: 3rem;
   }
 }
 
-/* --- REACTIONS DISPLAY --- */
+
+/* =============================================
+   12. REACTIONS — ✅ FIX: Emerald Instead of PURPLE
+   ============================================= */
+
 .message-reactions {
   display: flex;
   flex-wrap: wrap;
@@ -373,8 +402,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: var(--reaction-pill-bg, rgba(0, 0, 0, 0.04));
+  border: var(--reaction-pill-border, 1px solid rgba(0, 0, 0, 0.08));
   border-radius: 12px;
   padding: 2px 8px;
   cursor: pointer;
@@ -383,37 +412,38 @@
 }
 
 :global([data-theme='dark']) .reaction-badge {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .reaction-badge:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 168, 132, 0.08);
   transform: scale(1.05);
 }
 
 :global([data-theme='dark']) .reaction-badge:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 168, 132, 0.12);
 }
 
+/* ✅ CRITICAL FIX: Was PURPLE rgba(124,58,237) → Emerald */
 .reaction-badge.user-reacted {
-  background: rgba(124, 58, 237, 0.15);
-  border-color: rgba(124, 58, 237, 0.4);
+  background: var(--reaction-pill-active-bg, rgba(0, 168, 132, 0.12));
+  border: var(--reaction-pill-active-border, 1px solid rgba(0, 168, 132, 0.3));
 }
 
 :global([data-theme='dark']) .reaction-badge.user-reacted {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(0, 168, 132, 0.15);
+  border-color: rgba(0, 168, 132, 0.35);
 }
 
 .reaction-count {
   font-size: 11px;
   font-weight: 700;
-  color: var(--brand-primary);
+  color: var(--reaction-count-color, var(--brand-primary, #00a884));
 }
 
 .bubble-sent .reaction-count {
-  color: #ffffff;
+  color: var(--sent-message-text, #ffffff);
 }
 
 .reaction-badge :global(.emoji-renderer-root) :global(.custom-emoji-img) {
@@ -421,17 +451,24 @@
   height: 16px;
 }
 
-/* Removed jelly animation for uniform scrolling */
 
-/* --- GAME INVITATION CARD --- */
+/* =============================================
+   13. GAME INVITATION CARD — ✅ FIX: Emerald
+   ============================================= */
+
+/* 
+ * ✅ FIX: Entire game card was INDIGO/PURPLE/PINK
+ * Now uses Emerald brand palette
+ */
+
 .game-invite-card {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-  border-radius: 1.25rem;
+  background: linear-gradient(135deg, #0b3d36 0%, #064e3b 100%);
+  border-radius: 18px;
   padding: 1.25rem;
   min-width: 260px;
   max-width: 300px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 168, 132, 0.15);
+  box-shadow: 0 10px 25px rgba(0, 60, 40, 0.3);
   margin: 4px 0;
   position: relative;
   overflow: hidden;
@@ -439,6 +476,7 @@
   flex-direction: column;
 }
 
+/* Subtle radial glow — Emerald */
 .game-invite-card::before {
   content: '';
   position: absolute;
@@ -446,7 +484,7 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 168, 132, 0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -455,36 +493,36 @@
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 168, 132, 0.15);
   padding-bottom: 0.75rem;
 }
 
+/* ✅ FIX: Was PINK #ec4899 → Emerald accent */
 .invite-icon {
-  color: #ec4899;
-  /* Pink-500 */
-  filter: drop-shadow(0 0 5px rgba(236, 72, 153, 0.5));
+  color: var(--brand-primary, #00a884);
+  filter: drop-shadow(0 0 5px rgba(0, 168, 132, 0.4));
 }
 
+/* ✅ FIX: Was INDIGO #818cf8 → Emerald light */
 .invite-title {
   font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 0.2em;
-  color: #818cf8;
-  /* Indigo-400 */
+  letter-spacing: 0.15em;
+  color: #34d399;
   text-transform: uppercase;
 }
 
 .invite-body h3 {
   margin: 0;
-  font-size: 1.25rem;
-  color: white;
+  font-size: 1.2rem;
+  color: #ffffff;
   font-weight: 700;
 }
 
 .invite-body p {
   margin: 0.25rem 0 1.25rem 0;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .invite-actions {
@@ -492,44 +530,45 @@
   gap: 0.75rem;
 }
 
+/* ✅ FIX: Was PINK→PURPLE gradient → Emerald gradient */
 .game-accept-btn {
   flex: 2;
-  background: linear-gradient(90deg, #ec4899, #8b5cf6);
+  background: linear-gradient(135deg, var(--brand-primary, #00a884), var(--brand-secondary, #00876a));
   color: white;
   border: none;
-  border-radius: 0.75rem;
+  border-radius: 12px;
   padding: 0.75rem;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 0.8125rem;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
 }
 
 .game-accept-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 6px 16px rgba(0, 168, 132, 0.4);
   filter: brightness(1.1);
 }
 
 .game-reject-btn {
   flex: 1;
   background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
+  border-radius: 12px;
   padding: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .game-reject-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(229, 57, 53, 0.08);
+  color: var(--error-color, #e53935);
+  border-color: rgba(229, 57, 53, 0.25);
 }
 
 .invite-status-text {
@@ -537,55 +576,60 @@
   text-align: center;
   padding: 0.625rem;
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 0.75rem;
+  border-radius: 12px;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Sent/Received alignment adjustment */
+/* Sent/Received alignment */
 .game-invite-card.sent {
-  border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+  border-radius: 18px 18px 4px 18px;
   align-self: flex-end;
 }
 
 .game-invite-card.received {
-  border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+  border-radius: 18px 18px 18px 4px;
   align-self: flex-start;
 }
 
+/* ✅ FIX: Was INDIGO rgba(129,140,248) → Emerald */
 .invite-accepted-host {
   display: flex !important;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  background: rgba(129, 140, 248, 0.1);
+  background: rgba(0, 168, 132, 0.1);
   padding: 0.5rem 0.75rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(129, 140, 248, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 168, 132, 0.2);
 }
 
+/* ✅ FIX: Was INDIGO #818cf8 → Emerald */
 .invite-accepted-host .status-label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #818cf8;
+  color: var(--brand-primary, #00a884);
 }
 
+/* ✅ FIX: Was INDIGO #818cf8 / #6366f1 → Emerald */
 .game-join-btn {
-  background: #818cf8;
+  background: var(--brand-primary, #00a884);
   color: white;
   border: none;
   padding: 0.4rem 1.25rem;
-  border-radius: 0.5rem;
-  font-weight: 900;
+  border-radius: 8px;
+  font-weight: 800;
   font-size: 0.75rem;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(129, 140, 248, 0.4);
+  box-shadow: 0 4px 10px rgba(0, 168, 132, 0.3);
   transition: all 0.2s ease;
+  letter-spacing: 0.02em;
 }
 
 .game-join-btn:hover {
-  background: #6366f1;
+  background: var(--brand-secondary, #00876a);
   transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0, 168, 132, 0.4);
 }

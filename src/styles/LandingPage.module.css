@@ -204,14 +204,23 @@
 
 .nav-cta {
     background: var(--lp-accent) !important;
-    color: white !important;
-    font-weight: 600 !important;
+    border: 1px solid var(--lp-accent-light) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
     padding: 8px 18px !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 12px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 12px rgba(0, 168, 132, 0.25) !important;
 }
 
 .nav-cta:hover {
-    filter: brightness(1.15);
-    background: var(--lp-accent) !important;
+    background: var(--lp-accent-light) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(0, 168, 132, 0.4) !important;
 }
 
 /* Hamburger */
@@ -371,30 +380,34 @@
 .hero-logo-text {
     position: relative;
     width: auto;
-    /* Allow it to find its natural width */
-    height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Playfair Display', serif;
     font-size: 3.2rem;
-    /* Slightly larger for better impact */
     font-weight: 800;
     letter-spacing: 0.2em;
-    /* More premium spacing */
     text-indent: 0.1em;
-    /* Balancing the letter spacing for perfect centering */
     color: var(--lp-accent);
-    text-shadow: 0 4px 24px rgba(0, 168, 132, 0.4);
-    background: linear-gradient(to bottom, var(--lp-accent-light), var(--lp-accent));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    /* Solid color for visibility */
+    text-shadow: 0 0 20px rgba(0, 168, 132, 0.3);
     z-index: 2;
     padding: 10px 20px;
-    /* Safe zone to prevent clipping */
     will-change: transform;
     transform: translateZ(0);
+    animation: logoFadeIn 1s ease-out forwards;
+}
+
+@keyframes logoFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes heroLogoFloat {
@@ -502,14 +515,20 @@
 }
 
 .btn-hero.primary {
-    background: var(--lp-gradient);
-    color: white;
-    box-shadow: 0 4px 20px rgba(0, 168, 132, 0.35);
+    background: var(--lp-accent) !important;
+    border: 1px solid var(--lp-accent-light) !important;
+    color: #ffffff !important;
+    border-radius: 14px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 20px rgba(0, 168, 132, 0.3) !important;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
 .btn-hero.primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0, 168, 132, 0.45);
+    background: var(--lp-accent-light) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 30px rgba(0, 168, 132, 0.45) !important;
 }
 
 .btn-hero.secondary {

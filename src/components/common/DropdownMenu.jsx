@@ -13,7 +13,7 @@ const DropdownMenu = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
-    
+
     // Get theme context for dynamic colors
     const { currentThemeData } = useChatTheme();
 
@@ -85,12 +85,12 @@ const DropdownMenu = ({
 
     // Variants for individual menu items
     const itemVariants = {
-        hidden: { 
-            opacity: 0, 
-            x: -10 
+        hidden: {
+            opacity: 0,
+            x: -10
         },
-        visible: { 
-            opacity: 1, 
+        visible: {
+            opacity: 1,
             x: 0,
             transition: {
                 duration: 0.15,
@@ -118,7 +118,7 @@ const DropdownMenu = ({
 
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div 
+                    <motion.div
                         className={`dropdown-menu ${align === 'left' ? 'dropdown-menu-left' : ''} ${menuClassName}`}
                         variants={menuVariants}
                         initial="hidden"
@@ -128,7 +128,7 @@ const DropdownMenu = ({
                         {items.map((item, index) => (
                             <React.Fragment key={index}>
                                 {item.divider ? (
-                                    <motion.div 
+                                    <motion.div
                                         className="dropdown-divider"
                                         variants={itemVariants}
                                     />
@@ -140,12 +140,12 @@ const DropdownMenu = ({
                                         variants={itemVariants}
                                         style={{
                                             ...item.style,
-                                            color: item.danger ? 'var(--danger-0)' : 'white'
+                                            color: item.danger ? 'var(--danger-0)' : 'inherit'
                                         }}
                                         whileHover={{ scale: 1.02, x: 4 }}
                                         whileTap={{ scale: 0.98 }}
                                     >
-                                        {item.icon && <span className="dropdown-item-icon" style={{color: item.danger ? 'var(--danger-0)' : 'white'}}>{item.icon}</span>}
+                                        {item.icon && <span className="dropdown-item-icon" style={{ color: item.danger ? 'var(--danger-0)' : 'inherit' }}>{item.icon}</span>}
                                         <span className="dropdown-item-label">{item.label}</span>
                                         {item.badge && <span className="dropdown-item-badge">{item.badge}</span>}
                                     </motion.button>

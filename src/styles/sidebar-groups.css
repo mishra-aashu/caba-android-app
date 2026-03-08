@@ -1,153 +1,398 @@
-/* Sidebar Groups Section */
+/* =============================================
+   SIDEBAR GROUPS SECTION — Emerald Professional
+   =============================================
+   
+   ✅ All variables from actual token system
+   ✅ Emerald-consistent throughout
+   ✅ Polished interactions & micro-animations
+   ✅ Light + Dark mode aware
+   ============================================= */
+
+
+/* =============================================
+   1. SECTION CONTAINER
+   ============================================= */
+
 .sidebar-groups-section {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    background-color: var(--surface-color);
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color, #2a3942);
+  background-color: var(--surface-color, #1f2c33);
+  transition: background-color 0.3s ease;
 }
 
+
+/* =============================================
+   2. SECTION HEADER — Title + Create Button
+   ============================================= */
+
 .sidebar-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.7rem;
 }
 
 .sidebar-section-header h3 {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary, #8696a0);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+  user-select: none;
 }
 
+/* ✅ FIX: border-radius 4px → 8px, and rgba fix */
 .create-group-icon-btn {
-    background: none;
-    border: none;
-    color: var(--brand-primary);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
+  background: none;
+  border: none;
+  color: var(--brand-primary, #00a884);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
+/* ✅ FIX: Was rgba(var(--brand-primary-rgb)) — undefined variable */
 .create-group-icon-btn:hover {
-    background-color: rgba(var(--brand-primary-rgb), 0.1);
+  background-color: rgba(0, 168, 132, 0.1);
+  transform: scale(1.08);
 }
+
+.create-group-icon-btn:active {
+  transform: scale(0.95);
+}
+
+
+/* =============================================
+   3. HORIZONTAL SCROLL LIST
+   ============================================= */
 
 .sidebar-groups-list {
-    display: flex;
-    gap: 0.75rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    scrollbar-width: none;
-    /* Firefox */
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 8px 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* Smooth fade edges hint */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    black 8px,
+    black calc(100% - 8px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    black 8px,
+    black calc(100% - 8px),
+    transparent 100%
+  );
 }
 
 .sidebar-groups-list::-webkit-scrollbar {
-    display: none;
-    /* Chrome, Safari, Opera */
+  display: none;
 }
+
+
+/* =============================================
+   4. GROUP ITEM — Individual Bubble
+   ============================================= */
 
 .sidebar-group-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.4rem;
-    cursor: pointer;
-    min-width: 62px;
-    max-width: 72px;
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    will-change: transform;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    position: relative;
-    padding-top: 4px;
-    /* Space for top indicator if we use one */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  min-width: 64px;
+  max-width: 72px;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  will-change: transform;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  padding: 6px 4px 4px;
+  border-radius: 12px;
 }
 
+/* Hover — subtle bg + scale */
 .sidebar-group-item:hover {
-    transform: scale(1.05);
+  transform: scale(1.06);
+  background-color: rgba(0, 168, 132, 0.04);
 }
 
-/* Active state handled via avatar ring below */
+/* Active/Tap feedback */
+.sidebar-group-item:active {
+  transform: scale(0.96);
+  transition: transform 0.1s ease;
+}
 
+
+/* =============================================
+   5. GROUP AVATAR — Circle with Gradient
+   ============================================= */
+
+/* ✅ FIX: --brand-secondary fallback was #00c398 → #00876a */
 .sidebar-group-avatar {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--brand-primary, #00a884), var(--brand-secondary, #00c398));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 1.1rem;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 2px solid transparent;
-    padding: 0;
-    position: relative;
-    z-index: 1;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary, #00a884),
+    var(--brand-secondary, #00876a)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 60, 40, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  padding: 0;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
 }
 
+/* Active ring — double border effect */
 .sidebar-group-item.active .sidebar-group-avatar {
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 2px var(--surface-color), 0 0 0 4px var(--brand-primary);
-    transform: scale(1.02);
+  border-color: var(--brand-primary, #00a884);
+  box-shadow:
+    0 0 0 2px var(--surface-color, #1f2c33),
+    0 0 0 4px var(--brand-primary, #00a884),
+    0 4px 12px rgba(0, 168, 132, 0.2);
+  transform: scale(1.02);
 }
 
-.sidebar-group-avatar .group-avatar-fallback {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    /* Gradient is on parent */
-    color: white;
-}
-
+/* Avatar image */
 .sidebar-group-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Fallback initials — inherits parent gradient */
+.sidebar-group-avatar .group-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+
+
+/* =============================================
+   6. GROUP INFO — Name Label
+   ============================================= */
+
+.sidebar-group-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  position: relative;
 }
 
 .sidebar-group-name {
-    font-size: 0.75rem;
-    color: var(--text-primary);
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-    font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--text-primary, #e9edef);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  font-weight: 500;
+  line-height: 1.3;
+  padding: 0 2px;
 }
 
+/* Active state — slightly bolder name */
+.sidebar-group-item.active .sidebar-group-name {
+  color: var(--brand-primary, #00a884);
+  font-weight: 600;
+}
+
+
+/* =============================================
+   7. UNREAD DOT — Notification Indicator
+   ============================================= */
+
+.unread-dot {
+  width: 10px;
+  height: 10px;
+  background-color: var(--brand-primary, #00a884);
+  border-radius: 50%;
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  border: 2px solid var(--surface-color, #1f2c33);
+  box-shadow: 0 2px 6px rgba(0, 168, 132, 0.35);
+  z-index: 3;
+  /* Subtle pulse animation for attention */
+  animation: ud-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ud-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 6px rgba(0, 168, 132, 0.35);
+  }
+  50% {
+    box-shadow: 0 2px 6px rgba(0, 168, 132, 0.55), 0 0 0 3px rgba(0, 168, 132, 0.1);
+  }
+}
+
+
+/* =============================================
+   8. EMPTY & LOADING STATES
+   ============================================= */
+
 .sidebar-groups-empty {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    padding: 0.5rem 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8696a0);
+  padding: 0.75rem 0;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.8;
 }
 
 .groups-sidebar-loading {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8696a0);
+  padding: 0.75rem 0;
 }
 
-.unread-dot {
-    width: 10px;
-    height: 10px;
-    background-color: var(--brand-primary);
-    border-radius: 50%;
-    position: absolute;
+/* Loading skeleton placeholders */
+.groups-sidebar-loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color, #2a3942);
+  border-top-color: var(--brand-primary, #00a884);
+  border-radius: 50%;
+  animation: sg-spin 0.7s linear infinite;
+}
+
+@keyframes sg-spin {
+  to { transform: rotate(360deg); }
+}
+
+
+/* =============================================
+   9. LIGHT MODE OVERRIDES
+   ============================================= */
+
+[data-theme='light'] .sidebar-groups-section,
+body.light-mode .sidebar-groups-section {
+  background-color: var(--surface-color, #ffffff);
+  border-bottom-color: var(--border-color, #d1e8da);
+}
+
+[data-theme='light'] .sidebar-group-item:hover,
+body.light-mode .sidebar-group-item:hover {
+  background-color: rgba(0, 168, 132, 0.04);
+}
+
+[data-theme='light'] .sidebar-group-avatar,
+body.light-mode .sidebar-group-avatar {
+  box-shadow: 0 4px 12px rgba(0, 60, 40, 0.1);
+}
+
+[data-theme='light'] .sidebar-group-item.active .sidebar-group-avatar,
+body.light-mode .sidebar-group-item.active .sidebar-group-avatar {
+  box-shadow:
+    0 0 0 2px var(--surface-color, #ffffff),
+    0 0 0 4px var(--brand-primary, #00a884),
+    0 4px 12px rgba(0, 168, 132, 0.15);
+}
+
+[data-theme='light'] .sidebar-group-name,
+body.light-mode .sidebar-group-name {
+  color: var(--text-primary, #0c1e17);
+}
+
+[data-theme='light'] .unread-dot,
+body.light-mode .unread-dot {
+  border-color: var(--surface-color, #ffffff);
+  box-shadow: 0 2px 6px rgba(0, 168, 132, 0.25);
+}
+
+[data-theme='light'] .create-group-icon-btn:hover,
+body.light-mode .create-group-icon-btn:hover {
+  background-color: rgba(0, 168, 132, 0.06);
+}
+
+
+/* =============================================
+   10. MOBILE RESPONSIVE
+   ============================================= */
+
+@media (max-width: 480px) {
+  .sidebar-groups-section {
+    padding: 0.7rem 0.75rem;
+  }
+
+  .sidebar-group-item {
+    min-width: 58px;
+    max-width: 66px;
+    padding: 4px 2px 3px;
+  }
+
+  .sidebar-group-avatar {
+    width: 46px;
+    height: 46px;
+    font-size: 1rem;
+  }
+
+  .sidebar-group-avatar .group-avatar-fallback {
+    font-size: 1rem;
+  }
+
+  .sidebar-group-name {
+    font-size: 0.68rem;
+  }
+
+  .sidebar-groups-list {
+    gap: 0.5rem;
+  }
+
+  .unread-dot {
+    width: 8px;
+    height: 8px;
     top: 4px;
-    right: 4px;
-    border: 2px solid var(--surface-color);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    right: 2px;
+  }
+}
+
+@media (max-width: 320px) {
+  .sidebar-group-item {
+    min-width: 52px;
+    max-width: 60px;
+  }
+
+  .sidebar-group-avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 0.9rem;
+  }
 }

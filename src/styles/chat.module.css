@@ -1,3 +1,12 @@
+/* ================================================
+   ChatScreen.css — Emerald Theme (Light + Dark)
+   ================================================
+   
+   All colors use CSS variables with Emerald fallbacks.
+   No INDIGO, no PURPLE, no random BLUE.
+   ================================================ */
+
+
 /* --- Connection Status Banner --- */
 .connection-banner {
   width: 100%;
@@ -44,24 +53,25 @@
   }
 }
 
+
 /* --- Message Edit Mode Styles --- */
 .message-edit-container {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-color, rgba(255, 255, 255, 0.1));
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
   backdrop-filter: blur(10px);
 }
 
 .message-edit-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--border-color, rgba(0, 168, 132, 0.2));
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-color, rgba(255, 255, 255, 0.1));
   color: var(--text-primary, #111b21);
   font-size: 14px;
   font-family: inherit;
@@ -76,7 +86,7 @@
 
 .message-edit-input:focus {
   border-color: var(--brand-primary, #00a884);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--surface-color, rgba(255, 255, 255, 0.15));
   box-shadow: 0 0 0 2px rgba(0, 168, 132, 0.2);
 }
 
@@ -106,12 +116,12 @@
 }
 
 .edit-cancel-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ff4444;
+  background: rgba(229, 57, 53, 0.1);
+  color: var(--error-color, #e53935);
 }
 
 .edit-cancel-btn:hover {
-  background: rgba(255, 68, 68, 0.1);
+  background: rgba(229, 57, 53, 0.15);
   transform: scale(1.05);
 }
 
@@ -121,63 +131,152 @@
 }
 
 .edit-save-btn:hover:not(:disabled) {
-  background: var(--brand-primary-hover, #009670);
+  background: var(--brand-hover, #009e7a);
   transform: scale(1.05);
 }
 
 .edit-save-btn:disabled {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-color, rgba(255, 255, 255, 0.1));
   color: var(--text-secondary, #667781);
   cursor: not-allowed;
   transform: none;
 }
 
-/* Edit mode adjustments are now theme-aware via variables */
 
-/* Header and Footer elements now use theme tokens by default */
+/* =============================================
+   CHAT WALLPAPER — LIGHT MODE
+   ============================================= */
 
-/* Fix Chat Wallpaper/Background in Light Mode */
 :global(body.light-mode) .messages-container {
   background:
-    /* Top layer: Doodle pattern */
     url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3e%3cg fill='%23000000' fill-opacity='0.08'%3e%3ccircle cx='50' cy='50' r='3'/%3e%3ccircle cx='10' cy='10' r='2'/%3e%3ccircle cx='90' cy='90' r='2'/%3e%3ccircle cx='10' cy='90' r='1'/%3e%3ccircle cx='90' cy='10' r='1'/%3e%3c/g%3e%3c/svg%3e"),
-    /* Base layer: New chat wallpaper with reduced opacity */
-    linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)),
+    linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15)),
+    /* ✅ REDUCED: Was 0.7 (too washed out) */
     var(--chat-bg-image, url());
   background-size: 300px 300px, cover, cover;
   background-repeat: repeat, no-repeat, no-repeat;
   padding-bottom: 40px;
-  /* Space for the input */
 }
 
-/* Inputs and secondary elements are also theme-aware */
-/* Removed legacy light-mode overrides */
 
-/* Fix Recording UI */
+/* =============================================
+   LIGHT MODE OVERRIDES — Emerald Themed
+   ============================================= */
+
+/* Recording UI */
 :global(body.light-mode) .recording-row {
-  background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  background-color: var(--surface-color, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 60, 40, 0.12);
 }
 
 :global(body.light-mode) .recording-timer {
-  color: #54656f;
+  color: var(--text-secondary, #4a6e5c);
 }
 
-/* Fix Scroll To Bottom Button */
+/* Scroll To Bottom Button */
 :global(body.light-mode) .scroll-bottom-btn {
-  background-color: #ffffff;
-  color: #54656f;
-  border-color: #e0e0e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-color: var(--surface-color, #ffffff);
+  color: var(--text-secondary, #4a6e5c);
+  border-color: var(--border-color, #d1e8da);
+  box-shadow: 0 2px 8px rgba(0, 60, 40, 0.12);
 }
 
-/* Quick Replies Menu - Simplified */
+/* Quick Replies */
+:global(body.light-mode) .quick-reply-option {
+  border-color: var(--border-color, #d1e8da);
+  color: var(--text-primary, #0c1e17);
+}
+
+:global(body.light-mode) .quick-reply-option:hover {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.06));
+  border-color: var(--brand-primary, #00a884);
+  color: var(--brand-primary, #00a884);
+}
+
+/* Context Menu */
+:global(body.light-mode) .context-menu {
+  background-color: var(--surface-color, #ffffff);
+  box-shadow: 0 10px 25px rgba(0, 60, 40, 0.15);
+  border-color: var(--border-color, #d1e8da);
+}
+
+:global(body.light-mode) .menu-item {
+  color: var(--text-primary, #0c1e17);
+}
+
+:global(body.light-mode) .menu-item:hover {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.06));
+}
+
+:global(body.light-mode) .menu-divider {
+  background-color: var(--border-color, #d1e8da);
+}
+
+/* Reply Preview */
+:global(body.light-mode) .reply-preview-container {
+  background-color: var(--bg-color, #f0faf4);
+  border-bottom-color: var(--border-color, #d1e8da);
+}
+
+:global(body.light-mode) .reply-content {
+  background-color: rgba(0, 168, 132, 0.04);
+}
+
+:global(body.light-mode) .reply-title {
+  color: var(--brand-primary, #00a884);
+}
+
+:global(body.light-mode) .reply-message {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+:global(body.light-mode) .close-reply-btn {
+  color: var(--text-secondary, #667781);
+}
+
+:global(body.light-mode) .close-reply-btn:hover {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.06));
+}
+
+/* Selection Toolbar */
+:global(body.light-mode) .selection-toolbar {
+  background: var(--surface-color, #ffffff);
+  border-bottom-color: var(--border-color, #d1e8da);
+  box-shadow: 0 2px 8px rgba(0, 60, 40, 0.08);
+}
+
+:global(body.light-mode) .selection-close-btn {
+  color: var(--text-secondary, #667781);
+}
+
+:global(body.light-mode) .selection-close-btn:hover {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.06));
+}
+
+:global(body.light-mode) .selection-info {
+  color: var(--text-primary, #0c1e17);
+}
+
+:global(body.light-mode) .chat-loading .loading-spinner {
+  border-color: rgba(0, 60, 40, 0.08);
+  border-top-color: var(--brand-primary, #00a884);
+}
+
+:global(body.light-mode) .chat-loading p {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+
+/* =============================================
+   QUICK REPLIES MENU
+   ============================================= */
+
 .quick-replies-menu {
   position: absolute;
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--surface-color);
+  background: var(--surface-color, #1f2c33);
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
@@ -185,114 +284,26 @@
   z-index: 1000;
   min-width: 280px;
   animation: slideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 
-/* Quick Replies Menu - Simplified */
-:global(body.light-mode) .quick-reply-option {
-  border-color: #e0e0e0;
-  color: #1a1a1a;
-}
 
-:global(body.light-mode) .quick-reply-option:hover {
-  background-color: #f5f5f5;
-  border-color: #128c7e;
-  color: #128c7e;
-}
+/* =============================================
+   GPU ACCELERATED CHAT SCREEN
+   ============================================= */
 
-/* Fix Context Menu */
-:global(body.light-mode) .context-menu {
-  background-color: #ffffff;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  border-color: #e0e0e0;
-}
-
-:global(body.light-mode) .menu-item {
-  color: #1a1a1a;
-}
-
-:global(body.light-mode) .menu-item:hover {
-  background-color: #f5f5f5;
-}
-
-:global(body.light-mode) .menu-divider {
-  background-color: #e0e0e0;
-}
-
-/* Fix Reply Preview */
-:global(body.light-mode) .reply-preview-container {
-  background-color: #f5f5f5;
-  border-bottom-color: #e0e0e0;
-}
-
-:global(body.light-mode) .reply-content {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-:global(body.light-mode) .reply-title {
-  color: #128c7e;
-}
-
-:global(body.light-mode) .reply-message {
-  color: #54656f;
-}
-
-:global(body.light-mode) .close-reply-btn {
-  color: #667781;
-}
-
-:global(body.light-mode) .close-reply-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-/* Fix Selection Toolbar */
-:global(body.light-mode) .selection-toolbar {
-  background: #ffffff;
-  border-bottom-color: #e0e0e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-:global(body.light-mode) .selection-close-btn {
-  color: #667781;
-}
-
-:global(body.light-mode) .selection-close-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-:global(body.light-mode) .selection-info {
-  color: #1a1a1a;
-}
-
-:global(body.light-mode) .chat-loading .loading-spinner {
-  border-color: rgba(0, 0, 0, 0.1);
-  border-top-color: #128c7e;
-}
-
-:global(body.light-mode) .chat-loading p {
-  color: #54656f;
-}
-
-/* GPU Acceleration for Chat Screen - Performance Optimizations */
 .chat-screen {
   display: flex;
   flex-direction: column;
-  /*
-   * KEYBOARD FIX: 100dvh (dynamic viewport height) automatically
-   * shrinks when the keyboard opens on mobile — no JS needed.
-   * `interactive-widget=resizes-content` in index.html enables this on Android Chrome.
-   * 100vh is the fallback for older browsers.
-   */
   height: 100vh;
   height: 100dvh;
   width: 100%;
-  background: var(--background);
+  background: var(--bg-color, #0b141a);
   position: relative;
   overflow: hidden;
   overscroll-behavior-y: none;
-  /* GPU acceleration */
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
@@ -305,9 +316,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  /* Important for flex shrink - allows children to use flex: 1 */
   position: relative;
-  /* GPU acceleration */
   transform: translateZ(0);
   will-change: transform;
   overflow: hidden;
@@ -316,7 +325,6 @@
 @media (max-width: 768px) {
   .chat-screen.drawer-open .chat-main-area {
     display: none;
-    /* Full screen drawer on mobile */
   }
 }
 
@@ -332,19 +340,20 @@
 .chat-loading .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top: 3px solid var(--brand-primary);
+  border: 3px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-top: 3px solid var(--brand-primary, #00a884);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
 }
 
 .chat-loading p {
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
   font-size: 1rem;
   font-weight: 500;
   margin: 0;
 }
+
 
 /* --- Load More Indicator --- */
 .load-more-indicator {
@@ -361,7 +370,6 @@
   min-height: 80px;
   position: relative;
   overflow: hidden;
-  /* Smooth appearance animation */
   animation: slideDown 0.3s ease-out;
   transition: all 0.3s ease;
 }
@@ -403,12 +411,10 @@
   width: 32px;
   height: 32px;
   border: 3px solid rgba(255, 255, 255, 0.15);
-  border-top: 3px solid var(--brand-primary);
+  border-top: 3px solid var(--brand-primary, #00a884);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 12px;
-  /* Smooth fade-in */
   animation: spin 1s linear infinite, fadeIn 0.3s ease-out;
+  margin-bottom: 12px;
 }
 
 @keyframes fadeIn {
@@ -424,7 +430,7 @@
 }
 
 .load-more-indicator p {
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
   font-size: 14px;
   font-weight: 500;
   margin: 0;
@@ -432,22 +438,22 @@
   opacity: 0.9;
 }
 
-/* Light mode adjustments */
+/* Light mode — load more */
 body.light-mode .load-more-indicator {
   background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color, rgba(0, 60, 40, 0.08));
 }
 
 body.light-mode .load-more-indicator .loading-spinner {
-  border-color: rgba(0, 0, 0, 0.1);
-  border-top-color: var(--brand-primary);
+  border-color: rgba(0, 60, 40, 0.08);
+  border-top-color: var(--brand-primary, #00a884);
 }
 
 body.light-mode .load-more-indicator p {
-  color: var(--text-secondary);
+  color: var(--text-secondary, #4a6e5c);
 }
 
-/* Mobile responsive design */
+/* Mobile */
 @media (max-width: 480px) {
   .load-more-indicator {
     margin: 6px 4px;
@@ -468,45 +474,37 @@ body.light-mode .load-more-indicator p {
   }
 }
 
+
+/* =============================================
+   MESSAGES CONTAINER
+   ============================================= */
+
 .messages-container {
   flex: 1;
-  /* बची हुई सारी जगह यह ले लेगा */
   min-height: 0;
-  /* यह बहुत ज़रूरी है, वरना फ्लेक्सबॉक्स ओवरफ्लो कर जाता है */
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
-  /* Momentum scrolling for mobile */
   overscroll-behavior-y: contain;
-  /* Prevent scroll chaining */
   will-change: scroll-position, transform;
-  /* GPU acceleration hint */
   position: relative;
-  /* Important for scroll-bottom-btn absolute positioning */
   padding: 0 1rem 8px 1rem;
-  /* FIX: Removed top padding (was 1rem) to prevent messages being clipped behind header */
-  /* Responsive width: thin to wide devices */
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   background:
-    /* Top layer: Doodle pattern */
     url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3e%3cg fill='%23000000' fill-opacity='0.08'%3e%3ccircle cx='50' cy='50' r='3'/%3e%3ccircle cx='10' cy='10' r='2'/%3e%3ccircle cx='90' cy='90' r='2'/%3e%3ccircle cx='10' cy='90' r='1'/%3e%3ccircle cx='90' cy='10' r='1'/%3e%3c/g%3e%3c/svg%3e"),
-    /* Base layer: New chat wallpaper with reduced opacity */
     linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     var(--chat-bg-image, url("/assets/images/Gemini_Generated_Image_v2m4e5v2m4e5v2m4.png"));
   background-size: 300px 300px, cover, cover;
   background-position: center;
   background-repeat: repeat, no-repeat, no-repeat;
   transform: translateZ(0);
-  /* Force GPU layer */
   contain: content;
-  /* CSS containment for performance */
-  /* FLEXBOX FIX: Take remaining space above input */
   display: flex;
   flex-direction: column;
 }
 
-/* Responsive adjustments for thin to thick devices */
+/* Responsive padding */
 @media (max-width: 320px) {
   .messages-container {
     padding: 0 0.5rem 8px 0.5rem;
@@ -525,32 +523,45 @@ body.light-mode .load-more-indicator p {
   }
 }
 
+
+/* =============================================
+   CHAT HEADER
+   ============================================= */
+
 .chat-header {
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
   padding-top: calc(0.75rem + var(--sat));
-  /* Safe area top */
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-color, #1f2c33);
+  border-bottom: 1px solid var(--border-color, #2a3942);
   z-index: 5;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
 .back-btn,
 .icon-btn {
   background: none;
   border: none;
-  color: var(--icon-primary);
+  color: var(--chat-header-icon-color, #aebac1);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
-  transition: background var(--transition-fast);
+  transition: background 0.15s ease;
+}
+
+:global(body.light-mode) .back-btn,
+:global(body.light-mode) .icon-btn,
+:global(body.light-mode) .back-btn svg,
+:global(body.light-mode) .icon-btn svg {
+  color: #1a3a2a !important;
+  stroke: #1a3a2a !important;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05));
 }
 
 .back-btn:hover,
 .icon-btn:hover {
-  background: var(--hover-color);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
 }
 
 .chat-user-info {
@@ -566,8 +577,8 @@ body.light-mode .load-more-indicator p {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--primary-color);
-  color: var(--text-on-primary);
+  background: var(--brand-gradient, linear-gradient(135deg, #00a884, #00876a));
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -594,7 +605,7 @@ body.light-mode .load-more-indicator p {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -603,7 +614,7 @@ body.light-mode .load-more-indicator p {
 
 .user-details .user-phone {
   font-size: 0.9rem;
-  color: var(--muted-text, var(--text-secondary));
+  color: var(--text-secondary, #8696a0);
   margin: 0.1rem 0;
   white-space: nowrap;
   overflow: hidden;
@@ -612,7 +623,7 @@ body.light-mode .load-more-indicator p {
 
 .user-details .user-status {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
   margin: 0;
   font-style: italic;
   white-space: nowrap;
@@ -625,26 +636,30 @@ body.light-mode .load-more-indicator p {
   gap: 0.5rem;
 }
 
-/* --- MESSAGE ITEM CONTAINER --- */
+
+/* =============================================
+   MESSAGE ITEMS
+   ============================================= */
+
 .message-item {
   display: flex;
   width: 100%;
   margin-bottom: var(--spacing-xxs);
   position: relative;
-  /* transition: background-color 0.2s ease;  - Removed for instant look */
-  /* GPU Acceleration */
   transform: translateZ(0);
   will-change: transform;
 }
 
+/* ✅ FIX: Emerald highlight instead of random blue */
 .message-item.highlighted {
-  background-color: rgba(0, 123, 255, 0.05);
+  background-color: rgba(0, 168, 132, 0.08);
   border-radius: 12px;
 }
 
+/* ✅ FIX: Emerald selection */
 .message-item.selected {
-  background-color: rgba(37, 211, 102, 0.05);
-  box-shadow: inset 4px 0 0 0 var(--brand-primary);
+  background-color: rgba(0, 168, 132, 0.06);
+  box-shadow: inset 4px 0 0 0 var(--brand-primary, #00a884);
 }
 
 .message-item.sent {
@@ -672,21 +687,17 @@ body.light-mode .load-more-indicator p {
 
 .message-time {
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
   margin-top: 0.25rem;
   text-align: right;
   opacity: 0.8;
 }
 
-/* Chat Input Area */
-/* --- Chat Input Container --- */
-/*
- * KEYBOARD FIX: flex-shrink: 0 keeps this pinned at the bottom.
- * The .chat-screen uses 100dvh which shrinks when keyboard opens,
- * so the messages-container (flex: 1) absorbs the size change
- * and this input stays anchored at the bottom, just above the keyboard.
- * NO JS-based paddingBottom or keyboard height manipulation needed.
- */
+
+/* =============================================
+   CHAT INPUT CONTAINER
+   ============================================= */
+
 .chat-input-container {
   flex-shrink: 0;
   width: 100%;
@@ -694,16 +705,17 @@ body.light-mode .load-more-indicator p {
   padding-bottom: env(safe-area-inset-bottom, 8px);
   position: relative;
   z-index: 1000;
-  background: var(--surface);
+  background: var(--surface-color, #1f2c33);
   display: flex;
   flex-direction: column;
 }
 
-/* --- Desktop Specific Layout (Original Style) --- */
+
+/* --- Desktop Specific Layout --- */
 .input-row.desktop-layout {
   display: flex;
   align-items: center;
-  background-color: var(--surface, rgba(255, 255, 255, 0.1));
+  background-color: var(--surface-color, rgba(255, 255, 255, 0.1));
   padding: 8px 16px;
   border-radius: 30px;
   box-shadow: var(--shadow-md);
@@ -721,7 +733,7 @@ body.light-mode .load-more-indicator p {
   flex: 1;
   border: none;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
   outline: none;
   resize: none;
   font-size: 14px;
@@ -731,7 +743,7 @@ body.light-mode .load-more-indicator p {
 }
 
 .desktop-layout .btn-send {
-  background: var(--primary);
+  background: var(--brand-gradient, linear-gradient(135deg, #00a884, #00876a));
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -746,7 +758,7 @@ body.light-mode .load-more-indicator p {
 .desktop-layout .left-buttons button {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
   width: 40px;
   height: 40px;
   display: flex;
@@ -757,17 +769,18 @@ body.light-mode .load-more-indicator p {
 }
 
 .desktop-layout .left-buttons button:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
+  color: var(--text-primary, #e9edef);
 }
 
-/* --- Mobile Specific Layout (Modern Capsule Style) --- */
+
+/* --- Mobile Specific Layout --- */
 @media (max-width: 450px) {
   .chat-input-container.emoji-open {
     padding-left: 4px;
     padding-right: 4px;
     padding-bottom: 0;
-    background: var(--surface);
+    background: var(--surface-color, #1f2c33);
   }
 
   .input-row.mobile-layout {
@@ -777,9 +790,9 @@ body.light-mode .load-more-indicator p {
     padding: 0 4px;
     width: 100%;
     overflow: hidden;
-    /* Prevent overflow on tiny screens */
   }
 
+  /* ✅ FIX: Use variables instead of hardcoded colors */
   .chat-screen .mobile-layout .action-buttons {
     display: flex;
     align-items: center;
@@ -798,27 +811,28 @@ body.light-mode .load-more-indicator p {
     background: transparent;
     border: none;
     padding: 0;
-    color: #8696a0;
+    color: var(--text-secondary, #8696a0);
   }
 
+  /* ✅ FIX: Use variable for capsule background */
   .mobile-layout .input-capsule {
     flex: 1;
     display: flex;
     align-items: flex-end;
-    background: #202c33;
+    background: var(--surface-color, #202c33);
     border-radius: 24px;
     padding: 4px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
     min-height: 48px;
     min-width: 0;
-    /* Allow capsule to shrink */
   }
 
+  /* ✅ FIX: Use variable for text color */
   .chat-screen .mobile-layout .chat-input {
     flex: 1;
     border: none;
     background: transparent;
-    color: #e9edef;
+    color: var(--text-primary, #e9edef);
     outline: none;
     resize: none;
     font-size: 16px;
@@ -826,14 +840,14 @@ body.light-mode .load-more-indicator p {
     max-height: 140px;
     min-height: 24px;
     min-width: 0;
-    /* Important for flex shrink */
     line-height: normal;
   }
 
+  /* ✅ FIX: Use variable */
   .chat-screen .mobile-layout .btn-attach-inline {
     width: 36px;
     height: 36px;
-    color: #8696a0;
+    color: var(--text-secondary, #8696a0);
     background: transparent;
     border: none;
     display: flex;
@@ -847,7 +861,7 @@ body.light-mode .load-more-indicator p {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: var(--primary);
+    background: var(--brand-gradient, linear-gradient(135deg, #00a884, #00876a));
     color: white;
     display: flex;
     align-items: center;
@@ -855,13 +869,13 @@ body.light-mode .load-more-indicator p {
     border: none;
     flex-shrink: 0;
     margin-bottom: 0;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 5px rgba(0, 60, 40, 0.3);
     cursor: pointer;
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 }
 
-/* Narrow phones shield */
+/* Narrow phones */
 @media (max-width: 320px) {
   .chat-screen .input-row.mobile-layout {
     gap: 4px;
@@ -881,7 +895,8 @@ body.light-mode .load-more-indicator p {
   }
 }
 
-/* --- General Button Styles to prevent weird borders --- */
+
+/* --- General Button Styles --- */
 .chat-screen .btn-quick-reply,
 .chat-screen .btn-attach,
 .chat-screen .btn-emoji,
@@ -899,17 +914,21 @@ body.light-mode .load-more-indicator p {
 .btn-quick-reply:hover,
 .btn-mic:hover,
 .btn-emoji:hover {
-  background-color: var(--hover-color);
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.08));
 }
 
 .btn-send:disabled {
-  background: var(--bg-color);
-  color: var(--text-secondary);
+  background: var(--bg-color, #0b141a);
+  color: var(--text-secondary, #8696a0);
   cursor: not-allowed;
   filter: grayscale(1);
 }
 
-/* --- Date Separator --- */
+
+/* =============================================
+   DATE SEPARATOR — Emerald
+   ============================================= */
+
 .date-separator {
   display: flex;
   justify-content: center;
@@ -919,31 +938,32 @@ body.light-mode .load-more-indicator p {
 }
 
 .date-pill {
-  background-color: var(--surface-color);
-  color: var(--text-secondary);
+  background-color: var(--surface-color, #ffffff);
+  color: var(--text-secondary, #4a6e5c);
   padding: 6px 16px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 60, 40, 0.12);
+  border: 1px solid var(--border-color, rgba(0, 168, 132, 0.08));
   backdrop-filter: blur(8px);
   transition: all 0.2s ease;
 }
 
 .date-pill:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 60, 40, 0.18);
 }
 
+/* ✅ FIX: Use variables for dark mode */
 [data-theme='dark'] .date-pill {
-  background-color: #1f2c34;
-  color: #8696a0;
+  background-color: var(--surface-color, #1f2c33);
+  color: var(--text-secondary, #8696a0);
+  border-color: var(--border-color, #2a3942);
 }
 
-/* Mobile responsive date separator */
 @media (max-width: 480px) {
   .date-separator {
     margin: 12px 0 6px 0;
@@ -956,42 +976,49 @@ body.light-mode .load-more-indicator p {
   }
 }
 
+
+/* =============================================
+   DARK MODE ICON FIXES
+   ============================================= */
+
 [data-theme='dark'] .btn-mic {
-  color: #e0e0e0;
-  /* Light color for better visibility in dark mode */
+  color: var(--text-primary, #e9edef);
 }
 
-/* Light Mode - Chat Input Icons Fix */
+/* ✅ FIX: Use Emerald-aware variables */
 body[data-theme='light'] .btn-attach,
 body[data-theme='light'] .btn-emoji,
 body[data-theme='light'] .btn-mic,
 body[data-theme='light'] .btn-quick-reply {
-  color: #54656f;
-  /* WhatsApp standard dark grey */
+  color: var(--text-secondary, #4a6e5c);
 }
 
 body[data-theme='light'] .input-row {
-  background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  background-color: var(--surface-color, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 60, 40, 0.08);
 }
 
-/* Message Timestamp - Better Contrast */
+/* Message Timestamp */
 body[data-theme='light'] .message-time {
-  color: #54656f;
+  color: var(--text-secondary, #4a6e5c);
   opacity: 1;
 }
 
 body[data-theme='dark'] .message-time {
-  color: #9cabbb;
+  color: var(--text-secondary, #8696a0);
   opacity: 1;
 }
 
-/* Inline Recording UI */
+
+/* =============================================
+   RECORDING UI
+   ============================================= */
+
 .recording-row {
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  background-color: var(--surface-color);
+  background-color: var(--surface-color, #1f2c33);
   border-radius: 30px;
   box-shadow: var(--shadow-md);
   gap: 12px;
@@ -1011,12 +1038,12 @@ body[data-theme='dark'] .message-time {
   max-width: 250px;
   height: 40px;
   border-radius: 4px;
-  background-color: var(--bg-color);
+  background-color: var(--bg-color, #0b141a);
 }
 
 .recording-timer {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
   font-weight: 500;
 }
 
@@ -1028,7 +1055,7 @@ body[data-theme='dark'] .message-time {
 .btn-stop-recording {
   width: 36px;
   height: 36px;
-  background-color: var(--error-color, #ff4444);
+  background-color: var(--error-color, #e53935);
   color: white;
   border: none;
   border-radius: 50%;
@@ -1040,11 +1067,10 @@ body[data-theme='dark'] .message-time {
 }
 
 .btn-stop-recording:hover {
-  background-color: var(--error-color, #cc0000);
+  background-color: #cc0000;
   transform: scale(1.1);
 }
 
-/* Animation for the popup menus */
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -1057,17 +1083,20 @@ body[data-theme='dark'] .message-time {
   }
 }
 
-/* --- Scroll To Bottom Button --- */
+
+/* =============================================
+   SCROLL TO BOTTOM BUTTON
+   ============================================= */
+
 .scroll-bottom-btn {
   position: absolute;
   bottom: 90px;
-  /* Position above the input container */
   right: 20px;
   width: 40px;
   height: 40px;
-  background-color: var(--surface-color);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  background-color: var(--surface-color, #1f2c33);
+  color: var(--text-secondary, #8696a0);
+  border: 1px solid var(--border-color, #2a3942);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1086,7 +1115,7 @@ body[data-theme='dark'] .message-time {
   position: absolute;
   top: -5px;
   right: -5px;
-  background-color: var(--brand-primary);
+  background-color: var(--brand-primary, #00a884);
   color: white;
   min-width: 20px;
   height: 20px;
@@ -1096,34 +1125,39 @@ body[data-theme='dark'] .message-time {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--surface-color);
+  border: 2px solid var(--surface-color, #1f2c33);
 }
 
-/* Typing Indicator */
+
+/* =============================================
+   TYPING INDICATOR — Emerald
+   ============================================= */
+
 .typing-indicator {
   display: flex;
   align-items: center;
   padding: 0.5rem 1rem;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
   animation: fadeIn 0.3s ease-out;
-  background: var(--surface-color);
+  background: var(--surface-color, #1f2c33);
   border-radius: 18px;
   box-shadow: var(--shadow-sm);
   margin: 0.5rem 1rem;
   width: fit-content;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #2a3942);
 }
 
 [data-theme='dark'] .typing-indicator {
-  background: #2a3942;
-  border-color: #374045;
+  background: var(--surface-color, #2a3942);
+  border-color: var(--border-color, #374045);
 }
 
+/* ✅ FIX: Emerald tint instead of BLUE (#e1f5fe / #b3e5fc) */
 [data-theme='light'] .typing-indicator {
-  background: #e1f5fe;
-  border-color: #b3e5fc;
+  background: rgba(0, 168, 132, 0.06);
+  border-color: rgba(0, 168, 132, 0.15);
 }
 
 .typing-dots {
@@ -1134,7 +1168,7 @@ body[data-theme='dark'] .message-time {
 .typing-dots span {
   width: 6px;
   height: 6px;
-  background-color: var(--brand-primary);
+  background-color: var(--brand-primary, #00a884);
   border-radius: 50%;
   animation: typingBounce 1.4s infinite ease-in-out;
 }
@@ -1183,9 +1217,10 @@ body[data-theme='dark'] .message-time {
   }
 }
 
+
 /* =============================================
-    DESKTOP ADJUSTMENTS
-    ============================================= */
+   DESKTOP ADJUSTMENTS
+   ============================================= */
 
 @media (min-width: 769px) {
   .chat-screen {
@@ -1206,33 +1241,25 @@ body[data-theme='dark'] .message-time {
   }
 }
 
-/* --- Context Menu --- */
-/* The Main Box */
+
+/* =============================================
+   CONTEXT MENU — Emerald Themed
+   ============================================= */
+
+/* ✅ FIX: Use variables instead of hardcoded #233138 */
 .context-menu {
   position: fixed;
-  background-color: #233138;
-  /* WhatsApp Web Dark Grey */
-  /* Agar Glass effect chahiye to niche wali line use karein: */
-  /* background: rgba(35, 49, 56, 0.95); backdrop-filter: blur(10px); */
-
+  background-color: var(--surface-color, #1f2c33);
   min-width: 140px;
   border-radius: 12px;
-  /* Smooth rounded corners */
   padding: 8px 0;
-
-  /* Deep Shadow taaki background doodle se alag dikhe */
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  /* Subtle border */
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
   z-index: 10000;
-  /* Sabse upar dikhe - interface ke andar */
-
-  /* Animation: Smoothly pop open */
   animation: menuPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transform-origin: top left;
 }
 
-/* Menu Overlay - Click outside to close */
 .menu-overlay {
   position: fixed;
   top: 0;
@@ -1240,67 +1267,52 @@ body[data-theme='dark'] .message-time {
   right: 0;
   bottom: 0;
   z-index: 9998;
-  /* Context menu se thoda kam */
   background: transparent;
 }
 
-/* Menu Items */
+/* ✅ FIX: Use variables */
 .menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  /* Icon aur text ke beech gap */
   padding: 8px 16px;
-
   font-size: 13px;
   font-weight: 500;
-  color: #e9edef;
-  /* Off-white text */
+  color: var(--text-primary, #e9edef);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-/* Hover Effect: Mouse upar jane par light grey ho */
 .menu-item:hover {
-  background-color: #182229;
-  /* Thoda darker background */
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.08));
   transform: translateX(4px);
-  /* Thoda sa right slide ho */
 }
 
-/* Icons styling */
 .menu-item .icon {
   font-size: 14px;
   opacity: 0.8;
   width: 20px;
-  /* Fixed width taaki text align rahe */
   text-align: center;
 }
 
-/* Delete Button (Special Styling) */
-/* Delete ko alag dikhana zaroori hai */
 .menu-item.delete {
-  color: #ff5f5f;
-  /* Red color */
+  color: var(--error-color, #e53935);
 }
 
 .menu-item.delete:hover {
-  background-color: rgba(255, 95, 95, 0.1);
-  /* Red Tint on hover */
+  background-color: rgba(229, 57, 53, 0.1);
 }
 
 .menu-item.delete .icon {
-  filter: drop-shadow(0 0 2px rgba(255, 0, 0, 0.4));
+  filter: drop-shadow(0 0 2px rgba(229, 57, 53, 0.4));
 }
 
-/* Divider Line */
 .menu-divider {
   height: 1px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--border-color, rgba(255, 255, 255, 0.1));
   margin: 6px 0;
 }
 
-/* Pop Animation */
 @keyframes menuPop {
   0% {
     opacity: 0;
@@ -1313,55 +1325,41 @@ body[data-theme='dark'] .message-time {
   }
 }
 
-/* --- Reply Preview --- */
-/* The Main Container */
+
+/* =============================================
+   REPLY PREVIEW — Emerald Themed
+   ============================================= */
+
+/* ✅ FIX: Use variables instead of hardcoded #1f2c34 */
 .reply-preview-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  /* Background Color (Dark Grey similar to WhatsApp) */
-  background-color: #1f2c34;
-  /* Thoda transparency agar doodle background dikhana ho */
-  /* background-color: rgba(31, 44, 52, 0.95); backdrop-filter: blur(5px); */
-
+  background-color: var(--surface-color, #1f2c33);
   padding: 8px 12px;
   margin: 0 10px;
-  /* Thoda side gap */
   border-radius: 8px 8px 0 0;
-  /* Sirf upar se round */
   margin-bottom: 0;
-  /* Input ke saath gap na rahe */
-
-  /* Animation: Slide Up Effect */
   animation: slideUp 0.2s ease-out;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  /* Divider line input se alag karne ke liye */
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
 }
 
-/* Content Wrapper */
 .reply-content {
   display: flex;
   flex: 1;
-  /* Jagah le le */
-  background-color: rgba(0, 0, 0, 0.2);
-  /* Thoda darker inner box */
+  background-color: rgba(0, 168, 132, 0.06);
   border-radius: 6px;
   overflow: hidden;
-  /* Border radius maintain rakhne ke liye */
   position: relative;
 }
 
-/* The Green Accent Line (Left Side) */
+/* ✅ FIX: Use variable */
 .reply-border {
   width: 4px;
-  background-color: #00a884;
-  /* WhatsApp Green Accent */
+  background-color: var(--brand-primary, #00a884);
   height: auto;
-  /* Pura stretch karega */
 }
 
-/* Text Details */
 .reply-details {
   padding: 6px 10px;
   display: flex;
@@ -1369,33 +1367,27 @@ body[data-theme='dark'] .message-time {
   justify-content: center;
 }
 
+/* ✅ FIX: Use variable */
 .reply-title {
-  color: #00a884;
-  /* Same as border color */
+  color: var(--brand-primary, #00a884);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: var(--spacing-xxs);
 }
 
 .reply-message {
-  color: #cfd7df;
-  /* Off-white/Grey text */
+  color: var(--text-secondary, #8696a0);
   font-size: 13px;
   white-space: nowrap;
-  /* Ek line me text rakhe */
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Text zyada ho to '...' dikhaye */
   max-width: 250px;
-  /* Mobile par text cut jaye agar zyada ho */
 }
 
-/* Close Button (X) */
 .close-reply-btn {
   background: none;
   border: none;
-  color: #8696a0;
-  /* Muted Grey */
+  color: var(--text-secondary, #8696a0);
   font-size: 20px;
   margin-left: 12px;
   cursor: pointer;
@@ -1408,35 +1400,34 @@ body[data-theme='dark'] .message-time {
 }
 
 .close-reply-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #ff5f5f;
-  /* Red on hover */
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.08));
+  color: var(--error-color, #e53935);
 }
 
-/* Desktop Tweaks (Responsive) */
 @media (min-width: 768px) {
   .reply-message {
     max-width: 500px;
-    /* Desktop par zyada text dikhaye */
   }
 
   .reply-preview-container {
     margin: 0;
-    /* Desktop par full width accha lagta hai agar sidebar ke bagal me ho */
     border-radius: 0;
-    /* Desktop par flat look */
   }
 }
 
-/* --- Selection Toolbar (Mobile Actions) --- */
+
+/* =============================================
+   SELECTION TOOLBAR
+   ============================================= */
+
 .selection-toolbar {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  background: var(--surface, #1f2c34);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-color, #1f2c33);
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
   padding: var(--spacing-md) var(--spacing-lg);
   display: flex;
   align-items: center;
@@ -1448,7 +1439,7 @@ body[data-theme='dark'] .message-time {
 .selection-close-btn {
   background: none;
   border: none;
-  color: #8696a0;
+  color: var(--text-secondary, #8696a0);
   font-size: 24px;
   cursor: pointer;
   padding: 4px;
@@ -1460,31 +1451,36 @@ body[data-theme='dark'] .message-time {
 }
 
 .selection-close-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #ff5f5f;
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.08));
+  color: var(--error-color, #e53935);
 }
 
 .selection-info {
   flex: 1;
   text-align: center;
-  color: #e9edef;
+  color: var(--text-primary, #e9edef);
   font-size: 16px;
   font-weight: 500;
 }
 
-/* --- Message Highlighting (Search/Reply) --- */
+
+/* =============================================
+   MESSAGE HIGHLIGHTING — ✅ FIX: Emerald
+   ============================================= */
+
 .highlight-message {
   animation: highlightPulse 2s ease-out;
   border-radius: 8px;
 }
 
+/* ✅ FIX: Changed from WhatsApp green to Emerald */
 @keyframes highlightPulse {
   0% {
     background-color: transparent;
   }
 
   20% {
-    background-color: rgba(37, 211, 102, 0.25);
+    background-color: rgba(0, 168, 132, 0.2);
   }
 
   100% {
@@ -1500,7 +1496,7 @@ body[data-theme='dark'] .message-time {
 .selection-action-btn {
   background: none;
   border: none;
-  color: #8696a0;
+  color: var(--text-secondary, #8696a0);
   padding: 8px;
   border-radius: 50%;
   cursor: pointer;
@@ -1511,39 +1507,29 @@ body[data-theme='dark'] .message-time {
 }
 
 .selection-action-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #e9edef;
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.08));
+  color: var(--text-primary, #e9edef);
   transform: scale(1.1);
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Mobile adjustments */
 @media (max-width: 767px) {
   .chat-screen .messages-container {
     padding-top: 0;
-    /* FIX: Removed 70px top padding that was causing messages to be clipped behind header */
   }
 }
 
-/* --- Delete Confirmation Modal --- */
-/* Override modal title gradient for delete confirmation */
+
+/* =============================================
+   DELETE CONFIRMATION MODAL
+   ============================================= */
+
 .modal .modal-title {
   background: none;
   -webkit-background-clip: initial;
   -webkit-text-fill-color: initial;
   background-clip: initial;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, #0c1e17);
   text-shadow: none;
 }
 
@@ -1558,7 +1544,7 @@ body[data-theme='dark'] .message-time {
 
 .delete-confirmation-content p {
   margin: 0 0 20px 0;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, #0c1e17);
   font-size: 15px;
   line-height: 1.4;
   font-weight: 400;
@@ -1569,7 +1555,7 @@ body[data-theme='dark'] .message-time {
   gap: 12px;
   justify-content: center;
   padding-top: 16px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
+  border-top: 1px solid var(--border-color, #d1e8da);
 }
 
 .delete-cancel-btn,
@@ -1585,19 +1571,19 @@ body[data-theme='dark'] .message-time {
 }
 
 .delete-cancel-btn {
-  background-color: var(--surface, #f5f5f5);
-  color: var(--text-primary, #333);
-  border: 1px solid var(--border-color, #ddd);
+  background-color: var(--bg-color, #f0faf4);
+  color: var(--text-primary, #0c1e17);
+  border: 1px solid var(--border-color, #d1e8da);
 }
 
 .delete-cancel-btn:hover {
-  background-color: var(--hover-color, #e8e8e8);
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.06));
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 60, 40, 0.1);
 }
 
 .delete-confirm-btn {
-  background-color: #ff4444;
+  background-color: var(--error-color, #e53935);
   color: white;
   font-weight: 600;
 }
@@ -1605,33 +1591,36 @@ body[data-theme='dark'] .message-time {
 .delete-confirm-btn:hover {
   background-color: #cc0000;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
 }
 
 .delete-confirm-btn:active {
   transform: translateY(0);
 }
 
-/* Dark theme adjustments */
 [data-theme='dark'] .delete-confirmation-content p {
   color: var(--text-primary, #e9edef);
 }
 
 [data-theme='dark'] .delete-modal-actions {
-  border-top-color: var(--border-color, #374045);
+  border-top-color: var(--border-color, #2a3942);
 }
 
 [data-theme='dark'] .delete-cancel-btn {
-  background-color: var(--surface, #2a3942);
+  background-color: var(--surface-color, #2a3942);
   color: var(--text-primary, #e9edef);
   border-color: var(--border-color, #374045);
 }
 
 [data-theme='dark'] .delete-cancel-btn:hover {
-  background-color: var(--hover-color, #374045);
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.08));
 }
 
-/* --- Forward Modal --- */
+
+/* =============================================
+   FORWARD MODAL
+   ============================================= */
+
 .forward-modal-content {
   padding: 16px 0;
 }
@@ -1652,17 +1641,16 @@ body[data-theme='dark'] .message-time {
 }
 
 .forward-chat-item:hover {
-  background-color: var(--hover-color, rgba(255, 255, 255, 0.05));
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.06));
 }
 
 .forward-chat-item:last-child {
   border-bottom: none;
 }
 
-/* Legacy forward modal styles removed to prevent global conflicts */
-
+/* ✅ FIX: Emerald fallback instead of #25d366 */
 .forward-btn {
-  background: var(--brand-primary, #25d366);
+  background: var(--brand-primary, #00a884);
   color: white;
   border: none;
   border-radius: 50%;
@@ -1677,14 +1665,14 @@ body[data-theme='dark'] .message-time {
 }
 
 .forward-btn:hover {
-  background: var(--brand-primary-hover, #128c7e);
+  background: var(--brand-secondary, #00876a);
   transform: scale(1.1);
 }
 
 .no-chats {
   text-align: center;
   padding: 40px 20px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, #8696a0);
 }
 
 .no-chats svg {
@@ -1697,7 +1685,6 @@ body[data-theme='dark'] .message-time {
   font-size: 16px;
 }
 
-/* Dark theme adjustments for forward modal */
 [data-theme='dark'] .chat-name {
   color: var(--text-primary, #e9edef);
 }
@@ -1711,15 +1698,19 @@ body[data-theme='dark'] .message-time {
 }
 
 [data-theme='dark'] .forward-chat-item:hover {
-  background-color: var(--hover-color, #374045);
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.08));
 }
 
-/* --- Media Preview & Quality Selector --- */
+
+/* =============================================
+   MEDIA PREVIEW & QUALITY SELECTOR
+   ============================================= */
+
 .media-preview-container {
   position: relative;
   padding: 10px;
-  background-color: var(--bg-color);
-  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-color, #0b141a);
+  border-top: 1px solid var(--border-color, #2a3942);
   display: flex;
   align-items: center;
   gap: 15px;
@@ -1730,14 +1721,14 @@ body[data-theme='dark'] .message-time {
   height: 60px;
   border-radius: 8px;
   object-fit: cover;
-  background-color: var(--border-color);
+  background-color: var(--border-color, #2a3942);
 }
 
 .media-thumbnail.video {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8696a0);
 }
 
 .cancel-preview-btn {
@@ -1770,6 +1761,7 @@ body[data-theme='dark'] .message-time {
   font-size: 0.9rem;
   cursor: pointer;
 }
+
 
 /* --- Quick Reply Button --- */
 .quick-reply-btn {
@@ -1800,7 +1792,6 @@ body[data-theme='dark'] .message-time {
   transform: scale(1.1);
 }
 
-/* Sent messages - adjust button position */
 .message.sent .quick-reply-btn {
   right: 12px;
 }
@@ -1810,65 +1801,11 @@ body[data-theme='dark'] .message-time {
   right: auto;
 }
 
-/* --- Media Preview & Quality Selector --- */
-.media-preview-container {
-  position: relative;
-  padding: 10px;
-  background-color: var(--bg-color);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
 
-.media-thumbnail {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  object-fit: cover;
-  background-color: var(--border-color);
-}
+/* =============================================
+   EMOJI PICKER OVERLAY
+   ============================================= */
 
-.media-thumbnail.video {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-}
-
-.cancel-preview-btn {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  background-color: rgba(0, 0, 0, 0.6);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-}
-
-.quality-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.quality-selector label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-
-/* --- Emoji Picker Overlay --- */
 .emoji-picker-overlay {
   position: fixed;
   top: 0;
@@ -1890,7 +1827,7 @@ body[data-theme='dark'] .message-time {
 }
 
 .emoji-picker-overlay .emoji-picker-wrapper {
-  background: var(--surface);
+  background: var(--surface-color, #1f2c33);
   border-radius: 16px;
   padding: 8px;
   box-shadow: var(--shadow-lg);
@@ -1902,23 +1839,27 @@ body[data-theme='dark'] .message-time {
   overflow: hidden;
 }
 
-/* Ensure the inline picker inside the portal wrapper takes full height */
 .emoji-picker-overlay .emoji-picker-wrapper .emoji-picker-container {
   width: 100%;
   height: 100%;
 }
 
-/* Skeleton Loading for Messages */
+
+/* =============================================
+   SKELETON LOADING
+   ============================================= */
+
 .skeleton-messages {
   padding: 1rem;
 }
 
+/* ✅ FIX: Use variable instead of hardcoded #202c33 */
 .skeleton-message {
   height: 40px;
   width: 60%;
   margin: 10px 0;
   border-radius: 10px;
-  background: #202c33;
+  background: var(--surface-color, #202c33);
   position: relative;
   overflow: hidden;
 }
@@ -1933,7 +1874,6 @@ body[data-theme='dark'] .message-time {
   border-radius: 10px 10px 10px 0;
 }
 
-/* The Moving Shine Animation */
 .skeleton-message::after {
   content: "";
   position: absolute;
@@ -1941,93 +1881,73 @@ body[data-theme='dark'] .message-time {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.05),
-      transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
   animation: shimmer 1.5s infinite;
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-
-/* Light theme adjustments for skeleton */
 [data-theme='light'] .skeleton-message {
-  background: #e0e0e0;
+  background: var(--border-color, #d1e8da);
 }
 
 [data-theme='light'] .skeleton-message::after {
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(0, 0, 0, 0.05),
-      transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 168, 132, 0.05), transparent);
 }
 
+
 /* =============================================
-   SWIPE TO REPLY ANIMATION STYLES
+   SWIPE TO REPLY
    ============================================= */
 
-/* Swipe reply icon - hidden by default, shown only when dragging */
 .swipe-reply-icon {
   opacity: 0;
   transition: opacity 0.15s ease;
 }
 
-/* Show the reply icon when actively dragging */
 .message-bubble-wrapper[data-dragging="true"] .swipe-reply-icon {
   opacity: 1;
 }
 
-/* Message bubble wrapper for animations */
 .message-bubble-wrapper {
   position: relative;
   display: inline-block;
 }
 
-/* Mobile touch feedback */
 @media (hover: none) and (pointer: coarse) {
   .message-bubble-wrapper:active {
     transform: scale(0.98);
   }
 }
 
-/* Desktop hover effect for message bubble */
 @media (hover: hover) and (pointer: fine) {
   .message-bubble-wrapper:hover {
     filter: brightness(1.05);
   }
 }
 
-/* Highlight animation for desktop reply - REMOVED for instant appearance */
-/*
+/* ✅ FIX: Emerald highlight instead of PURPLE rgba(124,58,237) */
 @keyframes replyHighlight {
   0% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+    box-shadow: 0 0 0 0 rgba(0, 168, 132, 0.4);
   }
 
   50% {
-    box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
+    box-shadow: 0 0 0 8px rgba(0, 168, 132, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+    box-shadow: 0 0 0 0 rgba(0, 168, 132, 0);
   }
 }
 
 .message-bubble-wrapper.reply-highlight {
   animation: replyHighlight 0.4s ease-out;
 }
-*/
 
-/* --- Search Messages Modal --- */
+
+/* =============================================
+   SEARCH MESSAGES MODAL
+   ============================================= */
+
 .search-modal-content {
   display: flex;
   flex-direction: column;
@@ -2040,7 +1960,7 @@ body[data-theme='dark'] .message-time {
   align-items: center;
   gap: 12px;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--surface-light, rgba(255, 255, 255, 0.05));
+  background: var(--bg-color, rgba(255, 255, 255, 0.05));
   border-radius: 12px;
   margin-bottom: 16px;
   border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
@@ -2066,15 +1986,15 @@ body[data-theme='dark'] .message-time {
 .search-result-item {
   padding: 12px;
   border-radius: 10px;
-  background: var(--surface, rgba(255, 255, 255, 0.03));
+  background: var(--surface-color, rgba(255, 255, 255, 0.03));
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid transparent;
 }
 
 .search-result-item:hover {
-  background: var(--hover-color, rgba(255, 255, 255, 0.08));
-  border-color: var(--brand-primary, #25d366);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
+  border-color: var(--brand-primary, #00a884);
 }
 
 .result-header {
@@ -2083,10 +2003,11 @@ body[data-theme='dark'] .message-time {
   margin-bottom: 4px;
 }
 
+/* ✅ FIX: Emerald accent */
 .result-sender {
   font-size: 13px;
   font-weight: 600;
-  color: var(--brand-primary, #25d366);
+  color: var(--brand-primary, #00a884);
 }
 
 .result-time {
@@ -2114,7 +2035,11 @@ body[data-theme='dark'] .message-time {
   font-size: 15px;
 }
 
-/* --- Deletion Confirm Modal --- */
+
+/* =============================================
+   DELETION CONFIRM MODAL
+   ============================================= */
+
 .delete-confirm-modal {
   padding: 8px 0;
 }
@@ -2142,12 +2067,12 @@ body[data-theme='dark'] .message-time {
 }
 
 .modal-btn.secondary {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-color, rgba(255, 255, 255, 0.1));
   color: var(--text-primary, #e9edef);
 }
 
 .modal-btn.danger {
-  background: #ff4444;
+  background: var(--error-color, #e53935);
   color: white;
 }
 
@@ -2156,20 +2081,24 @@ body[data-theme='dark'] .message-time {
   filter: brightness(1.1);
 }
 
-/* Received group messages: avatar is first in DOM, bubble flows right */
+
+/* =============================================
+   GROUP MESSAGE AVATAR
+   ============================================= */
+
 .message-item.group-message.received {
   justify-content: flex-start;
   align-items: flex-end;
   gap: 0;
 }
 
-/* ── Circular Avatar Button (Group Chat DP) ── */
+/* ✅ FIX: Use Emerald variables for avatar */
 .group-sender-avatar {
   flex-shrink: 0;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #128c7e 0%, #25d366 100%);
+  background: var(--brand-gradient, linear-gradient(135deg, #00a884 0%, #00876a 100%));
   border: 2px solid transparent;
   cursor: pointer;
   padding: 0;
@@ -2178,7 +2107,6 @@ body[data-theme='dark'] .message-time {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Subtle ring that appears on hover */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 0.2s ease,
@@ -2191,7 +2119,7 @@ body[data-theme='dark'] .message-time {
 .group-sender-avatar:hover {
   transform: scale(1.12);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(0, 168, 132, 0.3);
 }
 
 .group-sender-avatar:active {
@@ -2199,7 +2127,6 @@ body[data-theme='dark'] .message-time {
   transition-duration: 0.08s;
 }
 
-/* Ripple overlay on tap */
 .group-sender-avatar::after {
   content: '';
   position: absolute;
@@ -2215,7 +2142,6 @@ body[data-theme='dark'] .message-time {
   opacity: 1;
 }
 
-/* Avatar image */
 .group-sender-avatar-img {
   width: 100%;
   height: 100%;
@@ -2224,7 +2150,6 @@ body[data-theme='dark'] .message-time {
   display: block;
 }
 
-/* Initial fallback letter */
 .group-sender-avatar-initial {
   font-size: 15px;
   font-weight: 700;
@@ -2236,7 +2161,6 @@ body[data-theme='dark'] .message-time {
   letter-spacing: 0.02em;
 }
 
-/* ── Content wrapper (bubble only — no name shown) ── */
 .message-content-wrapper.with-avatar {
   display: flex;
   flex-direction: column;
@@ -2246,14 +2170,13 @@ body[data-theme='dark'] .message-time {
   min-width: 120px;
 }
 
-/* ── Sender Name Label — HIDDEN (DP only mode) ── */
 .message-item .group-sender-name {
   display: none;
 }
 
-/* Matching avatar gradient per sender (color-coded DPs) */
+/* Color-coded group avatars — Emerald palette */
 .message-item:nth-child(6n+1) .group-sender-avatar {
-  background: linear-gradient(135deg, #128c7e, #25d366);
+  background: linear-gradient(135deg, #00a884, #00876a);
 }
 
 .message-item:nth-child(6n+2) .group-sender-avatar {
@@ -2276,7 +2199,6 @@ body[data-theme='dark'] .message-time {
   background: linear-gradient(135deg, #2e7d32, #66bb6a);
 }
 
-/* ── Mobile ── */
 @media (max-width: 480px) {
   .group-sender-avatar {
     width: 30px;
@@ -2294,16 +2216,20 @@ body[data-theme='dark'] .message-time {
   }
 }
 
-/* --- Active Call Banner --- */
+
+/* =============================================
+   ACTIVE CALL BANNER — Emerald
+   ============================================= */
+
 .active-call-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--brand-primary, #00a884) 0%, #128c7e 100%);
+  background: var(--brand-gradient, linear-gradient(135deg, #00a884 0%, #00876a 100%));
   color: white;
   z-index: 5;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
   animation: slideDownBanner 0.3s ease-out;
 }
 
@@ -2370,7 +2296,7 @@ body[data-theme='dark'] .message-time {
 
 .banner-join-btn {
   background: white;
-  color: #128c7e;
+  color: var(--brand-primary, #00a884);
   border: none;
   padding: 6px 16px;
   border-radius: 20px;
@@ -2382,21 +2308,20 @@ body[data-theme='dark'] .message-time {
 }
 
 .banner-join-btn:hover {
-  background: #f0f0f0;
+  background: #f0faf4;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 60, 40, 0.12);
 }
 
 .banner-join-btn:active {
   transform: translateY(0);
 }
 
+
 /* =============================================
-   VIRTUALIZED MESSAGE LIST STYLES
-   Performance Optimizations for 60+ FPS
+   VIRTUALIZED MESSAGE LIST — Performance
    ============================================= */
 
-/* Virtuoso Container - GPU acceleration hints */
 .virtuoso-container {
   contain: strict;
   height: 100%;
@@ -2410,23 +2335,18 @@ body[data-theme='dark'] .message-time {
 .virtuoso-container div[data-virtuoso-scroller] {
   will-change: scroll-position;
   transform: translateZ(0);
-  /* Force GPU layer */
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  /* Enable momentum scrolling (Telegram-like) */
   scroll-behavior: smooth;
-  /* Smooth scrolling for programmatic scrolls */
 }
 
-/* Disable transitions during scroll to prevent blank screen */
 .virtuoso-container div[data-virtuoso-scroller]:active,
 .virtuoso-container div[data-virtuoso-scroller]:not(.virtuoso-scroll-inactive) {
   transition: none;
   animation: none;
 }
 
-/* Ensure messages don't have transitions that cause blank screen */
 .virtuoso-container .message-item,
 .virtuoso-container .message-bubble,
 .virtuoso-container .message-content,
@@ -2436,29 +2356,21 @@ body[data-theme='dark'] .message-time {
   transform: none;
 }
 
-/* Message item optimization for virtualization */
 .message-item {
   contain: content;
-  /* Optimize rendering - browser can skip layout for items not changing */
   content-visibility: auto;
-  /* CSS containment for performance */
 }
 
-/* Prevent layout shifts from images/emojis */
 .message-container img,
 .message-container video,
 .message-container .emoji-renderer {
   max-width: 100%;
   height: auto;
-  /* Reserve space to prevent layout shifts */
   aspect-ratio: attr(width) / attr(height);
-  /* Where possible */
 }
 
-/* Image container - prevent CLS (Cumulative Layout Shift) */
 .message-media-container {
   position: relative;
-  /* Reserve space before image loads */
   min-height: 100px;
   min-width: 150px;
   background: rgba(0, 0, 0, 0.1);
@@ -2466,19 +2378,16 @@ body[data-theme='dark'] .message-time {
   overflow: hidden;
 }
 
-/* Aspect ratio enforcement for media */
 .message-media-container img,
 .message-media-container video {
   display: block;
   width: 100%;
   height: auto;
   object-fit: cover;
-  /* Reserve aspect ratio space */
   aspect-ratio: 16 / 9;
   max-height: 300px;
 }
 
-/* Emoji/image optimizations */
 .jumbo-emoji-bubble .message-content {
   display: flex;
   align-items: center;
@@ -2490,7 +2399,6 @@ body[data-theme='dark'] .message-time {
   line-height: 1.2;
 }
 
-/* Ensure emojis have fixed dimensions to prevent layout shifts */
 .emoji-renderer img,
 .emoji-renderer span[role="img"] {
   width: 24px;
@@ -2498,20 +2406,16 @@ body[data-theme='dark'] .message-time {
   flex-shrink: 0;
 }
 
-/* Jumbo emoji sizes */
 .jumbo-emoji .emoji-renderer img,
 .jumbo-emoji .emoji-renderer span[role="img"] {
   width: 64px;
   height: 64px;
 }
 
-/* Smooth scrolling enhancement */
 .messages-wrapper.virtuoso-container {
   scroll-behavior: auto;
-  /* Let Virtuoso handle scrolling */
 }
 
-/* Loading and empty states */
 .virtuoso-loading,
 .virtuoso-empty {
   display: flex;
@@ -2522,8 +2426,9 @@ body[data-theme='dark'] .message-time {
   min-height: 200px;
 }
 
+
 /* =============================================
-   EMPTY STATE UI (No Messages)
+   EMPTY STATE UI — Emerald
    ============================================= */
 
 .no-messages-placeholder {
@@ -2541,7 +2446,7 @@ body[data-theme='dark'] .message-time {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--surface-light, rgba(255, 255, 255, 0.05));
+  background: var(--surface-color, rgba(255, 255, 255, 0.05));
   padding: 40px;
   border-radius: 20px;
   border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
@@ -2603,38 +2508,27 @@ body[data-theme='dark'] .message-time {
   line-height: 1.5;
 }
 
-/* Light Theme overrides for empty state */
 [data-theme='light'] .no-messages-content {
   background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border-color: var(--border-color, rgba(0, 60, 40, 0.08));
+  box-shadow: 0 10px 30px rgba(0, 60, 40, 0.08);
 }
 
-/* Footer spacer for proper bottom alignment */
-.virtuoso-footer-spacer {
-  height: 1px;
-  flex-shrink: 0;
-}
 
 /* =============================================
-   VIRTUALIZED MESSAGE WRAPPER FIXES
-   Zero-height element prevention
+   VIRTUOSO WRAPPER & LAYOUT SHIFT FIXES
    ============================================= */
 
-/* Wrapper for each message item in Virtuoso */
 .virtuoso-message-wrapper {
   min-height: 24px;
   width: 100%;
   overflow: hidden;
-  /* Prevents margin collapse which can cause zero-height */
   box-sizing: border-box;
   display: block;
-  /* Force GPU layer */
   transform: translateZ(0);
   backface-visibility: hidden;
 }
 
-/* Placeholder for empty/null messages */
 .message-item-placeholder {
   min-height: 24px;
   width: 100%;
@@ -2642,30 +2536,12 @@ body[data-theme='dark'] .message-time {
   box-sizing: border-box;
 }
 
-/* Message item base - ensure it's always visible */
 .message-item {
   min-height: 24px;
   display: flex;
   width: 100%;
 }
 
-/* =============================================
-   IMAGE & EMOJI LAYOUT SHIFT FIXES
-   Prevent CLS (Cumulative Layout Shift)
-   ============================================= */
-
-/* Message media container - always reserve space */
-.message-media-container {
-  position: relative;
-  min-height: 100px;
-  min-width: 150px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  overflow: hidden;
-  display: block;
-}
-
-/* Ensure all images have explicit dimensions */
 .message-item img,
 .message-bubble img,
 .virtuoso-message-wrapper img,
@@ -2673,12 +2549,10 @@ body[data-theme='dark'] .message-time {
   display: block;
   max-width: 100%;
   height: auto;
-  /* Explicit dimensions to prevent layout shifts */
   min-height: 24px;
   min-width: 24px;
 }
 
-/* Avatar images - fixed dimensions */
 .message-item .user-avatar img,
 .message-bubble .user-avatar img,
 .message-item .group-sender-avatar img,
@@ -2690,22 +2564,18 @@ body[data-theme='dark'] .message-time {
   object-fit: cover;
 }
 
-/* Message bubble images */
 .message-bubble-image {
   display: block;
   width: 200px;
   height: auto;
-  /* Aspect ratio reservation */
   aspect-ratio: attr(width) / attr(height);
   max-height: 300px;
   object-fit: cover;
   border-radius: 12px;
   background-color: rgba(0, 0, 0, 0.05);
-  /* Loading placeholder */
   min-height: 150px;
 }
 
-/* Emoji renderers - fixed dimensions */
 .emoji-renderer,
 .emoji-renderer img,
 .emoji-renderer span[role="img"],
@@ -2719,7 +2589,6 @@ body[data-theme='dark'] .message-time {
   vertical-align: middle;
 }
 
-/* Jumbo emoji - larger but still fixed */
 .jumbo-emoji .emoji-renderer,
 .jumbo-emoji .emoji-renderer img,
 .jumbo-emoji .emoji-renderer span[role="img"],
@@ -2730,7 +2599,6 @@ body[data-theme='dark'] .message-time {
   min-height: 64px;
 }
 
-/* Ensure message content doesn't collapse */
 .message-content {
   display: flex;
   flex-direction: row;
@@ -2739,78 +2607,29 @@ body[data-theme='dark'] .message-time {
   justify-content: flex-start;
   gap: 4px 12px;
   min-height: 1em;
-  /* Prevent empty content from collapsing */
   overflow: visible;
   width: 100%;
 }
 
-/* Message bubble container */
 .message-bubble {
   width: fit-content;
   max-width: 88%;
   display: block;
   overflow: hidden;
-  /* Prevent margin collapse */
   overflow-wrap: break-word;
   word-wrap: break-word;
 }
 
+.virtuoso-footer-spacer {
+  height: 1px;
+  flex-shrink: 0;
+}
+
+
 /* =============================================
-   SWIPE TO REPLY ANIMATION STYLES
+   DESKTOP EMOJI PICKER
    ============================================= */
 
-/* Swipe reply icon - revealed behind the message bubble */
-.swipe-reply-icon {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-/* Show the reply icon when dragging */
-.message-bubble-wrapper:active .swipe-reply-icon,
-.message-bubble-wrapper.dragging .swipe-reply-icon {
-  opacity: 1;
-}
-
-/* Message bubble wrapper for animations */
-.message-bubble-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-/* Mobile touch feedback */
-@media (hover: none) and (pointer: coarse) {
-  .message-bubble-wrapper:active {
-    transform: scale(0.98);
-  }
-}
-
-/* Desktop hover effect for message bubble */
-@media (hover: hover) and (pointer: fine) {
-  .message-bubble-wrapper:hover {
-    filter: brightness(1.05);
-  }
-}
-
-/* Highlight animation for desktop reply */
-@keyframes replyHighlight {
-  0% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
-  }
-
-  50% {
-    box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
-  }
-}
-
-.message-bubble-wrapper.reply-highlight {
-  animation: replyHighlight 0.4s ease-out;
-}
-
-/* Desktop Emoji Picker Anchor */
 .desktop-emoji-picker-anchor {
   position: absolute;
   bottom: 100%;
@@ -2819,7 +2638,11 @@ body[data-theme='dark'] .message-time {
   z-index: 99999;
 }
 
-/* --- Icons & Animations --- */
+
+/* =============================================
+   ICONS & ANIMATIONS
+   ============================================= */
+
 .animate-spin {
   animation: spin 1s linear infinite;
 }
@@ -2834,7 +2657,11 @@ body[data-theme='dark'] .message-time {
   }
 }
 
-/* --- Shared Button Styles --- */
+
+/* =============================================
+   SHARED BUTTON STYLES — ✅ EMERALD FIXED
+   ============================================= */
+
 .btn-primary,
 .btn-secondary,
 .btn-danger {
@@ -2852,40 +2679,46 @@ body[data-theme='dark'] .message-time {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* ✅ CRITICAL FIX: Was #6366f1 (INDIGO!) → Now #00a884 (EMERALD) */
 .btn-primary {
-  background: var(--brand-primary, #6366f1);
+  background: var(--brand-primary, #00a884);
   color: white;
 }
 
+/* ✅ CRITICAL FIX: Was #4f46e5 (INDIGO!) → Now #00876a (EMERALD) */
 .btn-primary:hover {
-  background: var(--brand-secondary, #4f46e5);
+  background: var(--brand-secondary, #00876a);
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 10px rgba(0, 168, 132, 0.3);
 }
 
 .btn-secondary {
-  background: var(--surface-light, rgba(255, 255, 255, 0.1));
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background: var(--surface-color, rgba(255, 255, 255, 0.1));
+  color: var(--text-primary, #e9edef);
+  border: 1px solid var(--border-color, #2a3942);
 }
 
 .btn-secondary:hover {
-  background: var(--hover-color);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
   transform: translateY(-1px);
 }
 
 .btn-danger {
-  background: #ff4444;
+  background: var(--error-color, #e53935);
   color: white;
 }
 
 .btn-danger:hover {
   background: #cc0000;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(255, 68, 68, 0.3);
+  box-shadow: 0 4px 10px rgba(229, 57, 53, 0.3);
 }
 
-/* --- Modal & Confirmation Styles --- */
+
+/* =============================================
+   MODAL & CONFIRMATION STYLES
+   ============================================= */
+
 .modal-actions {
   display: flex;
   gap: 12px;
@@ -2895,7 +2728,7 @@ body[data-theme='dark'] .message-time {
 
 .confirm-modal-content {
   padding: 8px 0;
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
 }
 
 .confirm-modal-content p {
@@ -2904,7 +2737,11 @@ body[data-theme='dark'] .message-time {
   font-size: 15px;
 }
 
-/* --- Vanish Settings --- */
+
+/* =============================================
+   VANISH SETTINGS
+   ============================================= */
+
 .vanish-settings-content {
   display: flex;
   flex-direction: column;
@@ -2924,16 +2761,16 @@ body[data-theme='dark'] .message-time {
   align-items: center;
   gap: 10px;
   padding: 12px;
-  background: var(--surface-light, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-color);
+  background: var(--surface-color, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color, #2a3942);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .duration-option:hover {
-  background: var(--hover-color);
-  border-color: var(--brand-primary);
+  background: var(--hover-color, rgba(0, 168, 132, 0.08));
+  border-color: var(--brand-primary, #00a884);
 }
 
 .duration-option input {
@@ -2945,8 +2782,13 @@ body[data-theme='dark'] .message-time {
 .duration-option span {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
 }
+
+
+/* =============================================
+   THEME PREVIEW
+   ============================================= */
 
 .theme-preview-footer {
   display: flex;
@@ -2962,19 +2804,24 @@ body[data-theme='dark'] .message-time {
   margin-top: 8px;
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-primary, #0c1e17);
 }
 
 .theme-card.active .theme-card-name {
   font-weight: 600;
-  color: var(--brand-primary);
+  color: var(--brand-primary, #00a884);
 }
 
 .call-modal-text {
   margin-bottom: 25px;
-  color: var(--text-primary);
+  color: var(--text-primary, #e9edef);
   font-size: 1.1rem;
 }
+
+
+/* =============================================
+   MISCELLANEOUS
+   ============================================= */
 
 .message-edit-input-static {
   resize: none;
@@ -3013,6 +2860,7 @@ body[data-theme='dark'] .message-time {
 .call-illustration {
   margin-bottom: 20px;
 }
+
 .virtuoso-message-wrapper-static {
   min-height: 24px;
   width: 100%;

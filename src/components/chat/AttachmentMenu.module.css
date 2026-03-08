@@ -16,8 +16,9 @@
   width: max-content;
   border: 1px solid rgba(255, 255, 255, 0.1);
   /* Glassmorphism effect */
-  backdrop-filter: blur(10px);
-  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: var(--dropdown-bg);
 }
 
 
@@ -98,6 +99,16 @@
   transform: scale(1.05);
 }
 
+:global(body.light-mode) .attachment-option .icon-wrapper {
+  background: rgba(0, 168, 132, 0.1);
+  color: #1a3a2a;
+}
+
+:global(body.light-mode) .attachment-option:hover .icon-wrapper {
+  background: var(--brand-primary);
+  color: white;
+}
+
 /* Simple icon backgrounds */
 .icon-wrapper.photo-option {
   background: rgba(59, 130, 246, 0.1);
@@ -120,6 +131,10 @@
 
 .attachment-option:hover span {
   color: var(--text-primary);
+}
+
+:global(body.light-mode) .attachment-option span {
+  color: #1a3a2a;
 }
 
 /* Mobile Responsive Design */

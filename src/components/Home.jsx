@@ -1,7 +1,7 @@
 import React from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import BottomNavigation from "./common/BottomNavigation";
-import "../styles/theme.css";
+
 import "../styles/home.css";
 import { Paperclip, Smile, ArrowLeft } from 'lucide-react';
 
@@ -42,7 +42,7 @@ export default function Home() {
           </div>
           <div className="chat-list hidden-scroll">
             <div className="chat-item" onClick={handleChatClick}>
-              <div className="avatar"><img src="/assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg" alt="dp"/></div>
+              <div className="avatar"><img src="/assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg" alt="dp" /></div>
               <div className="chat-meta">
                 <div className="title">Design Team</div>
                 <div className="preview">Let’s ship the UI revamp today!</div>
@@ -50,7 +50,7 @@ export default function Home() {
               <div className="chat-time">2m</div>
             </div>
             <div className="chat-item" onClick={handleChatClick}>
-              <div className="avatar"><img src="/assets/images/dp-options/1691130988954.jpg" alt="dp"/></div>
+              <div className="avatar"><img src="/assets/images/dp-options/1691130988954.jpg" alt="dp" /></div>
               <div className="chat-meta">
                 <div className="title">Ava</div>
                 <div className="preview">Sending the docs now...</div>
@@ -68,10 +68,10 @@ export default function Home() {
         <section className="chat-pane glass">
           <div className="chat-header">
             <button className="back-btn" onClick={handleBackClick}>
-                <ArrowLeft size={20} />
+              <ArrowLeft size={20} />
             </button>
             <div className="title">
-              <div className="avatar"><img src="/assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg" alt="dp"/></div>
+              <div className="avatar"><img src="/assets/images/dp-options/00701602b0eac0390b3107b9e2a665e0.jpg" alt="dp" /></div>
               <div>
                 <div>Design Team</div>
                 <div className="status">Active now</div>

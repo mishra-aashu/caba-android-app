@@ -16,7 +16,7 @@ import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
 import ParticleOverlay from './chat/ParticleOverlay';
 import { formatTime } from '../utils/dateFormatter';
-import '../styles/theme.css';
+
 
 // Create context for user-details panel
 import { UserDetailsContext } from '../contexts/UserDetailsContext';

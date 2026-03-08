@@ -2,8 +2,10 @@
 @import './sidebar-groups.css';
 
 /* =============================================
-    APP-WIDE STYLES - REFINED FOR A MODERN LOOK
+    EMERALD THEME - REFINED MODERN APP STYLES
    ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @property --scroll-percentage {
   syntax: '<number>';
@@ -12,74 +14,92 @@
 }
 
 /* =============================================
-   1. FONT IMPORT (EXAMPLE)
-   ============================================= */
-/* Let's ensure we have a great font. 'Inter' is already good. 
-   If you wanted to change, you could import from Google Fonts like this:
-
-
-/* =============================================
-   2. THEME & GLOBAL VARIABLES
+   1. THEME & GLOBAL VARIABLES - EMERALD
    ============================================= */
 :root {
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  /* --font-sans: 'Poppins', sans-serif; */
-  /* <-- Uncomment to use Poppins */
 
-  /* Safe area and viewport variables are now provided by tokens.css */
+  /* --- EMERALD LIGHT THEME --- */
+  --bg-color: #f0faf4;
+  --bg-gradient: linear-gradient(180deg, #ffffff 0%, #e6f7ed 100%);
+  --surface-color: #ffffff;
+  --text-primary: #0c1e17;
+  --text-secondary: #4a6e5c;
+  --border-color: #d1e8da;
 
-  /* --- REFINED LIGHT THEME --- */
-  --bg-color: #F7FDF9;
-  /* A very light, almost white green */
-  --bg-gradient: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%);
-  --surface-color: #FFFFFF;
-  --text-primary: #081411;
-  --text-secondary: #546E7A;
-  --border-color: #E0E0E0;
-  --brand-primary: #6366f1;
-  /* Premium Indigo */
-  --brand-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  --brand-secondary: #4f46e5;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.07);
-  --success-color: #2E7D32;
-  --error-color: #D32F2F;
-  --chat-header-icon-color: #000000;
-  --primary-0: #000000;
+  /* Emerald Brand */
+  --brand-primary: #00a884;
+  --brand-gradient: linear-gradient(135deg, #00a884 0%, #00876a 100%);
+  --brand-secondary: #00876a;
+  --brand-light: rgba(0, 168, 132, 0.1);
+  --brand-hover: #009e7a;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 60, 40, 0.06);
+  --shadow-md: 0 8px 24px rgba(0, 60, 40, 0.1);
+  --shadow-lg: 0 16px 48px rgba(0, 60, 40, 0.12);
+
+  /* Status Colors */
+  --success-color: #00a884;
+  --error-color: #e53935;
+  --warning-color: #f59e0b;
+  --info-color: #0ea5e9;
+
+  /* Hover */
+  --hover-color: rgba(0, 168, 132, 0.06);
+  --active-color: rgba(0, 168, 132, 0.12);
+
+  /* Chat Header */
+  --chat-header-icon-color: #1a3a2a;
+  --primary-0: #0c1e17;
 
   .icon-btn {
-    color: #000000;
+    color: #1a3a2a;
   }
 }
 
+/* =============================================
+   2. DARK THEME - EMERALD NIGHT
+   ============================================= */
 [data-theme='dark'] {
-  /* --- NEW NIGHT THEME --- */
-  --bg-color: #121212;
-  /* Off-black for less eye strain */
-  --bg-gradient: linear-gradient(180deg, #1A1A1A 0%, #121212 100%);
-  --surface-color: #1E1E1E;
-  --text-primary: #EAEAEA;
-  --text-secondary: #9E9E9E;
-  --border-color: #2D2D2D;
-  --brand-primary: #6366f1;
-  --brand-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  --brand-secondary: #3730a3;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.4);
-  --chat-header-icon-color: #ffffff;
+  --bg-color: #0b141a;
+  --bg-gradient: linear-gradient(180deg, #111b21 0%, #0b141a 100%);
+  --surface-color: #1f2c33;
+  --text-primary: #e9edef;
+  --text-secondary: #8696a0;
+  --border-color: #2a3942;
+
+  /* Emerald Brand - Dark */
+  --brand-primary: #00a884;
+  --brand-gradient: linear-gradient(135deg, #00a884 0%, #008f72 100%);
+  --brand-secondary: #005c4b;
+  --brand-light: rgba(0, 168, 132, 0.12);
+  --brand-hover: #00c49a;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+
+  /* Hover */
+  --hover-color: rgba(0, 168, 132, 0.08);
+  --active-color: rgba(0, 168, 132, 0.15);
+
+  --chat-header-icon-color: #e9edef;
 
   .icon-btn {
-    color: #ffffff;
+    color: #e9edef;
   }
 
   .contact-menu-btn {
-    color: #ffffff;
+    color: #e9edef;
   }
 
   .dropdown .icon-btn {
-    color: #ffffff;
+    color: #e9edef;
   }
 
+  /* Dark mode icon overrides */
   .contacts-icon,
   .search-toggle-icon,
   .search-input-icon,
@@ -104,28 +124,28 @@
   .qr-icon,
   .settings-nav-icon,
   .blocked-icon {
-    color: #ffffff;
+    color: #e9edef;
   }
 
   .chats-title {
-    color: #ffffff;
+    color: #e9edef;
   }
 }
 
 /* =============================================
    3. BASE & RESET STYLES
    ============================================= */
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
-  /* Remove tap highlight on mobile */
 }
 
 html {
   font-size: 16px;
-  /* Base font size */
   scroll-behavior: smooth;
 }
 
@@ -139,7 +159,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
   overscroll-behavior-y: none;
-  /* Prevent pull-to-refresh on body if handled by app */
 }
 
 #root {
@@ -150,7 +169,7 @@ body {
   flex-direction: column;
 }
 
-/* Custom Scrollbars (Hidden for Clean UI) */
+/* Hidden Scrollbars */
 ::-webkit-scrollbar {
   display: none;
 }
@@ -159,7 +178,6 @@ body {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-
 
 /* =============================================
    4. APP LAYOUT
@@ -176,11 +194,10 @@ body {
   flex-grow: 1;
   height: 100%;
   overflow: hidden;
-  /* Changed from auto to prevent nested scroll conflicts */
   position: relative;
 }
 
-/* Utility class for standalone pages (Settings, Reminders, Blocked, etc.) */
+/* Page Container Utility */
 .page-container {
   height: 100%;
   display: flex;
@@ -188,11 +205,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  /* Momentum scrolling */
   scroll-behavior: smooth;
   padding-bottom: var(--sab);
-  /* Respect safe area bottom */
-  /* GPU Acceleration */
   transform: translateZ(0);
   will-change: scroll-position;
 }
@@ -200,7 +214,6 @@ body {
 @media (max-width: 768px) {
   .page-container {
     padding-bottom: calc(var(--bottom-nav-height, 60px) + var(--sab, 0px));
-    /* Space for BottomNavigation + Safe Area */
   }
 }
 
@@ -210,12 +223,14 @@ body {
     transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .desktop-navbar:hover~.app-content {
+  .desktop-navbar:hover ~ .app-content {
     margin-left: 200px;
   }
 }
 
-/* Shared panel styles */
+/* =============================================
+   5. PANEL STYLES
+   ============================================= */
 .chat-list-panel,
 .chat-detail {
   display: flex;
@@ -230,18 +245,13 @@ body {
   overflow: hidden;
 }
 
-/* --- Light Mode Support (.light-mode class) --- */
-body.light-mode .chat-list-panel {
-  background-color: #ffffff;
-  border-right-color: #e0e0e0;
-}
-
 .chat-detail {
   background-color: var(--bg-color);
 }
 
-
-/* --- Desktop Layout --- */
+/* =============================================
+   6. DESKTOP LAYOUT
+   ============================================= */
 @media (min-width: 769px) {
   .desktop-layout {
     display: flex;
@@ -253,14 +263,11 @@ body.light-mode .chat-list-panel {
     width: 380px;
     min-width: 320px;
     max-width: 450px;
-    /* Removed width transition to prevent layout thrashing */
-    /* Width changes are instant but layout-stable */
   }
 
   .chat-detail {
     flex-grow: 1;
     min-width: 0;
-    /* Removed flex/min-width transition to prevent layout thrashing */
   }
 
   .desktop-layout.show-user-details .chat-list-panel {
@@ -280,14 +287,14 @@ body.light-mode .chat-list-panel {
     border-left: 1px solid var(--border-color);
     background-color: var(--bg-color);
     overflow-y: auto;
-    /* GPU-accelerated slide-in: transform + opacity (no layout reflow) */
     transform: translate3d(100%, 0, 0);
     opacity: 0;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform, opacity;
   }
 
-  /* Animate to visible state */
   .desktop-layout.show-user-details .user-details-panel {
     transform: translate3d(0, 0, 0);
     opacity: 1;
@@ -298,12 +305,13 @@ body.light-mode .chat-list-panel {
   }
 }
 
-/* --- Mobile & Tablet Layout --- */
+/* =============================================
+   7. MOBILE & TABLET LAYOUT
+   ============================================= */
 @media (max-width: 768px) {
   .app-content {
     margin-left: 0;
     padding-bottom: 0;
-    /* BottomNav is fixed, pages handle their own padding */
   }
 
   .desktop-layout {
@@ -326,13 +334,11 @@ body.light-mode .chat-list-panel {
     bottom: 0;
     display: flex;
     flex-direction: column;
-    /* Changed from height 100% to respect parent padding/pb-safe */
     transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     backface-visibility: hidden;
     will-change: transform;
   }
 
-  /* When on list view (bottom nav is shown), add padding to list-view */
   .mobile-layout:not(.show-chat) .list-view {
     bottom: calc(var(--bottom-nav-height, 60px) + var(--sab, 0px));
   }
@@ -345,13 +351,13 @@ body.light-mode .chat-list-panel {
   .chat-view {
     transform: translateX(100%);
     z-index: 3;
-    box-shadow: -8px 0 25px rgba(0, 0, 0, 0.15);
+    box-shadow: -8px 0 30px rgba(0, 20, 15, 0.18);
     background-color: var(--surface-color);
   }
 
   .mobile-layout.show-chat .list-view {
     transform: translateX(-40%);
-    filter: brightness(0.9);
+    filter: brightness(0.92);
   }
 
   .mobile-layout.show-chat .chat-view {
@@ -372,14 +378,8 @@ body.light-mode .chat-list-panel {
 }
 
 /* =============================================
-   5. COMPONENT STYLES
+   8. HEADER STYLES
    ============================================= */
-
-/* --- Desktop Navbar (Mobile First) --- */
-/* Sidebar styles moved to desktop.css to avoid conflicts and z-index issues */
-
-
-/* --- Panel Header --- */
 .top-header {
   display: flex;
   align-items: center;
@@ -387,12 +387,14 @@ body.light-mode .chat-list-panel {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  background-color: var(--surface-color);
 }
 
 .header-left h1 {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.5px;
+  color: var(--text-primary);
 }
 
 .header-right {
@@ -401,7 +403,9 @@ body.light-mode .chat-list-panel {
   gap: 0.5rem;
 }
 
-/* --- Search Bar Styles --- */
+/* =============================================
+   9. SEARCH BAR
+   ============================================= */
 .search-bar {
   display: flex;
   align-items: center;
@@ -410,9 +414,14 @@ body.light-mode .chat-list-panel {
   margin: 0 0.75rem 0.75rem 0.75rem;
   background-color: var(--bg-color);
   border-radius: 24px;
-  /* Curved ends */
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-bar:focus-within {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-light);
 }
 
 .search-bar input {
@@ -422,10 +431,15 @@ body.light-mode .chat-list-panel {
   padding: 0.5rem 0;
   color: var(--text-primary);
   font-size: 0.95rem;
+  font-family: var(--font-sans);
 }
 
 .search-bar input:focus {
   outline: none;
+}
+
+.search-bar input::placeholder {
+  color: var(--text-secondary);
 }
 
 .search-bar .close-search {
@@ -434,19 +448,22 @@ body.light-mode .chat-list-panel {
   color: var(--text-secondary);
   font-size: 1.2rem;
   cursor: pointer;
-  padding: 0 5px;
+  padding: 4px 6px;
   border-radius: 50%;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .search-bar .close-search:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--hover-color);
+  color: var(--brand-primary);
 }
 
-/* --- Search Suggestions --- */
+/* =============================================
+   10. SEARCH SUGGESTIONS
+   ============================================= */
 .search-suggestions {
   background-color: var(--surface-color);
-  border-radius: 8px;
+  border-radius: 12px;
   margin: 0 0.75rem 0.75rem 0.75rem;
   box-shadow: var(--shadow-md);
   max-height: 200px;
@@ -464,7 +481,7 @@ body.light-mode .chat-list-panel {
 }
 
 .search-suggestion-item:hover {
-  background-color: var(--bg-color);
+  background-color: var(--hover-color);
 }
 
 .suggestion-avatar {
@@ -472,12 +489,12 @@ body.light-mode .chat-list-panel {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: var(--brand-secondary);
+  background: var(--brand-gradient);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 1rem;
   flex-shrink: 0;
   overflow: hidden;
@@ -490,7 +507,6 @@ body.light-mode .chat-list-panel {
   object-fit: cover;
 }
 
-
 .suggestion-info {
   flex-grow: 1;
 }
@@ -498,6 +514,7 @@ body.light-mode .chat-list-panel {
 .suggestion-name {
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 0.95rem;
 }
 
 .suggestion-phone {
@@ -505,57 +522,23 @@ body.light-mode .chat-list-panel {
   color: var(--text-secondary);
 }
 
+/* =============================================
+   11. ONLINE STATUS INDICATORS
+   ============================================= */
 .online-status {
   position: absolute;
-  bottom: 0px;
-  right: 0px;
+  bottom: 0;
+  right: 0;
   width: 10px;
   height: 10px;
-  background-color: #9E9E9E;
-  /* Grey for offline */
+  background-color: #9e9e9e;
   border-radius: 50%;
   border: 2px solid var(--surface-color);
+  transition: background-color 0.3s ease;
 }
 
 .online-status.online {
-  background-color: #4CAF50;
-  /* Green for online */
-}
-
-.chat-list-wrapper {
-  overflow-y: auto;
-  flex-grow: 1;
-  padding: 0;
-  -webkit-overflow-scrolling: touch;
-}
-
-
-
-/* --- Chat Item Card --- */
-/* Consolidated to ChatListItem.css */
-
-/* --- Chat Avatar --- */
-.chat-avatar-wrapper {
-  position: relative;
-  width: 50px;
-  height: 50px;
-  flex-shrink: 0;
-}
-
-.chat-avatar-wrapper img,
-.chat-avatar-wrapper>div {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  background-color: var(--brand-secondary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
-  font-size: 1.2rem;
-  text-transform: uppercase;
+  background-color: var(--brand-primary);
 }
 
 .online-indicator {
@@ -564,21 +547,53 @@ body.light-mode .chat-list-panel {
   right: 2px;
   width: 12px;
   height: 12px;
-  background-color: #9E9E9E;
-  /* Grey for offline */
+  background-color: #9e9e9e;
   border-radius: 50%;
   border: 2px solid var(--surface-color);
   transition: background-color 0.3s ease;
 }
 
 .online-indicator.online {
-  background-color: #4CAF50;
-  /* Green for online */
+  background-color: var(--brand-primary);
 }
 
+/* =============================================
+   12. CHAT LIST
+   ============================================= */
+.chat-list-wrapper {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 0;
+  -webkit-overflow-scrolling: touch;
+}
 
+/* Chat Avatar */
+.chat-avatar-wrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+}
 
-/* --- Message Bubbles --- */
+.chat-avatar-wrapper img,
+.chat-avatar-wrapper > div {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--brand-gradient);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+}
+
+/* =============================================
+   13. MESSAGE BUBBLES
+   ============================================= */
 .message-container {
   display: flex;
   margin-bottom: var(--spacing-xxs);
@@ -594,18 +609,11 @@ body.light-mode .chat-list-panel {
   justify-content: flex-start;
 }
 
-
-/* Base .bubble style removed to avoid conflicts with component styling */
-
-
-/* Legacy bubble blocks removed for theme engine supremacy */
-
-
-/* Legacy meta blocks removed for theme engine supremacy */
-
 /* =============================================
-   6. UTILITY & FORM CLASSES
+   14. BUTTONS & FORM ELEMENTS
    ============================================= */
+
+/* Icon Button */
 .icon-btn {
   background: transparent;
   border: none;
@@ -615,52 +623,63 @@ body.light-mode .chat-list-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000000;
+  color: var(--chat-header-icon-color);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
 .icon-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: var(--text-primary);
+  background-color: var(--hover-color);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
 }
 
 [data-theme='dark'] .icon-btn:hover {
   background-color: rgba(255, 255, 255, 0.08);
 }
 
+/* Primary Button */
 .btn {
   padding: var(--spacing-md) var(--spacing-xl);
   font-size: 1rem;
-  border-radius: 8px;
+  border-radius: 12px;
   border: none;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: var(--font-sans);
   transition: all 0.2s ease;
 }
 
 .btn-primary {
-  background: var(--brand-primary);
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: var(--brand-gradient);
   color: white;
   border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.25);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 20px rgba(0, 168, 132, 0.35);
   filter: brightness(110%);
 }
 
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 168, 132, 0.2);
+}
+
+/* Form Input */
 .form-input {
   width: 100%;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: 12px;
   border: 1.5px solid var(--border-color);
-  background-color: rgba(var(--text-primary-rgb), 0.02);
+  background-color: var(--bg-color);
   color: var(--text-primary);
   font-size: 16px;
+  font-family: var(--font-sans);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
 }
@@ -668,11 +687,11 @@ body.light-mode .chat-list-panel {
 .form-input:focus {
   border-color: var(--brand-primary);
   background-color: var(--surface-color);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 4px var(--brand-light);
 }
 
 /* =============================================
-   7. NEW CONTACT MODAL STYLES
+   15. NEW CONTACT MODAL
    ============================================= */
 .new-contact-modal {
   padding: 1rem;
@@ -684,48 +703,52 @@ body.light-mode .chat-list-panel {
 .modal-mode-toggle {
   display: flex;
   background-color: var(--bg-color);
-  border-radius: 10px;
-  padding: 5px;
+  border-radius: 12px;
+  padding: 4px;
   width: fit-content;
   margin: 0 auto;
+  border: 1px solid var(--border-color);
 }
 
 .mode-btn {
   flex: 1;
-  padding: 8px 15px;
+  padding: 8px 18px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: transparent;
   color: var(--text-secondary);
   font-weight: 500;
+  font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .mode-btn.active {
-  background-color: var(--surface-color);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
+  background: var(--brand-gradient);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 168, 132, 0.3);
 }
 
 .add-contact-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 10px 15px;
-  border: 1px dashed var(--border-color);
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1.5px dashed var(--border-color);
+  border-radius: 12px;
   background-color: transparent;
   color: var(--text-primary);
   font-weight: 500;
+  font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.2s ease;
   justify-content: center;
 }
 
 .add-contact-btn:hover {
-  background-color: var(--bg-color);
+  background-color: var(--hover-color);
   border-color: var(--brand-primary);
+  color: var(--brand-primary);
 }
 
 .contact-form {
@@ -736,18 +759,21 @@ body.light-mode .chat-list-panel {
 
 .contact-input {
   width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
   background-color: var(--bg-color);
   color: var(--text-primary);
   font-size: 1rem;
+  font-family: var(--font-sans);
+  transition: all 0.2s ease;
 }
 
 .contact-input:focus {
   outline: none;
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 2px rgba(0, 191, 165, 0.2);
+  box-shadow: 0 0 0 3px var(--brand-light);
+  background-color: var(--surface-color);
 }
 
 .contact-form-actions {
@@ -759,18 +785,22 @@ body.light-mode .chat-list-panel {
 .contact-form-actions .btn-secondary {
   background-color: transparent;
   color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
 }
 
 .contact-form-actions .btn-secondary:hover {
-  background-color: var(--bg-color);
+  background-color: var(--hover-color);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
   transform: none;
   box-shadow: none;
 }
 
+/* Contact Sections */
 .saved-contacts-section h3,
 .select-contact-section h3 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
   color: var(--text-primary);
@@ -790,13 +820,13 @@ body.light-mode .chat-list-panel {
   justify-content: space-between;
   padding: 10px 12px;
   background-color: var(--bg-color);
-  border-radius: 8px;
+  border-radius: 12px;
   transition: background-color 0.2s ease;
   position: relative;
 }
 
 .saved-contact-item:hover {
-  background-color: var(--border-color);
+  background-color: var(--hover-color);
 }
 
 .saved-contact-item .contact-info {
@@ -809,12 +839,12 @@ body.light-mode .chat-list-panel {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: var(--brand-secondary);
+  background: var(--brand-gradient);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 1rem;
   flex-shrink: 0;
   overflow: hidden;
@@ -843,57 +873,33 @@ body.light-mode .chat-list-panel {
   gap: 0.25rem;
 }
 
+/* Contact Menu */
 .contact-menu-btn {
   background: transparent;
   border: none;
-  color: #000000;
+  color: var(--chat-header-icon-color);
   cursor: pointer;
-  padding: 5px;
+  padding: 6px;
   border-radius: 50%;
   transition: background-color 0.2s;
 }
 
 .contact-menu-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--hover-color);
 }
 
 .contact-menu {
   position: absolute;
   right: 15px;
   background-color: var(--surface-color);
-  border-radius: 8px;
-  box-shadow: var(--shadow-md);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
   z-index: 10;
-  min-width: 150px;
+  min-width: 160px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-/* --- Light Mode Support (.light-mode class) --- */
-body.light-mode .contact-menu {
-  background-color: #ffffff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-body.light-mode .contact-menu .menu-item {
-  color: #111b21;
-}
-
-body.light-mode .contact-menu .menu-item:hover {
-  background-color: #f5f6f6;
-}
-
-body.light-mode .menu-item.delete-item {
-  color: #dc3545;
-}
-
-body.light-mode .menu-item.delete-item:hover {
-  background-color: rgba(220, 53, 69, 0.1);
-}
-
-body.light-mode .no-contacts {
-  color: #667781;
+  border: 1px solid var(--border-color);
 }
 
 .contact-menu.show-above {
@@ -910,18 +916,20 @@ body.light-mode .no-contacts {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 15px;
+  padding: 11px 16px;
   background-color: transparent;
   border: none;
   width: 100%;
   text-align: left;
   color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .contact-menu .menu-item:hover {
-  background-color: var(--bg-color);
+  background-color: var(--hover-color);
 }
 
 .menu-item.delete-item {
@@ -929,31 +937,36 @@ body.light-mode .no-contacts {
 }
 
 .menu-item.delete-item:hover {
-  background-color: rgba(var(--error-color), 0.1);
+  background-color: rgba(229, 57, 53, 0.08);
 }
 
 .no-contacts {
   text-align: center;
   color: var(--text-secondary);
-  padding: 1rem;
+  padding: 1.5rem 1rem;
+  font-size: 0.9rem;
 }
 
 .select-contact-section .start-chat-btn {
-  background-color: var(--brand-primary);
+  background: var(--brand-gradient);
   color: white;
   border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 168, 132, 0.25);
 }
 
 .select-contact-section .start-chat-btn:hover {
-  background-color: var(--brand-secondary);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.35);
+  transform: translateY(-1px);
 }
 
 /* =============================================
-   8. AUTH PAGES
+   16. AUTH PAGES - EMERALD
    ============================================= */
 .auth-page {
   display: flex;
@@ -961,19 +974,19 @@ body.light-mode .no-contacts {
   align-items: center;
   justify-content: center;
   height: var(--app-height);
-  background: #FFFDD0;
+  background: var(--bg-gradient);
   padding: 1rem;
 }
-
 
 .auth-container {
   width: 100%;
   max-width: 420px;
   background-color: var(--surface-color);
-  padding: 2rem 2.5rem;
+  padding: 2.5rem;
   border-radius: 24px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   text-align: center;
+  border: 1px solid var(--border-color);
 }
 
 .auth-header .app-logo {
@@ -985,7 +998,7 @@ body.light-mode .no-contacts {
 
 .auth-header h2 {
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
@@ -993,6 +1006,7 @@ body.light-mode .no-contacts {
 .auth-header p {
   color: var(--text-secondary);
   margin-bottom: 2rem;
+  line-height: 1.5;
 }
 
 .auth-form {
@@ -1007,22 +1021,27 @@ body.light-mode .no-contacts {
   justify-content: center;
   gap: 0.75rem;
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   background-color: var(--surface-color);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-google:hover:not(:disabled) {
-  background-color: var(--bg-color);
+  background-color: var(--hover-color);
   border-color: var(--brand-primary);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.15);
+}
+
+.btn-google:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .btn-google .spinner {
@@ -1035,13 +1054,13 @@ body.light-mode .no-contacts {
 }
 
 .error-message {
-  background-color: rgba(211, 47, 47, 0.1);
-  color: var(--error-color, #D32F2F);
-  padding: 10px 15px;
-  border-radius: 8px;
+  background-color: rgba(229, 57, 53, 0.08);
+  color: var(--error-color);
+  padding: 12px 16px;
+  border-radius: 12px;
   font-size: 0.9rem;
   text-align: center;
-  border: 1px solid var(--error-color, #D32F2F);
+  border: 1px solid rgba(229, 57, 53, 0.3);
 }
 
 .terms-agreement {
@@ -1061,21 +1080,16 @@ body.light-mode .no-contacts {
 .terms-agreement a {
   color: var(--brand-primary);
   text-decoration: none;
+  font-weight: 500;
 }
 
 .terms-agreement a:hover {
   text-decoration: underline;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* =============================================
-    9. ICON STYLES FOR LIGHT MODE
-    ============================================= */
+   17. ICON STYLES
+   ============================================= */
 .contacts-icon,
 .search-toggle-icon,
 .search-input-icon,
@@ -1101,6 +1115,7 @@ body.light-mode .no-contacts {
 .settings-nav-icon,
 .blocked-icon {
   color: var(--text-primary);
+  transition: color 0.2s ease;
 }
 
 .chats-title {
@@ -1108,9 +1123,8 @@ body.light-mode .no-contacts {
 }
 
 /* =============================================
-    10. LEGAL PAGES
-    ============================================= */
-/* Legal page wrapper for standalone routes */
+   18. LEGAL PAGES
+   ============================================= */
 .legal-page-wrapper {
   height: var(--app-height);
   overflow-y: auto;
@@ -1123,18 +1137,16 @@ body.light-mode .no-contacts {
 .legal-page-container {
   padding: 2rem;
   font-family: var(--font-sans);
-  line-height: 1.6;
+  line-height: 1.7;
   max-width: 800px;
-  margin: 0 auto;
+  margin: 1rem auto;
   background-color: var(--surface-color);
-  border-radius: 8px;
+  border-radius: 16px;
   box-shadow: var(--shadow-sm);
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
   min-height: calc(var(--app-height) - 2rem);
 }
 
-/* Legal page header with back button */
 .legal-page-header {
   display: flex;
   align-items: center;
@@ -1153,12 +1165,12 @@ body.light-mode .no-contacts {
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 168, 132, 0.3);
 }
 
 .legal-back-btn:hover {
   transform: scale(1.05);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.4);
 }
 
 .legal-back-btn:active {
@@ -1198,51 +1210,29 @@ body.light-mode .no-contacts {
 
 /* Disclaimer Box */
 .legal-page-container .disclaimer-box {
-  background-color: rgba(255, 193, 7, 0.15);
-  border: 1px solid rgba(255, 193, 7, 0.4);
-  border-radius: 8px;
-  padding: 1rem;
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
 }
 
 .legal-page-container .disclaimer-box p {
-  color: #856404;
+  color: #92400e;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
+}
+
+[data-theme='dark'] .legal-page-container .disclaimer-box p {
+  color: #fbbf24;
 }
 
 .legal-page-container .disclaimer-box p:last-child {
   margin-bottom: 0;
 }
 
-/* Back Button Styles */
-.legal-page-container .back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: var(--spacing-md) var(--spacing-xl);
-  background: var(--brand-gradient);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 1.5rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.legal-page-container .back-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.legal-page-container .back-btn:active {
-  transform: translateY(0);
-}
-
-/* Fallback for .btn class if used */
+/* Legal Page Buttons */
+.legal-page-container .back-btn,
 .legal-page-container .btn {
   display: inline-flex;
   align-items: center;
@@ -1251,27 +1241,35 @@ body.light-mode .no-contacts {
   background: var(--brand-gradient);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.2s ease;
   margin-top: 1.5rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.25);
 }
 
+.legal-page-container .back-btn:hover,
 .legal-page-container .btn:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 20px rgba(0, 168, 132, 0.35);
 }
 
-/* Mobile responsive */
+.legal-page-container .back-btn:active,
+.legal-page-container .btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile Legal */
 @media (max-width: 768px) {
   .legal-page-container {
     padding: 1.5rem;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
+    margin-top: 0;
+    margin-bottom: 0;
     border-radius: 0;
+    border: none;
     height: var(--app-height);
   }
 
@@ -1284,7 +1282,9 @@ body.light-mode .no-contacts {
   }
 }
 
-/* Loading Overlay — lightweight themed spinner, no dark backdrop */
+/* =============================================
+   19. LOADING STATE
+   ============================================= */
 .loading {
   display: flex;
   flex-direction: column;
@@ -1292,29 +1292,29 @@ body.light-mode .no-contacts {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background-color: var(--bg-color, #F7FDF9);
+  background-color: var(--bg-color);
+  gap: 0.75rem;
 }
 
 .loading-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid var(--border-color, #E0E0E0);
-  border-top: 3px solid var(--brand-primary, #00BFA5);
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--brand-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 0.75rem;
 }
 
 .loading p {
-  color: var(--text-secondary, #546E7A);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 500;
   margin: 0;
 }
 
 /* =============================================
-    11. SEARCH MESSAGES MODAL
-    ============================================= */
+   20. SEARCH MESSAGES MODAL
+   ============================================= */
 .search-modal-content {
   padding: 20px;
 }
@@ -1326,11 +1326,12 @@ body.light-mode .no-contacts {
 .search-input {
   width: 100%;
   padding: var(--spacing-md) var(--spacing-lg);
-  border: none;
-  border-radius: 8px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
   background-color: var(--bg-color);
   color: var(--text-primary);
   font-size: 15px;
+  font-family: var(--font-sans);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
@@ -1338,7 +1339,7 @@ body.light-mode .no-contacts {
 
 .search-input:focus {
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 2px rgba(var(--brand-primary-rgb), 0.2);
+  box-shadow: 0 0 0 3px var(--brand-light);
 }
 
 .search-input::placeholder {
@@ -1374,10 +1375,12 @@ body.light-mode .no-contacts {
 }
 
 .search-result-item {
-  padding: 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   transition: background-color 0.2s;
+  border-radius: 8px;
+  margin: 2px 0;
 }
 
 .search-result-item:hover {
@@ -1398,56 +1401,158 @@ body.light-mode .no-contacts {
   font-size: 12px;
 }
 
-/* --- Light Mode Support (.light-mode class) --- */
+/* =============================================
+   21. LIGHT MODE CLASS OVERRIDES
+   ============================================= */
+body.light-mode .chat-list-panel {
+  background-color: #ffffff;
+  border-right-color: #d1e8da;
+}
+
+body.light-mode .contact-menu {
+  background-color: #ffffff;
+  box-shadow: 0 8px 30px rgba(0, 60, 40, 0.15);
+}
+
+body.light-mode .contact-menu .menu-item {
+  color: #0c1e17;
+}
+
+body.light-mode .contact-menu .menu-item:hover {
+  background-color: rgba(0, 168, 132, 0.06);
+}
+
+body.light-mode .menu-item.delete-item {
+  color: #e53935;
+}
+
+body.light-mode .menu-item.delete-item:hover {
+  background-color: rgba(229, 57, 53, 0.08);
+}
+
+body.light-mode .no-contacts {
+  color: #4a6e5c;
+}
+
 body.light-mode .search-input {
-  background-color: #f0f2f5;
-  color: #1a1a1a;
+  background-color: #f0faf4;
+  color: #0c1e17;
 }
 
 body.light-mode .search-input::placeholder {
-  color: #8696a0;
+  color: #4a6e5c;
 }
 
 body.light-mode .search-input:focus {
-  border-color: #128c7e;
-  box-shadow: 0 0 0 2px rgba(18, 140, 126, 0.2);
+  border-color: #00a884;
+  box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.1);
 }
 
 body.light-mode .search-loading {
-  color: #667781;
+  color: #4a6e5c;
 }
 
 body.light-mode .search-placeholder {
-  color: #8696a0;
-  font-size: 14px;
+  color: #4a6e5c;
 }
 
 body.light-mode .no-results {
-  color: #667781;
+  color: #4a6e5c;
 }
 
 body.light-mode .search-result-item {
-  border-bottom-color: #e0e0e0;
+  border-bottom-color: #d1e8da;
 }
 
 body.light-mode .search-result-item:hover {
-  background-color: #f5f5f5;
+  background-color: rgba(0, 168, 132, 0.06);
 }
 
 body.light-mode .search-result-content {
-  color: #1a1a1a;
+  color: #0c1e17;
 }
 
 body.light-mode .search-result-time {
-  color: #667781;
+  color: #4a6e5c;
 }
 
+/* =============================================
+   22. ANIMATIONS
+   ============================================= */
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
-
   100% {
     transform: rotate(360deg);
   }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* =============================================
+   23. SELECTION & HIGHLIGHT COLORS
+   ============================================= */
+::selection {
+  background-color: rgba(0, 168, 132, 0.25);
+  color: var(--text-primary);
+}
+
+::-moz-selection {
+  background-color: rgba(0, 168, 132, 0.25);
+  color: var(--text-primary);
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* =============================================
+   24. SMOOTH THEME TRANSITIONS
+   ============================================= */
+body,
+.app-layout,
+.chat-list-panel,
+.chat-detail,
+.top-header,
+.search-bar,
+.contact-menu,
+.auth-container,
+.legal-page-container {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }

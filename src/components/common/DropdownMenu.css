@@ -5,7 +5,7 @@
 
 /* --- Light Mode Support (.light-mode class) --- */
 body.light-mode .dropdown .icon-btn {
-    color: #54656f;
+    color: #1a3a2a !important;
 }
 
 body.light-mode .dropdown .icon-btn:hover {
@@ -28,7 +28,7 @@ body.light-mode .dropdown .dropdown-item:hover:not(:disabled) {
 }
 
 body.light-mode .dropdown .dropdown-item-icon {
-    color: #54656f;
+    color: #1a3a2a !important;
 }
 
 body.light-mode .dropdown .dropdown-item-label {
@@ -66,11 +66,12 @@ body.light-mode .dropdown-divider {
     top: calc(100% + 8px);
     /* Use calc to maintain spacing without a physical gap */
     right: 0;
-    background: var(--bg-1);
-    backdrop-filter: none;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    box-shadow: var(--shadow-1);
+    background: var(--dropdown-bg, #1f2c33);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
     min-width: 200px;
     z-index: 1000;
     overflow: hidden;
