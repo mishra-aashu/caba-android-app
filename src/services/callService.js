@@ -269,6 +269,20 @@ class CallService {
   }
 
   /**
+   * Mark multiple signals as processed
+   */
+  async markSignalsProcessed(signalIds) {
+    if (!signalIds || signalIds.length === 0) return;
+
+    const { error } = await supabase
+      .from('call_signaling')
+      .update({ is_processed: true })
+      .in('id', signalIds);
+
+    if (error) throw error;
+  }
+
+  /**
    * Delete signals for a call
    */
   async deleteCallSignals(callId) {

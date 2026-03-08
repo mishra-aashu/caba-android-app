@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import useAuthStore from '../store/authStore';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChatThemeContext, chatThemes } from './ChatThemeContext';
+import { ChatThemeContext, chatThemes, chatPatterns } from './ChatThemeContext';
 
 // Chat Theme Provider Component
 export const ChatThemeProvider = ({ children }) => {
@@ -10,6 +10,7 @@ export const ChatThemeProvider = ({ children }) => {
   // State
   const [currentChatTheme, setCurrentChatTheme] = useState('classic_purple');
   const [currentWallpaper, setCurrentWallpaper] = useState(null);
+  const [currentPattern, setCurrentPattern] = useState('pattern');
   const [currentChatId, setCurrentChatId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scrollPercentage, setScrollPercentage] = useState(0);
@@ -44,6 +45,7 @@ export const ChatThemeProvider = ({ children }) => {
     // ── STEP 1: Apply cached theme SYNCHRONOUSLY (instant, no blink) ─────────
     const cachedTheme = localStorage.getItem(`digidad_chat_theme_${chatId}`);
     const cachedWallpaper = localStorage.getItem(`digidad_chat_wallpaper_${chatId}`);
+    const cachedPattern = localStorage.getItem(`digidad_chat_pattern_${chatId}`) || 'pattern';
 
     const themeToApply = (cachedTheme && chatThemes[cachedTheme]) ? cachedTheme : 'classic_purple';
     const wallpaperToApply = cachedWallpaper || null;
@@ -51,7 +53,8 @@ export const ChatThemeProvider = ({ children }) => {
     // Apply immediately — this is synchronous, fires before any async work
     setCurrentChatTheme(themeToApply);
     setCurrentWallpaper(wallpaperToApply);
-    applyTheme(themeToApply, wallpaperToApply);
+    setCurrentPattern(cachedPattern);
+    applyTheme(themeToApply, wallpaperToApply, cachedPattern);
 
     // ── STEP 2: DB refresh is DEFERRED until refreshTheme() is called ─────────
     // This eliminates redundant network requests on every chat page load.
@@ -234,44 +237,97 @@ export const ChatThemeProvider = ({ children }) => {
     await saveChatWallpaper(wallpaperId, currentChatId, customUrl, wallpaperUrl);
   };
 
-  const applyTheme = (themeKey, wallpaperUrl) => {
-    const theme = chatThemes[themeKey];
-    if (!theme) return;
+  const applyTheme = (themeKey, wallpaperUrl, patternId = 'pattern') => {
+    const theme = chatThemes[themeKey] || chatThemes.classic_purple;
 
     const root = document.documentElement;
     const setProp = (name, value) => {
       if (value !== undefined) root.style.setProperty(name, value);
     };
 
-    setProp('--chat-bg-gradient', theme.background);
-    setProp('--chat-bg-image', wallpaperUrl ? `url("${wallpaperUrl}")` : 'none');
+    // Standardize on data-chat-theme attribute for CSS targeting
+    const chatThemeAttr = themeKey.replace(/_/g, '-');
+    document.body.setAttribute('data-chat-theme', chatThemeAttr);
 
-    setProp('--sent-message-bg', theme.sentMessage.background);
-    setProp('--sent-message-text', theme.sentMessage.text);
-    setProp('--sent-message-shadow', theme.sentMessage.shadow || 'none');
-    setProp('--sent-message-border', theme.sentMessage.border || 'none');
+    // If it's a CSS-only theme, we DO NOT set --chat-bg-gradient as an inline style.
+    // This allows enhanced-themes.css to switch between Light/Dark variants.
+    if (theme.cssOnly) {
+      if (wallpaperUrl) {
+        setProp('--chat-bg-image', `url("${wallpaperUrl}")`);
+        setProp('--chat-bg-gradient', 'none');
+        setProp('--chat-pattern-opacity', '0');
+      } else {
+        setProp('--chat-bg-image', 'none');
+        // Clear manual property to let CSS take over (supports light/dark switching)
+        root.style.removeProperty('--chat-bg-gradient');
+      }
+    } else {
+      // For themes not in enhanced-themes.css, apply all styles manually
+      setProp('--chat-bg-gradient', theme.background);
 
-    setProp('--received-message-bg', theme.receivedMessage.background);
-    setProp('--received-message-text', theme.receivedMessage.text);
-    setProp('--received-message-shadow', theme.receivedMessage.shadow || 'none');
-    setProp('--received-message-border', theme.receivedMessage.border || 'none');
+      const sent = theme.sentMessage || {};
+      setProp('--sent-message-bg', sent.background);
+      setProp('--sent-message-text', sent.text);
+      setProp('--sent-message-shadow', sent.shadow || 'none');
+      setProp('--sent-message-border', sent.border || 'none');
 
-    setProp('--chat-header-bg', theme.header.background);
-    setProp('--chat-header-text', theme.header.text);
-    setProp('--chat-header-icon-color', theme.header.iconColor);
-    setProp('--chat-header-border', theme.header.border || 'none');
+      const received = theme.receivedMessage || {};
+      setProp('--received-message-bg', received.background);
+      setProp('--received-message-text', received.text);
+      setProp('--received-message-shadow', received.shadow || 'none');
+      setProp('--received-message-border', received.border || 'none');
 
-    setProp('--chat-input-bg', theme.input.background);
-    setProp('--chat-input-text', theme.input.text);
-    setProp('--chat-input-icon-color', theme.input.iconColor);
-    setProp('--chat-input-border', theme.input.border || 'none');
+      if (theme.header) {
+        setProp('--chat-header-bg', theme.header.background);
+        setProp('--chat-header-text', theme.header.text);
+        setProp('--chat-header-icon-color', theme.header.iconColor);
+        setProp('--chat-header-border', theme.header.border || 'none');
+      }
 
-    setProp('--chat-buttons-bg', theme.buttons.background);
-    setProp('--chat-buttons-text', theme.buttons.text);
-    setProp('--chat-buttons-icon-color', theme.buttons.iconColor);
+      if (theme.input) {
+        setProp('--chat-input-bg', theme.input.background);
+        setProp('--chat-input-text', theme.input.text);
+        setProp('--chat-input-icon-color', theme.input.iconColor);
+        setProp('--chat-input-border', theme.input.border || 'none');
+      }
 
-    // Standardize on data-chat-theme attribute
-    document.body.setAttribute('data-chat-theme', themeKey.replace(/_/g, '-'));
+      if (theme.buttons) {
+        setProp('--chat-buttons-bg', theme.buttons.background);
+        setProp('--chat-buttons-text', theme.buttons.text);
+        setProp('--chat-buttons-icon-color', theme.buttons.iconColor);
+      }
+    }
+
+    // Apply specific pattern if requested
+    if (patternId) {
+      const patternPath = `/assets/${patternId}.svg`;
+      setProp('--pattern-url', `url("${patternPath}")`);
+    }
+  };
+
+  const selectPattern = async (patternId) => {
+    if (!currentChatId) return;
+
+    // Set locally for instant feedback
+    const root = document.documentElement;
+    const patternPath = `/assets/${patternId}.svg`;
+    root.style.setProperty('--pattern-url', `url("${patternPath}")`);
+    localStorage.setItem(`digidad_chat_pattern_${currentChatId}`, patternId);
+    setCurrentPattern(patternId);
+
+    // Persistence logic using chat_wallpapers table
+    try {
+      await supabase
+        .from('chat_wallpapers')
+        .upsert({
+          chat_id: currentChatId,
+          set_by: (await supabase.auth.getUser()).data.user?.id,
+          custom_url: `pattern:${patternId}`,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'chat_id,set_by' });
+    } catch (e) {
+      console.error('Failed to save pattern preference', e);
+    }
   };
 
   // NOTE: applyTheme is now called DIRECTLY from setChatId and loadChatTheme
@@ -284,7 +340,10 @@ export const ChatThemeProvider = ({ children }) => {
     chatTheme: currentChatTheme,
     chatWallpaper: currentWallpaper,
     chatThemes,
+    chatPatterns, // Exporting patterns
+    currentPattern,
     selectTheme,
+    selectPattern, // Exporting selection function
     selectWallpaper,
     setChatId,
     loading,

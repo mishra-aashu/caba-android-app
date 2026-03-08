@@ -183,10 +183,20 @@ export function CallProvider({ children, currentUser }) {
   const handleSignal = useCallback(async (signal) => {
     console.log('📨 Signal received in context:', signal.signal_type, 'Call ID:', signal.call_id);
 
-    if (signal.signal_type === 'offer') {
-      // Incoming call
-      try {
-        const callerInfo = await callService.getUserById(signal.from_user_id);
+    try {
+      if (signal.signal_type === 'offer') {
+        // Incoming call - check if we are already in a call
+        if (state.callState !== 'idle' && state.callState !== 'ringing') {
+          console.log('📞 Busy: Already in a call. Ignoring new offer.');
+          return;
+        }
+
+        const callerInfo = await callService.getUserById(signal.from_user_id).catch(err => ({
+          id: signal.from_user_id,
+          name: 'Unknown User',
+          avatar: null
+        }));
+
         dispatch({
           type: ACTIONS.SET_INCOMING_CALL,
           payload: {
@@ -196,27 +206,67 @@ export function CallProvider({ children, currentUser }) {
         });
         dispatch({ type: ACTIONS.SET_CALLER_INFO, payload: callerInfo });
         // Note: Ringtone is now handled in IncomingCallModal to comply with autoplay policies
-      } catch (error) {
-        console.error('Error fetching caller info:', error);
-      }
-    } else {
-      // Handle other signals (answer, ice_candidate, call_end)
-      try {
-        const result = await webRTCService.handleSignal(signal);
-
-        // Mark signal as processed
-        await callService.markSignalProcessed(signal.id);
-
-        // If this is an answer signal and we're the caller, update call status
-        if (signal.signal_type === 'answer' && webRTCService.callId === signal.call_id) {
-          console.log('📞 Answer received, call should connect now');
-          // The WebRTC service will handle the connection state change
+      } else {
+        // Handle other signals (answer, ice_candidate, call_end)
+        try {
+          await webRTCService.handleSignal(signal);
+          // Mark signal as processed
+          await callService.markSignalProcessed(signal.id);
+        } catch (webrtcError) {
+          console.warn('WebRTC signal handling error:', webrtcError);
         }
-      } catch (error) {
-        console.error('Error handling signal:', error);
       }
+    } catch (error) {
+      console.error('Error in handleSignal:', error);
     }
-  }, []);
+  }, [state.callState]);
+
+  // Check for pending signals (e.g. after reload)
+  const checkPendingSignals = useCallback(async () => {
+    if (!currentUser?.id) return;
+
+    try {
+      console.log('🔍 Checking for pending signals for:', currentUser.id);
+      const signals = await callService.getPendingSignals(currentUser.id);
+
+      if (signals && signals.length > 0) {
+        console.log(`📡 Found ${signals.length} pending signals`);
+
+        // Find the latest offer if any
+        const latestOffer = [...signals]
+          .reverse()
+          .find(s => s.signal_type === 'offer');
+
+        if (latestOffer) {
+          const createdTime = new Date(latestOffer.created_at).getTime();
+          const now = Date.now();
+          // If offer is fresh enough (e.g. < 45s)
+          if (now - createdTime < 45000) {
+            await handleSignal(latestOffer);
+          } else {
+            console.log('⏳ Marking stale offer as processed');
+            await callService.markSignalProcessed(latestOffer.id);
+          }
+        }
+
+        // Process other signals (though they usually depend on active call)
+        const otherSignals = signals.filter(s => s.signal_type !== 'offer');
+        if (otherSignals.length > 0 && (state.callId || latestOffer)) {
+          for (const signal of otherSignals) {
+            await handleSignal(signal);
+          }
+        } else {
+          // Mark all non-offer signals as processed if no active call
+          const idsToMark = otherSignals.map(s => s.id);
+          if (idsToMark.length > 0) {
+            await callService.markSignalsProcessed(idsToMark);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking pending signals:', error);
+    }
+  }, [currentUser?.id, handleSignal, state.callId]);
 
   // Setup WebRTC callbacks
   useEffect(() => {
@@ -242,11 +292,15 @@ export function CallProvider({ children, currentUser }) {
     };
   }, [startDurationTimer, stopDurationTimer]);
 
-  // Subscribe to signals
+  // Subscribe to signals and check pending
   useEffect(() => {
     if (currentUser?.id) {
-      console.log('🔔 Setting up signal subscription for:', currentUser.id, 'Phone user:', currentUser.id.startsWith('phone_'));
+      console.log('🔔 Setting up signal subscription for:', currentUser.id);
 
+      // 1. Check for signals already in DB
+      checkPendingSignals();
+
+      // 2. Setup realtime subscription
       signalChannelRef.current = callService.subscribeToSignals(
         currentUser.id,
         handleSignal
@@ -258,7 +312,7 @@ export function CallProvider({ children, currentUser }) {
         }
       };
     }
-  }, [currentUser?.id, handleSignal]);
+  }, [currentUser?.id, handleSignal, checkPendingSignals]);
 
   // Start outgoing call
   const startCall = useCallback(async (receiverId, callType = 'video') => {

@@ -23,12 +23,12 @@ import { debounce } from 'lodash';
 import { Capacitor } from '@capacitor/core';
 import hapticsManager from '../../utils/hapticsManager';
 import { UserDetailsContext } from '../../contexts/UserDetailsContext';
-import WallpaperPicker from './WallpaperPicker';
 import useIsDesktop from '../../hooks/useIsDesktop';
 import useChatStore from '../../store/useChatStore';
 import useChatRoom from '../../hooks/chat/useChatRoom';
 import ChatHeader from './parts/ChatHeader';
 import ChatActionsPanel from './parts/ChatActionsPanel';
+import ChatBackground from './ChatBackground';
 import styles from '../../styles/chat.module.css';
 import { getPublicMediaUrl } from '../../services/mediaService';
 
@@ -82,7 +82,16 @@ const Chat = () => {
   };
 
   // ─── STALE LOCAL IMPORTS (kept for non-moved logic) ──────────────────────
-  const { chatTheme, chatThemes, selectTheme, setChatId, setScrollPercentage } = useChatTheme();
+  const {
+    chatTheme,
+    chatThemes,
+    chatPatterns,
+    currentPattern,
+    selectTheme,
+    selectPattern,
+    setChatId,
+    setScrollPercentage
+  } = useChatTheme();
   const isDesktop = useIsDesktop();
   const { showUserDetails } = React.useContext(UserDetailsContext) || {};
 
@@ -98,7 +107,6 @@ const Chat = () => {
   const [selectedMessages, setSelectedMessages] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
-  const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
   const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
   const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -486,128 +494,134 @@ const Chat = () => {
       className={`${styles['chat-screen']} ${showGroupInfoDrawer ? styles['drawer-open'] : ''}`}
     >
       <div className={styles['chat-main-area']}>
-        {/* Chat Header - delegated to ChatHeader sub-component */}
-        <ChatHeader
-          chatId={chatId}
-          otherUser={otherUser}
-          isGroupChat={isGroupChat}
-          isDesktop={isDesktop}
-          typingUsers={typingUsers}
-          isMuted={isMuted}
-          isTempChat={isTempChat}
-          onVoiceCall={handleVoiceCall}
-          onVideoCall={handleVideoCall}
-          onMuteToggle={handleMuteToggle}
-          onViewContact={handleViewContact}
-          onSearchMessages={handleSearchMessages}
-          onChangeTheme={handleChangeTheme}
-          onShowWallpaper={() => setShowWallpaperPicker(true)}
-          onShowGame={() => navigate(`${location.pathname}/arena`)}
-          onShowGroupInfo={() => setShowGroupInfoDrawer(true)}
-          onBlockUser={handleBlockUser}
-          onClearChat={handleClearChat}
-          onCreateReminder={handleCreateReminder}
-          onTempChatToggle={handleTempChatToggle}
-          onTempChatSettings={handleTempChatSettings}
-          isAdmin={currentUser?.isAdmin}
-        />
-
-        {!navigator.onLine && connectionStatus === 'connecting' && (
-          <div className={`${styles['connection-banner']} ${styles.connecting}`}>
-            <div className={styles.spinner}></div>
-            Waiting for network...
-          </div>
-        )}
-
-        {!navigator.onLine && connectionStatus === 'disconnected' && (
-          <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection}>
-            Offline. Tap to retry.
-          </div>
-        )}
-
-        {/* Selection Toolbar - delegated to ChatActionsPanel sub-component */}
-        <ChatActionsPanel
-          isSelectionMode={isSelectionMode}
-          selectedMessages={selectedMessages}
-          messages={messages}
-          currentUserId={currentUser?.id}
-          onExit={exitSelectionMode}
-          onReply={(message) => { handleReply(message); exitSelectionMode(); }}
-          onCopy={handleSelectionCopy}
-          onForward={handleSelectionForward}
-          onDelete={handleSelectionDelete}
-        />
-
-        <div
-          className={styles['messages-container']}
+        <ChatBackground
+          gradient={chatThemes[chatTheme]?.background || 'linear-gradient(180deg, #1e1b4b 0%, #2e1065 100%)'}
+          opacity={0.4}
+          active={true}
+          showPattern={chatTheme === 'pattern_overlay' || chatThemes[chatTheme]?.is_pattern}
         >
-          {/* Load More Indicator */}
-          {isFetchingNextPage && (
-            <div className={styles['load-more-indicator']}>
-              <div className={styles['loading-spinner']}></div>
-              <p>Loading older messages...</p>
-            </div>
-          )}
+          <div className={`${styles['chat-main-area-content']} ${chatTheme === 'pattern_overlay' ? styles['transparent-ui'] : ''}`}>
+            {/* Chat Header - delegated to ChatHeader sub-component */}
+            <ChatHeader
+              chatId={chatId}
+              otherUser={otherUser}
+              isGroupChat={isGroupChat}
+              isDesktop={isDesktop}
+              typingUsers={typingUsers}
+              isMuted={isMuted}
+              isTempChat={isTempChat}
+              onVoiceCall={handleVoiceCall}
+              onVideoCall={handleVideoCall}
+              onMuteToggle={handleMuteToggle}
+              onViewContact={handleViewContact}
+              onSearchMessages={handleSearchMessages}
+              onChangeTheme={handleChangeTheme}
+              onShowGame={() => navigate(`${location.pathname}/arena`)}
+              onShowGroupInfo={() => setShowGroupInfoDrawer(true)}
+              onBlockUser={handleBlockUser}
+              onClearChat={handleClearChat}
+              onCreateReminder={handleCreateReminder}
+              onTempChatToggle={handleTempChatToggle}
+              onTempChatSettings={handleTempChatSettings}
+              isAdmin={currentUser?.isAdmin}
+            />
 
-          <VirtualizedMessageList
-            ref={messagesContainerRef}
-            messages={messages}
-            currentUser={currentUser}
-            selectedMessages={selectedMessages}
-            isSelectionMode={isSelectionMode}
-            onMessageSelect={handleMessageSelect}
-            onReply={handleReply}
-            onForward={handleForwardMessage}
-            onDelete={(messageId) => deleteMessage(messageId)}
-            onEdit={handleMessageEdit}
-            onMediaView={handleMediaView}
-            onMediaDownload={handleMediaDownload}
-            onAcceptGame={handleAcceptGame}
-            onRejectGame={handleRejectGame}
-            onJoinGame={handleJoinGame}
-            isLoading={isMessagesLoading}
-            isGroupChat={Boolean(isGroupChat)}
-            onSenderClick={(senderId) => {
-              const isMobile = window.matchMedia('(max-width: 768px)').matches;
-              if (isMobile) {
-                navigate(`/user/${senderId}`);
-              } else if (showUserDetails) {
-                showUserDetails(senderId);
-              }
-            }}
-            isScrolledToBottom={isScrolledToBottom}
-            onScroll={handleScroll}
-            followOutput="auto"
-            typingUsers={typingUsers}
-            initialTopMostItemIndex={initialScrollPosition}
-            onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
-            chatId={validChatId}
-          />
+            {!navigator.onLine && connectionStatus === 'connecting' && (
+              <div className={`${styles['connection-banner']} ${styles.connecting}`}>
+                <div className={styles.spinner}></div>
+                Waiting for network...
+              </div>
+            )}
 
+            {!navigator.onLine && connectionStatus === 'disconnected' && (
+              <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection}>
+                Offline. Tap to retry.
+              </div>
+            )}
 
-          {/* Scroll to Bottom Button */}
-          {showScrollButton && (
-            <button className={styles['scroll-bottom-btn']} onClick={() => handleScrollToBottom('smooth')}>
-              <ArrowDown size={20} />
-              {unreadCount > 0 && (
-                <span className={styles['unread-count']}>{unreadCount}</span>
+            {/* Selection Toolbar - delegated to ChatActionsPanel sub-component */}
+            <ChatActionsPanel
+              isSelectionMode={isSelectionMode}
+              selectedMessages={selectedMessages}
+              messages={messages}
+              currentUserId={currentUser?.id}
+              onExit={exitSelectionMode}
+              onReply={(message) => { handleReply(message); exitSelectionMode(); }}
+              onCopy={handleSelectionCopy}
+              onForward={handleSelectionForward}
+              onDelete={handleSelectionDelete}
+            />
+
+            <div className={styles['messages-container']}>
+              {/* Load More Indicator */}
+              {isFetchingNextPage && (
+                <div className={styles['load-more-indicator']}>
+                  <div className={styles['loading-spinner']}></div>
+                  <p>Loading older messages...</p>
+                </div>
               )}
-            </button>
-          )}
-        </div>
 
-        {/* Message Input */}
-        <MessageInput
-          onSendMessage={sendMessage}
-          onSendMedia={handleSendMedia} // Pass the new media handler
-          onTyping={handleTyping}
-          replyingTo={replyingTo}
-          onCancelReply={cancelReply}
-          chatId={chatId}
-          receiverId={otherUserId}
-          currentUser={currentUser} // Pass the current user object
-          disabled={isGroupChat && otherUser?.admins_only_messages && (otherUser?.my_role !== 'admin' && otherUser?.my_role !== 'creator')}
-        />
+              <VirtualizedMessageList
+                ref={messagesContainerRef}
+                messages={messages}
+                currentUser={currentUser}
+                selectedMessages={selectedMessages}
+                isSelectionMode={isSelectionMode}
+                onMessageSelect={handleMessageSelect}
+                onReply={handleReply}
+                onForward={handleForwardMessage}
+                onDelete={(messageId) => deleteMessage(messageId)}
+                onEdit={handleMessageEdit}
+                onMediaView={handleMediaView}
+                onMediaDownload={handleMediaDownload}
+                onAcceptGame={handleAcceptGame}
+                onRejectGame={handleRejectGame}
+                onJoinGame={handleJoinGame}
+                isLoading={isMessagesLoading}
+                isGroupChat={Boolean(isGroupChat)}
+                onSenderClick={(senderId) => {
+                  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+                  if (isMobile) {
+                    navigate(`/user/${senderId}`);
+                  } else if (showUserDetails) {
+                    showUserDetails(senderId);
+                  }
+                }}
+                isScrolledToBottom={isScrolledToBottom}
+                onScroll={handleScroll}
+                followOutput="auto"
+                typingUsers={typingUsers}
+                initialTopMostItemIndex={initialScrollPosition}
+                onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
+                chatId={validChatId}
+              />
+
+
+              {/* Scroll to Bottom Button */}
+              {showScrollButton && (
+                <button className={styles['scroll-bottom-btn']} onClick={() => handleScrollToBottom('smooth')}>
+                  <ArrowDown size={20} />
+                  {unreadCount > 0 && (
+                    <span className={styles['unread-count']}>{unreadCount}</span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Message Input */}
+            <MessageInput
+              onSendMessage={sendMessage}
+              onSendMedia={handleSendMedia} // Pass the new media handler
+              onTyping={handleTyping}
+              replyingTo={replyingTo}
+              onCancelReply={cancelReply}
+              chatId={chatId}
+              receiverId={otherUserId}
+              currentUser={currentUser} // Pass the current user object
+              disabled={isGroupChat && otherUser?.admins_only_messages && (otherUser?.my_role !== 'admin' && otherUser?.my_role !== 'creator')}
+            />
+          </div>
+        </ChatBackground>
 
 
         {/* Message Search Modal */}
@@ -715,6 +729,29 @@ const Chat = () => {
                   </span>
                 </div>
               ))}
+            </div>
+
+            <div className={styles['pattern-picker-section']}>
+              <h4 className={styles['theme-section-title']}>Background Pattern</h4>
+              <div className={styles['pattern-grid']}>
+                {chatPatterns.map((pattern) => (
+                  <div
+                    key={pattern.id}
+                    className={`${styles['pattern-card']} ${currentPattern === pattern.id ? styles.active : ''}`}
+                    onClick={() => selectPattern(pattern.id)}
+                  >
+                    <div
+                      className={styles['pattern-preview']}
+                      style={{
+                        '--pattern-url': `url(/assets/${pattern.id}.svg)`,
+                        WebkitMaskImage: 'var(--pattern-url)',
+                        maskImage: 'var(--pattern-url)'
+                      }}
+                    />
+                    <span className={styles['pattern-card-name']}>{pattern.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </Modal>
@@ -858,39 +895,39 @@ const Chat = () => {
             </div>
           </div>
         </Modal>
-
-        {showWallpaperPicker && (
-          <WallpaperPicker onClose={() => setShowWallpaperPicker(false)} />
-        )}
       </div>
 
       {/* Group Call Screen - Overlay */}
-      {showGroupCallScreen && (
-        <GroupCallScreen
-          groupId={chatId}
-          callType={selectedCallType || 'video'}
-          onEndCall={handleEndGroupCall}
-        />
-      )}
+      {
+        showGroupCallScreen && (
+          <GroupCallScreen
+            groupId={chatId}
+            callType={selectedCallType || 'video'}
+            onEndCall={handleEndGroupCall}
+          />
+        )
+      }
 
       {/* Group Info Drawer - for group chats (Desktop only) */}
-      {isDesktop && (isGroupChat || otherUser?.is_group) && (
-        <GroupInfoDrawer
-          isOpen={showGroupInfoDrawer}
-          onClose={() => {
-            setShowGroupInfoDrawer(false);
-            // Reload group info to check if user is still a member
-            if (chatId && (isGroupChat || otherUser?.is_group)) {
-              queryClient.invalidateQueries({ queryKey: ['group', chatId] });
-            }
-          }}
-          group={otherUser}
-          onCallStart={(type) => {
-            setSelectedCallType(type);
-            setShowGroupCallModal(true);
-          }}
-        />
-      )}
+      {
+        isDesktop && (isGroupChat || otherUser?.is_group) && (
+          <GroupInfoDrawer
+            isOpen={showGroupInfoDrawer}
+            onClose={() => {
+              setShowGroupInfoDrawer(false);
+              // Reload group info to check if user is still a member
+              if (chatId && (isGroupChat || otherUser?.is_group)) {
+                queryClient.invalidateQueries({ queryKey: ['group', chatId] });
+              }
+            }}
+            group={otherUser}
+            onCallStart={(type) => {
+              setSelectedCallType(type);
+              setShowGroupCallModal(true);
+            }}
+          />
+        )
+      }
 
       {/* Fullscreen Image Viewer with Framer Motion */}
       <ImageViewer

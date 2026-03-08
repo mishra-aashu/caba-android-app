@@ -20,6 +20,13 @@ export function IncomingCallModal() {
   const hasUserInteracted = useRef(false);
   const [isIgnored, setIsIgnored] = useState(false);
 
+  // Reset ignore state whenever a new call comes in
+  useEffect(() => {
+    if (incomingCall?.call_id) {
+      setIsIgnored(false);
+    }
+  }, [incomingCall?.call_id]);
+
   if (callState !== 'ringing' || !incomingCall || isIgnored) {
     return null;
   }

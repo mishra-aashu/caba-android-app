@@ -60,8 +60,8 @@ import { useDeleteMessage } from '../../hooks/useDeleteMessage';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import ImageViewer from './ImageViewer';
 import MediaViewer from '../media/MediaViewer';
-import WallpaperPicker from './WallpaperPicker';
 import GameRoom from './GameRoom';
+import ChatBackground from './ChatBackground';
 import styles from '../../styles/chat.module.css';
 
 const GroupChat = () => {
@@ -70,7 +70,15 @@ const GroupChat = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { supabase } = useSupabase();
-    const { chatTheme, chatThemes, selectTheme, setChatId } = useChatTheme();
+    const {
+        chatTheme,
+        chatThemes,
+        chatPatterns,
+        currentPattern,
+        selectTheme,
+        selectPattern,
+        setChatId
+    } = useChatTheme();
     const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
     const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
     const isDesktop = useIsDesktop();
@@ -129,7 +137,6 @@ const GroupChat = () => {
     const [showForwardModal, setShowForwardModal] = useState(false);
     const [messagesToForward, setMessagesToForward] = useState([]);
     const [showThemeModal, setShowThemeModal] = useState(false);
-    const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
     const [showGameRoom, setShowGameRoom] = useState(false);
     const [imageViewerOpen, setImageViewerOpen] = useState(false);
     const [currentImageUrl, setCurrentImageUrl] = useState(null);
@@ -146,6 +153,11 @@ const GroupChat = () => {
     const [isMuted, setIsMuted] = useState(false);
 
     const messagesContainerRef = useRef(null);
+
+    // Sync chatId with theme context
+    useEffect(() => {
+        if (chatId) setChatId(chatId);
+    }, [chatId, setChatId]);
 
     // Update group state when details load
     useEffect(() => {
@@ -521,247 +533,316 @@ const GroupChat = () => {
             style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100%' }}
         >
             <div className={styles['chat-main-area']}>
-                <header className={styles['chat-header']}>
-                    <button className={styles['back-btn']} onClick={() => navigate('/')}><ArrowLeft size={20} /></button>
-                    <div className={styles['chat-user-info']} onClick={() => isDesktop ? showGroupInfo(chatId, group) : navigate(`/chat/${chatId}/group/info`)}>
-                        <div className={styles['user-avatar']}>
-                            {group?.avatar ? <img src={group.avatar} alt={group.name} /> : <div className={styles['user-avatar-placeholder']}>{group?.name?.charAt(0)}</div>}
-                        </div>
-                        <div className={styles['user-details']}>
-                            <h3 className={styles['user-name']}>{group?.name}</h3>
-                            <p className={styles['user-status']}>{group?.member_count} members</p>
-                        </div>
-                    </div>
-                    <div className={styles['chat-actions']}>
-                        <button className={styles['icon-btn']} onClick={() => setShowGroupCallScreen(true)}><Phone size={20} /></button>
-                        <button className={styles['icon-btn']} onClick={() => setShowGroupCallScreen(true)}><Video size={20} /></button>
-                        <DropdownMenu items={[
-                            { icon: <User size={16} />, label: 'Group Info', onClick: () => isDesktop ? showGroupInfo(chatId, group) : navigate(`/chat/${chatId}/group/info`) },
-                            { icon: <Search size={16} />, label: 'Search Messages', onClick: handleSearchMessages },
-                            { icon: <Palette size={16} />, label: 'Themes', onClick: () => setShowThemeModal(true) },
-                            { icon: <ImageIcon size={16} />, label: 'Shared Media', onClick: () => navigate(`${location.pathname}/media`) },
-                            { icon: <Gamepad2 size={16} />, label: 'Game Room', onClick: () => setShowGameRoom(true) },
-                            ...(currentUser?.isAdmin ? [
-                                { icon: <Crown size={16} />, label: 'Admin', onClick: () => navigate('/admin') }
-                            ] : []),
-                            { divider: true },
-                            { icon: <Ban size={16} />, label: 'Leave Group', onClick: () => setShowGroupInfoDrawer(true), danger: true }
-                        ]} />
-                    </div>
-                </header>
+                <ChatBackground
+                    gradient={chatThemes[chatTheme]?.background || 'linear-gradient(180deg, #1e1b4b 0%, #2e1065 100%)'}
+                    active={true}
+                    showPattern={chatThemes[chatTheme]?.is_pattern}
+                >
+                    <div className={styles['chat-main-area-content']}>
+                        <header className={styles['chat-header']}>
+                            <button className={styles['back-btn']} onClick={() => navigate('/')}><ArrowLeft size={20} /></button>
+                            <div className={styles['chat-user-info']} onClick={() => isDesktop ? showGroupInfo(chatId, group) : navigate(`/chat/${chatId}/group/info`)}>
+                                <div className={styles['user-avatar']}>
+                                    {group?.avatar ? <img src={group.avatar} alt={group.name} /> : <div className={styles['user-avatar-placeholder']}>{group?.name?.charAt(0)}</div>}
+                                </div>
+                                <div className={styles['user-details']}>
+                                    <h3 className={styles['user-name']}>{group?.name}</h3>
+                                    <p className={styles['user-status']}>{group?.member_count} members</p>
+                                </div>
+                            </div>
+                            <div className={styles['chat-actions']}>
+                                <button className={styles['icon-btn']} onClick={() => setShowGroupCallScreen(true)}><Phone size={20} /></button>
+                                <button className={styles['icon-btn']} onClick={() => setShowGroupCallScreen(true)}><Video size={20} /></button>
+                                <DropdownMenu items={[
+                                    { icon: <User size={16} />, label: 'Group Info', onClick: () => isDesktop ? showGroupInfo(chatId, group) : navigate(`/chat/${chatId}/group/info`) },
+                                    { icon: <Search size={16} />, label: 'Search Messages', onClick: handleSearchMessages },
+                                    { icon: <Palette size={16} />, label: 'Themes', onClick: () => setShowThemeModal(true) },
+                                    { icon: <ImageIcon size={16} />, label: 'Shared Media', onClick: () => navigate(`${location.pathname}/media`) },
+                                    { icon: <Gamepad2 size={16} />, label: 'Game Room', onClick: () => setShowGameRoom(true) },
+                                    ...(currentUser?.isAdmin ? [
+                                        { icon: <Crown size={16} />, label: 'Admin', onClick: () => navigate('/admin') }
+                                    ] : []),
+                                    { divider: true },
+                                    { icon: <Ban size={16} />, label: 'Leave Group', onClick: () => setShowGroupInfoDrawer(true), danger: true }
+                                ]} />
+                            </div>
+                        </header>
 
-                {activeCallData && (
-                    <div className="active-call-banner">
-                        <div className="banner-content">
-                            <span>Ongoing Group Call ({activeCallData.group_call_participants?.length} joined)</span>
-                        </div>
-                        <button className="banner-join-btn" onClick={() => { joinGroupCall(activeCallData.id); setShowGroupCallScreen(true); }}>Join</button>
-                    </div>
-                )}
+                        {activeCallData && (
+                            <div className="active-call-banner">
+                                <div className="banner-content">
+                                    <span>Ongoing Group Call ({activeCallData.group_call_participants?.length} joined)</span>
+                                </div>
+                                <button className="banner-join-btn" onClick={() => { joinGroupCall(activeCallData.id); setShowGroupCallScreen(true); }}>Join</button>
+                            </div>
+                        )}
 
-                {!navigator.onLine && connectionStatus === 'connecting' && (
-                    <div className={`${styles['connection-banner']} ${styles.connecting}`}>
-                        <div className={styles.spinner}></div>
-                        Waiting for network...
-                    </div>
-                )}
+                        {!navigator.onLine && connectionStatus === 'connecting' && (
+                            <div className={`${styles['connection-banner']} ${styles.connecting}`}>
+                                <div className={styles.spinner}></div>
+                                Waiting for network...
+                            </div>
+                        )}
 
-                {!navigator.onLine && connectionStatus === 'disconnected' && (
-                    <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection} style={{ cursor: 'pointer' }}>
-                        Offline. Tap to retry.
-                    </div>
-                )}
+                        {!navigator.onLine && connectionStatus === 'disconnected' && (
+                            <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection} style={{ cursor: 'pointer' }}>
+                                Offline. Tap to retry.
+                            </div>
+                        )}
 
-                {/* Selection Toolbar */}
-                {isSelectionMode && (
-                    <div className={styles['selection-toolbar']}>
-                        <button className={styles['selection-close-btn']} onClick={exitSelectionMode}>
-                            <CloseIcon size={20} />
-                        </button>
-                        <div className={styles['selection-info']}>
-                            {selectedMessages.size} selected
-                        </div>
-                        <div className={styles['selection-actions']}>
-                            {selectedMessages.size === 1 && (
-                                <button
-                                    className={styles['selection-action-btn']}
-                                    title="Reply"
-                                    onClick={() => {
-                                        const messageId = Array.from(selectedMessages)[0];
-                                        const message = messages.find(msg => msg.id === messageId);
-                                        if (message) setReplyingTo(message);
-                                        exitSelectionMode();
-                                    }}
-                                >
-                                    <Reply size={16} />
+                        {/* Selection Toolbar */}
+                        {isSelectionMode && (
+                            <div className={styles['selection-toolbar']}>
+                                <button className={styles['selection-close-btn']} onClick={exitSelectionMode}>
+                                    <CloseIcon size={20} />
+                                </button>
+                                <div className={styles['selection-info']}>
+                                    {selectedMessages.size} selected
+                                </div>
+                                <div className={styles['selection-actions']}>
+                                    {selectedMessages.size === 1 && (
+                                        <button
+                                            className={styles['selection-action-btn']}
+                                            title="Reply"
+                                            onClick={() => {
+                                                const messageId = Array.from(selectedMessages)[0];
+                                                const message = messages.find(msg => msg.id === messageId);
+                                                if (message) setReplyingTo(message);
+                                                exitSelectionMode();
+                                            }}
+                                        >
+                                            <Reply size={16} />
+                                        </button>
+                                    )}
+                                    <button className={styles['selection-action-btn']} title="Copy" onClick={handleSelectionCopy}>
+                                        <Copy size={16} />
+                                    </button>
+                                    <button className={styles['selection-action-btn']} title="Forward" onClick={handleSelectionForward}>
+                                        <ArrowRight size={16} />
+                                    </button>
+                                    <button className={styles['selection-action-btn']} title="Delete" onClick={handleSelectionDelete}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className={styles['messages-container']}>
+                            {isFetchingNextPage && <div className={styles['load-more-indicator']}><div className={styles['loading-spinner']}></div></div>}
+                            <VirtualizedMessageList
+                                ref={messagesContainerRef}
+                                messages={messages}
+                                currentUser={currentUser}
+                                chatId={validChatId}
+                                isGroupChat={true}
+                                onScroll={handleScroll}
+                                onReply={setReplyingTo}
+                                onForward={handleForwardMessage}
+                                onDelete={(messageId) => deleteMessageMutation(messageId)}
+                                selectedMessages={selectedMessages}
+                                isSelectionMode={isSelectionMode}
+                                onMessageSelect={handleMessageSelect}
+                                onMediaView={(url, type, msg) => {
+                                    if (type === 'image') { setCurrentImageUrl(url); setCurrentImageMessage(msg); setImageViewerOpen(true); }
+                                    else { setCurrentMediaInfo({ fileInfo: { storage_url: url, file_type: type }, messageId: msg.id }); setMediaViewerOpen(true); }
+                                }}
+                                onMediaDownload={handleMediaDownload}
+                                isLoading={isMessagesLoading}
+                                isScrolledToBottom={isScrolledToBottom}
+                                typingUsers={typingUsers}
+                                onSenderClick={(userId) => navigate(`/chat/new/${userId}`)}
+                                initialTopMostItemIndex={initialScrollPosition}
+                                onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
+                            />
+                            {showScrollButton && (
+                                <button className={styles['scroll-bottom-btn']} onClick={() => messagesContainerRef.current?.scrollToBottom('smooth')}>
+                                    <ArrowDown size={20} />
+                                    {unreadCount > 0 && <span className={styles['unread-count']}>{unreadCount}</span>}
                                 </button>
                             )}
-                            <button className={styles['selection-action-btn']} title="Copy" onClick={handleSelectionCopy}>
-                                <Copy size={16} />
-                            </button>
-                            <button className={styles['selection-action-btn']} title="Forward" onClick={handleSelectionForward}>
-                                <ArrowRight size={16} />
-                            </button>
-                            <button className={styles['selection-action-btn']} title="Delete" onClick={handleSelectionDelete}>
-                                <Trash2 size={16} />
-                            </button>
                         </div>
-                    </div>
-                )}
 
-                <div className={styles['messages-container']}>
-                    {isFetchingNextPage && <div className={styles['load-more-indicator']}><div className={styles['loading-spinner']}></div></div>}
-                    <VirtualizedMessageList
-                        ref={messagesContainerRef}
-                        messages={messages}
-                        currentUser={currentUser}
-                        chatId={validChatId}
-                        isGroupChat={true}
-                        onScroll={handleScroll}
-                        onReply={setReplyingTo}
-                        onForward={handleForwardMessage}
-                        onDelete={(messageId) => deleteMessageMutation(messageId)}
-                        selectedMessages={selectedMessages}
-                        isSelectionMode={isSelectionMode}
-                        onMessageSelect={handleMessageSelect}
-                        onMediaView={(url, type, msg) => {
-                            if (type === 'image') { setCurrentImageUrl(url); setCurrentImageMessage(msg); setImageViewerOpen(true); }
-                            else { setCurrentMediaInfo({ fileInfo: { storage_url: url, file_type: type }, messageId: msg.id }); setMediaViewerOpen(true); }
-                        }}
-                        onMediaDownload={handleMediaDownload}
-                        isLoading={isMessagesLoading}
-                        isScrolledToBottom={isScrolledToBottom}
-                        typingUsers={typingUsers}
-                        onSenderClick={(userId) => navigate(`/chat/new/${userId}`)}
-                        initialTopMostItemIndex={initialScrollPosition}
-                        onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
-                    />
-                    {showScrollButton && (
-                        <button className={styles['scroll-bottom-btn']} onClick={() => messagesContainerRef.current?.scrollToBottom('smooth')}>
-                            <ArrowDown size={20} />
-                            {unreadCount > 0 && <span className={styles['unread-count']}>{unreadCount}</span>}
-                        </button>
-                    )}
-                </div>
-
-                <MessageInput
-                    onSendMessage={sendMessage}
-                    onSendMedia={handleSendMedia}
-                    onTyping={sendTyping}
-                    replyingTo={replyingTo}
-                    onCancelReply={() => setReplyingTo(null)}
-                    chatId={chatId}
-                    currentUser={currentUser}
-                    disabled={group?.admins_only_messages && group?.my_role !== 'admin' && group?.my_role !== 'creator'}
-                />
-            </div>
-
-            {!isDesktop && showGroupInfoDrawer && (
-                <GroupInfoDrawer
-                    isOpen={showGroupInfoDrawer}
-                    onClose={() => setShowGroupInfoDrawer(false)}
-                    group={group}
-                />
-            )}
-
-            {showGroupCallScreen && (
-                <GroupCallScreen groupId={chatId} onEndCall={() => setShowGroupCallScreen(false)} />
-            )}
-
-            <ImageViewer
-                isOpen={imageViewerOpen}
-                onClose={() => setImageViewerOpen(false)}
-                imageUrl={currentImageUrl}
-                message={currentImageMessage}
-            />
-
-            <MediaViewer
-                isOpen={mediaViewerOpen}
-                onClose={() => setMediaViewerOpen(false)}
-                {...currentMediaInfo}
-            />
-
-            <Modal isOpen={showThemeModal} onClose={() => setShowThemeModal(false)} title="Themes">
-                <div className={styles['theme-grid']}>
-                    {Object.entries(chatThemes).map(([key, t]) => (
-                        <div key={key} className={styles['theme-card']} onClick={() => { selectTheme(key); setShowThemeModal(false); }}>
-                            <span>{t.name}</span>
-                        </div>
-                    ))}
-                </div>
-            </Modal>
-
-            <ForwardModal
-                isOpen={showForwardModal}
-                onClose={() => {
-                    setShowForwardModal(false);
-                    setMessagesToForward([]);
-                }}
-                chats={allChats}
-                messagesToForward={messagesToForward}
-                onForward={handleForwardMessages}
-                currentUser={currentUser}
-            />
-
-            {/* Confirmation Modal for deletion */}
-            <Modal
-                isOpen={showDeleteModal}
-                onClose={() => setShowDeleteModal(false)}
-                title="Delete Messages"
-            >
-                <div className={styles['delete-confirm-modal']}>
-                    <p>Are you sure you want to delete {selectedMessages.size} message{selectedMessages.size > 1 ? 's' : ''}?</p>
-                    <div className={styles['modal-actions']}>
-                        <button className={`${styles['modal-btn']} ${styles.secondary}`} onClick={() => setShowDeleteModal(false)}>Cancel</button>
-                        <button className={`${styles['modal-btn']} ${styles.danger}`} onClick={confirmSelectionDelete}>Delete</button>
-                    </div>
-                </div>
-            </Modal>
-
-            {/* Search Modal */}
-            <Modal
-                isOpen={showSearchModal}
-                onClose={() => setShowSearchModal(false)}
-                title="Search Messages"
-            >
-                <div className={styles['search-modal-content']}>
-                    <div className={styles['search-input-container']}>
-                        <Search size={18} />
-                        <input
-                            type="text"
-                            placeholder="Search in group..."
-                            className={styles['search-input']}
-                            value={searchQuery}
-                            onChange={handleSearchQueryChange}
-                            autoFocus
+                        <MessageInput
+                            onSendMessage={sendMessage}
+                            onSendMedia={handleSendMedia}
+                            onTyping={sendTyping}
+                            replyingTo={replyingTo}
+                            onCancelReply={() => setReplyingTo(null)}
+                            chatId={chatId}
+                            currentUser={currentUser}
+                            disabled={group?.admins_only_messages && group?.my_role !== 'admin' && group?.my_role !== 'creator'}
                         />
                     </div>
 
-                    <div className={styles['search-results']}>
-                        {isSearching ? (
-                            <div className={styles['search-loading']}>Searching...</div>
-                        ) : searchResults.length > 0 ? (
-                            searchResults.map(result => (
-                                <div
-                                    key={result.id}
-                                    className={styles['search-result-item']}
-                                    onClick={() => scrollToMessage(result.id)}
-                                >
-                                    <div className={styles['result-header']}>
-                                        <span className={styles['result-sender']}>{result.sender_name || 'Member'}</span>
-                                        <span className={styles['result-time']}>{new Date(result.created_at).toLocaleDateString()}</span>
+                    {!isDesktop && showGroupInfoDrawer && (
+                        <GroupInfoDrawer
+                            isOpen={showGroupInfoDrawer}
+                            onClose={() => setShowGroupInfoDrawer(false)}
+                            group={group}
+                        />
+                    )}
+
+                    {showGroupCallScreen && (
+                        <GroupCallScreen groupId={chatId} onEndCall={() => setShowGroupCallScreen(false)} />
+                    )}
+
+                    <ImageViewer
+                        isOpen={imageViewerOpen}
+                        onClose={() => setImageViewerOpen(false)}
+                        imageUrl={currentImageUrl}
+                        message={currentImageMessage}
+                    />
+
+                    <MediaViewer
+                        isOpen={mediaViewerOpen}
+                        onClose={() => setMediaViewerOpen(false)}
+                        {...currentMediaInfo}
+                    />
+
+                    <Modal isOpen={showThemeModal} onClose={() => setShowThemeModal(false)} title="Choose Theme" size="large">
+                        <div className={styles['theme-selector']}>
+                            <div className={styles['theme-grid']}>
+                                {Object.entries(chatThemes).map(([key, theme]) => (
+                                    <div
+                                        key={key}
+                                        className={`${styles['theme-card']} ${chatTheme === key ? styles.active : ''}`}
+                                        onClick={() => selectTheme(key)}
+                                    >
+                                        <div
+                                            className={styles['theme-preview-card']}
+                                            style={{
+                                                background: 'white'
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: '100%',
+                                                height: '65%',
+                                                background: theme.background,
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center'
+                                            }}></div>
+                                            <div className={styles['theme-preview-footer']}>
+                                                <div style={{
+                                                    width: '32px',
+                                                    height: '10px',
+                                                    borderRadius: '6px',
+                                                    background: theme.sentMessage.background,
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}></div>
+                                                <div style={{
+                                                    width: '32px',
+                                                    height: '10px',
+                                                    borderRadius: '6px',
+                                                    background: theme.receivedMessage.background,
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}></div>
+                                            </div>
+                                        </div>
+                                        <span className={styles['theme-card-name']}>
+                                            {theme.name}
+                                        </span>
                                     </div>
-                                    <p className={styles['result-content']}>{result.content}</p>
+                                ))}
+                            </div>
+
+                            <div className={styles['pattern-picker-section']}>
+                                <h4 className={styles['theme-section-title']}>Background Pattern</h4>
+                                <div className={styles['pattern-grid']}>
+                                    {chatPatterns.map((pattern) => (
+                                        <div
+                                            key={pattern.id}
+                                            className={`${styles['pattern-card']} ${currentPattern === pattern.id ? styles.active : ''}`}
+                                            onClick={() => selectPattern(pattern.id)}
+                                        >
+                                            <div
+                                                className={styles['pattern-preview']}
+                                                style={{
+                                                    '--pattern-url': `url(/assets/${pattern.id}.svg)`,
+                                                    WebkitMaskImage: 'var(--pattern-url)',
+                                                    maskImage: 'var(--pattern-url)'
+                                                }}
+                                            />
+                                            <span className={styles['pattern-card-name']}>{pattern.name}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))
-                        ) : searchQuery ? (
-                            <div className={styles['no-results']}>No messages found</div>
-                        ) : (
-                            <div className={styles['search-placeholder']}>Type to search messages</div>
-                        )}
-                    </div>
-                </div>
-            </Modal>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    <ForwardModal
+                        isOpen={showForwardModal}
+                        onClose={() => {
+                            setShowForwardModal(false);
+                            setMessagesToForward([]);
+                        }}
+                        chats={allChats}
+                        messagesToForward={messagesToForward}
+                        onForward={handleForwardMessages}
+                        currentUser={currentUser}
+                    />
+
+                    {/* Confirmation Modal for deletion */}
+                    <Modal
+                        isOpen={showDeleteModal}
+                        onClose={() => setShowDeleteModal(false)}
+                        title="Delete Messages"
+                    >
+                        <div className={styles['delete-confirm-modal']}>
+                            <p>Are you sure you want to delete {selectedMessages.size} message{selectedMessages.size > 1 ? 's' : ''}?</p>
+                            <div className={styles['modal-actions']}>
+                                <button className={`${styles['modal-btn']} ${styles.secondary}`} onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                                <button className={`${styles['modal-btn']} ${styles.danger}`} onClick={confirmSelectionDelete}>Delete</button>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    {/* Search Modal */}
+                    <Modal
+                        isOpen={showSearchModal}
+                        onClose={() => setShowSearchModal(false)}
+                        title="Search Messages"
+                    >
+                        <div className={styles['search-modal-content']}>
+                            <div className={styles['search-input-container']}>
+                                <Search size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Search in group..."
+                                    className={styles['search-input']}
+                                    value={searchQuery}
+                                    onChange={handleSearchQueryChange}
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className={styles['search-results']}>
+                                {isSearching ? (
+                                    <div className={styles['search-loading']}>Searching...</div>
+                                ) : searchResults.length > 0 ? (
+                                    searchResults.map(result => (
+                                        <div
+                                            key={result.id}
+                                            className={styles['search-result-item']}
+                                            onClick={() => scrollToMessage(result.id)}
+                                        >
+                                            <div className={styles['result-header']}>
+                                                <span className={styles['result-sender']}>{result.sender_name || 'Member'}</span>
+                                                <span className={styles['result-time']}>{new Date(result.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                            <p className={styles['result-content']}>{result.content}</p>
+                                        </div>
+                                    ))
+                                ) : searchQuery ? (
+                                    <div className={styles['no-results']}>No messages found</div>
+                                ) : (
+                                    <div className={styles['search-placeholder']}>Type to search messages</div>
+                                )}
+                            </div>
+                        </div>
+                    </Modal>
+                </ChatBackground>
+            </div>
         </div>
     );
 };

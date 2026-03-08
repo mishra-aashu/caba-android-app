@@ -5,354 +5,189 @@ export const chatThemes = {
     classic_purple: {
         name: 'Classic Purple',
         category: 'Default',
-        background: `
-      radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-      radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-      radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%),
-      linear-gradient(180deg, #1e1b4b 0%, #2e1065 100%)
-    `,
-        sentMessage: {
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
-            text: '#ffffff',
-            shadow: '0 4px 15px rgba(139, 92, 246, 0.4)'
-        },
-        receivedMessage: {
-            background: 'rgba(255, 255, 255, 0.1)', // Glass effect
-            text: '#e2e8f0',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-        },
-        header: {
-            background: 'rgba(30, 27, 75, 0.95)',
-            text: '#ffffff',
-            iconColor: '#a78bfa'
-        },
-        input: {
-            background: 'rgba(30, 27, 75, 0.8)',
-            text: '#ffffff',
-            iconColor: '#8b5cf6'
-        },
-        buttons: {
-            background: '#8b5cf6',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        is_pattern: true,
+        cssOnly: true,
+        background: 'linear-gradient(180deg, #1e1b4b 0%, #2e1065 100%)',
+        sentMessage: { background: '#8b5cf6', text: '#ffffff' },
+        receivedMessage: { background: 'rgba(255, 255, 255, 0.1)', text: '#e2e8f0' }
     },
 
     midnight_amoled: {
         name: 'Midnight AMOLED',
         category: 'Dark',
+        cssOnly: true,
         background: '#000000',
-        sentMessage: {
-            background: '#222222',
-            text: '#ffffff',
-            border: '1px solid #333'
-        },
-        receivedMessage: {
-            background: '#0a0a0a',
-            text: '#d4d4d4',
-            border: '1px solid #222'
-        },
-        header: {
-            background: '#000000',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        },
-        input: {
-            background: '#111111',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        },
-        buttons: {
-            background: '#333333',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        sentMessage: { background: '#222222', text: '#ffffff' },
+        receivedMessage: { background: '#0a0a0a', text: '#d4d4d4' }
     },
 
     electric_dreams: {
         name: 'Electric Dreams',
         category: 'Futuristic',
-        background: `
-      radial-gradient(circle at top right, #3b82f6, transparent 40%),
-      radial-gradient(circle at bottom left, #ec4899, transparent 40%),
-      linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)
-    `,
-        sentMessage: {
-            background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
-            text: '#ffffff',
-            shadow: '0 4px 15px rgba(0, 198, 255, 0.3)'
-        },
-        receivedMessage: {
-            background: 'rgba(255, 255, 255, 0.9)',
-            text: '#0f172a'
-        },
-        header: {
-            background: 'linear-gradient(90deg, #00c6ff 0%, #0072ff 100%)',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        },
-        input: {
-            background: 'rgba(255, 255, 255, 0.9)',
-            text: '#0f172a',
-            iconColor: '#0072ff'
-        },
-        buttons: {
-            background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        cssOnly: true,
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+        sentMessage: { background: '#0072ff', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#0f172a' }
     },
 
     ocean_depths: {
         name: 'Ocean Depths',
         category: 'Nature',
-        background: `
-      linear-gradient(to bottom, #0f172a, #0e7490)
-    `,
-        sentMessage: {
-            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-            text: '#ffffff'
-        },
-        receivedMessage: {
-            background: 'rgba(255, 255, 255, 0.85)',
-            text: '#164e63'
-        },
-        header: {
-            background: '#0e7490',
-            text: '#ffffff',
-            iconColor: '#cffafe'
-        },
-        input: {
-            background: '#ffffff',
-            text: '#155e75',
-            iconColor: '#0891b2'
-        },
-        buttons: {
-            background: '#0891b2',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        cssOnly: true,
+        background: 'linear-gradient(to bottom, #0f172a, #0e7490)',
+        sentMessage: { background: '#0891b2', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#164e63' }
     },
 
     sunset_glow: {
         name: 'Sunset Glow',
         category: 'Colorful',
-        background: `
-      linear-gradient(180deg, #4c1d95 0%, #be185d 50%, #f59e0b 100%)
-    `,
-        sentMessage: {
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            text: '#ffffff'
-        },
-        receivedMessage: {
-            background: 'rgba(255, 255, 255, 0.9)',
-            text: '#4c1d95'
-        },
-        header: {
-            background: '#4c1d95',
-            text: '#ffffff',
-            iconColor: '#fbbf24'
-        },
-        input: {
-            background: 'rgba(255, 255, 255, 0.95)',
-            text: '#be185d',
-            iconColor: '#d97706'
-        },
-        buttons: {
-            background: '#d97706',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        cssOnly: true,
+        background: 'linear-gradient(180deg, #4c1d95 0%, #be185d 50%, #f59e0b 100%)',
+        sentMessage: { background: '#f59e0b', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#4c1d95' }
     },
 
     forest_mist: {
         name: 'Forest Mist',
         category: 'Nature',
-        background: `
-      linear-gradient(to bottom right, #14532d, #166534, #15803d)
-    `,
-        sentMessage: {
-            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-            text: '#ffffff'
-        },
-        receivedMessage: {
-            background: '#ffffff',
-            text: '#14532d'
-        },
-        header: {
-            background: '#14532d',
-            text: '#ffffff',
-            iconColor: '#86efac'
-        },
-        input: {
-            background: '#ffffff',
-            text: '#14532d',
-            iconColor: '#16a34a'
-        },
-        buttons: {
-            background: '#16a34a',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        cssOnly: true,
+        background: 'linear-gradient(to bottom right, #14532d, #166534, #15803d)',
+        sentMessage: { background: '#16a34a', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#14532d' }
     },
 
     cyberpunk_neon: {
         name: 'Cyberpunk Neon',
         category: 'Dark',
-        background: `
-      linear-gradient(0deg, #050505 0%, #1a1a1a 100%)
-    `,
-        sentMessage: {
-            background: 'linear-gradient(135deg, #f000ff 0%, #d600e3 100%)',
-            text: '#ffffff',
-            shadow: '0 0 10px rgba(240, 0, 255, 0.5)'
-        },
-        receivedMessage: {
-            background: '#000000',
-            text: '#00ffea',
-            border: '1px solid #00ffea',
-            shadow: '0 0 5px rgba(0, 255, 234, 0.2)'
-        },
-        header: {
-            background: '#000000',
-            text: '#f000ff',
-            iconColor: '#00ffea',
-            border: '1px solid #333'
-        },
-        input: {
-            background: '#0a0a0a',
-            text: '#00ffea',
-            iconColor: '#f000ff',
-            border: '1px solid #333'
-        },
-        buttons: {
-            background: '#f000ff',
-            text: '#ffffff',
-            iconColor: '#000000'
-        }
+        cssOnly: true,
+        background: 'linear-gradient(0deg, #050505 0%, #1a1a1a 100%)',
+        sentMessage: { background: '#f000ff', text: '#ffffff' },
+        receivedMessage: { background: '#000000', text: '#00ffea' }
     },
 
     telegram_blue: {
         name: 'Telegram Blue',
         category: 'Professional',
-        background: '#87a7b8', // Classic Telegram muted background color
-        sentMessage: {
-            background: '#2b5278',
-            text: '#ffffff'
-        },
-        receivedMessage: {
-            background: '#ffffff',
-            text: '#000000'
-        },
-        header: {
-            background: '#242f3d',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        },
-        input: {
-            background: '#ffffff',
-            text: '#000000',
-            iconColor: '#2b5278'
-        },
-        buttons: {
-            background: '#2b5278',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        cssOnly: true,
+        background: '#87a7b8',
+        sentMessage: { background: '#2b5278', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#000000' }
     },
 
     rose_gold: {
         name: 'Rose Gold',
         category: 'Elegant',
-        background: `
-      linear-gradient(to top, #fff1eb 0%, #ace0f9 100%)
-    `,
-        sentMessage: {
-            background: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)',
-            text: '#ffffff'
-        },
-        receivedMessage: {
-            background: '#ffffff',
-            text: '#4a4a4a',
-            shadow: '0 2px 5px rgba(0,0,0,0.05)'
-        },
-        header: {
-            background: '#ffffff',
-            text: '#fda085',
-            iconColor: '#f6d365'
-        },
-        input: {
-            background: '#ffffff',
-            text: '#4a4a4a',
-            iconColor: '#fda085'
-        },
-        buttons: {
-            background: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        cssOnly: true,
+        background: 'linear-gradient(to top, #fff1eb 0%, #ace0f9 100%)',
+        sentMessage: { background: '#fda085', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#4a4a4a' }
     },
 
     minimal_slate: {
         name: 'Minimal Slate',
         category: 'Professional',
+        cssOnly: true,
         background: '#f1f5f9',
-        sentMessage: {
-            background: '#334155',
-            text: '#ffffff'
-        },
-        receivedMessage: {
-            background: '#ffffff',
-            text: '#0f172a',
-            border: '1px solid #e2e8f0'
-        },
-        header: {
-            background: '#ffffff',
-            text: '#0f172a',
-            iconColor: '#64748b'
-        },
-        input: {
-            background: '#ffffff',
-            text: '#0f172a',
-            iconColor: '#334155'
-        },
-        buttons: {
-            background: '#334155',
-            text: '#ffffff',
-            iconColor: '#ffffff'
-        }
+        sentMessage: { background: '#334155', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#0f172a' }
+    },
+
+    spring_vibes: {
+        name: 'Spring Vibes',
+        category: 'Seasonal',
+        is_pattern: true,
+        cssOnly: true,
+        background: 'linear-gradient(160deg, #ecfdf5 0%, #fef3c7 100%)',
+        sentMessage: { background: '#059669', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#065f46' }
+    },
+
+    winter_calm: {
+        name: 'Winter Calm',
+        category: 'Seasonal',
+        is_pattern: true,
+        cssOnly: true,
+        background: 'linear-gradient(160deg, #f0f9ff 0%, #7dd3fc 100%)',
+        sentMessage: { background: '#0284c7', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#0c4a6e' }
+    },
+
+    cherry_blossom: {
+        name: 'Cherry Blossom',
+        category: 'Seasonal',
+        is_pattern: true,
+        cssOnly: true,
+        background: 'linear-gradient(160deg, #fff1f2 0%, #fda4af 100%)',
+        sentMessage: { background: '#e11d48', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#881337' }
+    },
+
+    desert_dunes: {
+        name: 'Desert Dunes',
+        category: 'Nature',
+        is_pattern: true,
+        cssOnly: true,
+        background: 'linear-gradient(160deg, #fffbeb 0%, #fcd34d 100%)',
+        sentMessage: { background: '#d97706', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#78350f' }
     },
 
     custom_background: {
         name: 'Custom Background',
         category: 'Custom',
-        background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"), linear-gradient(to bottom, #e2e8f0, #cbd5e1)`,
-        backgroundColor: '#DFDBE5',
+        cssOnly: true,
+        background: 'linear-gradient(to bottom, #e2e8f0, #cbd5e1)',
+        sentMessage: { background: '#475569', text: '#ffffff' },
+        receivedMessage: { background: '#ffffff', text: '#1e293b' }
+    },
+
+    pattern_overlay: {
+        name: 'Pattern Overlay',
+        category: 'Premium',
+        is_pattern: true,
+        cssOnly: false,
+        background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
         sentMessage: {
-            background: '#475569',
-            text: '#ffffff'
+            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            text: '#ffffff',
+            shadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
         },
         receivedMessage: {
-            background: '#ffffff',
-            text: '#1e293b'
+            background: 'rgba(255, 255, 255, 0.12)',
+            text: '#ffffff',
+            border: '1px solid rgba(255, 255, 255, 0.1)'
         },
         header: {
-            background: '#1e293b',
+            background: '#4f46e5',
             text: '#ffffff',
-            iconColor: '#cbd5e1'
+            iconColor: '#ffffff'
         },
         input: {
-            background: '#ffffff',
-            text: '#1e293b',
-            iconColor: '#475569'
+            background: 'rgba(255, 255, 255, 0.1)',
+            text: '#ffffff',
+            iconColor: '#ffffff'
         },
         buttons: {
-            background: '#475569',
+            background: '#6366f1',
             text: '#ffffff',
             iconColor: '#ffffff'
         }
     }
 };
+
+export const chatPatterns = [
+    { id: 'pattern', name: 'Original WhatsApp' },
+    { id: 'pattern-1', name: 'Doodle Mix' },
+    { id: 'pattern-3', name: 'Botanical' },
+    { id: 'pattern-19', name: 'Micro Dots' },
+    { id: 'pattern-22', name: 'Circuit Board' },
+    { id: 'pattern-23', name: 'Space' },
+    { id: 'pattern-24', name: 'Geometric' },
+    { id: 'pattern-28', name: 'Cityscape' },
+    { id: 'pattern-29', name: 'Nature' },
+    { id: 'pattern-33', name: 'Abstract Lines' }
+];
 
 export const ChatThemeContext = createContext();
 

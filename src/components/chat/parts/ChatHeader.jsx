@@ -29,7 +29,6 @@ const ChatHeader = ({
     onViewContact,
     onSearchMessages,
     onChangeTheme,
-    onShowWallpaper,
     onShowGame,
     onShowGroupInfo,
     onBlockUser,
@@ -80,7 +79,6 @@ const ChatHeader = ({
         ...(!isGroupChat ? [{ icon: <Search size={16} />, label: 'Search Messages', onClick: onSearchMessages }] : []),
         { icon: <Palette size={16} />, label: 'Themes', onClick: onChangeTheme },
         { icon: <ImageIcon size={16} />, label: 'Shared Media', onClick: () => resolvedNavigate(`${location.pathname}/media`) },
-        { icon: <ImageIcon size={16} />, label: 'Chat Wallpaper', onClick: onShowWallpaper },
         { icon: <Gamepad2 size={16} />, label: 'Game Room', onClick: onShowGame },
         { divider: true },
         ...(isAdmin ? [{

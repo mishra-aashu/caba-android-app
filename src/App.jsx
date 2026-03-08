@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth'; // Use the main auth hook
-// import { CallProvider } from './contexts/CallContext';
+import { useAuth } from './hooks/useAuth';
 import { ChatThemeProvider } from './contexts/ChatThemeProvider';
 import { DataProvider } from './contexts/DataProvider';
 import { GroupCallProvider } from './contexts/GroupCallProvider';
@@ -13,11 +12,10 @@ import useAuthStore from './store/authStore';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import '../src/styles/desktop.css';
 import '../src/styles/call-screen.css';
+
 // Lazy load components
 const Login = lazy(() => import('./components/auth/Login'));
 const ChatPlaceholder = lazy(() => import('./components/common/ChatPlaceholder'));
-
-
 const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
 const Profile = lazy(() => import('./components/profile/Profile'));
@@ -44,14 +42,12 @@ const GroupInfoPage = lazy(() => import('./components/groups/GroupInfoPage'));
 const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
 const ArenaPage = lazy(() => import('./components/chat/ArenaPage'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
-// import CallScreen from './components/CallScreen';
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
 const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
 const GroupIncomingCallNotification = lazy(() => import('./components/group/GroupIncomingCallNotification'));
 import DesktopNavbar from './components/common/DesktopNavbar';
 import Modal from './components/common/Modal';
 import useIsDesktop from './hooks/useIsDesktop';
-// AuthDebug is intentionally not imported or rendered
 import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import OfflineIndicator from './components/common/OfflineIndicator';
@@ -71,12 +67,15 @@ import './styles/emoji-styles.css';
 import SyncIndicator from './components/common/SyncIndicator';
 
 
+// ──────────────────────────────────────────────
+// AppContent
+// ──────────────────────────────────────────────
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
   const isDesktop = useIsDesktop();
   const [splashFinished, setSplashFinished] = useState(false);
-  useOnlineStatus(); // Initialize online status tracking
+  useOnlineStatus();
 
   // Handle deep linking for OAuth callbacks
   useEffect(() => {
@@ -88,77 +87,72 @@ const AppContent = () => {
   }, []);
 
   if (loading) {
-    return null; // Keep it silent during initial auth check
+    return null;
   }
 
   if (isAuthenticated && !splashFinished) {
     return <Intro onComplete={() => setSplashFinished(true)} />;
   }
 
-  // 📱 Native App Optimization: Direct redirect to login for unauthenticated users
-  // This avoids showing the LandingPage on mobile apps.
+  // Native App: Direct redirect for unauthenticated users
   const isNative = Capacitor.isNativePlatform();
   if (!isAuthenticated && isNative && location.pathname === '/') {
     return <Navigate to="/login" replace />;
   }
 
   return (
-    <>
-      <Routes>
-        <Route path="/download-apk" element={<PublicRoute><DownloadAPK /></PublicRoute>} />
-        {/* Public routes */}
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+    <Routes>
+      <Route path="/download-apk" element={<PublicRoute><DownloadAPK /></PublicRoute>} />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
+      <Route path="/shared-profile/:userId" element={<SharedProfile />} />
+      <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
+      <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
+      <Route path="/about" element={<About />} />
 
+      {/* Arena — fullscreen, outside MainLayout */}
+      <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
 
-        <Route path="/shared-profile/:userId" element={<SharedProfile />} />
-        <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
-        <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
-        <Route path="/about" element={<About />} />
+      <Route path="/" element={isAuthenticated ? <ProtectedRoute><MainLayout /></ProtectedRoute> : <LandingPage />}>
+        <Route index element={<ChatPlaceholder />} />
+        <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
+        <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
+        <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
+        <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
+        <Route path="user-details/:id" element={<UserDetails />} />
+        <Route path="groups" element={<GroupsPage />} />
+        <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
+        <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
+      </Route>
 
-        {/* Arena Route - Independent of MainLayout sidebar */}
-        <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/emoji-settings" element={<ProtectedRoute><EmojiSettings /></ProtectedRoute>} />
+      <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+      <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
+      <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
+      <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+      <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
+      <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
+      <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+      <Route path="/admin-about" element={<div className="legal-page-wrapper"><AdminAbout /></div>} />
+      <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
 
-        <Route path="/" element={isAuthenticated ? <ProtectedRoute><MainLayout /></ProtectedRoute> : <LandingPage />}>
-          <Route index element={<ChatPlaceholder />} />
-          {/* Group chat route - uses dedicated GroupChat component */}
-          <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
-          <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
-          {/* Direct chat route - uses wildcard :otherUserId */}
-          <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
-          <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
-          <Route path="user-details/:id" element={<UserDetails />} />
-          <Route path="groups" element={<GroupsPage />} />
-          <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
-          <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
-        </Route>
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/emoji-settings" element={<ProtectedRoute><EmojiSettings /></ProtectedRoute>} />
-
-        <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-        <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
-        <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
-        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-        <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
-        <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
-        <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-        <Route path="/admin-about" element={<div className="legal-page-wrapper"><AdminAbout /></div>} />
-        <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
-
-        {/* 404 route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </>
+      {/* 404 */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
 
+
+// ──────────────────────────────────────────────
+// PublicRoute
+// ──────────────────────────────────────────────
 const PublicRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
   if (isAuthenticated) {
-    // Redirect to the home page or the original intended page
     const from = location.state?.from?.pathname || '/';
     return <Navigate to={from} replace />;
   }
@@ -166,12 +160,18 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
+
+// ──────────────────────────────────────────────
+// ProtectedRoute — FIXED
+// ──────────────────────────────────────────────
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, dbUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
-  const [showPhoneAuth, setShowPhoneAuth] = useState(false);
+
+  // FIX #1: Initialize state from current auth to prevent flash frame
+  const [showPhoneAuth, setShowPhoneAuth] = useState(() => !isAuthenticated);
   const [showPhoneCollect, setShowPhoneCollect] = useState(false);
 
   useEffect(() => {
@@ -184,8 +184,7 @@ const ProtectedRoute = ({ children }) => {
     }
   }, [isAuthenticated, dbUser]);
 
-  const handleAuthSuccess = (user) => {
-    // Auth state will update automatically
+  const handleAuthSuccess = () => {
     setShowPhoneAuth(false);
   };
 
@@ -198,7 +197,6 @@ const ProtectedRoute = ({ children }) => {
         .select()
         .single();
       if (error) throw error;
-      // Update dbUser in store
       useAuthStore.setState({ dbUser: updatedUser });
       setShowPhoneCollect(false);
     } catch (error) {
@@ -206,25 +204,42 @@ const ProtectedRoute = ({ children }) => {
     }
   };
 
+  // ─────────────────────────────────────────────
+  // FIX #2: Do NOT render {children} when unauthenticated
+  //         Show empty shell behind the modal instead
+  // ─────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
       <>
         <div className="app-layout">
           {isDesktop && <DesktopNavbar />}
           <main className="app-content">
-            {children}
+            {/* FIX: Empty placeholder — protected children do NOT render */}
+            <div className="auth-guard-placeholder" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              opacity: 0.3,
+            }}>
+              <p>Please sign in to continue</p>
+            </div>
           </main>
         </div>
         <PhoneAuthModal
           isOpen={showPhoneAuth}
           onClose={() => setShowPhoneAuth(false)}
           onAuthSuccess={handleAuthSuccess}
-          onBackToLogin={() => { setShowPhoneAuth(false); navigate('/login'); }}
+          onBackToLogin={() => {
+            setShowPhoneAuth(false);
+            navigate('/login');
+          }}
         />
       </>
     );
   }
 
+  // ─── Authenticated ───
   return (
     <>
       <div className="app-layout">
@@ -234,6 +249,7 @@ const ProtectedRoute = ({ children }) => {
         </main>
       </div>
 
+      {/* Phone number collection for OAuth users */}
       <PhoneAuthModal
         isOpen={showPhoneCollect}
         onClose={() => setShowPhoneCollect(false)}
@@ -244,67 +260,90 @@ const ProtectedRoute = ({ children }) => {
   );
 };
 
+
+// ──────────────────────────────────────────────
+// SafeSuspense — Wrapper for global lazy components
+// Prevents one failing lazy component from blanking the whole app
+// ──────────────────────────────────────────────
+const SafeSuspense = ({ children, fallback = null }) => (
+  <Suspense fallback={fallback}>
+    <ErrorBoundary fallback={null}>
+      {children}
+    </ErrorBoundary>
+  </Suspense>
+);
+
+
+// ──────────────────────────────────────────────
+// App (root)
+// ──────────────────────────────────────────────
 const App = () => {
-  const { dbUser } = useAuth(); // Get dbUser from auth hook
+  const { dbUser, loading: authLoading } = useAuth();
   const { needsRefresh, handleRefresh } = useAutoRefresh();
 
-  // 🔌 Native device integrations: StatusBar color + Keyboard resize mode
   useCapacitorPlugins();
 
   useEffect(() => {
-    // App khulte hi notification system start karo
     initializePushNotifications();
-    // Request persistent storage for IndexedDB
     requestPersistentStorage();
   }, []);
 
-  // Initialize offline sync monitor
   useNetworkSync();
 
   return (
     <Suspense fallback={<div className="loading" />}>
-      {/* AuthProvider is provided in main.jsx */}
-      {/* AuthProvider is provided in main.jsx */}
-      {/* SupabaseProvider is provided in main.jsx */}
-      {/* ThemeProvider is provided in main.jsx */}
       <PwaUpdater />
       <ErrorBoundary>
         <DialogProvider>
           <DataProvider>
-            <GroupCallProvider currentUser={dbUser}>
-              <ChatThemeProvider>
-                {/* Universal Layout Logic */}
-                <ViewportManager />
-                {/* Offline Indicator - Shows network status to users */}
-                <OfflineIndicator>
-                  <AppContent />
-                </OfflineIndicator>
-                {/* Global Components */}
+            {/* FIX #3: Guard against null dbUser during auth loading */}
+            <GroupCallProvider currentUser={authLoading ? null : dbUser}>
+              {/* Layout utilities */}
+              <ViewportManager />
+
+              <OfflineIndicator>
+                <AppContent />
+              </OfflineIndicator>
+
+              {/* FIX #4: Wrap each global lazy component in SafeSuspense
+                  so one failing component doesn't blank the entire app */}
+              <SafeSuspense>
                 <CallStatusIndicator />
+              </SafeSuspense>
+
+              <SafeSuspense>
                 <IncomingCallModal />
+              </SafeSuspense>
+
+              <SafeSuspense>
                 <GroupIncomingCallNotification />
-                <SyncIndicator />
-                <Toaster
-                  position="bottom"
-                  containerStyle={{
-                    left: '62%',
-                    top: '70%',
-                    transform: 'translate(-50%, -50%)'
-                  }} />
+              </SafeSuspense>
 
-                {/* 🚀 Auto Cache-Bust Notification */}
-                {needsRefresh && (
-                  <div
-                    className="auto-refresh-banner"
-                    onClick={handleRefresh}
-                  >
-                    <span className="refresh-icon">✨</span>
-                    <span className="refresh-text">New update available! Tap to refresh</span>
-                  </div>
-                )}
+              <SyncIndicator />
 
-                <GlobalDialog />
-              </ChatThemeProvider>
+              {/* FIX #5: Use valid position value for react-hot-toast */}
+              <Toaster
+                position="bottom-center"
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    maxWidth: '90vw',
+                  },
+                }}
+              />
+
+              {/* Auto Cache-Bust Notification */}
+              {needsRefresh && (
+                <div
+                  className="auto-refresh-banner"
+                  onClick={handleRefresh}
+                >
+                  <span className="refresh-icon">✨</span>
+                  <span className="refresh-text">New update available! Tap to refresh</span>
+                </div>
+              )}
+
+              <GlobalDialog />
             </GroupCallProvider>
           </DataProvider>
         </DialogProvider>

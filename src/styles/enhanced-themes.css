@@ -7,261 +7,490 @@
    
    Variable Groups:
    ─────────────────
-   1. Chat Background
-   2. Sent Messages
-   3. Received Messages
-   4. Message Meta & Ticks
-   5. Chat Header
-   6. Chat Input / Composer
-   7. Date Separator
-   8. System Messages
-   9. Typing Indicator
-   10. Links
-   11. Reply / Quote Bubbles
-   12. Unread Badge
-   13. Scroll-to-Bottom Button
-   14. Emoji Reactions
+   1. Chat Wallpaper / Background
+   2. Chat Pattern Overlay
+   3. Sent Messages
+   4. Received Messages
+   5. Message Meta & Ticks
+   6. Chat Header
+   7. Chat Input / Composer
+   8. Date Separator
+   9. System Messages
+   10. Typing Indicator
+   11. Links
+   12. Reply / Quote Bubbles
+   13. Unread Badge
+   14. Scroll-to-Bottom Button
+   15. Emoji Reactions
+   16. Audio / Media
    ============================================= */
 
 
 /* =============================================
-   0. DEFAULT FALLBACK (applied to all themes)
+   0. DEFAULT LIGHT MODE FALLBACK
    ============================================= */
 
-[data-chat-theme] {
-  /* Background */
-  --chat-bg-gradient: linear-gradient(180deg, #f0f2f5 0%, #eaedf0 100%);
+:root,
+[data-theme='light'] {
 
-  /* Sent */
+  /* ── Wallpaper / Background ── */
+  --chat-bg-base: #e5ddd5;
+  --chat-bg-gradient:
+    radial-gradient(circle at 20% 80%, rgba(0, 142, 111, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(18, 140, 126, 0.05) 0%, transparent 50%),
+    linear-gradient(180deg, #eae6df 0%, #dfd5cd 100%);
+
+  /* ── Pattern Overlay (the WhatsApp-style doodle layer) ── */
+  --chat-pattern-gradient: linear-gradient(135deg, #008e6f 0%, #128c7e 100%);
+  --chat-pattern-opacity: 0.06;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #008e6f;
+  --chat-pattern-blend: soft-light;
+
+  /* ── Sent Messages ── */
   --sent-message-bg: #d9fdd3;
   --sent-message-text: #111b21;
   --sent-message-border: none;
-  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --sent-message-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
   --sent-message-meta: rgba(17, 27, 33, 0.55);
+  --sent-message-radius: 7.5px;
 
-  /* Received */
+  /* ── Received Messages ── */
   --received-message-bg: #ffffff;
   --received-message-text: #111b21;
   --received-message-border: none;
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
   --received-message-meta: rgba(17, 27, 33, 0.5);
+  --received-message-radius: 7.5px;
 
-  /* Ticks */
+  /* ── Bubble Shadow (shared shorthand) ── */
+  --chat-bubble-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+
+  /* ── Ticks ── */
   --tick-color: rgba(17, 27, 33, 0.35);
   --tick-read-color: #53bdeb;
 
-  /* Header */
-  --chat-header-bg: #ffffff;
+  /* ── Header ── */
+  --chat-header-bg: #f0f2f5;
   --chat-header-text: #111b21;
   --chat-header-icon-color: #54656f;
-  --chat-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --chat-header-shadow: none;
   --chat-header-border: 1px solid rgba(0, 0, 0, 0.08);
 
-  /* Input */
+  /* ── Input / Composer ── */
   --chat-input-bg: #ffffff;
   --chat-input-text: #111b21;
   --chat-input-placeholder: #667781;
   --chat-input-icon-color: #54656f;
   --chat-input-border: 1px solid rgba(0, 0, 0, 0.08);
-  --chat-input-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --chat-input-focus-ring: rgba(0, 168, 132, 0.3);
+  --chat-input-shadow: none;
+  --chat-input-focus-ring: rgba(0, 168, 132, 0.25);
+  --chat-input-radius: 8px;
   --chat-send-btn-bg: #00a884;
   --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 2px 6px rgba(0, 168, 132, 0.3);
+  --chat-send-btn-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 
-  /* Date Separator */
-  --date-separator-bg: rgba(255, 255, 255, 0.85);
+  /* ── Composer Bar Background ── */
+  --chat-composer-bg: #f0f2f5;
+  --chat-composer-border: 1px solid rgba(0, 0, 0, 0.08);
+
+  /* ── Date Separator ── */
+  --date-separator-bg: rgba(255, 255, 255, 0.92);
   --date-separator-text: #54656f;
-  --date-separator-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  --date-separator-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
   --date-separator-border: none;
-  --date-separator-radius: 8px;
+  --date-separator-radius: 7.5px;
 
-  /* System Messages */
-  --system-message-bg: rgba(255, 255, 255, 0.8);
+  /* ── System Messages ── */
+  --system-message-bg: rgba(255, 255, 233, 0.9);
   --system-message-text: #54656f;
-  --system-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --system-message-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
 
-  /* Typing Indicator */
+  /* ── Typing Indicator ── */
   --typing-indicator-bg: var(--received-message-bg);
   --typing-indicator-dot: #667781;
   --typing-indicator-border: var(--received-message-border);
 
-  /* Links */
+  /* ── Links ── */
   --link-color-received: #027eb5;
-  --link-color-sent: #53bdeb;
+  --link-color-sent: #025f88;
 
-  /* Reply / Quote */
-  --reply-bar-color: #00a884;
-  --reply-bg-sent: rgba(0, 0, 0, 0.1);
-  --reply-bg-received: rgba(0, 0, 0, 0.05);
-  --reply-text-sent: rgba(255, 255, 255, 0.85);
+  /* ── Reply / Quote ── */
+  --reply-bar-color: #06cf9c;
+  --reply-bg-sent: rgba(0, 0, 0, 0.06);
+  --reply-bg-received: rgba(0, 0, 0, 0.04);
+  --reply-text-sent: rgba(17, 27, 33, 0.7);
   --reply-text-received: #667781;
-  --reply-name-sent: rgba(255, 255, 255, 0.95);
-  --reply-name-received: #00a884;
+  --reply-name-sent: #06cf9c;
+  --reply-name-received: #06cf9c;
 
-  /* Unread Badge */
-  --unread-badge-bg: #00a884;
+  /* ── Unread Badge ── */
+  --unread-badge-bg: #25d366;
   --unread-badge-text: #ffffff;
-  --unread-badge-shadow: 0 2px 4px rgba(0, 168, 132, 0.3);
+  --unread-badge-shadow: 0 1px 3px rgba(37, 211, 102, 0.3);
 
-  /* Scroll to Bottom */
-  --scroll-btn-bg: rgba(255, 255, 255, 0.9);
+  /* ── Scroll to Bottom ── */
+  --scroll-btn-bg: #ffffff;
   --scroll-btn-icon: #54656f;
-  --scroll-btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  --scroll-btn-hover-bg: #ffffff;
+  --scroll-btn-shadow: 0 1px 3px rgba(11, 20, 26, 0.2);
+  --scroll-btn-hover-bg: #f0f2f5;
 
-  /* Emoji Reactions */
+  /* ── Emoji Reactions ── */
   --reaction-pill-bg: rgba(0, 0, 0, 0.05);
   --reaction-pill-border: 1px solid rgba(0, 0, 0, 0.08);
   --reaction-pill-active-bg: rgba(0, 168, 132, 0.12);
   --reaction-pill-active-border: 1px solid rgba(0, 168, 132, 0.3);
   --reaction-count-color: #54656f;
 
-  /* Audio / Voice Note */
+  /* ── Audio / Voice Note ── */
   --audio-waveform-color: #a0aec0;
-  --audio-waveform-played: var(--unread-badge-bg);
+  --audio-waveform-played: #00a884;
   --audio-progress-bg: rgba(0, 0, 0, 0.1);
 
-  /* Image / Media Overlay */
+  /* ── Image / Media Overlay ── */
   --media-caption-bg: rgba(0, 0, 0, 0.6);
   --media-caption-text: #ffffff;
 }
 
 
 /* =============================================
-   1. SPRING VIBES 🌸
+   0b. DEFAULT DARK MODE FALLBACK
    ============================================= */
 
-[data-chat-theme="spring-vibes"] {
+[data-theme='dark'] {
+
+  /* ── Wallpaper / Background ── */
+  --chat-bg-base: #0b141a;
   --chat-bg-gradient:
-    radial-gradient(circle at 20% 80%, rgba(255, 222, 233, 0.25) 0%, transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(181, 255, 252, 0.30) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(236, 252, 203, 0.20) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #fce7f3 0%, #ecfdf5 50%, #f0fdfa 100%);
+    radial-gradient(circle at 20% 80%, rgba(0, 168, 132, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(34, 211, 238, 0.04) 0%, transparent 50%),
+    linear-gradient(180deg, #0b141a 0%, #0d1418 100%);
 
-  /* Sent */
-  --sent-message-bg: linear-gradient(135deg, #059669 0%, #047857 100%);
-  --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
-  --sent-message-shadow: 0 3px 12px rgba(5, 150, 105, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.9);
+  /* ── Pattern Overlay ── */
+  --chat-pattern-gradient: linear-gradient(135deg, #22d3ee 0%, #00a884 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #00a884;
+  --chat-pattern-blend: soft-light;
 
-  /* Received */
-  --received-message-bg: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  --received-message-text: #065f46;
-  --received-message-border: 1px solid rgba(5, 150, 105, 0.15);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(6, 95, 70, 0.7);
+  /* ── Sent Messages ── */
+  --sent-message-bg: #005c4b;
+  --sent-message-text: #e9edef;
+  --sent-message-border: none;
+  --sent-message-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
+  --sent-message-meta: rgba(233, 237, 239, 0.6);
 
-  /* Ticks */
-  --tick-color: rgba(255, 255, 255, 0.5);
-  --tick-read-color: #34d399;
+  /* ── Received Messages ── */
+  --received-message-bg: #202c33;
+  --received-message-text: #e9edef;
+  --received-message-border: none;
+  --received-message-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(233, 237, 239, 0.5);
 
-  /* Header */
-  --chat-header-bg: linear-gradient(135deg, #047857 0%, #059669 100%);
-  --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(4, 120, 87, 0.3);
-  --chat-header-border: none;
+  /* ── Bubble Shadow ── */
+  --chat-bubble-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
 
-  /* Input */
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-  --chat-input-text: #1e293b;
-  --chat-input-placeholder: #6b7280;
-  --chat-input-icon-color: #059669;
-  --chat-input-border: 1px solid rgba(5, 150, 105, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(5, 150, 105, 0.35);
-  --chat-send-btn-bg: linear-gradient(135deg, #059669, #047857);
-  --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(5, 150, 105, 0.35);
+  /* ── Ticks ── */
+  --tick-color: rgba(233, 237, 239, 0.35);
+  --tick-read-color: #53bdeb;
 
-  /* Date Separator */
-  --date-separator-bg: rgba(255, 255, 255, 0.85);
-  --date-separator-text: #065f46;
-  --date-separator-shadow: 0 1px 6px rgba(5, 150, 105, 0.12);
+  /* ── Header ── */
+  --chat-header-bg: #202c33;
+  --chat-header-text: #e9edef;
+  --chat-header-icon-color: #aebac1;
+  --chat-header-shadow: none;
+  --chat-header-border: 1px solid rgba(233, 237, 239, 0.06);
 
-  /* System */
-  --system-message-bg: rgba(240, 253, 244, 0.85);
-  --system-message-text: #065f46;
+  /* ── Input / Composer ── */
+  --chat-input-bg: #2a3942;
+  --chat-input-text: #e9edef;
+  --chat-input-placeholder: #8696a0;
+  --chat-input-icon-color: #8696a0;
+  --chat-input-border: none;
+  --chat-input-shadow: none;
+  --chat-input-focus-ring: rgba(0, 168, 132, 0.3);
+  --chat-send-btn-bg: #00a884;
+  --chat-send-btn-color: #111b21;
+  --chat-send-btn-shadow: none;
 
-  /* Typing */
-  --typing-indicator-dot: #059669;
+  --chat-composer-bg: #202c33;
+  --chat-composer-border: 1px solid rgba(233, 237, 239, 0.06);
 
-  /* Links */
-  --link-color-received: #047857;
-  --link-color-sent: #a7f3d0;
+  /* ── Date Separator ── */
+  --date-separator-bg: rgba(17, 27, 33, 0.92);
+  --date-separator-text: rgba(233, 237, 239, 0.65);
+  --date-separator-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
 
-  /* Reply */
-  --reply-bar-color: #059669;
-  --reply-bg-sent: rgba(255, 255, 255, 0.15);
-  --reply-bg-received: rgba(5, 150, 105, 0.08);
-  --reply-name-received: #059669;
+  /* ── System Messages ── */
+  --system-message-bg: rgba(18, 34, 43, 0.9);
+  --system-message-text: rgba(233, 237, 239, 0.6);
+  --system-message-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
 
-  /* Unread */
-  --unread-badge-bg: #059669;
-  --unread-badge-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
+  /* ── Typing ── */
+  --typing-indicator-dot: #8696a0;
 
-  /* Scroll btn */
-  --scroll-btn-bg: rgba(240, 253, 244, 0.95);
-  --scroll-btn-icon: #059669;
+  /* ── Links ── */
+  --link-color-received: #53bdeb;
+  --link-color-sent: #53bdeb;
 
-  /* Reactions */
-  --reaction-pill-active-bg: rgba(5, 150, 105, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(5, 150, 105, 0.3);
+  /* ── Reply ── */
+  --reply-bar-color: #06cf9c;
+  --reply-bg-sent: rgba(0, 0, 0, 0.18);
+  --reply-bg-received: rgba(0, 0, 0, 0.12);
+  --reply-text-sent: rgba(233, 237, 239, 0.6);
+  --reply-text-received: rgba(233, 237, 239, 0.5);
+  --reply-name-sent: #06cf9c;
+  --reply-name-received: #06cf9c;
+
+  /* ── Unread ── */
+  --unread-badge-bg: #00a884;
+  --unread-badge-text: #111b21;
+  --unread-badge-shadow: none;
+
+  /* ── Scroll ── */
+  --scroll-btn-bg: #2a3942;
+  --scroll-btn-icon: #8696a0;
+  --scroll-btn-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --scroll-btn-hover-bg: #374955;
+
+  /* ── Reactions ── */
+  --reaction-pill-bg: rgba(255, 255, 255, 0.06);
+  --reaction-pill-border: 1px solid rgba(255, 255, 255, 0.08);
+  --reaction-pill-active-bg: rgba(0, 168, 132, 0.15);
+  --reaction-pill-active-border: 1px solid rgba(0, 168, 132, 0.35);
+  --reaction-count-color: #8696a0;
+
+  /* ── Audio ── */
+  --audio-waveform-color: #4a5568;
+  --audio-waveform-played: #00a884;
+  --audio-progress-bg: rgba(255, 255, 255, 0.1);
 }
 
 
-/* =============================================
-   2. WINTER CALM ❄️
-   ============================================= */
+/* ═══════════════════════════════════════════════
+   ███  THEME 1 — SPRING VIBES 🌸  ███
+   ═══════════════════════════════════════════════ */
 
-[data-chat-theme="winter-calm"] {
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="spring-vibes"],
+[data-chat-theme="spring-vibes"] {
+
+  --chat-bg-base: #eef5ec;
   --chat-bg-gradient:
-    radial-gradient(circle at 30% 70%, rgba(137, 247, 254, 0.22) 0%, transparent 55%),
-    radial-gradient(circle at 70% 30%, rgba(102, 166, 255, 0.18) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.12) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #e0f2fe 0%, #bae6fd 50%, #7dd3fc 100%);
+    radial-gradient(ellipse at 15% 85%, rgba(167, 243, 208, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(253, 186, 116, 0.20) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(196, 181, 253, 0.12) 0%, transparent 55%),
+    linear-gradient(160deg, #ecfdf5 0%, #f0fdf4 35%, #fef3c7 65%, #fce7f3 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+  --chat-pattern-opacity: 0.045;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #059669;
+
+  --sent-message-bg: linear-gradient(135deg, #059669 0%, #047857 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.18);
+  --sent-message-shadow: 0 1px 3px rgba(5, 150, 105, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.85);
+  --chat-bubble-shadow: 0 1px 3px rgba(5, 150, 105, 0.18);
+
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  --received-message-text: #065f46;
+  --received-message-border: 1px solid rgba(5, 150, 105, 0.12);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(6, 95, 70, 0.65);
+
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #6ee7b7;
+
+  --chat-header-bg: linear-gradient(135deg, #047857 0%, #059669 100%);
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(4, 120, 87, 0.25);
+  --chat-header-border: none;
+
+  --chat-composer-bg: #f0fdf4;
+  --chat-composer-border: 1px solid rgba(5, 150, 105, 0.1);
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #1e293b;
+  --chat-input-placeholder: #6b7280;
+  --chat-input-icon-color: #059669;
+  --chat-input-border: 1px solid rgba(5, 150, 105, 0.18);
+  --chat-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --chat-input-focus-ring: rgba(5, 150, 105, 0.3);
+  --chat-send-btn-bg: linear-gradient(135deg, #059669, #047857);
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+
+  --date-separator-bg: rgba(255, 255, 255, 0.9);
+  --date-separator-text: #065f46;
+  --date-separator-shadow: 0 1px 3px rgba(5, 150, 105, 0.1);
+
+  --system-message-bg: rgba(240, 253, 244, 0.9);
+  --system-message-text: #065f46;
+  --system-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  --typing-indicator-dot: #059669;
+
+  --link-color-received: #047857;
+  --link-color-sent: #a7f3d0;
+
+  --reply-bar-color: #10b981;
+  --reply-bg-sent: rgba(255, 255, 255, 0.12);
+  --reply-bg-received: rgba(5, 150, 105, 0.06);
+  --reply-name-sent: #a7f3d0;
+  --reply-name-received: #059669;
+
+  --unread-badge-bg: #059669;
+  --unread-badge-text: #ffffff;
+  --unread-badge-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+
+  --scroll-btn-bg: rgba(255, 255, 255, 0.92);
+  --scroll-btn-icon: #059669;
+  --scroll-btn-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+
+  --reaction-pill-active-bg: rgba(5, 150, 105, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="spring-vibes"] {
+
+  --chat-bg-base: #071a12;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(5, 150, 105, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(52, 211, 153, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #071a12 0%, #0a1f17 50%, #071a12 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%);
+  --chat-pattern-opacity: 0.03;
+  --chat-pattern-color: #10b981;
+
+  --sent-message-bg: linear-gradient(135deg, #065f46 0%, #047857 100%);
+  --sent-message-text: #d1fae5;
+  --sent-message-border: 1px solid rgba(52, 211, 153, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(209, 250, 229, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #0f2a20;
+  --received-message-text: #d1fae5;
+  --received-message-border: 1px solid rgba(52, 211, 153, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(209, 250, 229, 0.5);
+
+  --tick-color: rgba(209, 250, 229, 0.3);
+  --tick-read-color: #34d399;
+
+  --chat-header-bg: #0a1f17;
+  --chat-header-text: #d1fae5;
+  --chat-header-icon-color: #6ee7b7;
+  --chat-header-shadow: none;
+  --chat-header-border: 1px solid rgba(52, 211, 153, 0.08);
+
+  --chat-composer-bg: #0a1f17;
+  --chat-composer-border: 1px solid rgba(52, 211, 153, 0.08);
+  --chat-input-bg: #132f24;
+  --chat-input-text: #d1fae5;
+  --chat-input-placeholder: rgba(209, 250, 229, 0.35);
+  --chat-input-icon-color: #6ee7b7;
+  --chat-input-border: 1px solid rgba(52, 211, 153, 0.1);
+  --chat-input-shadow: none;
+  --chat-input-focus-ring: rgba(52, 211, 153, 0.25);
+  --chat-send-btn-bg: #059669;
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+
+  --date-separator-bg: rgba(10, 31, 23, 0.92);
+  --date-separator-text: rgba(209, 250, 229, 0.6);
+  --date-separator-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  --system-message-bg: rgba(15, 42, 32, 0.9);
+  --system-message-text: rgba(209, 250, 229, 0.55);
+
+  --typing-indicator-dot: #34d399;
+
+  --link-color-received: #6ee7b7;
+  --link-color-sent: #6ee7b7;
+
+  --reply-bar-color: #10b981;
+  --reply-bg-sent: rgba(0, 0, 0, 0.2);
+  --reply-bg-received: rgba(0, 0, 0, 0.15);
+  --reply-name-sent: #6ee7b7;
+  --reply-name-received: #6ee7b7;
+
+  --unread-badge-bg: #059669;
+  --unread-badge-text: #ffffff;
+
+  --scroll-btn-bg: #132f24;
+  --scroll-btn-icon: #6ee7b7;
+  --scroll-btn-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+
+  --reaction-pill-bg: rgba(52, 211, 153, 0.06);
+  --reaction-pill-border: 1px solid rgba(52, 211, 153, 0.1);
+  --reaction-pill-active-bg: rgba(52, 211, 153, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(52, 211, 153, 0.25);
+  --reaction-count-color: #6ee7b7;
+}
+
+
+/* ═══════════════════════════════════════════════
+   ███  THEME 2 — WINTER CALM ❄️  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="winter-calm"],
+[data-chat-theme="winter-calm"] {
+
+  --chat-bg-base: #e8f0f8;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 10% 90%, rgba(125, 211, 252, 0.30) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 10%, rgba(147, 197, 253, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(186, 230, 253, 0.15) 0%, transparent 55%),
+    linear-gradient(160deg, #f0f9ff 0%, #e0f2fe 40%, #bae6fd 75%, #7dd3fc 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #0284c7;
 
   --sent-message-bg: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
-  --sent-message-shadow: 0 3px 12px rgba(2, 132, 199, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.95);
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.18);
+  --sent-message-shadow: 0 1px 3px rgba(2, 132, 199, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.85);
+  --chat-bubble-shadow: 0 1px 3px rgba(2, 132, 199, 0.15);
 
-  --received-message-bg: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  --received-message-text: #075985;
-  --received-message-border: 1px solid rgba(2, 132, 199, 0.15);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(7, 89, 133, 0.75);
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  --received-message-text: #0c4a6e;
+  --received-message-border: 1px solid rgba(2, 132, 199, 0.1);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(12, 74, 110, 0.65);
 
-  --tick-color: rgba(255, 255, 255, 0.5);
+  --tick-color: rgba(255, 255, 255, 0.45);
   --tick-read-color: #7dd3fc;
 
   --chat-header-bg: linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%);
   --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(12, 74, 110, 0.3);
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(12, 74, 110, 0.25);
   --chat-header-border: none;
 
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  --chat-composer-bg: #f0f9ff;
+  --chat-composer-border: 1px solid rgba(2, 132, 199, 0.1);
+  --chat-input-bg: #ffffff;
   --chat-input-text: #0c4a6e;
   --chat-input-placeholder: #64748b;
   --chat-input-icon-color: #0284c7;
-  --chat-input-border: 1px solid rgba(2, 132, 199, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(2, 132, 199, 0.35);
+  --chat-input-border: 1px solid rgba(2, 132, 199, 0.15);
+  --chat-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --chat-input-focus-ring: rgba(2, 132, 199, 0.3);
   --chat-send-btn-bg: linear-gradient(135deg, #0284c7, #0369a1);
   --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(2, 132, 199, 0.35);
+  --chat-send-btn-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
 
-  --date-separator-bg: rgba(240, 249, 255, 0.9);
+  --date-separator-bg: rgba(240, 249, 255, 0.92);
   --date-separator-text: #075985;
-  --date-separator-shadow: 0 1px 6px rgba(2, 132, 199, 0.12);
+  --date-separator-shadow: 0 1px 3px rgba(2, 132, 199, 0.08);
 
-  --system-message-bg: rgba(224, 242, 254, 0.85);
+  --system-message-bg: rgba(224, 242, 254, 0.9);
   --system-message-text: #075985;
 
   --typing-indicator-dot: #0284c7;
@@ -269,216 +498,452 @@
   --link-color-received: #0369a1;
   --link-color-sent: #bae6fd;
 
-  --reply-bar-color: #0284c7;
-  --reply-bg-sent: rgba(255, 255, 255, 0.15);
-  --reply-bg-received: rgba(2, 132, 199, 0.08);
+  --reply-bar-color: #0ea5e9;
+  --reply-bg-sent: rgba(255, 255, 255, 0.12);
+  --reply-bg-received: rgba(2, 132, 199, 0.06);
+  --reply-name-sent: #bae6fd;
   --reply-name-received: #0284c7;
 
   --unread-badge-bg: #0284c7;
-  --unread-badge-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+  --unread-badge-text: #ffffff;
+  --unread-badge-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
 
-  --scroll-btn-bg: rgba(240, 249, 255, 0.95);
+  --scroll-btn-bg: rgba(255, 255, 255, 0.92);
   --scroll-btn-icon: #0284c7;
 
-  --reaction-pill-active-bg: rgba(2, 132, 199, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(2, 132, 199, 0.3);
+  --reaction-pill-active-bg: rgba(2, 132, 199, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(2, 132, 199, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="winter-calm"] {
+
+  --chat-bg-base: #06131c;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(2, 132, 199, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(56, 189, 248, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #06131c 0%, #0a1929 50%, #06131c 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 50%, #0284c7 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-color: #0ea5e9;
+
+  --sent-message-bg: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  --sent-message-text: #e0f2fe;
+  --sent-message-border: 1px solid rgba(56, 189, 248, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(224, 242, 254, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #0d2137;
+  --received-message-text: #e0f2fe;
+  --received-message-border: 1px solid rgba(56, 189, 248, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(224, 242, 254, 0.5);
+
+  --tick-color: rgba(224, 242, 254, 0.3);
+  --tick-read-color: #38bdf8;
+
+  --chat-header-bg: #0a1929;
+  --chat-header-text: #e0f2fe;
+  --chat-header-icon-color: #7dd3fc;
+  --chat-header-border: 1px solid rgba(56, 189, 248, 0.08);
+
+  --chat-composer-bg: #0a1929;
+  --chat-composer-border: 1px solid rgba(56, 189, 248, 0.08);
+  --chat-input-bg: #112d4a;
+  --chat-input-text: #e0f2fe;
+  --chat-input-placeholder: rgba(224, 242, 254, 0.35);
+  --chat-input-icon-color: #7dd3fc;
+  --chat-input-border: 1px solid rgba(56, 189, 248, 0.1);
+  --chat-send-btn-bg: #0284c7;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(10, 25, 41, 0.92);
+  --date-separator-text: rgba(224, 242, 254, 0.6);
+
+  --system-message-bg: rgba(13, 33, 55, 0.9);
+  --system-message-text: rgba(224, 242, 254, 0.55);
+
+  --typing-indicator-dot: #38bdf8;
+
+  --link-color-received: #7dd3fc;
+  --link-color-sent: #7dd3fc;
+
+  --reply-bar-color: #0ea5e9;
+  --reply-name-sent: #7dd3fc;
+  --reply-name-received: #7dd3fc;
+
+  --unread-badge-bg: #0284c7;
+  --scroll-btn-bg: #112d4a;
+  --scroll-btn-icon: #7dd3fc;
+
+  --reaction-pill-bg: rgba(56, 189, 248, 0.06);
+  --reaction-pill-border: 1px solid rgba(56, 189, 248, 0.1);
+  --reaction-pill-active-bg: rgba(56, 189, 248, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(56, 189, 248, 0.25);
+  --reaction-count-color: #7dd3fc;
 }
 
 
-/* =============================================
-   3. CHERRY BLOSSOM 🌸
-   ============================================= */
+/* ═══════════════════════════════════════════════
+   ███  THEME 3 — CHERRY BLOSSOM 🌸  ███
+   ═══════════════════════════════════════════════ */
 
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="cherry-blossom"],
 [data-chat-theme="cherry-blossom"] {
+
+  --chat-bg-base: #f5e0e4;
   --chat-bg-gradient:
-    radial-gradient(circle at 30% 70%, rgba(253, 164, 175, 0.22) 0%, transparent 55%),
-    radial-gradient(circle at 70% 30%, rgba(244, 63, 94, 0.18) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.14) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #fce7f3 0%, #fda4af 50%, #fb7185 100%);
+    radial-gradient(ellipse at 10% 90%, rgba(251, 113, 133, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 10%, rgba(253, 164, 175, 0.30) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(252, 231, 243, 0.20) 0%, transparent 55%),
+    linear-gradient(160deg, #fff1f2 0%, #fce7f3 35%, #fecdd3 70%, #fda4af 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #e11d48 0%, #f43f5e 50%, #fb7185 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #e11d48;
 
   --sent-message-bg: linear-gradient(135deg, #e11d48 0%, #be185d 100%);
   --sent-message-text: #ffffff;
   --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
-  --sent-message-shadow: 0 3px 12px rgba(225, 29, 72, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.9);
+  --sent-message-shadow: 0 1px 3px rgba(225, 29, 72, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.85);
+  --chat-bubble-shadow: 0 1px 3px rgba(225, 29, 72, 0.15);
 
-  --received-message-bg: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
-  --received-message-text: #9f1239;
-  --received-message-border: 1px solid rgba(159, 18, 57, 0.15);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(159, 18, 57, 0.7);
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
+  --received-message-text: #881337;
+  --received-message-border: 1px solid rgba(225, 29, 72, 0.1);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(136, 19, 55, 0.65);
 
-  --tick-color: rgba(255, 255, 255, 0.5);
-  --tick-read-color: #fca5a5;
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #fda4af;
 
-  --chat-header-bg: linear-gradient(135deg, #9f1239 0%, #e11d48 100%);
+  --chat-header-bg: linear-gradient(135deg, #881337 0%, #e11d48 100%);
   --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(159, 18, 57, 0.3);
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(136, 19, 55, 0.25);
   --chat-header-border: none;
 
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%);
-  --chat-input-text: #9f1239;
+  --chat-composer-bg: #fff1f2;
+  --chat-composer-border: 1px solid rgba(225, 29, 72, 0.1);
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #881337;
   --chat-input-placeholder: #9ca3af;
   --chat-input-icon-color: #f43f5e;
-  --chat-input-border: 1px solid rgba(244, 63, 94, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(244, 63, 94, 0.35);
+  --chat-input-border: 1px solid rgba(225, 29, 72, 0.15);
+  --chat-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --chat-input-focus-ring: rgba(225, 29, 72, 0.25);
   --chat-send-btn-bg: linear-gradient(135deg, #e11d48, #be185d);
   --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(225, 29, 72, 0.35);
+  --chat-send-btn-shadow: 0 2px 6px rgba(225, 29, 72, 0.3);
 
-  --date-separator-bg: rgba(255, 241, 242, 0.9);
-  --date-separator-text: #9f1239;
-  --date-separator-shadow: 0 1px 6px rgba(225, 29, 72, 0.12);
+  --date-separator-bg: rgba(255, 241, 242, 0.92);
+  --date-separator-text: #881337;
+  --date-separator-shadow: 0 1px 3px rgba(225, 29, 72, 0.08);
 
-  --system-message-bg: rgba(255, 228, 230, 0.85);
-  --system-message-text: #9f1239;
+  --system-message-bg: rgba(255, 228, 230, 0.9);
+  --system-message-text: #881337;
 
   --typing-indicator-dot: #f43f5e;
 
   --link-color-received: #be185d;
   --link-color-sent: #fecdd3;
 
-  --reply-bar-color: #e11d48;
-  --reply-bg-sent: rgba(255, 255, 255, 0.15);
-  --reply-bg-received: rgba(225, 29, 72, 0.08);
+  --reply-bar-color: #f43f5e;
+  --reply-name-sent: #fecdd3;
   --reply-name-received: #e11d48;
 
   --unread-badge-bg: #e11d48;
-  --unread-badge-shadow: 0 2px 6px rgba(225, 29, 72, 0.35);
+  --unread-badge-text: #ffffff;
 
   --scroll-btn-bg: rgba(255, 241, 242, 0.95);
   --scroll-btn-icon: #e11d48;
 
-  --reaction-pill-active-bg: rgba(225, 29, 72, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(225, 29, 72, 0.3);
+  --reaction-pill-active-bg: rgba(225, 29, 72, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(225, 29, 72, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="cherry-blossom"] {
+
+  --chat-bg-base: #1a080d;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(225, 29, 72, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(251, 113, 133, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #1a080d 0%, #220e15 50%, #1a080d 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #fb7185 0%, #f43f5e 50%, #e11d48 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-color: #f43f5e;
+
+  --sent-message-bg: linear-gradient(135deg, #9f1239 0%, #881337 100%);
+  --sent-message-text: #ffe4e6;
+  --sent-message-border: 1px solid rgba(251, 113, 133, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(255, 228, 230, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #2a0f18;
+  --received-message-text: #ffe4e6;
+  --received-message-border: 1px solid rgba(251, 113, 133, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(255, 228, 230, 0.5);
+
+  --tick-color: rgba(255, 228, 230, 0.3);
+  --tick-read-color: #fb7185;
+
+  --chat-header-bg: #220e15;
+  --chat-header-text: #ffe4e6;
+  --chat-header-icon-color: #fda4af;
+  --chat-header-border: 1px solid rgba(251, 113, 133, 0.08);
+
+  --chat-composer-bg: #220e15;
+  --chat-composer-border: 1px solid rgba(251, 113, 133, 0.08);
+  --chat-input-bg: #351520;
+  --chat-input-text: #ffe4e6;
+  --chat-input-placeholder: rgba(255, 228, 230, 0.35);
+  --chat-input-icon-color: #fda4af;
+  --chat-input-border: 1px solid rgba(251, 113, 133, 0.1);
+  --chat-send-btn-bg: #e11d48;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(34, 14, 21, 0.92);
+  --date-separator-text: rgba(255, 228, 230, 0.6);
+
+  --system-message-bg: rgba(42, 15, 24, 0.9);
+  --system-message-text: rgba(255, 228, 230, 0.55);
+
+  --typing-indicator-dot: #fb7185;
+
+  --link-color-received: #fda4af;
+  --link-color-sent: #fda4af;
+
+  --reply-bar-color: #f43f5e;
+  --reply-name-sent: #fda4af;
+  --reply-name-received: #fda4af;
+
+  --unread-badge-bg: #e11d48;
+  --scroll-btn-bg: #351520;
+  --scroll-btn-icon: #fda4af;
+
+  --reaction-pill-bg: rgba(251, 113, 133, 0.06);
+  --reaction-pill-border: 1px solid rgba(251, 113, 133, 0.1);
+  --reaction-pill-active-bg: rgba(251, 113, 133, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(251, 113, 133, 0.25);
+  --reaction-count-color: #fda4af;
 }
 
 
-/* =============================================
-   4. DESERT DUNES 🏜️
-   ============================================= */
+/* ═══════════════════════════════════════════════
+   ███  THEME 4 — DESERT DUNES 🏜️  ███
+   ═══════════════════════════════════════════════ */
 
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="desert-dunes"],
 [data-chat-theme="desert-dunes"] {
-  --chat-bg-gradient:
-    radial-gradient(circle at 20% 80%, rgba(253, 230, 138, 0.18) 0%, transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.22) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.15) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #fef3c7 0%, #fde68a 50%, #facc15 100%);
 
-  --sent-message-bg: linear-gradient(135deg, #ca8a04 0%, #a16207 100%);
+  --chat-bg-base: #f0e6d0;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(251, 191, 36, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(245, 158, 11, 0.20) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(253, 230, 138, 0.15) 0%, transparent 55%),
+    linear-gradient(160deg, #fffbeb 0%, #fef3c7 35%, #fde68a 70%, #fcd34d 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%);
+  --chat-pattern-opacity: 0.045;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #d97706;
+
+  --sent-message-bg: linear-gradient(135deg, #d97706 0%, #b45309 100%);
   --sent-message-text: #ffffff;
   --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
-  --sent-message-shadow: 0 3px 12px rgba(202, 138, 4, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.95);
+  --sent-message-shadow: 0 1px 3px rgba(217, 119, 6, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.9);
+  --chat-bubble-shadow: 0 1px 3px rgba(217, 119, 6, 0.15);
 
-  --received-message-bg: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
   --received-message-text: #78350f;
-  --received-message-border: 1px solid rgba(120, 53, 15, 0.2);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(120, 53, 15, 0.7);
+  --received-message-border: 1px solid rgba(217, 119, 6, 0.12);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(120, 53, 15, 0.65);
 
-  --tick-color: rgba(255, 255, 255, 0.6);
-  --tick-read-color: #fef3c7;
+  --tick-color: rgba(255, 255, 255, 0.5);
+  --tick-read-color: #fde68a;
 
-  --chat-header-bg: linear-gradient(135deg, #78350f 0%, #ca8a04 100%);
+  --chat-header-bg: linear-gradient(135deg, #78350f 0%, #d97706 100%);
   --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(120, 53, 15, 0.3);
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(120, 53, 15, 0.25);
   --chat-header-border: none;
 
-  /* ← THIS WAS COMPLETELY MISSING */
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  --chat-composer-bg: #fffbeb;
+  --chat-composer-border: 1px solid rgba(217, 119, 6, 0.1);
+  --chat-input-bg: #ffffff;
   --chat-input-text: #78350f;
   --chat-input-placeholder: #92400e;
-  --chat-input-icon-color: #ca8a04;
-  --chat-input-border: 1px solid rgba(202, 138, 4, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(202, 138, 4, 0.35);
-  --chat-send-btn-bg: linear-gradient(135deg, #ca8a04, #a16207);
+  --chat-input-icon-color: #d97706;
+  --chat-input-border: 1px solid rgba(217, 119, 6, 0.15);
+  --chat-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --chat-input-focus-ring: rgba(217, 119, 6, 0.3);
+  --chat-send-btn-bg: linear-gradient(135deg, #d97706, #b45309);
   --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(202, 138, 4, 0.35);
+  --chat-send-btn-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
 
-  --date-separator-bg: rgba(255, 251, 235, 0.9);
+  --date-separator-bg: rgba(255, 251, 235, 0.92);
   --date-separator-text: #78350f;
-  --date-separator-shadow: 0 1px 6px rgba(202, 138, 4, 0.12);
+  --date-separator-shadow: 0 1px 3px rgba(217, 119, 6, 0.08);
 
-  --system-message-bg: rgba(254, 243, 199, 0.85);
+  --system-message-bg: rgba(254, 243, 199, 0.9);
   --system-message-text: #78350f;
 
-  --typing-indicator-dot: #ca8a04;
+  --typing-indicator-dot: #d97706;
 
-  --link-color-received: #a16207;
+  --link-color-received: #b45309;
   --link-color-sent: #fde68a;
 
-  --reply-bar-color: #ca8a04;
-  --reply-bg-sent: rgba(255, 255, 255, 0.15);
-  --reply-bg-received: rgba(202, 138, 4, 0.08);
-  --reply-name-received: #ca8a04;
+  --reply-bar-color: #f59e0b;
+  --reply-name-sent: #fde68a;
+  --reply-name-received: #d97706;
 
-  --unread-badge-bg: #ca8a04;
-  --unread-badge-shadow: 0 2px 6px rgba(202, 138, 4, 0.35);
+  --unread-badge-bg: #d97706;
+  --unread-badge-text: #ffffff;
 
   --scroll-btn-bg: rgba(255, 251, 235, 0.95);
-  --scroll-btn-icon: #ca8a04;
+  --scroll-btn-icon: #d97706;
 
-  --reaction-pill-active-bg: rgba(202, 138, 4, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(202, 138, 4, 0.3);
+  --reaction-pill-active-bg: rgba(217, 119, 6, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="desert-dunes"] {
+
+  --chat-bg-base: #1a1408;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(251, 191, 36, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #1a1408 0%, #231b0d 50%, #1a1408 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-color: #f59e0b;
+
+  --sent-message-bg: linear-gradient(135deg, #92400e 0%, #78350f 100%);
+  --sent-message-text: #fef3c7;
+  --sent-message-border: 1px solid rgba(251, 191, 36, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(254, 243, 199, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #2a2010;
+  --received-message-text: #fef3c7;
+  --received-message-border: 1px solid rgba(251, 191, 36, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(254, 243, 199, 0.5);
+
+  --tick-color: rgba(254, 243, 199, 0.3);
+  --tick-read-color: #fbbf24;
+
+  --chat-header-bg: #231b0d;
+  --chat-header-text: #fef3c7;
+  --chat-header-icon-color: #fcd34d;
+  --chat-header-border: 1px solid rgba(251, 191, 36, 0.08);
+
+  --chat-composer-bg: #231b0d;
+  --chat-composer-border: 1px solid rgba(251, 191, 36, 0.08);
+  --chat-input-bg: #352c15;
+  --chat-input-text: #fef3c7;
+  --chat-input-placeholder: rgba(254, 243, 199, 0.35);
+  --chat-input-icon-color: #fcd34d;
+  --chat-input-border: 1px solid rgba(251, 191, 36, 0.1);
+  --chat-send-btn-bg: #d97706;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(35, 27, 13, 0.92);
+  --date-separator-text: rgba(254, 243, 199, 0.6);
+
+  --system-message-bg: rgba(42, 32, 16, 0.9);
+  --system-message-text: rgba(254, 243, 199, 0.55);
+
+  --typing-indicator-dot: #fbbf24;
+
+  --link-color-received: #fcd34d;
+  --link-color-sent: #fcd34d;
+
+  --reply-bar-color: #f59e0b;
+  --reply-name-sent: #fcd34d;
+  --reply-name-received: #fcd34d;
+
+  --unread-badge-bg: #d97706;
+  --scroll-btn-bg: #352c15;
+  --scroll-btn-icon: #fcd34d;
+
+  --reaction-pill-bg: rgba(251, 191, 36, 0.06);
+  --reaction-pill-border: 1px solid rgba(251, 191, 36, 0.1);
+  --reaction-pill-active-bg: rgba(251, 191, 36, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(251, 191, 36, 0.25);
+  --reaction-count-color: #fcd34d;
 }
 
 
-/* =============================================
-   5. SUNSET GLOW 🌅  (WAS INCOMPLETE)
-   ============================================= */
+/* ═══════════════════════════════════════════════
+   ███  THEME 5 — SUNSET GLOW 🌅  ███
+   ═══════════════════════════════════════════════ */
 
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="sunset-glow"],
 [data-chat-theme="sunset-glow"] {
+
+  --chat-bg-base: #f5e0d0;
   --chat-bg-gradient:
-    radial-gradient(circle at 20% 80%, rgba(253, 186, 116, 0.25) 0%, transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(251, 113, 133, 0.22) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(244, 114, 182, 0.15) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #fef3c7 0%, #fecaca 40%, #fce7f3 100%);
+    radial-gradient(ellipse at 10% 85%, rgba(253, 186, 116, 0.30) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 15%, rgba(251, 113, 133, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 60%, rgba(244, 114, 182, 0.12) 0%, transparent 55%),
+    linear-gradient(160deg, #fff7ed 0%, #fed7aa 30%, #fecaca 65%, #fce7f3 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 40%, #fb923c 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #f97316;
 
-  --sent-message-bg: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --sent-message-bg: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
   --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.25);
-  --sent-message-shadow: 0 3px 12px rgba(249, 115, 22, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.9);
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.22);
+  --sent-message-shadow: 0 1px 3px rgba(234, 88, 12, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.88);
+  --chat-bubble-shadow: 0 1px 3px rgba(234, 88, 12, 0.15);
 
-  --received-message-bg: linear-gradient(135deg, #fff1f2 0%, #fce7f3 100%);
-  --received-message-text: #831843;
-  --received-message-border: 1px solid rgba(131, 24, 67, 0.12);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(131, 24, 67, 0.7);
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+  --received-message-text: #7c2d12;
+  --received-message-border: 1px solid rgba(234, 88, 12, 0.1);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(124, 45, 18, 0.65);
 
-  --tick-color: rgba(255, 255, 255, 0.5);
-  --tick-read-color: #fca5a5;
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #fdba74;
 
-  --chat-header-bg: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
+  --chat-header-bg: linear-gradient(135deg, #9a3412 0%, #ea580c 100%);
   --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(194, 65, 12, 0.3);
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(154, 52, 18, 0.25);
   --chat-header-border: none;
 
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+  --chat-composer-bg: #fff7ed;
+  --chat-composer-border: 1px solid rgba(234, 88, 12, 0.1);
+  --chat-input-bg: #ffffff;
   --chat-input-text: #7c2d12;
   --chat-input-placeholder: #9a3412;
   --chat-input-icon-color: #f97316;
-  --chat-input-border: 1px solid rgba(249, 115, 22, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(249, 115, 22, 0.35);
-  --chat-send-btn-bg: linear-gradient(135deg, #f97316, #ea580c);
+  --chat-input-border: 1px solid rgba(234, 88, 12, 0.15);
+  --chat-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --chat-input-focus-ring: rgba(234, 88, 12, 0.25);
+  --chat-send-btn-bg: linear-gradient(135deg, #ea580c, #c2410c);
   --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(249, 115, 22, 0.35);
+  --chat-send-btn-shadow: 0 2px 6px rgba(234, 88, 12, 0.3);
 
-  --date-separator-bg: rgba(255, 247, 237, 0.9);
+  --date-separator-bg: rgba(255, 247, 237, 0.92);
   --date-separator-text: #7c2d12;
-  --date-separator-shadow: 0 1px 6px rgba(249, 115, 22, 0.12);
+  --date-separator-shadow: 0 1px 3px rgba(234, 88, 12, 0.08);
 
-  --system-message-bg: rgba(255, 237, 213, 0.85);
+  --system-message-bg: rgba(255, 237, 213, 0.9);
   --system-message-text: #7c2d12;
 
   --typing-indicator-dot: #f97316;
@@ -487,548 +952,292 @@
   --link-color-sent: #fed7aa;
 
   --reply-bar-color: #f97316;
-  --reply-name-received: #f97316;
+  --reply-bg-sent: rgba(255, 255, 255, 0.12);
+  --reply-bg-received: rgba(234, 88, 12, 0.06);
+  --reply-name-sent: #fed7aa;
+  --reply-name-received: #ea580c;
 
-  --unread-badge-bg: #f97316;
-  --scroll-btn-icon: #f97316;
+  --unread-badge-bg: #ea580c;
+  --unread-badge-text: #ffffff;
 
-  --reaction-pill-active-bg: rgba(249, 115, 22, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(249, 115, 22, 0.3);
+  --scroll-btn-bg: rgba(255, 247, 237, 0.95);
+  --scroll-btn-icon: #ea580c;
+
+  --reaction-pill-active-bg: rgba(234, 88, 12, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(234, 88, 12, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="sunset-glow"] {
+
+  --chat-bg-base: #1a0e06;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(234, 88, 12, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(251, 146, 60, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #1a0e06 0%, #24150a 50%, #1a0e06 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-color: #f97316;
+
+  --sent-message-bg: linear-gradient(135deg, #9a3412 0%, #7c2d12 100%);
+  --sent-message-text: #ffedd5;
+  --sent-message-border: 1px solid rgba(251, 146, 60, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(255, 237, 213, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #2a1a0e;
+  --received-message-text: #ffedd5;
+  --received-message-border: 1px solid rgba(251, 146, 60, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(255, 237, 213, 0.5);
+
+  --tick-color: rgba(255, 237, 213, 0.3);
+  --tick-read-color: #fb923c;
+
+  --chat-header-bg: #24150a;
+  --chat-header-text: #ffedd5;
+  --chat-header-icon-color: #fdba74;
+  --chat-header-border: 1px solid rgba(251, 146, 60, 0.08);
+
+  --chat-composer-bg: #24150a;
+  --chat-composer-border: 1px solid rgba(251, 146, 60, 0.08);
+  --chat-input-bg: #382010;
+  --chat-input-text: #ffedd5;
+  --chat-input-placeholder: rgba(255, 237, 213, 0.35);
+  --chat-input-icon-color: #fdba74;
+  --chat-input-border: 1px solid rgba(251, 146, 60, 0.1);
+  --chat-send-btn-bg: #ea580c;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(36, 21, 10, 0.92);
+  --date-separator-text: rgba(255, 237, 213, 0.6);
+
+  --system-message-bg: rgba(42, 26, 14, 0.9);
+  --system-message-text: rgba(255, 237, 213, 0.55);
+
+  --typing-indicator-dot: #fb923c;
+
+  --link-color-received: #fdba74;
+  --link-color-sent: #fdba74;
+
+  --reply-bar-color: #f97316;
+  --reply-name-sent: #fdba74;
+  --reply-name-received: #fdba74;
+
+  --unread-badge-bg: #ea580c;
+  --scroll-btn-bg: #382010;
+  --scroll-btn-icon: #fdba74;
+
+  --reaction-pill-bg: rgba(251, 146, 60, 0.06);
+  --reaction-pill-border: 1px solid rgba(251, 146, 60, 0.1);
+  --reaction-pill-active-bg: rgba(251, 146, 60, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(251, 146, 60, 0.25);
+  --reaction-count-color: #fdba74;
 }
 
 
-/* =============================================
-   6. OCEAN DEPTHS 🌊  (WAS INCOMPLETE)
-   ============================================= */
+/* ═══════════════════════════════════════════════
+   ███  THEME 6 — OCEAN DEPTHS 🌊  ███
+   ═══════════════════════════════════════════════ */
 
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="ocean-depths"],
 [data-chat-theme="ocean-depths"] {
+
+  --chat-bg-base: #d8edee;
   --chat-bg-gradient:
-    radial-gradient(circle at 20% 80%, rgba(6, 182, 212, 0.2) 0%, transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(14, 116, 144, 0.25) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.12) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #ecfeff 0%, #cffafe 40%, #a5f3fc 100%);
+    radial-gradient(ellipse at 10% 90%, rgba(34, 211, 238, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 10%, rgba(6, 182, 212, 0.20) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(103, 232, 249, 0.12) 0%, transparent 55%),
+    linear-gradient(160deg, #ecfeff 0%, #cffafe 35%, #a5f3fc 70%, #67e8f9 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #06b6d4 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #0891b2;
 
   --sent-message-bg: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
   --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
-  --sent-message-shadow: 0 3px 12px rgba(8, 145, 178, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.9);
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.18);
+  --sent-message-shadow: 0 1px 3px rgba(8, 145, 178, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.88);
+  --chat-bubble-shadow: 0 1px 3px rgba(8, 145, 178, 0.15);
 
-  --received-message-bg: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #ecfeff 100%);
   --received-message-text: #164e63;
-  --received-message-border: 1px solid rgba(8, 145, 178, 0.12);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(22, 78, 99, 0.7);
+  --received-message-border: 1px solid rgba(8, 145, 178, 0.1);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(22, 78, 99, 0.65);
 
-  --tick-color: rgba(255, 255, 255, 0.5);
-  --tick-read-color: #22d3ee;
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #67e8f9;
 
   --chat-header-bg: linear-gradient(135deg, #155e75 0%, #0891b2 100%);
   --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(21, 94, 117, 0.3);
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(21, 94, 117, 0.25);
   --chat-header-border: none;
 
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #ecfeff 100%);
+  --chat-composer-bg: #ecfeff;
+  --chat-composer-border: 1px solid rgba(8, 145, 178, 0.1);
+  --chat-input-bg: #ffffff;
   --chat-input-text: #164e63;
   --chat-input-placeholder: #6b7280;
   --chat-input-icon-color: #0891b2;
-  --chat-input-border: 1px solid rgba(8, 145, 178, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(8, 145, 178, 0.35);
+  --chat-input-border: 1px solid rgba(8, 145, 178, 0.15);
+  --chat-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --chat-input-focus-ring: rgba(8, 145, 178, 0.3);
   --chat-send-btn-bg: linear-gradient(135deg, #0891b2, #0e7490);
   --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(8, 145, 178, 0.35);
+  --chat-send-btn-shadow: 0 2px 6px rgba(8, 145, 178, 0.3);
 
-  --date-separator-bg: rgba(236, 254, 255, 0.9);
-  --date-separator-text: #164e63;
+  --date-separator-bg: rgba(236, 254, 255, 0.92);
+  --date-separator-text: #155e75;
+  --date-separator-shadow: 0 1px 3px rgba(8, 145, 178, 0.08);
 
-  --system-message-bg: rgba(207, 250, 254, 0.85);
-  --system-message-text: #164e63;
+  --system-message-bg: rgba(207, 250, 254, 0.9);
+  --system-message-text: #155e75;
 
   --typing-indicator-dot: #0891b2;
 
   --link-color-received: #0e7490;
   --link-color-sent: #a5f3fc;
 
-  --reply-bar-color: #0891b2;
+  --reply-bar-color: #06b6d4;
+  --reply-name-sent: #a5f3fc;
   --reply-name-received: #0891b2;
 
   --unread-badge-bg: #0891b2;
+  --unread-badge-text: #ffffff;
+
+  --scroll-btn-bg: rgba(236, 254, 255, 0.95);
   --scroll-btn-icon: #0891b2;
 
-  --reaction-pill-active-bg: rgba(8, 145, 178, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(8, 145, 178, 0.3);
+  --reaction-pill-active-bg: rgba(8, 145, 178, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(8, 145, 178, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="ocean-depths"] {
+
+  --chat-bg-base: #061518;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(8, 145, 178, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(34, 211, 238, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #061518 0%, #0a2028 50%, #061518 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #22d3ee 0%, #06b6d4 50%, #0891b2 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-color: #06b6d4;
+
+  --sent-message-bg: linear-gradient(135deg, #0e7490 0%, #155e75 100%);
+  --sent-message-text: #cffafe;
+  --sent-message-border: 1px solid rgba(34, 211, 238, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(207, 250, 254, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #0d2530;
+  --received-message-text: #cffafe;
+  --received-message-border: 1px solid rgba(34, 211, 238, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(207, 250, 254, 0.5);
+
+  --tick-color: rgba(207, 250, 254, 0.3);
+  --tick-read-color: #22d3ee;
+
+  --chat-header-bg: #0a2028;
+  --chat-header-text: #cffafe;
+  --chat-header-icon-color: #67e8f9;
+  --chat-header-border: 1px solid rgba(34, 211, 238, 0.08);
+
+  --chat-composer-bg: #0a2028;
+  --chat-composer-border: 1px solid rgba(34, 211, 238, 0.08);
+  --chat-input-bg: #133540;
+  --chat-input-text: #cffafe;
+  --chat-input-placeholder: rgba(207, 250, 254, 0.35);
+  --chat-input-icon-color: #67e8f9;
+  --chat-input-border: 1px solid rgba(34, 211, 238, 0.1);
+  --chat-send-btn-bg: #0891b2;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(10, 32, 40, 0.92);
+  --date-separator-text: rgba(207, 250, 254, 0.6);
+
+  --system-message-bg: rgba(13, 37, 48, 0.9);
+  --system-message-text: rgba(207, 250, 254, 0.55);
+
+  --typing-indicator-dot: #22d3ee;
+
+  --link-color-received: #67e8f9;
+  --link-color-sent: #67e8f9;
+
+  --reply-bar-color: #06b6d4;
+  --reply-name-sent: #67e8f9;
+  --reply-name-received: #67e8f9;
+
+  --unread-badge-bg: #0891b2;
+  --scroll-btn-bg: #133540;
+  --scroll-btn-icon: #67e8f9;
+
+  --reaction-pill-bg: rgba(34, 211, 238, 0.06);
+  --reaction-pill-border: 1px solid rgba(34, 211, 238, 0.1);
+  --reaction-pill-active-bg: rgba(34, 211, 238, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(34, 211, 238, 0.25);
+  --reaction-count-color: #67e8f9;
 }
 
 
-/* =============================================
-   7. MIDNIGHT AMOLED 🖤  (WAS INCOMPLETE)
-   ============================================= */
+/* ═══════════════════════════════════════════════
+   ███  THEME 7 — MIDNIGHT AMOLED 🖤  ███
+   ═══════════════════════════════════════════════ */
 
+/* ─── Light (falls back to a muted slate) ─── */
+[data-theme='light'][data-chat-theme="midnight-amoled"],
 [data-chat-theme="midnight-amoled"] {
+
+  --chat-bg-base: #e8eaed;
   --chat-bg-gradient:
-    radial-gradient(circle at 30% 70%, rgba(56, 189, 248, 0.04) 0%, transparent 55%),
-    radial-gradient(circle at 70% 30%, rgba(99, 102, 241, 0.03) 0%, transparent 60%),
-    linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
-
-  --sent-message-bg: #1a1a2e;
-  --sent-message-text: #f1f5f9;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.06);
-  --sent-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --sent-message-meta: rgba(255, 255, 255, 0.5);
-
-  --received-message-bg: rgba(255, 255, 255, 0.06);
-  --received-message-text: #f1f5f9;
-  --received-message-border: 1px solid rgba(255, 255, 255, 0.08);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --received-message-meta: rgba(255, 255, 255, 0.45);
-
-  --tick-color: rgba(255, 255, 255, 0.3);
-  --tick-read-color: #38bdf8;
-
-  --chat-header-bg: #000000;
-  --chat-header-text: #f1f5f9;
-  --chat-header-icon-color: #94a3b8;
-  --chat-header-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
-  --chat-header-border: 1px solid rgba(255, 255, 255, 0.06);
-
-  --chat-input-bg: #0a0a0a;
-  --chat-input-text: #f1f5f9;
-  --chat-input-placeholder: #475569;
-  --chat-input-icon-color: #64748b;
-  --chat-input-border: 1px solid rgba(255, 255, 255, 0.08);
-  --chat-input-shadow: none;
-  --chat-input-focus-ring: rgba(56, 189, 248, 0.3);
-  --chat-send-btn-bg: #1e293b;
-  --chat-send-btn-color: #38bdf8;
-  --chat-send-btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-
-  --date-separator-bg: rgba(255, 255, 255, 0.06);
-  --date-separator-text: #64748b;
-  --date-separator-shadow: none;
-
-  --system-message-bg: rgba(255, 255, 255, 0.04);
-  --system-message-text: #64748b;
-
-  --typing-indicator-dot: #64748b;
-
-  --link-color-received: #38bdf8;
-  --link-color-sent: #38bdf8;
-
-  --reply-bar-color: #38bdf8;
-  --reply-bg-sent: rgba(255, 255, 255, 0.06);
-  --reply-bg-received: rgba(255, 255, 255, 0.04);
-  --reply-text-sent: rgba(255, 255, 255, 0.6);
-  --reply-text-received: rgba(255, 255, 255, 0.5);
-  --reply-name-sent: #38bdf8;
-  --reply-name-received: #38bdf8;
-
-  --unread-badge-bg: #1e293b;
-  --unread-badge-text: #38bdf8;
-
-  --scroll-btn-bg: rgba(255, 255, 255, 0.08);
-  --scroll-btn-icon: #64748b;
-  --scroll-btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-
-  --reaction-pill-bg: rgba(255, 255, 255, 0.06);
-  --reaction-pill-border: 1px solid rgba(255, 255, 255, 0.08);
-  --reaction-pill-active-bg: rgba(56, 189, 248, 0.1);
-  --reaction-pill-active-border: 1px solid rgba(56, 189, 248, 0.25);
-  --reaction-count-color: #94a3b8;
-}
-
-
-/* =============================================
-   8. CYBERPUNK NEON ⚡  (WAS INCOMPLETE)
-   ============================================= */
-
-[data-chat-theme="cyberpunk-neon"] {
-  --chat-bg-gradient:
-    radial-gradient(circle at 20% 80%, rgba(0, 255, 234, 0.06) 0%, transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(255, 0, 128, 0.05) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.04) 0%, transparent 65%),
-    linear-gradient(180deg, #0a0a0f 0%, #121218 50%, #0a0a0f 100%);
-
-  --sent-message-bg: linear-gradient(135deg, rgba(0, 255, 234, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
-  --sent-message-text: #00ffea;
-  --sent-message-border: 1px solid rgba(0, 255, 234, 0.25);
-  --sent-message-shadow: 0 0 20px rgba(0, 255, 234, 0.15), 0 3px 12px rgba(0, 0, 0, 0.4);
-  --sent-message-meta: rgba(0, 255, 234, 0.6);
-
-  --received-message-bg: rgba(0, 0, 0, 0.7);
-  --received-message-text: #00ffea;
-  --received-message-border: 1px solid rgba(0, 255, 234, 0.2);
-  --received-message-shadow: 0 0 15px rgba(0, 255, 234, 0.08), 0 3px 10px rgba(0, 0, 0, 0.3);
-  --received-message-meta: rgba(0, 255, 234, 0.5);
-
-  --tick-color: rgba(0, 255, 234, 0.3);
-  --tick-read-color: #00ffea;
-
-  --chat-header-bg: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(20, 20, 30, 0.9));
-  --chat-header-text: #00ffea;
-  --chat-header-icon-color: #00ffea;
-  --chat-header-shadow: 0 0 15px rgba(0, 255, 234, 0.1), 0 2px 8px rgba(0, 0, 0, 0.5);
-  --chat-header-border: 1px solid rgba(0, 255, 234, 0.15);
-
-  --chat-input-bg: rgba(0, 0, 0, 0.6);
-  --chat-input-text: #00ffea;
-  --chat-input-placeholder: rgba(0, 255, 234, 0.3);
-  --chat-input-icon-color: #00ffea;
-  --chat-input-border: 1px solid rgba(0, 255, 234, 0.2);
-  --chat-input-shadow: 0 0 10px rgba(0, 255, 234, 0.05);
-  --chat-input-focus-ring: rgba(0, 255, 234, 0.4);
-  --chat-send-btn-bg: transparent;
-  --chat-send-btn-color: #00ffea;
-  --chat-send-btn-shadow: 0 0 15px rgba(0, 255, 234, 0.2);
-
-  --date-separator-bg: rgba(0, 0, 0, 0.7);
-  --date-separator-text: rgba(0, 255, 234, 0.7);
-  --date-separator-shadow: 0 0 10px rgba(0, 255, 234, 0.08);
-  --date-separator-border: 1px solid rgba(0, 255, 234, 0.15);
-
-  --system-message-bg: rgba(0, 0, 0, 0.5);
-  --system-message-text: rgba(0, 255, 234, 0.6);
-
-  --typing-indicator-dot: #00ffea;
-
-  --link-color-received: #ff0080;
-  --link-color-sent: #a855f7;
-
-  --reply-bar-color: #00ffea;
-  --reply-bg-sent: rgba(0, 255, 234, 0.06);
-  --reply-bg-received: rgba(0, 255, 234, 0.04);
-  --reply-text-sent: rgba(0, 255, 234, 0.6);
-  --reply-text-received: rgba(0, 255, 234, 0.5);
-  --reply-name-sent: #ff0080;
-  --reply-name-received: #ff0080;
-
-  --unread-badge-bg: rgba(0, 255, 234, 0.15);
-  --unread-badge-text: #00ffea;
-  --unread-badge-shadow: 0 0 12px rgba(0, 255, 234, 0.2);
-
-  --scroll-btn-bg: rgba(0, 0, 0, 0.7);
-  --scroll-btn-icon: #00ffea;
-  --scroll-btn-shadow: 0 0 10px rgba(0, 255, 234, 0.1);
-
-  --reaction-pill-bg: rgba(0, 255, 234, 0.05);
-  --reaction-pill-border: 1px solid rgba(0, 255, 234, 0.15);
-  --reaction-pill-active-bg: rgba(0, 255, 234, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(0, 255, 234, 0.35);
-  --reaction-count-color: rgba(0, 255, 234, 0.7);
-}
-
-
-/* =============================================
-   9. CLASSIC PURPLE 💜  (WAS INCOMPLETE)
-   ============================================= */
-
-[data-chat-theme="classic-purple"] {
-  --chat-bg-gradient:
-    radial-gradient(circle at 25% 75%, rgba(167, 139, 250, 0.2) 0%, transparent 55%),
-    radial-gradient(circle at 75% 25%, rgba(139, 92, 246, 0.18) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(196, 181, 253, 0.12) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #f5f3ff 0%, #ede9fe 50%, #ddd6fe 100%);
-
-  --sent-message-bg: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-  --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
-  --sent-message-shadow: 0 3px 12px rgba(124, 58, 237, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.9);
-
-  --received-message-bg: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-  --received-message-text: #4c1d95;
-  --received-message-border: 1px solid rgba(124, 58, 237, 0.12);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(76, 29, 149, 0.7);
-
-  --tick-color: rgba(255, 255, 255, 0.5);
-  --tick-read-color: #a78bfa;
-
-  --chat-header-bg: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
-  --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(91, 33, 182, 0.3);
-  --chat-header-border: none;
-
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
-  --chat-input-text: #4c1d95;
-  --chat-input-placeholder: #7c3aed;
-  --chat-input-icon-color: #8b5cf6;
-  --chat-input-border: 1px solid rgba(139, 92, 246, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(139, 92, 246, 0.35);
-  --chat-send-btn-bg: linear-gradient(135deg, #7c3aed, #6d28d9);
-  --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(124, 58, 237, 0.35);
-
-  --date-separator-bg: rgba(245, 243, 255, 0.9);
-  --date-separator-text: #5b21b6;
-
-  --system-message-bg: rgba(237, 233, 254, 0.85);
-  --system-message-text: #5b21b6;
-
-  --typing-indicator-dot: #8b5cf6;
-
-  --link-color-received: #6d28d9;
-  --link-color-sent: #c4b5fd;
-
-  --reply-bar-color: #7c3aed;
-  --reply-name-received: #7c3aed;
-
-  --unread-badge-bg: #7c3aed;
-  --scroll-btn-icon: #7c3aed;
-
-  --reaction-pill-active-bg: rgba(124, 58, 237, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(124, 58, 237, 0.3);
-}
-
-
-/* =============================================
-   10. ROSE GOLD 🌹  (WAS INCOMPLETE)
-   ============================================= */
-
-[data-chat-theme="rose-gold"] {
-  --chat-bg-gradient:
-    radial-gradient(circle at 25% 75%, rgba(251, 113, 133, 0.18) 0%, transparent 55%),
-    radial-gradient(circle at 75% 25%, rgba(253, 164, 175, 0.22) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(252, 231, 243, 0.2) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #fff1f2 0%, #fecdd3 40%, #fda4af 100%);
-
-  --sent-message-bg: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%);
-  --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.25);
-  --sent-message-shadow: 0 3px 12px rgba(225, 29, 72, 0.25);
-  --sent-message-meta: rgba(255, 255, 255, 0.9);
-
-  --received-message-bg: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
-  --received-message-text: #9f1239;
-  --received-message-border: 1px solid rgba(159, 18, 57, 0.12);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(159, 18, 57, 0.7);
-
-  --tick-color: rgba(255, 255, 255, 0.5);
-  --tick-read-color: #fda085;
-
-  --chat-header-bg: linear-gradient(135deg, #881337 0%, #e11d48 100%);
-  --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(136, 19, 55, 0.3);
-  --chat-header-border: none;
-
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
-  --chat-input-text: #881337;
-  --chat-input-placeholder: #9f1239;
-  --chat-input-icon-color: #f43f5e;
-  --chat-input-border: 1px solid rgba(244, 63, 94, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(244, 63, 94, 0.35);
-  --chat-send-btn-bg: linear-gradient(135deg, #e11d48, #f43f5e);
-  --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(225, 29, 72, 0.35);
-
-  --date-separator-bg: rgba(255, 241, 242, 0.9);
-  --date-separator-text: #881337;
-
-  --system-message-bg: rgba(255, 228, 230, 0.85);
-  --system-message-text: #881337;
-
-  --typing-indicator-dot: #f43f5e;
-
-  --link-color-received: #be123c;
-  --link-color-sent: #fecdd3;
-
-  --reply-bar-color: #e11d48;
-  --reply-name-received: #e11d48;
-
-  --unread-badge-bg: #e11d48;
-  --scroll-btn-icon: #e11d48;
-
-  --reaction-pill-active-bg: rgba(225, 29, 72, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(225, 29, 72, 0.3);
-}
-
-
-/* =============================================
-   11. FOREST MIST 🌲  (WAS INCOMPLETE)
-   ============================================= */
-
-[data-chat-theme="forest-mist"] {
-  --chat-bg-gradient:
-    radial-gradient(circle at 20% 80%, rgba(74, 222, 128, 0.15) 0%, transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.18) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(187, 247, 208, 0.12) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
-
-  --sent-message-bg: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-  --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
-  --sent-message-shadow: 0 3px 12px rgba(22, 163, 74, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.9);
-
-  --received-message-bg: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  --received-message-text: #14532d;
-  --received-message-border: 1px solid rgba(22, 163, 74, 0.12);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(20, 83, 45, 0.7);
-
-  --tick-color: rgba(255, 255, 255, 0.5);
-  --tick-read-color: #86efac;
-
-  --chat-header-bg: linear-gradient(135deg, #166534 0%, #16a34a 100%);
-  --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(22, 101, 52, 0.3);
-  --chat-header-border: none;
-
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-  --chat-input-text: #14532d;
-  --chat-input-placeholder: #6b7280;
-  --chat-input-icon-color: #16a34a;
-  --chat-input-border: 1px solid rgba(22, 163, 74, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(22, 163, 74, 0.35);
-  --chat-send-btn-bg: linear-gradient(135deg, #16a34a, #15803d);
-  --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(22, 163, 74, 0.35);
-
-  --date-separator-bg: rgba(240, 253, 244, 0.9);
-  --date-separator-text: #166534;
-
-  --system-message-bg: rgba(220, 252, 231, 0.85);
-  --system-message-text: #166534;
-
-  --typing-indicator-dot: #16a34a;
-
-  --link-color-received: #15803d;
-  --link-color-sent: #bbf7d0;
-
-  --reply-bar-color: #16a34a;
-  --reply-name-received: #16a34a;
-
-  --unread-badge-bg: #16a34a;
-  --scroll-btn-icon: #16a34a;
-
-  --reaction-pill-active-bg: rgba(22, 163, 74, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(22, 163, 74, 0.3);
-}
-
-
-/* =============================================
-   12. ELECTRIC DREAMS ⚡  (WAS INCOMPLETE)
-   ============================================= */
-
-[data-chat-theme="electric-dreams"] {
-  --chat-bg-gradient:
-    radial-gradient(circle at 25% 75%, rgba(56, 189, 248, 0.2) 0%, transparent 55%),
-    radial-gradient(circle at 75% 25%, rgba(99, 102, 241, 0.18) 0%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.1) 0%, transparent 65%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #eff6ff 0%, #dbeafe 50%, #bfdbfe 100%);
-
-  --sent-message-bg: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-  --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
-  --sent-message-shadow: 0 3px 14px rgba(37, 99, 235, 0.3);
-  --sent-message-meta: rgba(255, 255, 255, 0.9);
-
-  --received-message-bg: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  --received-message-text: #1e293b;
-  --received-message-border: 1px solid rgba(37, 99, 235, 0.12);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(30, 41, 59, 0.7);
-
-  --tick-color: rgba(255, 255, 255, 0.5);
-  --tick-read-color: #38bdf8;
-
-  --chat-header-bg: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
-  --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
-  --chat-header-border: none;
-
-  --chat-input-bg: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
-  --chat-input-text: #1e293b;
-  --chat-input-placeholder: #64748b;
-  --chat-input-icon-color: #2563eb;
-  --chat-input-border: 1px solid rgba(37, 99, 235, 0.2);
-  --chat-input-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --chat-input-focus-ring: rgba(37, 99, 235, 0.35);
-  --chat-send-btn-bg: linear-gradient(135deg, #2563eb, #4f46e5);
-  --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 3px 10px rgba(37, 99, 235, 0.35);
-
-  --date-separator-bg: rgba(239, 246, 255, 0.9);
-  --date-separator-text: #1e40af;
-
-  --system-message-bg: rgba(219, 234, 254, 0.85);
-  --system-message-text: #1e40af;
-
-  --typing-indicator-dot: #2563eb;
-
-  --link-color-received: #1d4ed8;
-  --link-color-sent: #93c5fd;
-
-  --reply-bar-color: #2563eb;
-  --reply-name-received: #2563eb;
-
-  --unread-badge-bg: #2563eb;
-  --scroll-btn-icon: #2563eb;
-
-  --reaction-pill-active-bg: rgba(37, 99, 235, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(37, 99, 235, 0.3);
-}
-
-
-/* =============================================
-   13. MINIMAL SLATE 🩶  (WAS INCOMPLETE)
-   ============================================= */
-
-[data-chat-theme="minimal-slate"] {
-  --chat-bg-gradient:
-    radial-gradient(circle at 30% 70%, rgba(148, 163, 184, 0.08) 0%, transparent 55%),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+    radial-gradient(circle at 30% 70%, rgba(100, 116, 139, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #475569 0%, #64748b 50%, #94a3b8 100%);
+  --chat-pattern-opacity: 0.03;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #64748b;
 
   --sent-message-bg: #334155;
-  --sent-message-text: #f8fafc;
+  --sent-message-text: #f1f5f9;
   --sent-message-border: none;
-  --sent-message-shadow: 0 2px 8px rgba(51, 65, 85, 0.2);
-  --sent-message-meta: rgba(248, 250, 252, 0.7);
+  --sent-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --sent-message-meta: rgba(241, 245, 249, 0.65);
+  --chat-bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
-  --received-message-bg: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  --received-message-bg: #ffffff;
   --received-message-text: #0f172a;
-  --received-message-border: 1px solid rgba(15, 23, 42, 0.08);
-  --received-message-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --received-message-border: 1px solid rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   --received-message-meta: rgba(15, 23, 42, 0.5);
 
-  --tick-color: rgba(248, 250, 252, 0.4);
-  --tick-read-color: #64748b;
+  --tick-color: rgba(241, 245, 249, 0.4);
+  --tick-read-color: #94a3b8;
 
   --chat-header-bg: #ffffff;
   --chat-header-text: #0f172a;
   --chat-header-icon-color: #64748b;
-  --chat-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --chat-header-shadow: none;
   --chat-header-border: 1px solid #e2e8f0;
 
-  --chat-input-bg: #f8fafc;
+  --chat-composer-bg: #f1f5f9;
+  --chat-composer-border: 1px solid #e2e8f0;
+  --chat-input-bg: #ffffff;
   --chat-input-text: #0f172a;
   --chat-input-placeholder: #94a3b8;
   --chat-input-icon-color: #64748b;
   --chat-input-border: 1px solid #e2e8f0;
-  --chat-input-shadow: none;
-  --chat-input-focus-ring: rgba(100, 116, 139, 0.3);
   --chat-send-btn-bg: #334155;
-  --chat-send-btn-color: #f8fafc;
-  --chat-send-btn-shadow: 0 2px 6px rgba(51, 65, 85, 0.2);
+  --chat-send-btn-color: #f1f5f9;
 
   --date-separator-bg: #ffffff;
   --date-separator-text: #64748b;
-  --date-separator-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --date-separator-border: 1px solid #e2e8f0;
 
   --system-message-bg: #f1f5f9;
   --system-message-text: #64748b;
@@ -1042,122 +1251,1193 @@
   --reply-name-received: #334155;
 
   --unread-badge-bg: #334155;
+  --unread-badge-text: #ffffff;
   --scroll-btn-icon: #64748b;
 
-  --reaction-pill-bg: rgba(0, 0, 0, 0.04);
-  --reaction-pill-border: 1px solid #e2e8f0;
   --reaction-pill-active-bg: rgba(51, 65, 85, 0.1);
   --reaction-pill-active-border: 1px solid rgba(51, 65, 85, 0.25);
 }
 
+/* ─── Dark (TRUE AMOLED) ─── */
+[data-theme='dark'][data-chat-theme="midnight-amoled"] {
 
-/* =============================================
-   14. TELEGRAM BLUE 💎  (WAS INCOMPLETE)
-   ============================================= */
-
-[data-chat-theme="telegram-blue"] {
+  --chat-bg-base: #000000;
   --chat-bg-gradient:
-    radial-gradient(circle at 30% 70%, rgba(96, 165, 250, 0.12) 0%, transparent 55%),
-    linear-gradient(calc(135deg + var(--scroll-percentage, 0) * 1.8deg),
-      #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%);
+    radial-gradient(circle at 30% 70%, rgba(56, 189, 248, 0.025) 0%, transparent 50%),
+    radial-gradient(circle at 70% 30%, rgba(99, 102, 241, 0.02) 0%, transparent 50%),
+    linear-gradient(180deg, #000000 0%, #050508 50%, #000000 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #a78bfa 100%);
+  --chat-pattern-opacity: 0.012;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #38bdf8;
 
-  --sent-message-bg: #2b5278;
+  --sent-message-bg: #111827;
+  --sent-message-text: #e2e8f0;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.05);
+  --sent-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --sent-message-meta: rgba(226, 232, 240, 0.45);
+  --chat-bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+
+  --received-message-bg: #0a0a0f;
+  --received-message-text: #e2e8f0;
+  --received-message-border: 1px solid rgba(255, 255, 255, 0.06);
+  --received-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --received-message-meta: rgba(226, 232, 240, 0.4);
+
+  --tick-color: rgba(226, 232, 240, 0.25);
+  --tick-read-color: #38bdf8;
+
+  --chat-header-bg: #000000;
+  --chat-header-text: #e2e8f0;
+  --chat-header-icon-color: #64748b;
+  --chat-header-shadow: none;
+  --chat-header-border: 1px solid rgba(255, 255, 255, 0.04);
+
+  --chat-composer-bg: #000000;
+  --chat-composer-border: 1px solid rgba(255, 255, 255, 0.04);
+  --chat-input-bg: #0a0a0f;
+  --chat-input-text: #e2e8f0;
+  --chat-input-placeholder: #475569;
+  --chat-input-icon-color: #475569;
+  --chat-input-border: 1px solid rgba(255, 255, 255, 0.06);
+  --chat-input-shadow: none;
+  --chat-input-focus-ring: rgba(56, 189, 248, 0.2);
+  --chat-send-btn-bg: #1e293b;
+  --chat-send-btn-color: #38bdf8;
+  --chat-send-btn-shadow: none;
+
+  --date-separator-bg: rgba(10, 10, 15, 0.9);
+  --date-separator-text: #475569;
+  --date-separator-shadow: none;
+
+  --system-message-bg: rgba(10, 10, 15, 0.85);
+  --system-message-text: #475569;
+
+  --typing-indicator-dot: #475569;
+
+  --link-color-received: #38bdf8;
+  --link-color-sent: #38bdf8;
+
+  --reply-bar-color: #38bdf8;
+  --reply-bg-sent: rgba(255, 255, 255, 0.04);
+  --reply-bg-received: rgba(255, 255, 255, 0.03);
+  --reply-text-sent: rgba(226, 232, 240, 0.5);
+  --reply-text-received: rgba(226, 232, 240, 0.4);
+  --reply-name-sent: #38bdf8;
+  --reply-name-received: #38bdf8;
+
+  --unread-badge-bg: #1e293b;
+  --unread-badge-text: #38bdf8;
+  --unread-badge-shadow: none;
+
+  --scroll-btn-bg: #0a0a0f;
+  --scroll-btn-icon: #475569;
+  --scroll-btn-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+
+  --reaction-pill-bg: rgba(255, 255, 255, 0.04);
+  --reaction-pill-border: 1px solid rgba(255, 255, 255, 0.06);
+  --reaction-pill-active-bg: rgba(56, 189, 248, 0.08);
+  --reaction-pill-active-border: 1px solid rgba(56, 189, 248, 0.2);
+  --reaction-count-color: #64748b;
+}
+
+
+/* ═══════════════════════════════════════════════
+   ███  THEME 8 — CYBERPUNK NEON ⚡  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light (Neon-tinted light) ─── */
+[data-theme='light'][data-chat-theme="cyberpunk-neon"],
+[data-chat-theme="cyberpunk-neon"] {
+
+  --chat-bg-base: #e8e5f0;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 20% 80%, rgba(0, 255, 234, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(255, 0, 128, 0.06) 0%, transparent 50%),
+    linear-gradient(160deg, #f3f0ff 0%, #ede9fe 40%, #fce7f3 70%, #f0fdfa 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #00ffea 0%, #a855f7 50%, #ff0080 100%);
+  --chat-pattern-opacity: 0.035;
+  --chat-pattern-size: 380px;
+  --chat-pattern-color: #a855f7;
+
+  --sent-message-bg: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
   --sent-message-text: #ffffff;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.2);
+  --sent-message-shadow: 0 1px 4px rgba(124, 58, 237, 0.3);
+  --sent-message-meta: rgba(255, 255, 255, 0.85);
+  --chat-bubble-shadow: 0 1px 4px rgba(124, 58, 237, 0.2);
+
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+  --received-message-text: #3b0764;
+  --received-message-border: 1px solid rgba(168, 85, 247, 0.12);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(59, 7, 100, 0.6);
+
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #c4b5fd;
+
+  --chat-header-bg: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 4px rgba(91, 33, 182, 0.25);
+  --chat-header-border: none;
+
+  --chat-composer-bg: #faf5ff;
+  --chat-composer-border: 1px solid rgba(168, 85, 247, 0.1);
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #3b0764;
+  --chat-input-placeholder: #7c3aed;
+  --chat-input-icon-color: #a855f7;
+  --chat-input-border: 1px solid rgba(168, 85, 247, 0.15);
+  --chat-input-focus-ring: rgba(168, 85, 247, 0.3);
+  --chat-send-btn-bg: linear-gradient(135deg, #7c3aed, #6d28d9);
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
+
+  --date-separator-bg: rgba(250, 245, 255, 0.92);
+  --date-separator-text: #5b21b6;
+
+  --system-message-bg: rgba(243, 232, 255, 0.9);
+  --system-message-text: #5b21b6;
+
+  --typing-indicator-dot: #a855f7;
+
+  --link-color-received: #7c3aed;
+  --link-color-sent: #c4b5fd;
+
+  --reply-bar-color: #a855f7;
+  --reply-name-sent: #c4b5fd;
+  --reply-name-received: #7c3aed;
+
+  --unread-badge-bg: #7c3aed;
+  --unread-badge-text: #ffffff;
+  --scroll-btn-icon: #7c3aed;
+
+  --reaction-pill-active-bg: rgba(168, 85, 247, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+/* ─── Dark (TRUE CYBERPUNK) ─── */
+[data-theme='dark'][data-chat-theme="cyberpunk-neon"] {
+
+  --chat-bg-base: #06060c;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 20% 80%, rgba(0, 255, 234, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(255, 0, 128, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(168, 85, 247, 0.025) 0%, transparent 55%),
+    linear-gradient(180deg, #06060c 0%, #0d0d15 50%, #06060c 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #00ffea 0%, #a855f7 50%, #ff0080 100%);
+  --chat-pattern-opacity: 0.018;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #00ffea;
+
+  --sent-message-bg: linear-gradient(135deg, rgba(0, 255, 234, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+  --sent-message-text: #00ffea;
+  --sent-message-border: 1px solid rgba(0, 255, 234, 0.2);
+  --sent-message-shadow: 0 0 12px rgba(0, 255, 234, 0.08), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(0, 255, 234, 0.5);
+  --chat-bubble-shadow: 0 0 12px rgba(0, 255, 234, 0.06), 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: rgba(13, 13, 21, 0.9);
+  --received-message-text: #e0f2fe;
+  --received-message-border: 1px solid rgba(0, 255, 234, 0.1);
+  --received-message-shadow: 0 0 8px rgba(0, 255, 234, 0.04), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(0, 255, 234, 0.4);
+
+  --tick-color: rgba(0, 255, 234, 0.25);
+  --tick-read-color: #00ffea;
+
+  --chat-header-bg: rgba(6, 6, 12, 0.95);
+  --chat-header-text: #00ffea;
+  --chat-header-icon-color: rgba(0, 255, 234, 0.7);
+  --chat-header-shadow: 0 0 8px rgba(0, 255, 234, 0.05);
+  --chat-header-border: 1px solid rgba(0, 255, 234, 0.08);
+
+  --chat-composer-bg: rgba(6, 6, 12, 0.95);
+  --chat-composer-border: 1px solid rgba(0, 255, 234, 0.08);
+  --chat-input-bg: rgba(13, 13, 21, 0.8);
+  --chat-input-text: #00ffea;
+  --chat-input-placeholder: rgba(0, 255, 234, 0.25);
+  --chat-input-icon-color: rgba(0, 255, 234, 0.6);
+  --chat-input-border: 1px solid rgba(0, 255, 234, 0.12);
+  --chat-input-shadow: 0 0 6px rgba(0, 255, 234, 0.03);
+  --chat-input-focus-ring: rgba(0, 255, 234, 0.3);
+  --chat-send-btn-bg: transparent;
+  --chat-send-btn-color: #00ffea;
+  --chat-send-btn-shadow: 0 0 8px rgba(0, 255, 234, 0.12);
+
+  --date-separator-bg: rgba(13, 13, 21, 0.9);
+  --date-separator-text: rgba(0, 255, 234, 0.55);
+  --date-separator-shadow: 0 0 6px rgba(0, 255, 234, 0.04);
+  --date-separator-border: 1px solid rgba(0, 255, 234, 0.08);
+
+  --system-message-bg: rgba(13, 13, 21, 0.85);
+  --system-message-text: rgba(0, 255, 234, 0.45);
+
+  --typing-indicator-dot: #00ffea;
+
+  --link-color-received: #ff0080;
+  --link-color-sent: #a855f7;
+
+  --reply-bar-color: #00ffea;
+  --reply-bg-sent: rgba(0, 255, 234, 0.04);
+  --reply-bg-received: rgba(0, 255, 234, 0.03);
+  --reply-text-sent: rgba(0, 255, 234, 0.5);
+  --reply-text-received: rgba(0, 255, 234, 0.4);
+  --reply-name-sent: #ff0080;
+  --reply-name-received: #ff0080;
+
+  --unread-badge-bg: rgba(0, 255, 234, 0.1);
+  --unread-badge-text: #00ffea;
+  --unread-badge-shadow: 0 0 8px rgba(0, 255, 234, 0.12);
+
+  --scroll-btn-bg: rgba(13, 13, 21, 0.9);
+  --scroll-btn-icon: #00ffea;
+  --scroll-btn-shadow: 0 0 6px rgba(0, 255, 234, 0.06);
+
+  --reaction-pill-bg: rgba(0, 255, 234, 0.04);
+  --reaction-pill-border: 1px solid rgba(0, 255, 234, 0.1);
+  --reaction-pill-active-bg: rgba(0, 255, 234, 0.08);
+  --reaction-pill-active-border: 1px solid rgba(0, 255, 234, 0.25);
+  --reaction-count-color: rgba(0, 255, 234, 0.6);
+}
+
+
+/* ═══════════════════════════════════════════════
+   ███  THEME 9 — CLASSIC PURPLE 💜  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="classic-purple"],
+[data-chat-theme="classic-purple"] {
+
+  --chat-bg-base: #e8e0f5;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(167, 139, 250, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(139, 92, 246, 0.20) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(196, 181, 253, 0.15) 0%, transparent 55%),
+    linear-gradient(160deg, #faf5ff 0%, #f3e8ff 35%, #e9d5ff 70%, #d8b4fe 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #6d28d9 0%, #7c3aed 50%, #8b5cf6 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #7c3aed;
+
+  --sent-message-bg: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.18);
+  --sent-message-shadow: 0 1px 3px rgba(124, 58, 237, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.85);
+  --chat-bubble-shadow: 0 1px 3px rgba(124, 58, 237, 0.15);
+
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+  --received-message-text: #4c1d95;
+  --received-message-border: 1px solid rgba(124, 58, 237, 0.1);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(76, 29, 149, 0.65);
+
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #c4b5fd;
+
+  --chat-header-bg: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(91, 33, 182, 0.25);
+  --chat-header-border: none;
+
+  --chat-composer-bg: #faf5ff;
+  --chat-composer-border: 1px solid rgba(124, 58, 237, 0.1);
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #4c1d95;
+  --chat-input-placeholder: rgba(76, 29, 149, 0.5);
+  --chat-input-icon-color: #8b5cf6;
+  --chat-input-border: 1px solid rgba(124, 58, 237, 0.15);
+  --chat-input-focus-ring: rgba(124, 58, 237, 0.3);
+  --chat-send-btn-bg: linear-gradient(135deg, #7c3aed, #6d28d9);
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
+
+  --date-separator-bg: rgba(250, 245, 255, 0.92);
+  --date-separator-text: #5b21b6;
+
+  --system-message-bg: rgba(243, 232, 255, 0.9);
+  --system-message-text: #5b21b6;
+
+  --typing-indicator-dot: #8b5cf6;
+
+  --link-color-received: #6d28d9;
+  --link-color-sent: #c4b5fd;
+
+  --reply-bar-color: #8b5cf6;
+  --reply-name-sent: #c4b5fd;
+  --reply-name-received: #7c3aed;
+
+  --unread-badge-bg: #7c3aed;
+  --unread-badge-text: #ffffff;
+  --scroll-btn-icon: #7c3aed;
+
+  --reaction-pill-active-bg: rgba(124, 58, 237, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(124, 58, 237, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="classic-purple"] {
+
+  --chat-bg-base: #0e0818;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(167, 139, 250, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #0e0818 0%, #150e25 50%, #0e0818 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-color: #8b5cf6;
+
+  --sent-message-bg: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
+  --sent-message-text: #ede9fe;
+  --sent-message-border: 1px solid rgba(167, 139, 250, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(237, 233, 254, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #1a1030;
+  --received-message-text: #ede9fe;
+  --received-message-border: 1px solid rgba(167, 139, 250, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(237, 233, 254, 0.5);
+
+  --tick-color: rgba(237, 233, 254, 0.3);
+  --tick-read-color: #a78bfa;
+
+  --chat-header-bg: #150e25;
+  --chat-header-text: #ede9fe;
+  --chat-header-icon-color: #c4b5fd;
+  --chat-header-border: 1px solid rgba(167, 139, 250, 0.08);
+
+  --chat-composer-bg: #150e25;
+  --chat-composer-border: 1px solid rgba(167, 139, 250, 0.08);
+  --chat-input-bg: #221538;
+  --chat-input-text: #ede9fe;
+  --chat-input-placeholder: rgba(237, 233, 254, 0.35);
+  --chat-input-icon-color: #c4b5fd;
+  --chat-input-border: 1px solid rgba(167, 139, 250, 0.1);
+  --chat-send-btn-bg: #7c3aed;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(21, 14, 37, 0.92);
+  --date-separator-text: rgba(237, 233, 254, 0.6);
+
+  --system-message-bg: rgba(26, 16, 48, 0.9);
+  --system-message-text: rgba(237, 233, 254, 0.55);
+
+  --typing-indicator-dot: #a78bfa;
+
+  --link-color-received: #c4b5fd;
+  --link-color-sent: #c4b5fd;
+
+  --reply-bar-color: #8b5cf6;
+  --reply-name-sent: #c4b5fd;
+  --reply-name-received: #c4b5fd;
+
+  --unread-badge-bg: #7c3aed;
+  --scroll-btn-bg: #221538;
+  --scroll-btn-icon: #c4b5fd;
+
+  --reaction-pill-bg: rgba(167, 139, 250, 0.06);
+  --reaction-pill-border: 1px solid rgba(167, 139, 250, 0.1);
+  --reaction-pill-active-bg: rgba(167, 139, 250, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(167, 139, 250, 0.25);
+  --reaction-count-color: #c4b5fd;
+}
+
+
+/* ═══════════════════════════════════════════════
+   ███  THEME 10 — ROSE GOLD 🌹  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="rose-gold"],
+[data-chat-theme="rose-gold"] {
+
+  --chat-bg-base: #f5e0e2;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(244, 63, 94, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(253, 164, 175, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(254, 205, 211, 0.15) 0%, transparent 55%),
+    linear-gradient(160deg, #fff1f2 0%, #ffe4e6 35%, #fecdd3 70%, #fda4af 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #be123c 0%, #e11d48 50%, #f43f5e 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #e11d48;
+
+  --sent-message-bg: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.22);
+  --sent-message-shadow: 0 1px 3px rgba(225, 29, 72, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.88);
+  --chat-bubble-shadow: 0 1px 3px rgba(225, 29, 72, 0.15);
+
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
+  --received-message-text: #881337;
+  --received-message-border: 1px solid rgba(225, 29, 72, 0.1);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(136, 19, 55, 0.65);
+
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #fda4af;
+
+  --chat-header-bg: linear-gradient(135deg, #881337 0%, #e11d48 100%);
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(136, 19, 55, 0.25);
+  --chat-header-border: none;
+
+  --chat-composer-bg: #fff1f2;
+  --chat-composer-border: 1px solid rgba(225, 29, 72, 0.1);
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #881337;
+  --chat-input-placeholder: #9f1239;
+  --chat-input-icon-color: #f43f5e;
+  --chat-input-border: 1px solid rgba(225, 29, 72, 0.15);
+  --chat-input-focus-ring: rgba(225, 29, 72, 0.25);
+  --chat-send-btn-bg: linear-gradient(135deg, #e11d48, #be123c);
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 6px rgba(225, 29, 72, 0.3);
+
+  --date-separator-bg: rgba(255, 241, 242, 0.92);
+  --date-separator-text: #881337;
+
+  --system-message-bg: rgba(255, 228, 230, 0.9);
+  --system-message-text: #881337;
+
+  --typing-indicator-dot: #f43f5e;
+
+  --link-color-received: #be123c;
+  --link-color-sent: #fecdd3;
+
+  --reply-bar-color: #f43f5e;
+  --reply-name-sent: #fecdd3;
+  --reply-name-received: #e11d48;
+
+  --unread-badge-bg: #e11d48;
+  --unread-badge-text: #ffffff;
+  --scroll-btn-icon: #e11d48;
+
+  --reaction-pill-active-bg: rgba(225, 29, 72, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(225, 29, 72, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="rose-gold"] {
+
+  --chat-bg-base: #1a080c;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(225, 29, 72, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(244, 63, 94, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #1a080c 0%, #240e14 50%, #1a080c 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #fb7185 0%, #f43f5e 50%, #e11d48 100%);
+  --chat-pattern-opacity: 0.022;
+  --chat-pattern-color: #f43f5e;
+
+  --sent-message-bg: linear-gradient(135deg, #9f1239 0%, #881337 100%);
+  --sent-message-text: #ffe4e6;
+  --sent-message-border: 1px solid rgba(253, 164, 175, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(255, 228, 230, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #2a0e16;
+  --received-message-text: #ffe4e6;
+  --received-message-border: 1px solid rgba(253, 164, 175, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(255, 228, 230, 0.5);
+
+  --tick-color: rgba(255, 228, 230, 0.3);
+  --tick-read-color: #fb7185;
+
+  --chat-header-bg: #240e14;
+  --chat-header-text: #ffe4e6;
+  --chat-header-icon-color: #fda4af;
+  --chat-header-border: 1px solid rgba(253, 164, 175, 0.08);
+
+  --chat-composer-bg: #240e14;
+  --chat-composer-border: 1px solid rgba(253, 164, 175, 0.08);
+  --chat-input-bg: #38151e;
+  --chat-input-text: #ffe4e6;
+  --chat-input-placeholder: rgba(255, 228, 230, 0.35);
+  --chat-input-icon-color: #fda4af;
+  --chat-input-border: 1px solid rgba(253, 164, 175, 0.1);
+  --chat-send-btn-bg: #e11d48;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(36, 14, 20, 0.92);
+  --date-separator-text: rgba(255, 228, 230, 0.6);
+
+  --system-message-bg: rgba(42, 14, 22, 0.9);
+  --system-message-text: rgba(255, 228, 230, 0.55);
+
+  --typing-indicator-dot: #fb7185;
+
+  --link-color-received: #fda4af;
+  --link-color-sent: #fda4af;
+
+  --reply-bar-color: #f43f5e;
+  --reply-name-sent: #fda4af;
+  --reply-name-received: #fda4af;
+
+  --unread-badge-bg: #e11d48;
+  --scroll-btn-bg: #38151e;
+  --scroll-btn-icon: #fda4af;
+
+  --reaction-pill-bg: rgba(253, 164, 175, 0.06);
+  --reaction-pill-border: 1px solid rgba(253, 164, 175, 0.1);
+  --reaction-pill-active-bg: rgba(253, 164, 175, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(253, 164, 175, 0.25);
+  --reaction-count-color: #fda4af;
+}
+
+
+/* ═══════════════════════════════════════════════
+   ███  THEME 11 — FOREST MIST 🌲  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="forest-mist"],
+[data-chat-theme="forest-mist"] {
+
+  --chat-bg-base: #dce8dc;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 10% 90%, rgba(74, 222, 128, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 10%, rgba(34, 197, 94, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(187, 247, 208, 0.12) 0%, transparent 55%),
+    linear-gradient(160deg, #f0fdf4 0%, #dcfce7 35%, #bbf7d0 70%, #86efac 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #16a34a;
+
+  --sent-message-bg: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.18);
+  --sent-message-shadow: 0 1px 3px rgba(22, 163, 74, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.88);
+  --chat-bubble-shadow: 0 1px 3px rgba(22, 163, 74, 0.15);
+
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  --received-message-text: #14532d;
+  --received-message-border: 1px solid rgba(22, 163, 74, 0.1);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(20, 83, 45, 0.65);
+
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #86efac;
+
+  --chat-header-bg: linear-gradient(135deg, #166534 0%, #16a34a 100%);
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(22, 101, 52, 0.25);
+  --chat-header-border: none;
+
+  --chat-composer-bg: #f0fdf4;
+  --chat-composer-border: 1px solid rgba(22, 163, 74, 0.1);
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #14532d;
+  --chat-input-placeholder: #6b7280;
+  --chat-input-icon-color: #16a34a;
+  --chat-input-border: 1px solid rgba(22, 163, 74, 0.15);
+  --chat-input-focus-ring: rgba(22, 163, 74, 0.3);
+  --chat-send-btn-bg: linear-gradient(135deg, #16a34a, #15803d);
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
+
+  --date-separator-bg: rgba(240, 253, 244, 0.92);
+  --date-separator-text: #166534;
+
+  --system-message-bg: rgba(220, 252, 231, 0.9);
+  --system-message-text: #166534;
+
+  --typing-indicator-dot: #16a34a;
+
+  --link-color-received: #15803d;
+  --link-color-sent: #bbf7d0;
+
+  --reply-bar-color: #22c55e;
+  --reply-name-sent: #bbf7d0;
+  --reply-name-received: #16a34a;
+
+  --unread-badge-bg: #16a34a;
+  --unread-badge-text: #ffffff;
+  --scroll-btn-icon: #16a34a;
+
+  --reaction-pill-active-bg: rgba(22, 163, 74, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(22, 163, 74, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="forest-mist"] {
+
+  --chat-bg-base: #061a0e;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(22, 163, 74, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(74, 222, 128, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #061a0e 0%, #0a2516 50%, #061a0e 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-color: #22c55e;
+
+  --sent-message-bg: linear-gradient(135deg, #166534 0%, #14532d 100%);
+  --sent-message-text: #dcfce7;
+  --sent-message-border: 1px solid rgba(74, 222, 128, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(220, 252, 231, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #0f2a18;
+  --received-message-text: #dcfce7;
+  --received-message-border: 1px solid rgba(74, 222, 128, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(220, 252, 231, 0.5);
+
+  --tick-color: rgba(220, 252, 231, 0.3);
+  --tick-read-color: #4ade80;
+
+  --chat-header-bg: #0a2516;
+  --chat-header-text: #dcfce7;
+  --chat-header-icon-color: #86efac;
+  --chat-header-border: 1px solid rgba(74, 222, 128, 0.08);
+
+  --chat-composer-bg: #0a2516;
+  --chat-composer-border: 1px solid rgba(74, 222, 128, 0.08);
+  --chat-input-bg: #143520;
+  --chat-input-text: #dcfce7;
+  --chat-input-placeholder: rgba(220, 252, 231, 0.35);
+  --chat-input-icon-color: #86efac;
+  --chat-input-border: 1px solid rgba(74, 222, 128, 0.1);
+  --chat-send-btn-bg: #16a34a;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(10, 37, 22, 0.92);
+  --date-separator-text: rgba(220, 252, 231, 0.6);
+
+  --system-message-bg: rgba(15, 42, 24, 0.9);
+  --system-message-text: rgba(220, 252, 231, 0.55);
+
+  --typing-indicator-dot: #4ade80;
+
+  --link-color-received: #86efac;
+  --link-color-sent: #86efac;
+
+  --reply-bar-color: #22c55e;
+  --reply-name-sent: #86efac;
+  --reply-name-received: #86efac;
+
+  --unread-badge-bg: #16a34a;
+  --scroll-btn-bg: #143520;
+  --scroll-btn-icon: #86efac;
+
+  --reaction-pill-bg: rgba(74, 222, 128, 0.06);
+  --reaction-pill-border: 1px solid rgba(74, 222, 128, 0.1);
+  --reaction-pill-active-bg: rgba(74, 222, 128, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(74, 222, 128, 0.25);
+  --reaction-count-color: #86efac;
+}
+
+
+/* ═══════════════════════════════════════════════
+   ███  THEME 12 — ELECTRIC DREAMS ⚡  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="electric-dreams"],
+[data-chat-theme="electric-dreams"] {
+
+  --chat-bg-base: #dce4f5;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(96, 165, 250, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(99, 102, 241, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(147, 197, 253, 0.12) 0%, transparent 55%),
+    linear-gradient(160deg, #eff6ff 0%, #dbeafe 35%, #bfdbfe 70%, #93c5fd 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #2563eb;
+
+  --sent-message-bg: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.18);
+  --sent-message-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.85);
+  --chat-bubble-shadow: 0 1px 3px rgba(37, 99, 235, 0.15);
+
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  --received-message-text: #1e3a5f;
+  --received-message-border: 1px solid rgba(37, 99, 235, 0.1);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(30, 58, 95, 0.65);
+
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #93c5fd;
+
+  --chat-header-bg: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(30, 64, 175, 0.25);
+  --chat-header-border: none;
+
+  --chat-composer-bg: #eff6ff;
+  --chat-composer-border: 1px solid rgba(37, 99, 235, 0.1);
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #1e3a5f;
+  --chat-input-placeholder: #64748b;
+  --chat-input-icon-color: #2563eb;
+  --chat-input-border: 1px solid rgba(37, 99, 235, 0.15);
+  --chat-input-focus-ring: rgba(37, 99, 235, 0.3);
+  --chat-send-btn-bg: linear-gradient(135deg, #2563eb, #1d4ed8);
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+
+  --date-separator-bg: rgba(239, 246, 255, 0.92);
+  --date-separator-text: #1e40af;
+
+  --system-message-bg: rgba(219, 234, 254, 0.9);
+  --system-message-text: #1e40af;
+
+  --typing-indicator-dot: #2563eb;
+
+  --link-color-received: #1d4ed8;
+  --link-color-sent: #93c5fd;
+
+  --reply-bar-color: #3b82f6;
+  --reply-name-sent: #93c5fd;
+  --reply-name-received: #2563eb;
+
+  --unread-badge-bg: #2563eb;
+  --unread-badge-text: #ffffff;
+  --scroll-btn-icon: #2563eb;
+
+  --reaction-pill-active-bg: rgba(37, 99, 235, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="electric-dreams"] {
+
+  --chat-bg-base: #060c1a;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(37, 99, 235, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(96, 165, 250, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #060c1a 0%, #0c1530 50%, #060c1a 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-color: #3b82f6;
+
+  --sent-message-bg: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  --sent-message-text: #dbeafe;
+  --sent-message-border: 1px solid rgba(96, 165, 250, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(219, 234, 254, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #0d1a35;
+  --received-message-text: #dbeafe;
+  --received-message-border: 1px solid rgba(96, 165, 250, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(219, 234, 254, 0.5);
+
+  --tick-color: rgba(219, 234, 254, 0.3);
+  --tick-read-color: #60a5fa;
+
+  --chat-header-bg: #0c1530;
+  --chat-header-text: #dbeafe;
+  --chat-header-icon-color: #93c5fd;
+  --chat-header-border: 1px solid rgba(96, 165, 250, 0.08);
+
+  --chat-composer-bg: #0c1530;
+  --chat-composer-border: 1px solid rgba(96, 165, 250, 0.08);
+  --chat-input-bg: #142040;
+  --chat-input-text: #dbeafe;
+  --chat-input-placeholder: rgba(219, 234, 254, 0.35);
+  --chat-input-icon-color: #93c5fd;
+  --chat-input-border: 1px solid rgba(96, 165, 250, 0.1);
+  --chat-send-btn-bg: #2563eb;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(12, 21, 48, 0.92);
+  --date-separator-text: rgba(219, 234, 254, 0.6);
+
+  --system-message-bg: rgba(13, 26, 53, 0.9);
+  --system-message-text: rgba(219, 234, 254, 0.55);
+
+  --typing-indicator-dot: #60a5fa;
+
+  --link-color-received: #93c5fd;
+  --link-color-sent: #93c5fd;
+
+  --reply-bar-color: #3b82f6;
+  --reply-name-sent: #93c5fd;
+  --reply-name-received: #93c5fd;
+
+  --unread-badge-bg: #2563eb;
+  --scroll-btn-bg: #142040;
+  --scroll-btn-icon: #93c5fd;
+
+  --reaction-pill-bg: rgba(96, 165, 250, 0.06);
+  --reaction-pill-border: 1px solid rgba(96, 165, 250, 0.1);
+  --reaction-pill-active-bg: rgba(96, 165, 250, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(96, 165, 250, 0.25);
+  --reaction-count-color: #93c5fd;
+}
+
+
+/* ═══════════════════════════════════════════════
+   ███  THEME 13 — MINIMAL SLATE 🩶  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="minimal-slate"],
+[data-chat-theme="minimal-slate"] {
+
+  --chat-bg-base: #eceef1;
+  --chat-bg-gradient:
+    radial-gradient(circle at 30% 70%, rgba(148, 163, 184, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #475569 0%, #64748b 50%, #94a3b8 100%);
+  --chat-pattern-opacity: 0.025;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #64748b;
+
+  --sent-message-bg: #334155;
+  --sent-message-text: #f8fafc;
   --sent-message-border: none;
-  --sent-message-shadow: 0 1px 4px rgba(43, 82, 120, 0.25);
-  --sent-message-meta: rgba(255, 255, 255, 0.7);
+  --sent-message-shadow: 0 1px 2px rgba(51, 65, 85, 0.2);
+  --sent-message-meta: rgba(248, 250, 252, 0.65);
+  --chat-bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+
+  --received-message-bg: #ffffff;
+  --received-message-text: #0f172a;
+  --received-message-border: 1px solid #e2e8f0;
+  --received-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --received-message-meta: rgba(15, 23, 42, 0.5);
+
+  --tick-color: rgba(248, 250, 252, 0.4);
+  --tick-read-color: #94a3b8;
+
+  --chat-header-bg: #ffffff;
+  --chat-header-text: #0f172a;
+  --chat-header-icon-color: #64748b;
+  --chat-header-shadow: none;
+  --chat-header-border: 1px solid #e2e8f0;
+
+  --chat-composer-bg: #f8fafc;
+  --chat-composer-border: 1px solid #e2e8f0;
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #0f172a;
+  --chat-input-placeholder: #94a3b8;
+  --chat-input-icon-color: #64748b;
+  --chat-input-border: 1px solid #e2e8f0;
+  --chat-input-shadow: none;
+  --chat-input-focus-ring: rgba(100, 116, 139, 0.25);
+  --chat-send-btn-bg: #334155;
+  --chat-send-btn-color: #f8fafc;
+  --chat-send-btn-shadow: 0 1px 3px rgba(51, 65, 85, 0.2);
+
+  --date-separator-bg: #ffffff;
+  --date-separator-text: #64748b;
+  --date-separator-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --date-separator-border: 1px solid #e2e8f0;
+
+  --system-message-bg: #f1f5f9;
+  --system-message-text: #64748b;
+  --system-message-shadow: none;
+
+  --typing-indicator-dot: #94a3b8;
+
+  --link-color-received: #2563eb;
+  --link-color-sent: #93c5fd;
+
+  --reply-bar-color: #64748b;
+  --reply-name-received: #334155;
+
+  --unread-badge-bg: #334155;
+  --unread-badge-text: #ffffff;
+  --scroll-btn-icon: #64748b;
+
+  --reaction-pill-bg: rgba(0, 0, 0, 0.03);
+  --reaction-pill-border: 1px solid #e2e8f0;
+  --reaction-pill-active-bg: rgba(51, 65, 85, 0.08);
+  --reaction-pill-active-border: 1px solid rgba(51, 65, 85, 0.2);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="minimal-slate"] {
+
+  --chat-bg-base: #0f172a;
+  --chat-bg-gradient:
+    radial-gradient(circle at 30% 70%, rgba(100, 116, 139, 0.04) 0%, transparent 50%),
+    linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #94a3b8 0%, #64748b 50%, #475569 100%);
+  --chat-pattern-opacity: 0.015;
+  --chat-pattern-color: #64748b;
+
+  --sent-message-bg: #475569;
+  --sent-message-text: #f1f5f9;
+  --sent-message-border: none;
+  --sent-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sent-message-meta: rgba(241, 245, 249, 0.55);
+  --chat-bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  --received-message-bg: #1e293b;
+  --received-message-text: #e2e8f0;
+  --received-message-border: 1px solid rgba(255, 255, 255, 0.05);
+  --received-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --received-message-meta: rgba(226, 232, 240, 0.5);
+
+  --tick-color: rgba(241, 245, 249, 0.3);
+  --tick-read-color: #94a3b8;
+
+  --chat-header-bg: #0f172a;
+  --chat-header-text: #e2e8f0;
+  --chat-header-icon-color: #64748b;
+  --chat-header-border: 1px solid rgba(255, 255, 255, 0.05);
+
+  --chat-composer-bg: #0f172a;
+  --chat-composer-border: 1px solid rgba(255, 255, 255, 0.05);
+  --chat-input-bg: #1e293b;
+  --chat-input-text: #e2e8f0;
+  --chat-input-placeholder: #475569;
+  --chat-input-icon-color: #64748b;
+  --chat-input-border: 1px solid rgba(255, 255, 255, 0.06);
+  --chat-send-btn-bg: #475569;
+  --chat-send-btn-color: #f1f5f9;
+
+  --date-separator-bg: rgba(30, 41, 59, 0.9);
+  --date-separator-text: #64748b;
+  --date-separator-border: 1px solid rgba(255, 255, 255, 0.05);
+
+  --system-message-bg: rgba(30, 41, 59, 0.85);
+  --system-message-text: #64748b;
+
+  --typing-indicator-dot: #64748b;
+
+  --link-color-received: #60a5fa;
+  --link-color-sent: #93c5fd;
+
+  --reply-bar-color: #64748b;
+  --reply-name-received: #94a3b8;
+
+  --unread-badge-bg: #475569;
+  --unread-badge-text: #f1f5f9;
+  --scroll-btn-bg: #1e293b;
+  --scroll-btn-icon: #64748b;
+
+  --reaction-pill-bg: rgba(255, 255, 255, 0.04);
+  --reaction-pill-border: 1px solid rgba(255, 255, 255, 0.06);
+  --reaction-pill-active-bg: rgba(100, 116, 139, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(100, 116, 139, 0.25);
+  --reaction-count-color: #64748b;
+}
+
+
+/* ═══════════════════════════════════════════════
+   ███  THEME 14 — TELEGRAM BLUE 💎  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="telegram-blue"],
+[data-chat-theme="telegram-blue"] {
+
+  --chat-bg-base: #c8dce8;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 20% 80%, rgba(96, 165, 250, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(147, 197, 253, 0.12) 0%, transparent 50%),
+    linear-gradient(160deg, #d1e7f5 0%, #b8d4e8 40%, #9dc2db 70%, #8bb8d4 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #2b5278 0%, #517da2 50%, #6ea0c4 100%);
+  --chat-pattern-opacity: 0.05;
+  --chat-pattern-size: 400px;
+  --chat-pattern-color: #517da2;
+
+  --sent-message-bg: #effdde;
+  --sent-message-text: #000000;
+  --sent-message-border: none;
+  --sent-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --sent-message-meta: rgba(0, 0, 0, 0.45);
+  --chat-bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   --received-message-bg: #ffffff;
   --received-message-text: #000000;
   --received-message-border: none;
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --received-message-meta: rgba(0, 0, 0, 0.45);
+  --received-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --received-message-meta: rgba(0, 0, 0, 0.4);
 
-  --tick-color: rgba(255, 255, 255, 0.4);
-  --tick-read-color: #ffffff;
+  --tick-color: rgba(0, 0, 0, 0.3);
+  --tick-read-color: #4fae4e;
 
   --chat-header-bg: #517da2;
   --chat-header-text: #ffffff;
-  --chat-header-icon-color: #ffffff;
-  --chat-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  --chat-header-icon-color: rgba(255, 255, 255, 0.85);
+  --chat-header-shadow: none;
   --chat-header-border: none;
 
+  --chat-composer-bg: #ffffff;
+  --chat-composer-border: none;
   --chat-input-bg: #ffffff;
   --chat-input-text: #000000;
   --chat-input-placeholder: #999999;
-  --chat-input-icon-color: #517da2;
+  --chat-input-icon-color: #8e99a4;
   --chat-input-border: 1px solid #e5e7eb;
-  --chat-input-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --chat-input-focus-ring: rgba(81, 125, 162, 0.3);
+  --chat-input-shadow: none;
+  --chat-input-focus-ring: rgba(81, 125, 162, 0.25);
   --chat-send-btn-bg: #517da2;
   --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 2px 6px rgba(81, 125, 162, 0.3);
+  --chat-send-btn-shadow: 0 1px 3px rgba(81, 125, 162, 0.25);
 
-  --date-separator-bg: rgba(255, 255, 255, 0.85);
+  --date-separator-bg: rgba(255, 255, 255, 0.7);
   --date-separator-text: #517da2;
+  --date-separator-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 
-  --system-message-bg: rgba(255, 255, 255, 0.8);
+  --system-message-bg: rgba(255, 255, 255, 0.65);
   --system-message-text: #517da2;
 
   --typing-indicator-dot: #517da2;
 
   --link-color-received: #2b5278;
-  --link-color-sent: #8ecdf7;
+  --link-color-sent: #2b5278;
 
   --reply-bar-color: #6eb1e6;
   --reply-name-received: #2b5278;
+  --reply-name-sent: #2b5278;
 
-  --unread-badge-bg: #517da2;
+  --unread-badge-bg: #4fae4e;
+  --unread-badge-text: #ffffff;
   --scroll-btn-icon: #517da2;
 
-  --reaction-pill-active-bg: rgba(81, 125, 162, 0.12);
-  --reaction-pill-active-border: 1px solid rgba(81, 125, 162, 0.3);
+  --reaction-pill-active-bg: rgba(81, 125, 162, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(81, 125, 162, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="telegram-blue"] {
+
+  --chat-bg-base: #0e1621;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 20% 80%, rgba(43, 82, 120, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(81, 125, 162, 0.04) 0%, transparent 50%),
+    linear-gradient(180deg, #0e1621 0%, #17212b 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #6ea0c4 0%, #517da2 50%, #2b5278 100%);
+  --chat-pattern-opacity: 0.02;
+  --chat-pattern-color: #517da2;
+
+  --sent-message-bg: #2b5278;
+  --sent-message-text: #f5f5f5;
+  --sent-message-border: none;
+  --sent-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sent-message-meta: rgba(245, 245, 245, 0.55);
+  --chat-bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  --received-message-bg: #182533;
+  --received-message-text: #f5f5f5;
+  --received-message-border: none;
+  --received-message-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --received-message-meta: rgba(245, 245, 245, 0.45);
+
+  --tick-color: rgba(245, 245, 245, 0.3);
+  --tick-read-color: #7dd3fc;
+
+  --chat-header-bg: #17212b;
+  --chat-header-text: #f5f5f5;
+  --chat-header-icon-color: #8696a0;
+  --chat-header-border: 1px solid rgba(255, 255, 255, 0.04);
+
+  --chat-composer-bg: #17212b;
+  --chat-composer-border: 1px solid rgba(255, 255, 255, 0.04);
+  --chat-input-bg: #242f3d;
+  --chat-input-text: #f5f5f5;
+  --chat-input-placeholder: #6c7883;
+  --chat-input-icon-color: #6c7883;
+  --chat-input-border: none;
+  --chat-send-btn-bg: #5288b5;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(23, 33, 43, 0.85);
+  --date-separator-text: rgba(245, 245, 245, 0.5);
+
+  --system-message-bg: rgba(23, 33, 43, 0.8);
+  --system-message-text: rgba(245, 245, 245, 0.45);
+
+  --typing-indicator-dot: #6c7883;
+
+  --link-color-received: #7dd3fc;
+  --link-color-sent: #7dd3fc;
+
+  --reply-bar-color: #5288b5;
+  --reply-name-sent: #7dd3fc;
+  --reply-name-received: #7dd3fc;
+
+  --unread-badge-bg: #5288b5;
+  --unread-badge-text: #ffffff;
+  --scroll-btn-bg: #242f3d;
+  --scroll-btn-icon: #6c7883;
+
+  --reaction-pill-bg: rgba(82, 136, 181, 0.06);
+  --reaction-pill-border: 1px solid rgba(82, 136, 181, 0.1);
+  --reaction-pill-active-bg: rgba(82, 136, 181, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(82, 136, 181, 0.25);
+  --reaction-count-color: #6c7883;
 }
 
 
-/* =============================================
-   15. CUSTOM BACKGROUND 🎨  (WAS INCOMPLETE)
-   ============================================= */
+/* ═══════════════════════════════════════════════
+   ███  THEME 15 — CUSTOM BACKGROUND 🎨  ███
+   ═══════════════════════════════════════════════ */
 
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="custom-background"],
 [data-chat-theme="custom-background"] {
+
+  --chat-bg-base: transparent;
   --chat-bg-gradient: none;
-  /* Uses background-image from JS instead */
+  /* Background image is set via JS on the element */
+  --chat-pattern-gradient: none;
+  --chat-pattern-opacity: 0;
+  --chat-pattern-size: 0;
+  --chat-pattern-color: transparent;
 
   --sent-message-bg: rgba(71, 85, 105, 0.92);
   --sent-message-text: #ffffff;
   --sent-message-border: 1px solid rgba(255, 255, 255, 0.1);
-  --sent-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --sent-message-meta: rgba(255, 255, 255, 0.75);
+  --sent-message-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  --sent-message-meta: rgba(255, 255, 255, 0.7);
+  --chat-bubble-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 
   --received-message-bg: rgba(255, 255, 255, 0.92);
   --received-message-text: #1e293b;
   --received-message-border: 1px solid rgba(0, 0, 0, 0.06);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --received-message-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(30, 41, 59, 0.6);
 
   --tick-color: rgba(255, 255, 255, 0.4);
   --tick-read-color: #cbd5e1;
 
-  --chat-header-bg: rgba(255, 255, 255, 0.85);
+  --chat-header-bg: rgba(255, 255, 255, 0.88);
   --chat-header-text: #1e293b;
   --chat-header-icon-color: #64748b;
-  --chat-header-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --chat-header-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   --chat-header-border: 1px solid rgba(0, 0, 0, 0.06);
 
-  --chat-input-bg: rgba(255, 255, 255, 0.9);
+  --chat-composer-bg: rgba(255, 255, 255, 0.88);
+  --chat-composer-border: 1px solid rgba(0, 0, 0, 0.06);
+  --chat-input-bg: rgba(255, 255, 255, 0.95);
   --chat-input-text: #1e293b;
   --chat-input-placeholder: #94a3b8;
   --chat-input-icon-color: #64748b;
   --chat-input-border: 1px solid rgba(0, 0, 0, 0.08);
-  --chat-input-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  --chat-input-focus-ring: rgba(100, 116, 139, 0.3);
+  --chat-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --chat-input-focus-ring: rgba(100, 116, 139, 0.25);
   --chat-send-btn-bg: #475569;
   --chat-send-btn-color: #ffffff;
-  --chat-send-btn-shadow: 0 2px 6px rgba(71, 85, 105, 0.25);
+  --chat-send-btn-shadow: 0 1px 4px rgba(71, 85, 105, 0.25);
 
   --date-separator-bg: rgba(255, 255, 255, 0.85);
   --date-separator-text: #475569;
-  --date-separator-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  --date-separator-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
   --system-message-bg: rgba(255, 255, 255, 0.8);
   --system-message-text: #475569;
@@ -1171,102 +2451,225 @@
   --reply-name-received: #475569;
 
   --unread-badge-bg: #475569;
+  --unread-badge-text: #ffffff;
   --scroll-btn-bg: rgba(255, 255, 255, 0.9);
   --scroll-btn-icon: #475569;
 
   --reaction-pill-bg: rgba(255, 255, 255, 0.6);
   --reaction-pill-border: 1px solid rgba(0, 0, 0, 0.08);
-  --reaction-pill-active-bg: rgba(71, 85, 105, 0.15);
-  --reaction-pill-active-border: 1px solid rgba(71, 85, 105, 0.3);
+  --reaction-pill-active-bg: rgba(71, 85, 105, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(71, 85, 105, 0.25);
 }
 
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="custom-background"] {
 
-/* =============================================
-   DARK MODE OVERRIDES
-   ============================================= */
+  --chat-bg-base: transparent;
+  --chat-bg-gradient: none;
+  --chat-pattern-gradient: none;
+  --chat-pattern-opacity: 0;
 
-/* Themes that use light backgrounds need dark mode adjustments */
+  --sent-message-bg: rgba(71, 85, 105, 0.95);
+  --sent-message-text: #e2e8f0;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.08);
+  --sent-message-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  --sent-message-meta: rgba(226, 232, 240, 0.6);
+  --chat-bubble-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 
-[data-theme='dark'][data-chat-theme="spring-vibes"],
-[data-theme='dark'][data-chat-theme="winter-calm"],
-[data-theme='dark'][data-chat-theme="cherry-blossom"],
-[data-theme='dark'][data-chat-theme="desert-dunes"],
-[data-theme='dark'][data-chat-theme="sunset-glow"],
-[data-theme='dark'][data-chat-theme="ocean-depths"],
-[data-theme='dark'][data-chat-theme="classic-purple"],
-[data-theme='dark'][data-chat-theme="rose-gold"],
-[data-theme='dark'][data-chat-theme="forest-mist"],
-[data-theme='dark'][data-chat-theme="electric-dreams"] {
-  --received-message-bg: rgba(255, 255, 255, 0.08);
-  --received-message-text: #e2e8f0;
-  --received-message-border: 1px solid rgba(255, 255, 255, 0.08);
-  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --received-message-meta: rgba(226, 232, 240, 0.55);
-
-  --date-separator-bg: rgba(255, 255, 255, 0.08);
-  --date-separator-text: #94a3b8;
-  --date-separator-shadow: none;
-
-  --system-message-bg: rgba(255, 255, 255, 0.06);
-  --system-message-text: #94a3b8;
-
-  --scroll-btn-bg: rgba(255, 255, 255, 0.1);
-  --scroll-btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-
-  --reaction-pill-bg: rgba(255, 255, 255, 0.06);
-  --reaction-pill-border: 1px solid rgba(255, 255, 255, 0.08);
-  --reaction-count-color: #94a3b8;
-}
-
-/* Dark mode input for light-bg themes */
-[data-theme='dark'][data-chat-theme="spring-vibes"],
-[data-theme='dark'][data-chat-theme="winter-calm"],
-[data-theme='dark'][data-chat-theme="cherry-blossom"],
-[data-theme='dark'][data-chat-theme="desert-dunes"],
-[data-theme='dark'][data-chat-theme="sunset-glow"],
-[data-theme='dark'][data-chat-theme="ocean-depths"],
-[data-theme='dark'][data-chat-theme="classic-purple"],
-[data-theme='dark'][data-chat-theme="rose-gold"],
-[data-theme='dark'][data-chat-theme="forest-mist"],
-[data-theme='dark'][data-chat-theme="electric-dreams"],
-[data-theme='dark'][data-chat-theme="telegram-blue"],
-[data-theme='dark'][data-chat-theme="minimal-slate"] {
-  --chat-input-bg: rgba(255, 255, 255, 0.08);
-  --chat-input-text: #e2e8f0;
-  --chat-input-placeholder: #64748b;
-  --chat-input-icon-color: #94a3b8;
-  --chat-input-border: 1px solid rgba(255, 255, 255, 0.08);
-  --chat-input-shadow: none;
-}
-
-/* Telegram dark */
-[data-theme='dark'][data-chat-theme="telegram-blue"] {
-  --chat-bg-gradient: linear-gradient(180deg, #0e1621 0%, #17212b 100%);
-  --sent-message-bg: #2b5278;
-  --received-message-bg: #182533;
-  --received-message-text: #f5f5f5;
-  --chat-header-bg: #17212b;
-  --chat-header-border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* Minimal Slate dark */
-[data-theme='dark'][data-chat-theme="minimal-slate"] {
-  --chat-bg-gradient: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-  --sent-message-bg: #475569;
-  --received-message-bg: #1e293b;
+  --received-message-bg: rgba(15, 23, 42, 0.92);
   --received-message-text: #e2e8f0;
   --received-message-border: 1px solid rgba(255, 255, 255, 0.06);
-  --chat-header-bg: #0f172a;
+  --received-message-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  --received-message-meta: rgba(226, 232, 240, 0.5);
+
+  --tick-color: rgba(226, 232, 240, 0.3);
+  --tick-read-color: #94a3b8;
+
+  --chat-header-bg: rgba(15, 23, 42, 0.92);
   --chat-header-text: #e2e8f0;
-  --chat-header-border: 1px solid rgba(255, 255, 255, 0.06);
+  --chat-header-icon-color: #64748b;
+  --chat-header-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  --chat-header-border: 1px solid rgba(255, 255, 255, 0.04);
+
+  --chat-composer-bg: rgba(15, 23, 42, 0.92);
+  --chat-composer-border: 1px solid rgba(255, 255, 255, 0.04);
+  --chat-input-bg: rgba(30, 41, 59, 0.9);
+  --chat-input-text: #e2e8f0;
+  --chat-input-placeholder: #475569;
+  --chat-input-icon-color: #64748b;
+  --chat-input-border: 1px solid rgba(255, 255, 255, 0.06);
+  --chat-send-btn-bg: #475569;
+  --chat-send-btn-color: #e2e8f0;
+
+  --date-separator-bg: rgba(15, 23, 42, 0.85);
+  --date-separator-text: #64748b;
+
+  --system-message-bg: rgba(15, 23, 42, 0.8);
+  --system-message-text: #64748b;
+
+  --typing-indicator-dot: #475569;
+
+  --link-color-received: #60a5fa;
+  --link-color-sent: #93c5fd;
+
+  --reply-bar-color: #64748b;
+  --reply-name-received: #94a3b8;
+
+  --unread-badge-bg: #475569;
+  --unread-badge-text: #e2e8f0;
+  --scroll-btn-bg: rgba(30, 41, 59, 0.9);
+  --scroll-btn-icon: #64748b;
+
+  --reaction-pill-bg: rgba(255, 255, 255, 0.04);
+  --reaction-pill-border: 1px solid rgba(255, 255, 255, 0.06);
+  --reaction-pill-active-bg: rgba(71, 85, 105, 0.15);
+  --reaction-pill-active-border: 1px solid rgba(71, 85, 105, 0.3);
+  --reaction-count-color: #64748b;
 }
 
-/* Custom background dark */
-[data-theme='dark'][data-chat-theme="custom-background"] {
-  --sent-message-bg: rgba(71, 85, 105, 0.95);
-  --received-message-bg: rgba(30, 41, 59, 0.92);
-  --received-message-text: #e2e8f0;
-  --chat-header-bg: rgba(15, 23, 42, 0.9);
-  --chat-header-text: #e2e8f0;
-  --chat-input-bg: rgba(15, 23, 42, 0.8);
+
+/* ═══════════════════════════════════════════════
+   ███  BONUS THEME — SUNSET WARM 🌅  ███
+   ═══════════════════════════════════════════════
+   (Warmer variant with pink-orange gradients)    */
+
+/* ─── Light ─── */
+[data-theme='light'][data-chat-theme="sunset"],
+[data-chat-theme="sunset"] {
+
+  --chat-bg-base: #f5e2d5;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 10% 90%, rgba(249, 115, 22, 0.20) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 10%, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(251, 191, 36, 0.10) 0%, transparent 55%),
+    linear-gradient(160deg, #fef3c7 0%, #fed7aa 30%, #fecaca 60%, #fce7f3 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #dc2626 0%, #ea580c 40%, #f59e0b 100%);
+  --chat-pattern-opacity: 0.04;
+  --chat-pattern-size: 420px;
+  --chat-pattern-color: #ea580c;
+
+  --sent-message-bg: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.22);
+  --sent-message-shadow: 0 1px 3px rgba(220, 38, 38, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.88);
+  --chat-bubble-shadow: 0 1px 3px rgba(220, 38, 38, 0.15);
+
+  --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  --received-message-text: #7c2d12;
+  --received-message-border: 1px solid rgba(220, 38, 38, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-meta: rgba(124, 45, 18, 0.6);
+
+  --tick-color: rgba(255, 255, 255, 0.45);
+  --tick-read-color: #fed7aa;
+
+  --chat-header-bg: linear-gradient(135deg, #991b1b 0%, #dc2626 50%, #ea580c 100%);
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: rgba(255, 255, 255, 0.9);
+  --chat-header-shadow: 0 1px 3px rgba(153, 27, 27, 0.25);
+  --chat-header-border: none;
+
+  --chat-composer-bg: #fffbeb;
+  --chat-composer-border: 1px solid rgba(220, 38, 38, 0.08);
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #7c2d12;
+  --chat-input-placeholder: #9a3412;
+  --chat-input-icon-color: #ea580c;
+  --chat-input-border: 1px solid rgba(220, 38, 38, 0.12);
+  --chat-input-focus-ring: rgba(220, 38, 38, 0.25);
+  --chat-send-btn-bg: linear-gradient(135deg, #dc2626, #ea580c);
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+
+  --date-separator-bg: rgba(255, 251, 235, 0.92);
+  --date-separator-text: #7c2d12;
+
+  --system-message-bg: rgba(255, 237, 213, 0.9);
+  --system-message-text: #7c2d12;
+
+  --typing-indicator-dot: #ea580c;
+
+  --link-color-received: #dc2626;
+  --link-color-sent: #fed7aa;
+
+  --reply-bar-color: #ea580c;
+  --reply-name-sent: #fed7aa;
+  --reply-name-received: #dc2626;
+
+  --unread-badge-bg: #dc2626;
+  --unread-badge-text: #ffffff;
+  --scroll-btn-icon: #dc2626;
+
+  --reaction-pill-active-bg: rgba(220, 38, 38, 0.1);
+  --reaction-pill-active-border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+/* ─── Dark ─── */
+[data-theme='dark'][data-chat-theme="sunset"] {
+
+  --chat-bg-base: #1a0a06;
+  --chat-bg-gradient:
+    radial-gradient(ellipse at 15% 85%, rgba(220, 38, 38, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(234, 88, 12, 0.05) 0%, transparent 45%),
+    linear-gradient(160deg, #1a0a06 0%, #24100a 50%, #1a0a06 100%);
+  --chat-pattern-gradient: linear-gradient(135deg, #fbbf24 0%, #f97316 50%, #ef4444 100%);
+  --chat-pattern-opacity: 0.022;
+  --chat-pattern-color: #f97316;
+
+  --sent-message-bg: linear-gradient(135deg, #991b1b 0%, #9a3412 100%);
+  --sent-message-text: #fef2f2;
+  --sent-message-border: 1px solid rgba(252, 165, 165, 0.12);
+  --sent-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sent-message-meta: rgba(254, 242, 242, 0.6);
+  --chat-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --received-message-bg: #2a150e;
+  --received-message-text: #fef2f2;
+  --received-message-border: 1px solid rgba(252, 165, 165, 0.08);
+  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-meta: rgba(254, 242, 242, 0.5);
+
+  --tick-color: rgba(254, 242, 242, 0.3);
+  --tick-read-color: #f87171;
+
+  --chat-header-bg: #24100a;
+  --chat-header-text: #fef2f2;
+  --chat-header-icon-color: #fca5a5;
+  --chat-header-border: 1px solid rgba(252, 165, 165, 0.08);
+
+  --chat-composer-bg: #24100a;
+  --chat-composer-border: 1px solid rgba(252, 165, 165, 0.08);
+  --chat-input-bg: #381a12;
+  --chat-input-text: #fef2f2;
+  --chat-input-placeholder: rgba(254, 242, 242, 0.35);
+  --chat-input-icon-color: #fca5a5;
+  --chat-input-border: 1px solid rgba(252, 165, 165, 0.1);
+  --chat-send-btn-bg: #dc2626;
+  --chat-send-btn-color: #ffffff;
+
+  --date-separator-bg: rgba(36, 16, 10, 0.92);
+  --date-separator-text: rgba(254, 242, 242, 0.6);
+
+  --system-message-bg: rgba(42, 21, 14, 0.9);
+  --system-message-text: rgba(254, 242, 242, 0.55);
+
+  --typing-indicator-dot: #f87171;
+
+  --link-color-received: #fca5a5;
+  --link-color-sent: #fca5a5;
+
+  --reply-bar-color: #ef4444;
+  --reply-name-sent: #fca5a5;
+  --reply-name-received: #fca5a5;
+
+  --unread-badge-bg: #dc2626;
+  --scroll-btn-bg: #381a12;
+  --scroll-btn-icon: #fca5a5;
+
+  --reaction-pill-bg: rgba(252, 165, 165, 0.06);
+  --reaction-pill-border: 1px solid rgba(252, 165, 165, 0.1);
+  --reaction-pill-active-bg: rgba(252, 165, 165, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(252, 165, 165, 0.25);
+  --reaction-count-color: #fca5a5;
 }

@@ -1,20 +1,17 @@
 /**
- * useCommonQueries - Reusable TanStack Query hooks for common data fetching
- * These hooks provide caching, deduplication, and offline support
+ * useCommonQueries — Reusable TanStack Query hooks
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../config/supabase';
 import toast from 'react-hot-toast';
 import { safeDbConversion, dbToFrontend } from '../utils/dbFieldMapping';
+import useUserStore from '../store/userStore';
 
 // ==========================================
 // USER QUERIES
 // ==========================================
 
-/**
- * Fetch user profile by ID
- */
 const fetchUserById = async (userId) => {
   if (!userId) return null;
 
@@ -28,30 +25,24 @@ const fetchUserById = async (userId) => {
   return dbToFrontend(data);
 };
 
-import useUserStore from '../store/userStore';
-
 /**
  * Hook to get user profile with caching
- * Root fix: Integrated with useUserStore to ensure absolute zero redundant fetches
  */
 export const useUser = (userId) => {
-  const storeUser = useUserStore(state => state.users[userId]);
-  const fetchIfNeeded = useUserStore(state => state.fetchUserIfNeeded);
+  const storeUser = useUserStore((state) => state.users[userId]);
+  const fetchIfNeeded = useUserStore((state) => state.fetchUserIfNeeded);
 
   return useQuery({
     queryKey: ['user', userId],
     queryFn: async () => {
-      // 1. Check store again (in case it updated since hook render)
       const cached = useUserStore.getState().getUser(userId);
       if (cached) return cached;
-
-      // 2. Fetch using deduplicated store logic
       return await fetchIfNeeded(userId);
     },
-    initialData: storeUser, // Show cached data immediately
+    initialData: storeUser,
     enabled: !!userId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
@@ -83,9 +74,6 @@ const fetchContacts = async (userId) => {
   return safeDbConversion(data || []);
 };
 
-/**
- * Hook to get user's contacts with caching
- */
 export const useContacts = (userId) => {
   return useQuery({
     queryKey: ['contacts', userId],
@@ -98,12 +86,9 @@ export const useContacts = (userId) => {
 };
 
 // ==========================================
-// CHAT/MESSAGE QUERIES
+// CHAT QUERIES
 // ==========================================
 
-/**
- * Fetch chat details
- */
 const fetchChatById = async (chatId) => {
   if (!chatId) return null;
 
@@ -117,9 +102,6 @@ const fetchChatById = async (chatId) => {
   return dbToFrontend(data);
 };
 
-/**
- * Hook to get chat details with caching
- */
 export const useChat = (chatId) => {
   return useQuery({
     queryKey: ['chat', chatId],
@@ -131,30 +113,22 @@ export const useChat = (chatId) => {
 };
 
 // ==========================================
-// GROUP QUERIES (Enhanced with optimistic updates)
+// GROUP MUTATIONS
 // ==========================================
 
-/**
- * Create group with optimistic updates
- */
 export const useCreateGroup = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ name, description, avatarFile, createdBy, memberIds }) => {
-      // Import dynamically to avoid circular deps
       const { createGroup } = await import('../services/groupService');
       return createGroup({ name, description, avatarFile, createdBy, memberIds });
     },
-    // Optimistic update - immediately show the new group
     onMutate: async (variables) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['userGroups', variables.createdBy] });
 
-      // Snapshot the previous value
       const previousGroups = queryClient.getQueryData(['userGroups', variables.createdBy]);
 
-      // Optimistically add a placeholder group
       const optimisticGroup = {
         group_id: `temp_${Date.now()}`,
         group: {
@@ -176,14 +150,12 @@ export const useCreateGroup = () => {
       return { previousGroups };
     },
     onError: (err, variables, context) => {
-      // Rollback on error
       if (context?.previousGroups) {
         queryClient.setQueryData(['userGroups', variables.createdBy], context.previousGroups);
       }
       toast.error('Failed to create group');
     },
     onSuccess: (data, variables) => {
-      // Invalidate to get the real data
       queryClient.invalidateQueries({ queryKey: ['userGroups', variables.createdBy] });
       queryClient.invalidateQueries({ queryKey: ['chatList'] });
       toast.success('Group created successfully!');
@@ -191,9 +163,6 @@ export const useCreateGroup = () => {
   });
 };
 
-/**
- * Add members with optimistic updates
- */
 export const useAddGroupMembers = () => {
   const queryClient = useQueryClient();
 
@@ -204,12 +173,7 @@ export const useAddGroupMembers = () => {
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['groupMembers', variables.groupId] });
-
       const previousMembers = queryClient.getQueryData(['groupMembers', variables.groupId]);
-
-      // Add optimistic members (will be replaced by real data on success)
-      // Note: This is a simplified version - real implementation would need user details
-
       return { previousMembers };
     },
     onError: (err, variables, context) => {
@@ -226,9 +190,6 @@ export const useAddGroupMembers = () => {
   });
 };
 
-/**
- * Leave group with optimistic updates
- */
 export const useLeaveGroup = () => {
   const queryClient = useQueryClient();
 
@@ -239,12 +200,10 @@ export const useLeaveGroup = () => {
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ['userGroups', variables.userId] });
-
       const previousGroups = queryClient.getQueryData(['userGroups', variables.userId]);
 
-      // Optimistically remove the group from list
       queryClient.setQueryData(['userGroups', variables.userId], (old) => {
-        return old ? old.filter(g => g.group_id !== variables.groupId) : [];
+        return old ? old.filter((g) => g.group_id !== variables.groupId) : [];
       });
 
       return { previousGroups };
@@ -264,18 +223,17 @@ export const useLeaveGroup = () => {
 };
 
 // ==========================================
-// MESSAGE QUERIES WITH OPTIMISTIC UPDATES
+// SEND MESSAGE WITH OPTIMISTIC UPDATE
 // ==========================================
 
-/**
- * Send message with optimistic updates for instant UI feel
- */
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ chatId, senderId, receiverId, content, mediaPath, mediaType, isGroupMessage, vanishAt, tempId }) => {
-      // Prepare message data
+    mutationFn: async ({
+      chatId, senderId, receiverId, content, mediaPath,
+      mediaType, isGroupMessage, vanishAt, tempId,
+    }) => {
       let message_type = 'text';
       if (mediaType === 'image') message_type = 'image';
       else if (mediaType === 'video') message_type = 'video';
@@ -294,76 +252,70 @@ export const useSendMessage = () => {
         vanish_at: vanishAt,
         status: navigator.onLine ? 'sending' : 'pending',
         created_at: new Date().toISOString(),
-        client_id: tempId, // Rule 6: Monotonic correlation ID
+        client_id: String(tempId),
       };
 
       try {
         const { addToSyncQueue, db } = await import('../db/db');
 
-        // 1. Only write to local Dexie if offline - online confirms instantly via Supabase
         if (!navigator.onLine) {
-          await db.messages.add({
+          // FIX: Use .put() to avoid duplicate key errors
+          await db.messages.put({
             ...messageData,
             id: `temp_${tempId}`,
-            tempId
+            tempId,
           });
-        }
-
-        if (navigator.onLine) {
-          const { data, error } = await supabase
-            .from('messages')
-            .insert(messageData)
-            .select()
-            .single();
-
-          if (error) throw error;
-          const confirms = dbToFrontend(data);
-
-          // 2. Reconciliation: Only needed if we previously wrote a temp record (unlikely in this path now, but safe)
-          await db.messages.delete(`temp_${tempId}`);
-          await db.messages.add(data);
-
-          return confirms;
-        } else {
-          // 3. Queue for sync with precision tempId
           await addToSyncQueue('send_message', { ...messageData, tempId });
           return { ...dbToFrontend(messageData), tempId, is_pending: true };
         }
+
+        const { data, error } = await supabase
+          .from('messages')
+          .insert(messageData)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const confirmed = dbToFrontend(data);
+
+        // FIX: Reconcile local DB
+        await db.messages.delete(`temp_${tempId}`).catch(() => {});
+        await db.messages.put(data);
+
+        return { ...confirmed, tempId };
       } catch (err) {
         console.error('Error in useSendMessage mutation:', err);
         throw err;
       }
     },
-    // Optimistic update - immediately show message
+
     onMutate: async (variables) => {
       const queryKey = ['messages', variables.chatId];
-
       await queryClient.cancelQueries({ queryKey });
-
       const previousMessages = queryClient.getQueryData(queryKey);
 
+      // FIX: Use camelCase field names to match converted data in cache
       const optimisticMessage = {
         id: `temp_${variables.tempId}`,
         tempId: variables.tempId,
-        chat_id: variables.chatId,
-        sender_id: variables.senderId,
+        chatId: variables.chatId,
+        senderId: variables.senderId,
         content: variables.content,
-        media_path: variables.mediaPath,
-        media_type: variables.mediaType,
+        mediaPath: variables.mediaPath,
+        mediaType: variables.mediaType,
+        createdAt: new Date().toISOString(),
         created_at: new Date().toISOString(),
         status: navigator.onLine ? 'sending' : 'pending',
-        sender: {
-          id: variables.senderId,
-        },
+        sender: { id: variables.senderId },
       };
 
       queryClient.setQueryData(queryKey, (old) => {
-        // Handle both simple array (legacy) and infinite query pages structure
         if (old?.pages) {
           const newPages = [...old.pages];
           newPages[0] = {
             ...newPages[0],
-            data: [optimisticMessage, ...newPages[0].data]
+            data: [optimisticMessage, ...newPages[0].data],
           };
           return { ...old, pages: newPages };
         }
@@ -372,34 +324,54 @@ export const useSendMessage = () => {
 
       return { previousMessages, queryKey };
     },
+
+    // FIX: Add onSuccess to reconcile optimistic → real message
+    onSuccess: (data, variables, context) => {
+      if (!data || data.is_pending) return;
+
+      const queryKey = context?.queryKey || ['messages', variables.chatId];
+
+      queryClient.setQueryData(queryKey, (old) => {
+        if (!old) return old;
+
+        if (old.pages) {
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              data: page.data.map((msg) =>
+                msg.tempId === variables.tempId
+                  ? { ...data, sender: msg.sender }
+                  : msg
+              ),
+            })),
+          };
+        }
+        return old;
+      });
+    },
+
     onError: (err, variables, context) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(context.queryKey, context.previousMessages);
       }
       if (navigator.onLine) {
-        toast.error('Failed to send message online');
+        toast.error('Failed to send message');
       }
     },
+
     onSettled: (_, error, variables) => {
-      // Root fix: Only invalidate on error. 
-      // On success, the optimistic update + mutation function confirm are enough.
       if (error) {
-        const queryKey = ['messages', variables.chatId];
-        queryClient.invalidateQueries({ queryKey });
+        queryClient.invalidateQueries({ queryKey: ['messages', variables.chatId] });
       }
     },
   });
 };
 
-
 // ==========================================
-// PREFETCHING HOOKS
+// PREFETCHING
 // ==========================================
 
-/**
- * Prefetch data when user hovers over items
- * Use this for file/folder previews
- */
 export const usePrefetch = () => {
   const queryClient = useQueryClient();
 
@@ -407,7 +379,7 @@ export const usePrefetch = () => {
     queryClient.prefetchQuery({
       queryKey: ['user', userId],
       queryFn: () => fetchUserById(userId),
-      staleTime: 1000 * 60 * 2, // 2 minutes
+      staleTime: 1000 * 60 * 2,
     });
   };
 
@@ -431,12 +403,9 @@ export const usePrefetch = () => {
 };
 
 // ==========================================
-// INVALIDATE HELPERS
+// INVALIDATION HELPERS
 // ==========================================
 
-/**
- * Helper to invalidate common queries after updates
- */
 export const useInvalidateQueries = () => {
   const queryClient = useQueryClient();
 
@@ -445,9 +414,8 @@ export const useInvalidateQueries = () => {
     queryClient.invalidateQueries({ queryKey: ['userGroups', userId] });
   };
 
-  const invalidateMessages = (chatId, isGroup = false) => {
-    const queryKey = ['messages', chatId];
-    queryClient.invalidateQueries({ queryKey });
+  const invalidateMessages = (chatId) => {
+    queryClient.invalidateQueries({ queryKey: ['messages', chatId] });
   };
 
   return { invalidateChatList, invalidateMessages };
@@ -457,15 +425,11 @@ export const useInvalidateQueries = () => {
 // CONTACT MUTATIONS
 // ==========================================
 
-/**
- * Add contact mutation
- */
 export const useAddContact = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ userId, contactUserId, contactName }) => {
-      // Check if contact already exists
       const { data: existing, error: fetchError } = await supabase
         .from('contacts')
         .select('id')
@@ -481,11 +445,13 @@ export const useAddContact = () => {
 
       const { data, error } = await supabase
         .from('contacts')
-        .insert([{
-          user_id: userId,
-          contact_user_id: contactUserId,
-          contact_name: contactName
-        }])
+        .insert([
+          {
+            user_id: userId,
+            contact_user_id: contactUserId,
+            contact_name: contactName,
+          },
+        ])
         .select()
         .single();
 
@@ -499,6 +465,6 @@ export const useAddContact = () => {
     onError: (error) => {
       console.error('Error adding contact:', error);
       toast.error('Failed to add contact');
-    }
+    },
   });
 };
