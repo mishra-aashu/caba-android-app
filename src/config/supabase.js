@@ -83,8 +83,9 @@ const createSupabaseClient = () => {
       params: {
         eventsPerSecond: 10,
       },
-      timeout: 30000,
-      heartbeatIntervalMs: 5000,
+      // ✅ Only two changes from your original:
+      timeout: 45000,                // 30000 → 45000
+      heartbeatIntervalMs: 15000,    // 5000 → 15000
     },
   });
 
