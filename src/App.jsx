@@ -61,6 +61,7 @@ const Chat = lazy(() => import('./components/chat/Chat'));
 const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
 import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
+import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { requestPersistentStorage } from './db/db';
 import { DialogProvider } from './contexts/DialogProvider';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
@@ -245,6 +246,7 @@ const ProtectedRoute = ({ children }) => {
 
 const App = () => {
   const { dbUser } = useAuth(); // Get dbUser from auth hook
+  const { needsRefresh, handleRefresh } = useAutoRefresh();
 
   // 🔌 Native device integrations: StatusBar color + Keyboard resize mode
   useCapacitorPlugins();
@@ -289,6 +291,18 @@ const App = () => {
                     top: '70%',
                     transform: 'translate(-50%, -50%)'
                   }} />
+
+                {/* 🚀 Auto Cache-Bust Notification */}
+                {needsRefresh && (
+                  <div
+                    className="auto-refresh-banner"
+                    onClick={handleRefresh}
+                  >
+                    <span className="refresh-icon">✨</span>
+                    <span className="refresh-text">New update available! Tap to refresh</span>
+                  </div>
+                )}
+
                 <GlobalDialog />
               </ChatThemeProvider>
             </GroupCallProvider>

@@ -1560,3 +1560,70 @@ body,
     border-color 0.3s ease,
     box-shadow 0.3s ease;
 }
+
+/* =============================================
+   16. AUTO REFRESH BANNER
+   ============================================= */
+.auto-refresh-banner {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  background: var(--brand-gradient);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 30px;
+  box-shadow: 0 4px 20px rgba(0, 168, 132, 0.4);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: banner-slide-up 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+}
+
+.auto-refresh-banner:hover {
+  transform: translateX(-50%) translateY(-2px);
+  filter: brightness(110%);
+}
+
+.refresh-icon {
+  font-size: 18px;
+  animation: icon-bounce 2s infinite;
+}
+
+@keyframes banner-slide-up {
+  from {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes icon-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (min-width: 769px) {
+  .auto-refresh-banner {
+    bottom: 30px;
+    left: calc(50% + 40px);
+    /* Offset for desktop sidebar if centered */
+  }
+}

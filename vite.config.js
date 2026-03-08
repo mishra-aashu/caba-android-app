@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { createHtmlPlugin } from 'vite-plugin-html';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -18,6 +19,14 @@ export default defineConfig(({ mode }) => {
 
     plugins: [
       react(),
+      createHtmlPlugin({
+        inject: {
+          data: {
+            buildTime: Date.now(),
+            buildDate: new Date().toISOString()
+          }
+        }
+      }),
       VitePWA({
         registerType: 'prompt',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
