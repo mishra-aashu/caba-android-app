@@ -1338,7 +1338,7 @@ body[data-theme='dark'] .message-time {
   background-color: var(--surface-color, #1f2c33);
   padding: 8px 12px;
   margin: 0 10px;
-  border-radius: 8px 8px 0 0;
+  border-radius: 10px 10px 0 0;
   margin-bottom: 0;
   animation: slideUp 0.2s ease-out;
   border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
