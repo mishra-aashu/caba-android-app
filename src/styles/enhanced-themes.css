@@ -42,10 +42,10 @@
 
   /* ── Pattern Overlay (the WhatsApp-style doodle layer) ── */
   --chat-pattern-gradient: linear-gradient(135deg, #008e6f 0%, #128c7e 100%);
-  --chat-pattern-opacity: 0.06;
+  --chat-pattern-opacity: 0.12;
   --chat-pattern-size: 400px;
   --chat-pattern-color: #008e6f;
-  --chat-pattern-blend: soft-light;
+  --chat-pattern-blend: overlay;
 
   /* ── Sent Messages ── */
   --sent-message-bg: #d9fdd3;
@@ -168,10 +168,10 @@
 
   /* ── Pattern Overlay ── */
   --chat-pattern-gradient: linear-gradient(135deg, #22d3ee 0%, #00a884 100%);
-  --chat-pattern-opacity: 0.025;
+  --chat-pattern-opacity: 0.12;
   --chat-pattern-size: 400px;
   --chat-pattern-color: #00a884;
-  --chat-pattern-blend: soft-light;
+  --chat-pattern-blend: overlay;
 
   /* ── Sent Messages ── */
   --sent-message-bg: #005c4b;
@@ -272,8 +272,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="spring-vibes"],
-[data-chat-theme="spring-vibes"] {
+[data-theme="light"][data-chat-theme="spring-vibes"],
+[data-theme="light"][data-chat-theme="spring-vibes"] {
 
   --chat-bg-base: #eef5ec;
   --chat-bg-gradient:
@@ -308,8 +308,8 @@
   --chat-header-shadow: 0 1px 3px rgba(4, 120, 87, 0.25);
   --chat-header-border: none;
 
-  --chat-composer-bg: #f0fdf4;
-  --chat-composer-border: 1px solid rgba(5, 150, 105, 0.1);
+  --chat-composer-bg: rgba(240, 253, 244, 0.85);
+  --chat-composer-border: 1px solid rgba(5, 150, 105, 0.12);
   --chat-input-bg: #ffffff;
   --chat-input-text: #1e293b;
   --chat-input-placeholder: #6b7280;
@@ -353,7 +353,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="spring-vibes"] {
+[data-theme="dark"][data-chat-theme="spring-vibes"] {
 
   --chat-bg-base: #071a12;
   --chat-bg-gradient:
@@ -386,8 +386,8 @@
   --chat-header-shadow: none;
   --chat-header-border: 1px solid rgba(52, 211, 153, 0.08);
 
-  --chat-composer-bg: #0a1f17;
-  --chat-composer-border: 1px solid rgba(52, 211, 153, 0.08);
+  --chat-composer-bg: rgba(10, 31, 23, 0.85);
+  --chat-composer-border: 1px solid rgba(52, 211, 153, 0.12);
   --chat-input-bg: #132f24;
   --chat-input-text: #d1fae5;
   --chat-input-placeholder: rgba(209, 250, 229, 0.35);
@@ -437,8 +437,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="winter-calm"],
-[data-chat-theme="winter-calm"] {
+[data-theme="light"][data-chat-theme="winter-calm"],
+[data-theme="light"][data-chat-theme="winter-calm"] {
 
   --chat-bg-base: #e8f0f8;
   --chat-bg-gradient:
@@ -516,7 +516,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="winter-calm"] {
+[data-theme="dark"][data-chat-theme="winter-calm"] {
 
   --chat-bg-base: #06131c;
   --chat-bg-gradient:
@@ -590,8 +590,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="cherry-blossom"],
-[data-chat-theme="cherry-blossom"] {
+[data-theme="light"][data-chat-theme="cherry-blossom"],
+[data-theme="light"][data-chat-theme="cherry-blossom"] {
 
   --chat-bg-base: #f5e0e4;
   --chat-bg-gradient:
@@ -666,7 +666,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="cherry-blossom"] {
+[data-theme="dark"][data-chat-theme="cherry-blossom"] {
 
   --chat-bg-base: #1a080d;
   --chat-bg-gradient:
@@ -698,8 +698,8 @@
   --chat-header-icon-color: #fda4af;
   --chat-header-border: 1px solid rgba(251, 113, 133, 0.08);
 
-  --chat-composer-bg: #220e15;
-  --chat-composer-border: 1px solid rgba(251, 113, 133, 0.08);
+  --chat-composer-bg: rgba(34, 14, 21, 0.85);
+  --chat-composer-border: 1px solid rgba(251, 113, 133, 0.12);
   --chat-input-bg: #351520;
   --chat-input-text: #ffe4e6;
   --chat-input-placeholder: rgba(255, 228, 230, 0.35);
@@ -740,8 +740,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="desert-dunes"],
-[data-chat-theme="desert-dunes"] {
+[data-theme="light"][data-chat-theme="desert-dunes"],
+[data-theme="light"][data-chat-theme="desert-dunes"] {
 
   --chat-bg-base: #f0e6d0;
   --chat-bg-gradient:
@@ -816,7 +816,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="desert-dunes"] {
+[data-theme="dark"][data-chat-theme="desert-dunes"] {
 
   --chat-bg-base: #1a1408;
   --chat-bg-gradient:
@@ -890,8 +890,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="sunset-glow"],
-[data-chat-theme="sunset-glow"] {
+[data-theme="light"][data-chat-theme="sunset-glow"],
+[data-theme="light"][data-chat-theme="sunset-glow"] {
 
   --chat-bg-base: #f5e0d0;
   --chat-bg-gradient:
@@ -968,7 +968,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="sunset-glow"] {
+[data-theme="dark"][data-chat-theme="sunset-glow"] {
 
   --chat-bg-base: #1a0e06;
   --chat-bg-gradient:
@@ -1042,8 +1042,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="ocean-depths"],
-[data-chat-theme="ocean-depths"] {
+[data-theme="light"][data-chat-theme="ocean-depths"],
+[data-theme="light"][data-chat-theme="ocean-depths"] {
 
   --chat-bg-base: #d8edee;
   --chat-bg-gradient:
@@ -1118,7 +1118,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="ocean-depths"] {
+[data-theme="dark"][data-chat-theme="ocean-depths"] {
 
   --chat-bg-base: #061518;
   --chat-bg-gradient:
@@ -1192,8 +1192,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light (falls back to a muted slate) ─── */
-[data-theme='light'][data-chat-theme="midnight-amoled"],
-[data-chat-theme="midnight-amoled"] {
+[data-theme="light"][data-chat-theme="midnight-amoled"],
+[data-theme="light"][data-chat-theme="midnight-amoled"] {
 
   --chat-bg-base: #e8eaed;
   --chat-bg-gradient:
@@ -1259,7 +1259,7 @@
 }
 
 /* ─── Dark (TRUE AMOLED) ─── */
-[data-theme='dark'][data-chat-theme="midnight-amoled"] {
+[data-theme="dark"][data-chat-theme="midnight-amoled"] {
 
   --chat-bg-base: #000000;
   --chat-bg-gradient:
@@ -1347,8 +1347,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light (Neon-tinted light) ─── */
-[data-theme='light'][data-chat-theme="cyberpunk-neon"],
-[data-chat-theme="cyberpunk-neon"] {
+[data-theme="light"][data-chat-theme="cyberpunk-neon"],
+[data-theme="light"][data-chat-theme="cyberpunk-neon"] {
 
   --chat-bg-base: #e8e5f0;
   --chat-bg-gradient:
@@ -1418,7 +1418,7 @@
 }
 
 /* ─── Dark (TRUE CYBERPUNK) ─── */
-[data-theme='dark'][data-chat-theme="cyberpunk-neon"] {
+[data-theme="dark"][data-chat-theme="cyberpunk-neon"] {
 
   --chat-bg-base: #06060c;
   --chat-bg-gradient:
@@ -1508,8 +1508,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="classic-purple"],
-[data-chat-theme="classic-purple"] {
+[data-theme="light"][data-chat-theme="classic-purple"],
+[data-theme="light"][data-chat-theme="classic-purple"] {
 
   --chat-bg-base: #e8e0f5;
   --chat-bg-gradient:
@@ -1580,15 +1580,16 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="classic-purple"] {
+[data-theme="dark"][data-chat-theme="classic-purple"] {
 
-  --chat-bg-base: #0e0818;
+  --chat-bg-base: #06030a;
   --chat-bg-gradient:
-    radial-gradient(ellipse at 15% 85%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 15%, rgba(167, 139, 250, 0.05) 0%, transparent 45%),
-    linear-gradient(160deg, #0e0818 0%, #150e25 50%, #0e0818 100%);
+    radial-gradient(circle at 15% 85%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 85% 15%, rgba(139, 92, 246, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.05) 0%, transparent 60%),
+    linear-gradient(160deg, #06030a 0%, #0d0618 35%, #0a0414 70%, #06030a 100%);
   --chat-pattern-gradient: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
-  --chat-pattern-opacity: 0.025;
+  --chat-pattern-opacity: 0.035;
   --chat-pattern-color: #8b5cf6;
 
   --sent-message-bg: linear-gradient(135deg, #5b21b6 0%, #4c1d95 100%);
@@ -1654,8 +1655,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="rose-gold"],
-[data-chat-theme="rose-gold"] {
+[data-theme="light"][data-chat-theme="rose-gold"],
+[data-theme="light"][data-chat-theme="rose-gold"] {
 
   --chat-bg-base: #f5e0e2;
   --chat-bg-gradient:
@@ -1726,7 +1727,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="rose-gold"] {
+[data-theme="dark"][data-chat-theme="rose-gold"] {
 
   --chat-bg-base: #1a080c;
   --chat-bg-gradient:
@@ -1800,8 +1801,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="forest-mist"],
-[data-chat-theme="forest-mist"] {
+[data-theme="light"][data-chat-theme="forest-mist"],
+[data-theme="light"][data-chat-theme="forest-mist"] {
 
   --chat-bg-base: #dce8dc;
   --chat-bg-gradient:
@@ -1872,7 +1873,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="forest-mist"] {
+[data-theme="dark"][data-chat-theme="forest-mist"] {
 
   --chat-bg-base: #061a0e;
   --chat-bg-gradient:
@@ -1946,8 +1947,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="electric-dreams"],
-[data-chat-theme="electric-dreams"] {
+[data-theme="light"][data-chat-theme="electric-dreams"],
+[data-theme="light"][data-chat-theme="electric-dreams"] {
 
   --chat-bg-base: #dce4f5;
   --chat-bg-gradient:
@@ -2018,7 +2019,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="electric-dreams"] {
+[data-theme="dark"][data-chat-theme="electric-dreams"] {
 
   --chat-bg-base: #060c1a;
   --chat-bg-gradient:
@@ -2092,8 +2093,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="minimal-slate"],
-[data-chat-theme="minimal-slate"] {
+[data-theme="light"][data-chat-theme="minimal-slate"],
+[data-theme="light"][data-chat-theme="minimal-slate"] {
 
   --chat-bg-base: #eceef1;
   --chat-bg-gradient:
@@ -2167,7 +2168,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="minimal-slate"] {
+[data-theme="dark"][data-chat-theme="minimal-slate"] {
 
   --chat-bg-base: #0f172a;
   --chat-bg-gradient:
@@ -2241,8 +2242,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="telegram-blue"],
-[data-chat-theme="telegram-blue"] {
+[data-theme="light"][data-chat-theme="telegram-blue"],
+[data-theme="light"][data-chat-theme="telegram-blue"] {
 
   --chat-bg-base: #c8dce8;
   --chat-bg-gradient:
@@ -2314,7 +2315,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="telegram-blue"] {
+[data-theme="dark"][data-chat-theme="telegram-blue"] {
 
   --chat-bg-base: #0e1621;
   --chat-bg-gradient:
@@ -2389,8 +2390,8 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="custom-background"],
-[data-chat-theme="custom-background"] {
+[data-theme="light"][data-chat-theme="custom-background"],
+[data-theme="light"][data-chat-theme="custom-background"] {
 
   --chat-bg-base: transparent;
   --chat-bg-gradient: none;
@@ -2462,7 +2463,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="custom-background"] {
+[data-theme="dark"][data-chat-theme="custom-background"] {
 
   --chat-bg-base: transparent;
   --chat-bg-gradient: none;
@@ -2534,8 +2535,8 @@
    (Warmer variant with pink-orange gradients)    */
 
 /* ─── Light ─── */
-[data-theme='light'][data-chat-theme="sunset"],
-[data-chat-theme="sunset"] {
+[data-theme="light"][data-chat-theme="sunset"],
+[data-theme="light"][data-chat-theme="sunset"] {
 
   --chat-bg-base: #f5e2d5;
   --chat-bg-gradient:
@@ -2606,7 +2607,7 @@
 }
 
 /* ─── Dark ─── */
-[data-theme='dark'][data-chat-theme="sunset"] {
+[data-theme="dark"][data-chat-theme="sunset"] {
 
   --chat-bg-base: #1a0a06;
   --chat-bg-gradient:

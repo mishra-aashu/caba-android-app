@@ -16,7 +16,7 @@ export const chatThemes = {
         name: 'Midnight AMOLED',
         category: 'Dark',
         cssOnly: true,
-        background: '#000000',
+        background: 'linear-gradient(#000000, #000000)',
         sentMessage: { background: '#222222', text: '#ffffff' },
         receivedMessage: { background: '#0a0a0a', text: '#d4d4d4' }
     },
@@ -70,7 +70,7 @@ export const chatThemes = {
         name: 'Telegram Blue',
         category: 'Professional',
         cssOnly: true,
-        background: '#87a7b8',
+        background: 'linear-gradient(#87a7b8, #87a7b8)',
         sentMessage: { background: '#2b5278', text: '#ffffff' },
         receivedMessage: { background: '#ffffff', text: '#000000' }
     },
@@ -88,7 +88,7 @@ export const chatThemes = {
         name: 'Minimal Slate',
         category: 'Professional',
         cssOnly: true,
-        background: '#f1f5f9',
+        background: 'linear-gradient(#f1f5f9, #f1f5f9)',
         sentMessage: { background: '#334155', text: '#ffffff' },
         receivedMessage: { background: '#ffffff', text: '#0f172a' }
     },

@@ -474,30 +474,32 @@
 /* =================
    DARK MODE SUPPORT
    ================= */
-@media (prefers-color-scheme: light) {
-  :root {
-    --gallery-background: #f0f2f5;
-    --gallery-surface: #ffffff;
-    --gallery-surface-light: #f8f9fa;
-    --gallery-text-primary: #1a1a1a;
-    --gallery-text-secondary: #65676b;
-    --gallery-border: rgba(0, 0, 0, 0.1);
-    --gallery-shadow: rgba(0, 0, 0, 0.1);
-  }
-
-  .back-btn {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--gallery-text-primary);
-  }
-
-  .back-btn:hover {
-    background: rgba(0, 0, 0, 0.1);
-  }
-
-  .loading-spinner {
-    border-color: rgba(37, 211, 102, 0.3);
-  }
+/* =================
+   DARK MODE / LIGHT MODE SUPPORT
+   ================= */
+:global([data-theme='light']) {
+  --gallery-background: #f0f2f5;
+  --gallery-surface: #ffffff;
+  --gallery-surface-light: #f8f9fa;
+  --gallery-text-primary: #1a1a1a;
+  --gallery-text-secondary: #65676b;
+  --gallery-border: rgba(0, 0, 0, 0.1);
+  --gallery-shadow: rgba(0, 0, 0, 0.1);
 }
+
+:global([data-theme='light']) .back-btn {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--gallery-text-primary);
+}
+
+:global([data-theme='light']) .back-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+:global([data-theme='light']) .loading-spinner {
+  border-color: rgba(37, 211, 102, 0.3);
+}
+
 
 /* =================
    REDUCED MOTION

@@ -72,6 +72,7 @@ const GroupChat = () => {
     const { supabase } = useSupabase();
     const {
         chatTheme,
+        chatWallpaper,
         chatThemes,
         chatPatterns,
         currentPattern,
@@ -534,9 +535,8 @@ const GroupChat = () => {
         >
             <div className={styles['chat-main-area']}>
                 <ChatBackground
-                    gradient={chatThemes[chatTheme]?.background || 'linear-gradient(180deg, #1e1b4b 0%, #2e1065 100%)'}
                     active={true}
-                    showPattern={chatThemes[chatTheme]?.is_pattern}
+                    showPattern={Boolean(currentPattern) || chatThemes[chatTheme]?.is_pattern}
                 >
                     <div className={styles['chat-main-area-content']}>
                         <header className={styles['chat-header']}>
@@ -701,52 +701,29 @@ const GroupChat = () => {
 
                     <Modal isOpen={showThemeModal} onClose={() => setShowThemeModal(false)} title="Choose Theme" size="large">
                         <div className={styles['theme-selector']}>
-                            <div className={styles['theme-grid']}>
-                                {Object.entries(chatThemes).map(([key, theme]) => (
-                                    <div
-                                        key={key}
-                                        className={`${styles['theme-card']} ${chatTheme === key ? styles.active : ''}`}
-                                        onClick={() => selectTheme(key)}
-                                    >
+                            <div className={styles['theme-section']}>
+                                <h4 className={styles['theme-section-title']}>Chat Themes</h4>
+                                <div className={styles['theme-grid']}>
+                                    {Object.entries(chatThemes).map(([key, theme]) => (
                                         <div
-                                            className={styles['theme-preview-card']}
-                                            style={{
-                                                background: 'white'
-                                            }}
+                                            key={key}
+                                            className={`${styles['theme-capsule']} ${chatTheme === key ? styles.active : ''}`}
+                                            onClick={() => selectTheme(key)}
                                         >
-                                            <div style={{
-                                                width: '100%',
-                                                height: '65%',
-                                                background: theme.background,
-                                                backgroundSize: 'cover',
-                                                backgroundPosition: 'center'
-                                            }}></div>
-                                            <div className={styles['theme-preview-footer']}>
-                                                <div style={{
-                                                    width: '32px',
-                                                    height: '10px',
-                                                    borderRadius: '6px',
-                                                    background: theme.sentMessage.background,
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                                }}></div>
-                                                <div style={{
-                                                    width: '32px',
-                                                    height: '10px',
-                                                    borderRadius: '6px',
-                                                    background: theme.receivedMessage.background,
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                                }}></div>
-                                            </div>
+                                            <div
+                                                className={styles['theme-capsule-preview']}
+                                                style={{ background: theme.background }}
+                                            />
+                                            <span className={styles['theme-capsule-name']}>
+                                                {theme.name}
+                                            </span>
                                         </div>
-                                        <span className={styles['theme-card-name']}>
-                                            {theme.name}
-                                        </span>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
 
                             <div className={styles['pattern-picker-section']}>
-                                <h4 className={styles['theme-section-title']}>Background Pattern</h4>
+                                <h4 className={styles['theme-section-title']}>Wallpapers & Patterns</h4>
                                 <div className={styles['pattern-grid']}>
                                     {chatPatterns.map((pattern) => (
                                         <div

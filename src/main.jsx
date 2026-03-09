@@ -3,7 +3,7 @@ import { HashRouter } from 'react-router-dom'
 import './styles/tokens.css';
 import './index.css';
 import './styles/theme-tokens.css';
-import './styles/theme-integration.css';
+import './styles/theme-integration.css'
 import './styles/app.css';
 import App from './App.jsx'
 import { ThemeProvider } from './contexts/ThemeProvider.jsx'
