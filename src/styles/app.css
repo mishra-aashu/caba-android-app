@@ -52,10 +52,10 @@
   /* Chat Header */
   --chat-header-icon-color: #1a3a2a;
   --primary-0: #0c1e17;
+}
 
-  .icon-btn {
-    color: #1a3a2a;
-  }
+.icon-btn {
+  color: #1a3a2a;
 }
 
 /* =============================================
@@ -86,50 +86,50 @@
   --active-color: rgba(0, 168, 132, 0.15);
 
   --chat-header-icon-color: #e9edef;
+}
 
-  .icon-btn {
-    color: #e9edef;
-  }
+.icon-btn {
+  color: #e9edef;
+}
 
-  .contact-menu-btn {
-    color: #e9edef;
-  }
+.contact-menu-btn {
+  color: #e9edef;
+}
 
-  .dropdown .icon-btn {
-    color: #e9edef;
-  }
+.dropdown .icon-btn {
+  color: #e9edef;
+}
 
-  /* Dark mode icon overrides */
-  .contacts-icon,
-  .search-toggle-icon,
-  .search-input-icon,
-  .empty-state-icon,
-  .add-contact-icon,
-  .contact-menu-icon,
-  .edit-contact-icon,
-  .delete-contact-icon,
-  .start-chat-icon,
-  .profile-icon,
-  .settings-icon,
-  .reminders-icon,
-  .admin-icon,
-  .about-icon,
-  .help-icon,
-  .logout-icon,
-  .home-icon,
-  .profile-nav-icon,
-  .history-icon,
-  .reminders-nav-icon,
-  .news-icon,
-  .qr-icon,
-  .settings-nav-icon,
-  .blocked-icon {
-    color: #e9edef;
-  }
+/* Dark mode icon overrides */
+.contacts-icon,
+.search-toggle-icon,
+.search-input-icon,
+.empty-state-icon,
+.add-contact-icon,
+.contact-menu-icon,
+.edit-contact-icon,
+.delete-contact-icon,
+.start-chat-icon,
+.profile-icon,
+.settings-icon,
+.reminders-icon,
+.admin-icon,
+.about-icon,
+.help-icon,
+.logout-icon,
+.home-icon,
+.profile-nav-icon,
+.history-icon,
+.reminders-nav-icon,
+.news-icon,
+.qr-icon,
+.settings-nav-icon,
+.blocked-icon {
+  color: #e9edef;
+}
 
-  .chats-title {
-    color: #e9edef;
-  }
+.chats-title {
+  color: #e9edef;
 }
 
 /* =============================================

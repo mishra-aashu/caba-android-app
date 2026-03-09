@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
 import useIsDesktop from '../../hooks/useIsDesktop';
+import { uploadGroupAvatar } from '../../services/groupService';
 import './GroupInfoDrawer.css';
 
 const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
@@ -113,7 +114,6 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
 
     setIsUploadingAvatar(true);
     try {
-      const { uploadGroupAvatar } = await import('../../services/groupService');
       const avatarUrl = await uploadGroupAvatar(file, groupId);
 
       await updateGroupMutation.mutateAsync({

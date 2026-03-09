@@ -10,51 +10,11 @@ import PhoneAuthModal from './components/auth/PhoneAuthModal';
 import { supabase } from './config/supabase';
 import useAuthStore from './store/authStore';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import '../src/styles/desktop.css';
-import '../src/styles/call-screen.css';
-
-// Lazy load components
-const Login = lazy(() => import('./components/auth/Login'));
-const ChatPlaceholder = lazy(() => import('./components/common/ChatPlaceholder'));
-const Terms = lazy(() => import('./components/legal/Terms'));
-const Privacy = lazy(() => import('./components/legal/Privacy'));
-const Profile = lazy(() => import('./components/profile/Profile'));
-const Settings = lazy(() => import('./components/settings'));
-const EmojiSettings = lazy(() => import('./components/settings/EmojiSettings'));
-const Reminders = lazy(() => import('./components/reminders'));
-const CreateReminder = lazy(() => import('./components/reminders/CreateReminder'));
-const Calls = lazy(() => import('./components/calls'));
-const History = lazy(() => import('./components/History'));
-const Blocked = lazy(() => import('./components/blocked'));
-const UserDetails = lazy(() => import('./components/UserDetails'));
-const SharedProfile = lazy(() => import('./components/shared-profile'));
-const About = lazy(() => import('./components/About'));
-const SupportChat = lazy(() => import('./components/SupportChat'));
-const Admin = lazy(() => import('./components/Admin'));
-const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
-const QRPage = lazy(() => import('./components/qr'));
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const DownloadAPK = lazy(() => import('./pages/DownloadAPK'));
-import Intro from './components/Intro';
-const GroupsPage = lazy(() => import('./components/groups/GroupsPage'));
-const GroupChat = lazy(() => import('./components/chat/GroupChat'));
-const GroupInfoPage = lazy(() => import('./components/groups/GroupInfoPage'));
-const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
-const ArenaPage = lazy(() => import('./components/chat/ArenaPage'));
-const CallScreen = lazy(() => import('./components/CallScreen'));
-const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
-const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
-const GroupIncomingCallNotification = lazy(() => import('./components/group/GroupIncomingCallNotification'));
-import DesktopNavbar from './components/common/DesktopNavbar';
-import Modal from './components/common/Modal';
 import useIsDesktop from './hooks/useIsDesktop';
 import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
-import OfflineIndicator from './components/common/OfflineIndicator';
 import ViewportManager from './components/layout/ViewportManager';
 import MainLayout from './components/MainLayout';
-const Chat = lazy(() => import('./components/chat/Chat'));
-const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
 import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
@@ -62,9 +22,52 @@ import { requestPersistentStorage } from './db/db';
 import { DialogProvider } from './contexts/DialogProvider';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
 import GlobalDialog from './components/common/GlobalDialog';
+
+// CSS Imports
+import '../src/styles/desktop.css';
+import '../src/styles/call-screen.css';
 import './styles/offline-indicator.css';
 import './styles/emoji-styles.css';
+
+// Static Imports for Core Components (to resolve build warnings)
+import Login from './components/auth/Login';
+import LandingPage from './pages/LandingPage';
+import DownloadAPK from './pages/DownloadAPK';
+import Intro from './components/Intro';
+import { GroupsPage, GroupInfoPage } from './components/groups';
+import GroupChat from './components/chat/GroupChat';
+import ContactsPage from './components/contacts/ContactsPage';
+import ArenaPage from './components/chat/ArenaPage';
+import CallScreen from './components/CallScreen';
+import CallStatusIndicator from './components/CallStatusIndicator';
+import IncomingCallModal from './components/IncomingCallModal';
+import GroupIncomingCallNotification from './components/group/GroupIncomingCallNotification';
+import ChatPlaceholder from './components/common/ChatPlaceholder';
+import Profile from './components/profile/Profile';
+import UserDetails from './components/UserDetails';
+import Settings from './components/settings';
+import EmojiSettings from './components/settings/EmojiSettings';
+import Reminders from './components/reminders';
+import CreateReminder from './components/reminders/CreateReminder';
+import Calls from './components/calls';
+import History from './components/History';
+import Blocked from './components/blocked';
+import About from './components/About';
+import SupportChat from './components/SupportChat';
+import { QRPage } from './components/qr';
+import DesktopNavbar from './components/common/DesktopNavbar';
+import Modal from './components/common/Modal';
+import OfflineIndicator from './components/common/OfflineIndicator';
 import SyncIndicator from './components/common/SyncIndicator';
+import Terms from './components/legal/Terms';
+import Privacy from './components/legal/Privacy';
+import SharedProfile from './components/shared-profile';
+
+// Lazy load truly non-critical/heavy components that are NOT statically imported elsewhere
+const Chat = lazy(() => import('./components/chat/Chat'));
+const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
+const Admin = lazy(() => import('./components/Admin'));
+const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
 
 
 // ──────────────────────────────────────────────
@@ -121,6 +124,7 @@ const AppContent = () => {
         <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
         <Route path="user-details/:id" element={<UserDetails />} />
         <Route path="groups" element={<GroupsPage />} />
+        <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
         <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
         <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
       </Route>

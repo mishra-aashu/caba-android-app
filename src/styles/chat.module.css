@@ -323,6 +323,25 @@
   width: 100%;
   position: relative;
   z-index: 1;
+  background-color: var(--surface-color, #1f2c33);
+  /* Background behind the nested curves */
+}
+
+.nested-chat-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--bg-color, #0b141a);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+:global(body.light-mode) .nested-chat-content {
+  background-color: #ffffff;
 }
 
 .transparent-ui .messages-container {
@@ -709,6 +728,15 @@ body.light-mode .load-more-indicator p {
   background: var(--surface-color, #1f2c33);
   display: flex;
   flex-direction: column;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+}
+
+:global(body.light-mode) .chat-input-container {
+  background: #ffffff;
+  border: 1px solid var(--border-color, #d1e8da);
+  border-bottom: none;
 }
 
 
@@ -741,7 +769,42 @@ body.light-mode .load-more-indicator p {
   padding: 8px 0;
   max-height: 120px;
   line-height: normal;
+  width: 100%;
 }
+
+.input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.char-counter {
+  position: absolute;
+  bottom: -18px;
+  right: 0;
+  font-size: 10px;
+  color: var(--text-secondary, #8696a0);
+  opacity: 0.8;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.char-counter.limit-reached {
+  color: #ef4444 !important;
+  font-weight: 600;
+}
+
+.input-capsule {
+  position: relative;
+}
+
+.input-capsule .char-counter {
+  bottom: 4px;
+  right: 44px;
+  /* Adjust based on paperclip icon */
+}
+
 
 .desktop-layout .btn-send {
   background: var(--brand-gradient, linear-gradient(135deg, #00a884, #00876a));
@@ -2885,6 +2948,7 @@ body[data-theme='dark'] .message-time {
   width: 100%;
   display: block;
 }
+
 /* =============================================
    THEME & PATTERN SELECTION
    ============================================= */

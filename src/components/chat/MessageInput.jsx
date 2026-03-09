@@ -13,6 +13,8 @@ import hapticsManager from '../../utils/hapticsManager';
 import styles from '../../styles/chat.module.css';
 
 
+const MAX_MESSAGE_LENGTH = 500;
+
 const MessageInput = ({
   onSendMessage,
   onSendMedia,
@@ -568,21 +570,29 @@ const MessageInput = ({
               </button>
             </div>
 
-            <textarea
-              ref={textareaRef}
-              className={styles['chat-input']}
-              placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
-              value={message}
-              onFocus={handleInputFocus}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setShowEmojiPicker(true);
-              }}
-              rows={1}
-              disabled={isUploading || externalDisabled}
-            />
+            <div className={styles['input-wrapper']}>
+              <textarea
+                ref={textareaRef}
+                className={styles['chat-input']}
+                placeholder={externalDisabled ? disabledPlaceholder : (isUploading ? "Uploading..." : (filePreview ? "Add a caption..." : "Type a message..."))}
+                value={message}
+                onFocus={handleInputFocus}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setShowEmojiPicker(true);
+                }}
+                rows={1}
+                disabled={isUploading || externalDisabled}
+                maxLength={MAX_MESSAGE_LENGTH}
+              />
+              {message.length > (MAX_MESSAGE_LENGTH - 50) && (
+                <div className={`${styles['char-counter']} ${message.length >= MAX_MESSAGE_LENGTH ? styles['limit-reached'] : ''}`}>
+                  {message.length}/{MAX_MESSAGE_LENGTH}
+                </div>
+              )}
+            </div>
 
             <button
               className={styles['btn-send']}
@@ -616,7 +626,13 @@ const MessageInput = ({
                 onKeyPress={handleKeyPress}
                 rows={1}
                 disabled={isUploading || externalDisabled}
+                maxLength={MAX_MESSAGE_LENGTH}
               />
+              {message.length > (MAX_MESSAGE_LENGTH - 50) && (
+                <div className={`${styles['char-counter']} ${message.length >= MAX_MESSAGE_LENGTH ? styles['limit-reached'] : ''}`}>
+                  {message.length}/{MAX_MESSAGE_LENGTH}
+                </div>
+              )}
 
               <button
                 className={styles['btn-attach-inline']}

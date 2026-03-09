@@ -7,6 +7,8 @@ import { supabase } from '../config/supabase';
 import toast from 'react-hot-toast';
 import { safeDbConversion, dbToFrontend } from '../utils/dbFieldMapping';
 import useUserStore from '../store/userStore';
+import { createGroup, addGroupMembers, leaveGroup } from '../services/groupService';
+import { addToSyncQueue, db } from '../db/db';
 
 // ==========================================
 // USER QUERIES
@@ -121,7 +123,6 @@ export const useCreateGroup = () => {
 
   return useMutation({
     mutationFn: async ({ name, description, avatarFile, createdBy, memberIds }) => {
-      const { createGroup } = await import('../services/groupService');
       return createGroup({ name, description, avatarFile, createdBy, memberIds });
     },
     onMutate: async (variables) => {
@@ -168,7 +169,6 @@ export const useAddGroupMembers = () => {
 
   return useMutation({
     mutationFn: async ({ groupId, memberIds }) => {
-      const { addGroupMembers } = await import('../services/groupService');
       return addGroupMembers(groupId, memberIds);
     },
     onMutate: async (variables) => {
@@ -195,7 +195,6 @@ export const useLeaveGroup = () => {
 
   return useMutation({
     mutationFn: async ({ groupId, userId }) => {
-      const { leaveGroup } = await import('../services/groupService');
       return leaveGroup(groupId, userId);
     },
     onMutate: async (variables) => {
@@ -256,8 +255,6 @@ export const useSendMessage = () => {
       };
 
       try {
-        const { addToSyncQueue, db } = await import('../db/db');
-
         if (!navigator.onLine) {
           // FIX: Use .put() to avoid duplicate key errors
           await db.messages.put({
@@ -280,7 +277,7 @@ export const useSendMessage = () => {
         const confirmed = dbToFrontend(data);
 
         // FIX: Reconcile local DB
-        await db.messages.delete(`temp_${tempId}`).catch(() => {});
+        await db.messages.delete(`temp_${tempId}`).catch(() => { });
         await db.messages.put(data);
 
         return { ...confirmed, tempId };

@@ -312,6 +312,32 @@
   cursor: not-allowed;
 }
 
+.char-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  font-size: 10px;
+  color: var(--support-text-secondary);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.char-counter.limit-reached {
+  color: #ef4444 !important;
+  font-weight: 700;
+}
+
+.support-input-wrapper .char-counter {
+  bottom: -18px;
+  right: 8px;
+}
+
+.support-textarea-wrapper .char-counter {
+  bottom: 8px;
+  right: 12px;
+}
+
+
 /* --- Modal Redesign --- */
 .new-request-overlay {
   backdrop-filter: blur(8px);

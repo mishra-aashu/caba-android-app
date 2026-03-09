@@ -23,12 +23,26 @@ class AppErrorBoundary extends React.Component {
     }
 
     promiseRejectionHandler = (event) => {
-        console.error('AppErrorBoundary caught unhandled rejection:', event.reason);
+        const reason = event.reason;
+
+        // ✅ Safely ignore AbortError (common in React 18 / Supabase initialization)
+        const isAbortError =
+            reason?.name === 'AbortError' ||
+            reason?.message?.toLowerCase().includes('aborted') ||
+            (typeof reason === 'string' && reason.toLowerCase().includes('aborted'));
+
+        if (isAbortError) {
+            console.warn('AppErrorBoundary: Silently ignoring AbortError rejection');
+            event.preventDefault(); // Stop browser from logging it as unhandled
+            return;
+        }
+
+        console.error('AppErrorBoundary caught unhandled rejection:', reason);
 
         // Force the fallback UI for async errors
         this.setState({
             hasError: true,
-            error: event.reason
+            error: reason
         });
 
         // Prevent the error from crashing the browser tab/appearing in console as unhandled

@@ -600,149 +600,150 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 </div>
             </motion.header>
 
-            <motion.div className="user-profile-section" variants={itemVariants}>
-                <div className="user-details-avatar" id="userDetailAvatar" onClick={() => user.avatar && setShowImageModal(true)} style={{ cursor: user.avatar ? 'pointer' : 'default' }}>
-                    {user.avatar ? (
-                        parseInt(user.avatar) ? (
-                            <img id="userDetailImg" src={dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path} alt={user.name} />
+            <div className="user-details-content-wrapper">
+                <motion.div className="user-profile-section" variants={itemVariants}>
+                    <div className="user-details-avatar" id="userDetailAvatar" onClick={() => user.avatar && setShowImageModal(true)} style={{ cursor: user.avatar ? 'pointer' : 'default' }}>
+                        {user.avatar ? (
+                            parseInt(user.avatar) ? (
+                                <img id="userDetailImg" src={dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path} alt={user.name} />
+                            ) : (
+                                <img id="userDetailImg" src={user.avatar} alt={user.name} />
+                            )
                         ) : (
-                            <img id="userDetailImg" src={user.avatar} alt={user.name} />
-                        )
-                    ) : (
-                        <div className="dp-preview-initials" id="userDetailInitials">{getInitials(user.name)}</div>
-                    )}
-                </div>
-                <h2 className="user-detail-name" id="userDetailName">{resolvedName}</h2>
-                {resolvedName !== user.name && (
-                    <p className="user-detail-global-name" style={{ opacity: 0.6, fontSize: '0.9rem', marginTop: '-10px' }}>
-                        @{user.name}
-                    </p>
-                )}
-                <p className="user-detail-phone" id="userDetailPhone">{user.phone || '+91 0000000000'}</p>
-                <p className="user-detail-status">
-                    {isUserOnline(Boolean(currentOnlineStatus?.is_online), currentOnlineStatus?.last_seen || user.last_seen) ? 'Online' : `Last seen ${formatLastSeen(currentOnlineStatus?.last_seen || user.last_seen)}`}
-                </p>
-            </motion.div>
-
-            <motion.div className="user-actions" variants={itemVariants}>
-                <button className="action-btn" id="messageUserBtn" onClick={handleMessage}>
-                    <MessageCircle size={24} />
-                    <span>Message</span>
-                </button>
-                <button className="action-btn" id="voiceCallUserBtn" onClick={handleVoiceCall}>
-                    <Phone size={24} />
-                    <span>Call</span>
-                </button>
-                <button className="action-btn" id="videoCallUserBtn" onClick={handleVideoCall}>
-                    <Video size={24} />
-                    <span>Video</span>
-                </button>
-            </motion.div>
-
-            <div className="user-info-sections">
-                <motion.div className="info-section" variants={itemVariants}>
-                    <h3 className="section-header">Media, Links, and Docs</h3>
-                    <div className="media-preview">
-                        <div className="media-item">
-                            <Image className="icon" size={20} />
-                            <span className="count" id="mediaCount">{mediaCount.images}</span>
-                        </div>
-                        <div className="media-item">
-                            <LinkIcon className="icon" size={20} />
-                            <span className="count" id="linksCount">{mediaCount.links}</span>
-                        </div>
-                        <div className="media-item">
-                            <FileText className="icon" size={20} />
-                            <span className="count" id="docsCount">{mediaCount.docs}</span>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div className="info-section" variants={itemVariants}>
-                    <div className="settings-item toggle-item">
-                        <div className="item-left">
-                            <BellOff className="icon" size={20} />
-                            <span className="label">Mute Notifications</span>
-                        </div>
-                        <label className="toggle-switch">
-                            <input type="checkbox" id="muteUserToggle" checked={isMuted} onChange={handleMuteToggle} />
-                            <span className="toggle-slider"></span>
-                        </label>
-                    </div>
-                </motion.div>
-
-                <motion.div className="info-section" variants={itemVariants}>
-                    {!isContact && (
-                        <div className="settings-item" id="addToContactsBtn" onClick={handleAddToContacts}>
-                            <div className="item-left">
-                                <UserPlus className="icon" size={20} />
-                                <span className="label">Add to Contacts</span>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="settings-item" id="shareContactBtn" onClick={handleShareContact}>
-                        <div className="item-left">
-                            <Share2 className="icon" size={20} />
-                            <span className="label">Share Contact</span>
-                        </div>
-                    </div>
-
-                    <div className="settings-item" id="exportChatBtn" onClick={handleExportChat}>
-                        <div className="item-left">
-                            <Download className="icon" size={20} />
-                            <span className="label">Export Chat</span>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div className="info-section" id="groupsSection" variants={itemVariants}>
-                    <h3 className="section-header">Groups in Common</h3>
-                    <div id="commonGroups">
-                        {commonGroups.length > 0 ? (
-                            commonGroups.map(group => (
-                                <div key={group.id} className="settings-item" onClick={() => navigate(`/chat/${group.id}/group`, { state: { groupName: group.name, groupAvatar: group.avatar } })}>
-                                    <div className="item-left">
-                                        <div className="group-avatar-small">
-                                            {group.avatar ? (
-                                                <img src={group.avatar} alt={group.name} />
-                                            ) : (
-                                                <span>{getInitials(group.name)}</span>
-                                            )}
-                                        </div>
-                                        <span className="label">{group.name}</span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="no-data">No groups in common</p>
+                            <div className="dp-preview-initials" id="userDetailInitials">{getInitials(user.name)}</div>
                         )}
                     </div>
+                    <h2 className="user-detail-name" id="userDetailName">{resolvedName}</h2>
+                    {resolvedName !== user.name && (
+                        <p className="user-detail-global-name" style={{ opacity: 0.6, fontSize: '0.9rem', marginTop: '-10px' }}>
+                            @{user.name}
+                        </p>
+                    )}
+                    <p className="user-detail-phone" id="userDetailPhone">{user.phone || '+91 0000000000'}</p>
+                    <p className="user-detail-status">
+                        {isUserOnline(Boolean(currentOnlineStatus?.is_online), currentOnlineStatus?.last_seen || user.last_seen) ? 'Online' : `Last seen ${formatLastSeen(currentOnlineStatus?.last_seen || user.last_seen)}`}
+                    </p>
                 </motion.div>
 
-                <motion.div className="info-section danger-section" variants={itemVariants}>
-                    <div className="settings-item danger" id="blockContactBtn" onClick={handleBlockUser}>
-                        <div className="item-left">
-                            <Ban className="icon" size={20} />
-                            <span className="label">{isBlocked ? 'Unblock Contact' : 'Block Contact'}</span>
-                        </div>
-                    </div>
-
-                    <div className="settings-item danger" id="reportContactBtn" onClick={handleReportUser}>
-                        <div className="item-left">
-                            <Flag className="icon" size={20} />
-                            <span className="label">Report Contact</span>
-                        </div>
-                    </div>
-
-                    <div className="settings-item danger" id="deleteContactBtn" onClick={handleDeleteContact}>
-                        <div className="item-left">
-                            <Trash2 className="icon" size={20} />
-                            <span className="label">Delete Chat & Contact</span>
-                        </div>
-                    </div>
+                <motion.div className="user-actions" variants={itemVariants}>
+                    <button className="action-btn" id="messageUserBtn" onClick={handleMessage}>
+                        <MessageCircle size={24} />
+                        <span>Message</span>
+                    </button>
+                    <button className="action-btn" id="voiceCallUserBtn" onClick={handleVoiceCall}>
+                        <Phone size={24} />
+                        <span>Call</span>
+                    </button>
+                    <button className="action-btn" id="videoCallUserBtn" onClick={handleVideoCall}>
+                        <Video size={24} />
+                        <span>Video</span>
+                    </button>
                 </motion.div>
 
+                <div className="user-info-sections">
+                    <motion.div className="info-section" variants={itemVariants}>
+                        <h3 className="section-header">Media, Links, and Docs</h3>
+                        <div className="media-preview">
+                            <div className="media-item">
+                                <Image className="icon" size={20} />
+                                <span className="count" id="mediaCount">{mediaCount.images}</span>
+                            </div>
+                            <div className="media-item">
+                                <LinkIcon className="icon" size={20} />
+                                <span className="count" id="linksCount">{mediaCount.links}</span>
+                            </div>
+                            <div className="media-item">
+                                <FileText className="icon" size={20} />
+                                <span className="count" id="docsCount">{mediaCount.docs}</span>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    <motion.div className="info-section" variants={itemVariants}>
+                        <div className="settings-item toggle-item">
+                            <div className="item-left">
+                                <BellOff className="icon" size={20} />
+                                <span className="label">Mute Notifications</span>
+                            </div>
+                            <label className="toggle-switch">
+                                <input type="checkbox" id="muteUserToggle" checked={isMuted} onChange={handleMuteToggle} />
+                                <span className="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </motion.div>
+
+                    <motion.div className="info-section" variants={itemVariants}>
+                        {!isContact && (
+                            <div className="settings-item" id="addToContactsBtn" onClick={handleAddToContacts}>
+                                <div className="item-left">
+                                    <UserPlus className="icon" size={20} />
+                                    <span className="label">Add to Contacts</span>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="settings-item" id="shareContactBtn" onClick={handleShareContact}>
+                            <div className="item-left">
+                                <Share2 className="icon" size={20} />
+                                <span className="label">Share Contact</span>
+                            </div>
+                        </div>
+
+                        <div className="settings-item" id="exportChatBtn" onClick={handleExportChat}>
+                            <div className="item-left">
+                                <Download className="icon" size={20} />
+                                <span className="label">Export Chat</span>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    <motion.div className="info-section" id="groupsSection" variants={itemVariants}>
+                        <h3 className="section-header">Groups in Common</h3>
+                        <div id="commonGroups">
+                            {commonGroups.length > 0 ? (
+                                commonGroups.map(group => (
+                                    <div key={group.id} className="settings-item" onClick={() => navigate(`/chat/${group.id}/group`, { state: { groupName: group.name, groupAvatar: group.avatar } })}>
+                                        <div className="item-left">
+                                            <div className="group-avatar-small">
+                                                {group.avatar ? (
+                                                    <img src={group.avatar} alt={group.name} />
+                                                ) : (
+                                                    <span>{getInitials(group.name)}</span>
+                                                )}
+                                            </div>
+                                            <span className="label">{group.name}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="no-data">No groups in common</p>
+                            )}
+                        </div>
+                    </motion.div>
+
+                    <motion.div className="info-section danger-section" variants={itemVariants}>
+                        <div className="settings-item danger" id="blockContactBtn" onClick={handleBlockUser}>
+                            <div className="item-left">
+                                <Ban className="icon" size={20} />
+                                <span className="label">{isBlocked ? 'Unblock Contact' : 'Block Contact'}</span>
+                            </div>
+                        </div>
+
+                        <div className="settings-item danger" id="reportContactBtn" onClick={handleReportUser}>
+                            <div className="item-left">
+                                <Flag className="icon" size={20} />
+                                <span className="label">Report Contact</span>
+                            </div>
+                        </div>
+
+                        <div className="settings-item danger" id="deleteContactBtn" onClick={handleDeleteContact}>
+                            <div className="item-left">
+                                <Trash2 className="icon" size={20} />
+                                <span className="label">Delete Chat & Contact</span>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
             </div>
 
             <Modal

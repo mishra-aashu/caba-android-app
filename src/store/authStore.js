@@ -35,7 +35,10 @@ const useAuthStore = create((set, get) => ({
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.warn('⚠️ Supabase getSession warning (likely offline):', sessionError.message);
+        const isAbortError = sessionError.name === 'AbortError' || sessionError.message?.toLowerCase().includes('aborted');
+        if (!isAbortError) {
+          console.warn('⚠️ Supabase getSession warning (likely offline):', sessionError.message);
+        }
       }
 
       if (session?.user) {

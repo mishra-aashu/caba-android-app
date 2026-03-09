@@ -46,22 +46,17 @@
   display: flex;
   align-items: center;
   padding: var(--spacing-md, 12px) var(--spacing-lg, 16px);
-
-  /* ✅ SAFE: Use full width + internal margin via parent padding */
-  width: 100%;
-  margin: 0;
-
+  width: auto;
+  margin: 2px 8px;
+  border-radius: 12px;
   cursor: pointer;
-  position: relative;
-  box-sizing: border-box;
   transition: all 0.2s ease;
-  background: transparent;
+  position: relative;
+  overflow: hidden;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-
-  /* ✅ Refactored: Default state is no radius for clean list */
-  border-radius: 0;
-  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.04));
+  background-color: transparent;
+  border-bottom: none;
 }
 
 /* Divider — ONLY when inside section with rounded items */
@@ -92,13 +87,14 @@
 }
 
 /* Hover */
-.chat-item:hover {
-  background-color: rgba(0, 168, 132, 0.06);
+.chat-item:hover:not(.active) {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.06));
 }
 
 /* Active State */
 .chat-item.active {
-  background-color: rgba(0, 168, 132, 0.1);
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.12));
+  /* Removed border-left for a cleaner rounded look */
 }
 
 .chat-item.active::before {

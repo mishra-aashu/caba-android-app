@@ -1,102 +1,425 @@
 /* ============================================
-   🎯 Offline Indicator Styles
-   Shows network status to users
+   🌐 Offline Indicator — Professional Edition
+   Network status banner with smooth animations,
+   glassmorphism, and responsive design.
    ============================================ */
 
+/* ── Wrapper ── */
 .offline-indicator-wrapper {
   position: relative;
   width: 100%;
-  min-height: var(--app-height);
+  min-height: var(--app-height, 100dvh);
 }
 
-/* Offline Banner */
+/* ── Base Banner ── */
 .offline-banner {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 9999;
-  padding: 10px 16px;
+  padding: 10px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  border-radius: 14px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.12),
+    0 1px 4px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.3s ease,
+    background 0.3s ease;
+  max-width: min(90vw, 380px);
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+
+  /* Entry animation */
+  animation: offlineBannerSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* ── Position Variants ── */
 .offline-banner.top {
-  top: 0;
-  border-radius: 0 0 12px 12px;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
 }
 
 .offline-banner.bottom {
-  bottom: 0;
-  border-radius: 12px 12px 0 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
 }
 
-/* Offline State */
+/* ── Offline State ── */
 .offline-banner.offline {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-  color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(235, 77, 75, 0.92) 0%,
+    rgba(225, 112, 85, 0.92) 100%
+  );
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
-/* Coming Online State */
+/* Subtle idle pulse — not aggressive */
+.offline-banner.offline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  opacity: 0;
+  animation: offlineShimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Reconnecting State ── */
 .offline-banner.coming-online {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  animation: pulse 1s ease-in-out infinite;
+  background: linear-gradient(
+    135deg,
+    rgba(46, 134, 222, 0.92) 0%,
+    rgba(0, 210, 211, 0.92) 100%
+  );
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* Banner Content */
+/* Progress bar at bottom of banner */
+.offline-banner.coming-online::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 2.5px;
+  border-radius: 0 0 14px 14px;
+  background: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+
+.offline-banner.coming-online::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  width: 40%;
+  height: 2.5px;
+  border-radius: 0 0 14px 14px;
+  background: rgba(255, 255, 255, 0.85);
+  animation: offlineProgressSlide 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Banner Content ── */
 .offline-banner-content {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
 }
 
+/* ── Icon ── */
 .offline-icon {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 12px;
+  line-height: 1;
 }
 
-/* Animation */
-@keyframes pulse {
-  0%, 100% {
+/* Spinning icon for reconnecting */
+.offline-banner.coming-online .offline-icon {
+  animation: offlineIconSpin 1.2s linear infinite;
+}
+
+/* ── Text ── */
+.offline-banner-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* ── Dismiss / Tap hint ── */
+.offline-banner-dismiss {
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: none;
+}
+
+.offline-banner-dismiss:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.offline-banner-dismiss:active {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0.95);
+}
+
+/* ============================================
+   🎬 Animations
+   ============================================ */
+
+@keyframes offlineBannerSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px) scale(0.92);
+  }
+  100% {
     opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* Bottom variant */
+.offline-banner.bottom {
+  animation-name: offlineBannerSlideInBottom;
+}
+
+@keyframes offlineBannerSlideInBottom {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* Exit animation class (add via JS when dismissing) */
+.offline-banner.exiting {
+  animation: offlineBannerExit 0.3s ease forwards;
+}
+
+@keyframes offlineBannerExit {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-16px) scale(0.94);
+    pointer-events: none;
+  }
+}
+
+/* Subtle shimmer for offline state */
+@keyframes offlineShimmer {
+  0%, 100% {
+    opacity: 0;
   }
   50% {
-    opacity: 0.7;
+    opacity: 1;
   }
 }
 
-/* Mobile Optimizations */
+/* Progress bar slide for reconnecting */
+@keyframes offlineProgressSlide {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(150%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+/* Icon spin for reconnecting */
+@keyframes offlineIconSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   📱 Mobile Optimizations
+   ============================================ */
+
 @media (max-width: 480px) {
   .offline-banner {
-    padding: 8px 12px;
+    max-width: calc(100vw - 32px);
+    padding: 9px 16px;
+    font-size: 13px;
+    border-radius: 12px;
+  }
+
+  .offline-banner.top {
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+  }
+
+  .offline-banner.bottom {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  }
+
+  .offline-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+  }
+
+  .offline-banner-text {
     font-size: 13px;
   }
 }
 
-/* Desktop Optimizations */
-@media (min-width: 768px) {
+/* Small phones */
+@media (max-width: 360px) {
   .offline-banner {
-    max-width: 400px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 12px;
-    top: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 8px 12px;
+    max-width: calc(100vw - 24px);
   }
 
-  .offline-banner.bottom {
-    top: auto;
-    bottom: 16px;
+  .offline-banner-content {
+    gap: 8px;
   }
 }
 
-/* Dark Mode Support */
+/* ============================================
+   🖥️ Desktop Optimizations
+   ============================================ */
+
+@media (min-width: 768px) {
+  .offline-banner {
+    max-width: 360px;
+    border-radius: 16px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  .offline-banner.top {
+    top: 20px;
+  }
+
+  .offline-banner.bottom {
+    bottom: 20px;
+  }
+
+  /* Hover effect on desktop */
+  .offline-banner:hover {
+    transform: translateX(-50%) scale(1.02);
+    box-shadow:
+      0 10px 40px rgba(0, 0, 0, 0.16),
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* Large desktop */
+@media (min-width: 1200px) {
+  .offline-banner {
+    max-width: 380px;
+  }
+}
+
+/* ============================================
+   🌙 Dark Mode
+   ============================================ */
+
 @media (prefers-color-scheme: dark) {
   .offline-banner.offline {
-    background: linear-gradient(135deg, #c0392b 0%, #d35400 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(192, 57, 43, 0.94) 0%,
+      rgba(211, 84, 0, 0.94) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.3),
+      0 1px 4px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
+
+  .offline-banner.coming-online {
+    background: linear-gradient(
+      135deg,
+      rgba(30, 100, 180, 0.94) 0%,
+      rgba(0, 168, 150, 0.94) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .offline-icon {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .offline-banner-dismiss {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ============================================
+   ♿ Accessibility
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .offline-banner,
+  .offline-banner.exiting {
+    animation: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .offline-banner.offline::after,
+  .offline-banner.coming-online::after,
+  .offline-banner.coming-online .offline-icon {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .offline-banner.offline {
+    background: #c0392b;
+    border: 2px solid #fff;
+  }
+
+  .offline-banner.coming-online {
+    background: #2e86de;
+    border: 2px solid #fff;
+  }
+}
+
+/* ============================================
+   🔧 Utility Classes
+   ============================================ */
+
+/* Hide banner completely */
+.offline-banner.hidden {
+  display: none;
+}
+
+/* Force show (debugging) */
+.offline-banner.force-show {
+  opacity: 1 !important;
+  display: flex !important;
 }

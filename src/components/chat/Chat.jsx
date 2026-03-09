@@ -526,100 +526,102 @@ const Chat = () => {
               isAdmin={currentUser?.isAdmin}
             />
 
-            {!navigator.onLine && connectionStatus === 'connecting' && (
-              <div className={`${styles['connection-banner']} ${styles.connecting}`}>
-                <div className={styles.spinner}></div>
-                Waiting for network...
-              </div>
-            )}
-
-            {!navigator.onLine && connectionStatus === 'disconnected' && (
-              <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection}>
-                Offline. Tap to retry.
-              </div>
-            )}
-
-            {/* Selection Toolbar - delegated to ChatActionsPanel sub-component */}
-            <ChatActionsPanel
-              isSelectionMode={isSelectionMode}
-              selectedMessages={selectedMessages}
-              messages={messages}
-              currentUserId={currentUser?.id}
-              onExit={exitSelectionMode}
-              onReply={(message) => { handleReply(message); exitSelectionMode(); }}
-              onCopy={handleSelectionCopy}
-              onForward={handleSelectionForward}
-              onDelete={handleSelectionDelete}
-            />
-
-            <div className={styles['messages-container']}>
-              {/* Load More Indicator */}
-              {isFetchingNextPage && (
-                <div className={styles['load-more-indicator']}>
-                  <div className={styles['loading-spinner']}></div>
-                  <p>Loading older messages...</p>
+            <div className={styles['nested-chat-content']}>
+              {!navigator.onLine && connectionStatus === 'connecting' && (
+                <div className={`${styles['connection-banner']} ${styles.connecting}`}>
+                  <div className={styles.spinner}></div>
+                  Waiting for network...
                 </div>
               )}
 
-              <VirtualizedMessageList
-                ref={messagesContainerRef}
-                messages={messages}
-                currentUser={currentUser}
-                selectedMessages={selectedMessages}
+              {!navigator.onLine && connectionStatus === 'disconnected' && (
+                <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection}>
+                  Offline. Tap to retry.
+                </div>
+              )}
+
+              {/* Selection Toolbar - delegated to ChatActionsPanel sub-component */}
+              <ChatActionsPanel
                 isSelectionMode={isSelectionMode}
-                onMessageSelect={handleMessageSelect}
-                onReply={handleReply}
-                onForward={handleForwardMessage}
-                onDelete={(messageId) => deleteMessage(messageId)}
-                onEdit={handleMessageEdit}
-                onMediaView={handleMediaView}
-                onMediaDownload={handleMediaDownload}
-                onAcceptGame={handleAcceptGame}
-                onRejectGame={handleRejectGame}
-                onJoinGame={handleJoinGame}
-                isLoading={isMessagesLoading}
-                isGroupChat={Boolean(isGroupChat)}
-                onSenderClick={(senderId) => {
-                  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-                  if (isMobile) {
-                    navigate(`/user/${senderId}`);
-                  } else if (showUserDetails) {
-                    showUserDetails(senderId);
-                  }
-                }}
-                isScrolledToBottom={isScrolledToBottom}
-                onScroll={handleScroll}
-                followOutput="auto"
-                typingUsers={typingUsers}
-                initialTopMostItemIndex={initialScrollPosition}
-                onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
-                chatId={validChatId}
+                selectedMessages={selectedMessages}
+                messages={messages}
+                currentUserId={currentUser?.id}
+                onExit={exitSelectionMode}
+                onReply={(message) => { handleReply(message); exitSelectionMode(); }}
+                onCopy={handleSelectionCopy}
+                onForward={handleSelectionForward}
+                onDelete={handleSelectionDelete}
               />
 
+              <div className={styles['messages-container']}>
+                {/* Load More Indicator */}
+                {isFetchingNextPage && (
+                  <div className={styles['load-more-indicator']}>
+                    <div className={styles['loading-spinner']}></div>
+                    <p>Loading older messages...</p>
+                  </div>
+                )}
 
-              {/* Scroll to Bottom Button */}
-              {showScrollButton && (
-                <button className={styles['scroll-bottom-btn']} onClick={() => handleScrollToBottom('smooth')}>
-                  <ArrowDown size={20} />
-                  {unreadCount > 0 && (
-                    <span className={styles['unread-count']}>{unreadCount}</span>
-                  )}
-                </button>
-              )}
+                <VirtualizedMessageList
+                  ref={messagesContainerRef}
+                  messages={messages}
+                  currentUser={currentUser}
+                  selectedMessages={selectedMessages}
+                  isSelectionMode={isSelectionMode}
+                  onMessageSelect={handleMessageSelect}
+                  onReply={handleReply}
+                  onForward={handleForwardMessage}
+                  onDelete={(messageId) => deleteMessage(messageId)}
+                  onEdit={handleMessageEdit}
+                  onMediaView={handleMediaView}
+                  onMediaDownload={handleMediaDownload}
+                  onAcceptGame={handleAcceptGame}
+                  onRejectGame={handleRejectGame}
+                  onJoinGame={handleJoinGame}
+                  isLoading={isMessagesLoading}
+                  isGroupChat={Boolean(isGroupChat)}
+                  onSenderClick={(senderId) => {
+                    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+                    if (isMobile) {
+                      navigate(`/user/${senderId}`);
+                    } else if (showUserDetails) {
+                      showUserDetails(senderId);
+                    }
+                  }}
+                  isScrolledToBottom={isScrolledToBottom}
+                  onScroll={handleScroll}
+                  followOutput="auto"
+                  typingUsers={typingUsers}
+                  initialTopMostItemIndex={initialScrollPosition}
+                  onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
+                  chatId={validChatId}
+                />
+
+
+                {/* Scroll to Bottom Button */}
+                {showScrollButton && (
+                  <button className={styles['scroll-bottom-btn']} onClick={() => handleScrollToBottom('smooth')}>
+                    <ArrowDown size={20} />
+                    {unreadCount > 0 && (
+                      <span className={styles['unread-count']}>{unreadCount}</span>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Message Input */}
+              <MessageInput
+                onSendMessage={sendMessage}
+                onSendMedia={handleSendMedia} // Pass the new media handler
+                onTyping={handleTyping}
+                replyingTo={replyingTo}
+                onCancelReply={cancelReply}
+                chatId={chatId}
+                receiverId={otherUserId}
+                currentUser={currentUser} // Pass the current user object
+                disabled={isGroupChat && otherUser?.admins_only_messages && (otherUser?.my_role !== 'admin' && otherUser?.my_role !== 'creator')}
+              />
             </div>
-
-            {/* Message Input */}
-            <MessageInput
-              onSendMessage={sendMessage}
-              onSendMedia={handleSendMedia} // Pass the new media handler
-              onTyping={handleTyping}
-              replyingTo={replyingTo}
-              onCancelReply={cancelReply}
-              chatId={chatId}
-              receiverId={otherUserId}
-              currentUser={currentUser} // Pass the current user object
-              disabled={isGroupChat && otherUser?.admins_only_messages && (otherUser?.my_role !== 'admin' && otherUser?.my_role !== 'creator')}
-            />
           </div>
         </ChatBackground>
 

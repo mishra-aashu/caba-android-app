@@ -348,14 +348,22 @@ const SupportChat = () => {
       {/* Message Input */}
       <div className="support-input-area">
         <div className="input-container">
-          <input
-            type="text"
-            placeholder="How can we help?"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="message-input"
-          />
+          <div className="support-input-wrapper" style={{ flex: 1, position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="How can we help?"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="message-input"
+              maxLength={500}
+            />
+            {newMessage.length > 450 && (
+              <div className={`char-counter ${newMessage.length >= 500 ? 'limit-reached' : ''}`}>
+                {newMessage.length}/500
+              </div>
+            )}
+          </div>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -411,12 +419,20 @@ const SupportChat = () => {
                 </div>
                 <div className="form-group">
                   <label>Message</label>
-                  <textarea
-                    placeholder="Tell us what happened..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    rows={4}
-                  />
+                  <div className="support-textarea-wrapper" style={{ position: 'relative' }}>
+                    <textarea
+                      placeholder="Tell us what happened..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      rows={4}
+                      maxLength={500}
+                    />
+                    {newMessage.length > 450 && (
+                      <div className={`char-counter ${newMessage.length >= 500 ? 'limit-reached' : ''}`}>
+                        {newMessage.length}/500
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="form-group">
                   <label>Attachment</label>
