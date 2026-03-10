@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
         }
       }),
       VitePWA({
+        injectRegister: null,
         registerType: 'prompt',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
