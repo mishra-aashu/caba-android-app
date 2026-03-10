@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { fetchMessagesPage } from '../../hooks/useMessages';
 import { formatLastSeen, formatTime } from '../../utils/dateFormatter';
 import { useResolveName } from '../../hooks/useResolveName';
+import { useResolveAvatar } from '../../hooks/useResolveAvatar';
 import EmojiRenderer from '../common/EmojiRenderer';
 import styles from '../../styles/ChatListItem.module.css';
 
@@ -25,6 +26,9 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
 
   const queryClient = useQueryClient();
   const resolvedName = useResolveName(!isGroup ? chat.otherUserId : null, name);
+  const resolvedAvatar = useResolveAvatar(!isGroup ? chat.otherUserId : null, avatar);
+
+  const [imgError, setImgError] = React.useState(false);
 
   // ─── AGGRESSIVE PRE-FETCH ──────────────────────────────────────────────────
   // Pre-loading data on 'hover' or 'touch start' (pointer down) ensures that
@@ -64,18 +68,18 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
           </div>
         ) : (
           <>
-            <img
-              src={avatar || "/default-avatar.png"}
-              alt={name || 'User'}
-              className={styles['chat-avatar']}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-            />
-            <div className={`${styles['avatar-fallback']} ${styles.hidden}`}>
-              <User size={24} />
-            </div>
+            {resolvedAvatar && !imgError ? (
+              <img
+                src={resolvedAvatar}
+                alt={name || 'User'}
+                className={styles['chat-avatar']}
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className={styles['avatar-fallback']}>
+                <User size={24} />
+              </div>
+            )}
           </>
         )}
       </div>

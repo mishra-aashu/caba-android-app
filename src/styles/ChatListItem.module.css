@@ -23,7 +23,7 @@
 }
 
 .hidden {
-  display: none !important;
+  display: none;
 }
 
 .chat-list-container,

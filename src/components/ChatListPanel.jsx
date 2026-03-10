@@ -123,21 +123,15 @@ const ChatListPanel = ({
     // 2. Resolve display name with fallbacks
     const displayName = contact?.contact_name || chat.name;
 
-    // 3. Process avatar
-    // Try to get avatar from chat object, fallback to contact or otherUser
-    let rawAvatar = chat.avatar || contact?.otherUser?.avatar || chat.otherUser?.avatar;
-
-    let avatar = rawAvatar;
-    if (avatar && !isNaN(parseInt(avatar)) && avatar.toString().length < 5) {
-      const dp = dpOptions.find(dp => dp.id === parseInt(avatar));
-      if (dp) avatar = dp.path;
-    }
+    // 3. Avatar resolution is now delegated to the ChatListItem hook
+    const avatar = chat.avatar || contact?.otherUser?.avatar || chat.otherUser?.avatar;
 
     // Merge everything into a clean object for ChatListItem
     const chatListItemProps = {
       ...chat,
       name: displayName,
-      avatar: avatar
+      avatar: avatar,
+      otherUserId: otherUserId // Ensure this is passed for the hook
     };
 
     return (

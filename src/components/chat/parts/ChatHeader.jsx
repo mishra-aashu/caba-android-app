@@ -12,6 +12,7 @@ import DropdownMenu from '../../common/DropdownMenu';
 import { dpOptions } from '../../../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../../../utils/dateFormatter';
 import { useResolveName } from '../../../hooks/useResolveName';
+import { useResolveAvatar } from '../../../hooks/useResolveAvatar';
 import styles from '../../../styles/chat.module.css';
 
 const ChatHeader = ({
@@ -42,6 +43,9 @@ const ChatHeader = ({
     const navigate = useNavigate();
     const location = useLocation();
     const resolvedName = useResolveName(!isGroupChat ? otherUser?.id : null, otherUser?.name);
+    const resolvedAvatar = useResolveAvatar(!isGroupChat ? otherUser?.id : null, otherUser?.avatar);
+
+    const [imgError, setImgError] = React.useState(false);
 
     const resolvedNavigate = onNavigate || navigate;
 
@@ -110,10 +114,16 @@ const ChatHeader = ({
                 style={{ cursor: otherUser ? 'pointer' : 'default' }}
             >
                 <div className={styles['user-avatar']}>
-                    {avatarSrc ? (
-                        <img src={avatarSrc} alt={otherUser?.name} />
+                    {resolvedAvatar && !imgError ? (
+                        <img
+                            src={resolvedAvatar}
+                            alt={otherUser?.name}
+                            onError={() => setImgError(true)}
+                        />
                     ) : (
-                        <div className={styles['user-avatar-loading']} />
+                        <div className={styles['avatar-fallback']} style={{ width: '100%', height: '100%', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--brand-primary, #00a884) 0%, var(--brand-secondary, #00876a) 100%)', borderRadius: '50%', color: 'white' }}>
+                            <User size={20} />
+                        </div>
                     )}
                 </div>
                 <div className={styles['user-details']}>
