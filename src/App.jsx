@@ -11,9 +11,11 @@ import { supabase } from './config/supabase';
 import useAuthStore from './store/authStore';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import useIsDesktop from './hooks/useIsDesktop';
+import { SafeAreaDetector } from './utils/safeAreaDetector';
+import { KeyboardHandler } from './utils/keyboardHandler';
+import SafeAreaDebugger from './components/common/SafeAreaDebugger';
 import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
-import ViewportManager from './components/layout/ViewportManager';
 import MainLayout from './components/MainLayout';
 import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
@@ -28,6 +30,7 @@ import '../src/styles/desktop.css';
 import '../src/styles/call-screen.css';
 import './styles/offline-indicator.css';
 import './styles/emoji-styles.css';
+import './styles/safeArea.css';
 
 // Static Imports for Core Components (to resolve build warnings)
 import Login from './components/auth/Login';
@@ -288,6 +291,36 @@ const App = () => {
   useCapacitorPlugins();
 
   useEffect(() => {
+    // Initialize Safe Area Detection & Keyboard Handling
+    SafeAreaDetector.getInstance();
+    KeyboardHandler.getInstance();
+
+    // Add platform specific classes to body for CSS hooks
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const platform = isIOS ? 'ios' : (isAndroid ? 'android' : 'web');
+
+    document.body.classList.add(`platform-${platform}`);
+
+    // Detect if the app is running in standalone mode (PWA)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone ||
+      document.referrer.includes('android-app://');
+
+    document.documentElement.setAttribute('data-standalone', isStandalone ? 'true' : 'false');
+
+    // Set --app-height for legacy components
+    const updateAppHeight = () => {
+      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    };
+    updateAppHeight();
+    window.addEventListener('resize', updateAppHeight);
+
+    // Prevent overscroll bounce on iOS for a more native feel
+    if (isIOS) {
+      document.body.style.overscrollBehavior = 'none';
+    }
+
     initializePushNotifications();
     requestPersistentStorage();
   }, []);
@@ -303,7 +336,7 @@ const App = () => {
             {/* FIX #3: Guard against null dbUser during auth loading */}
             <GroupCallProvider currentUser={authLoading ? null : dbUser}>
               {/* Layout utilities */}
-              <ViewportManager />
+              <SafeAreaDebugger />
 
               <OfflineIndicator>
                 <AppContent />

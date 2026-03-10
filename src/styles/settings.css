@@ -173,6 +173,7 @@ body.light-mode .preview-card {
 
 .settings-screen {
   height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -183,6 +184,9 @@ body.light-mode .preview-card {
 .settings-header {
   background: var(--primary-color);
   padding: 16px 20px;
+  padding-top: calc(16px + var(--safe-top));
+  padding-left: calc(20px + var(--safe-left));
+  padding-right: calc(20px + var(--safe-right));
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;

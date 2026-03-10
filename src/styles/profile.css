@@ -16,7 +16,8 @@
 .profile-screen {
   display: flex;
   flex-direction: column;
-  min-height: var(--app-height);
+  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-color, #0b141a);
   color: var(--text-primary, #e9edef);
   overflow-x: hidden;
@@ -59,12 +60,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
+  padding-top: calc(12px + var(--safe-top));
+  padding-left: calc(16px + var(--safe-left));
+  padding-right: calc(16px + var(--safe-right));
   background: var(--surface-color, #1f2c33);
   border-bottom: 0.5px solid var(--border-color, rgba(42, 57, 66, 0.6));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   position: sticky;
   top: 0;
   z-index: 10;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .profile-header h1 {
