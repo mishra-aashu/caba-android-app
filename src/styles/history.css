@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-primary, #fff);
+  background: var(--surface-color, #ffffff);
 }
 
 .history-content {
@@ -28,8 +28,8 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--header-bg, #f0f2f5);
-  border-bottom: 1px solid var(--border-color, #e8e8e8);
+  background: var(--surface-color, #ffffff);
+  border-bottom: 1px solid var(--border-color, #d1e8e8);
 }
 
 .history-container .header-left {
@@ -45,7 +45,7 @@
   height: 40px;
   border: none;
   background: transparent;
-  color: var(--text-primary, #111);
+  color: var(--text-primary, #0c1e17);
   cursor: pointer;
   border-radius: 50%;
 }
@@ -55,11 +55,36 @@
   text-align: center;
 }
 
-.history-container .header-center h1 {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-primary, #111);
+.history-container .header-right {
+  display: flex;
+  align-items: center;
+}
+
+.history-container .refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #0c1e17);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.history-container .refresh-btn:hover {
+  background: var(--hover-color, rgba(0, 168, 132, 0.06));
+}
+
+.history-container .refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.history-container .refresh-btn .spinning {
+  animation: spin 1s linear infinite;
 }
 
 /* Content - already defined above, keeping this for backward compatibility if class exists */
@@ -82,7 +107,7 @@
 }
 
 .history-item:hover {
-  background: var(--hover-bg, #f5f6f7);
+  background: var(--hover-color, rgba(0, 168, 132, 0.06));
 }
 
 /* LEFT: Avatar */
@@ -136,7 +161,7 @@
 .history-item .history-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary, #111);
+  color: var(--text-primary, #0c1e17);
   margin: 0 0 4px 0;
   white-space: nowrap;
   overflow: hidden;
@@ -148,7 +173,7 @@
 
 .history-item .call-count {
   font-weight: 400;
-  color: #8696a0;
+  color: var(--text-secondary, #4a6e5c);
   margin-left: 5px;
   font-size: 14px;
 }
@@ -159,7 +184,7 @@
   align-items: center;
   gap: 5px;
   font-size: 13px;
-  color: #8696a0;
+  color: var(--text-secondary, #4a6e5c);
 }
 
 .history-item .history-status-row .status-icon {
@@ -200,7 +225,7 @@
 
 .scroll-more-text,
 .no-more-calls {
-  color: #8696a0;
+  color: var(--text-secondary, #4a6e5c);
   font-size: 13px;
 }
 
@@ -264,7 +289,7 @@
 }
 
 .history-loading p {
-  color: #8696a0;
+  color: var(--text-secondary, #4a6e5c);
   font-size: 14px;
 }
 
@@ -317,7 +342,7 @@
 .history-content .empty-state svg {
   width: 64px;
   height: 64px;
-  color: #8696a0;
+  color: var(--text-secondary, #8696a0);
   margin-bottom: 16px;
   opacity: 0.5;
 }
@@ -325,69 +350,14 @@
 .history-content .empty-state h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #111;
+  color: var(--text-primary, #0c1e17);
   margin: 0 0 8px 0;
 }
 
 .history-content .empty-state p {
   font-size: 14px;
-  color: #8696a0;
+  color: var(--text-secondary, #4a6e5c);
   margin: 0;
-}
-
-/* ============================================
-   DARK MODE
-   ============================================ */
-
-[data-theme="dark"] .history-container,
-.dark .history-container {
-  --bg-primary: #0b0b0b;
-  --header-bg: #1f1f1f;
-  --border-color: #2d2d2d;
-  --text-primary: #e8e8e8;
-  --text-secondary: #a0a0a0;
-  --hover-bg: #1f1f1f;
-  --avatar-bg: #333;
-  --btn-hover-bg: #1a3a5c;
-  --btn-active-bg: #1e466e;
-}
-
-[data-theme="dark"] .history-item:hover {
-  background: #1a1a1a;
-}
-
-/* Mobile Dark Mode Fix */
-@media (max-width: 600px) {
-
-  [data-theme="dark"] .history-container,
-  .dark .history-container {
-    background: #111b21;
-    min-height: var(--app-height);
-  }
-
-  [data-theme="dark"] .history-item,
-  .dark .history-item {
-    background: #111b21;
-  }
-}
-
-[data-theme="dark"] .history-item:hover {
-  background: #1a1a1a;
-}
-
-[data-theme="dark"] .history-name {
-  color: #e8e8e8;
-}
-
-[data-theme="dark"] .history-status-row,
-[data-theme="dark"] .history-time-text,
-[data-theme="dark"] .history-duration {
-  color: #a0a0a0;
-}
-
-[data-theme="dark"] .history-loading .loading-spinner {
-  border-color: #333;
-  border-top-color: #0088ff;
 }
 
 /* ============================================
@@ -437,7 +407,10 @@
 
   /* Header */
   .history-container .header-center h1 {
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary, #0c1e17);
   }
 
   .history-container .app-header {

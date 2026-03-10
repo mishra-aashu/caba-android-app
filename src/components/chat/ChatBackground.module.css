@@ -1,78 +1,58 @@
 .chat-background-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-/* ── Layer 1: Gradient / wallpaper ── */
 .gradient-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-color: var(--chat-bg-base);
-  background-image: var(--chat-bg-image, none), var(--chat-bg-gradient, none);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    background-color: var(--chat-bg-base);
+    background-image: var(--chat-bg-image, none), var(--chat-bg-gradient, none);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-/* ── Layer 2: SVG pattern overlay ── */
-/*
- * Default (fallback): render pattern as a background-image directly.
- * When mask-image is supported (most modern browsers) the @supports block
- * below overrides this with a tinted mask approach.
- *
- * ✅ FIX: @supports is now a TOP-LEVEL rule, not nested inside .pattern-layer.
- *         Some bundlers (e.g. older PostCSS / css-modules) do not support
- *         nesting @supports inside a class selector.
- *
- * ✅ FIX: Removed `will-change: transform, opacity` — opacity never animates
- *         here so it was an unnecessary GPU layer hint.
- */
 .pattern-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+    will-change: opacity;
 
-  /* Fallback: direct background-image (no tinting) */
-  background-image: var(--pattern-url);
-  background-repeat: repeat;
-  background-size: var(--chat-pattern-size, 400px);
-  background-position: center;
+    /* Theme Variables */
+    opacity: var(--chat-pattern-opacity, 0.04);
+    mix-blend-mode: var(--chat-pattern-blend, soft-light);
 
-  opacity: var(--chat-pattern-opacity, 0.08);
-  mix-blend-mode: var(--chat-pattern-blend, overlay);
-}
-
-/* Tinted mask approach — overrides fallback when supported */
-@supports (mask-image: url('')) or (-webkit-mask-image: url('')) {
-  .pattern-layer {
-    /* Tint colour fills the shape defined by the mask */
-    background-color: var(--chat-pattern-color, #ffffff);
-    background-image: none; /* hide the direct background-image fallback */
-
-    -webkit-mask-image: var(--pattern-url);
-    mask-image: var(--pattern-url);
+    /* Pattern Image & Tinting */
+    background-image: var(--chat-pattern-gradient, var(--chat-pattern-color, #000));
+    -webkit-mask-image: var(--pattern-url, none);
+    mask-image: var(--pattern-url, none);
     -webkit-mask-size: var(--chat-pattern-size, 400px);
     mask-size: var(--chat-pattern-size, 400px);
     -webkit-mask-repeat: repeat;
     mask-repeat: repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-  }
+    /* Debug: Ensure pattern is visible */
+    min-height: 100vh;
+    width: 100%;
 }
 
-/* ── Layer 3: Chat content ── */
 .content-layer {
-  position: relative;
-  z-index: 2;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: transparent !important;
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }

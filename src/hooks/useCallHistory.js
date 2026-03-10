@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { callService } from '../services/callService';
 
 /**
@@ -6,12 +7,32 @@ import { callService } from '../services/callService';
  * Provides caching, automatic refetching, and offline support
  */
 export function useCallHistory(userId) {
+  const queryClient = useQueryClient();
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!userId) return;
+
+    console.log('🔔 Subscribing to call history for user:', userId);
+    const channelName = callService.subscribeToCallHistory(userId, (payload) => {
+      console.log('🚀 Real-time call history update detected:', payload);
+      // Invalidate queries to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['callHistory', userId] });
+      queryClient.invalidateQueries({ queryKey: ['missedCallsCount', userId] });
+    });
+
+    return () => {
+      console.log('🔕 Unsubscribing from call history:', channelName);
+      callService.unsubscribe(channelName);
+    };
+  }, [userId, queryClient]);
+
   // Query for call history with caching
-  const { 
-    data: historyData, 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data: historyData,
+    isLoading,
+    error,
+    refetch
   } = useQuery({
     queryKey: ['callHistory', userId],
     queryFn: async () => {
@@ -20,10 +41,10 @@ export function useCallHistory(userId) {
       return result;
     },
     enabled: !!userId,
-    staleTime: 1000 * 60 * 2, // 2 minutes - data stays fresh
-    gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    staleTime: 1000 * 5, // Reduced staleTime to 5 seconds for better reactivity
+    gcTime: 1000 * 60 * 5, // 5 minutes - keep in cache
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Separate query for missed calls count
@@ -36,8 +57,8 @@ export function useCallHistory(userId) {
       return await callService.getMissedCallsCount(userId);
     },
     enabled: !!userId,
-    staleTime: 1000 * 60 * 1, // 1 minute
-    gcTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 1000 * 30, // 30 seconds
+    gcTime: 1000 * 60 * 2, // 2 minutes
   });
 
   return {

@@ -338,8 +338,7 @@ class CallService {
     realtimeManager.subscribe(
       channelName,
       {
-        table: 'call_history',
-        filter: `receiver_id=eq.${userId}`
+        table: 'call_history'
       },
       {
         postgres_changes: [
@@ -349,7 +348,17 @@ class CallService {
             table: 'call_history',
             filter: `receiver_id=eq.${userId}`,
             handler: (payload) => {
-              console.log('📞 Call update:', payload);
+              console.log('📞 Call update (receiver):', payload);
+              onCallUpdate(payload);
+            }
+          },
+          {
+            event: '*',
+            schema: 'public',
+            table: 'call_history',
+            filter: `caller_id=eq.${userId}`,
+            handler: (payload) => {
+              console.log('📞 Call update (caller):', payload);
               onCallUpdate(payload);
             }
           }

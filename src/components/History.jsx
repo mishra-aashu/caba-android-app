@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useCall } from '../contexts/CallContext';
 import { dpOptions } from '../utils/dpOptions';
-import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Video, ArrowLeft } from 'lucide-react';
+import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Video, ArrowLeft, RefreshCw } from 'lucide-react';
 import { callService } from '../services/callService';
 import BottomNavigation from './common/BottomNavigation';
 import { isUserOnline } from '../utils/dateFormatter';
@@ -36,8 +36,10 @@ const History = () => {
       return result;
     },
     enabled: !!userId && !!isAuthenticated,
-    staleTime: 1000 * 60 * 10, // 10 minutes - keep this specific list fresh for 10 mins
-    gcTime: 1000 * 60 * 60, // 1 hour - keep in cache for 1 hour
+    staleTime: 1000 * 30, // 30 seconds - keep data fresh for real-time updates
+    gcTime: 1000 * 30, // 30 seconds - keep in cache
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Local state for grouped history and pagination
@@ -48,6 +50,11 @@ const History = () => {
   const [lastCallId, setLastCallId] = useState(null);
   const [loadingLocked, setLoadingLocked] = useState(false);
   const loaderRef = useRef(null);
+
+  // Handle manual refresh
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   // Update history when query data changes
   useEffect(() => {
@@ -334,7 +341,16 @@ const History = () => {
           <div className="header-center">
             <h1>Call History</h1>
           </div>
-          <div className="header-right"></div>
+          <div className="header-right">
+            <button 
+              className="refresh-btn" 
+              onClick={handleRefresh}
+              disabled={isLoading}
+              title="Refresh call history"
+            >
+              <RefreshCw size={20} className={isLoading ? 'spinning' : ''} />
+            </button>
+          </div>
         </header>
 
         <div className="history-content">
