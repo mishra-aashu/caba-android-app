@@ -24,6 +24,7 @@ import { requestPersistentStorage } from './db/db';
 import { DialogProvider } from './contexts/DialogProvider';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
 import GlobalDialog from './components/common/GlobalDialog';
+import { FileCache } from './utils/FileCache';
 
 // CSS Imports
 import '../src/styles/desktop.css';
@@ -187,7 +188,9 @@ const ProtectedRoute = ({ children }) => {
       setShowPhoneCollect(false);
     } else {
       setShowPhoneAuth(false);
-      setShowPhoneCollect(dbUser && (!dbUser.phone || dbUser.phone === ''));
+      // Skip phone number collection if offline to avoid modal blocking the app
+      const isOnline = navigator.onLine;
+      setShowPhoneCollect(isOnline && dbUser && (!dbUser.phone || dbUser.phone === ''));
     }
   }, [isAuthenticated, dbUser]);
 
@@ -323,6 +326,7 @@ const App = () => {
 
     initializePushNotifications();
     requestPersistentStorage();
+    FileCache.init();
   }, []);
 
   useNetworkSync();

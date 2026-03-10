@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import styles from '../../styles/chat.module.css';
 import bubbleStyles from './MessageBubble.module.css';
+import CachedImage from '../common/CachedImage';
 
 const MessageItem = ({
   message,
@@ -495,7 +496,7 @@ const MessageItem = ({
         {showReceivedAvatar && (
           <button className={styles['group-sender-avatar']} onClick={handleSenderAvatarClick}>
             {senderAvatar ? (
-              <img src={senderAvatar} alt={senderName} className={styles['group-sender-avatar-img']} />
+              <CachedImage src={senderAvatar} alt={senderName} className={styles['group-sender-avatar-img']} />
             ) : (
               <span className={styles['group-sender-avatar-initial']}>{senderInitial}</span>
             )}

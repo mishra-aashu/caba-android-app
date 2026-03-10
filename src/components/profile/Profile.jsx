@@ -11,6 +11,7 @@ import "../qr/QRCodeScanner.css";
 import FullscreenImageModal from "./FullscreenImageModal";
 import { useDialog } from "../../contexts/DialogContext";
 import toast from "react-hot-toast";
+import CachedImage from "../common/CachedImage";
 
 const Profile = ({ isModal = false, isSidebar = false }) => {
   const isOverlay = isModal || isSidebar;
@@ -265,7 +266,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                 setFullscreenImageUrl(
                   parseInt(user.avatar)
                     ? dpOptions.find((dp) => dp.id === parseInt(user.avatar))
-                        ?.path
+                      ?.path
                     : user.avatar,
                 );
                 setShowFullscreenImage(true);
@@ -273,11 +274,11 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
             }}
           >
             {user.avatar ? (
-              <img
+              <CachedImage
                 src={
                   parseInt(user.avatar)
                     ? dpOptions.find((dp) => dp.id === parseInt(user.avatar))
-                        ?.path
+                      ?.path
                     : user.avatar
                 }
                 alt="Profile Picture"

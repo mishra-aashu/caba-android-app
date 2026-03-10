@@ -6,6 +6,7 @@ import { formatLastSeen, formatTime } from '../../utils/dateFormatter';
 import { useResolveName } from '../../hooks/useResolveName';
 import { useResolveAvatar } from '../../hooks/useResolveAvatar';
 import EmojiRenderer from '../common/EmojiRenderer';
+import CachedImage from '../common/CachedImage';
 import styles from '../../styles/ChatListItem.module.css';
 
 const ChatListItem = ({ chat, onClick, isActive }) => {
@@ -69,7 +70,7 @@ const ChatListItem = ({ chat, onClick, isActive }) => {
         ) : (
           <>
             {resolvedAvatar && !imgError ? (
-              <img
+              <CachedImage
                 src={resolvedAvatar}
                 alt={name || 'User'}
                 className={styles['chat-avatar']}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import EmojiRenderer from '../common/EmojiRenderer';
+import CachedImage from '../common/CachedImage';
 import styles from './MediaMessage.module.css';
 
 const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, onMediaClick }) => {
@@ -80,7 +81,7 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             </div>
           ) : (
             <>
-              <img
+              <CachedImage
                 src={mediaUrl}
                 alt="sent-media"
                 className={styles['actual-image']}

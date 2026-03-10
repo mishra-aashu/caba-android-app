@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import toast from 'react-hot-toast';
+import CachedImage from './common/CachedImage';
 import './user-details/UserDetails.css';
 
 const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onClose }) => {
@@ -605,9 +606,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     <div className="user-details-avatar" id="userDetailAvatar" onClick={() => user.avatar && setShowImageModal(true)} style={{ cursor: user.avatar ? 'pointer' : 'default' }}>
                         {user.avatar ? (
                             parseInt(user.avatar) ? (
-                                <img id="userDetailImg" src={dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path} alt={user.name} />
+                                <CachedImage id="userDetailImg" src={dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path} alt={user.name} />
                             ) : (
-                                <img id="userDetailImg" src={user.avatar} alt={user.name} />
+                                <CachedImage id="userDetailImg" src={user.avatar} alt={user.name} />
                             )
                         ) : (
                             <div className="dp-preview-initials" id="userDetailInitials">{getInitials(user.name)}</div>
