@@ -93,7 +93,7 @@ const AppContent = () => {
     return null;
   }
 
-  if (isAuthenticated && !splashFinished) {
+  if (isAuthenticated && !splashFinished && isDesktop) {
     return <Intro onComplete={() => setSplashFinished(true)} />;
   }
 
