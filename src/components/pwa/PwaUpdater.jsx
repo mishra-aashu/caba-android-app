@@ -103,8 +103,9 @@ const PwaUpdater = () => {
 
             // 4. Reload
             if (Capacitor.isNativePlatform()) {
-                toast.loading('Restarting app...', { id: 'pwa-update-toast' });
-                setTimeout(() => window.location.reload(true), 1000);
+                toast.loading('Loading latest version...', { id: 'pwa-update-toast' });
+                // Redirect to Vercel to load the newest version
+                setTimeout(() => window.location.href = 'https://caba-android-app.vercel.app/', 1000);
             } else {
                 await unregisterAllServiceWorkers();
                 if (typeof updateServiceWorker === 'function') {
