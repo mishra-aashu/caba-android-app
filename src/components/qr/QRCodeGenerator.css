@@ -28,7 +28,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 20px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 20px;
 }
 
@@ -66,8 +66,8 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid var(--primary-color);
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--brand-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 20px;
@@ -151,13 +151,13 @@
 }
 
 .qr-share-btn {
-  background: white;
-  color: var(--primary-color, #007bff);
-  border: 2px solid var(--primary-color, #007bff);
+  background: var(--surface-color);
+  color: var(--brand-primary);
+  border: 2px solid var(--brand-primary);
 }
 
 .qr-share-btn:hover {
-  background: var(--primary-color, #007bff);
+  background: var(--brand-primary);
   color: white;
 }
 
