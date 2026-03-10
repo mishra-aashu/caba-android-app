@@ -184,7 +184,8 @@ body.dark-mode .user-details-screen,
 }
 
 .user-details-screen.user-details-panel-view .user-details-header {
-    padding: 0.75rem 1rem;
+    padding: 1.25rem;
+    padding-top: calc(1.25rem + var(--safe-top));
 }
 
 .user-details-screen.user-details-panel-view .user-profile-section {
@@ -223,13 +224,18 @@ body.dark-mode .user-details-screen,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1rem;
+    padding: 1.25rem;
+    padding-top: calc(1.25rem + var(--safe-top));
+    padding-left: calc(1.25rem + var(--safe-left));
+    padding-right: calc(1.25rem + var(--safe-right));
     background-color: var(--ud-header-bg);
     border-bottom: none;
     /* Removed border for seamless header */
     position: sticky;
     top: 0;
     z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .user-details-header h1 {

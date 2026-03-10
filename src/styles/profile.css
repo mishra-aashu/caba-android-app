@@ -59,8 +59,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  padding-top: calc(12px + var(--safe-top));
+  padding: 1.25rem 16px;
+  padding-top: calc(1.25rem + var(--safe-top));
   padding-left: calc(16px + var(--safe-left));
   padding-right: calc(16px + var(--safe-right));
   background: var(--surface-color, #1f2c33);
