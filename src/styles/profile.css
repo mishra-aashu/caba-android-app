@@ -1004,7 +1004,7 @@ body.light-mode .modal-close-btn,
    16. RESPONSIVE — Tablet
    ============================================= */
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .profile-content {
     margin: 8px auto;
     padding: 16px 14px;

@@ -307,7 +307,7 @@
    🖥️ Desktop Optimizations
    ============================================ */
 
-@media (min-width: 768px) {
+@media (min-width: 1025px) {
   .offline-banner {
     max-width: 360px;
     border-radius: 16px;

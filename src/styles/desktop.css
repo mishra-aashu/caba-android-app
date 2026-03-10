@@ -1,4 +1,4 @@
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
 
   /* =============================================
      LAYOUT
@@ -35,7 +35,8 @@
     color: var(--sidebar-text-color);
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     z-index: 99999;
-    overflow: visible; /* Allow tooltips to escape sidebar */
+    overflow: visible;
+    /* Allow tooltips to escape sidebar */
 
     /* GPU Acceleration */
     transform: translateZ(0);
@@ -149,8 +150,8 @@
     pointer-events: none;
     z-index: 100000;
     transition: opacity 0.2s ease,
-                transform 0.2s ease,
-                visibility 0.2s ease;
+      transform 0.2s ease,
+      visibility 0.2s ease;
   }
 
   /* Show tooltip on hover AND focus */

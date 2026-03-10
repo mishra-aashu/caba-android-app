@@ -211,13 +211,13 @@ body {
   will-change: scroll-position;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .page-container {
     padding-bottom: calc(var(--bottom-nav-height, 60px) + var(--sab, 0px));
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .app-content {
     margin-left: 80px;
   }
@@ -247,7 +247,7 @@ body {
 /* =============================================
    6. DESKTOP LAYOUT
    ============================================= */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .desktop-layout {
     display: flex;
     width: 100%;
@@ -303,7 +303,7 @@ body {
 /* =============================================
    7. MOBILE & TABLET LAYOUT
    ============================================= */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .app-content {
     margin-left: 0;
     padding-bottom: 0;
@@ -1258,7 +1258,7 @@ body {
 }
 
 /* Mobile Legal */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .legal-page-container {
     padding: 1.5rem;
     margin-top: 0;
@@ -1615,7 +1615,7 @@ body,
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .auto-refresh-banner {
     bottom: 30px;
     left: calc(50% + 40px);

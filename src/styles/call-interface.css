@@ -305,7 +305,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .video-call-container {
     border-radius: 0;
     max-height: none;

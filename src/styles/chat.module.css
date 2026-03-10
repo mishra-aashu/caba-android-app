@@ -220,7 +220,7 @@
   background-image: none !important;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .chat-screen.drawer-open .chat-main-area {
     display: none;
   }
@@ -359,7 +359,7 @@ body.light-mode .load-more-indicator p {
   color: var(--text-secondary, #4a6e5c);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 1024px) {
   .load-more-indicator {
     margin: 6px 4px;
     padding: 12px 6px;
@@ -733,8 +733,8 @@ body.light-mode .chat-input-container {
   color: var(--text-primary, #e9edef);
 }
 
-/* Mobile layout */
-@media (max-width: 450px) {
+/* Mobile & Tablet layout (Synced with JS breakpoint 768px) */
+@media (max-width: 1024px) {
   .chat-input-container.emoji-open {
     padding-left: 4px;
     padding-right: 4px;
@@ -1382,7 +1382,7 @@ body.light-mode .reply-message {
   color: var(--error-color, #e53935);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1025px) {
   .reply-message {
     max-width: 500px;
   }
@@ -1945,7 +1945,7 @@ body.light-mode .selection-info {
   padding: 20px;
 }
 
-@media (max-width: 450px) {
+@media (max-width: 1024px) {
   .emoji-picker-overlay {
     padding: 0;
   }
@@ -2530,7 +2530,14 @@ body.light-mode .no-messages-content {
   background: linear-gradient(135deg, #2e7d32, #66bb6a);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 1024px) {
+  .emoji-picker-inline {
+    width: 100% !important;
+    height: 30px;
+    margin-right: 6px;
+    margin-bottom: 3px;
+  }
+
   .group-sender-avatar {
     width: 30px;
     height: 30px;
@@ -2668,7 +2675,7 @@ body.light-mode .no-messages-content {
   padding-top: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .theme-selector {
     flex-direction: column;
     gap: 24px;
@@ -2947,7 +2954,7 @@ body.light-mode .no-messages-content {
 }
 
 /* Desktop */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .chat-screen {
     height: 100%;
   }

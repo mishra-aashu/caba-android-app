@@ -579,7 +579,7 @@
    RESPONSIVE — Mobile
    ============================================= */
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .calls-container .app-header {
     padding: 0.6rem 0.75rem;
   }
@@ -630,7 +630,7 @@
    DESKTOP — wider layout
    ============================================= */
 
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
 
   .calls-container .call-history-section,
   .calls-container .contacts-section {

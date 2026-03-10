@@ -293,7 +293,7 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .video-call-container {
     width: 100%;
     height: 100%;

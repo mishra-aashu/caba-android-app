@@ -85,7 +85,7 @@
 
 
 /* Mobile Optimizations */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   /* Mobile optimizations for bubbles handled in MessageBubble.css */
 
   .chat-header,

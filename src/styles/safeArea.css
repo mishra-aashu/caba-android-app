@@ -42,7 +42,7 @@
 }
 
 /* Foldable/Tablet Support (wider screens might not need massive safe areas) */
-@media (min-width: 768px) {
+@media (min-width: 1025px) {
     :root {
         --safe-top: var(--sat);
         --safe-bottom: var(--sab);

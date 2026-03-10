@@ -647,7 +647,7 @@ input:checked+.toggle-slider:before {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .settings-content {
     padding: 16px;
   }

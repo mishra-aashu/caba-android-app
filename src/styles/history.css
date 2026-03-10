@@ -431,7 +431,7 @@
    DESKTOP (> 768px)
    ============================================ */
 
-@media (min-width: 768px) {
+@media (min-width: 1025px) {
   .history-item {
     padding: 14px 20px;
   }

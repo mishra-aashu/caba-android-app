@@ -619,7 +619,7 @@ body.light-mode .sidebar .search input:focus {
    6. RESPONSIVE — MOBILE (≤ 768px)
    ================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .app-shell {
     display: block;
     position: relative;

@@ -1319,7 +1319,7 @@ blockquote em {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     :root {
         --lp-section-pad: 72px 20px;
     }
@@ -1692,7 +1692,7 @@ blockquote em {
             transparent 70%);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .hero-text-glow {
         width: 150%;
         height: 150%;

@@ -476,7 +476,7 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .admin-sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
