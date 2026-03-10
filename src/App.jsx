@@ -17,7 +17,6 @@ import SafeAreaDebugger from './components/common/SafeAreaDebugger';
 import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import MainLayout from './components/MainLayout';
-import PwaUpdater from './components/pwa/PwaUpdater';
 import useNetworkSync from './hooks/useNetworkSync';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { requestPersistentStorage } from './db/db';
@@ -333,7 +332,6 @@ const App = () => {
 
   return (
     <Suspense fallback={<div className="loading" />}>
-      <PwaUpdater />
       <ErrorBoundary>
         <DialogProvider>
           <DataProvider>

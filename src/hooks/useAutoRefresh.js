@@ -31,35 +31,48 @@ export const useAutoRefresh = () => {
 
     const checkForUpdates = async () => {
       try {
-        // FIX: If running on native (Capacitor), fetch from Vercel to detect new builds
-        // If on web, use relative path
         const isNative = Capacitor.isNativePlatform();
         const updateUrl = isNative
           ? 'https://caba-android-app.vercel.app/'
           : '/';
 
+        console.log(`[AutoRefresh] Checking for updates at: ${updateUrl}`);
+
         const response = await fetch(`${updateUrl}?_cb=${Date.now()}`, {
           cache: 'no-store',
-          headers: { Accept: 'text/html' },
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Accept': 'text/html'
+          },
         });
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          console.warn('[AutoRefresh] Update check failed with status:', response.status);
+          return;
+        }
 
         const html = await response.text();
 
-        const match = html.match(/name="build-time"\s+content="([^"]+)"/);
+        // More robust regex for meta tag detection
+        const match = html.match(/<meta[^>]+name=["']build-time["'][^>]+content=["']([^"']+)["']/i) ||
+          html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']build-time["']/i);
+
         const latestBuildTime = match ? match[1] : null;
 
         if (latestBuildTime && latestBuildTime !== currentBuildTimeRef.current) {
           // Extra guard for native: if they've already seen THIS specific build time, don't nag
           const lastSeenBuildTime = localStorage.getItem('app-last-seen-build-time');
           if (isNative && lastSeenBuildTime === latestBuildTime) {
+            console.log('[AutoRefresh] New build available but already seen by user:', latestBuildTime);
             return;
           }
 
-          console.log('[AutoRefresh] New build detected:', latestBuildTime);
+          console.log('[AutoRefresh] New build detected! Remote:', latestBuildTime, 'Local:', currentBuildTimeRef.current);
           setLatestVersion(latestBuildTime);
           setNeedsRefresh(true);
+        } else {
+          console.log('[AutoRefresh] No new build detected. Current:', currentBuildTimeRef.current);
         }
       } catch (error) {
         console.error('[AutoRefresh] Update check failed:', error);
@@ -71,10 +84,14 @@ export const useAutoRefresh = () => {
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
+        console.log('[AutoRefresh] App visible, checking for updates...');
         checkForUpdates();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Initial check on mount after a small delay
+    setTimeout(checkForUpdates, 3000);
 
     return () => {
       clearInterval(interval);
@@ -82,29 +99,41 @@ export const useAutoRefresh = () => {
     };
   }, []);
 
-  const handleRefresh = () => {
-    // Priority: 1. latestVersion from state (detected), 2. meta tag (current)
+  const handleRefresh = async () => {
+    console.log('[AutoRefresh] Refreshing app to load new build...');
     const versionToMark = latestVersion || document.querySelector('meta[name="build-time"]')?.content;
 
-    // Store that we've seen this version to avoid infinite nagging if reload fails to update
     if (versionToMark) {
       localStorage.setItem('app-last-seen-build-time', versionToMark);
       localStorage.setItem('app-build-time', versionToMark);
     }
 
-    // FIX: Clear service worker caches before reload
+    // Thorough cache clearing
     if ('caches' in window) {
-      caches.keys().then((names) => {
-        names.forEach((name) => caches.delete(name));
-      });
+      try {
+        const names = await caches.keys();
+        await Promise.all(names.map(name => caches.delete(name)));
+        console.log('[AutoRefresh] Caches cleared successfully');
+      } catch (e) {
+        console.error('[AutoRefresh] Error clearing caches:', e);
+      }
+    }
+
+    // Unregister service workers as well
+    if ('serviceWorker' in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+        console.log('[AutoRefresh] Service workers unregistered');
+      } catch (e) {
+        console.error('[AutoRefresh] Service worker unregistration failed:', e);
+      }
     }
 
     if (Capacitor.isNativePlatform()) {
-      // For native, we redirect to Vercel to load the newest version
-      // This allows the app to "self-update" to the latest web build
       window.location.href = 'https://caba-android-app.vercel.app/';
     } else {
-      window.location.reload();
+      window.location.reload(true);
     }
   };
 
