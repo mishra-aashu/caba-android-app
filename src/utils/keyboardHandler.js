@@ -34,8 +34,8 @@ export class KeyboardHandler {
             this.setupiOSKeyboardDetection();
         }
 
-        // 3. Android / Universal Resize fallback
-        if (this.isAndroid()) {
+        // 3. Android / Universal Resize fallback (DISABLED ON NATIVE)
+        if (this.isAndroid() && !this.isNative()) {
             this.setupAndroidKeyboardDetection();
         }
     }

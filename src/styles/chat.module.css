@@ -625,12 +625,11 @@ body.light-mode .message-time {
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Keyboard handling - translation based on detected keyboard height */
-:global(body.keyboard-open) .chat-input-container {
+/* Keyboard handling - disabled manual translation to favor native resizing */
+/* :global(body.keyboard-open) .chat-input-container {
   transform: translateY(calc(-1 * var(--keyboard-height, 0px)));
   padding-bottom: 0.5rem;
-  /* Reduce padding when keyboard is up */
-}
+} */
 
 [data-theme='light'] .chat-input-container,
 body.light-mode .chat-input-container {
