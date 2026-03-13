@@ -49,7 +49,9 @@ const FREE_TURN_SERVERS = {
         { urls: 'stun:stun.1und1.de:3478' },
         { urls: 'stun:meet-jit-si-turnrelay.jitsi.net:443' }
     ],
-    iceCandidatePoolSize: 10
+    iceCandidatePoolSize: 5,
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require'
 };
 
 /**

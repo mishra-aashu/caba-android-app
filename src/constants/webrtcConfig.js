@@ -47,7 +47,9 @@ export const ICE_SERVERS = [
 
 export const WEBRTC_CONFIG = {
     iceServers: ICE_SERVERS,
-    iceCandidatePoolSize: 10
+    iceCandidatePoolSize: 5,
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require'
 };
 
 export const STUN_ONLY_CONFIG = {
