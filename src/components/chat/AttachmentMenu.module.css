@@ -6,7 +6,7 @@
 .attachment-menu-modal {
   position: absolute;
   bottom: calc(100% + 15px);
-  left: 10px;
+  right: 10px;
   background: var(--surface-color);
   border-radius: 16px;
   padding: 20px;
