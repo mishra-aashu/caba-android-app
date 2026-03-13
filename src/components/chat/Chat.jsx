@@ -71,6 +71,7 @@ const Chat = () => {
     supabase, showAlert, initialScrollPosition, saveScrollPosition, queryClient,
     isMessagesLoading, allChats, authLoading, isAuthenticated,
     connectionStatus, retryConnection,
+    authError,
   } = useChatRoom({
     onNewMessage: (msg) => {
       if (!isScrolledToBottom) {
@@ -86,6 +87,14 @@ const Chat = () => {
     window.handleReactionToggle = handleReactionToggle;
     return () => { delete window.handleReactionToggle; };
   }, [handleReactionToggle]);
+
+  // ─── Authorization Guard ───
+  useEffect(() => {
+    if (authError) {
+      toast.error(authError);
+      navigate('/', { replace: true });
+    }
+  }, [authError, navigate]);
 
   const [showGameLobby, setShowGameLobby] = useState(false);
 

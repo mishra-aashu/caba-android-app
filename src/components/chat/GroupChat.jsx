@@ -95,7 +95,7 @@ const GroupChat = () => {
     const { mutate: deleteMessageMutation } = useDeleteMessage(validChatId);
 
     // Group Details
-    const { data: groupDetails, isLoading: isGroupLoading } = useGroupDetails(validChatId);
+    const { data: groupDetails, isLoading: isGroupLoading, error: groupError } = useGroupDetails(validChatId);
 
     // Messages Pagination
     const {
@@ -152,6 +152,7 @@ const GroupChat = () => {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
+    const [authError, setAuthError] = useState(null);
 
     const messagesContainerRef = useRef(null);
 
@@ -162,7 +163,19 @@ const GroupChat = () => {
 
     // Update group state when details load
     useEffect(() => {
+        if (groupError) {
+            console.error('[Auth] Group access denied:', groupError);
+            setAuthError('Unauthorized: Group not found or access denied.');
+            return;
+        }
+
         if (groupDetails) {
+            const isMember = groupDetails.group_members?.some(m => m.user_id === currentUser?.id);
+            if (!isMember) {
+                setAuthError('Unauthorized: You are not a member of this group.');
+                return;
+            }
+
             setGroup({
                 ...groupDetails,
                 id: groupDetails.id,
@@ -171,8 +184,17 @@ const GroupChat = () => {
                 member_count: groupDetails.group_members?.length || 0,
                 my_role: groupDetails.group_members?.find(m => m.user_id === currentUser?.id)?.role || 'member'
             });
+            setAuthError(null);
         }
-    }, [groupDetails, currentUser?.id]);
+    }, [groupDetails, groupError, currentUser?.id, isGroupLoading, validChatId, authLoading]);
+
+    // ─── Authorization Guard ───
+    useEffect(() => {
+        if (authError) {
+            toast.error(authError);
+            navigate('/', { replace: true });
+        }
+    }, [authError, navigate]);
 
     // Theme Sync
     useEffect(() => {
