@@ -1,0 +1,469 @@
+/* ============================================
+   HISTORY PAGE - WhatsApp Style Call Log
+   ============================================ */
+
+/* Smooth scrolling for better performance */
+.history-container {
+  height: 100%;
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-color, #ffffff);
+}
+
+.history-container.is-sidebar {
+  height: 100%;
+  background: var(--surface-color);
+}
+
+.history-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  padding-bottom: calc(80px + var(--safe-bottom));
+  /* Space for bottom nav + safe area */
+}
+
+.is-sidebar .history-content {
+  padding-bottom: 2rem;
+}
+
+/* Header */
+.history-container .app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  padding-top: calc(var(--spacing-md) + var(--safe-top));
+  padding-left: calc(var(--spacing-lg) + var(--safe-left));
+  padding-right: calc(var(--spacing-lg) + var(--safe-right));
+  background: var(--surface-color, #ffffff);
+  border-bottom: 1px solid var(--border-color, #d1e8e8);
+}
+
+.is-sidebar .app-header {
+  padding-top: var(--spacing-md);
+  background: var(--surface-color);
+}
+
+.history-container .header-left {
+  display: flex;
+  align-items: center;
+}
+
+.history-container .back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #0c1e17);
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.history-container .header-center {
+  flex: 1;
+  text-align: center;
+}
+
+.history-container .header-right {
+  display: flex;
+  align-items: center;
+}
+
+.history-container .refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #0c1e17);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.history-container .refresh-btn:hover {
+  background: var(--hover-color, rgba(0, 168, 132, 0.06));
+}
+
+.history-container .refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.history-container .refresh-btn .spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Content - already defined above, keeping this for backward compatibility if class exists */
+.history-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ============================================
+   CALL HISTORY ITEM - WhatsApp Style
+   ============================================ */
+
+.history-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  cursor: pointer;
+  min-height: 70px;
+}
+
+.history-item:hover {
+  background: var(--hover-color, rgba(0, 168, 132, 0.06));
+}
+
+/* LEFT: Avatar */
+.history-item .call-avatar {
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--avatar-bg, #e8e8e8);
+  color: var(--text-secondary, #666);
+  font-size: 16px;
+  font-weight: 600;
+  margin-right: 15px;
+  margin-left: 0;
+  position: relative;
+  float: none;
+  left: auto;
+  right: auto;
+  transform: none;
+}
+
+.history-item .call-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Override any nested avatar styling */
+.history-item .call-avatar .avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+/* MIDDLE: Info Column */
+.history-item .history-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  margin-right: 10px;
+}
+
+/* Name */
+.history-item .history-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #0c1e17);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+
+.history-item .call-count {
+  font-weight: 400;
+  color: var(--text-secondary, #4a6e5c);
+  margin-left: 5px;
+  font-size: 14px;
+}
+
+/* Sub Info Row */
+.history-item .history-status-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-secondary, #4a6e5c);
+}
+
+.history-item .history-status-row .status-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.history-item .history-status-row .status-icon.missed {
+  color: #f44336;
+}
+
+.history-item .history-status-row .status-icon.outgoing {
+  color: #25d366;
+}
+
+.history-item .history-status-row .status-icon.incoming {
+  color: #0088ff;
+}
+
+.history-item .time-text {
+  flex: 1;
+}
+
+.history-item .duration-text {
+  font-weight: 500;
+  color: #25d366;
+}
+
+.history-loader {
+  padding: 20px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.scroll-more-text,
+.no-more-calls {
+  color: var(--text-secondary, #4a6e5c);
+  font-size: 13px;
+}
+
+/* RIGHT: Action Button */
+.history-item .call-action-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: none;
+  background: transparent;
+  color: #0088ff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-left: auto;
+  margin-right: 0;
+  transition: background-color 0.2s;
+}
+
+.history-item .call-action-btn:hover {
+  background: var(--btn-hover-bg, #e8f4ff);
+}
+
+.history-item .call-action-btn:active {
+  background: var(--btn-active-bg, #d0e9ff);
+}
+
+.history-item .call-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.history-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 16px;
+}
+
+.history-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e8e8e8;
+  border-top-color: #0088ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.history-loading p {
+  color: var(--text-secondary, #4a6e5c);
+  font-size: 14px;
+}
+
+/* ============================================
+   ERROR STATE
+   ============================================ */
+
+.history-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 16px;
+}
+
+.history-error p {
+  color: #f44336;
+  font-size: 14px;
+}
+
+.history-error button {
+  padding: 10px 24px;
+  background: #0088ff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.history-error button:hover {
+  background: #0077ee;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.history-content .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.history-content .empty-state svg {
+  width: 64px;
+  height: 64px;
+  color: var(--text-secondary, #8696a0);
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.history-content .empty-state h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #0c1e17);
+  margin: 0 0 8px 0;
+}
+
+.history-content .empty-state p {
+  font-size: 14px;
+  color: var(--text-secondary, #4a6e5c);
+  margin: 0;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE (< 600px)
+   ============================================ */
+
+@media (max-width: 600px) {
+  .history-container {
+    min-height: var(--app-height);
+    background: #ffffff;
+    width: 100%;
+  }
+
+  .history-item {
+    padding: 10px;
+    min-height: 60px;
+    background: #ffffff;
+  }
+
+  /* Smaller Avatar */
+  .history-item .call-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    margin-right: 12px;
+    font-size: 14px;
+  }
+
+  /* Smaller Name */
+  .history-item .history-name {
+    font-size: 15px;
+    margin-bottom: var(--spacing-xxs);
+  }
+
+  /* Smaller Sub Info */
+  .history-item .history-status-row {
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  /* Smaller Button */
+  .history-item .call-action-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+
+  /* Header */
+  .history-container .header-center h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary, #0c1e17);
+  }
+
+  .history-container .app-header {
+    padding: 10px 12px;
+  }
+
+  .history-container .back-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ============================================
+   DESKTOP (> 768px)
+   ============================================ */
+
+@media (min-width: 1025px) {
+  .history-item {
+    padding: 14px 20px;
+  }
+
+  .history-item .call-avatar {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    margin-right: 18px;
+  }
+
+  .history-item .history-name {
+    font-size: 17px;
+  }
+
+  .history-item .call-action-btn {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+  }
+}

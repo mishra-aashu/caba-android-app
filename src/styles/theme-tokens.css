@@ -1,0 +1,283 @@
+/* =============================================
+   SEMANTIC THEME TOKENS — EMERALD BASE
+   =============================================
+   
+   This file defines the DEFAULT Emerald theme.
+   When no [data-chat-theme] is selected, these
+   values are the "home" look of the app.
+   
+   Variable Groups:
+   ─────────────────
+   1. Common / Shared
+   2. Chat Background
+   3. Sent Messages
+   4. Received Messages
+   5. Ticks
+   6. Chat Header
+   7. Chat Input / Composer
+   8. Date Separator
+   9. System Messages
+   10. Typing Indicator
+   11. Links
+   12. Reply / Quote Bubbles
+   13. Unread Badge
+   14. Scroll-to-Bottom Button
+   15. Emoji Reactions
+   16. Audio / Voice Note
+   17. Image / Media Overlay
+   18. Buttons
+   ============================================= */
+
+
+/* =============================================
+   LIGHT MODE — EMERALD DEFAULT
+   ============================================= */
+
+:root {
+
+  /* ── 1. Common / Shared ── */
+  --theme-backdrop-blur: blur(16px);
+  --theme-text-contrast: 0 2px 4px rgba(0, 0, 0, 0.15);
+  --theme-icon-shadow: 0 1px 3px rgba(0, 60, 40, 0.2);
+  --theme-message-shadow: 0 1px 4px rgba(0, 60, 40, 0.08);
+
+
+  /* ── 2. Chat Background ── */
+  --chat-bg-gradient:
+    radial-gradient(circle at 20% 80%, rgba(0, 168, 132, 0.07) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(18, 140, 126, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(37, 211, 102, 0.04) 0%, transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #e8f5e9 50%, #f0faf4 100%);
+
+
+  /* ── 3. Sent Message — Emerald Gradient ── */
+  --sent-message-bg: linear-gradient(135deg, #00a884 0%, #00876a 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.18);
+  --sent-message-shadow: 0 2px 10px rgba(0, 168, 132, 0.25);
+  --sent-message-meta: rgba(255, 255, 255, 0.85);
+
+
+  /* ── 4. Received Message ── */
+  --received-message-bg: #ffffff;
+  --received-message-text: #111b21;
+  --received-message-border: 1px solid rgba(0, 60, 40, 0.06);
+  --received-message-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  --received-message-meta: rgba(0, 0, 0, 0.45);
+
+
+  /* ── 5. Ticks ── */
+  --tick-color: rgba(255, 255, 255, 0.5);
+  --tick-read-color: #a7f3d0;
+
+
+  /* ── 6. Chat Header ── */
+  --chat-header-bg: #ffffff;
+  --chat-header-text: #0c1e17;
+  --chat-header-icon-color: #1a3a2a;
+  --chat-header-shadow: 0 1px 3px rgba(0, 60, 40, 0.08);
+  --chat-header-border: 1px solid rgba(0, 60, 40, 0.06);
+
+
+  /* ── 7. Chat Input / Composer ── */
+  --chat-composer-bg: #ffffff;
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #111b21;
+  --chat-input-placeholder: #667781;
+  --chat-input-icon-color: #00a884;
+  --chat-input-border: 1px solid rgba(0, 168, 132, 0.15);
+  --chat-input-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  --chat-input-focus-ring: rgba(0, 168, 132, 0.3);
+  --chat-send-btn-bg: linear-gradient(135deg, #00a884, #00876a);
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 3px 10px rgba(0, 168, 132, 0.3);
+
+
+  /* ── 8. Date Separator ── */
+  --date-separator-bg: rgba(255, 255, 255, 0.88);
+  --date-separator-text: #1a3a2a;
+  --date-separator-shadow: 0 1px 4px rgba(0, 60, 40, 0.08);
+  --date-separator-border: none;
+  --date-separator-radius: 8px;
+
+
+  /* ── 9. System Messages ── */
+  --system-message-bg: rgba(232, 245, 233, 0.85);
+  --system-message-text: #1a3a2a;
+  --system-message-shadow: 0 1px 3px rgba(0, 60, 40, 0.06);
+
+
+  /* ── 10. Typing Indicator ── */
+  --typing-indicator-bg: var(--received-message-bg);
+  --typing-indicator-dot: #00a884;
+  --typing-indicator-border: var(--received-message-border);
+
+
+  /* ── 11. Links ── */
+  --link-color-received: #00876a;
+  --link-color-sent: #a7f3d0;
+
+
+  /* ── 12. Reply / Quote Bubbles ── */
+  --reply-bar-color: #00a884;
+  --reply-bg-sent: rgba(255, 255, 255, 0.15);
+  --reply-bg-received: rgba(0, 168, 132, 0.06);
+  --reply-text-sent: rgba(255, 255, 255, 0.85);
+  --reply-text-received: #4a6e5c;
+  --reply-name-sent: rgba(255, 255, 255, 0.95);
+  --reply-name-received: #00a884;
+
+
+  /* ── 13. Unread Badge ── */
+  --unread-badge-bg: #00a884;
+  --unread-badge-text: #ffffff;
+  --unread-badge-shadow: 0 2px 6px rgba(0, 168, 132, 0.3);
+
+
+  /* ── 14. Scroll-to-Bottom Button ── */
+  --scroll-btn-bg: rgba(255, 255, 255, 0.92);
+  --scroll-btn-icon: #00a884;
+  --scroll-btn-shadow: 0 2px 8px rgba(0, 60, 40, 0.12);
+  --scroll-btn-hover-bg: #ffffff;
+
+
+  /* ── 15. Emoji Reactions ── */
+  --reaction-pill-bg: rgba(0, 168, 132, 0.05);
+  --reaction-pill-border: 1px solid rgba(0, 168, 132, 0.1);
+  --reaction-pill-active-bg: rgba(0, 168, 132, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(0, 168, 132, 0.3);
+  --reaction-count-color: #4a6e5c;
+
+
+  /* ── 16. Audio / Voice Note ── */
+  --audio-waveform-color: #a0aec0;
+  --audio-waveform-played: #00a884;
+  --audio-progress-bg: rgba(0, 60, 40, 0.08);
+
+
+  /* ── 17. Image / Media Overlay ── */
+  --media-caption-bg: rgba(0, 0, 0, 0.6);
+  --media-caption-text: #ffffff;
+
+
+  /* ── 18. Buttons ── */
+  --chat-buttons-bg: var(--sent-message-bg);
+  --chat-buttons-text: var(--sent-message-text);
+}
+
+
+/* =============================================
+   DARK MODE — EMERALD NIGHT
+   ============================================= */
+
+[data-theme='dark'] {
+
+  /* ── 2. Chat Background ── */
+  --chat-bg-gradient:
+    radial-gradient(circle at 20% 80%, rgba(0, 92, 75, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 168, 132, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(11, 61, 54, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, #111b21 0%, #0b141a 100%);
+
+
+  /* ── 3. Sent Message — Deep Emerald ── */
+  --sent-message-bg: #005c4b;
+  --sent-message-text: #e9edef;
+  --sent-message-border: 1px solid rgba(0, 168, 132, 0.12);
+  --sent-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --sent-message-meta: rgba(255, 255, 255, 0.6);
+
+
+  /* ── 4. Received Message ── */
+  --received-message-bg: #202c33;
+  --received-message-text: #e9edef;
+  --received-message-border: 1px solid rgba(255, 255, 255, 0.05);
+  --received-message-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --received-message-meta: rgba(255, 255, 255, 0.5);
+
+
+  /* ── 5. Ticks ── */
+  --tick-color: rgba(255, 255, 255, 0.35);
+  --tick-read-color: #53bdeb;
+
+
+  /* ── 6. Chat Header ── */
+  --chat-header-bg: #1f2c33;
+  --chat-header-text: #e9edef;
+  --chat-header-icon-color: #aebac1;
+  --chat-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --chat-header-border: 1px solid rgba(255, 255, 255, 0.04);
+
+
+  /* ── 7. Chat Input / Composer ── */
+  --chat-composer-bg: #1f2c33;
+  --chat-input-bg: #1f2c33;
+  --chat-input-text: #e9edef;
+  --chat-input-placeholder: #667781;
+  --chat-input-icon-color: #8696a0;
+  --chat-input-border: 1px solid rgba(255, 255, 255, 0.06);
+  --chat-input-shadow: none;
+  --chat-input-focus-ring: rgba(0, 168, 132, 0.3);
+  --chat-send-btn-bg: #00a884;
+  --chat-send-btn-color: #ffffff;
+  --chat-send-btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+
+
+  /* ── 8. Date Separator ── */
+  --date-separator-bg: rgba(32, 44, 51, 0.9);
+  --date-separator-text: #8696a0;
+  --date-separator-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --date-separator-border: 1px solid rgba(255, 255, 255, 0.04);
+
+
+  /* ── 9. System Messages ── */
+  --system-message-bg: rgba(32, 44, 51, 0.85);
+  --system-message-text: #8696a0;
+  --system-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+
+
+  /* ── 10. Typing Indicator ── */
+  --typing-indicator-dot: #00a884;
+
+
+  /* ── 11. Links ── */
+  --link-color-received: #53bdeb;
+  --link-color-sent: #53bdeb;
+
+
+  /* ── 12. Reply / Quote Bubbles ── */
+  --reply-bar-color: #00a884;
+  --reply-bg-sent: rgba(0, 168, 132, 0.08);
+  --reply-bg-received: rgba(255, 255, 255, 0.04);
+  --reply-text-sent: rgba(255, 255, 255, 0.65);
+  --reply-text-received: rgba(255, 255, 255, 0.55);
+  --reply-name-sent: #00a884;
+  --reply-name-received: #00a884;
+
+
+  /* ── 13. Unread Badge ── */
+  --unread-badge-bg: #00a884;
+  --unread-badge-text: #ffffff;
+  --unread-badge-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+
+
+  /* ── 14. Scroll-to-Bottom Button ── */
+  --scroll-btn-bg: rgba(32, 44, 51, 0.92);
+  --scroll-btn-icon: #aebac1;
+  --scroll-btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --scroll-btn-hover-bg: #2a3942;
+
+
+  /* ── 15. Emoji Reactions ── */
+  --reaction-pill-bg: rgba(255, 255, 255, 0.04);
+  --reaction-pill-border: 1px solid rgba(255, 255, 255, 0.06);
+  --reaction-pill-active-bg: rgba(0, 168, 132, 0.12);
+  --reaction-pill-active-border: 1px solid rgba(0, 168, 132, 0.25);
+  --reaction-count-color: #8696a0;
+
+
+  /* ── 16. Audio / Voice Note ── */
+  --audio-waveform-color: #4a5568;
+  --audio-waveform-played: #00a884;
+  --audio-progress-bg: rgba(255, 255, 255, 0.06);
+}

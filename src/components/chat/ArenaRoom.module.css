@@ -1,0 +1,350 @@
+.arenaContainer {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background: #0a0a0a;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Common Components */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.chatFeed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.chatFeed::-webkit-scrollbar { width: 4px; }
+.chatFeed::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+/* Desktop Layout */
+.desktopLayout {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+@media (min-width: 1024px) {
+  .desktopLayout { display: flex; }
+  .mobileLayout { display: none; }
+}
+
+.gameSection {
+  flex: 1.2;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  background: #0f0f0f;
+}
+
+.gameBoardScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.chatSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #0a0a0a;
+}
+
+/* Mobile Layout */
+.mobileLayout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.mobileChatArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 70px; /* Room for input */
+}
+
+.gameDrawer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #121212;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px 24px 0 0;
+  z-index: 100;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawerHandle {
+  padding: 10px 20px 15px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.handleBar {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.drawerTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #ec4899;
+}
+
+.drawerContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 20px;
+}
+
+.mobileInputArea {
+  padding: 10px;
+  background: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(20px);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+}
+
+/* Chat Bubbles */
+.messageWrapper {
+  display: flex;
+  width: 100%;
+}
+
+.me { justify-content: flex-end; }
+.them { justify-content: flex-start; }
+
+.messageBubble {
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  position: relative;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.me .messageBubble {
+  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.them .messageBubble {
+  background: #262626;
+  color: #fff;
+  border-bottom-left-radius: 4px;
+}
+
+.senderName {
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  opacity: 0.6;
+}
+
+.msgTime {
+  display: block;
+  font-size: 9px;
+  opacity: 0.5;
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* Media Components */
+.mediaContent {
+  margin-top: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tappableMedia {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.voicePlayer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  min-width: 200px;
+}
+
+.waveUI {
+  flex: 1;
+  height: 20px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.waveStatic {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px);
+}
+
+.waveAnimating {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #ec4899, #8b5cf6);
+  mask-image: repeating-linear-gradient(90deg, black, black 2px, transparent 2px, transparent 4px);
+  animation: waveMove 1s linear infinite;
+}
+
+@keyframes waveMove {
+  from { transform: translateX(-10px); }
+  to { transform: translateX(0); }
+}
+
+/* Chat Input Bar */
+.inputContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inputBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1a1a1a;
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.inputBar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.mediaActions {
+  display: flex;
+  gap: 8px;
+}
+
+.iconBtn {
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.iconBtn:hover { color: #ec4899; }
+
+.sendBtn {
+  background: #ec4899;
+  color: #fff;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sendBtn:disabled {
+  background: #262626;
+  opacity: 0.5;
+}
+
+/* Overlays */
+.fullscreenOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.fullscreenOverlay img, .fullscreenOverlay video {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+}
+
+.closeBtn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.transferTracker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progressBar {
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progressFill {
+  height: 100%;
+  background: #ec4899;
+}

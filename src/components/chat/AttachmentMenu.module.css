@@ -1,0 +1,197 @@
+/* Simple Attachment Menu - Clean & Professional */
+.attachment-menu-wrapper {
+  position: relative;
+}
+
+.attachment-menu-modal {
+  position: absolute;
+  bottom: calc(100% + 15px);
+  left: 10px;
+  background: var(--surface-color);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  max-width: 350px;
+  width: max-content;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Glassmorphism effect */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: var(--dropdown-bg);
+}
+
+
+.attachment-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.attachment-menu-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.attachment-menu-header .close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.attachment-menu-header .close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.attachment-options {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.attachment-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  min-width: 80px;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.attachment-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.attachment-option .icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.attachment-option:hover .icon-wrapper {
+  background: var(--brand-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+:global(body.light-mode) .attachment-option .icon-wrapper {
+  background: rgba(0, 168, 132, 0.1);
+  color: #1a3a2a;
+}
+
+:global(body.light-mode) .attachment-option:hover .icon-wrapper {
+  background: var(--brand-primary);
+  color: white;
+}
+
+/* Simple icon backgrounds */
+.icon-wrapper.photo-option {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.icon-wrapper.video-option {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.icon-wrapper.quick-option {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.attachment-option span {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.attachment-option:hover span {
+  color: var(--text-primary);
+}
+
+:global(body.light-mode) .attachment-option span {
+  color: #1a3a2a;
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 480px) {
+  .attachment-menu-modal {
+    position: fixed;
+    bottom: calc(var(--chat-input-height, 60px) + 20px);
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-width: unset;
+    min-width: unset;
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  .attachment-options {
+    gap: 8px;
+  }
+
+  .attachment-option {
+    padding: 12px 8px;
+    min-width: 70px;
+  }
+
+  .attachment-option .icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+  }
+
+  .attachment-option span {
+    font-size: 12px;
+  }
+}
+
+/* Quick Replies Menu adjustments */
+.quick-replies-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+}
+
+.quick-reply-option {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.quick-reply-option:hover {
+  background-color: var(--brand-primary);
+  color: white;
+  border-color: var(--brand-primary);
+}

@@ -1,0 +1,192 @@
+@media (min-width: 1025px) {
+
+  /* =============================================
+     LAYOUT
+     ============================================= */
+
+  .app-layout {
+    display: flex;
+  }
+
+  .app-content {
+    margin-left: 80px;
+    flex-grow: 1;
+    height: calc(var(--vh, 1vh) * 100);
+    overflow: hidden;
+    position: relative;
+
+    /* GPU Acceleration */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* =============================================
+     SIDEBAR CONTAINER
+     ============================================= */
+
+  .desktop-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 80px;
+    height: var(--app-height);
+    padding: 10px 5px;
+    background-color: var(--sidebar-background-color);
+    color: var(--sidebar-text-color);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    z-index: 99999;
+    overflow: visible;
+    /* Allow tooltips to escape sidebar */
+
+    /* GPU Acceleration */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* =============================================
+     NAV LIST & ITEMS
+     ============================================= */
+
+  .desktop-navbar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .desktop-nav-item {
+    position: relative;
+    margin-bottom: 5px;
+  }
+
+  /* =============================================
+     NAV LINKS
+     ============================================= */
+
+  .desktop-nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--sidebar-text-color);
+    text-decoration: none;
+    cursor: pointer;
+    position: relative;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Hover + Focus + Active States */
+  .desktop-nav-link:hover,
+  .desktop-nav-link:focus-visible,
+  .desktop-nav-link.active {
+    background-color: var(--sidebar-hover-background-color);
+    color: var(--brand-primary);
+  }
+
+  /* Keyboard focus ring */
+  .desktop-nav-link:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: -2px;
+  }
+
+  /* Remove default focus outline */
+  .desktop-nav-link:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Active indicator bar (left edge) */
+  .desktop-nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: var(--brand-primary);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* =============================================
+     ICON & TEXT
+     ============================================= */
+
+  .desktop-nav-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* Hidden in icon-only sidebar */
+  .desktop-nav-text {
+    display: none;
+  }
+
+  /* =============================================
+     TOOLTIPS (appear on hover/focus)
+     ============================================= */
+
+  .desktop-nav-link[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-6px);
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 100000;
+    transition: opacity 0.2s ease,
+      transform 0.2s ease,
+      visibility 0.2s ease;
+  }
+
+  /* Show tooltip on hover AND focus */
+  .desktop-nav-link[data-tooltip]:hover::after,
+  .desktop-nav-link[data-tooltip]:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(0);
+  }
+
+  /* =============================================
+     LIGHT MODE OVERRIDES
+     ============================================= */
+
+  body.light-mode .desktop-navbar {
+    background-color: #ffffff;
+    color: #1a1a1a;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+  }
+
+  body.light-mode .desktop-nav-link {
+    color: #54656f;
+  }
+
+  body.light-mode .desktop-nav-link:hover,
+  body.light-mode .desktop-nav-link:focus-visible {
+    background-color: #f0f2f5;
+  }
+
+  body.light-mode .desktop-nav-link.active {
+    background-color: #e8f5e9;
+  }
+
+  body.light-mode .desktop-nav-link[data-tooltip]::after {
+    background: #333333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}

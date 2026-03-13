@@ -1,0 +1,718 @@
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   room.css — Complete Room Styles (Mobile-first)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+:root {
+  --room-bg: #0f0f13;
+  --room-surface: rgba(255, 255, 255, 0.04);
+  --room-glass: rgba(18, 18, 24, 0.75);
+  --room-border: rgba(255, 255, 255, 0.06);
+  --room-text: rgba(255, 255, 255, 0.92);
+  --room-text-dim: rgba(255, 255, 255, 0.45);
+  --accent-gradient: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+  --accent-truth: linear-gradient(135deg, #3b82f6, #6366f1);
+  --accent-dare: linear-gradient(135deg, #ef4444, #f97316);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+.icon-sm {
+  width: 20px;
+  height: 20px;
+}
+
+/* ━━ ROOM LAYOUT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.room {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--room-bg);
+  color: var(--room-text);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ━━ HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.room__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--room-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--room-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.room__header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.room__status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.room__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.room__subtitle {
+  font-size: 0.72rem;
+  color: var(--room-text-dim);
+}
+
+.room__header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.room__btn-icon {
+  background: var(--room-surface);
+  border: 1px solid var(--room-border);
+  border-radius: var(--radius-sm);
+  color: var(--room-text);
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--room-text);
+}
+
+.room__btn-icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.room__btn-game-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--accent-gradient);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.room__btn-game-toggle:active {
+  transform: scale(0.95);
+}
+
+/* ━━ BODY (Split on Desktop) ━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.room__body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.room__game-panel--desktop {
+  display: none; /* hidden on mobile */
+}
+
+.room__chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .room__game-panel--desktop {
+    display: flex;
+    flex-direction: column;
+    width: 380px;
+    min-width: 340px;
+    border-right: 1px solid var(--room-border);
+    background: var(--room-surface);
+    overflow-y: auto;
+  }
+
+  .room__btn-game-toggle {
+    display: none; /* hide toggle on desktop — game always visible */
+  }
+}
+
+@media (min-width: 1200px) {
+  .room__game-panel--desktop {
+    width: 420px;
+  }
+}
+
+/* ━━ CHAT FEED ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.chat {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat__feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--room-text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.chat__bubble {
+  max-width: 78%;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius);
+  position: relative;
+  animation: fadeInUp 0.2s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chat__bubble--me {
+  align-self: flex-end;
+  background: var(--accent-gradient);
+  border-bottom-right-radius: 4px;
+}
+
+.chat__bubble--them {
+  align-self: flex-start;
+  background: var(--room-surface);
+  border: 1px solid var(--room-border);
+  border-bottom-left-radius: 4px;
+}
+
+.chat__sender {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #8b5cf6;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.chat__text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.chat__time {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.35);
+  display: block;
+  text-align: right;
+  margin-top: 0.25rem;
+}
+
+/* ── Progress Bar ──────────────────────────────────────── */
+
+.chat__progress-bar {
+  align-self: flex-start;
+  width: 200px;
+  height: 28px;
+  background: var(--room-surface);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--room-border);
+}
+
+.chat__progress-fill {
+  height: 100%;
+  background: var(--accent-gradient);
+  transition: width 0.15s ease;
+  border-radius: 14px;
+}
+
+.chat__progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+/* ━━ INPUT AREA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.room__input-area {
+  padding: 0.625rem 0.75rem;
+  padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));
+  background: var(--room-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--room-border);
+}
+
+.room__input-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.room__text-input {
+  flex: 1;
+  background: var(--room-surface);
+  border: 1px solid var(--room-border);
+  border-radius: 24px;
+  padding: 0.625rem 1rem;
+  color: var(--room-text);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.room__text-input::placeholder {
+  color: var(--room-text-dim);
+}
+
+.room__text-input:focus {
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.room__btn-send {
+  background: var(--accent-gradient);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.room__btn-send:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.room__btn-send:not(:disabled):active {
+  transform: scale(0.9);
+}
+
+/* ━━ MEDIA MESSAGES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.media-msg {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.media-msg:hover {
+  transform: scale(1.02);
+}
+
+.media-msg--image {
+  max-width: 240px;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+.media-msg--video {
+  max-width: 260px;
+  max-height: 200px;
+  border-radius: var(--radius-sm);
+}
+
+/* ━━ VOICE NOTE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.voice-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  cursor: pointer;
+  min-width: 180px;
+}
+
+.voice-msg__btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.voice-msg__waveform {
+  flex: 1;
+  height: 32px;
+}
+
+.voice-msg__time {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ━━ VOICE RECORDER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.voice-rec {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.voice-rec__cancel {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.voice-rec__live {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--room-surface);
+  border-radius: 24px;
+  padding: 0.375rem 0.75rem;
+}
+
+.voice-rec__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse 1s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+.voice-rec__canvas {
+  flex: 1;
+  height: 28px;
+}
+
+.voice-rec__time {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.voice-rec__send {
+  background: var(--accent-gradient);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s;
+}
+
+.voice-rec__send:active {
+  transform: scale(0.9);
+}
+
+/* ━━ GAME BOARD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.game {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.game__title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.game__players {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.game__player {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--room-surface);
+  border: 1px solid var(--room-border);
+  border-radius: 24px;
+  font-size: 0.78rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.game__player--active {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.game__avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.game__player-name {
+  font-weight: 500;
+}
+
+.game__arena {
+  width: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.game__spinner {
+  font-size: 4rem;
+}
+
+.game__challenge {
+  text-align: center;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  width: 100%;
+}
+
+.game__challenge--truth {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.game__challenge--dare {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.game__challenge-type {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.game__challenge-text {
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+
+.game__btn-complete {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.game__btn-complete:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+.game__choice-area {
+  text-align: center;
+}
+
+.game__prompt {
+  font-size: 0.9rem;
+  color: var(--room-text-dim);
+  margin-bottom: 1rem;
+}
+
+.game__buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.game__btn {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.game__btn:active {
+  transform: scale(0.95);
+}
+
+.game__btn--truth {
+  background: var(--accent-truth);
+}
+
+.game__btn--truth:hover {
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.3);
+}
+
+.game__btn--dare {
+  background: var(--accent-dare);
+}
+
+.game__btn--dare:hover {
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.3);
+}
+
+.game__waiting {
+  color: var(--room-text-dim);
+  font-size: 0.9rem;
+}
+
+/* ━━ BOTTOM SHEET (Mobile Game) ━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.room__bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 70vh;
+  background: var(--room-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid var(--room-border);
+  border-radius: 24px 24px 0 0;
+  z-index: 200;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.room__sheet-handle {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+.room__handle-bar {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+@media (min-width: 1024px) {
+  .room__bottom-sheet {
+    display: none; /* game is in side panel on desktop */
+  }
+}
+
+/* ━━ FULLSCREEN MEDIA MODAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.room__media-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+
+.room__media-modal-content {
+  max-width: 90vw;
+  max-height: 90vh;
+  cursor: default;
+}
+
+.room__media-full {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius);
+}
+
+/* ━━ SCROLLBAR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.chat__feed::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat__feed::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+.chat__feed::-webkit-scrollbar-track {
+  background: transparent;
+}

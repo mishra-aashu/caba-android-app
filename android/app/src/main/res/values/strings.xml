@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Elevengram</string>
+    <string name="title_activity_main">Elevengram</string>
+    <string name="package_name">com.caba.app</string>
+    <string name="custom_url_scheme">com.caba.app</string>
+    <string name="server_client_id">335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com</string>
+</resources>

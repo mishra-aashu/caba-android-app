@@ -1,0 +1,126 @@
+.user-qr-card {
+    background: var(--surface-color);
+    border-radius: 24px;
+    padding: 24px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+}
+
+.user-qr-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.user-qr-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--brand-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.user-qr-info h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-primary);
+}
+
+.user-qr-info p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.user-qr-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.qr-wrapper {
+    position: relative;
+    padding: 16px;
+    background: white;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+}
+
+.shadow-premium {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.qr-logo-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 4px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-inner {
+    background: var(--brand-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-text {
+    color: white;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: -0.5px;
+}
+
+.user-qr-footer {
+    display: flex;
+    justify-content: center;
+}
+
+.uri-badge {
+    background: var(--bg-color);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.uri-badge code {
+    font-size: 11px;
+    color: var(--brand-primary);
+    font-weight: 600;
+}
+
+/* Dark mode support */
+[data-theme='dark'] .user-qr-card,
+body.dark-mode .user-qr-card {
+    background: var(--surface-color);
+    border-color: var(--border-color);
+}
+
+[data-theme='dark'] .uri-badge,
+body.dark-mode .uri-badge {
+    background: var(--bg-color);
+}

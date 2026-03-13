@@ -1,0 +1,168 @@
+/* PhoneModal.css */
+
+/* 1. Backdrop (Piche ka dhundla background) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.65); /* Darker dim */
+  /* backdrop-filter removed - extremely expensive on mobile, causes lag */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+  transform: translateZ(0); /* Hardware acceleration */
+  will-change: opacity;
+  backface-visibility: hidden;
+}
+
+/* 2. Main Card Design */
+.modal-content {
+  background: #1e293b; /* Premium Dark Slate Color */
+  width: 90%;
+  max-width: 400px;
+  padding: 40px 32px;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); /* Deep shadow for depth */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+  position: relative;
+  text-align: center;
+  animation: slideUp 0.3s ease-out;
+  transform: translateZ(0); /* Hardware acceleration */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* 3. Typography */
+.phone-auth-title {
+  color: #ffffff;
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+  letter-spacing: -0.025em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  text-align: center;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.phone-auth-subtitle {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-bottom: 24px;
+  text-align: center;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.modal-subtitle {
+  color: #94a3b8; /* Muted text */
+  font-size: 0.9rem;
+  margin-bottom: 32px;
+}
+
+/* 4. Input Field Styling */
+.input-wrapper {
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.input-label {
+  display: flex;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+  margin-left: 4px;
+}
+
+.custom-input {
+  width: 100%;
+  padding: 14px 16px;
+  background-color: #0f172a; /* Darker than card */
+  border: 2px solid #334155;
+  border-radius: 12px;
+  color: white;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+/* Jab user type karega tab border chamkega */
+.custom-input:focus {
+  border-color: #8b5cf6; /* Purple accent */
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15); /* Soft glow ring */
+}
+
+/* 5. Button Styling (Hero of the UI) */
+.continue-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #3aeda2 0%, #116950 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 10px;
+}
+
+.continue-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.4); /* Button Glow */
+}
+
+.continue-btn:active {
+  transform: translateY(0);
+}
+
+/* Close Icon (X) */
+.close-icon {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-icon:hover {
+  color: white;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) translateZ(0); }
+  to { opacity: 1; transform: translateY(0) translateZ(0); }
+}
+
+/* Back to Login Link */
+.back-to-login-link {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.back-to-login-link:hover {
+  color: #ffffff;
+}

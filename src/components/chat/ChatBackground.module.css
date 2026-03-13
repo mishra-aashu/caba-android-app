@@ -1,0 +1,58 @@
+.chat-background-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.gradient-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    background-color: var(--chat-bg-base);
+    background-image: var(--chat-bg-image, none), var(--chat-bg-gradient, none);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.pattern-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+    will-change: opacity;
+
+    /* Theme Variables */
+    opacity: var(--chat-pattern-opacity, 0.04);
+    mix-blend-mode: var(--chat-pattern-blend, soft-light);
+
+    /* Pattern Image & Tinting */
+    background-image: var(--chat-pattern-gradient, var(--chat-pattern-color, #000));
+    -webkit-mask-image: var(--pattern-url, none);
+    mask-image: var(--pattern-url, none);
+    -webkit-mask-size: var(--chat-pattern-size, 400px);
+    mask-size: var(--chat-pattern-size, 400px);
+    -webkit-mask-repeat: repeat;
+    mask-repeat: repeat;
+    /* Debug: Ensure pattern is visible */
+    min-height: 100vh;
+    width: 100%;
+}
+
+.content-layer {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}

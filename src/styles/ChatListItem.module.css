@@ -1,0 +1,950 @@
+/* ==========================================================================
+   UNIFIED CHAT LIST STYLES — Emerald Theme (Zero-Shift Architecture)
+   ==========================================================================
+   
+   ✅ All colors use CSS variables with Emerald fallbacks
+   ✅ Curved corners on all interactive elements
+   ✅ Light + Dark mode fully covered
+   ========================================================================== */
+
+
+/* =============================================
+   1. ROOT CONTAINERS
+   ============================================= */
+
+.chat-list-panel-content {
+  background-color: var(--surface-color, #111b21);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.hidden {
+  display: none;
+}
+
+.chat-list-container,
+.scrollable-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+}
+
+
+/* =============================================
+   2. CHAT ITEM — Curved Corners + Emerald
+   ============================================= */
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background-color: transparent;
+  border-bottom: none;
+}
+
+/* Elegant Divider — Starts after avatar */
+.chat-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 76px; /* 16px padding + 48px avatar + 12px gap approx */
+  right: 0;
+  height: 1px;
+  background: var(--border-color, rgba(255, 255, 255, 0.05));
+  pointer-events: none;
+}
+
+:global(body.light-mode) .chat-item:not(:last-child)::after {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* ZERO-SHIFT INDICATOR (Rounded left edge) */
+.chat-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 4px;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 2;
+  border-radius: 0 4px 4px 0;
+  /* ✅ Rounded indicator */
+}
+
+/* Hover */
+.chat-item:hover:not(.active) {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.06));
+}
+
+/* Active State */
+.chat-item.active {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.12));
+  /* Removed border-left for a cleaner rounded look */
+}
+
+.chat-item.active::before {
+  background-color: var(--brand-primary, #00a884);
+}
+
+/* Press/Touch feedback */
+.chat-item:active:not(.selection-mode) {
+  transform: scale(0.985);
+  transition: transform 0.1s ease;
+}
+
+.chat-item.selection-mode {
+  transform: none !important;
+}
+
+.chat-item.selected {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.1));
+}
+
+.chat-item.selected::before {
+  background-color: var(--brand-primary, #00a884);
+}
+
+.selection-checkbox {
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--text-secondary, #8696a0);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.checkbox.checked {
+  background-color: var(--brand-primary, #00a884);
+  border-color: var(--brand-primary, #00a884);
+  color: white;
+}
+
+.hover-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #8696a0);
+  padding: 6px;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-item:hover .hover-delete-btn {
+  opacity: 1;
+}
+
+.hover-delete-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  transform: scale(1.1);
+}
+
+
+/* =============================================
+   3. AVATAR — ✅ FIX: Emerald Gradient
+   ============================================= */
+
+.chat-avatar-container {
+  position: relative;
+  margin-right: 15px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.chat-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ✅ CRITICAL FIX: Was INDIGO/PURPLE (#667eea → #764ba2) */
+.group-avatar-fallback {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-primary, #00a884) 0%, var(--brand-secondary, #00876a) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+/* ✅ CRITICAL FIX: Was INDIGO/PURPLE (#667eea → #764ba2) */
+.avatar-fallback {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-primary, #00a884) 0%, var(--brand-secondary, #00876a) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+
+/* ✅ FIX: Emerald green instead of generic */
+.online-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--brand-primary, #00a884);
+  border: 2px solid var(--surface-color, #111b21);
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 168, 132, 0.4);
+}
+
+
+/* =============================================
+   4. CHAT INFO
+   ============================================= */
+
+.chat-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--spacing-xxs, 2px);
+}
+
+.chat-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary, #e9edef);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-time {
+  font-size: 12px;
+  color: var(--text-secondary, #8696a0);
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+/* Unread state — time becomes Emerald */
+.chat-item.unread .chat-time {
+  color: var(--brand-primary, #00a884);
+  font-weight: 600;
+}
+
+.chat-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-last-message {
+  font-size: 14px;
+  color: var(--text-secondary, #8696a0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* ✅ Emerald badge with rounded pill shape */
+.unread-badge {
+  background-color: var(--brand-primary, #00a884);
+  color: white;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  box-shadow: 0 2px 6px rgba(0, 168, 132, 0.3);
+}
+
+
+/* =============================================
+   5. LIGHT MODE OVERRIDES — Emerald Themed
+   ============================================= */
+
+:global(body.light-mode) .chat-list-panel-content,
+:global(body.light-mode) .chat-list-container {
+  background-color: var(--surface-color, #ffffff);
+}
+
+:global(body.light-mode) .chat-item+.chat-item::after {
+  background: var(--border-color, rgba(0, 60, 40, 0.06));
+}
+
+:global(body.light-mode) .chat-item:hover {
+  background-color: var(--hover-color, rgba(0, 168, 132, 0.04));
+}
+
+:global(body.light-mode) .chat-item.active {
+  background-color: rgba(0, 168, 132, 0.08);
+}
+
+:global(body.light-mode) .chat-name {
+  color: var(--text-primary, #0c1e17);
+}
+
+:global(body.light-mode) .chat-time,
+:global(body.light-mode) .chat-last-message {
+  color: var(--text-secondary, #4a6e5c);
+}
+
+:global(body.light-mode) .online-dot {
+  border-color: var(--surface-color, #ffffff);
+}
+
+
+/* =============================================
+   6. SCROLLBAR (Hidden for Clean UI)
+   ============================================= */
+
+.scrollable-area::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollable-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+
+/* =============================================
+   7. SIDEBAR GROUPS SECTION — Emerald + Curved
+   ============================================= */
+
+.sidebar-groups-section {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  background-color: var(--surface-color, #111b21);
+}
+
+.sidebar-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-section-header h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary, #8696a0);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.create-group-icon-btn {
+  background: none;
+  border: none;
+  color: var(--brand-primary, #00a884);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  /* ✅ Curved */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.create-group-icon-btn:hover {
+  background-color: rgba(0, 168, 132, 0.1);
+  transform: scale(1.05);
+}
+
+.sidebar-groups-list {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+}
+
+.sidebar-groups-list::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-group-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  min-width: 62px;
+  max-width: 72px;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  will-change: transform;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  padding: 6px 4px;
+  border-radius: 12px;
+  /* ✅ Curved */
+}
+
+.sidebar-group-item:hover {
+  transform: scale(1.05);
+  background-color: rgba(0, 168, 132, 0.04);
+}
+
+.sidebar-group-item:active {
+  transform: scale(0.95);
+}
+
+/* ✅ FIX: Emerald gradient for group avatar */
+.sidebar-group-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-primary, #00a884), var(--brand-secondary, #00876a));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  padding: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-group-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sidebar-group-item.active .sidebar-group-avatar {
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 0 0 2px var(--surface-color, #111b21), 0 0 0 4px var(--brand-primary, #00a884);
+  transform: scale(1.02);
+}
+
+.sidebar-group-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.sidebar-group-name {
+  font-size: 0.75rem;
+  color: var(--text-primary, #e9edef);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  font-weight: 500;
+}
+
+.unread-dot {
+  width: 10px;
+  height: 10px;
+  background-color: var(--brand-primary, #00a884);
+  border-radius: 50%;
+  position: absolute;
+  top: 6px;
+  /* ✅ FIXED: Relative to sidebar-group-item */
+  right: 2px;
+  /* ✅ FIXED: Relative to sidebar-group-item */
+  border: 2px solid var(--surface-color, #111b21);
+  box-shadow: 0 2px 4px rgba(0, 168, 132, 0.3);
+  z-index: 3;
+  /* Above avatar */
+}
+
+
+/* =============================================
+   8. ADDITIONAL CHAT LIST UI
+   ============================================= */
+
+.chat-items-section {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.chat-items-section .chat-item {
+  border-radius: 14px;
+  /* ✅ Curves only when inside regular section */
+  border-bottom: none;
+  /* ✅ Remove line inside rounded items */
+  margin-bottom: 2px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-secondary, #8696a0);
+}
+
+.empty-state-icon {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+  color: var(--brand-primary, #00a884);
+}
+
+.empty-state h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #e9edef);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  font-size: 0.9rem;
+  max-width: 250px;
+  line-height: 1.5;
+}
+
+.load-more-chats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  gap: 0.75rem;
+  color: var(--text-secondary, #8696a0);
+  font-size: 0.9rem;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(0, 168, 132, 0.1);
+  border-top-color: var(--brand-primary, #00a884);
+  border-radius: 50%;
+  animation: spin-chat-list 0.8s linear infinite;
+}
+
+@keyframes spin-chat-list {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Light mode groups */
+:global(body.light-mode) .sidebar-groups-section {
+  background-color: var(--surface-color, #ffffff);
+  border-bottom-color: var(--border-color, rgba(0, 60, 40, 0.06));
+}
+
+:global(body.light-mode) .sidebar-group-item:hover {
+  background-color: rgba(0, 168, 132, 0.04);
+}
+
+:global(body.light-mode) .sidebar-group-avatar {
+  box-shadow: 0 4px 12px rgba(0, 60, 40, 0.1);
+}
+
+:global(body.light-mode) .unread-dot {
+  border-color: var(--surface-color, #ffffff);
+}
+
+
+/* =============================================
+   9. HEADER & SEARCH — Curved Corners + Emerald
+   ============================================= */
+
+.top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  padding-top: calc(1rem + var(--safe-top));
+  padding-left: calc(1.25rem + var(--safe-left));
+  padding-right: calc(1.25rem + var(--safe-right));
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  flex-shrink: 0;
+  background-color: var(--surface-color, #111b21);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  /* Blur effect for premium feel */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* iOS specific extra breathing room */
+:global(.platform-ios) .top-header {
+  padding-top: calc(1rem + var(--safe-top) + 4px);
+}
+
+.header-left h1,
+.chats-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary, #e9edef);
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ✅ FIX: Emerald-aware icon button */
+.icon-btn {
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--chat-header-icon-color, var(--text-primary, #e9edef));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:global(body.light-mode) .icon-btn,
+:global(body.light-mode) .icon-btn svg {
+  color: #1a3a2a !important;
+  stroke: #1a3a2a !important;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05));
+}
+
+.icon-btn:hover {
+  background-color: rgba(0, 168, 132, 0.1);
+  color: var(--brand-primary, #00a884);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* ✅ Curved search bar */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  margin: 0 0.75rem 0.75rem 0.75rem;
+  background-color: var(--bg-color, #0b141a);
+  border-radius: 24px;
+  /* ✅ Pill shape */
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.3));
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.search-bar:focus-within {
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.15);
+}
+
+.search-bar input {
+  flex-grow: 1;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0;
+  color: var(--text-primary, #e9edef);
+  font-size: 0.95rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.search-bar input::placeholder {
+  color: var(--text-secondary, #8696a0);
+}
+
+.search-input-icon {
+  color: var(--text-secondary, #8696a0);
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+}
+
+:global(body.light-mode) .search-input-icon {
+  color: #1a3a2a !important;
+}
+
+/* =============================================
+   9.5 FILTER BAR FOR MOBILE
+   ============================================= */
+.filter-bar {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.25rem 1.25rem 1rem 1.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background-color: var(--surface-color, #111b21);
+}
+
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-pill {
+  padding: 7px 18px;
+  border-radius: 20px;
+  background-color: var(--bg-color, #202c33);
+  color: var(--text-secondary, #8696a0);
+  font-size: 0.88rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-pill:hover {
+  background-color: var(--hover-color, rgba(255, 255, 255, 0.08));
+}
+
+.filter-pill.active {
+  background-color: var(--brand-primary, #00a884);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.25);
+  font-weight: 600;
+}
+
+:global(body.light-mode) .filter-pill {
+  background-color: #f0f2f5;
+  color: #54656f;
+}
+
+:global(body.light-mode) .filter-pill.active {
+  background-color: #e7fce3;
+  color: #008069;
+  box-shadow: 0 2px 8px rgba(0, 128, 105, 0.15);
+}
+
+.close-search {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #8696a0);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-search:hover {
+  background-color: rgba(0, 168, 132, 0.08);
+  color: var(--brand-primary, #00a884);
+}
+
+/* ✅ Curved search suggestions */
+.search-suggestions {
+  background-color: var(--surface-color, #111b21);
+  border-radius: 16px;
+  /* ✅ Curved */
+  margin: 0 0.75rem 0.75rem 0.75rem;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.4));
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  z-index: 10;
+  position: relative;
+}
+
+.search-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* ✅ Curved first & last items match container */
+.search-suggestion-item:first-child {
+  border-radius: 16px 16px 0 0;
+}
+
+.search-suggestion-item:last-child {
+  border-radius: 0 0 16px 16px;
+}
+
+.search-suggestion-item:only-child {
+  border-radius: 16px;
+}
+
+.search-suggestion-item:hover {
+  background-color: rgba(0, 168, 132, 0.06);
+}
+
+/* ✅ Emerald gradient for suggestion avatar */
+.suggestion-avatar {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-primary, #00a884), var(--brand-secondary, #00876a));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-transform: uppercase;
+}
+
+.suggestion-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.suggestion-info {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.suggestion-name {
+  font-weight: 600;
+  color: var(--text-primary, #e9edef);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-phone {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #8696a0);
+}
+
+/* ✅ FIX: Emerald online status */
+.online-status {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 10px;
+  height: 10px;
+  background-color: #9E9E9E;
+  border-radius: 50%;
+  border: 2px solid var(--surface-color, #111b21);
+  transition: background-color 0.3s ease;
+}
+
+/* ✅ FIX: Was #4CAF50 (Material Green) → Emerald */
+.online-status.online {
+  background-color: var(--brand-primary, #00a884);
+  box-shadow: 0 0 4px rgba(0, 168, 132, 0.4);
+}
+
+
+/* =============================================
+   10. MOBILE RESPONSIVE
+   ============================================= */
+
+@media (max-width: 480px) {
+  .chat-item {
+    padding: 10px 12px;
+    margin: 1px 6px;
+    border-radius: 12px;
+  }
+
+  .chat-avatar,
+  .avatar-fallback,
+  .group-avatar-fallback {
+    width: 44px;
+    height: 44px;
+  }
+
+  .chat-avatar-container {
+    margin-right: 12px;
+  }
+
+  .chat-name {
+    font-size: 15px;
+  }
+
+  .chat-last-message {
+    font-size: 13px;
+  }
+
+  .search-bar {
+    margin: 0 0.5rem 0.5rem 0.5rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .chat-item {
+    padding: 8px 10px;
+    margin: 1px 4px;
+    border-radius: 10px;
+  }
+
+  .chat-avatar,
+  .avatar-fallback,
+  .group-avatar-fallback {
+    width: 40px;
+    height: 40px;
+  }
+}

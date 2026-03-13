@@ -1,0 +1,399 @@
+/* Call Interface Styles - Glassmorphism UI for CaBa */
+
+/* 16. In-Call Interface - Improved Controls */
+
+.video-call-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+}
+
+.video-call-container {
+  width: 100%;
+  height: 100%;
+  max-width: 1200px;
+  max-height: 900px;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+[data-theme='dark'] .video-call-container {
+  background-color: #1a1a1a;
+}
+
+/* Call Header */
+.call-header {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 3;
+}
+
+[data-theme='dark'] .call-header {
+  background: rgba(40, 40, 40, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.call-info {
+  display: flex;
+  align-items: center;
+}
+
+.caller-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--brand-secondary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-right: 1rem;
+  overflow: hidden;
+}
+
+.caller-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.caller-details h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.caller-details .call-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.minimize-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.minimize-btn:hover {
+  opacity: 1;
+}
+
+/* Main Video Area */
+.main-video-area {
+  flex-grow: 1;
+  background-color: #000;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Use 'contain' to avoid cropping */
+}
+
+/* Connecting Screen */
+.connecting-screen {
+  color: #fff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.connecting-avatar .avatar-circle-xl {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  margin: 0 auto 1.5rem;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+}
+
+.connecting-avatar .avatar-circle-xl img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.connecting-name {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.connecting-status {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Status Indicator Pulse */
+.status-indicator {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+}
+
+.pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-primary);
+  transform: translate(-50%, -50%);
+  animation: pulse-animation 2s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+  opacity: 0;
+}
+
+.pulse-ring.pulse-ring-delay {
+  animation-delay: 1s;
+}
+
+@keyframes pulse-animation {
+  0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+}
+
+/* Picture-in-Picture (Local Video) */
+.pip-container {
+  position: absolute;
+  bottom: 140px; /* Adjusted for taller controls */
+  right: 20px;
+  width: 150px;
+  height: 225px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  z-index: 10;
+  transition: all 0.3s;
+}
+
+.pip-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror view */
+}
+
+.pip-label {
+  position: absolute;
+  bottom: 5px;
+  left: 10px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Call Controls Bar */
+.call-controls-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+  display: flex;
+  justify-content: center;
+  z-index: 5;
+}
+
+.controls-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Align to top to handle labels */
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(40, 40, 40, 0.6);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: transparent;
+  color: #fff;
+  border: none;
+  width: 80px; /* Provide ample width for label */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.control-btn .fas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.control-btn:hover .fas {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn.muted .fas,
+.control-btn.video-off .fas {
+  background: #db3a34;
+}
+
+.control-btn.end-call-btn .fas {
+  background: #E60023;
+  box-shadow: 0 0 15px #E60023;
+}
+
+.control-btn.end-call-btn:hover .fas {
+  background: #ff002a;
+}
+
+.control-label {
+  display: block; /* Always visible */
+  font-size: 0.8rem;
+  color: #fff;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .video-call-container {
+    border-radius: 0;
+    max-height: none;
+  }
+
+  .caller-details h3 { font-size: 1.1rem; }
+  .caller-avatar { width: 40px; height: 40px; }
+
+  .pip-container {
+    width: 100px;
+    height: 150px;
+    bottom: 120px; /* Adjust for mobile controls */
+    right: 10px;
+  }
+
+  .call-controls-bar {
+    padding: 0.5rem;
+  }
+
+  .controls-wrapper {
+    width: 100%;
+    justify-content: space-around; /* Distribute evenly on mobile */
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: 0; /* Full width bar */
+    background: rgba(30, 30, 30, 0.7);
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .control-btn {
+    width: auto; /* Allow flex to manage width */
+    flex: 1;
+  }
+
+  .control-btn .fas {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .control-label {
+    font-size: 0.7rem;
+  }
+
+  .connecting-name { font-size: 1.5rem; }
+  .connecting-avatar .avatar-circle-xl { width: 100px; height: 100px; font-size: 2.5rem; }
+}
+
+@media (max-width: 400px) {
+  .controls-wrapper {
+      gap: 0;
+  }
+  .control-btn .fas {
+    width: 44px;
+    height: 44px;
+  }
+  .control-label {
+      font-size: 0.6rem;
+  }
+  .pip-container {
+    display: none; /* Hide PIP on very small screens */
+  }
+}
+
+/* Icon Styles */
+.minimize-icon {
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.mute-icon {
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.video-icon {
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.switch-icon {
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.end-icon {
+  color: #fff;
+  font-size: 1.5rem;
+}

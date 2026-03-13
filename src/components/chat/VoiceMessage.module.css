@@ -1,0 +1,229 @@
+/* Voice Message Redesign - Premium Floating Look */
+
+.voice-outer-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.outer-mine {
+  align-items: flex-end;
+}
+
+.message-row {
+  display: flex;
+  width: 100%;
+  padding: 0 12px;
+  margin-bottom: 2px;
+}
+
+.external-status {
+  font-size: 9.5px;
+  color: var(--text-secondary, #667781);
+  opacity: 0.7;
+  margin-top: 1px;
+  margin-right: 18px;
+  margin-bottom: 6px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-transform: lowercase;
+}
+
+:global([data-theme='dark']) .external-status {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.message-row.sent {
+  justify-content: flex-end;
+}
+
+.message-row.received {
+  justify-content: flex-start;
+}
+
+/* --- THE PREMIUM VOICE CARD --- */
+.voice-card {
+  position: relative;
+  max-width: 82%;
+  width: 320px;
+  /* Fixed width for consistent professional feel */
+  padding: 12px 14px;
+
+  /* Removed backdrop-filter to prevent rendering flicker on mobile */
+  /* backdrop-filter: blur(8px) saturate(160%); */
+  /* -webkit-backdrop-filter: blur(8px) saturate(160%); */
+
+  /* Performance Fixes */
+  transform: translateZ(0);
+  contain: layout;
+
+  /* Elevation */
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1),
+    0 2px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Hover interactions reduced complexity */
+  /* transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.3s ease; */
+  /* Removed voice-bubble-appear animation for instant look */
+  /* animation: voice-bubble-appear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; */
+  /* Transition disabled for instant mobile feel */
+  transition: none;
+}
+
+@keyframes voice-bubble-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.voice-card.voice-sent {
+  background: var(--sent-message-bg, var(--sent-message-bg-default));
+  color: var(--sent-message-text, #ffffff);
+  border-radius: 20px 20px 4px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--sent-message-shadow, var(--sent-message-shadow-default));
+}
+
+.voice-card.voice-received {
+  background: var(--received-message-bg, rgba(255, 255, 255, 0.85));
+  color: var(--received-message-text, #1a1a1a);
+  border-radius: 20px 20px 20px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+[data-theme='dark'] .voice-card.voice-received {
+  background: var(--received-message-bg, rgba(30, 30, 30, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- VOICE CONTENT LAYOUT --- */
+.voice-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+/* Circular Play Button Container */
+.play-btn-wrapper {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.voice-sent .play-btn-wrapper {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.play-btn-wrapper:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.voice-sent .play-btn-wrapper:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* --- WAVEFORM --- */
+.waveform-container {
+  flex: 1;
+  height: 32px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.waveform-bar {
+  width: 2.5px;
+  border-radius: 1px;
+  transition: background 0.2s ease;
+}
+
+.waveform-bar.played {
+  background-color: #fff;
+}
+
+.waveform-bar.unplayed {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Progress Indicator Overlay */
+.waveform-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: transparent;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* --- VOICE INFO --- */
+.voice-time {
+  font-size: 10px;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.9;
+  min-width: 70px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-time-overlay {
+  position: absolute;
+  bottom: -4px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--sent-message-meta, var(--sent-message-meta-default));
+  opacity: 0.9;
+}
+
+.voice-received .voice-time-overlay {
+  color: var(--received-message-meta, var(--received-message-meta-default));
+}
+
+.tick-icon {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--tick-color, var(--tick-color-default));
+}
+
+.tick-icon.read {
+  color: var(--tick-read-color, var(--tick-read-color-default));
+  filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.5));
+}
+
+/* Reply Block Overrides */
+.voice-card .reply-quote-container {
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.08);
+  /* Reusing style but ensuring visibility */
+}
+
+.voice-sent .reply-quote-container {
+  background: rgba(255, 255, 255, 0.1);
+}

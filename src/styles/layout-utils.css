@@ -1,0 +1,145 @@
+/* =============================================
+   UNIVERSAL LAYOUT UTILITIES
+   ============================================= */
+
+/* ----- Fallback-Safe Design Tokens ----- */
+:root {
+  /* Safe area fallbacks (in case tokens.css fails to load) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
+  /* App height fallback (JS sets this, but CSS needs a sane default) */
+  --app-height: 100dvh;
+
+  /* Layout tokens */
+  --header-height: 64px;
+  --bottom-nav-height: 60px;
+
+  /* Content height — subtracts BOTH top and bottom safe areas */
+  --content-height: calc(var(--app-height) - var(--sat) - var(--sab));
+
+  /* Content with bottom nav — subtracts header OR nav + safe areas */
+  --content-height-with-header: calc(var(--app-height) - var(--header-height) - var(--sat) - var(--sab));
+  --content-height-with-nav: calc(var(--app-height) - var(--bottom-nav-height) - var(--sat) - var(--sab));
+  --content-height-with-both: calc(var(--app-height) - var(--header-height) - var(--bottom-nav-height) - var(--sat) - var(--sab));
+}
+
+/* ----- Global Box Sizing Reset ----- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ----- Base Full-Screen Layout ----- */
+html {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  /* 
+   * DO NOT use position:fixed on <html>.
+   * It breaks scroll context for all descendants
+   * and causes layout bugs on some browsers.
+   */
+}
+
+body {
+  height: var(--app-height);
+  width: 100%;              /* Not 100vw — avoids scrollbar-width overflow */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: fixed;           /* iOS bounce prevention — only on body */
+  top: 0;
+  left: 0;
+  overscroll-behavior: none; /* Prevent pull-to-refresh & scroll chaining */
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  height: var(--app-height);
+  width: 100%;
+  overflow: hidden;
+  position: relative;        /* relative, not fixed — acts as scroll boundary */
+}
+
+/* =============================================
+   LAYOUT UTILITIES
+   ============================================= */
+
+/* Dynamic full height */
+.h-full-dynamic {
+  height: var(--app-height);
+}
+
+/* Safe area padding utilities */
+.pt-safe {
+  padding-top: var(--sat);
+}
+
+.pb-safe {
+  padding-bottom: var(--sab);
+}
+
+.pl-safe {
+  padding-left: var(--sal);
+}
+
+.pr-safe {
+  padding-right: var(--sar);
+}
+
+.px-safe {
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+.py-safe {
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+}
+
+/* All-sides safe container */
+.safe-container {
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+/* =============================================
+   SCROLL UTILITIES
+   ============================================= */
+
+/* Inner scrollable container (use on chat lists, message areas, etc.) */
+.scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;   /* Smooth momentum scroll on iOS */
+  overscroll-behavior-y: contain;      /* Prevent scroll leaking to parent */
+}
+
+.scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* =============================================
+   STANDALONE / PWA ADJUSTMENTS
+   ============================================= */
+
+/* When app is installed as PWA (standalone mode) */
+[data-standalone="true"] .standalone-margin {
+  margin-top: var(--sat, 10px);  /* Use safe area, fallback to 10px */
+}
+
+/* iOS standalone status bar spacing */
+@supports (padding-top: env(safe-area-inset-top)) {
+  [data-standalone="true"] .standalone-margin {
+    margin-top: env(safe-area-inset-top);
+  }
+}

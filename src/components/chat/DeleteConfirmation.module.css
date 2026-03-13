@@ -1,0 +1,112 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease;
+}
+
+.modal {
+  background: var(--bg-secondary, #1F2937);
+  padding: 24px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  animation: slideScaleIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.bottomSheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary, #1F2937);
+  padding: 20px;
+  border-radius: 20px 20px 0 0;
+  animation: slideUp 0.3s ease;
+}
+
+.handle {
+  width: 40px;
+  height: 4px;
+  background: var(--text-muted, #9CA3AF);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary, #F3F4F6);
+}
+
+.message {
+  font-size: 1rem;
+  color: var(--text-muted, #9CA3AF);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.btnDelete {
+  background: #EF4444;
+  color: white;
+}
+
+.btnDelete:hover {
+  background: #DC2626;
+}
+
+.btnCancel {
+  background: transparent;
+  color: var(--text-muted, #9CA3AF);
+}
+
+.btnCancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mobileActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.desktopActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideScaleIn {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

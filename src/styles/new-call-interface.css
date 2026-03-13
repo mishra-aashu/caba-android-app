@@ -1,0 +1,364 @@
+/* New Call Interface Styles - Custom Design for CaBa Call Screen */
+
+/* Overlay for the call screen */
+.video-call-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+/* Main container for the call interface */
+.video-call-container {
+  width: 90%;
+  height: 90%;
+  max-width: 1000px;
+  max-height: 700px;
+  background-color: #ffffff;
+  color: #333333;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+/* Call Header */
+.call-header {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.call-info {
+  display: flex;
+  align-items: center;
+}
+
+.caller-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #4a90e2;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.5rem;
+  margin-right: 15px;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.caller-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.caller-details h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.caller-details .call-status {
+  margin: 5px 0 0 0;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.minimize-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.3s;
+}
+
+.minimize-btn:hover {
+  opacity: 1;
+}
+
+/* Main Video Area */
+.main-video-area {
+  flex-grow: 1;
+  background-color: #000;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Connecting Screen */
+.connecting-screen {
+  color: #fff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.connecting-avatar .avatar-circle-xl {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background-color: #4a90e2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  margin: 0 auto 20px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+}
+
+.connecting-avatar .avatar-circle-xl img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.connecting-name {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+}
+
+.connecting-status {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-indicator {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  margin-right: 12px;
+}
+
+.pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid #4a90e2;
+  transform: translate(-50%, -50%);
+  animation: pulse 2s infinite ease-in-out;
+  opacity: 0;
+}
+
+.pulse-ring-delay {
+  animation-delay: 1s;
+}
+
+@keyframes pulse {
+  0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+/* Picture-in-Picture */
+.pip-container {
+  position: absolute;
+  bottom: 150px;
+  right: 20px;
+  width: 160px;
+  height: 240px;
+  border-radius: 15px;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+
+.pip-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pip-label {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* Call Controls */
+.call-controls-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.1) 100%);
+  display: flex;
+  justify-content: center;
+  z-index: 5;
+}
+
+.controls-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 25px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.control-btn:hover {
+  transform: scale(1.1);
+}
+
+.control-btn .fas {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+  transition: background 0.3s;
+}
+
+.control-btn:hover .fas {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.control-btn.muted .fas,
+.control-btn.video-off .fas {
+  background: #e74c3c;
+}
+
+.control-btn.end-call-btn .fas {
+  background: #c0392b;
+  box-shadow: 0 0 20px #c0392b;
+}
+
+.control-btn.end-call-btn:hover .fas {
+  background: #a93226;
+}
+
+.control-label {
+  font-size: 0.9rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .video-call-container {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .call-header {
+    padding: 15px;
+  }
+
+  .caller-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+
+  .caller-details h3 {
+    font-size: 1.2rem;
+  }
+
+  .pip-container {
+    width: 120px;
+    height: 180px;
+    bottom: 130px;
+    right: 15px;
+  }
+
+  .controls-wrapper {
+    gap: 15px;
+    padding: 12px 20px;
+  }
+
+  .control-btn .fas {
+    width: 50px;
+    height: 50px;
+    font-size: 1.4rem;
+  }
+
+  .connecting-name {
+    font-size: 1.8rem;
+  }
+
+  .connecting-avatar .avatar-circle-xl {
+    width: 120px;
+    height: 120px;
+    font-size: 3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pip-container {
+    display: none;
+  }
+
+  .controls-wrapper {
+    gap: 10px;
+  }
+
+  .control-btn .fas {
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+  }
+
+  .control-label {
+    font-size: 0.8rem;
+  }
+}

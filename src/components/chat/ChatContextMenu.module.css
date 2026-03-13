@@ -1,0 +1,47 @@
+.menu {
+  position: fixed;
+  background: var(--bg-secondary, #1F2937);
+  border-radius: 12px;
+  padding: 8px;
+  min-width: 180px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  z-index: 3000;
+  animation: fadeIn 0.1s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: var(--text-primary, #F3F4F6);
+  font-size: 0.95rem;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.item:hover span:first-child {
+  transform: scale(1.1);
+}
+
+.icon {
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 6px 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}

@@ -1,0 +1,376 @@
+import React, { useRef, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSupabase } from '../contexts/SupabaseContext';
+import {
+  MessageCircle,
+  User,
+  Search,
+  MoreVertical,
+  Plus,
+  Bell,
+  Info,
+  HelpCircle,
+  LogOut,
+  Crown,
+  Users,
+  Settings,
+  MessageSquarePlus,
+  Edit,
+  Trash2,
+  X
+} from 'lucide-react';
+import DropdownMenu from './common/DropdownMenu';
+import Modal from './common/Modal';
+import ChatListItem from './chat/ChatListItem';
+import { getInitials } from '../utils/stringUtils';
+import { isUserOnline } from '../utils/dateFormatter';
+import CreateGroupModal from './groups/CreateGroupModal';
+import { useGroupActions } from '../hooks/useGroupActions';
+import ScrollableChatList from './chat/ScrollableChatList';
+import { useChatDeletion } from '../hooks/useChatDeletion';
+import ChatSelectionHeader from './chat/ChatSelectionHeader';
+import DeleteConfirmation from './chat/DeleteConfirmation';
+import ChatContextMenu from './chat/ChatContextMenu';
+import { Toaster } from 'react-hot-toast';
+import styles from '../styles/ChatListItem.module.css';
+
+const ChatListPanel = ({
+  searchTerm,
+  setSearchTerm,
+  showSearch,
+  setShowSearch,
+  searchSuggestions,
+  setSearchSuggestions,
+  showSuggestions = false,
+  setShowSuggestions,
+  handleSearchChange,
+  handleSuggestionClick,
+  handleChatClick,
+  filteredChats, // These are passed from MainLayout, but we'll use 'chats' from hook or props
+  handleChatListScroll,
+  chatListRef,
+  loadingMore,
+  hasMoreChats,
+  dpOptions,
+  formatTime,
+  setShowNewContactModal,
+  handleNavigation,
+  handleAboutApp,
+  handleHelp,
+  handleLogout,
+  isAdmin,
+  savedContacts,
+  isDesktop,
+  currentChatId,
+}) => {
+  const { supabase } = useSupabase();
+  const { useUserGroups } = useGroupActions();
+
+  // State for Create Group Modal
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'chats', 'groups'
+
+  // Chat Deletion Hook
+  const { user } = useSupabase();
+  const {
+    selectionMode,
+    selectedChats,
+    pendingDeletions,
+    toggleChatSelection,
+    clearSelection,
+    initiateDelete,
+    handleTouchStart,
+    handleTouchEnd,
+    handleTouchMove
+  } = useChatDeletion(user?.id);
+
+  const [contextMenu, setContextMenu] = useState(null);
+  const [deleteData, setDeleteData] = useState({ isOpen: false, chat: null, isGroup: false });
+
+  const handleContextMenu = (e, chat) => {
+    e.preventDefault();
+    if (!isDesktop) return; // Only for desktop
+    setContextMenu({ x: e.clientX, y: e.clientY, chat });
+  };
+
+  const openDeleteModal = (chat) => {
+    setDeleteData({ isOpen: true, chat, isGroup: !!chat.isGroup });
+  };
+
+  const confirmDelete = () => {
+    if (selectionMode) {
+      initiateDelete(selectedChats);
+    } else if (deleteData.chat) {
+      initiateDelete(deleteData.chat);
+    }
+    setDeleteData({ isOpen: false, chat: null, isGroup: false });
+    clearSelection();
+  };
+
+  // Separate DMs and Groups for specific layouts
+  const { dmChats, groupChats, displayChats } = useMemo(() => {
+    const dms = filteredChats.filter(chat => !chat.isGroup);
+    const groups = filteredChats.filter(chat => chat.isGroup);
+
+    let filtered = filteredChats;
+    if (activeFilter === 'chats') {
+      filtered = dms;
+    } else if (activeFilter === 'groups') {
+      filtered = groups;
+    }
+
+    return { 
+      dmChats: dms, 
+      groupChats: groups, 
+      displayChats: filtered.filter(chat => !pendingDeletions.includes(chat.id)) 
+    };
+  }, [filteredChats, activeFilter, pendingDeletions]);
+
+  const dropdownItems = [
+    {
+      icon: <User size={16} />,
+      label: 'Profile',
+      onClick: () => handleNavigation('/profile')
+    },
+    {
+      icon: <Settings size={16} />,
+      label: 'Settings',
+      onClick: () => handleNavigation('/settings')
+    },
+    {
+      icon: <Bell size={16} />,
+      label: 'Check Reminders',
+      onClick: () => handleNavigation('/reminders')
+    },
+    ...(isAdmin ? [{
+      icon: <Crown size={16} />,
+      label: 'Admin',
+      onClick: () => handleNavigation('/admin')
+    }] : []),
+    { divider: true },
+    {
+      icon: <Info size={16} />,
+      label: 'About App',
+      onClick: handleAboutApp
+    },
+    {
+      icon: <HelpCircle size={16} />,
+      label: 'Help',
+      onClick: handleHelp
+    },
+    { divider: true },
+    {
+      icon: <LogOut size={16} />,
+      label: 'Logout',
+      onClick: handleLogout
+    }
+  ];
+
+  // Helper for rendering chat list items
+  const renderChatItem = (chat) => {
+    // 1. Resolve contact
+    const otherUserId = chat.metadata?.otherUserId || chat.otherUserId || chat.otherUser?.id || chat.id;
+    const contact = savedContacts.find(c => c.contactUserId === otherUserId || c.id === otherUserId);
+
+    // 2. Resolve display name with fallbacks
+    const displayName = contact?.contactName || chat.name;
+
+    // 3. Avatar resolution is now delegated to the ChatListItem hook
+    const avatar = chat.avatar || contact?.otherUser?.avatar || chat.otherUser?.avatar;
+
+    // Merge everything into a clean object for ChatListItem
+    const chatListItemProps = {
+      ...chat,
+      name: displayName,
+      avatar: avatar,
+      otherUserId: otherUserId // Ensure this is passed for the hook
+    };
+
+    return (
+      <ChatListItem
+        key={chat.id}
+        chat={chatListItemProps}
+        onClick={() => handleChatClick(chat)}
+        isActive={chat.id == currentChatId}
+        selectionMode={selectionMode}
+        isSelected={selectedChats.includes(chat.id)}
+        onSelect={toggleChatSelection}
+        onLongPress={handleTouchStart}
+        onContextMenu={handleContextMenu}
+        isMobile={!isDesktop}
+      />
+    );
+  };
+
+  return (
+    <main className={styles['chat-list-panel-content']}>
+      <Toaster />
+      {selectionMode && (
+        <ChatSelectionHeader 
+          selectedCount={selectedChats.length}
+          onClear={clearSelection}
+          onDelete={() => openDeleteModal(selectedChats)}
+        />
+      )}
+      <header className={`${styles['top-header']} ${selectionMode ? styles.hidden : ''}`}>
+        <div className={styles['header-left']}>
+          <h1 className={styles['chats-title']}>Chats</h1>
+        </div>
+        <div className={styles['header-right']}>
+          <button
+            className={styles['icon-btn']}
+            onClick={() => setShowNewContactModal(true)}
+            title="Contacts"
+          >
+            <User size={20} />
+          </button>
+          <button
+            className={styles['icon-btn']}
+            onClick={() => setShowSearch(!showSearch)}
+            title="Search"
+          >
+            <Search size={20} />
+          </button>
+
+          <DropdownMenu items={dropdownItems} />
+        </div>
+      </header>
+
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            layout
+            initial={{ height: 0, opacity: 0, y: -20 }}
+            animate={{ height: 'auto', opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -20 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className={styles['search-bar']}
+            style={{ overflow: 'hidden' }}
+          >
+            <Search size={16} className={styles['search-input-icon']} />
+            <input
+              type="text"
+              placeholder="Search by phone number..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              autoFocus
+            />
+            <button
+              className={styles['close-search']}
+              onClick={() => {
+                setShowSearch(false);
+                setSearchTerm('');
+                setSearchSuggestions([]);
+                setShowSuggestions(false);
+              }}
+            >
+              <X size={18} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div layout className={styles['filter-bar']}>
+        <button
+          className={`${styles['filter-pill']} ${activeFilter === 'all' ? styles.active : ''}`}
+          onClick={() => setActiveFilter('all')}
+        >
+          All
+        </button>
+        <button
+          className={`${styles['filter-pill']} ${activeFilter === 'chats' ? styles.active : ''}`}
+          onClick={() => setActiveFilter('chats')}
+        >
+          Chats
+        </button>
+        <button
+          className={`${styles['filter-pill']} ${activeFilter === 'groups' ? styles.active : ''}`}
+          onClick={() => setActiveFilter('groups')}
+        >
+          Groups
+        </button>
+      </motion.div>
+
+      <AnimatePresence>
+        {showSearch && showSuggestions && searchSuggestions.length > 0 && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className={styles['search-suggestions']}
+          >
+            {searchSuggestions.map(user => (
+              <div
+                key={user.id}
+                className={styles['search-suggestion-item']}
+                onClick={() => handleSuggestionClick(user)}
+              >
+                <div className={styles['suggestion-avatar']}>
+                  <img
+                    src={user.avatar && parseInt(user.avatar)
+                      ? dpOptions.find(dp => dp.id === parseInt(user.avatar))?.path
+                      : (user.avatar || "https://ionicframework.com/docs/img/demos/avatar.svg")}
+                    alt={user.name}
+                  />
+                  <span className={`${styles['online-status']} ${isUserOnline(Boolean(user.is_online), user.last_seen) ? styles.online : ''}`}></span>
+                </div>
+                <div className={styles['suggestion-info']}>
+                  <div className={styles['suggestion-name']}>{user.name}</div>
+                  <div className={styles['suggestion-phone']}>{user.phone}</div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div layout style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <ScrollableChatList
+          isDesktop={isDesktop}
+          groupChats={groupChats}
+          dmChats={dmChats}
+          filteredChats={displayChats}
+          activeFilter={activeFilter}
+          searchTerm={searchTerm}
+          currentChatId={currentChatId}
+          handleChatClick={handleChatClick}
+          handleChatListScroll={handleChatListScroll}
+          chatListRef={chatListRef}
+          loadingMore={loadingMore}
+          renderChatItem={renderChatItem}
+          setShowCreateGroupModal={setShowCreateGroupModal}
+        />
+      </motion.div>
+
+      <CreateGroupModal
+        isOpen={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onSuccess={() => setShowCreateGroupModal(false)}
+        savedContacts={savedContacts}
+      />
+
+      {contextMenu && (
+        <ChatContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onDelete={() => openDeleteModal(contextMenu.chat)}
+          chat={contextMenu.chat}
+        />
+      )}
+
+      <DeleteConfirmation
+        isOpen={deleteData.isOpen}
+        onClose={() => setDeleteData({ isOpen: false, chat: null, isGroup: false })}
+        onConfirm={confirmDelete}
+        title={selectionMode ? "Delete Chats?" : "Delete Chat?"}
+        selectedCount={selectionMode ? selectedChats.length : 1}
+        isMobile={!isDesktop}
+      />
+    </main>
+  );
+};
+
+export default ChatListPanel;

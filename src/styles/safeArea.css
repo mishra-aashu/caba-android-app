@@ -1,0 +1,89 @@
+/* src/styles/safeArea.css */
+
+:root {
+    /* iOS Safe Areas - Standard environment variables */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+
+    /* Custom Safe Area Variables (populated by JavaScript fallback) */
+    --custom-sat: 0px;
+    --custom-sab: 0px;
+    --custom-sal: 0px;
+    --custom-sar: 0px;
+
+    /* Unified Safe Area Variables (picks the maximum of CSS and JS detection) */
+    /* Fallbacks of 20px for top/bottom are standard for older notched phones */
+    --safe-top: max(var(--sat), var(--custom-sat));
+    --safe-bottom: max(var(--sab), var(--custom-sab));
+    --safe-left: max(var(--sal), var(--custom-sal));
+    --safe-right: max(var(--sar), var(--custom-sar));
+
+    /* Header Heights */
+    --header-base-height: 56px;
+    --header-total-height: calc(var(--header-base-height) + var(--safe-top));
+
+    /* Bottom Nav Heights */
+    --bottom-nav-base-height: 60px;
+    --bottom-nav-total-height: calc(var(--bottom-nav-base-height) + var(--safe-bottom));
+
+    /* Keyboard Height (populated by JS) */
+    --keyboard-height: 0px;
+}
+
+/* Landscape Adjustments */
+@media (orientation: landscape) {
+    :root {
+        /* In landscape, we often want to prioritize side insets (notches on the side) */
+        --safe-top: max(var(--sat), 0px);
+        --safe-bottom: max(var(--sab), 0px);
+    }
+}
+
+/* Foldable/Tablet Support (wider screens might not need massive safe areas) */
+@media (min-width: 1025px) {
+    :root {
+        --safe-top: var(--sat);
+        --safe-bottom: var(--sab);
+    }
+}
+
+/* Utility classes for quick application */
+.pt-safe {
+    padding-top: var(--safe-top);
+}
+
+.pb-safe {
+    padding-bottom: var(--safe-bottom);
+}
+
+.pl-safe {
+    padding-left: var(--safe-left);
+}
+
+.pr-safe {
+    padding-right: var(--safe-right);
+}
+
+.px-safe {
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+}
+
+.py-safe {
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+}
+
+/* Sticky headers with safe area */
+.sticky-header-safe {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding-top: var(--safe-top);
+    min-height: var(--header-total-height);
+    background: var(--surface-color, #fff);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}

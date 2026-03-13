@@ -1,0 +1,687 @@
+/* ═══════════════════════════════════════════
+   ContactsPage — Professional Redesign
+   ═══════════════════════════════════════════ */
+
+/* ── Root Container ── */
+.contacts-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-1);
+    color: var(--text-0);
+    overflow: hidden;
+    position: relative;
+}
+
+.contacts-page.desktop-mode {
+    border-right: 1px solid var(--glass-stroke);
+}
+
+.contacts-page.mobile-mode {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* ── Header ── */
+.contacts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1rem 0.75rem;
+    background: var(--bg-1);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.contacts-header .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.contacts-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-0);
+    letter-spacing: -0.025em;
+}
+
+.contact-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 20px;
+    background: var(--primary-0);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.icon-btn:hover {
+    background: var(--bg-2);
+    color: var(--text-0);
+}
+
+.icon-btn:active {
+    transform: scale(0.92);
+}
+
+.icon-btn.add-btn {
+    color: var(--primary-1);
+}
+
+.icon-btn.add-btn:hover {
+    background: rgba(124, 58, 237, 0.1);
+}
+
+/* ── Search Bar ── */
+.contacts-search {
+    padding: 0 1rem 0.75rem;
+    position: relative;
+    z-index: 5;
+    background: var(--bg-1);
+}
+
+.contacts-search .search-icon {
+    position: absolute;
+    left: 2rem;
+    top: 50%;
+    transform: translateY(calc(-50% - 0.375rem));
+    color: var(--text-1);
+    pointer-events: none;
+    opacity: 0.4;
+    transition: all 0.25s ease;
+    z-index: 1;
+}
+
+.contacts-search.focused .search-icon {
+    opacity: 1;
+    color: var(--primary-1);
+}
+
+.contacts-search input {
+    width: 100%;
+    padding: 0.8rem 2.5rem 0.8rem 3rem;
+    border: 1.5px solid var(--glass-stroke);
+    border-radius: 14px;
+    background: var(--bg-2);
+    color: var(--text-0);
+    font-size: 0.9rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.25s ease;
+}
+
+.contacts-search input::placeholder {
+    color: var(--text-1);
+    opacity: 0.5;
+}
+
+.contacts-search input:focus {
+    border-color: var(--primary-0);
+    background: var(--bg-0);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.search-clear {
+    position: absolute;
+    right: 1.75rem;
+    top: 50%;
+    transform: translateY(calc(-50% - 0.375rem));
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: var(--text-1);
+    color: var(--bg-1);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    line-height: 1;
+    padding: 0;
+}
+
+.search-clear:hover {
+    opacity: 0.8;
+}
+
+/* ── Content Area ── */
+.contacts-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 0.75rem;
+    padding-bottom: 100px;
+    display: flex;
+    flex-direction: column;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.contacts-content::-webkit-scrollbar {
+    width: 3px;
+}
+
+.contacts-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.contacts-content::-webkit-scrollbar-thumb {
+    background: var(--glass-stroke);
+    border-radius: 10px;
+}
+
+/* ── Desktop Add Button ── */
+.add-contact-btn-desktop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.85rem;
+    margin-bottom: 0.75rem;
+    background: rgba(124, 58, 237, 0.06);
+    color: var(--primary-1);
+    border: 1.5px dashed rgba(124, 58, 237, 0.25);
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.add-contact-btn-desktop:hover {
+    background: rgba(124, 58, 237, 0.12);
+    border-color: var(--primary-1);
+    transform: translateY(-1px);
+}
+
+.add-contact-btn-desktop:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* ── Contact List ── */
+.saved-contacts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.7rem;
+    border-radius: 16px;
+    cursor: pointer;
+    user-select: none;
+    border: 1.5px solid transparent;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.contact-item:hover {
+    background: var(--bg-2);
+    border-color: var(--glass-stroke);
+}
+
+.contact-item:active {
+    transform: scale(0.985);
+    background: var(--bg-0);
+}
+
+/* ── Contact Main (Avatar + Info) ── */
+.contact-main {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.contact-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg-0);
+    flex-shrink: 0;
+    border: 2px solid var(--glass-stroke);
+    transition: border-color 0.2s;
+}
+
+.contact-item:hover .contact-avatar {
+    border-color: var(--primary-0);
+}
+
+.contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.contact-name {
+    font-weight: 650;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+    color: var(--text-0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.contact-phone {
+    font-size: 0.78rem;
+    color: var(--text-1);
+    font-weight: 500;
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Contact Actions ── */
+.contact-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.action-chat-btn,
+.menu-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.action-chat-btn {
+    color: var(--primary-1);
+}
+
+.action-chat-btn:hover {
+    background: rgba(124, 58, 237, 0.1);
+}
+
+.action-chat-btn:active {
+    transform: scale(0.9);
+}
+
+.menu-btn {
+    color: var(--text-1);
+    opacity: 0.6;
+}
+
+.menu-btn:hover {
+    opacity: 1;
+    background: var(--bg-0);
+}
+
+/* ── Menu Popup ── */
+.menu-container {
+    position: relative;
+}
+
+.contact-menu-popup {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--bg-2);
+    border-radius: 14px;
+    box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.15),
+        0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--glass-stroke);
+    z-index: 2000;
+    padding: 6px;
+    min-width: 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+}
+
+.contact-menu-popup button {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.8rem;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 550;
+    cursor: pointer;
+    color: var(--text-0);
+    transition: all 0.15s ease;
+}
+
+.contact-menu-popup button:hover {
+    background: var(--bg-0);
+    color: var(--primary-1);
+}
+
+.contact-menu-popup button.delete {
+    color: #ef4444;
+}
+
+.contact-menu-popup button.delete:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+}
+
+/* ── Form Overlay ── */
+.contact-form-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.contact-form {
+    background: var(--bg-2);
+    width: 100%;
+    max-width: 360px;
+    border-radius: 24px;
+    box-shadow:
+        0 24px 48px rgba(0, 0, 0, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--glass-stroke);
+    overflow: hidden;
+}
+
+.form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 0;
+}
+
+.form-header h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    color: var(--text-0);
+}
+
+.form-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-0);
+    color: var(--text-1);
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+    padding: 0;
+}
+
+.form-close-btn:hover {
+    background: var(--glass-stroke);
+    color: var(--text-0);
+}
+
+.form-body {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1rem;
+    height: 48px;
+    background: var(--bg-1);
+    border-radius: 14px;
+    border: 1.5px solid var(--glass-stroke);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.input-group:focus-within {
+    border-color: var(--primary-0);
+    background: var(--bg-0);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.input-group .input-icon {
+    color: var(--text-1);
+    opacity: 0.5;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.input-group:focus-within .input-icon {
+    color: var(--primary-1);
+    opacity: 1;
+}
+
+.input-group input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    outline: none;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text-0);
+    line-height: 1;
+}
+
+.input-group input::placeholder {
+    color: var(--text-1);
+    opacity: 0.5;
+}
+
+.phone-counter {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-1);
+    opacity: 0.5;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.phone-counter.valid {
+    color: #22c55e;
+    opacity: 1;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.65rem;
+    padding: 0 1.5rem 1.5rem;
+}
+
+.form-actions button {
+    flex: 1;
+    height: 46px;
+    border-radius: 14px;
+    border: none;
+    font-weight: 650;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.form-actions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-cancel {
+    background: var(--bg-0);
+    color: var(--text-1);
+    border: 1.5px solid var(--glass-stroke) !important;
+}
+
+.btn-cancel:hover:not(:disabled) {
+    background: var(--bg-1);
+    color: var(--text-0);
+}
+
+.btn-save {
+    background: linear-gradient(135deg, var(--primary-0), var(--primary-1));
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+}
+
+.btn-save:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-save:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+
+/* ── FAB ── */
+.fab-add {
+    position: fixed;
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    right: 1.25rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    border: none;
+    background: linear-gradient(135deg, var(--primary-0), var(--primary-1));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow:
+        0 6px 20px rgba(124, 58, 237, 0.35),
+        0 2px 6px rgba(124, 58, 237, 0.15);
+    z-index: 50;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.fab-add:active {
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+/* ── Empty State ── */
+.empty-contacts {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--bg-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    color: var(--text-1);
+    opacity: 0.4;
+}
+
+.empty-contacts h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-0);
+    opacity: 0.7;
+}
+
+.empty-contacts p {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    color: var(--text-1);
+    opacity: 0.5;
+    font-weight: 500;
+}
+
+/* ── Responsive fine-tuning ── */
+@media (max-width: 380px) {
+    .contact-avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .contact-name {
+        font-size: 0.88rem;
+    }
+
+    .contact-phone {
+        font-size: 0.72rem;
+    }
+
+    .action-chat-btn {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    .contacts-content {
+        padding-bottom: 80px;
+    }
+}
