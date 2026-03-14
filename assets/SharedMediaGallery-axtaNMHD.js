@@ -1,4 +1,4 @@
-import{j as i,m as r,i as H,I as W,V as $}from"./vendor-ui-X7UBOLV-.js";import{e as B,u as K,r as o}from"./vendor-react-Bf2iiKbT.js";import{a as J}from"./vendor-query-CW1mHkOh.js";import{O as X,P as Y,q as Z,a as ee,u as ae,Q as ie,R as te,S as se,T as re,j as ne,z as S,d as oe}from"./index-hQBhXi5E.js";import{u as de}from"./useRealtimeMessages-CgLK4AHa.js";import"./vendor-supabase-BZ0N5lZN.js";const le=async(d,c=100)=>{if(!d)return[];const{data:m,error:l}=await X.from("messages").select(`
+import{j as i,m as r,i as H,I as W,V as $}from"./vendor-ui-X7UBOLV-.js";import{e as B,u as K,r as o}from"./vendor-react-Bf2iiKbT.js";import{a as J}from"./vendor-query-CW1mHkOh.js";import{O as X,P as Y,q as Z,a as ee,u as ae,Q as ie,R as te,S as se,T as re,j as ne,z as S,d as oe}from"./index-DZL4uvnW.js";import{u as de}from"./useRealtimeMessages-wrnE5ijp.js";import"./vendor-supabase-BZ0N5lZN.js";const le=async(d,c=100)=>{if(!d)return[];const{data:m,error:l}=await X.from("messages").select(`
             *,
             sender:sender_id (id, name, avatar),
             receiver:receiver_id (id, name, avatar)
