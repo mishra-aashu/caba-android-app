@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Info } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { ArrowLeft, CheckCircle, Info } from 'lucide-react';
 
 const GoogleIcon = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
@@ -56,8 +57,20 @@ const Login = () => {
     navigate('/admin-about');
   };
 
+  const handleBackToLanding = (e) => {
+    e.preventDefault();
+    navigate('/');
+  };
+
   return (
     <div className={`${styles['art-login-container']} ${styles['gpu-max']}`}>
+
+      {/* Back Button - Top Left (Web Only) */}
+      {!Capacitor.isNativePlatform() && (
+        <button className={styles['back-btn-top-left']} onClick={handleBackToLanding} title="Back to Home">
+          <ArrowLeft size={24} />
+        </button>
+      )}
 
       {/* About Button - Top Right */}
       <button className={styles['about-btn-top-right']} onClick={handleAboutClick} title="About">

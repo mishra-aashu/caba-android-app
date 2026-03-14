@@ -643,13 +643,46 @@
   }
 }
 
+/* --- Back Button - Top Left (Web Only) --- */
+.back-btn-top-left {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.back-btn-top-left:hover {
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.back-btn-top-left:active {
+  transform: scale(0.95);
+}
+
 /* --- About Button - Top Right --- */
 .about-btn-top-right {
   position: absolute;
   top: 20px;
   right: 20px;
   z-index: 100;
-  background: var(--brand-gradient);
+  background: var(--brand-gradient, linear-gradient(135deg, #128c7e, #075e54));
   border: none;
   border-radius: 50%;
   width: 44px;
@@ -660,7 +693,7 @@
   cursor: pointer;
   color: white;
   font-size: 1.2rem;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
