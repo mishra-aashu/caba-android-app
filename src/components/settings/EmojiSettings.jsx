@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
@@ -69,7 +70,7 @@ const EmojiSettings = ({ isSidebar = false }) => {
       {/* Header */}
       <header className="settings-header">
         <button className="back-btn" onClick={() => navigate('/settings')}>
-          <i className="fas fa-arrow-left"></i>
+          <ArrowLeft size={20} />
         </button>
         <h1>Emoji Style</h1>
       </header>
@@ -133,7 +134,7 @@ const EmojiSettings = ({ isSidebar = false }) => {
           {/* Note */}
           <div className="emoji-note">
             <div className="note-icon">
-              <i className="fas fa-info-circle"></i>
+              <Info size={18} />
             </div>
             <div className="note-content">
               <h4>Note:</h4>

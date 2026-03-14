@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { X, RotateCcw, Upload, Camera, QrCode, Lightbulb, Hand, Square } from 'lucide-react';
 import './QRCodeScanner.css';
 
 const QRCodeScanner = ({ onScan, onClose, onError }) => {
@@ -131,7 +132,7 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
         <div className="qr-scanner-header">
           <h3>Scan QR Code</h3>
           <button className="qr-close-btn" onClick={onClose}>
-            <i className="fas fa-times"></i>
+            <X size={24} />
           </button>
         </div>
         
@@ -141,13 +142,13 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
               <div className="error-icon">⚠️</div>
               <p>{error}</p>
               <button className="qr-retry-btn" onClick={initializeScanner}>
-                <i className="fas fa-redo"></i>
+                <RotateCcw size={18} />
                 Try Again
               </button>
               <div className="qr-alternative" style={{ marginTop: '20px' }}>
                 <span>or</span>
                 <label className="qr-upload-btn">
-                  <i className="fas fa-upload"></i>
+                  <Upload size={18} />
                   Upload from Gallery
                   <input
                     type="file"
@@ -161,17 +162,17 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
           ) : !isScanning ? (
             <div className="qr-start-section">
               <div className="qr-start-icon">
-                <i className="fas fa-camera"></i>
+                <Camera size={48} />
               </div>
               <p>Scan QR codes to connect with ELEVENGRAM users</p>
               <button className="qr-start-btn" onClick={initializeScanner}>
-                <i className="fas fa-qrcode"></i>
+                <QrCode size={18} />
                 Start Scanning
               </button>
               <div className="qr-alternative">
                 <span>or</span>
                 <label className="qr-upload-btn">
-                  <i className="fas fa-upload"></i>
+                  <Upload size={18} />
                   Upload from Gallery
                   <input
                     type="file"
@@ -197,11 +198,11 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
                 <p>Position the QR code within the frame</p>
                 <div className="qr-scanner-tips">
                   <div className="tip">
-                    <i className="fas fa-lightbulb"></i>
+                    <Lightbulb size={16} />
                     <span>Ensure good lighting</span>
                   </div>
                   <div className="tip">
-                    <i className="fas fa-hand-paper"></i>
+                    <Hand size={16} />
                     <span>Hold steady</span>
                   </div>
                 </div>
@@ -212,7 +213,7 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
                   cleanupScanner();
                   setIsScanning(false);
                 }}>
-                  <i className="fas fa-stop"></i>
+                  <Square size={18} />
                   Stop Scanning
                 </button>
               </div>

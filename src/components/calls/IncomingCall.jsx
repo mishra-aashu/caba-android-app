@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Phone, PhoneOff } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { getValidAvatarUrl } from '../../utils/avatarUtils';
 
@@ -71,7 +72,7 @@ const IncomingCall = ({ callData, onAccept, onReject, onClose }) => {
             onClick={handleReject}
             disabled={!ringing}
           >
-            <i className="fas fa-phone-slash"></i>
+            <PhoneOff size={24} />
             <span>Decline</span>
           </button>
 
@@ -80,7 +81,7 @@ const IncomingCall = ({ callData, onAccept, onReject, onClose }) => {
             onClick={handleAccept}
             disabled={!ringing}
           >
-            <i className="fas fa-phone"></i>
+            <Phone size={24} />
             <span>Accept</span>
           </button>
         </div>

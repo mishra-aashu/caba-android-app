@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { Phone, Video, Monitor, User, PhoneCall, Mic, MicOff, VideoOff, PhoneOff } from 'lucide-react';
 import { useWebRTCCalling } from '../../hooks/media/useWebRTCCalling';
 import { useDialog } from '../../contexts/DialogContext';
 
@@ -106,7 +107,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
               className="btn-primary"
               disabled={!receiverId}
             >
-              <i className="fas fa-phone"></i> Voice Call
+              <Phone size={18} /> Voice Call
             </button>
             <button
               type="button"
@@ -114,7 +115,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
               className="btn-primary"
               disabled={!receiverId}
             >
-              <i className="fas fa-video"></i> Video Call
+              <Video size={18} /> Video Call
             </button>
             <button
               type="button"
@@ -122,7 +123,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
               className="btn-secondary"
               disabled={!receiverId}
             >
-              <i className="fas fa-desktop"></i> Screen Share
+              <Monitor size={18} /> Screen Share
             </button>
           </div>
           {!receiverId && (
@@ -145,7 +146,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
                   />
                   {!remoteStream && (
                     <div className="video-placeholder">
-                      <i className="fas fa-user"></i>
+                      <User size={48} />
                       <p>Waiting for {callState === 'calling' ? 'answer' : 'connection'}...</p>
                     </div>
                   )}
@@ -165,7 +166,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
             {callType === 'audio' && (
               <div className="audio-call">
                 <div className="audio-visualization">
-                  <i className="fas fa-phone-volume fa-3x"></i>
+                  <PhoneCall size={48} />
                   <p>{callState === 'calling' ? 'Calling...' : callState === 'ringing' ? 'Ringing...' : 'Connected'}</p>
                 </div>
               </div>
@@ -178,7 +179,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
               onClick={handleToggleMute}
               className={`btn-control ${isMuted ? 'active' : ''}`}
             >
-              <i className={`fas ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'}`}></i>
+              {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
             </button>
 
             {(callType === 'video' || callType === 'screen') && (
@@ -187,7 +188,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
                 onClick={handleToggleVideo}
                 className={`btn-control ${isVideoOff ? 'active' : ''}`}
               >
-                <i className={`fas ${isVideoOff ? 'fa-video-slash' : 'fa-video'}`}></i>
+                {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
               </button>
             )}
 
@@ -196,7 +197,7 @@ const WebRTCCalling = ({ receiverId, onCallStateChange }) => {
               onClick={handleEndCall}
               className="btn-danger"
             >
-              <i className="fas fa-phone-slash"></i> End Call
+              <PhoneOff size={20} /> End Call
             </button>
           </div>
         </div>

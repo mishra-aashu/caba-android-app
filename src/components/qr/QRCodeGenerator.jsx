@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import qrcode from 'qrcode';
+import { X, Download, Share2 } from 'lucide-react';
+// qrcode loaded dynamically
 import { useDialog } from '../../contexts/DialogContext';
 import './QRCodeGenerator.css';
 
@@ -31,18 +32,26 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
   const qrData = JSON.stringify(userData);
 
   useEffect(() => {
-    if (canvasRef.current) {
-      qrcode.toCanvas(canvasRef.current, qrData, {
-        width: 160,
-        margin: 1,
-        color: {
-          dark: qrStyles[selectedStyle].fgColor,
-          light: qrStyles[selectedStyle].bgColor
+    const generateQR = async () => {
+      if (canvasRef.current) {
+        try {
+          const qrcode = await import('qrcode');
+          qrcode.toCanvas(canvasRef.current, qrData, {
+            width: 160,
+            margin: 1,
+            color: {
+              dark: qrStyles[selectedStyle].fgColor,
+              light: qrStyles[selectedStyle].bgColor
+            }
+          }, (err) => {
+            if (err) console.error(err);
+          });
+        } catch (err) {
+          console.error('Failed to load qrcode library:', err);
         }
-      }, (err) => {
-        if (err) console.error(err);
-      });
-    }
+      }
+    };
+    generateQR();
   }, [qrData, selectedStyle]);
 
 
@@ -122,7 +131,7 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
         <div className="qr-generator-header">
           <h3>My QR Code</h3>
           <button className="qr-close-btn" onClick={onClose}>
-            <i className="fas fa-times"></i>
+            <X size={24} />
           </button>
         </div>
 
@@ -175,7 +184,7 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
 
               <div className="qr-actions">
                 <button className="qr-download-btn" onClick={handleDownload}>
-                  <i className="fas fa-download"></i>
+                  <Download size={18} />
                   Download QR
                 </button>
                 <button className="qr-share-btn" onClick={() => {
@@ -190,7 +199,7 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
                       .then(() => showAlert('Profile link copied to clipboard!'));
                   }
                 }}>
-                  <i className="fas fa-share"></i>
+                  <Share2 size={18} />
                   Share Link
                 </button>
               </div>

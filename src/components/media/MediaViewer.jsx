@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import { ZoomIn, ZoomOut, Minimize, Maximize, RotateCw, Share2, Maximize2, Download, Music, FileText, AlertCircle, User, X } from 'lucide-react';
+// Removed static import for react-zoom-pan-pinch
 import { useMediaViewer } from '../../hooks/media/useMediaViewer';
 import './MediaViewer.css';
 
@@ -23,6 +24,14 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
   const [rotation, setRotation] = useState(0); // ✅ Added rotation state
   const videoRef = useRef(null);
   const transformWrapperRef = useRef(null);
+  const [ZoomLib, setZoomLib] = useState(null);
+
+  // Dynamically load react-zoom-pan-pinch only when needed
+  useEffect(() => {
+    if (isOpen && (currentMedia?.media?.fileInfo?.file_type === 'image' || currentMedia?.media?.fileInfo?.file_type === 'avatar')) {
+      import('react-zoom-pan-pinch').then(setZoomLib);
+    }
+  }, [isOpen, currentMedia]);
 
   useEffect(() => {
     if (isOpen && mediaId) {
@@ -130,6 +139,17 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
     switch (fileInfo.file_type) {
       case 'image':
       case 'avatar':
+        if (!ZoomLib) {
+          return (
+            <div className="media-viewer-loading">
+              <div className="viewer-spinner"></div>
+              <p>Preparing Viewer...</p>
+            </div>
+          );
+        }
+
+        const { TransformWrapper, TransformComponent } = ZoomLib;
+
         return (
           <TransformWrapper
             ref={transformWrapperRef}
@@ -170,56 +190,56 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
                     onClick={() => zoomIn()}
                     title="Zoom In"
                   >
-                    <i className="fas fa-search-plus"></i>
+                    <ZoomIn size={20} />
                   </button>
                   <button
                     className="control-btn"
                     onClick={() => zoomOut()}
                     title="Zoom Out"
                   >
-                    <i className="fas fa-search-minus"></i>
+                    <ZoomOut size={20} />
                   </button>
                   <button
                     className="control-btn"
                     onClick={resetTransform}
                     title="Reset"
                   >
-                    <i className="fas fa-compress"></i>
+                    <Minimize size={20} />
                   </button>
                   <button
                     className="control-btn"
                     onClick={() => resetTransform()}
                     title="100%"
                   >
-                    <i className="fas fa-expand"></i>
+                    <Maximize size={20} />
                   </button>
                   <button
                     className="control-btn"
                     onClick={handleRotate}
                     title="Rotate"
                   >
-                    <i className="fas fa-redo"></i>
+                    <RotateCw size={20} />
                   </button>
                   <button
                     className="control-btn"
                     onClick={handleShare}
                     title="Share"
                   >
-                    <i className="fas fa-share"></i>
+                    <Share2 size={20} />
                   </button>
                   <button
                     className="control-btn"
                     onClick={handleFullscreen}
                     title="Fullscreen"
                   >
-                    <i className="fas fa-expand-arrows-alt"></i>
+                    <Maximize2 size={20} />
                   </button>
                   <button
                     className="control-btn"
                     onClick={() => handleSecureDownload(objectUrl, fileInfo.file_name)}
                     title="Download"
                   >
-                    <i className="fas fa-download"></i>
+                    <Download size={20} />
                   </button>
                 </div>
               </>
@@ -250,7 +270,7 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
         return (
           <div className="media-viewer-audio-container">
             <div className="audio-icon">
-              <i className="fas fa-music"></i>
+              <Music size={48} />
             </div>
             <div className="audio-info">
               <h3>{fileInfo.file_name}</h3>
@@ -278,14 +298,14 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
           return (
             <div className="media-viewer-document-container">
               <div className="document-preview">
-                <i className="fas fa-file-alt fa-5x"></i>
+                <FileText size={80} />
                 <h3>{fileInfo.file_name}</h3>
                 <p>{formatFileSize(fileInfo.file_size)}</p>
                 <button
                   className="btn-primary"
                   onClick={downloadCurrent}
                 >
-                  <i className="fas fa-download"></i> Download
+                  <Download size={18} /> Download
                 </button>
               </div>
             </div>
@@ -295,7 +315,7 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
       default:
         return (
           <div className="media-viewer-error">
-            <i className="fas fa-exclamation-circle"></i>
+            <AlertCircle size={48} />
             <p>Unsupported media type</p>
           </div>
         );
@@ -310,7 +330,7 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
       <div className="viewer-header">
         <div className="user-info">
           <div className="avatar">
-            <i className="fas fa-user"></i>
+            <User size={20} />
           </div>
           <div className="details">
             <span className="name">
@@ -322,7 +342,7 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
           </div>
         </div>
         <button className="close-btn" onClick={onClose}>
-          <i className="fas fa-times"></i>
+          <X size={24} />
         </button>
       </div>
 
@@ -337,7 +357,7 @@ const MediaViewer = ({ isOpen, onClose, mediaId, fileInfo, options = {}, onShare
 
         {error && (
           <div className="media-viewer-error">
-            <i className="fas fa-exclamation-circle"></i>
+            <AlertCircle size={48} />
             <p>{error}</p>
           </div>
         )}

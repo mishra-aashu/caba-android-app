@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useAuthStore from '../../store/authStore';
-import { X } from 'lucide-react';
+import { X, Newspaper, Plus } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import { realtimeManager } from '../../utils/realtimeManager';
 import { useDialog } from '../../contexts/DialogContext';
@@ -188,7 +188,7 @@ const News = () => {
   return (
     <div className="news-container">
       <header className="news-header">
-        <h1><i className="fas fa-newspaper"></i> Latest News Feed</h1>
+        <h1><Newspaper size={24} style={{ marginRight: '8px' }} /> Latest News Feed</h1>
       </header>
 
       {/* My Status */}
@@ -213,7 +213,7 @@ const News = () => {
             </p>
           </div>
           <button className="add-status-btn" onClick={handleAddStatus}>
-            <i className="fas fa-plus"></i>
+            <Plus size={20} />
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+// removed framer-motion
 import { X, Sparkles, RefreshCw } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { ChatThemeProvider } from './contexts/ChatThemeProvider';
@@ -17,7 +17,7 @@ import { KeyboardHandler } from './utils/keyboardHandler';
 import SafeAreaDebugger from './components/common/SafeAreaDebugger';
 import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
-import MainLayout from './components/MainLayout';
+// removed static MainLayout
 import useNetworkSync from './hooks/useNetworkSync';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { requestPersistentStorage } from './db/db';
@@ -34,47 +34,53 @@ import './styles/emoji-styles.css';
 import './styles/safeArea.css';
 
 // Static Imports for Core Components (to resolve build warnings)
-import Login from './components/auth/Login';
-import LandingPage from './pages/LandingPage';
-import DownloadAPK from './pages/DownloadAPK';
-import Intro from './components/Intro';
-import { GroupsPage, GroupInfoPage } from './components/groups';
-import GroupChat from './components/chat/GroupChat';
-import ContactsPage from './components/contacts/ContactsPage';
-import ArenaPage from './components/chat/ArenaPage';
+// Lazy load non-critical components
+const Login = lazy(() => import('./components/auth/Login'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const DownloadAPK = lazy(() => import('./pages/DownloadAPK'));
+const Intro = lazy(() => import('./components/Intro'));
+const GroupsPage = lazy(() => import('./components/groups').then(m => ({ default: m.GroupsPage })));
+const GroupInfoPage = lazy(() => import('./components/groups').then(m => ({ default: m.GroupInfoPage })));
+const GroupChat = lazy(() => import('./components/chat/ChatScreen'));
+const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
+const ArenaPage = lazy(() => import('./components/chat/ArenaPage'));
+const Profile = lazy(() => import('./components/profile/Profile'));
+const UserDetails = lazy(() => import('./components/UserDetails'));
+const Settings = lazy(() => import('./components/settings'));
+const EmojiSettings = lazy(() => import('./components/settings/EmojiSettings'));
+const Reminders = lazy(() => import('./components/reminders'));
+const CreateReminder = lazy(() => import('./components/reminders/CreateReminder'));
+const Calls = lazy(() => import('./components/calls'));
+const History = lazy(() => import('./components/History'));
+const Blocked = lazy(() => import('./components/blocked'));
+const About = lazy(() => import('./components/About'));
+const SupportChat = lazy(() => import('./components/SupportChat'));
+const QRPage = lazy(() => import('./components/qr').then(m => ({ default: m.QRPage })));
+const Terms = lazy(() => import('./components/legal/Terms'));
+const Privacy = lazy(() => import('./components/legal/Privacy'));
+const SharedProfile = lazy(() => import('./components/shared-profile'));
+const SecuritySettings = lazy(() => import('./components/settings/SecuritySettings'));
+const HelpCenter = lazy(() => import('./components/settings/HelpCenter'));
+
+// Core components that remain static for initial shell
 import CallScreen from './components/CallScreen';
 import CallStatusIndicator from './components/CallStatusIndicator';
 import IncomingCallModal from './components/IncomingCallModal';
 import GroupIncomingCallNotification from './components/group/GroupIncomingCallNotification';
 import ChatPlaceholder from './components/common/ChatPlaceholder';
-import Profile from './components/profile/Profile';
-import UserDetails from './components/UserDetails';
-import Settings from './components/settings';
-import EmojiSettings from './components/settings/EmojiSettings';
-import Reminders from './components/reminders';
-import CreateReminder from './components/reminders/CreateReminder';
-import Calls from './components/calls';
-import History from './components/History';
-import Blocked from './components/blocked';
-import About from './components/About';
-import SupportChat from './components/SupportChat';
-import { QRPage } from './components/qr';
 import DesktopNavbar from './components/common/DesktopNavbar';
 import Modal from './components/common/Modal';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import SyncIndicator from './components/common/SyncIndicator';
-import Terms from './components/legal/Terms';
-import Privacy from './components/legal/Privacy';
-import SharedProfile from './components/shared-profile';
 import APKUpdateModal from './components/APKUpdateModal';
-import SecuritySettings from './components/settings/SecuritySettings';
-import HelpCenter from './components/settings/HelpCenter';
 
 // Lazy load truly non-critical/heavy components that are NOT statically imported elsewhere
-const Chat = lazy(() => import('./components/chat/Chat'));
+const Chat = lazy(() => import('./components/chat/ChatScreen'));
 const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
 const Admin = lazy(() => import('./components/Admin'));
 const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
+const AutoRefreshBanner = lazy(() => import('./components/common/AutoRefreshBanner'));
+const MainLayout = lazy(() => import('./components/MainLayout'));
 
 
 // ──────────────────────────────────────────────
@@ -383,36 +389,14 @@ const App = () => {
 
             <GlobalDialog />
 
-            {/* Professional Auto-Refresh Notification */}
-            <AnimatePresence>
-              {needsRefresh && (
-                <motion.div
-                  className={`auto-refresh-banner ${isRefreshing ? 'updating' : ''}`}
-                  initial={{ y: 100, x: '-50%', opacity: 0 }}
-                  animate={{ y: 0, x: '-50%', opacity: 1 }}
-                  exit={{ y: 100, x: '-50%', opacity: 0 }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                >
-                  <div className="banner-content" onClick={!isRefreshing ? handleRefresh : undefined}>
-                    <div className="icon-container">
-                      {isRefreshing ? (
-                        <RefreshCw className="refresh-spinner" size={18} />
-                      ) : (
-                        <Sparkles className="sparkle-icon" size={18} />
-                      )}
-                    </div>
-                    <span className="refresh-text">
-                      {isRefreshing ? 'Updating to latest version...' : 'New update available! Tap to refresh'}
-                    </span>
-                  </div>
-                  {!isRefreshing && (
-                    <button className="banner-close" onClick={handleDismiss} title="Dismiss">
-                      <X size={16} />
-                    </button>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <SafeSuspense>
+              <AutoRefreshBanner 
+                needsRefresh={needsRefresh}
+                isRefreshing={isRefreshing}
+                handleRefresh={handleRefresh}
+                handleDismiss={handleDismiss}
+              />
+            </SafeSuspense>
           </GroupCallProvider>
         </DialogProvider>
       </ErrorBoundary>

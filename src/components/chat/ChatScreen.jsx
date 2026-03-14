@@ -9,7 +9,7 @@ import VirtualizedMessageList from './VirtualizedMessageList';
 import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import { messageReadsService } from '../../services/messageReadsService';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 import { Capacitor } from '@capacitor/core';
 import hapticsManager from '../../utils/hapticsManager';
 import { UserDetailsContext } from '../../contexts/UserDetailsContext';
@@ -17,22 +17,17 @@ import useIsDesktop from '../../hooks/useIsDesktop';
 import useChatStore from '../../store/useChatStore';
 import useChatRoom from '../../hooks/chat/useChatRoom';
 import ChatHeader from './parts/ChatHeader';
-import ChatActionsPanel from './parts/ChatActionsPanel';
 import ChatBackground from './ChatBackground';
 import styles from '../../styles/chat.module.css';
 import { getStableMessageId, extractMessageContent } from '../../utils/messageHelpers';
-import { getPublicMediaUrl } from '../../services/mediaService';
 
 const MediaViewer = lazy(() => import('../media/MediaViewer'));
 const ImageViewer = lazy(() => import('./ImageViewer'));
 const ForwardModal = lazy(() => import('./ForwardModal'));
 const GroupCallScreen = lazy(() => import('../group/GroupCallScreen'));
-const GroupCallButton = lazy(() => import('../group/GroupCallButton'));
 const GroupInfoDrawer = lazy(() => import('../groups/GroupInfoDrawer'));
 const GameLobby = lazy(() => import('./GameLobby'));
 
-// ─── Helper: normalize DB message shape to frontend shape ────────────────────
-// Defined here so it's always available (was missing before — runtime crash)
 const dbToFrontend = (msg) => {
   if (!msg) return msg;
   return {
@@ -49,12 +44,11 @@ const dbToFrontend = (msg) => {
     updatedAt: msg.updated_at ?? msg.updatedAt,
     replyTo: msg.reply_to ?? msg.replyTo,
     vanishAt: msg.vanish_at ?? msg.vanishAt,
-    seen_at: msg.seen_at, //  ADDED: For "Seen X ago" logic
+    seen_at: msg.seen_at,
   };
 };
 
-const Chat = () => {
-  // ─── ALL BUSINESS LOGIC IS DELEGATED TO useChatRoom ─────────────────────
+const ChatScreen = () => {
   const {
     chatId, otherUserId, validChatId, isGroupChat, navigate, location,
     currentUser, otherUser, setOtherUser, isInitializing,
@@ -82,13 +76,11 @@ const Chat = () => {
     },
   });
 
-  // Attach reaction toggle to window for MessageItems to use (Performance optimization: avoids passing closure to every single item)
   useEffect(() => {
     window.handleReactionToggle = handleReactionToggle;
     return () => { delete window.handleReactionToggle; };
   }, [handleReactionToggle]);
 
-  // ─── Authorization Guard ───
   useEffect(() => {
     if (authError) {
       toast.error(authError);
@@ -98,53 +90,35 @@ const Chat = () => {
 
   const [showGameLobby, setShowGameLobby] = useState(false);
 
-  // ─── Selection delete callback ────────────────────────────────────────────
   const onSelectionDelete = () => {
     confirmSelectionDelete(Array.from(selectedMessageIds), () => {
       clearSelection();
-      setShowDeleteConfirmModal(false); // ✅ FIX: was setShowDeleteModal (wrong name)
+      setShowDeleteConfirmModal(false);
     });
   };
 
-  const onDownloadMedia = async (url, message) => {
-    await handleMediaDownload(url, message);
-  };
-
-  const onShareAsForward = (message) => {
-    const forwardPayload = handleShareAsForward(null, message);
-    setMessagesToForward(forwardPayload);
-    setShowForwardModal(true);
-    setImageViewerOpen(false);
-  };
-
-  // ─── Theme / layout context ───────────────────────────────────────────────
   const {
     chatTheme,
-    chatWallpaper,
     chatThemes,
     chatPatterns,
     currentPattern,
     selectTheme,
     selectPattern,
     setChatId,
-    setScrollPercentage,
   } = useChatTheme();
 
   const isDesktop = useIsDesktop();
-  const { showUserDetails } = useContext(UserDetailsContext) || {};
+  const { showUserDetails, showGroupInfo } = useContext(UserDetailsContext) || {};
 
-  // Sync theme context whenever chatId changes
   useEffect(() => {
     if (chatId) setChatId(chatId);
   }, [chatId, setChatId]);
 
-  // UI-ONLY STATE
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   
-  // ─── Selection (Now from Zustand) ───
   const isSelectionMode = useChatStore(state => state.isSelectionMode);
   const selectedMessageIds = useChatStore(state => state.selectedMessageIds);
   const clearSelection = useChatStore(state => state.clearSelection);
@@ -159,7 +133,7 @@ const Chat = () => {
   const [messagesToForward, setMessagesToForward] = useState([]);
   const [showGroupInfoDrawer, setShowGroupInfoDrawer] = useState(false);
   const [showVanishSettingsModal, setShowVanishSettingsModal] = useState(false);
-  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false); // ✅ single source of truth
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [showBlockConfirmModal, setShowBlockConfirmModal] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -170,7 +144,6 @@ const Chat = () => {
 
   const messagesContainerRef = useRef(null);
 
-  // ─── Capacitor keyboard: scroll to bottom when keyboard appears ───────────
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     let cleanup;
@@ -185,11 +158,10 @@ const Chat = () => {
         console.warn('[Chat] Keyboard listeners failed:', err);
       }
     };
-    setup().then(() => { });
+    setup();
     return () => { if (cleanup) cleanup(); };
   }, []);
 
-  // ─── Scroll helpers ───────────────────────────────────────────────────────
   const debouncedSaveScroll = useCallback(
     debounce((id, index) => saveScrollPosition(id, index), 500),
     [saveScrollPosition],
@@ -204,7 +176,6 @@ const Chat = () => {
     }
   }, [currentUser, chatId]);
 
-  // 🔥 FIX: Mark as read on mount and chatId change
   useEffect(() => {
     if (chatId && currentUser && chatId !== 'new') {
       const timer = setTimeout(() => {
@@ -214,7 +185,6 @@ const Chat = () => {
     }
   }, [chatId, currentUser, markMessagesAsRead]);
 
-  // 🔥 FIX: Mark as read when window/tab gains focus or visibility changes
   useEffect(() => {
     const handleEvents = () => {
       if (!document.hidden && chatId && currentUser && chatId !== 'new') {
@@ -257,24 +227,6 @@ const Chat = () => {
     }
   };
 
-  // ─── Action handlers ──────────────────────────────────────────────────────
-  const handleBlockUser = () => setShowBlockConfirmModal(true);
-  const handleTyping = () => sendTyping();
-  const handleClearChat = () => setShowClearConfirmModal(true);
-  const handleSearchMessages = () => setShowSearchModal(true);
-  const handleChangeTheme = () => setShowThemeModal(true);
-  const handleTempChatSettings = () => setShowVanishSettingsModal(true);
-
-  const handleMessageSelect = (messageId) => {
-    // legacy, but VirtualizedMessageList still might use it if not fully decoupled
-    // though the new refactored items call toggleMessageSelection directly
-  };
-
-  const handleSelectionDelete = () => {
-    if (selectedMessageIds.size === 0) return;
-    setShowDeleteConfirmModal(true);
-  };
-
   const handleForwardMessages = async (messages, targetChat) => {
     try {
       const isGroupTarget = targetChat.isGroup || targetChat.is_group || false;
@@ -307,11 +259,6 @@ const Chat = () => {
     }
   };
 
-  const handleForwardMessage = (message) => {
-    setMessagesToForward([message]);
-    setShowForwardModal(true);
-  };
-
   const handleSelectionForward = () => {
     const selectedMsgs = messages.filter((msg, index) => {
       const msgId = getStableMessageId(msg, index);
@@ -333,17 +280,12 @@ const Chat = () => {
     showAlert('Messages copied to clipboard');
   };
 
-  const handleSelectionEdit = () => {
-    if (selectedMessageIds.size !== 1) return;
-    const messageId = Array.from(selectedMessageIds)[0];
-    const message = messages.find(msg => msg.id === messageId);
-    if (message && (message.senderId || message.sender_id) === currentUser.id) {
-      clearSelection();
-      window.dispatchEvent(new CustomEvent(`triggerEdit-${messageId}`));
-    }
-  };
-
   const handleViewContact = () => {
+    if (isGroupChat) {
+      if (isDesktop) showGroupInfo?.(chatId, otherUser);
+      else navigate(`/chat/${chatId}/group/info`);
+      return;
+    }
     if (!otherUserId || otherUserId === 'undefined') {
       showAlert('User information not available');
       return;
@@ -355,9 +297,6 @@ const Chat = () => {
     }
   };
 
-  const handleCreateReminder = () => navigate(`/create-reminder?userId=${otherUserId}`);
-
-  // ─── Message search ───────────────────────────────────────────────────────
   const debouncedSearch = useCallback(
     debounce((query) => {
       if (!query.trim() || !chatId) { setSearchResults([]); return; }
@@ -371,7 +310,6 @@ const Chat = () => {
         .limit(50)
         .then(({ data, error }) => {
           if (error) throw error;
-          // ✅ FIX: dbToFrontend is now defined at module level — no crash
           setSearchResults((data || []).map(dbToFrontend));
         })
         .catch((error) => {
@@ -380,7 +318,7 @@ const Chat = () => {
         })
         .finally(() => setIsSearching(false));
     }, 500),
-    [chatId],
+    [chatId, supabase],
   );
 
   const handleSearchQueryChange = (e) => {
@@ -394,7 +332,7 @@ const Chat = () => {
     const el = document.getElementById(`message-${messageId}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.style.backgroundColor = 'rgba(0, 168, 132, 0.2)'; // ✅ Emerald, not green
+      el.style.backgroundColor = 'rgba(0, 168, 132, 0.2)';
       setTimeout(() => { el.style.backgroundColor = ''; }, 2000);
     }
     setShowSearchModal(false);
@@ -402,13 +340,6 @@ const Chat = () => {
     setSearchResults([]);
   };
 
-  // ─── Theme selection ──────────────────────────────────────────────────────
-  const handleThemeSelect = async (themeKey) => {
-    await selectTheme(themeKey);
-    setShowThemeModal(false);
-  };
-
-  // ─── Vanish mode toggle ───────────────────────────────────────────────────
   const handleTempChatToggle = async () => {
     try {
       const newState = !isTempChat;
@@ -427,10 +358,6 @@ const Chat = () => {
           .eq('chat_id', chatId)
           .eq('user_id', currentUser.id);
       }
-      const tempChats = JSON.parse(localStorage.getItem('tempChats') || '{}');
-      if (newState) tempChats[chatId] = { enabled: true, duration: selectedVanishDuration };
-      else delete tempChats[chatId];
-      localStorage.setItem('tempChats', JSON.stringify(tempChats));
       setIsTempChat(newState);
     } catch (error) {
       console.error('Error toggling temp chat:', error);
@@ -439,7 +366,6 @@ const Chat = () => {
     }
   };
 
-  // ─── Media view ───────────────────────────────────────────────────────────
   const handleMediaView = (mediaUrl, mediaType, message) => {
     if (mediaType === 'image') {
       setCurrentImageUrl(mediaUrl);
@@ -460,7 +386,6 @@ const Chat = () => {
     }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className={`${styles['chat-screen']} ${showGroupInfoDrawer ? styles['drawer-open'] : ''}`}>
       <div className={styles['chat-main-area']}>
@@ -481,15 +406,15 @@ const Chat = () => {
               onVideoCall={handleVideoCall}
               onMuteToggle={handleMuteToggle}
               onViewContact={handleViewContact}
-              onSearchMessages={handleSearchMessages}
-              onChangeTheme={handleChangeTheme}
+              onSearchMessages={() => setShowSearchModal(true)}
+              onChangeTheme={() => setShowThemeModal(true)}
               onShowGame={() => navigate(`${location.pathname}/arena`)}
               onShowGroupInfo={() => setShowGroupInfoDrawer(true)}
-              onBlockUser={handleBlockUser}
-              onClearChat={handleClearChat}
-              onCreateReminder={handleCreateReminder}
+              onBlockUser={() => setShowBlockConfirmModal(true)}
+              onClearChat={() => setShowClearConfirmModal(true)}
+              onCreateReminder={() => navigate(`/create-reminder?userId=${otherUserId}`)}
               onTempChatToggle={handleTempChatToggle}
-              onTempChatSettings={handleTempChatSettings}
+              onTempChatSettings={() => setShowVanishSettingsModal(true)}
               onDeleteSelected={onSelectionDelete}
               onCopySelected={handleSelectionCopy}
               onForwardSelected={handleSelectionForward}
@@ -497,7 +422,15 @@ const Chat = () => {
             />
 
             <div className={styles['nested-chat-content']}>
-              {/* Connection banners */}
+              {activeGroupCall && (
+                <div className={styles['active-call-banner']}>
+                  <div className={styles['banner-content']}>
+                    <span>Ongoing Group Call ({activeGroupCall.group_call_participants?.length} joined)</span>
+                  </div>
+                  <button className={styles['banner-join-btn']} onClick={() => { handleStartGroupCall('join'); }}>Join</button>
+                </div>
+              )}
+
               {!navigator.onLine && connectionStatus === 'connecting' && (
                 <div className={`${styles['connection-banner']} ${styles.connecting}`}>
                   <div className={styles.spinner} />
@@ -505,10 +438,7 @@ const Chat = () => {
                 </div>
               )}
               {!navigator.onLine && connectionStatus === 'disconnected' && (
-                <div
-                  className={`${styles['connection-banner']} ${styles.disconnected}`}
-                  onClick={retryConnection}
-                >
+                <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection}>
                   Offline. Tap to retry.
                 </div>
               )}
@@ -526,7 +456,7 @@ const Chat = () => {
                   messages={messages}
                   currentUser={currentUser}
                   onReply={handleReply}
-                  onForward={handleForwardMessage}
+                  onForward={(msg) => { setMessagesToForward([msg]); setShowForwardModal(true); }}
                   onDelete={(messageId) => deleteMessage(messageId)}
                   onEdit={() => { }}
                   onMediaView={handleMediaView}
@@ -541,7 +471,7 @@ const Chat = () => {
                   isGroupChat={Boolean(isGroupChat)}
                   onSenderClick={(senderId) => {
                     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-                    if (isMobile) navigate(`/user/${senderId}`);
+                    if (isMobile) navigate(`/chat/new/${senderId}`);
                     else if (showUserDetails) showUserDetails(senderId);
                   }}
                   isScrolledToBottom={isScrolledToBottom}
@@ -551,18 +481,12 @@ const Chat = () => {
                   initialTopMostItemIndex={initialScrollPosition}
                   onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
                   chatId={validChatId}
-                  // isSelectionMode and selectedMessages now handled by components subscribing to store
                 />
 
                 {showScrollButton && (
-                  <button
-                    className={styles['scroll-bottom-btn']}
-                    onClick={() => handleScrollToBottom('smooth')}
-                  >
+                  <button className={styles['scroll-bottom-btn']} onClick={() => handleScrollToBottom('smooth')}>
                     <ArrowDown size={20} />
-                    {unreadCount > 0 && (
-                      <span className={styles['unread-count']}>{unreadCount}</span>
-                    )}
+                    {unreadCount > 0 && <span className={styles['unread-count']}>{unreadCount}</span>}
                   </button>
                 )}
               </div>
@@ -570,11 +494,10 @@ const Chat = () => {
               <MessageInput
                 onSendMessage={sendMessage}
                 onSendMedia={handleSendMedia}
-                onTyping={handleTyping}
+                onTyping={() => sendTyping()}
                 replyingTo={replyingTo}
                 onCancelReply={cancelReply}
                 chatId={chatId}
-                receiverId={otherUserId}
                 currentUser={currentUser}
                 disabled={
                   isGroupChat &&
@@ -589,39 +512,19 @@ const Chat = () => {
 
         <Suspense fallback={null}>
           {showSearchModal && (
-            <Modal
-              isOpen={true}
-              onClose={() => { setShowSearchModal(false); setSearchQuery(''); setSearchResults([]); }}
-              title="Search Messages"
-              size="medium"
-            >
+            <Modal isOpen={true} onClose={() => { setShowSearchModal(false); setSearchQuery(''); setSearchResults([]); }} title="Search Messages" size="medium">
               <div className={styles['search-modal-content']}>
                 <div className={styles['search-input-container']}>
-                  <input
-                    type="text"
-                    placeholder="Search messages..."
-                    value={searchQuery}
-                    onChange={handleSearchQueryChange}
-                    autoFocus
-                  />
+                  <input type="text" placeholder="Search messages..." value={searchQuery} onChange={handleSearchQueryChange} autoFocus />
                 </div>
                 <div className={styles['search-results']}>
                   {isSearching ? (
-                    <div className={styles['search-loading']}>
-                      <div className={styles['loading-spinner']} />
-                      <p>Searching...</p>
-                    </div>
+                    <div className={styles['search-loading']}><div className={styles['loading-spinner']} /><p>Searching...</p></div>
                   ) : searchResults.length > 0 ? (
                     searchResults.map(message => (
-                      <div
-                        key={message.id}
-                        className={styles['search-result-item']}
-                        onClick={() => scrollToMessage(message.id)}
-                      >
+                      <div key={message.id} className={styles['search-result-item']} onClick={() => scrollToMessage(message.id)}>
                         <div className={styles['search-result-content']}>{message.content}</div>
-                        <div className={styles['search-result-time']}>
-                          {new Date(message.createdAt || message.created_at).toLocaleDateString()}
-                        </div>
+                        <div className={styles['search-result-time']}>{new Date(message.createdAt || message.created_at).toLocaleDateString()}</div>
                       </div>
                     ))
                   ) : searchQuery.trim() ? (
@@ -635,89 +538,21 @@ const Chat = () => {
           )}
 
           {showThemeModal && (
-            <Modal
-              isOpen={true}
-              onClose={() => setShowThemeModal(false)}
-              title="Choose Theme"
-              size="large"
-            >
+            <Modal isOpen={true} onClose={() => setShowThemeModal(false)} title="Choose Theme" size="large">
               <div className={styles['theme-selector']}>
                 <div className={styles['theme-section']}>
                   <h4 className={styles['theme-section-title']}>Chat Themes</h4>
                   <div className={styles['theme-grid']}>
                     {Object.entries(chatThemes).map(([key, theme]) => (
-                      <div
-                        key={key}
-                        className={`${styles['theme-capsule']} ${chatTheme === key ? styles.active : ''}`}
-                        onClick={() => handleThemeSelect(key)}
-                      >
-                        <div
-                          className={styles['theme-capsule-preview']}
-                          style={{ background: theme.background }}
-                        />
+                      <div key={key} className={`${styles['theme-capsule']} ${chatTheme === key ? styles.active : ''}`} onClick={() => selectTheme(key)}>
+                        <div className={styles['theme-capsule-preview']} style={{ background: theme.background }} />
                         <span className={styles['theme-capsule-name']}>{theme.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles['pattern-picker-section']}>
-                  <h4 className={styles['theme-section-title']}>Wallpapers & Patterns</h4>
-                  <div className={styles['pattern-grid']}>
-                    {chatPatterns.map((pattern) => (
-                      <div
-                        key={pattern.id}
-                        className={`${styles['pattern-card']} ${currentPattern === pattern.id ? styles.active : ''}`}
-                        onClick={() => selectPattern(pattern.id)}
-                      >
-                        <div
-                          className={styles['pattern-preview']}
-                          style={{
-                            WebkitMaskImage: `url(/assets/${pattern.id}.svg)`,
-                            maskImage: `url(/assets/${pattern.id}.svg)`,
-                            WebkitMaskSize: 'var(--chat-pattern-size, 400px)',
-                            maskSize: 'var(--chat-pattern-size, 400px)',
-                          }}
-                        />
-                        <span className={styles['pattern-card-name']}>{pattern.name}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
             </Modal>
-          )}
-
-          {showGameLobby && (
-            <Modal
-              isOpen={true}
-              onClose={() => setShowGameLobby(false)}
-              title="Game Room"
-              size="large"
-            >
-              <GameLobby
-                chatId={chatId}
-                otherUserId={otherUserId}
-                onStartTruthDare={() => {
-                  setShowGameLobby(false);
-                  navigate(`/chat/${chatId}/${otherUserId}/arena`);
-                }}
-                onResumeGame={() => {
-                  setShowGameLobby(false);
-                  navigate(`/chat/${chatId}/${otherUserId}/arena`);
-                }}
-              />
-            </Modal>
-          )}
-
-          {mediaViewerOpen && (
-            <MediaViewer
-              isOpen={true}
-              onClose={() => { setMediaViewerOpen(false); setCurrentMediaInfo(null); }}
-              mediaId={currentMediaInfo?.messageId}
-              fileInfo={currentMediaInfo?.fileInfo}
-              onShare={handleShareAsForward}
-            />
           )}
 
           {showForwardModal && (
@@ -731,171 +566,16 @@ const Chat = () => {
             />
           )}
 
-          {showGroupCallModal && (
-            <Modal
-              isOpen={true}
-              onClose={() => setShowGroupCallModal(false)}
-              title={`Start Group ${selectedCallType === 'voice' ? 'Voice' : 'Video'} Call`}
-              size="small"
-            >
-              <div className={styles['group-call-modal-content']}>
-                <div className={styles['call-illustration']}>
-                  {selectedCallType === 'voice'
-                    ? <Phone size={48} color="var(--brand-primary, #00a884)" />
-                    : <Video size={48} color="var(--brand-primary, #00a884)" />
-                  }
-                </div>
-                <p className={styles['call-modal-text']}>
-                  Start a group {selectedCallType} call with <strong>{otherUser?.name}</strong>?
-                </p>
-                <div className={styles['modal-actions']}>
-                  <button className={styles['btn-primary']} onClick={() => handleStartGroupCall(selectedCallType)}>
-                    <Phone size={18} />
-                    Start {selectedCallType === 'voice' ? 'Voice' : 'Video'} Call
-                  </button>
-                  <button className={styles['btn-secondary']} onClick={() => setShowGroupCallModal(false)}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </Modal>
-          )}
-
-          {showVanishSettingsModal && (
-            <Modal
-              isOpen={true}
-              onClose={() => setShowVanishSettingsModal(false)}
-              title="Vanish Mode Settings"
-              size="small"
-            >
-              <div className={styles['vanish-settings-content']}>
-                <p>Choose how long messages should stay after being seen:</p>
-                <div className={styles['duration-options']}>
-                  {vanishPresets.map(preset => (
-                    <label key={preset.id} className={styles['duration-option']}>
-                      <input
-                        type="radio"
-                        name="vanishDuration"
-                        value={preset.duration_seconds}
-                        checked={selectedVanishDuration === preset.duration_seconds}
-                        onChange={() => setSelectedVanishDuration(preset.duration_seconds)}
-                      />
-                      <span>{preset.display_name || preset.name || 'Custom'}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className={styles['modal-actions']}>
-                  <button className={styles['btn-primary']} onClick={() => setShowVanishSettingsModal(false)}>
-                    Done
-                  </button>
-                </div>
-              </div>
-            </Modal>
-          )}
-
-          {showClearConfirmModal && (
-            <Modal
-              isOpen={true}
-              onClose={() => setShowClearConfirmModal(false)}
-              title="Clear Chat?"
-              size="small"
-            >
-              <div className={styles['confirm-modal-content']}>
-                <p>Are you sure you want to clear all messages? This cannot be undone.</p>
-                <div className={styles['modal-actions']}>
-                  <button className={styles['btn-secondary']} onClick={() => setShowClearConfirmModal(false)}>
-                    Cancel
-                  </button>
-                  <button className={styles['btn-danger']} onClick={async () => {
-                    await confirmClearChat();
-                    setShowClearConfirmModal(false);
-                  }}>
-                    Clear
-                  </button>
-                </div>
-              </div>
-            </Modal>
-          )}
-
-          {showBlockConfirmModal && (
-            <Modal
-              isOpen={true}
-              onClose={() => setShowBlockConfirmModal(false)}
-              title="Block User?"
-              size="small"
-            >
-              <div className={styles['confirm-modal-content']}>
-                <p>Are you sure you want to block this user? They won't be able to message or call you.</p>
-                <div className={styles['modal-actions']}>
-                  <button className={styles['btn-secondary']} onClick={() => setShowBlockConfirmModal(false)}>
-                    Cancel
-                  </button>
-                  <button className={styles['btn-danger']} onClick={async () => {
-                    await confirmBlockUser();
-                    setShowBlockConfirmModal(false);
-                  }}>
-                    Block
-                  </button>
-                </div>
-              </div>
-            </Modal>
-          )}
-
-          {showDeleteConfirmModal && (
-            <Modal
-              isOpen={true}
-              onClose={() => setShowDeleteConfirmModal(false)}
-              title="Delete Messages?"
-              size="small"
-            >
-              <div className={styles['confirm-modal-content']}>
-                <p>Delete selected messages for everyone?</p>
-                <div className={styles['modal-actions']}>
-                  <button className={styles['btn-secondary']} onClick={() => setShowDeleteConfirmModal(false)}>
-                    Cancel
-                  </button>
-                  <button className={styles['btn-danger']} onClick={onSelectionDelete}>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </Modal>
-          )}
-
           {showGroupCallScreen && (
-            <GroupCallScreen
-              groupId={chatId}
-              callType={selectedCallType || 'video'}
-              onEndCall={handleEndGroupCall}
-            />
-          )}
-
-          {isDesktop && (isGroupChat || otherUser?.is_group) && showGroupInfoDrawer && (
-            <GroupInfoDrawer
-              isOpen={true}
-              onClose={() => {
-                setShowGroupInfoDrawer(false);
-                if (chatId && (isGroupChat || otherUser?.is_group)) {
-                  queryClient.invalidateQueries({ queryKey: ['group', chatId] });
-                }
-              }}
-              group={otherUser}
-              onCallStart={(type) => {
-                setSelectedCallType(type);
-                setShowGroupCallModal(true);
-              }}
-            />
+            <GroupCallScreen groupId={chatId} onEndCall={handleEndGroupCall} />
           )}
 
           {imageViewerOpen && (
-            <ImageViewer
-              isOpen={true}
-              onClose={() => { setImageViewerOpen(false); setCurrentImageUrl(null); setCurrentImageMessage(null); }}
-              imageUrl={currentImageUrl}
-              message={currentImageMessage}
-              onDownload={onDownloadMedia}
-              onShare={onShareAsForward}
-            />
+            <ImageViewer isOpen={true} onClose={() => setImageViewerOpen(false)} imageUrl={currentImageUrl} message={currentImageMessage} />
+          )}
+
+          {mediaViewerOpen && (
+            <MediaViewer isOpen={true} onClose={() => { setMediaViewerOpen(false); setCurrentMediaInfo(null); }} mediaId={currentMediaInfo?.messageId} fileInfo={currentMediaInfo?.fileInfo} onShare={handleShareAsForward} />
           )}
         </Suspense>
       </div>
@@ -903,4 +583,4 @@ const Chat = () => {
   );
 };
 
-export default memo(Chat);
+export default ChatScreen;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { MoreVertical, Camera, User, Info, Phone, Mail, QrCode, X, UserPlus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useSupabase } from "../../contexts/SupabaseContext";
@@ -253,7 +254,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
         </button>
         <h1>Profile</h1>
         <button className="icon-btn" onClick={handleEditProfile}>
-          <i className="fas fa-ellipsis-v"></i>
+          <MoreVertical size={20} />
         </button>
       </header>
 
@@ -288,7 +289,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
             )}
           </div>
           <button className="edit-dp-btn" onClick={() => setShowDpModal(true)}>
-            <i className="fas fa-camera"></i>
+            <Camera size={18} />
           </button>
         </div>
         {showFullscreenImage && (
@@ -301,7 +302,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
         <div className="profile-info-section">
           <div className="info-item">
             <div className="info-label">
-              <i className="fas fa-user"></i>
+              <User size={18} />
               <span className="label">Name</span>
             </div>
             <div className="info-value">
@@ -311,7 +312,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
           <div className="info-item">
             <div className="info-label">
-              <i className="fas fa-info-circle"></i>
+              <Info size={18} />
               <span className="label">About</span>
             </div>
             <div className="info-value">
@@ -321,7 +322,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
           <div className="info-item">
             <div className="info-label">
-              <i className="fas fa-phone"></i>
+              <Phone size={18} />
               <span className="label">Phone</span>
             </div>
             <div className="info-value">
@@ -331,7 +332,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
           <div className="info-item">
             <div className="info-label">
-              <i className="fas fa-envelope"></i>
+              <Mail size={18} />
               <span className="label">Email</span>
             </div>
             <div className="info-value">
@@ -357,14 +358,14 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
 
         <div className="profile-actions">
           <button className="action-btn" onClick={() => setShowQrModal(true)}>
-            <i className="fas fa-qrcode"></i>
+            <QrCode size={18} />
             <span className="label">My QR Code</span>
           </button>
           <button
             className="action-btn"
             onClick={() => setShowScanQrModal(true)}
           >
-            <i className="fas fa-camera"></i>
+            <Camera size={18} />
             <span className="label">Scan QR Code</span>
           </button>
         </div>
@@ -380,7 +381,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                 className="modal-close-btn"
                 onClick={() => setShowEditModal(false)}
               >
-                <i className="fas fa-times"></i>
+                <X size={24} />
               </button>
             </div>
             <div className="modal-body">
@@ -453,7 +454,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                 className="modal-close-btn"
                 onClick={() => setShowDpModal(false)}
               >
-                <i className="fas fa-times"></i>
+                <X size={24} />
               </button>
             </div>
             <div className="modal-body">
@@ -486,7 +487,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                 className="modal-close-btn"
                 onClick={() => setShowQrModal(false)}
               >
-                <i className="fas fa-times"></i>
+                <X size={24} />
               </button>
             </div>
             <div className="modal-body centered">
@@ -518,7 +519,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
                 className="modal-close-btn"
                 onClick={() => setShowUserFoundModal(false)}
               >
-                <i className="fas fa-times"></i>
+                <X size={24} />
               </button>
             </div>
             <div className="modal-body">
@@ -536,7 +537,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
               </div>
               <div className="action-buttons">
                 <button className="btn-primary" onClick={addToContacts}>
-                  <i className="fas fa-user-plus"></i>
+                  <UserPlus size={18} />
                   Add to Contacts
                 </button>
               </div>

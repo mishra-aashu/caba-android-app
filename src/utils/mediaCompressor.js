@@ -1,12 +1,15 @@
-import imageCompression from 'browser-image-compression';
-
-
-
 const STANDARD_QUALITY_OPTIONS = {
   maxSizeMB: 0.5,        // Max file size for standard quality
   maxWidthOrHeight: 1080,
   useWebWorker: false,
   initialQuality: 0.6,
+};
+
+const HIGH_QUALITY_OPTIONS = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+  initialQuality: 0.8,
 };
 
 const MAX_VIDEO_SIZE_MB = 25; // Set a 25MB limit for video uploads
@@ -26,6 +29,7 @@ export const compressImage = async (file, quality = 'standard') => {
   const options = quality === 'high' ? HIGH_QUALITY_OPTIONS : STANDARD_QUALITY_OPTIONS;
 
   try {
+    const { default: imageCompression } = await import('browser-image-compression');
     const compressedFile = await imageCompression(file, options);
     return compressedFile;
   } catch (error) {

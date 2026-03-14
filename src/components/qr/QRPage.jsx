@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ArrowLeft, QrCode, Camera, UserPlus, Share2, Smartphone, Shield, X, MessagesSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabase } from '../../contexts/SupabaseContext';
@@ -141,7 +142,7 @@ const QRPage = () => {
       <div className="qr-page">
         <div className="qr-page-header">
           <button className="back-btn" onClick={() => navigate('/')}>
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft size={20} />
           </button>
           <h1>QR Code</h1>
         </div>
@@ -164,7 +165,7 @@ const QRPage = () => {
     <div className="qr-page">
       <div className="qr-page-header">
         <button className="back-btn" onClick={() => navigate('/')}>
-          <i className="fas fa-arrow-left"></i>
+          <ArrowLeft size={20} />
         </button>
         <h1>QR Code</h1>
       </div>
@@ -173,7 +174,7 @@ const QRPage = () => {
         <div className="qr-options">
           <div className="qr-option-card" onClick={() => setShowGenerator(true)}>
             <div className="qr-option-icon">
-              <i className="fas fa-qrcode"></i>
+              <QrCode size={48} />
             </div>
             <h3>My QR Code</h3>
             <p>Generate and share your profile QR code</p>
@@ -181,7 +182,7 @@ const QRPage = () => {
 
           <div className="qr-option-card" onClick={() => setShowScanner(true)}>
             <div className="qr-option-icon">
-              <i className="fas fa-camera"></i>
+              <Camera size={48} />
             </div>
             <h3>Scan QR Code</h3>
             <p>Scan QR codes to add contacts or visit links</p>
@@ -192,22 +193,22 @@ const QRPage = () => {
           <h3>How QR Codes Work</h3>
           <div className="qr-info-grid">
             <div className="info-item">
-              <i className="fas fa-user-plus"></i>
+              <UserPlus size={24} />
               <h4>Add Contacts</h4>
               <p>Scan someone's QR code to instantly add them to your contacts</p>
             </div>
             <div className="info-item">
-              <i className="fas fa-share"></i>
+              <Share2 size={24} />
               <h4>Share Profile</h4>
               <p>Share your QR code so others can view your profile and start chatting</p>
             </div>
             <div className="info-item">
-              <i className="fas fa-mobile-alt"></i>
+              <Smartphone size={24} />
               <h4>Cross-Platform</h4>
               <p>Works across all devices and platforms</p>
             </div>
             <div className="info-item">
-              <i className="fas fa-shield-alt"></i>
+              <Shield size={24} />
               <h4>Secure</h4>
               <p>End-to-end encrypted and secure</p>
             </div>
@@ -251,7 +252,7 @@ const QRPage = () => {
                 setShowUserModal(false);
                 setScannedUser(null);
               }}>
-                <i className="fas fa-times"></i>
+                <X size={24} />
               </button>
             </div>
             <div className="modal-body" style={{ textAlign: 'center' }}>
@@ -280,11 +281,11 @@ const QRPage = () => {
               </div>
               <div className="action-buttons" style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                 <button className="btn-primary" onClick={addToContacts} disabled={loading}>
-                  <i className="fas fa-user-plus"></i>
+                  <UserPlus size={18} />
                   {loading ? 'Adding...' : 'Add to Contacts'}
                 </button>
                 <button className="btn-secondary" onClick={startChat} disabled={loading}>
-                  <i className="fas fa-comments"></i>
+                  <MessagesSquare size={18} />
                   {loading ? 'Starting...' : 'Start Chat'}
                 </button>
               </div>

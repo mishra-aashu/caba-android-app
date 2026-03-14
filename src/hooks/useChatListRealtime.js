@@ -68,8 +68,11 @@ export const useChatListRealtime = (currentUserId) => {
             }));
             
             await db.transaction('rw', db.chats_list, async () => {
-                await db.chats_list.clear();
+                // Remove clear() - we want surgical updates
                 await db.chats_list.bulkPut(updatedChats);
+                
+                // Optional: Cleanup old chats that are no longer in the top 20/first page
+                // But generally bulkPut is enough for performance
             });
             setHasMoreChats(updatedChats.length >= 20);
         } catch (error) {
@@ -88,7 +91,7 @@ export const useChatListRealtime = (currentUserId) => {
                 const localChats = await loadChatsFromDevice();
                 if (localChats && localChats.length > 0) {
                     await db.transaction('rw', db.chats_list, async () => {
-                        await db.chats_list.clear();
+                        // Surgical update for initial load too
                         await db.chats_list.bulkPut(localChats);
                     });
                 }
@@ -144,6 +147,7 @@ export const useChatListRealtime = (currentUserId) => {
 
     // Real-time
     const mountedRef = useRef(true);
+    const lastSyncTimeRef = useRef(0);
     const currentUserIdRef = useRef(currentUserId);
     
     useEffect(() => {
@@ -153,10 +157,15 @@ export const useChatListRealtime = (currentUserId) => {
 
     const handlePayload = useCallback((payload) => {
         if (!mountedRef.current) return;
+        
+        const now = Date.now();
+        if (now - lastSyncTimeRef.current < 1000) {
+            _log('Throttling chat list update');
+            return;
+        }
+        
+        lastSyncTimeRef.current = now;
         _log('Chat list real-time update', { event: payload.eventType });
-
-        // Simple approach: any change triggers a refetch of the first page
-        // since unified_chat_list logic is complex to duplicate locally
         loadAndSyncChats();
     }, [loadAndSyncChats]);
 

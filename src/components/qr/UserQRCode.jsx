@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import qrcode from 'qrcode';
+// qrcode loaded dynamically
 import './UserQRCode.css';
 
 const UserQRCode = ({ userId, publicKey, userName }) => {
@@ -7,18 +7,26 @@ const UserQRCode = ({ userId, publicKey, userName }) => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
-        if (canvasRef.current) {
-            qrcode.toCanvas(canvasRef.current, qrValue, {
-                width: 200,
-                margin: 0,
-                color: {
-                    dark: '#000000',
-                    light: '#ffffff'
+        const generateQR = async () => {
+            if (canvasRef.current) {
+                try {
+                    const qrcode = await import('qrcode');
+                    qrcode.toCanvas(canvasRef.current, qrValue, {
+                        width: 200,
+                        margin: 0,
+                        color: {
+                            dark: '#000000',
+                            light: '#ffffff'
+                        }
+                    }, (err) => {
+                        if (err) console.error(err);
+                    });
+                } catch (err) {
+                    console.error('Failed to load qrcode library:', err);
                 }
-            }, (err) => {
-                if (err) console.error(err);
-            });
-        }
+            }
+        };
+        generateQR();
     }, [qrValue]);
 
     return (

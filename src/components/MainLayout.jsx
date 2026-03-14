@@ -8,8 +8,7 @@ import { db } from '../db/db';
 import { useChatListRealtime } from '../hooks/useChatListRealtime';
 import { useContacts } from '../hooks/useCommonQueries';
 import useIsDesktop from '../hooks/useIsDesktop';
-import DesktopLayout from './DesktopLayout';
-import ChatListPanel from './ChatListPanel';
+// lazy loaded below
 import { useSupabase } from '../contexts/SupabaseContext';
 import { dpOptions } from '../utils/dpOptions';
 import { getInitials } from '../utils/stringUtils';
@@ -27,8 +26,10 @@ import { UserDetailsContext } from '../contexts/UserDetailsContext';
 // Lazy load UserDetails and GroupInfoDrawer for desktop side panel
 const UserDetails = lazy(() => import('./UserDetails'));
 const GroupInfoDrawer = lazy(() => import('./groups/GroupInfoDrawer'));
-import ContactsPage from './contacts/ContactsPage';
-import Sidebar from './layout/Sidebar';
+const Sidebar = lazy(() => import('./layout/Sidebar'));
+const ChatListPanel = lazy(() => import('./ChatListPanel'));
+const DesktopLayout = lazy(() => import('./DesktopLayout'));
+const ContactsPage = lazy(() => import('./contacts/ContactsPage'));
 
 const MainLayout = () => {
     const { user, dbUser, session } = useAuth();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useAuthStore from '../../store/authStore';
+import { ArrowLeft } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import './Blocked.css';
 
@@ -81,7 +82,7 @@ const Blocked = ({ onBack, isSidebar = false }) => {
       <header className="app-header">
         <div className="header-left">
           <button className="back-btn" onClick={isSidebar ? () => navigate('/settings') : onBack}>
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft size={20} />
           </button>
         </div>
         <div className="header-center">

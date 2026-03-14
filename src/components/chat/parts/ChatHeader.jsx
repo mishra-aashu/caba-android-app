@@ -5,7 +5,8 @@
  * Extracted from the monolithic Chat.jsx to improve maintainability.
  * Receives all state and handlers as props from the Chat component (via useChatRoom).
  */
-import React from 'react';
+import React, { memo } from 'react';
+import { shallow } from 'zustand/shallow';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowLeft, Gamepad2, Crown, MousePointer, Copy, ArrowRight } from 'lucide-react';
 import DropdownMenu from '../../common/DropdownMenu';
@@ -17,7 +18,7 @@ import styles from '../../../styles/chat.module.css';
 
 import useChatStore from '../../../store/useChatStore';
 
-const ChatHeader = ({
+const ChatHeader = memo(({
     chatId,
     otherUser,
     isGroupChat,
@@ -45,14 +46,11 @@ const ChatHeader = ({
     onNavigate,
     isAdmin,
 }) => {
-    const isSelectionMode = useChatStore(state => {
-        console.log('ChatHeader isSelectionMode:', state.isSelectionMode);
-        return state.isSelectionMode;
-    });
-    const selectedCount = useChatStore(state => {
-        console.log('ChatHeader selectedCount:', state.selectedMessageIds.size);
-        return state.selectedMessageIds.size;
-    });
+    const { isSelectionMode, selectedCount } = useChatStore(state => ({
+        isSelectionMode: state.isSelectionMode,
+        selectedCount: state.selectedMessageIds.size
+    }), shallow);
+
     const clearSelection = useChatStore(state => state.clearSelection);
     const setSelectionMode = useChatStore(state => state.setSelectionMode);
 
@@ -200,6 +198,6 @@ const ChatHeader = ({
             </div>
         </header>
     );
-};
+});
 
 export default ChatHeader;

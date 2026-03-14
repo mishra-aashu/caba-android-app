@@ -1,4 +1,5 @@
 import React from "react";
+import { X } from "lucide-react";
 import "../../styles/profile.css";
 
 const FullscreenImageModal = ({ src, onClose }) => {
@@ -8,7 +9,7 @@ const FullscreenImageModal = ({ src, onClose }) => {
         <img src={src} alt="Fullscreen Profile" />
       </div>
       <button className="close-fullscreen-btn" onClick={onClose}>
-        <i className="fas fa-times"></i>
+        <X size={24} />
       </button>
     </div>
   );

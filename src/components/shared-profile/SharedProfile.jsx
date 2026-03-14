@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config/supabase';
 import useAuthStore from '../../store/authStore';
 import { dpOptions } from '../../utils/dpOptions';
-import { X } from 'lucide-react';
+import { X, ArrowLeft, LogIn, UserPlus, User, Info, Phone, MessageSquare } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import './SharedProfile.css';
 
@@ -67,7 +67,7 @@ const SharedProfile = ({ userId, onBack }) => {
       <header className="app-header">
         <div className="header-left">
           <button className="back-btn" onClick={onBack}>
-            <i className="fas fa-arrow-left"></i>
+            <ArrowLeft size={20} />
           </button>
         </div>
         <div className="header-center">
@@ -77,10 +77,10 @@ const SharedProfile = ({ userId, onBack }) => {
           {!currentUser && (
             <div className="auth-actions">
               <button className="btn-primary" onClick={() => showAlert('Login - feature not implemented')}>
-                <i className="fas fa-sign-in-alt"></i> Login
+                <LogIn size={18} /> Login
               </button>
               <button className="btn-secondary" onClick={() => showAlert('Sign up - feature not implemented')}>
-                <i className="fas fa-user-plus"></i> Sign Up
+                <UserPlus size={18} /> Sign Up
               </button>
             </div>
           )}
@@ -109,7 +109,7 @@ const SharedProfile = ({ userId, onBack }) => {
           {/* Name */}
           <div className="info-item">
             <div className="info-label">
-              <i className="fas fa-user"></i>
+              <User size={18} />
               <span className="label">Name</span>
             </div>
             <div className="info-value">
@@ -120,7 +120,7 @@ const SharedProfile = ({ userId, onBack }) => {
           {/* About */}
           <div className="info-item">
             <div className="info-label">
-              <i className="fas fa-info-circle"></i>
+              <Info size={18} />
               <span className="label">About</span>
             </div>
             <div className="info-value">
@@ -131,7 +131,7 @@ const SharedProfile = ({ userId, onBack }) => {
           {/* Phone */}
           <div className="info-item">
             <div className="info-label">
-              <i className="fas fa-phone"></i>
+              <Phone size={18} />
               <span className="label">Phone</span>
             </div>
             <div className="info-value">
@@ -144,11 +144,11 @@ const SharedProfile = ({ userId, onBack }) => {
         {currentUser && (
           <div className="profile-actions">
             <button className="action-btn" onClick={handleAddToContacts}>
-              <i className="fas fa-user-plus"></i>
+              <UserPlus size={18} />
               <span className="label">Add to Contacts</span>
             </button>
             <button className="action-btn" onClick={handleChat}>
-              <i className="fas fa-comment"></i>
+              <MessageSquare size={18} />
               <span className="label">Chat</span>
             </button>
           </div>

@@ -218,7 +218,7 @@ const useChatRoom = (options = {}) => {
 
     // Calls
     ...callsApi,
-    activeGroupCall: null,
+    activeGroupCall: callsApi.activeCallData,
 
     // Settings
     ...settingsApi,

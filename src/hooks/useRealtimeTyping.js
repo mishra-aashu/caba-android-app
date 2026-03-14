@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { realtimeManager } from '../utils/realtimeManager';
-import { throttle } from 'lodash';
+import throttle from 'lodash/throttle';
 
 export const useRealtimeTyping = (chatId, currentUserId) => {
   const [typingUsers, setTypingUsers] = useState({});

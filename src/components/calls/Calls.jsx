@@ -12,6 +12,7 @@ import { IncomingCallModal } from '../IncomingCallModal';
 import BottomNavigation from '../common/BottomNavigation';
 import { isUserOnline } from '../../utils/dateFormatter';
 import useAuthStore from '../../store/authStore';
+import { ArrowLeft } from 'lucide-react';
 import '../../styles/calls.css';
 
 const Calls = () => {
@@ -149,7 +150,7 @@ const Calls = () => {
         <header className="app-header">
           <div className="header-left">
             <button className="back-btn" onClick={() => window.history.back()}>
-              <i className="fas fa-arrow-left"></i>
+              <ArrowLeft size={20} />
             </button>
           </div>
           <div className="header-center">

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { User, Camera } from 'lucide-react';
 import { useAvatarUpload } from '../../hooks/media/useAvatarUpload';
 import { useDialog } from '../../contexts/DialogContext';
 
@@ -85,7 +86,7 @@ const AvatarUpload = ({ onAvatarUpdate, className = '' }) => {
           />
         ) : (
           <div className="avatar-placeholder">
-            <i className="fas fa-user"></i>
+            <User size={32} />
           </div>
         )}
 
@@ -97,7 +98,7 @@ const AvatarUpload = ({ onAvatarUpdate, className = '' }) => {
         )}
 
         <div className="avatar-upload-hint">
-          <i className="fas fa-camera"></i>
+          <Camera size={16} />
           <span>Click to upload</span>
         </div>
       </div>

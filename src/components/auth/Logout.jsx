@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,7 +23,7 @@ const Logout = ({ onClose }) => {
         <div className="modal-header">
           <h2>Logout</h2>
           <button className="close-modal" onClick={onClose}>
-            <i className="fas fa-times"></i>
+            <X size={24} />
           </button>
         </div>
         <div className="modal-body">

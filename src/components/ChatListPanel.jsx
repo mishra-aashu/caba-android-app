@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSupabase } from '../contexts/SupabaseContext';
 import {
@@ -20,11 +20,13 @@ import {
   X
 } from 'lucide-react';
 import DropdownMenu from './common/DropdownMenu';
-import Modal from './common/Modal';
 import ChatListItem from './chat/ChatListItem';
+import { getPublicMediaUrl } from '../services/mediaService';
+import { getDpPath } from '../utils/dpOptions';
+import ImageViewer from './chat/ImageViewer';
 import { getInitials } from '../utils/stringUtils';
 import { isUserOnline } from '../utils/dateFormatter';
-import CreateGroupModal from './groups/CreateGroupModal';
+// lazy loaded below
 import { useGroupActions } from '../hooks/useGroupActions';
 import ScrollableChatList from './chat/ScrollableChatList';
 import { useChatDeletion } from '../hooks/useChatDeletion';
@@ -32,6 +34,8 @@ import ChatSelectionHeader from './chat/ChatSelectionHeader';
 import DeleteConfirmation from './chat/DeleteConfirmation';
 import ChatContextMenu from './chat/ChatContextMenu';
 import { Toaster } from 'react-hot-toast';
+const CreateGroupModal = lazy(() => import('./groups/CreateGroupModal'));
+
 import styles from '../styles/ChatListItem.module.css';
 
 const ChatListPanel = ({
@@ -107,6 +111,16 @@ const ChatListPanel = ({
     clearSelection();
   };
 
+  // Create a fast lookup map for contacts
+  const contactMap = useMemo(() => {
+    const map = new Map();
+    savedContacts.forEach(c => {
+      if (c.contactUserId) map.set(c.contactUserId, c);
+      if (c.id) map.set(c.id, c);
+    });
+    return map;
+  }, [savedContacts]);
+
   // Separate DMs and Groups for specific layouts
   const { dmChats, groupChats, displayChats } = useMemo(() => {
     const dms = filteredChats.filter(chat => !chat.isGroup);
@@ -166,17 +180,35 @@ const ChatListPanel = ({
     }
   ];
 
+  // Helper to resolve avatar (numeric ID or URL)
+  const resolveAvatar = (avatarValue, userId) => {
+    let result = avatarValue;
+    
+    // 1. If no avatar, try contact lookup
+    if (!result && userId) {
+      const contact = contactMap.get(userId);
+      result = contact?.otherUser?.avatar;
+    }
+
+    // 2. Resolve numeric ID if needed
+    if (result && !isNaN(parseInt(result)) && result.toString().length < 5) {
+      return getDpPath(result) || result;
+    }
+
+    return result;
+  };
+
   // Helper for rendering chat list items
   const renderChatItem = (chat) => {
-    // 1. Resolve contact
+    // 1. Resolve contact using map
     const otherUserId = chat.metadata?.otherUserId || chat.otherUserId || chat.otherUser?.id || chat.id;
-    const contact = savedContacts.find(c => c.contactUserId === otherUserId || c.id === otherUserId);
-
+    
     // 2. Resolve display name with fallbacks
+    const contact = contactMap.get(otherUserId);
     const displayName = contact?.contactName || chat.name;
 
-    // 3. Avatar resolution is now delegated to the ChatListItem hook
-    const avatar = chat.avatar || contact?.otherUser?.avatar || chat.otherUser?.avatar;
+    // 3. Robust Avatar resolution
+    const avatar = resolveAvatar(chat.avatar || chat.otherUser?.avatar, otherUserId);
 
     // Merge everything into a clean object for ChatListItem
     const chatListItemProps = {
@@ -326,7 +358,7 @@ const ChatListPanel = ({
         )}
       </AnimatePresence>
 
-      <motion.div layout style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <motion.div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <ScrollableChatList
           isDesktop={isDesktop}
           groupChats={groupChats}
@@ -336,20 +368,24 @@ const ChatListPanel = ({
           searchTerm={searchTerm}
           currentChatId={currentChatId}
           handleChatClick={handleChatClick}
-          handleChatListScroll={handleChatListScroll}
-          chatListRef={chatListRef}
           loadingMore={loadingMore}
+          hasMoreChats={hasMoreChats}
+          loadMoreChats={() => {
+            if (hasMoreChats && !loadingMore) handleChatListScroll();
+          }}
           renderChatItem={renderChatItem}
           setShowCreateGroupModal={setShowCreateGroupModal}
         />
       </motion.div>
 
-      <CreateGroupModal
-        isOpen={showCreateGroupModal}
-        onClose={() => setShowCreateGroupModal(false)}
-        onSuccess={() => setShowCreateGroupModal(false)}
-        savedContacts={savedContacts}
-      />
+      <Suspense fallback={null}>
+        <CreateGroupModal
+          isOpen={showCreateGroupModal}
+          onClose={() => setShowCreateGroupModal(false)}
+          onSuccess={() => setShowCreateGroupModal(false)}
+          savedContacts={savedContacts}
+        />
+      </Suspense>
 
       {contextMenu && (
         <ChatContextMenu

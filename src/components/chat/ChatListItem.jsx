@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Timer, Users, User, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchMessagesPage } from '../../hooks/useMessages';
@@ -36,8 +36,10 @@ const ChatListItem = ({
   } = chat;
 
   const queryClient = useQueryClient();
-  const resolvedName = useResolveName(!isGroup ? chat.otherUserId : null, name);
-  const resolvedAvatar = useResolveAvatar(!isGroup ? chat.otherUserId : null, avatar);
+  
+  // Use passed data instead of re-calculating (Resolving in parent is MUCH faster for lists)
+  const resolvedName = name || 'Unknown';
+  const resolvedAvatar = avatar;
 
   const [imgError, setImgError] = React.useState(false);
 
@@ -90,25 +92,17 @@ const ChatListItem = ({
         </div>
       )}
       <div className={styles['chat-avatar-container']}>
-        {isGroup ? (
-          <div className={styles['group-avatar-fallback']}>
-            <Users size={24} />
-          </div>
+        {resolvedAvatar && !imgError ? (
+          <CachedImage
+            src={resolvedAvatar}
+            alt={resolvedName}
+            className={styles['chat-avatar']}
+            onError={() => setImgError(true)}
+          />
         ) : (
-          <>
-            {resolvedAvatar && !imgError ? (
-              <CachedImage
-                src={resolvedAvatar}
-                alt={name || 'User'}
-                className={styles['chat-avatar']}
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div className={styles['avatar-fallback']}>
-                <User size={24} />
-              </div>
-            )}
-          </>
+          <div className={isGroup ? styles['group-avatar-fallback'] : styles['avatar-fallback']}>
+            {isGroup ? <Users size={24} /> : <User size={24} />}
+          </div>
         )}
       </div>
 
@@ -159,4 +153,19 @@ const ChatListItem = ({
   );
 };
 
-export default ChatListItem;
+export default memo(ChatListItem, (prevProps, nextProps) => {
+  return (
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.selectionMode === nextProps.selectionMode &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isMobile === nextProps.isMobile &&
+    // Shallow check for chat object properties that affect UI
+    prevProps.chat.id === nextProps.chat.id &&
+    prevProps.chat.lastMessage === nextProps.chat.lastMessage &&
+    prevProps.chat.timestamp === nextProps.chat.timestamp &&
+    prevProps.chat.unreadCount === nextProps.chat.unreadCount &&
+    prevProps.chat.is_online === nextProps.chat.is_online &&
+    prevProps.chat.name === nextProps.chat.name &&
+    prevProps.chat.avatar === nextProps.chat.avatar
+  );
+});

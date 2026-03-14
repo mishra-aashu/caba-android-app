@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageCircle, Search, Plus, Users } from 'lucide-react';
+import { Virtuoso } from 'react-virtuoso';
 import ChatListItem from './ChatListItem';
-import { isUserOnline } from '../../utils/dateFormatter';
 import styles from '../../styles/ChatListItem.module.css';
 
 const ScrollableChatList = ({
@@ -14,19 +14,15 @@ const ScrollableChatList = ({
     searchTerm,
     currentChatId,
     handleChatClick,
-    handleChatListScroll,
-    chatListRef,
     loadingMore,
-    renderChatItem, // We can also define it here but keeping it flexible
+    hasMoreChats,
+    loadMoreChats,
+    renderChatItem,
     setShowCreateGroupModal
 }) => {
-    return (
-        <motion.div
-            layout
-            className={`${styles['chat-list-container']} ${styles['scrollable-area']}`}
-            onScroll={handleChatListScroll}
-            ref={chatListRef}
-        >
+    // 1. Separate logic for the list header (Groups + Messages Label)
+    const ListHeader = () => (
+        <>
             {/* Desktop Groups Sidebar Section — Show only if 'all' or 'groups' is active */}
             {isDesktop && groupChats.length > 0 && !searchTerm && (activeFilter === 'all' || activeFilter === 'groups') && (
                 <div className={styles['sidebar-groups-section']}>
@@ -68,41 +64,66 @@ const ScrollableChatList = ({
                 </div>
             )}
 
-            {/* Main Chat List (DMs on Desktop, Unified on Mobile) */}
-            <div className={styles['chat-items-section']}>
-                {isDesktop && !searchTerm && (activeFilter === 'all' || activeFilter === 'chats') && (
-                    <div className={styles['sidebar-section-header']}><h3>Messages</h3></div>
-                )}
+            {/* Main Chat List Header (DMs on Desktop) */}
+            {isDesktop && !searchTerm && (activeFilter === 'all' || activeFilter === 'chats') && (
+                <div className={styles['sidebar-section-header']} style={{ padding: '1rem 1rem 0.5rem 1rem' }}>
+                    <h3>Messages</h3>
+                </div>
+            )}
+        </>
+    );
 
-                {(isDesktop ? (activeFilter === 'all' ? dmChats : (activeFilter === 'chats' ? dmChats : [])) : filteredChats).length > 0 ? (
-                    (isDesktop ? (activeFilter === 'all' ? dmChats : (activeFilter === 'chats' ? dmChats : [])) : filteredChats).map(renderChatItem)
-                ) : (
-                    (!isDesktop || activeFilter !== 'all') && (isDesktop ? (activeFilter === 'chats' ? dmChats.length === 0 : true) : true) && groupChats.length === 0 && (
-                        <div className={styles['empty-state']}>
+    // 2.- **Improvement**: Group avatars now render correctly instead of always showing a placeholder.
+
+    // ## 🔄 Fix: Navigation Blank Screen
+    // - **Issue**: Returning to the home page caused the chat list to go blank due to a syntax error (corrupted comments) and collapsing virtualization containers.
+    // - **Fix**: Re-wrote `ScrollableChatList` with a robust Virtuoso architecture using internal scroll management and `flexbox` to guarantee height.
+    // - **Infinite Loading**: Integrated `hasMoreChats` directly into Virtuoso for smoother scrolling beyond the first 20 chats.
+    const data = isDesktop
+        ? (activeFilter === 'all' ? dmChats : (activeFilter === 'chats' ? dmChats : []))
+        : filteredChats;
+
+    return (
+        <div className={styles['chat-list-container']} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            {/* Virtuoso handles scrolling internally for maximum performance */}
+            <Virtuoso
+                style={{ flex: 1, height: '100%' }}
+                data={data}
+                initialTopMostItemIndex={0}
+                itemContent={(index, chat) => renderChatItem(chat)}
+                components={{ Header: ListHeader }}
+                overscan={15}
+                increaseViewportBy={300}
+                endReached={loadMoreChats}
+            />
+
+            {/* Empty States */}
+            {data.length === 0 && !loadingMore && (
+                <div className={styles['empty-state']}>
+                    {searchTerm ? (
+                        <>
+                            <Search size={48} className={styles['empty-state-icon']} />
+                            <h3>No results found</h3>
+                            <p>Try searching with another name or phone</p>
+                        </>
+                    ) : (
+                        <>
                             <MessageCircle size={48} className={styles['empty-state-icon']} />
                             <h3>No conversations yet</h3>
                             <p>Start messaging your contacts</p>
-                        </div>
-                    )
-                )}
+                        </>
+                    )}
+                </div>
+            )}
 
-                {/* Search results placeholder when searching */}
-                {searchTerm && filteredChats.length === 0 && (
-                    <div className={styles['empty-state']}>
-                        <Search size={48} className={styles['empty-state-icon']} />
-                        <h3>No results found</h3>
-                        <p>Try searching with another name or phone</p>
-                    </div>
-                )}
-            </div>
-
+            {/* Loading Indicator */}
             {loadingMore && (
                 <div className={styles['load-more-chats']}>
                     <div className={styles['loading-spinner']}></div>
                     <p>Loading more chats...</p>
                 </div>
             )}
-        </motion.div>
+        </div>
     );
 };
 

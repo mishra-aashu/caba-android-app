@@ -38,9 +38,32 @@ const MessageItem = ({
   const isSent = (message.senderId || message.sender_id) === currentUser?.id;
   const isRead = message.isRead || message.is_read;
 
+  const longPressTimer = useRef(null);
+  const isLongPress = useRef(false);
+
+  const handleTouchStart = () => {
+    isLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      if (!isSelectionMode) {
+        hapticsManager.impact();
+        toggleSelection(msgId);
+      }
+    }, 500); // 500ms for long press
+  };
+
+  const handleTouchEnd = (e) => {
+    if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+    }
+  };
+
   const handleContextMenu = (e) => {
-    if (isSelectionMode) return;
     e.preventDefault();
+    if (isSelectionMode) {
+        toggleSelection(msgId);
+        return;
+    }
     setMenuPos({ x: e.clientX, y: e.clientY });
     setShowActions(true);
   };
@@ -48,6 +71,18 @@ const MessageItem = ({
   const handleSelectionTap = (e) => {
     e.preventDefault();
     toggleSelection(msgId);
+  };
+
+  const handleMessageTap = (e) => {
+    if (isSelectionMode) {
+        toggleSelection(msgId);
+        return;
+    }
+    // If not selection mode and not long press, show actions
+    if (!isLongPress.current) {
+        setMenuPos({ x: e.clientX, y: e.clientY });
+        setShowActions(true);
+    }
   };
 
   const renderContent = () => {
@@ -64,7 +99,7 @@ const MessageItem = ({
           isSender={isSent}
           time={time}
           status={isRead ? 'read' : 'sent'}
-          onMediaClick={(url, msg) => onMediaView?.(url, mediaType, msg)}
+          onMediaClick={(url, msg) => isSelectionMode ? toggleSelection(msgId) : onMediaView?.(url, mediaType, msg)}
           isLastRead={isLastRead}
         />
       );
@@ -104,6 +139,11 @@ const MessageItem = ({
       ref={messageRef}
       id={`message-${msgId}`}
       onContextMenu={handleContextMenu}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleTouchStart}
+      onMouseUp={handleTouchEnd}
+      onClick={handleMessageTap}
       className={`${styles['message-item']} ${isSent ? styles.sent : styles.received} ${isSelected ? styles.selected : ''} ${isSelectionMode ? styles['selection-active'] : ''}`}
       style={{ contain: 'layout' }}
     >

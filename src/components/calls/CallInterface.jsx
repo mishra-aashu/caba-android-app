@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, Mic, MicOff, Video, VideoOff, RefreshCw, PhoneOff } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useDialog } from '../../contexts/DialogContext';
@@ -190,7 +191,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
             </div>
           </div>
           <button className="minimize-btn" onClick={onClose} title="Minimize">
-            <i className="fas fa-chevron-down minimize-icon"></i>
+            <ChevronDown className="minimize-icon" size={24} />
           </button>
         </div>
 
@@ -252,7 +253,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
               className={`control-btn ${isMuted ? 'muted' : ''}`}
               onClick={handleToggleMute}
             >
-              <i className={`fas ${isMuted ? 'fa-microphone-slash' : 'fa-microphone'} mute-icon`}></i>
+              {isMuted ? <MicOff className="mute-icon" size={24} /> : <Mic className="mute-icon" size={24} />}
               <span className="control-label">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
 
@@ -262,7 +263,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
                   className={`control-btn ${isVideoOff ? 'video-off' : ''}`}
                   onClick={handleToggleVideo}
                 >
-                  <i className={`fas ${isVideoOff ? 'fa-video-slash' : 'fa-video'} video-icon`}></i>
+                  {isVideoOff ? <VideoOff className="video-icon" size={24} /> : <Video className="video-icon" size={24} />}
                   <span className="control-label">{isVideoOff ? 'Start Video' : 'Stop Video'}</span>
                 </button>
 
@@ -270,7 +271,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
                   className="control-btn"
                   onClick={handleSwitchCamera}
                 >
-                  <i className="fas fa-sync-alt switch-icon"></i>
+                   <RefreshCw className="switch-icon" size={24} />
                   <span className="control-label">Switch</span>
                 </button>
               </>
@@ -280,7 +281,7 @@ const CallInterface = ({ contact, callType, incoming = false, callId, roomId, on
               className="control-btn end-call-btn"
               onClick={handleEndCall}
             >
-              <i className="fas fa-phone-slash end-icon"></i>
+              <PhoneOff className="end-icon" size={24} />
               <span className="control-label">End</span>
             </button>
           </div>
