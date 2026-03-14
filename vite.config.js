@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { createHtmlPlugin } from 'vite-plugin-html';
 import fs from 'fs';
 import path from 'path';
+import { generateNativeHash } from './scripts/native-integrity.js';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -29,6 +30,23 @@ export default defineConfig(({ mode }) => {
           if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
           fs.writeFileSync(path.join(publicDir, 'version.json'), JSON.stringify(version, null, 2));
           console.log('[VersionGen] Generated public/version.json');
+        }
+      },
+      {
+        name: 'generate-native-integrity',
+        buildStart() {
+          try {
+            const integrity = generateNativeHash();
+            const publicDir = path.resolve(__dirname, 'public');
+            if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
+            fs.writeFileSync(
+              path.join(publicDir, 'native-integrity.json'),
+              JSON.stringify({ ...integrity, generatedAt: Date.now() }, null, 2)
+            );
+            console.log('[NativeIntegrity] Generated public/native-integrity.json — hash:', integrity.hash.slice(0, 12) + '...');
+          } catch (e) {
+            console.warn('[NativeIntegrity] Could not generate native-integrity.json:', e.message);
+          }
         }
       },
       createHtmlPlugin({

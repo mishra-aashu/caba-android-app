@@ -103,8 +103,9 @@ const Admin = () => {
   const [mediaTransfers, setMediaTransfers] = useState([]);
   const [systemSettings, setSystemSettings] = useState([]);
   const [appVersion, setAppVersion] = useState({
-    latest_version: '', min_required_version: ''
+    latest_version: '', min_required_version: '', native_hash: null, apk_download_url: '', release_notes: ''
   });
+  const [nativeIntegrity, setNativeIntegrity] = useState({ localHash: null, loading: true, error: null });
 
   // ─── Pagination States ──────────────────────────────────────
   const [usersPage, setUsersPage] = useState(0);
@@ -700,6 +701,21 @@ const Admin = () => {
     }
   }, [supabase]);
 
+  // ─── Load local native-integrity.json from the built bundle ─
+  useEffect(() => {
+    const fetchLocalHash = async () => {
+      try {
+        const res = await fetch(`/native-integrity.json?_cb=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (mountedRef.current) setNativeIntegrity({ localHash: data.hash, loading: false, error: null });
+      } catch (e) {
+        if (mountedRef.current) setNativeIntegrity({ localHash: null, loading: false, error: e.message });
+      }
+    };
+    fetchLocalHash();
+  }, []);
+
   // ═══════════════════════════════════════════════════════════
   // FIX #3: updateSystemSetting – removed Promise wrapper
   // ═══════════════════════════════════════════════════════════
@@ -730,7 +746,9 @@ const Admin = () => {
         .from('app_versions')
         .update({
           latest_version: appVersion.latest_version,
-          min_required_version: appVersion.min_required_version
+          min_required_version: appVersion.min_required_version,
+          apk_download_url: appVersion.apk_download_url,
+          release_notes: appVersion.release_notes
         })
         .eq('id', appVersion.id);
 
@@ -738,10 +756,32 @@ const Admin = () => {
       await logAdminAction('update_app_version',
         `latest: ${appVersion.latest_version}, min: ${appVersion.min_required_version}`
       );
-      toast.success('App version updated');
+      toast.success('App version updated!');
+      loadAppVersion();
     } catch (error) {
       console.error('[Admin] updateAppVersion error:', error);
       toast.error('Error: ' + error.message);
+    }
+  };
+
+  // ─── Confirm APK Rebuilt: Sync local hash → Supabase ────────
+  const confirmApkRebuilt = async () => {
+    if (!nativeIntegrity.localHash) {
+      toast.error('Local native hash not available. Run a build first.');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('app_versions')
+        .update({ native_hash: nativeIntegrity.localHash })
+        .eq('id', appVersion.id);
+      if (error) throw error;
+      await logAdminAction('confirm_apk_rebuilt',
+        `Synced native_hash to: ${nativeIntegrity.localHash.slice(0, 12)}...`);
+      toast.success('✅ APK Native Hash synced! Warning cleared.');
+      loadAppVersion();
+    } catch (e) {
+      toast.error('Failed to sync hash: ' + e.message);
     }
   };
 
@@ -2253,9 +2293,98 @@ const Admin = () => {
                           />
                         </div>
                       </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>APK Download URL</label>
+                          <input
+                            type="text"
+                            placeholder="https://your-server.com/app-release.apk"
+                            value={appVersion.apk_download_url || ''}
+                            onChange={(e) => setAppVersion(prev => ({
+                              ...prev, apk_download_url: e.target.value
+                            }))}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Release Notes</label>
+                          <input
+                            type="text"
+                            placeholder="What's new in this version..."
+                            value={appVersion.release_notes || ''}
+                            onChange={(e) => setAppVersion(prev => ({
+                              ...prev, release_notes: e.target.value
+                            }))}
+                          />
+                        </div>
+                      </div>
                       <button className="action-btn" onClick={updateAppVersion}>
                         Update Version Info
                       </button>
+                    </div>
+                  </div>
+
+                  {/* ── Native Integrity Panel ── */}
+                  <div className="setting-card full-width" style={{ marginTop: '16px' }}>
+                    <div className="setting-header">
+                      <div className="setting-title">
+                        <h4>🔐 Native Build Integrity</h4>
+                        <p>Detects if Android/Capacitor files changed and a new APK is required</p>
+                      </div>
+                    </div>
+                    <div style={{ padding: '12px 0' }}>
+                      {nativeIntegrity.loading ? (
+                        <p style={{ color: '#aaa' }}>⏳ Checking native integrity...</p>
+                      ) : nativeIntegrity.error ? (
+                        <div style={{ padding: '12px', background: '#2d1b1b', borderRadius: '8px', border: '1px solid #ff4444' }}>
+                          <p style={{ color: '#ff6b6b', margin: 0 }}>⚠️ Could not fetch native-integrity.json: {nativeIntegrity.error}</p>
+                          <p style={{ color: '#aaa', margin: '4px 0 0', fontSize: '12px' }}>Ensure you ran <code>npm run build</code> or <code>npm run version-sync</code> locally first.</p>
+                        </div>
+                      ) : (() => {
+                        const localHash = nativeIntegrity.localHash;
+                        const savedHash = appVersion.native_hash;
+                        const hashMatch = localHash && savedHash && localHash === savedHash;
+                        const neverSynced = !savedHash;
+                        return (
+                          <div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                              <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: '1px solid #333' }}>
+                                <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Build Hash (local)</p>
+                                <code style={{ color: '#7c8cf8', fontSize: '12px', wordBreak: 'break-all' }}>{localHash ? localHash.slice(0, 24) + '...' : 'N/A'}</code>
+                              </div>
+                              <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: '1px solid #333' }}>
+                                <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Last APK Build Hash (DB)</p>
+                                <code style={{ color: savedHash ? '#3fcf8e' : '#888', fontSize: '12px', wordBreak: 'break-all' }}>{savedHash ? savedHash.slice(0, 24) + '...' : 'Not set'}</code>
+                              </div>
+                            </div>
+                            {neverSynced && (
+                              <div style={{ padding: '14px', background: '#1a2d1a', borderRadius: '8px', border: '1px solid #3fcf8e', marginBottom: '12px' }}>
+                                <p style={{ color: '#3fcf8e', fontWeight: 600, margin: '0 0 4px' }}>🟢 First Time Setup</p>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '13px' }}>No APK hash recorded yet. Build your APK and click "Mark APK as Built" to baseline the native state.</p>
+                              </div>
+                            )}
+                            {!neverSynced && !hashMatch && (
+                              <div style={{ padding: '14px', background: '#2d1b0e', borderRadius: '8px', border: '2px solid #ff8c00', marginBottom: '12px' }}>
+                                <p style={{ color: '#ff8c00', fontWeight: 700, margin: '0 0 6px', fontSize: '15px' }}>🚨 APK REBUILD REQUIRED</p>
+                                <p style={{ color: '#ffcc80', margin: '0 0 4px', fontSize: '13px' }}>Native files have changed since the last APK build. Users with the old APK may experience broken features.</p>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '12px' }}>Changed detection is based on: <code>capacitor.config.ts</code>, Capacitor plugins in <code>package.json</code>, <code>AndroidManifest.xml</code>, <code>build.gradle</code>, <code>variables.gradle</code>.</p>
+                              </div>
+                            )}
+                            {!neverSynced && hashMatch && (
+                              <div style={{ padding: '14px', background: '#1a2d1a', borderRadius: '8px', border: '1px solid #3fcf8e', marginBottom: '12px' }}>
+                                <p style={{ color: '#3fcf8e', fontWeight: 600, margin: '0 0 4px' }}>✅ Native State Matches Last APK</p>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '13px' }}>No native changes detected. Vercel-only deploys are safe.</p>
+                              </div>
+                            )}
+                            <button
+                              className="action-btn"
+                              style={{ background: hashMatch ? '#1e3a1e' : '#5c3400', borderColor: hashMatch ? '#3fcf8e' : '#ff8c00' }}
+                              onClick={confirmApkRebuilt}
+                            >
+                              {hashMatch ? '🔄 Re-baseline APK Hash' : '🔨 Mark APK as Built (Sync Hash)'}
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
