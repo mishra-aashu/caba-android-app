@@ -106,6 +106,7 @@ const Admin = () => {
     latest_version: '', min_required_version: '', native_hash: null, apk_download_url: '', release_notes: ''
   });
   const [nativeIntegrity, setNativeIntegrity] = useState({ localHash: null, loading: true, error: null });
+  const [showNativeGuide, setShowNativeGuide] = useState(false);
 
   // ─── Pagination States ──────────────────────────────────────
   const [usersPage, setUsersPage] = useState(0);
@@ -2330,7 +2331,113 @@ const Admin = () => {
                         <h4>🔐 Native Build Integrity</h4>
                         <p>Exact file-level DIFF — detects which native files changed and if a new APK is required</p>
                       </div>
+                      <button
+                        onClick={() => setShowNativeGuide(v => !v)}
+                        style={{
+                          background: showNativeGuide ? '#1a1a3e' : 'transparent',
+                          border: '1px solid #3a3a6e', borderRadius: '6px',
+                          color: '#7c8cf8', cursor: 'pointer', padding: '6px 14px',
+                          fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {showNativeGuide ? '✕ Close Guide' : '📖 Guide & Help'}
+                      </button>
                     </div>
+
+                    {/* ═══════════ GUIDE PANEL ═══════════ */}
+                    {showNativeGuide && (
+                      <div style={{
+                        margin: '0 0 20px', padding: '20px',
+                        background: '#0a0a18', borderRadius: '10px',
+                        border: '1px solid #2a2a4e'
+                      }}>
+
+                        {/* Quick Commands */}
+                        <p style={{ color: '#7c8cf8', fontWeight: 700, margin: '0 0 10px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>⚡ Quick Commands</p>
+                        <div style={{ display: 'grid', gap: '6px', marginBottom: '24px' }}>
+                          {[
+                            ['npm run version-sync',               'Hash generate karo + Supabase mein push karo (har APK build ke baad)'],
+                            ['npm run build',                      'Web app build karo (native-integrity.json bhi regenerate hoti hai)'],
+                            ['node scripts/native-integrity.js',   'Current hash preview karo bina Supabase ko touch kiye'],
+                            ['node scripts/debug-versions.js',     'Supabase mein abhi kya stored hai dekho'],
+                            ['npx cap sync',                       'Web build ko Android project mein sync karo'],
+                            ['npx cap open android',               'Android Studio open karo APK build karne ke liye'],
+                          ].map(([cmd, desc]) => (
+                            <div key={cmd}>
+                              <code style={{
+                                display: 'block', background: '#111827', color: '#3fcf8e',
+                                padding: '5px 10px', borderRadius: '5px', fontSize: '12px',
+                                border: '1px solid #1e2d1e', marginBottom: '2px'
+                              }}>{cmd}</code>
+                              <p style={{ color: '#666', margin: 0, fontSize: '11px', paddingLeft: '4px' }}>{desc}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Step-by-step */}
+                        <p style={{ color: '#7c8cf8', fontWeight: 700, margin: '0 0 12px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>📋 Native Change Workflow (7 Steps)</p>
+                        <div style={{ marginBottom: '24px' }}>
+                          {[
+                            ['1', '#7c8cf8', 'Native file change karo', 'capacitor.config.ts edit karo, plugin add karo, AndroidManifest.xml mein permission add karo, etc.'],
+                            ['2', '#7c8cf8', 'Web app build karo',      'npm run build → native-integrity.json bhi nayi hash ke saath regenerate hoti hai'],
+                            ['3', '#7c8cf8', 'Android sync karo',       'npx cap sync → web build android/ mein copy hoti hai aur Capacitor plugins sync hote hain'],
+                            ['4', '#7c8cf8', 'APK build karo',          'npx cap open android → Android Studio → Build > Generate Signed APK. Purana APK replace karo download link mein'],
+                            ['5', '#3fcf8e', 'Hash sync karo',          'npm run version-sync → Naya native_hash + file_hashes Supabase mein push hota hai, warning clear ho jaati hai'],
+                            ['6', '#3fcf8e', 'Version bump karo',       'package.json mein version update karo (e.g. 2.0.0 → 2.1.0) aur APK Download URL bhi set karo upar wale form mein'],
+                            ['7', '#3fcf8e', 'Admin Dashboard verify karo', 'Yeh page refresh karo. 🔐 panel mein ✅ green "Native State Matches Last APK" dikhna chahiye'],
+                          ].map(([step, color, title, body]) => (
+                            <div key={step} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                              <div style={{
+                                width: '22px', height: '22px', borderRadius: '50%',
+                                background: '#111', border: `1px solid ${color}`,
+                                color: color, fontSize: '11px', fontWeight: 700,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                              }}>{step}</div>
+                              <div>
+                                <p style={{ color: '#ddd', fontWeight: 600, margin: '0 0 2px', fontSize: '13px' }}>{title}</p>
+                                <p style={{ color: '#666', margin: 0, fontSize: '12px' }}>{body}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Troubleshooting */}
+                        <p style={{ color: '#ff8c00', fontWeight: 700, margin: '0 0 12px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>🔧 Common Issues & Fixes</p>
+                        <div>
+                          {[
+                            ['🚨 "APK REBUILD REQUIRED" warning version-sync ke baad bhi nahi hata',
+                             'Local build hash aur Supabase hash mismatch hai. Ensure karo ki aapne npm run build PEHLE npm run version-sync se pehle run kiya ho. Ya "Mark APK as Built" button manually click karo.'],
+                            ['⚠️ "Could not fetch native-integrity.json" error',
+                             'Yeh file build time par generate hoti hai. Locally pehle npm run build ya npm run version-sync run karo. Vercel deploy ke time automatic generate hoti hai.'],
+                            ['❌ version-sync fetch error se fail ho raha hai',
+                             'Temporarily Supabase connection issue. 30 seconds wait karo aur retry karo. Agar persist ho toh .env file mein VITE_SUPABASE_DIRECT_URL check karo.'],
+                            ['📱 Users purane APK par hain update ke baad bhi',
+                             'min_required_version ko new version number set karo upar wale form mein. Users ko force kiya jayega Download APK page se naya APK download karne ke liye.'],
+                            ['↕ build.gradle CHANGED show ho raha hai aapne touch nahi kiya',
+                             'npx cap sync kabhi kabhi build.gradle automatically modify karta hai jab plugins add/remove hote hain. Yeh expected hai — iska matlab sirf hai ki naya APK zaruri hai.'],
+                            ['🍎 iOS files [ios-missing] show ho rahi hain',
+                             'Yeh normal hai agar aapka iOS project nahi hai. iOS tracking optional hai — yeh kabhi bhi Android build ya APK rebuild warning ko affect nahi karta.'],
+                            ['🔒 Permission denied error Supabase update mein',
+                             'Supabase Dashboard → Authentication → Policies → app_versions table check karo. Ensure karo anon role ko id=1 par UPDATE permission mili ho.'],
+                          ].map(([issue, fix]) => (
+                            <div key={issue} style={{
+                              borderLeft: '2px solid #ff8c00',
+                              paddingLeft: '12px', marginBottom: '14px'
+                            }}>
+                              <p style={{ color: '#ffcc80', fontWeight: 600, margin: '0 0 3px', fontSize: '12px' }}>{issue}</p>
+                              <p style={{ color: '#777', margin: 0, fontSize: '12px' }}>{fix}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div style={{ marginTop: '16px', padding: '10px 14px', background: '#111', borderRadius: '6px', border: '1px solid #1e1e3e' }}>
+                          <p style={{ color: '#555', fontSize: '11px', margin: 0 }}>
+                            💡 <strong style={{ color: '#666' }}>Rule of thumb:</strong> Sirf <code>.jsx</code>, <code>.css</code>, <code>.js</code> files change ki hain → sirf <code>npm run build</code> + Vercel deploy kaafi hai. APK rebuild ki zarurat nahi.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     <div style={{ padding: '12px 0' }}>
                       {nativeIntegrity.loading ? (
                         <p style={{ color: '#aaa' }}>⏳ Checking native integrity...</p>
