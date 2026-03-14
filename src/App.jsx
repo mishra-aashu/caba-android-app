@@ -67,6 +67,8 @@ import Terms from './components/legal/Terms';
 import Privacy from './components/legal/Privacy';
 import SharedProfile from './components/shared-profile';
 import APKUpdateModal from './components/APKUpdateModal';
+import SecuritySettings from './components/settings/SecuritySettings';
+import HelpCenter from './components/settings/HelpCenter';
 
 // Lazy load truly non-critical/heavy components that are NOT statically imported elsewhere
 const Chat = lazy(() => import('./components/chat/Chat'));
@@ -136,16 +138,18 @@ const AppContent = () => {
         <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
         <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="settings/security" element={<SecuritySettings />} />
+        <Route path="settings/help" element={<HelpCenter />} />
         <Route path="emoji-settings" element={<EmojiSettings />} />
         <Route path="history" element={<History />} />
+        <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
+        <Route path="support" element={<SupportChat />} />
       </Route>
 
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
       <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
       <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
       <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
-      <Route path="/blocked" element={<ProtectedRoute><Blocked /></ProtectedRoute>} />
-      <Route path="/support" element={<ProtectedRoute><SupportChat /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
       <Route path="/admin-about" element={<AdminAbout />} />
       <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />

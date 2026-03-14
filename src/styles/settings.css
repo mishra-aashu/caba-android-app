@@ -136,11 +136,12 @@
 
 .section-count {
     font-size: 0.65rem;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: var(--primary-0);
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: var(--brand-gradient);
     color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 168, 132, 0.2);
 }
 
 /* ── Setting Item ── */
@@ -208,8 +209,8 @@
 }
 
 .item-label {
-    font-size: 0.92rem;
-    font-weight: 550;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: var(--text-0);
     white-space: nowrap;
     overflow: hidden;
@@ -272,25 +273,32 @@
     position: absolute;
     inset: 0;
     border-radius: 28px;
-    background: var(--glass-stroke);
-    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.1); 
+    border: 1px solid var(--glass-stroke);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+}
+
+[data-theme='light'] .toggle-track {
+    background: #e2e8f0;
 }
 
 .toggle-thumb {
     position: absolute;
-    top: 3px;
-    left: 3px;
+    top: 2px;
+    left: 2px;
     width: 22px;
     height: 22px;
     border-radius: 50%;
     background: #fff;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 input:checked ~ .toggle-track {
-    background: var(--primary-0);
+    background: var(--brand-gradient);
+    border-color: transparent;
+    box-shadow: 0 0 12px rgba(0, 168, 132, 0.3);
 }
 
 input:checked ~ .toggle-track .toggle-thumb {
@@ -647,6 +655,13 @@ input:checked ~ .toggle-track::after {
         max-width: 600px;
         margin: 0 auto;
         padding: 1rem 1.5rem;
+    }
+
+    /* Reset for Sidebar on Desktop */
+    .is-sidebar .settings-content {
+        max-width: 100%;
+        margin: 0;
+        padding: 0.75rem 1rem;
     }
 
     .settings-section {

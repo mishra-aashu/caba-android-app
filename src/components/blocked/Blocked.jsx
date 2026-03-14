@@ -4,7 +4,8 @@ import useAuthStore from '../../store/authStore';
 import { useDialog } from '../../contexts/DialogContext';
 import './Blocked.css';
 
-const Blocked = ({ onBack }) => {
+const Blocked = ({ onBack, isSidebar = false }) => {
+  const navigate = useNavigate();
   const { supabase } = useSupabase();
   const currentUser = useAuthStore((state) => state.dbUser);
   const { showAlert, showConfirm } = useDialog();
@@ -76,10 +77,10 @@ const Blocked = ({ onBack }) => {
   }
 
   return (
-    <div className="blocked-container">
+    <div className={`blocked-container ${isSidebar ? 'is-sidebar' : ''}`}>
       <header className="app-header">
         <div className="header-left">
-          <button className="back-btn" onClick={onBack}>
+          <button className="back-btn" onClick={isSidebar ? () => navigate('/settings') : onBack}>
             <i className="fas fa-arrow-left"></i>
           </button>
         </div>

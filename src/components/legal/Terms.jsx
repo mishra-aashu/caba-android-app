@@ -2,13 +2,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
-const LegalPlaceholder = ({ title, children }) => {
+const LegalPlaceholder = ({ title, children, isSidebar = false }) => {
   const navigate = useNavigate();
   return (
-    <div className="legal-page-container">
+    <div className={`legal-page-container ${isSidebar ? 'is-sidebar' : ''}`}>
       {/* Header with Back Button */}
       <div className="legal-page-header">
-        <button className="legal-back-btn" onClick={() => navigate(-1)}>
+        <button className="legal-back-btn" onClick={() => isSidebar ? navigate('/settings') : navigate(-1)}>
           <ArrowLeft size={20} />
         </button>
       </div>
@@ -29,9 +29,9 @@ const LegalPlaceholder = ({ title, children }) => {
   );
 };
 
-const Terms = () => {
+const Terms = ({ isSidebar = false }) => {
   return (
-    <LegalPlaceholder title="Terms and Conditions">
+    <LegalPlaceholder title="Terms and Conditions" isSidebar={isSidebar}>
       <h2>1. Introduction</h2>
       <p>
         Welcome to Elevengram ("we", "our", "us"). These Terms and Conditions govern your use of our chat application. By using our app, you agree to these terms in full. If you disagree with these terms or any part of these terms, you must not use our application.

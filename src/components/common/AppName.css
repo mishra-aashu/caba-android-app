@@ -1,20 +1,25 @@
-/* Glass Pill Brand Badge */
+/* Exact Brand Badge design from Login page - Sharp & Smooth */
 .brand-badge-pill {
   display: inline-block;
-  padding: 8px 24px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50px;
-  font-size: 16px;
-  letter-spacing: 2.5px;
+  font-size: 14px;
+  letter-spacing: 1.5px; /* Matched to Login.jsx */
   text-transform: uppercase;
-  background: rgba(10, 45, 35, 0.7); /* Dark emerald glass */
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.05); /* Slightly adjusted for better contrast */
+  font-weight: 600;
   color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   user-select: none;
   width: fit-content;
+  
+  /* SHARPNESS & SMOOTHNESS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform: translateZ(0); 
 }
 
 .brand-badge-pill.small {

@@ -496,7 +496,7 @@ const Settings = ({ isSidebar = false }) => {
                     <SettingItem
                         icon={Shield}
                         label="Security"
-                        onClick={() => showAlert('Security settings coming soon')}
+                        onClick={() => navigate('/settings/security')}
                     />
 
                     <SettingItem
@@ -661,7 +661,7 @@ const Settings = ({ isSidebar = false }) => {
                     <SettingItem
                         icon={HelpCircle}
                         label="Help Center"
-                        onClick={() => showAlert('Help center coming soon')}
+                        onClick={() => navigate('/settings/help')}
                     />
                     <SettingItem
                         icon={Mail}
@@ -671,7 +671,7 @@ const Settings = ({ isSidebar = false }) => {
                     <SettingItem
                         icon={FileText}
                         label="Terms & Privacy"
-                        onClick={() => showAlert('Terms coming soon')}
+                        onClick={() => navigate('/terms')}
                     />
                 </section>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AppName from './common/AppName';
 import '../styles/intro.css';
 
 // --- SMOOTH ANIMATION CONSTANTS ---
@@ -43,11 +44,10 @@ const letterVariants = {
 };
 
 const taglineVariants = {
-    initial: { opacity: 0, y: 10, filter: 'blur(10px)' },
+    initial: { opacity: 0, y: 10 },
     animate: {
         opacity: 1,
         y: 0,
-        filter: 'blur(0px)',
         transition: {
             delay: 3.2,
             duration: 1.8,
@@ -115,21 +115,15 @@ const Intro = ({ onComplete }) => {
                     <div className="revelation-container">
                         {phase === 'revelation' && (
                             <div className="revelation-container">
-                                {/* Smooth Blur-to-Sharp Text */}
-                                <div className="perspective-container">
-                                    {appName.split("").map((char, i) => (
-                                        <motion.span
-                                            key={i}
-                                            custom={i}
-                                            variants={letterVariants}
-                                            initial="initial"
-                                            animate="animate"
-                                            className="letter-span"
-                                        >
-                                            {char}
-                                        </motion.span>
-                                    ))}
-                                </div>
+                                {/* Cinematic Reveal of the Pill */}
+                                <motion.div
+                                    variants={taglineVariants}
+                                    initial="initial"
+                                    animate="animate"
+                                    style={{ marginBottom: '2rem' }}
+                                >
+                                    <AppName size="large" />
+                                </motion.div>
 
                                 {/* Tagline also with smooth blur reveal */}
                                 <motion.p

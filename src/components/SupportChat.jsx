@@ -7,8 +7,8 @@ import { realtimeManager } from '../utils/realtimeManager';
 import useAuthStore from '../store/authStore';
 import './support/SupportChat.css';
 
-const SupportChat = () => {
-  const navigate = useNavigate();
+const SupportChat = ({ isSidebar = false }) => {
+    const navigate = useNavigate();
   const { supabase } = useSupabase();
   const currentUser = useAuthStore((state) => state.dbUser);
 
@@ -249,10 +249,10 @@ const SupportChat = () => {
 
   if (loading) {
     return (
-      <div className="support-chat-container">
+      <div className={`support-chat-container ${isSidebar ? 'is-sidebar' : ''}`}>
         <header className="support-chat-header">
           <div className="header-left">
-            <button className="back-btn" onClick={() => navigate('/')}>
+            <button className="back-btn" onClick={() => isSidebar ? navigate('/settings') : navigate('/')}>
               <ArrowLeft size={20} />
             </button>
           </div>
@@ -275,14 +275,14 @@ const SupportChat = () => {
   }
 
   return (
-    <div className="support-chat-container">
+    <div className={`support-chat-container ${isSidebar ? 'is-sidebar' : ''}`}>
       {/* Header */}
-      <header className="support-chat-header">
-        <div className="header-left">
-          <button className="back-btn" onClick={() => navigate('/')}>
-            <ArrowLeft size={20} />
-          </button>
-        </div>
+        <header className="support-chat-header">
+          <div className="header-left">
+            <button className="back-btn" onClick={() => isSidebar ? navigate('/settings') : navigate('/')}>
+              <ArrowLeft size={20} />
+            </button>
+          </div>
         <div className="header-center">
           <div className="support-avatar">
             <div className="support-initials">CS</div>

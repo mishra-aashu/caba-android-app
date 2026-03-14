@@ -2,13 +2,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
-const LegalPlaceholder = ({ title, children }) => {
+const LegalPlaceholder = ({ title, children, isSidebar = false }) => {
   const navigate = useNavigate();
   return (
-    <div className="legal-page-container">
+    <div className={`legal-page-container ${isSidebar ? 'is-sidebar' : ''}`}>
       {/* Header with Back Button */}
       <div className="legal-page-header">
-        <button className="legal-back-btn" onClick={() => navigate(-1)}>
+        <button className="legal-back-btn" onClick={() => isSidebar ? navigate('/settings') : navigate(-1)}>
           <ArrowLeft size={20} />
         </button>
       </div>
@@ -29,9 +29,9 @@ const LegalPlaceholder = ({ title, children }) => {
   );
 };
 
-const Privacy = () => {
+const Privacy = ({ isSidebar = false }) => {
   return (
-    <LegalPlaceholder title="Privacy Policy">
+    <LegalPlaceholder title="Privacy Policy" isSidebar={isSidebar}>
       <h2>1. Information We Collect</h2>
       <p>
         We may collect personal identification information from Users in a variety of ways, including, but not limited to, when Users visit our app, register on the app, and in connection with other activities, services, features or resources we make available on our App. Users may be asked for, as appropriate, name, email address, phone number.

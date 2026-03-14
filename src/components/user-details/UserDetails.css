@@ -554,25 +554,32 @@ body.dark-mode .ud-screen {
     position: absolute;
     inset: 0;
     border-radius: 28px;
-    background: var(--ud-border);
-    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--ud-border);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+}
+
+[data-theme='light'] .ud-toggle-track {
+    background: #e2e8f0;
 }
 
 .ud-toggle-thumb {
     position: absolute;
-    top: 3px;
-    left: 3px;
+    top: 2px;
+    left: 2px;
     width: 22px;
     height: 22px;
     border-radius: 50%;
     background: #fff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 input:checked ~ .ud-toggle-track {
-    background: var(--ud-brand);
+    background: var(--brand-gradient);
+    border-color: transparent;
+    box-shadow: 0 0 12px rgba(0, 168, 132, 0.3);
 }
 
 input:checked ~ .ud-toggle-track .ud-toggle-thumb {

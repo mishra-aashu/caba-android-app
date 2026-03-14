@@ -4,14 +4,26 @@ import ChatListPanel from '../ChatListPanel';
 import ContactsPage from '../contacts/ContactsPage';
 import Profile from '../profile/Profile';
 import Settings from '../settings/Settings';
+import SecuritySettings from '../settings/SecuritySettings';
+import HelpCenter from '../settings/HelpCenter';
 import EmojiSettings from '../settings/EmojiSettings';
 import History from '../History';
+import Terms from '../legal/Terms';
+import Privacy from '../legal/Privacy';
+import Blocked from '../blocked/Blocked';
+import SupportChat from '../SupportChat';
 
 const Sidebar = ({
     isDesktop,
     isContactsRoute,
     isProfileRoute,
     isSettingsRoute,
+    isSecuritySettingsRoute,
+    isHelpCenterRoute,
+    isTermsRoute,
+    isPrivacyRoute,
+    isBlockedRoute,
+    isSupportRoute,
     isEmojiSettingsRoute,
     isHistoryRoute,
     chatListPanelProps,
@@ -85,7 +97,93 @@ const Sidebar = ({
                             willChange: 'transform, opacity'
                         }}
                     >
-                        <Settings isSidebar={true} />
+                        {isSecuritySettingsRoute ? (
+                            <SecuritySettings isSidebar={true} />
+                        ) : isHelpCenterRoute ? (
+                            <HelpCenter isSidebar={true} />
+                        ) : (
+                            <Settings isSidebar={true} />
+                        )}
+                    </motion.div>
+                ) : isDesktop && isTermsRoute ? (
+                    <motion.div
+                        key="terms"
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -20, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 6,
+                            backgroundColor: 'var(--surface-color)',
+                            willChange: 'transform, opacity'
+                        }}
+                    >
+                        <Terms isSidebar={true} />
+                    </motion.div>
+                ) : isDesktop && isPrivacyRoute ? (
+                    <motion.div
+                        key="privacy"
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -20, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 7,
+                            backgroundColor: 'var(--surface-color)',
+                            willChange: 'transform, opacity'
+                        }}
+                    >
+                        <Privacy isSidebar={true} />
+                    </motion.div>
+                ) : isDesktop && isBlockedRoute ? (
+                    <motion.div
+                        key="blocked"
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -20, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 8,
+                            backgroundColor: 'var(--surface-color)',
+                            willChange: 'transform, opacity'
+                        }}
+                    >
+                        <Blocked isSidebar={true} onBack={() => {}} />
+                    </motion.div>
+                ) : isDesktop && isSupportRoute ? (
+                    <motion.div
+                        key="support"
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -20, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 9,
+                            backgroundColor: 'var(--surface-color)',
+                            willChange: 'transform, opacity'
+                        }}
+                    >
+                        <SupportChat isSidebar={true} />
                     </motion.div>
                 ) : isDesktop && isEmojiSettingsRoute ? (
                     <motion.div

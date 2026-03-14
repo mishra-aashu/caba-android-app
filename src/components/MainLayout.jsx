@@ -61,8 +61,11 @@ const MainLayout = () => {
         location.pathname.startsWith('/user-details/') ||
         location.pathname === '/groups' ||
         location.pathname === '/contacts' ||
-        location.pathname === '/profile' ||
-        location.pathname === '/settings' ||
+        location.pathname.startsWith('/settings/') ||
+        location.pathname === '/terms' ||
+        location.pathname === '/privacy' ||
+        location.pathname === '/blocked' ||
+        location.pathname === '/support' ||
         location.pathname === '/emoji-settings' ||
         location.pathname === '/history',
         [location.pathname]);
@@ -437,7 +440,13 @@ const MainLayout = () => {
     // Desktop: If on contacts or profile route, don't show specific page in the main area (it's in the sidebar)
     const isContactsRoute = location.pathname === '/contacts';
     const isProfileRoute = location.pathname === '/profile';
-    const isSettingsRoute = location.pathname === '/settings';
+    const isSettingsRoute = location.pathname === '/settings' || location.pathname.startsWith('/settings/');
+    const isSecuritySettingsRoute = location.pathname === '/settings/security';
+    const isHelpCenterRoute = location.pathname === '/settings/help';
+    const isTermsRoute = location.pathname === '/terms';
+    const isPrivacyRoute = location.pathname === '/privacy';
+    const isBlockedRoute = location.pathname === '/blocked';
+    const isSupportRoute = location.pathname === '/support';
     const isEmojiSettingsRoute = location.pathname === '/emoji-settings';
     const isHistoryRoute = location.pathname === '/history';
 
@@ -445,7 +454,7 @@ const MainLayout = () => {
     // On mobile, Outlet renders Chat or UserDetails based on route
     const chatComponent = mobileUserDetails || (
         <UserDetailsContext.Provider value={{ showUserDetails: handleShowUserDetails, showGroupInfo: handleShowGroupInfo }}>
-            {isDesktop && (isContactsRoute || isProfileRoute || isSettingsRoute || isEmojiSettingsRoute || isHistoryRoute) ? <ChatPlaceholder /> : <Outlet />}
+            {isDesktop && (isContactsRoute || isProfileRoute || isSettingsRoute || isEmojiSettingsRoute || isHistoryRoute || isTermsRoute || isPrivacyRoute || isBlockedRoute || isSupportRoute) ? <ChatPlaceholder /> : <Outlet />}
         </UserDetailsContext.Provider>
     );
 
@@ -455,6 +464,12 @@ const MainLayout = () => {
             isContactsRoute={isContactsRoute}
             isProfileRoute={isProfileRoute}
             isSettingsRoute={isSettingsRoute}
+            isSecuritySettingsRoute={isSecuritySettingsRoute}
+            isHelpCenterRoute={isHelpCenterRoute}
+            isTermsRoute={isTermsRoute}
+            isPrivacyRoute={isPrivacyRoute}
+            isBlockedRoute={isBlockedRoute}
+            isSupportRoute={isSupportRoute}
             isEmojiSettingsRoute={isEmojiSettingsRoute}
             isHistoryRoute={isHistoryRoute}
             chatListPanelProps={chatListPanelProps}

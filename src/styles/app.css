@@ -51,7 +51,16 @@
 
   /* Chat Header */
   --chat-header-icon-color: #1a3a2a;
-  --primary-0: #0c1e17;
+
+  /* --- SETTINGS UNIFICATION --- */
+  --bg-0: #f8faf9;
+  --bg-1: #f0faf4;
+  --bg-2: #ffffff;
+  --text-0: #0c1e17;
+  --text-1: #4a6e5c;
+  --glass-stroke: rgba(0, 168, 132, 0.12);
+  --primary-0: #00a884;
+  --primary-1: #00876a;
 }
 
 .icon-btn {
@@ -86,6 +95,16 @@
   --active-color: rgba(0, 168, 132, 0.15);
 
   --chat-header-icon-color: #e9edef;
+
+  /* --- SETTINGS UNIFICATION (DARK) --- */
+  --bg-0: #0b141a;
+  --bg-1: #111b21;
+  --bg-2: #1f2c33;
+  --text-0: #e9edef;
+  --text-1: #8696a0;
+  --glass-stroke: rgba(255, 255, 255, 0.08);
+  --primary-0: #00a884;
+  --primary-1: #00c49a;
 }
 
 .icon-btn {
@@ -1140,6 +1159,29 @@ body {
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   min-height: calc(var(--app-height) - 2rem);
+}
+
+.legal-page-container.is-sidebar {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  max-width: 100%;
+  padding: 1rem;
+  min-height: 100%;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.is-sidebar .legal-page-header {
+  margin-bottom: 1rem;
+}
+
+.is-sidebar .legal-page-container h1 {
+  font-size: 1.5rem;
+}
+
+.is-sidebar .legal-page-container h2 {
+  font-size: 1.2rem;
 }
 
 .legal-page-header {

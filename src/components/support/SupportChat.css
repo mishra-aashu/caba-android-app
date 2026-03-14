@@ -30,6 +30,10 @@
   overflow: hidden;
 }
 
+.support-chat-container.is-sidebar {
+  background: transparent;
+}
+
 /* Sophisticated Background Pattern */
 .support-chat-container::before {
   content: '';
