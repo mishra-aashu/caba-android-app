@@ -2551,14 +2551,33 @@ const Admin = () => {
                             )}
 
                             {/* ── Combined hash row ── */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-                              <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: '1px solid #333' }}>
-                                <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase' }}>Current Build Hash</p>
-                                <code style={{ color: '#7c8cf8', fontSize: '12px' }}>{localHash ? localHash.slice(0, 20) + '...' : 'N/A'}</code>
+                            <div style={{ marginBottom: '16px' }}>
+                              {/* Match status badge — prominent */}
+                              <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                gap: '10px', marginBottom: '10px'
+                              }}>
+                                <div style={{ flex: 1, height: '1px', background: hashMatch ? '#1e3a1e' : '#3a1a00' }} />
+                                <div style={{
+                                  padding: '5px 16px', borderRadius: '20px', fontWeight: 700, fontSize: '13px',
+                                  background: hashMatch ? '#1a3a1a' : '#3a1a00',
+                                  border: `1.5px solid ${hashMatch ? '#3fcf8e' : '#ff8c00'}`,
+                                  color: hashMatch ? '#3fcf8e' : '#ff8c00',
+                                  letterSpacing: '0.5px'
+                                }}>
+                                  {hashMatch ? '✅ HASHES MATCHED' : '⚠️ HASH MISMATCH'}
+                                </div>
+                                <div style={{ flex: 1, height: '1px', background: hashMatch ? '#1e3a1e' : '#3a1a00' }} />
                               </div>
-                              <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: '1px solid #333' }}>
-                                <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase' }}>Last APK Build Hash</p>
-                                <code style={{ color: savedHash ? '#3fcf8e' : '#666', fontSize: '12px' }}>{savedHash ? savedHash.slice(0, 20) + '...' : 'Not set'}</code>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: `1px solid ${hashMatch ? '#1e3a1e' : '#3a1a00'}` }}>
+                                  <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase' }}>Current Build Hash</p>
+                                  <code style={{ color: '#7c8cf8', fontSize: '12px' }}>{localHash ? localHash.slice(0, 20) + '...' : 'N/A'}</code>
+                                </div>
+                                <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: `1px solid ${hashMatch ? '#1e3a1e' : '#3a1a00'}` }}>
+                                  <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase' }}>Last APK Build Hash</p>
+                                  <code style={{ color: savedHash ? '#3fcf8e' : '#666', fontSize: '12px' }}>{savedHash ? savedHash.slice(0, 20) + '...' : 'Not set'}</code>
+                                </div>
                               </div>
                             </div>
 
