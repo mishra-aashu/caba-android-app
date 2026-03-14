@@ -1,0 +1,14 @@
+{
+  "hash": "2635c9e0f0292181bfbb4131a46d0e6abeb70c76cf75c1e153dcc026cee12e0e",
+  "details": {
+    "capacitor.config.ts": "present",
+    "package.json": "present",
+    "android/app/src/main/AndroidManifest.xml": "present",
+    "android/app/build.gradle": "present",
+    "android/variables.gradle": "present",
+    "android/gradle.properties": "present",
+    "android/app/proguard-rules.pro": "present",
+    "android/app/src/main/res/values/strings.xml": "present"
+  },
+  "generatedAt": 1773471111884
+}
