@@ -74,9 +74,10 @@ const Intro = ({ onComplete }) => {
         // Automatic transition after the animation is mostly done
         const completeTimer = setTimeout(() => {
             setIsExiting(true);
-            setTimeout(() => {
+            const finishTimer = setTimeout(() => {
                 onComplete?.();
             }, 800);
+            return () => clearTimeout(finishTimer);
         }, 6500);
 
         return () => {

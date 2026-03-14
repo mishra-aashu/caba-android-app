@@ -1,14 +1,11 @@
-import { useEffect, useState, useRef, useCallback, useContext } from 'react';
+import { useEffect, useState, useRef, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Capacitor } from '@capacitor/core';
 import {
     MessageCircle, Phone, Image as ImageIcon, Users, Lock, Smartphone,
     Palette, QrCode, Clock, Newspaper, History, Bell,
-    UserPlus, Send, ShieldCheck, Shield, Ghost, Ban,
-    Sun, Moon, Sparkles, Zap, ChevronRight, Download,
-    Globe, Layers, Heart
+    UserPlus, Send,
+    Sun, Moon, ChevronRight, Download,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeContext } from '../contexts/ThemeContext';
 import styles from '../styles/LandingPage.module.css';
 import AppName from '../components/common/AppName';
@@ -99,13 +96,69 @@ const STATS = [
     { value: '100', suffix: '%', label: 'Free & Open' }
 ];
 
+// ═══════════════════════════════════════════════════════
+// TECH ICONS (Custom SVGs for branded feel)
+// ═══════════════════════════════════════════════════════
+
+const TechIcons = {
+    React: () => (
+        <svg viewBox="-11.5 -10.23174 23 20.46348" width="20" height="20">
+            <title>React Logo</title>
+            <circle cx="0" cy="0" r="2.05" fill="#61dafb" />
+            <g stroke="#61dafb" strokeWidth="1" fill="none">
+                <ellipse rx="11" ry="4.2" />
+                <ellipse rx="11" ry="4.2" transform="rotate(60)" />
+                <ellipse rx="11" ry="4.2" transform="rotate(120)" />
+            </g>
+        </svg>
+    ),
+    Supabase: () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+            <path d="M13.35 21a.75.75 0 01-1.332.484l-7.5-10a.75.75 0 01.599-1.199h6.142V3a.75.75 0 011.332-.484l7.5 10a.75.75 0 01-.599 1.199h-6.142V21z" fill="#3ECF8E" />
+        </svg>
+    ),
+    WebRTC: () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+        </svg>
+    ),
+    Firebase: () => (
+        <svg viewBox="0 0 32 32" width="20" height="20">
+            <path d="M5.56 24.38L14.74 3.12c.3-.67 1.25-.67 1.55 0l2.3 5.34L5.56 24.38z" fill="#FFC228" />
+            <path d="M26.44 24.38L16.29 2.5a.86.86 0 00-1.63 0L13.14 6.13l13.3 18.25z" fill="#FFA712" />
+            <path d="M5.56 24.38l.61-4.7L18.6 8.35c.16-.62 1-.74 1.34-.18l6.5 16.21-10.15 5.75c-.53.3-1.16.3-1.68 0L5.56 24.38z" fill="#F44336" />
+        </svg>
+    ),
+    Capacitor: () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="#53B9FF">
+            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z" />
+        </svg>
+    ),
+    Vite: () => (
+        <svg viewBox="0 0 256 256" width="20" height="20">
+            <defs>
+                <linearGradient id="vite-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#41D1FF" />
+                    <stop offset="100%" stopColor="#BD34FE" />
+                </linearGradient>
+            </defs>
+            <path d="M128 0L11.5 244.5L128 256L244.5 244.5L128 0Z" fill="url(#vite-gradient)" />
+            <path d="M128 32l-96 192l96 16l96-16l-96-192z" fill="#FFC228" opacity="0.8" />
+        </svg>
+    )
+};
+
 const TECH_STACK = [
-    { name: 'React', color: '#61DAFB', version: '19' },
-    { name: 'Supabase', color: '#3FCF8E', version: 'Realtime' },
-    { name: 'WebRTC', color: '#FF6B35', version: 'P2P' },
-    { name: 'Firebase', color: '#FFCA28', version: 'FCM' },
-    { name: 'Capacitor', color: '#53B9FF', version: 'Mobile' },
-    { name: 'Vite', color: '#646CFF', version: 'Fast' }
+    { name: 'React', color: '#61DAFB', version: '19', icon: <TechIcons.React /> },
+    { name: 'Supabase', color: '#3FCF8E', version: 'Realtime', icon: <TechIcons.Supabase /> },
+    { name: 'WebRTC', color: '#FF6B35', version: 'P2P', icon: <TechIcons.WebRTC /> },
+    { name: 'Firebase', color: '#FFCA28', version: 'FCM', icon: <TechIcons.Firebase /> },
+    { name: 'Capacitor', color: '#53B9FF', version: 'Mobile', icon: <TechIcons.Capacitor /> },
+    { name: 'Vite', color: '#646CFF', version: 'Fast', icon: <TechIcons.Vite /> }
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -170,47 +223,14 @@ const useInView = (options = {}) => {
 // ═══════════════════════════════════════════════════════
 
 const BackgroundMarquee = () => {
-    const row1 = [...FEATURES, ...FEATURES];
-    const row2 = [...FEATURES, ...FEATURES];
-    const row3 = [...FEATURES, ...FEATURES];
+    // Generate 12 items (FEATURES length)
+    const rowItems = [...FEATURES];
 
-    const MarqueeRow = ({ items, direction = 1, speed = 25 }) => {
-        // Calculate stepped keyframes: move for 30%, pause for 70%
-        const numItems = FEATURES.length; // 12
-        const xKeyframes = ['0%'];
-        const tKeyframes = [0];
-
-        for (let i = 1; i <= numItems; i++) {
-            const percentage = -(i / (numItems * 2)) * 100; // *2 because row is 2x duplication
-            const moveTime = (i - 1) / numItems + 0.02; // Take 2% of time to move
-            const pauseTime = i / numItems; // Pause until next segment
-
-            xKeyframes.push(`${percentage}%`);
-            tKeyframes.push(moveTime);
-
-            if (i < numItems) {
-                xKeyframes.push(`${percentage}%`);
-                tKeyframes.push(pauseTime);
-            }
-        }
-
-        // For reverse direction, we just invert the values
-        const finalX = direction > 0 ? xKeyframes : xKeyframes.map(v => `${-50 - parseFloat(v)}%`);
-
-        return (
+    return (
+        <div className={styles['hero-marquee']}>
             <div className={styles['marquee-row-wrapper']}>
-                <motion.div
-                    className={styles['marquee-row-inner']}
-                    animate={{ x: finalX }}
-                    style={{ translateZ: 0 }}
-                    transition={{
-                        duration: speed * 3, // Slower to allow for pauses
-                        ease: "easeInOut",
-                        repeat: Infinity,
-                        times: tKeyframes
-                    }}
-                >
-                    {items.map((f, i) => (
+                <div className={`${styles['marquee-row-inner']} ${styles['marquee-row-forward']}`}>
+                    {rowItems.concat(rowItems).map((f, i) => (
                         <div key={i} className={styles['marquee-item-container']}>
                             <div className={styles['marquee-item']} style={{ '--accent': f.color }}>
                                 <div className={styles['m-icon-box']}>{f.icon}</div>
@@ -221,16 +241,38 @@ const BackgroundMarquee = () => {
                             </div>
                         </div>
                     ))}
-                </motion.div>
+                </div>
             </div>
-        );
-    };
-
-    return (
-        <div className={styles['hero-marquee']}>
-            <MarqueeRow items={row1} direction={1} speed={15} />
-            <MarqueeRow items={row2} direction={-1} speed={20} />
-            <MarqueeRow items={row3} direction={1} speed={18} />
+            <div className={styles['marquee-row-wrapper']}>
+                <div className={`${styles['marquee-row-inner']} ${styles['marquee-row-reverse']}`}>
+                    {rowItems.concat(rowItems).map((f, i) => (
+                        <div key={i} className={styles['marquee-item-container']}>
+                            <div className={styles['marquee-item']} style={{ '--accent': f.color }}>
+                                <div className={styles['m-icon-box']}>{f.icon}</div>
+                                <div className={styles['m-text']}>
+                                    <span className={styles['m-title']}>{f.title}</span>
+                                    <span className={styles['m-desc']}>{f.desc}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className={styles['marquee-row-wrapper']}>
+                <div className={`${styles['marquee-row-inner']} ${styles['marquee-row-forward-slow']}`}>
+                    {rowItems.concat(rowItems).map((f, i) => (
+                        <div key={i} className={styles['marquee-item-container']}>
+                            <div className={styles['marquee-item']} style={{ '--accent': f.color }}>
+                                <div className={styles['m-icon-box']}>{f.icon}</div>
+                                <div className={styles['m-text']}>
+                                    <span className={styles['m-title']}>{f.title}</span>
+                                    <span className={styles['m-desc']}>{f.desc}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 };
@@ -246,11 +288,19 @@ const HeroCanvas = ({ isMobile }) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
         const dpr = window.devicePixelRatio || 1;
         let w, h;
+        let inView = true;
+
+        const observer = new IntersectionObserver(([entry]) => {
+            inView = entry.isIntersecting;
+        }, { threshold: 0.01 });
+
+        observer.observe(canvas);
 
         const resize = () => {
+            if (!canvas.parentElement) return;
             w = canvas.parentElement.offsetWidth;
             h = canvas.parentElement.offsetHeight;
             canvas.width = w * dpr;
@@ -260,22 +310,24 @@ const HeroCanvas = ({ isMobile }) => {
             ctx.scale(dpr, dpr);
 
             // Re-init particles (fewer on mobile for better performance)
-            const count = isMobile ? 25 : 45;
+            const count = isMobile ? 20 : 40;
             particlesRef.current = Array.from({ length: count }, () => ({
                 x: Math.random() * w,
                 y: Math.random() * h,
-                vx: (Math.random() - 0.5) * 0.3,
-                vy: (Math.random() - 0.5) * 0.3,
-                r: Math.random() * 2 + 0.5,
-                o: Math.random() * 0.3 + 0.1
+                vx: (Math.random() - 0.5) * 0.25,
+                vy: (Math.random() - 0.5) * 0.25,
+                r: Math.random() * 1.5 + 0.5,
+                o: Math.random() * 0.2 + 0.1
             }));
         };
 
         resize();
-        window.addEventListener('resize', resize);
+        window.addEventListener('resize', resize, { passive: true });
 
         const draw = () => {
-            if (!mountedRef.current || document.hidden) {
+            if (!mountedRef.current) return;
+            
+            if (!inView || document.hidden) {
                 animRef.current = requestAnimationFrame(draw);
                 return;
             }
@@ -283,10 +335,11 @@ const HeroCanvas = ({ isMobile }) => {
             ctx.clearRect(0, 0, w, h);
 
             const ps = particlesRef.current;
-            const connectionDistance = isMobile ? 80 : 150; // Dynamic distance based on mobile detected in parent
+            const connectionDistance = isMobile ? 70 : 130;
 
             // Draw connections
             const distSq = connectionDistance * connectionDistance;
+            ctx.lineWidth = 0.5;
             for (let i = 0; i < ps.length; i++) {
                 const p1 = ps[i];
                 for (let j = i + 1; j < ps.length; j++) {
@@ -299,9 +352,7 @@ const HeroCanvas = ({ isMobile }) => {
                         ctx.beginPath();
                         ctx.moveTo(p1.x, p1.y);
                         ctx.lineTo(p2.x, p2.y);
-                        // Emerald Green connections
-                        ctx.strokeStyle = `rgba(0,168,132,${(1 - d / connectionDistance) * 0.12})`;
-                        ctx.lineWidth = 0.5;
+                        ctx.strokeStyle = `rgba(0,168,132,${(1 - d / connectionDistance) * 0.1})`;
                         ctx.stroke();
                     }
                 }
@@ -316,7 +367,7 @@ const HeroCanvas = ({ isMobile }) => {
 
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(37,211,102,${p.o * 1.5})`; // Emerald Green particles
+                ctx.fillStyle = `rgba(37,211,102,${p.o})`;
                 ctx.fill();
             });
 
@@ -328,9 +379,10 @@ const HeroCanvas = ({ isMobile }) => {
         return () => {
             mountedRef.current = false;
             window.removeEventListener('resize', resize);
+            observer.disconnect();
             if (animRef.current) cancelAnimationFrame(animRef.current);
         };
-    }, []);
+    }, [isMobile]);
 
     return <canvas ref={canvasRef} className={styles['hero-canvas']} />;
 };
@@ -360,11 +412,12 @@ const LandingPage = () => {
     const { theme, toggleTheme } = useContext(ThemeContext);
     const [isMobile, setIsMobile] = useState(false);
     const [isRedirecting, setIsRedirecting] = useState(false);
-    const [scrollY, setScrollY] = useState(0);
+    const [isScrolled, setIsScrolled] = useState(false);
     const [activeFeature, setActiveFeature] = useState(0);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const containerRef = useRef(null);
 
-    // Section refs for scroll
+    // Section refs for scroll (intersection observer for animations)
     const [statsRef, statsInView] = useInView({ threshold: 0.3 });
     const [featuresRef, featuresInView] = useInView({ threshold: 0.1 });
     const [storyRef, storyInView] = useInView({ threshold: 0.3 });
@@ -379,29 +432,41 @@ const LandingPage = () => {
             const mobile = width < 768 ||
                 /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
             setIsMobile(mobile);
-            // Removed automatic redirect to /download-apk for mobile web users
         };
 
         checkDevice();
-        // Don't add resize listener to prevent unwanted redirects during resize
-    }, [navigate]);
+    }, []);
 
-    // Scroll tracking (throttled)
+    // Optimized scroll tracking using requestAnimationFrame for buttery smooth parallax
     useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        let lastScrollY = el.scrollTop;
         let ticking = false;
+
+        const updateParallax = () => {
+            el.style.setProperty('--parallax-offset', `${lastScrollY * 0.3}px`);
+            ticking = false;
+        };
+
         const handleScroll = () => {
+            lastScrollY = el.scrollTop;
+            
+            // Handle simple state updates
+            const scrolled = lastScrollY > 60;
+            if (scrolled !== isScrolled) setIsScrolled(scrolled);
+
+            // Handle expensive visual updates with rAF
             if (!ticking) {
-                requestAnimationFrame(() => {
-                    setScrollY(window.scrollY);
-                    ticking = false;
-                });
+                window.requestAnimationFrame(updateParallax);
                 ticking = true;
             }
         };
 
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+        el.addEventListener('scroll', handleScroll, { passive: true });
+        return () => el.removeEventListener('scroll', handleScroll);
+    }, [isScrolled]);
 
     // Auto-rotate features
     useEffect(() => {
@@ -418,7 +483,11 @@ const LandingPage = () => {
     };
 
     const scrollTo = (id) => {
-        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+        const el = document.getElementById(id);
+        if (el && containerRef.current) {
+            const top = el.offsetTop;
+            containerRef.current.scrollTo({ top, behavior: 'smooth' });
+        }
         setMobileMenuOpen(false);
     };
 
@@ -431,30 +500,37 @@ const LandingPage = () => {
         );
     }
 
-    const parallaxOffset = scrollY * 0.3;
+    const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
+
+    useEffect(() => {
+        if (isMobile) return;
+        const handleMouseMove = (e) => {
+            setMousePos({ x: e.clientX, y: e.clientY });
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, [isMobile]);
 
     return (
-        <div className={styles.landing} data-theme={theme}>
+        <div className={styles.landing} data-theme={theme} ref={containerRef}>
             <div className={styles['noise-overlay']} />
-            {/* ═══════════════════════════════════════════════
-          NAVIGATION
-          ═══════════════════════════════════════════════ */}
-            <nav className={`${styles['landing-nav']} ${scrollY > 60 ? styles.scrolled : ''}`}>
+            {!isMobile && (
+                <div 
+                    className={styles['cursor-glow']} 
+                    style={{ left: mousePos.x, top: mousePos.y }} 
+                />
+            )}
+            <nav className={`${styles['landing-nav']} ${isScrolled ? styles.scrolled : ''}`}>
                 <div className={styles['nav-inner']}>
                     <div className={styles['nav-brand']} onClick={() => scrollTo('hero')}>
                         <img src="/pwa-192x192.png" alt="Elevengram" className={styles['nav-logo']} />
                         <AppName size="small" />
                     </div>
-
                     <div className={`${styles['nav-links']} ${mobileMenuOpen ? styles.open : ''}`}>
                         <button onClick={() => scrollTo('features')}>Features</button>
                         <button onClick={() => scrollTo('story')}>Story</button>
                         <button onClick={() => scrollTo('tech')}>Tech</button>
-                        <button
-                            className={styles['theme-toggle-btn']}
-                            onClick={toggleTheme}
-                            aria-label="Toggle theme"
-                        >
+                        <button className={styles['theme-toggle-btn']} onClick={toggleTheme}>
                             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
                         {!isMobile && (
@@ -463,147 +539,70 @@ const LandingPage = () => {
                             </button>
                         )}
                     </div>
-
-                    <button
-                        className={styles['nav-hamburger']}
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        aria-label="Toggle menu"
-                    >
+                    <button className={styles['nav-hamburger']} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                         <span className={mobileMenuOpen ? styles.open : ''} />
                     </button>
                 </div>
             </nav>
 
-            {/* ═══════════════════════════════════════════════
-          HERO SECTION
-          ═══════════════════════════════════════════════ */}
+            {/* HERO */}
             <section className={styles.hero} id="hero">
                 <HeroCanvas isMobile={isMobile} />
                 <BackgroundMarquee />
-
                 <div className={styles['hero-gradient']} />
-
-                <div
-                    className={styles['hero-content']}
-                    style={{ transform: `translateY(${parallaxOffset}px)` }}
-                >
-                    {/* Background Glow for Readability */}
+                <div className={styles['hero-content']} style={{ transform: 'translateY(var(--parallax-offset, 0px))' }}>
                     <div className={styles['hero-text-glow']} />
-
-                    {/* Animated Logo */}
                     <div className={styles['hero-logo-wrap']}>
-                        <div className={styles['hero-logo-rings']}>
-                            <div className={`${styles['h-ring']} ${styles.r1}`} />
-                            <div className={`${styles['h-ring']} ${styles.r2}`} />
-                        </div>
-                        <div className={styles['hero-logo-text']}>
-                            <AppName size="large" />
-                        </div>
+                        <div className={styles['hero-logo-text']}><AppName size="large" /></div>
                     </div>
-
                     <h1 className={styles['hero-title']}>
-                        <span className={styles['title-line']}>More Than Just</span>
-                        <span className={`${styles['title-line']} ${styles['italic-accent']}`}>Chat.</span>
+                        <span className={styles['title-line']}>What Happens in Eleven,</span>
+                        <span className={`${styles['title-line']} ${styles['italic-accent']}`}>Stays in Eleven.</span>
                     </h1>
-
                     <p className={styles['hero-subtitle']}>
-                        Elevengram brings people together through secure messaging, crystal-clear
-                        calls & a modern experience that just works — everywhere.
+                        Elevengram brings people together through secure messaging, crystal-clear calls & a modern experience that just works.
                     </p>
-
                     <div className={styles['hero-actions']}>
                         {!isMobile && (
                             <button className={`${styles['btn-hero']} ${styles.primary}`} onClick={handleLogin}>
-                                <span>Open Web App</span>
-                                <ChevronRight size={18} />
+                                <span>Open Web App</span><ChevronRight size={18} />
                             </button>
                         )}
                         {isMobile && (
                             <button className={`${styles['btn-hero']} ${styles.secondary}`} onClick={handleDownloadAPK}>
-                                <Download size={18} />
-                                <span>Download APK</span>
+                                <Download size={18} /><span>Download APK</span>
                             </button>
                         )}
                     </div>
-
-                    <div className={styles['hero-badges']}>
-                        <span className={styles['badge-item']}>
-                            <Shield size={14} />
-                            Secure
-                        </span>
-                        <span className={styles['badge-item']}>
-                            <Zap size={14} />
-                            Fast
-                        </span>
-                        <span className={styles['badge-item']}>
-                            <Globe size={14} />
-                            Global
-                        </span>
-                        <span className={styles['badge-item']}>
-                            <Layers size={14} />
-                            Open Source
-                        </span>
-                    </div>
-                </div>
-
-                {/* Scroll indicator */}
-                <div className={styles['scroll-indicator']}>
-                    <span>Scroll to explore</span>
-                    <div className={styles['scroll-arrow']} />
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════
-          STATS BAR
-          ═══════════════════════════════════════════════ */}
+            {/* STATS */}
             <section className={styles['stats-section']} ref={statsRef}>
                 <div className={styles['stats-grid']}>
-                    {STATS.map((s, i) => (
-                        <StatCard key={i} {...s} inView={statsInView} />
-                    ))}
+                    {STATS.map((s, i) => <StatCard key={i} {...s} inView={statsInView} />)}
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════
-          FEATURES
-          ═══════════════════════════════════════════════ */}
+            {/* FEATURES */}
             <section className={styles['features-section']} id="features" ref={featuresRef}>
                 <div className={styles['section-inner']}>
                     <div className={`${styles['section-header']} ${featuresInView ? styles.animate : ''}`}>
                         <span className={styles['section-tag']}>Features</span>
                         <h2>Everything you need,<br />nothing you don't.</h2>
-                        <p>
-                            Elevengram packs powerful communication tools into a clean,
-                            intuitive interface — designed for real people.
-                        </p>
                     </div>
-
                     <div className={styles['features-grid']}>
                         {FEATURES.map((f, i) => (
-                            <div
-                                key={i}
-                                className={`${styles['feature-card']} ${featuresInView ? styles.animate : ''} ${activeFeature === i ? styles.glow : ''}`}
-                                style={{
-                                    animationDelay: `${i * 0.06}s`,
-                                    '--accent': f.color
-                                }}
-                                onMouseEnter={() => setActiveFeature(i)}
-                            >
-                                <div className={styles['feature-icon-wrap']}>
-                                    <span className={styles['feature-icon']}>{f.icon}</span>
-                                </div>
-                                <h3>{f.title}</h3>
-                                <p>{f.desc}</p>
-                                <div className={styles['feature-shine']} />
+                            <div key={i} className={`${styles['feature-card']} ${featuresInView ? styles.animate : ''} ${activeFeature === i ? styles.glow : ''}`} onMouseEnter={() => setActiveFeature(i)}>
+                                <div className={styles['feature-icon-wrap']}><span className={styles['feature-icon']}>{f.icon}</span></div>
+                                <h3>{f.title}</h3><p>{f.desc}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════
-          ORIGIN STORY
-          ═══════════════════════════════════════════════ */}
+            {/* STORY */}
             <section className={styles['story-section']} id="story" ref={storyRef}>
                 <div className={styles['section-inner']}>
                     <div className={`${styles['story-content']} ${storyInView ? styles.animate : ''}`}>
@@ -611,182 +610,68 @@ const LandingPage = () => {
                             <span className={styles['section-tag']}>Our Story</span>
                             <h2>Why "Elevengram"?</h2>
                             <div className={styles['story-quote']}>
-                                <div className={styles['quote-mark']}>"</div>
                                 <blockquote style={{ border: 'none', background: 'none', padding: 0 }}>
-                                    <strong>Elevengram</strong> represents the <strong>11th Level</strong> of communication.
-                                    While most tools stop at ten, we chose to go <em>beyond</em> — elevating every 
-                                    <em> interaction</em>, every <em>connection</em>, and every <em>moment</em>.
+                                    <strong>Elevengram</strong> represents the <strong>11th Level</strong>...
                                 </blockquote>
                             </div>
-                            <p>
-                                Elevengram represents that same warm, casual spirit of connecting with
-                                the people who matter — but with a focus on taking those 
-                                conversations to the next level of security and simplicity.
-                            </p>
-                            <p>
-                                We believe communication should feel natural, personal, and
-                                effortless. That's why every feature in Elevengram is built around
-                                bringing people closer together through meaningful interactions.
-                            </p>
-                        </div>
-
-                        <div className={styles['story-visual']}>
-                            <div className={styles['story-card']}>
-                                <div className={styles['story-emoji']}>
-                                    <Sparkles size={48} className={styles['sparkle-icon']} />
-                                </div>
-                                <div className={styles['story-greeting']}>
-                                    <span className={styles.bhojpuri}>Kaa Baa?</span>
-                                    <span className={styles.english}>What's up?</span>
-                                </div>
-                                <div className={styles['story-arrow']}><ChevronRight size={24} /></div>
-                                <div className={styles['story-brand']}>
-                                    <img src="/pwa-192x192.png" alt="Elevengram" className={styles['story-logo']} />
-                                    <AppName size="small" />
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════
-          HOW IT WORKS
-          ═══════════════════════════════════════════════ */}
+            {/* HOW IT WORKS */}
             <section className={styles['how-section']}>
                 <div className={styles['section-inner']}>
-                    <div className={`${styles['section-header']} ${styles.animate}`}>
-                        <span className={styles['section-tag']}>Simple</span>
-                        <h2>Up and running in seconds</h2>
-                    </div>
-
                     <div className={styles['steps-grid']}>
                         {[
-                            { num: '01', title: 'Sign Up', desc: 'Create your account with email or phone — takes 30 seconds', icon: <UserPlus size={32} /> },
-                            { num: '02', title: 'Add Contacts', desc: 'Find friends by phone, email, or scan their QR code instantly', icon: <QrCode size={32} /> },
-                            { num: '03', title: 'Start Talking', desc: 'Send messages, make calls, share media — it just works', icon: <Send size={32} /> }
+                            { num: '01', title: 'Sign Up' },
+                            { num: '02', title: 'Add Contacts' },
+                            { num: '03', title: 'Start Talking' }
                         ].map((step, i) => (
                             <div key={i} className={styles['step-card']}>
-                                <div className={styles['step-num']}>{step.num}</div>
-                                <div className={styles['step-icon']}>{step.icon}</div>
-                                <h3>{step.title}</h3>
-                                <p>{step.desc}</p>
+                                <div className={styles['step-num']}>{step.num}</div><h3>{step.title}</h3>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════
-          TECH STACK
-          ═══════════════════════════════════════════════ */}
+            {/* TECH */}
             <section className={styles['tech-section']} id="tech" ref={techRef}>
                 <div className={styles['section-inner']}>
-                    <div className={`${styles['section-header']} ${techInView ? styles.animate : ''}`}>
-                        <span className={styles['section-tag']}>Technology</span>
-                        <h2>Built with the best</h2>
-                        <p>Modern, battle-tested technologies powering every conversation.</p>
-                    </div>
-
                     <div className={styles['tech-grid']}>
                         {TECH_STACK.map((t, i) => (
-                            <div
-                                key={i}
-                                className={`${styles['tech-card']} ${techInView ? styles.animate : ''}`}
-                                style={{ animationDelay: `${i * 0.1}s`, '--tc': t.color }}
-                            >
-                                <div className={styles['tech-dot']} style={{ background: t.color }} />
+                            <div key={i} className={`${styles['tech-card']} ${techInView ? styles.animate : ''}`} style={{ '--tc': t.color }}>
+                                <div className={styles['tech-icon-box']}>{t.icon}</div>
                                 <span className={styles['tech-name']}>{t.name}</span>
-                                <span className={styles['tech-ver']}>{t.version}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════
-          SECURITY
-          ═══════════════════════════════════════════════ */}
+            {/* SECURITY */}
             <section className={styles['security-section']}>
                 <div className={styles['section-inner']}>
                     <div className={styles['security-content']}>
-                        <div className={styles['security-icon']}>
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                <path d="M9 12l2 2 4-4" />
-                            </svg>
-                        </div>
                         <h2>Your privacy is our priority</h2>
-                        <p>
-                            Built on Supabase with Row Level Security, your data stays yours.
-                            Vanishing messages, user blocking, and encrypted connections
-                            ensure every conversation remains private.
-                        </p>
-                        <div className={styles['security-badges']}>
-                            <span><ShieldCheck size={14} /> Encrypted Connections</span>
-                            <span><Shield size={14} /> Row Level Security</span>
-                            <span><Ghost size={14} /> Vanishing Messages</span>
-                            <span><Ban size={14} /> User Blocking</span>
-                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════
-          FINAL CTA
-          ═══════════════════════════════════════════════ */}
-            <section className={styles['cta-section']} id="download" ref={ctaRef}>
+            {/* CTA */}
+            <section className={styles['cta-section']} id="cta" ref={ctaRef}>
                 <div className={`${styles['cta-content']} ${ctaInView ? styles.animate : ''}`}>
                     <h2>Ready to start talking?</h2>
-                    <p>Join Elevengram today — it's free, open source, and built for everyone.</p>
-
-                    <div className={styles['cta-buttons']}>
-                        {!isMobile && (
-                            <button className={`${styles['btn-hero']} ${styles.primary} ${styles.large}`} onClick={handleLogin}>
-                                Open Web App <ChevronRight size={20} />
-                            </button>
-                        )}
-                        {isMobile && (
-                            <button className={`${styles['btn-hero']} ${styles.secondary} ${styles.large}`} onClick={handleDownloadAPK}>
-                                <Download size={20} />
-                                <span>Download Android APK</span>
-                            </button>
-                        )}
-                    </div>
-
-                    <div className={styles['cta-note']}>
-                        Free forever • No ads • Open source
-                    </div>
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════
-          FOOTER
-          ═══════════════════════════════════════════════ */}
+            {/* FOOTER */}
             <footer className={styles['landing-footer']}>
                 <div className={styles['footer-inner']}>
-                    <div className={styles['footer-brand']}>
-                        <img src="/pwa-192x192.png" alt="Elevengram" className={styles['footer-logo']} />
-                        <div>
-                            <AppName size="small" />
-                            <span className={styles['footer-tagline']}>The Art of Conversation</span>
-                        </div>
-                    </div>
-
-                    <div className={styles['footer-links']}>
-                        <a href="https://github.com/mishra-aashu/caba-android-app" target="_blank" rel="noopener noreferrer">
-                            GitHub
-                        </a>
-                        <button onClick={() => scrollTo('features')}>Features</button>
-                        <button onClick={() => scrollTo('story')}>Story</button>
-                        {!isMobile && <button onClick={handleLogin}>Web App</button>}
-                    </div>
-
+                    <div className={styles['footer-brand']}><AppName size="small" /></div>
                     <div className={styles['footer-bottom']}>
-                        <p>Thank you for choosing Elevengram for your communication needs.</p>
-                        <p className={styles['footer-copyright']}>© 2026 Aashutosh Mishra | IIT Madras. All rights reserved.</p>
-                        <p className={styles['footer-license']}>MIT License • Open Source</p>
+                        <p>© 2026 Aashutosh Mishra | IIT Madras. All rights reserved.</p>
                     </div>
                 </div>
             </footer>
