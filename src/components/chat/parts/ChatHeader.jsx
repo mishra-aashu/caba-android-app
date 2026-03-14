@@ -6,7 +6,6 @@
  * Receives all state and handlers as props from the Chat component (via useChatRoom).
  */
 import React, { memo } from 'react';
-import { shallow } from 'zustand/shallow';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Phone, Video, User, Bell, BellOff, Search, Image as ImageIcon, Palette, Clock, Settings as SettingsIcon, Trash2, Ban, ArrowLeft, Gamepad2, Crown, MousePointer, Copy, ArrowRight } from 'lucide-react';
 import DropdownMenu from '../../common/DropdownMenu';
@@ -46,10 +45,8 @@ const ChatHeader = memo(({
     onNavigate,
     isAdmin,
 }) => {
-    const { isSelectionMode, selectedCount } = useChatStore(state => ({
-        isSelectionMode: state.isSelectionMode,
-        selectedCount: state.selectedMessageIds.size
-    }), shallow);
+    const isSelectionMode = useChatStore(state => state.isSelectionMode);
+    const selectedCount = useChatStore(state => state.selectedMessageIds.size);
 
     const clearSelection = useChatStore(state => state.clearSelection);
     const setSelectionMode = useChatStore(state => state.setSelectionMode);

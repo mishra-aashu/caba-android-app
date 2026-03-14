@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, memo, Suspense, lazy, useContext } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, memo, Suspense, lazy, useContext } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -49,9 +49,36 @@ const dbToFrontend = (msg) => {
 };
 
 const ChatScreen = () => {
+  const { chatId, otherUserId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user: currentUser, authLoading, isAuthenticated } = useAuth();
+  
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+
+  const markMessagesAsRead = useCallback(async () => {
+    try {
+      if (!currentUser || !chatId || chatId === 'new') return;
+      await messageReadsService.markAllAsRead(chatId, currentUser.id);
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  }, [currentUser?.id, chatId]);
+
+  const onNewMessage = useCallback((msg) => {
+    if (!isScrolledToBottom) {
+      setUnreadCount(prev => prev + 1);
+    } else {
+      markMessagesAsRead();
+    }
+  }, [isScrolledToBottom, markMessagesAsRead]);
+
+  const chatRoomOptions = useMemo(() => ({ onNewMessage }), [onNewMessage]);
+
   const {
-    chatId, otherUserId, validChatId, isGroupChat, navigate, location,
-    currentUser, otherUser, setOtherUser, isInitializing,
+    validChatId, isGroupChat,
+    otherUser, setOtherUser, isInitializing,
     messages, isFetchingNextPage, hasNextPage, fetchNextPage,
     typingUsers, sendTyping,
     isMuted, isTempChat, setIsTempChat, vanishPresets, setVanishPresets,
@@ -63,21 +90,15 @@ const ChatScreen = () => {
     handleShareAsForward, handleMediaDownload,
     handleAcceptGame, handleRejectGame, handleJoinGame, handleReactionToggle,
     supabase, showAlert, initialScrollPosition, saveScrollPosition, queryClient,
-    isMessagesLoading, allChats, authLoading, isAuthenticated,
+    isMessagesLoading, allChats, 
     connectionStatus, retryConnection,
     authError,
-  } = useChatRoom({
-    onNewMessage: (msg) => {
-      if (!isScrolledToBottom) {
-        setUnreadCount(prev => prev + 1);
-      } else {
-        markMessagesAsRead();
-      }
-    },
-  });
+  } = useChatRoom(chatRoomOptions);
 
   useEffect(() => {
-    window.handleReactionToggle = handleReactionToggle;
+    if (handleReactionToggle) {
+        window.handleReactionToggle = handleReactionToggle;
+    }
     return () => { delete window.handleReactionToggle; };
   }, [handleReactionToggle]);
 
@@ -137,8 +158,6 @@ const ChatScreen = () => {
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [showBlockConfirmModal, setShowBlockConfirmModal] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const [showGroupCallModal, setShowGroupCallModal] = useState(false);
   const [selectedCallType, setSelectedCallType] = useState('voice');
 
@@ -167,15 +186,6 @@ const ChatScreen = () => {
     [saveScrollPosition],
   );
 
-  const markMessagesAsRead = useCallback(async () => {
-    try {
-      if (!currentUser || !chatId || chatId === 'new') return;
-      await messageReadsService.markAllAsRead(chatId, currentUser.id);
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
-  }, [currentUser, chatId]);
-
   useEffect(() => {
     if (chatId && currentUser && chatId !== 'new') {
       const timer = setTimeout(() => {
@@ -183,7 +193,7 @@ const ChatScreen = () => {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [chatId, currentUser, markMessagesAsRead]);
+  }, [chatId, currentUser?.id, markMessagesAsRead]);
 
   useEffect(() => {
     const handleEvents = () => {
@@ -198,22 +208,9 @@ const ChatScreen = () => {
       window.removeEventListener('focus', handleEvents);
       document.removeEventListener('visibilitychange', handleEvents);
     };
-  }, [chatId, currentUser, markMessagesAsRead]);
+  }, [chatId, currentUser?.id, markMessagesAsRead]);
 
-  const handleScroll = (location) => {
-    if (location.isAtTop && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-    const isAtBottom = location.isAtBottom || false;
-    setIsScrolledToBottom(isAtBottom);
-    setShowScrollButton(!isAtBottom);
-    if (isAtBottom && unreadCount > 0) {
-      setUnreadCount(0);
-      markMessagesAsRead();
-    }
-  };
-
-  const handleScrollToBottom = (behavior = 'auto') => {
+  const handleScrollToBottom = useCallback((behavior = 'auto') => {
     if (messagesContainerRef.current?.scrollToBottom) {
       messagesContainerRef.current.scrollToBottom(behavior);
     }
@@ -225,7 +222,22 @@ const ChatScreen = () => {
     } else {
       setIsScrolledToBottom(true);
     }
-  };
+  }, [markMessagesAsRead]);
+
+  const handleScroll = useCallback((location) => {
+    if (location.isAtTop && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+    const isAtBottom = location.isAtBottom || false;
+    
+    setIsScrolledToBottom(prev => (prev !== isAtBottom ? isAtBottom : prev));
+    setShowScrollButton(prev => (prev !== !isAtBottom ? !isAtBottom : prev));
+    
+    if (isAtBottom && unreadCount > 0) {
+      setUnreadCount(0);
+      markMessagesAsRead();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, unreadCount, markMessagesAsRead]);
 
   const handleForwardMessages = async (messages, targetChat) => {
     try {
