@@ -12,6 +12,7 @@ const GoogleIcon = ({ className }) => (
   </svg>
 );
 import styles from '../../styles/LoginPage.module.css'; // Correctly import the dedicated CSS module
+import AppName from '../common/AppName';
 
 const Login = () => {
   const { signInWithGoogle, isServerUnreachable, clearServerError } = useAuthStore();
@@ -72,7 +73,7 @@ const Login = () => {
 
         {/* --- LEFT SIDE: The Art/Story --- */}
         <div className={`${styles['art-hero-section']} ${styles['gpu-accelerated']}`}>
-          <div className={`${styles['brand-badge']} ${styles['gpu-accelerated']}`}>Elevengram</div>
+          <AppName className={styles['brand-badge']} />
           <h1 className={`${styles['art-hero-headline']} ${styles['gpu-accelerated']}`}>
             The Art of <br />
             <span className={`${styles['italic-text']} ${styles['gpu-accelerated']}`}>Conversation.</span>

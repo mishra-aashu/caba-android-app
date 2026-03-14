@@ -1,5 +1,5 @@
-import React from 'react';
 import { MessageCircle } from 'lucide-react';
+import AppName from './AppName';
 
 const ChatPlaceholder = () => {
   return (
@@ -19,9 +19,13 @@ const ChatPlaceholder = () => {
         fontSize: '1.5rem',
         fontWeight: '600',
         marginTop: '1.5rem',
-        color: 'var(--text-primary)'
+        color: 'var(--text-primary)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '0.8rem'
       }}>
-        Welcome to Elevengram
+        Welcome to <AppName size="small" />
       </h2>
       <p style={{ marginTop: '0.5rem', maxWidth: '300px' }}>
         Select a conversation from the list on the left to start messaging.

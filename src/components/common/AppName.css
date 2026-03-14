@@ -1,0 +1,43 @@
+/* Glass Pill Brand Badge */
+.brand-badge-pill {
+  display: inline-block;
+  padding: 8px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50px;
+  font-size: 16px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  background: rgba(10, 45, 35, 0.7); /* Dark emerald glass */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  user-select: none;
+  width: fit-content;
+}
+
+.brand-badge-pill.small {
+  padding: 6px 16px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+}
+
+.brand-badge-pill.large {
+  padding: 12px 36px;
+  font-size: 24px;
+  letter-spacing: 4px;
+}
+
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Light mode override for better visibility if needed, 
+   but user wants "exactly this design" which is the dark green pill */
+[data-theme='light'] .brand-badge-pill {
+  background: rgba(10, 45, 35, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+}

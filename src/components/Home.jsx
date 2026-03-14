@@ -1,6 +1,7 @@
 import React from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import BottomNavigation from "./common/BottomNavigation";
+import AppName from "./common/AppName";
 
 import "../styles/home.css";
 import { Paperclip, Smile, ArrowLeft } from 'lucide-react';
@@ -25,7 +26,7 @@ export default function Home() {
         <header className="app-header glass">
           <div className="brand">
             <div className="logo" />
-            <div className="name">Elevengram</div>
+            <AppName size="small" />
             <span className="badge">Online • Fast • Secure</span>
           </div>
           <div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppVersions } from '../hooks/useAppVersions';
 import { isOlderVersion } from '../utils/versionUtils';
 import { ArrowLeft, Shield, Lock, Eye, MessageCircle, Phone, Users, Heart, Trash2, FileText } from 'lucide-react';
+import AppName from './common/AppName';
 import './about/About.css';
 
 // App's current local version synced with package.json via Vite define
@@ -29,16 +30,13 @@ const About = () => {
         <button className="back-btn" onClick={() => navigate(-1)}>
           <ArrowLeft size={24} />
         </button>
-        <h1>About Elevengram</h1>
+        <h1>About <AppName size="small" /></h1>
       </header>
 
       <div className="about-content">
         {/* Hero Section */}
         <div className="about-hero">
-          <div className="app-logo-large">
-            <span className="logo-text">EG</span>
-          </div>
-          <h2>Elevengram</h2>
+          <AppName size="large" />
           <div className="version-badge-container">
             <p className="version">Version {localVersion}</p>
             {!isUpdateAvailable ? (

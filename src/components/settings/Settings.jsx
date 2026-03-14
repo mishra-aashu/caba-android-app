@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AppName from '../common/AppName';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import useAuthStore from '../../store/authStore';
@@ -707,7 +708,10 @@ const Settings = ({ isSidebar = false }) => {
 
                 {/* Footer */}
                 <div className="settings-footer">
-                    <p>Caba Messenger v{APP_VERSION}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <AppName size="small" />
+                        <p>Messenger v{APP_VERSION}</p>
+                    </div>
                     <p>Made with ❤️</p>
                 </div>
             </div>

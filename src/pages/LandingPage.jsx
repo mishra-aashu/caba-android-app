@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeContext } from '../contexts/ThemeContext';
 import styles from '../styles/LandingPage.module.css';
+import AppName from '../components/common/AppName';
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
@@ -413,7 +414,7 @@ const LandingPage = () => {
     const handleLogin = () => navigate('/login');
 
     const handleDownloadAPK = () => {
-        window.location.href = 'https://caba-messenger.vercel.app/app-release.apk';
+        navigate('/download-apk');
     };
 
     const scrollTo = (id) => {
@@ -442,7 +443,7 @@ const LandingPage = () => {
                 <div className={styles['nav-inner']}>
                     <div className={styles['nav-brand']} onClick={() => scrollTo('hero')}>
                         <img src="/pwa-192x192.png" alt="Elevengram" className={styles['nav-logo']} />
-                        <span className={styles['nav-name']}>Elevengram</span>
+                        <AppName size="small" />
                     </div>
 
                     <div className={`${styles['nav-links']} ${mobileMenuOpen ? styles.open : ''}`}>
@@ -496,16 +497,7 @@ const LandingPage = () => {
                             <div className={`${styles['h-ring']} ${styles.r2}`} />
                         </div>
                         <div className={styles['hero-logo-text']}>
-                            <div className={styles['perspective-container']}>
-                                {"Elevengram".split("").map((char, i) => (
-                                    <span
-                                        key={i}
-                                        className={styles['letter-span']}
-                                    >
-                                        {char}
-                                    </span>
-                                ))}
-                            </div>
+                            <AppName size="large" />
                         </div>
                     </div>
 
@@ -650,7 +642,7 @@ const LandingPage = () => {
                                 <div className={styles['story-arrow']}><ChevronRight size={24} /></div>
                                 <div className={styles['story-brand']}>
                                     <img src="/pwa-192x192.png" alt="Elevengram" className={styles['story-logo']} />
-                                    <span>Elevengram</span>
+                                    <AppName size="small" />
                                 </div>
                             </div>
                         </div>
@@ -777,7 +769,7 @@ const LandingPage = () => {
                     <div className={styles['footer-brand']}>
                         <img src="/pwa-192x192.png" alt="Elevengram" className={styles['footer-logo']} />
                         <div>
-                            <span className={styles['footer-name']}>Elevengram</span>
+                            <AppName size="small" />
                             <span className={styles['footer-tagline']}>The Art of Conversation</span>
                         </div>
                     </div>
