@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 import './QRCodeScanner.css';
 
 const QRCodeScanner = ({ onScan, onClose, onError }) => {
-  const scannerRef = useRef(null);
-  const html5QrcodeScannerRef = useRef(null);
+  const videoRef = useRef(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState('');
+  const isScanningRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -14,86 +13,83 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
     };
   }, []);
 
-  const initializeScanner = () => {
+  const initializeScanner = async () => {
     try {
+      if (!('BarcodeDetector' in window)) {
+        throw new Error('BarcodeDetector API is not supported by your browser. Please use the image upload option.');
+      }
+      
       setError('');
       setIsScanning(true);
+      isScanningRef.current = true;
 
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        disableFlip: false,
-        videoConstraints: {
-          facingMode: "environment"
-        }
-      };
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      });
 
-      html5QrcodeScannerRef.current = new Html5QrcodeScanner(
-        "qr-reader",
-        config,
-        false
-      );
-
-      html5QrcodeScannerRef.current.render(
-        (decodedText, decodedResult) => {
-          handleScanSuccess(decodedText, decodedResult);
-        },
-        (errorMessage) => {
-          // Ignore frequent scan errors
-          if (!errorMessage.includes('No QR code found')) {
-            console.warn('QR scan error:', errorMessage);
-          }
-        }
-      );
-
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", true);
+        await videoRef.current.play();
+        requestAnimationFrame(tick);
+      }
     } catch (err) {
       console.error('Error initializing QR scanner:', err);
-      setError('Failed to initialize camera. Please check camera permissions.');
+      setError(err.message || 'Failed to initialize camera. Please check camera permissions.');
       setIsScanning(false);
+      isScanningRef.current = false;
       if (onError) {
         onError(err);
       }
     }
   };
 
-  const handleScanSuccess = (decodedText, decodedResult) => {
+  const handleScanSuccess = (decodedText) => {
     try {
-      // Stop scanning immediately
       cleanupScanner();
-      setIsScanning(false);
-
-      let scannedData;
       
+      let scannedData;
       try {
-        // Try to parse as JSON first (our ELEVENGRAM QR format)
         scannedData = JSON.parse(decodedText);
       } catch (e) {
-        // If not JSON, treat as plain URL
-        scannedData = {
-          type: 'url',
-          url: decodedText
-        };
+        scannedData = { type: 'url', url: decodedText };
       }
 
       if (onScan) {
         onScan(scannedData);
       }
-
     } catch (error) {
       console.error('Error processing QR scan result:', error);
       setError('Invalid QR code format');
     }
   };
 
-  const cleanupScanner = () => {
-    if (html5QrcodeScannerRef.current) {
+  const tick = async () => {
+    if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
       try {
-        html5QrcodeScannerRef.current.clear();
-      } catch (error) {
-        console.warn('Error cleaning up QR scanner:', error);
+        const barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        const barcodes = await barcodeDetector.detect(videoRef.current);
+        if (barcodes.length > 0) {
+          handleScanSuccess(barcodes[0].rawValue);
+          return;
+        }
+      } catch (e) {
+        // softly ignore errors during continuous detection
       }
-      html5QrcodeScannerRef.current = null;
+    }
+    
+    if (isScanningRef.current) {
+      requestAnimationFrame(tick);
+    }
+  };
+
+  const cleanupScanner = () => {
+    isScanningRef.current = false;
+    setIsScanning(false);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
     }
   };
 
@@ -102,32 +98,35 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
     if (file) {
       try {
         setError('');
-        setIsScanning(true);
+        
+        if (!('BarcodeDetector' in window)) {
+          throw new Error('BarcodeDetector API is not supported by your browser.');
+        }
 
-        const html5QrCode = new Html5Qrcode("hidden-qr-reader");
+        const barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
 
-        // Scan the uploaded image
-        const qrCodeResult = await html5QrCode.scanFile(file, false);
-
-        // Clean up
-        html5QrCode.clear();
-
-        // Process the result
-        handleScanSuccess(qrCodeResult, {});
-
+        const barcodes = await barcodeDetector.detect(img);
+        if (barcodes.length > 0) {
+          handleScanSuccess(barcodes[0].rawValue);
+        } else {
+          setError('No QR code found in the image.');
+        }
       } catch (error) {
         console.error('Error scanning uploaded file:', error);
-        setError('Failed to scan QR code from image. Please ensure the image contains a valid QR code.');
-        setIsScanning(false);
+        setError(error.message || 'Failed to scan QR code from image.');
       }
     }
   };
 
   return (
     <div className="qr-scanner-modal">
-      {/* Hidden element for file scanning */}
-      <div id="hidden-qr-reader" style={{ display: 'none' }}></div>
-
       <div className="qr-scanner-content">
         <div className="qr-scanner-header">
           <h3>Scan QR Code</h3>
@@ -145,6 +144,19 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
                 <i className="fas fa-redo"></i>
                 Try Again
               </button>
+              <div className="qr-alternative" style={{ marginTop: '20px' }}>
+                <span>or</span>
+                <label className="qr-upload-btn">
+                  <i className="fas fa-upload"></i>
+                  Upload from Gallery
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
             </div>
           ) : !isScanning ? (
             <div className="qr-start-section">
@@ -173,7 +185,12 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
           ) : (
             <>
               <div className="qr-reader-container">
-                <div id="qr-reader" ref={scannerRef} className="qr-reader"></div>
+                <video 
+                  id="qr-reader" 
+                  ref={videoRef} 
+                  className="qr-reader" 
+                  style={{ width: '100%', borderRadius: '15px', objectFit: 'cover' }} 
+                />
               </div>
 
               <div className="qr-scanner-info">

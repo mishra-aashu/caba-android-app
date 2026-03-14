@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FaArrowLeft, FaHeart, FaShieldAlt, FaRocket, 
-  FaLayerGroup, FaEnvelope, FaCode, FaCheckCircle 
-} from 'react-icons/fa';
+  ArrowLeft, Heart, Shield, Rocket, 
+  Layers, Mail, Code, CheckCircle 
+} from 'lucide-react';
 import styles from './AdminAbout.module.css';
 
 const AdminAbout = () => {
@@ -18,14 +18,14 @@ const AdminAbout = () => {
       <div className={styles.contentWrapper}>
         <div className={styles.backHeader}>
           <button className={styles.backBtn} onClick={() => navigate(-1)} title="Go Back">
-            <FaArrowLeft />
+            <ArrowLeft size={20} />
           </button>
         </div>
 
         <section className={styles.heroSection}>
           <h1 className={styles.heroTitle}>ELEVENGRAM</h1>
           <p className={styles.authorTag}>
-            Created with <FaHeart style={{ color: '#ff4b2b', margin: '0 4px', filter: 'drop-shadow(0 0 5px #ff4b2b)' }} /> 
+            Created with <Heart size={16} fill="#ff4b2b" style={{ color: '#ff4b2b', margin: '0 4px', filter: 'drop-shadow(0 0 5px #ff4b2b)' }} /> 
             by Aashutosh Mishra | IIT Madras
           </p>
         </section>
@@ -33,7 +33,7 @@ const AdminAbout = () => {
         <div className={styles.grid}>
           {/* Card 0 */}
           <section className={styles.glassCard} style={{ '--index': 0 }}>
-            <div className={styles.cardIcon}><FaRocket /></div>
+            <div className={styles.cardIcon}><Rocket /></div>
             <h2>Our Story</h2>
             <p>
               ELEVENGRAM was born from a simple idea: to create a messaging app that feels personal, 
@@ -44,7 +44,7 @@ const AdminAbout = () => {
 
           {/* Card 1 */}
           <section className={styles.glassCard} style={{ '--index': 1 }}>
-            <div className={styles.cardIcon}><FaCode /></div>
+            <div className={styles.cardIcon}><Code /></div>
             <h2>The Developer</h2>
             <p>
               I'm <strong>Aashutosh Mishra</strong>, an IIT Madras student and the creator of ELEVENGRAM. This project is a 
@@ -55,21 +55,21 @@ const AdminAbout = () => {
 
           {/* Card 2 */}
           <section className={`${styles.glassCard} ${styles.wideCard}`} style={{ '--index': 2 }}>
-            <div className={styles.cardIcon}><FaLayerGroup /></div>
+            <div className={styles.cardIcon}><Layers /></div>
             <h2>Experience the Difference</h2>
             <ul className={styles.featureList}>
-              <li className={styles.featureItem}><FaCheckCircle /> End-to-end encryption</li>
-              <li className={styles.featureItem}><FaCheckCircle /> High-fidelity WebRTC calls</li>
-              <li className={styles.featureItem}><FaCheckCircle /> Ultra-fast real-time messaging</li>
-              <li className={styles.featureItem}><FaCheckCircle /> Fluid, elite animations</li>
-              <li className={styles.featureItem}><FaCheckCircle /> Seamless media sharing</li>
-              <li className={styles.featureItem}><FaCheckCircle /> Cross-platform perfection</li>
+              <li className={styles.featureItem}><CheckCircle size={16} /> End-to-end encryption</li>
+              <li className={styles.featureItem}><CheckCircle size={16} /> High-fidelity WebRTC calls</li>
+              <li className={styles.featureItem}><CheckCircle size={16} /> Ultra-fast real-time messaging</li>
+              <li className={styles.featureItem}><CheckCircle size={16} /> Fluid, elite animations</li>
+              <li className={styles.featureItem}><CheckCircle size={16} /> Seamless media sharing</li>
+              <li className={styles.featureItem}><CheckCircle size={16} /> Cross-platform perfection</li>
             </ul>
           </section>
 
           {/* Card 3 */}
           <section className={styles.glassCard} style={{ '--index': 3 }}>
-            <div className={styles.cardIcon}><FaShieldAlt /></div>
+            <div className={styles.cardIcon}><Shield /></div>
             <h2>Security First</h2>
             <p>Built with world-class encryption technologies for maximum privacy & scale.</p>
             <div className={styles.techTags}>
@@ -81,7 +81,7 @@ const AdminAbout = () => {
 
           {/* Card 4 */}
           <section className={styles.glassCard} style={{ '--index': 4 }}>
-            <div className={styles.cardIcon}><FaEnvelope /></div>
+            <div className={styles.cardIcon}><Mail /></div>
             <h2>Get in Touch</h2>
             <p>
               Have questions or feedback? I'd love to hear from you. 

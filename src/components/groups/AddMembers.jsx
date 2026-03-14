@@ -5,7 +5,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useData } from '../../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import { Search, Check, X, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -21,7 +22,7 @@ const AddMembers = ({
 }) => {
     const { user } = useAuth();
     const { useAddMembers } = useGroupActions();
-    const { contacts: cachedContacts } = useData();
+    const cachedContacts = useLiveQuery(() => db.contacts.toArray()) || [];
     const addMembersMutation = useAddMembers();
 
     const [searchQuery, setSearchQuery] = useState('');

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft } from 'react-icons/fa';
+import { ArrowLeft } from 'lucide-react';
 
 const LegalPlaceholder = ({ title, children }) => {
   const navigate = useNavigate();
@@ -9,7 +9,7 @@ const LegalPlaceholder = ({ title, children }) => {
       {/* Header with Back Button */}
       <div className="legal-page-header">
         <button className="legal-back-btn" onClick={() => navigate(-1)}>
-          <FaArrowLeft />
+          <ArrowLeft size={20} />
         </button>
       </div>
       

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { useData } from '../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
 import { dpOptions } from '../utils/dpOptions';
 
 /**
@@ -15,7 +16,7 @@ import { dpOptions } from '../utils/dpOptions';
  * @returns {string|null} Resolved avatar path/URL
  */
 export const useResolveAvatar = (userId, defaultAvatar = null) => {
-    const { contacts } = useData();
+    const contacts = useLiveQuery(() => db.contacts.toArray()) || [];
 
     return useMemo(() => {
         // Normalize input

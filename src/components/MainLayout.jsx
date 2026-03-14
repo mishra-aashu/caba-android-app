@@ -3,7 +3,10 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
-import { useData } from '../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
+import { useChatListRealtime } from '../hooks/useChatListRealtime';
+import { useContacts } from '../hooks/useCommonQueries';
 import useIsDesktop from '../hooks/useIsDesktop';
 import DesktopLayout from './DesktopLayout';
 import ChatListPanel from './ChatListPanel';
@@ -35,15 +38,12 @@ const MainLayout = () => {
     const location = useLocation();
     const isDesktop = useIsDesktop();
     const queryClient = useQueryClient();
-    const {
-        chats,
-        loading,
-        hasMoreChats,
-        loadingMore,
-        loadMoreChats,
-        refreshContacts,
-        contacts: savedContacts
-    } = useData();
+
+    const chats = useLiveQuery(() => db.chats_list.toArray(), []) || [];
+    const savedContacts = useLiveQuery(() => db.contacts.toArray(), []) || [];
+
+    const { loading, hasMoreChats, loadingMore, loadMoreChats } = useChatListRealtime(user?.id);
+    const { refetch: refreshContacts } = useContacts(user?.id);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);

@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, RefreshCw } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { ChatThemeProvider } from './contexts/ChatThemeProvider';
-import { DataProvider } from './contexts/DataProvider';
 import { GroupCallProvider } from './contexts/GroupCallProvider';
 import { Capacitor } from '@capacitor/core';
 import { Toaster } from 'react-hot-toast';
@@ -338,77 +337,75 @@ const App = () => {
     <Suspense fallback={<div className="loading" />}>
       <ErrorBoundary>
         <DialogProvider>
-          <DataProvider>
-            {/* FIX #3: Guard against null dbUser during auth loading */}
-            <GroupCallProvider currentUser={authLoading ? null : dbUser}>
-              {/* Layout utilities */}
-              <SafeAreaDebugger />
+          {/* FIX #3: Guard against null dbUser during auth loading */}
+          <GroupCallProvider currentUser={authLoading ? null : dbUser}>
+            {/* Layout utilities */}
+            <SafeAreaDebugger />
 
-              <OfflineIndicator>
-                <AppContent />
-              </OfflineIndicator>
+            <OfflineIndicator>
+              <AppContent />
+            </OfflineIndicator>
 
-              {/* FIX #4: Wrap each global lazy component in SafeSuspense
-                  so one failing component doesn't blank the entire app */}
-              <SafeSuspense>
-                <CallStatusIndicator />
-              </SafeSuspense>
+            {/* FIX #4: Wrap each global lazy component in SafeSuspense
+                so one failing component doesn't blank the entire app */}
+            <SafeSuspense>
+              <CallStatusIndicator />
+            </SafeSuspense>
 
-              <SafeSuspense>
-                <IncomingCallModal />
-              </SafeSuspense>
+            <SafeSuspense>
+              <IncomingCallModal />
+            </SafeSuspense>
 
-              <SafeSuspense>
-                <GroupIncomingCallNotification />
-              </SafeSuspense>
+            <SafeSuspense>
+              <GroupIncomingCallNotification />
+            </SafeSuspense>
 
-              <SyncIndicator />
+            <SyncIndicator />
 
-              {/* FIX #5: Use valid position value for react-hot-toast */}
-              <Toaster
-                position="bottom-center"
-                toastOptions={{
-                  duration: 3000,
-                  style: {
-                    maxWidth: '90vw',
-                  },
-                }}
-              />
+            {/* FIX #5: Use valid position value for react-hot-toast */}
+            <Toaster
+              position="bottom-center"
+              toastOptions={{
+                duration: 3000,
+                style: {
+                  maxWidth: '90vw',
+                },
+              }}
+            />
 
-              <GlobalDialog />
+            <GlobalDialog />
 
-              {/* Professional Auto-Refresh Notification */}
-              <AnimatePresence>
-                {needsRefresh && (
-                  <motion.div
-                    className={`auto-refresh-banner ${isRefreshing ? 'updating' : ''}`}
-                    initial={{ y: 100, x: '-50%', opacity: 0 }}
-                    animate={{ y: 0, x: '-50%', opacity: 1 }}
-                    exit={{ y: 100, x: '-50%', opacity: 0 }}
-                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                  >
-                    <div className="banner-content" onClick={!isRefreshing ? handleRefresh : undefined}>
-                      <div className="icon-container">
-                        {isRefreshing ? (
-                          <RefreshCw className="refresh-spinner" size={18} />
-                        ) : (
-                          <Sparkles className="sparkle-icon" size={18} />
-                        )}
-                      </div>
-                      <span className="refresh-text">
-                        {isRefreshing ? 'Updating to latest version...' : 'New update available! Tap to refresh'}
-                      </span>
+            {/* Professional Auto-Refresh Notification */}
+            <AnimatePresence>
+              {needsRefresh && (
+                <motion.div
+                  className={`auto-refresh-banner ${isRefreshing ? 'updating' : ''}`}
+                  initial={{ y: 100, x: '-50%', opacity: 0 }}
+                  animate={{ y: 0, x: '-50%', opacity: 1 }}
+                  exit={{ y: 100, x: '-50%', opacity: 0 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                >
+                  <div className="banner-content" onClick={!isRefreshing ? handleRefresh : undefined}>
+                    <div className="icon-container">
+                      {isRefreshing ? (
+                        <RefreshCw className="refresh-spinner" size={18} />
+                      ) : (
+                        <Sparkles className="sparkle-icon" size={18} />
+                      )}
                     </div>
-                    {!isRefreshing && (
-                      <button className="banner-close" onClick={handleDismiss} title="Dismiss">
-                        <X size={16} />
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </GroupCallProvider>
-          </DataProvider>
+                    <span className="refresh-text">
+                      {isRefreshing ? 'Updating to latest version...' : 'New update available! Tap to refresh'}
+                    </span>
+                  </div>
+                  {!isRefreshing && (
+                    <button className="banner-close" onClick={handleDismiss} title="Dismiss">
+                      <X size={16} />
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </GroupCallProvider>
         </DialogProvider>
       </ErrorBoundary>
     </Suspense>

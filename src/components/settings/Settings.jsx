@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useData } from '../../contexts/DataContext';
 import useAuthStore from '../../store/authStore';
 import { useAppVersions } from '../../hooks/useAppVersions';
 import { clearAllCachedData } from '../../utils/FileSystemManager';
@@ -77,7 +76,6 @@ const Settings = ({ isSidebar = false }) => {
     const { supabase } = useSupabase();
     const { theme, toggleTheme } = useTheme();
     const { showAlert, showConfirm } = useDialog();
-    const { clearInMemoryCache } = useData();
     const { data: dbVersionData } = useAppVersions();
     const baseUrl = import.meta.env.BASE_URL || '/';
 
@@ -284,7 +282,6 @@ const Settings = ({ isSidebar = false }) => {
         setClearingCache(true);
         try {
             await clearAllCachedData();
-            clearInMemoryCache();
             await calculateStorageUsage();
             toast.success('Cache cleared successfully');
         } catch {
@@ -292,7 +289,7 @@ const Settings = ({ isSidebar = false }) => {
         } finally {
             setClearingCache(false);
         }
-    }, [showConfirm, clearInMemoryCache]);
+    }, [showConfirm]);
 
     const deleteAccount = useCallback(async () => {
         const confirmed = await showConfirm(
@@ -327,7 +324,6 @@ const Settings = ({ isSidebar = false }) => {
             // Clear everything
             localStorage.clear();
             sessionStorage.clear();
-            clearInMemoryCache();
 
             toast.success('Account deleted');
             navigate('/login', { replace: true });
@@ -337,7 +333,7 @@ const Settings = ({ isSidebar = false }) => {
         } finally {
             setDeletingAccount(false);
         }
-    }, [supabase, showConfirm, clearInMemoryCache, navigate]);
+    }, [supabase, showConfirm, navigate]);
 
     const checkForUpdates = useCallback(async () => {
         setCheckingUpdate(true);

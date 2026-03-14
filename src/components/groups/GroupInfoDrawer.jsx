@@ -8,7 +8,7 @@ import { useGroupActions } from '../../hooks/useGroupActions';
 import MemberItem from './MemberItem';
 import AddMembersModal from './AddMembersModal';
 import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown, Calendar, User as UserIcon, Camera, Shield, Lock, MessageSquare, ArrowLeft, LoaderCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import dayjs from 'dayjs';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
 import useIsDesktop from '../../hooks/useIsDesktop';
@@ -230,7 +230,7 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
                 {activeGroup?.created_at && (
                   <p className="creation-date">
                     <Calendar size={14} />
-                    Created on {format(new Date(activeGroup.created_at), 'MMM d, yyyy')}
+                    Created on {dayjs(activeGroup.created_at).format('MMM D, YYYY')}
                   </p>
                 )}
                 {activeGroup?.creator?.name && (

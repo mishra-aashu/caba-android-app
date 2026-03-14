@@ -3,12 +3,11 @@ import { Virtuoso } from 'react-virtuoso';
 import MessageItem from './MessageItem';
 import TypingIndicator from './TypingIndicator';
 import useChatStore from '../../store/useChatStore';
-import { useInfiniteMessages } from '../../hooks/useMessages';
-import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import styles from '../../styles/chat.module.css';
 import { getStableMessageId } from '../../utils/messageHelpers';
 
 const VirtualizedMessageList = React.forwardRef(({
+  messages = [],
   currentUser,
   onReply,
   onForward,
@@ -16,7 +15,10 @@ const VirtualizedMessageList = React.forwardRef(({
   onEdit,
   onMediaView,
   onMediaDownload,
-  isLoading,
+  isLoading: isQueryLoading,
+  hasNextPage,
+  fetchNextPage,
+  isFetchingNextPage,
   isGroupChat,
   onSenderClick,
   onAcceptGame,
@@ -29,23 +31,7 @@ const VirtualizedMessageList = React.forwardRef(({
   onRangeChanged,
   chatId,
 }, ref) => {
-  const {
-    data,
-    isLoading: isQueryLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage
-  } = useInfiniteMessages(chatId);
-
-  useRealtimeMessages(chatId, {}, currentUser?.id);
-
   const isSelectionMode = useChatStore(state => state.isSelectionMode);
-
-  const messages = useMemo(() => {
-    if (!data) return [];
-    const allMsgs = data.pages.flatMap(page => page.data);
-    return [...allMsgs].reverse();
-  }, [data]);
 
   const lastReadMessageId = useMemo(() => {
     if (!messages.length || !currentUser?.id) return null;

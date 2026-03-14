@@ -40,13 +40,12 @@ import DropdownMenu from '../common/DropdownMenu';
 import Modal from '../common/Modal';
 import VirtualizedMessageList from './VirtualizedMessageList';
 import MessageInput from './MessageInput';
-import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
-import { useInfiniteMessages } from '../../hooks/useMessages';
 import { useGroupDetails } from '../../hooks/useGroupDetails';
-import { useQueryClient } from '@tanstack/react-query';
-import { useData } from '../../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { fetchMessagesPage, loadInitialMessagesIfNeeded } from '../../hooks/useMessages';
 import { messageReadsService } from '../../services/messageReadsService';
+import { useChatMessages } from '../../hooks/chat/useChatMessages';
 import ForwardModal from './ForwardModal';
 import GroupCallScreen from '../group/GroupCallScreen';
 import GroupInfoDrawer from '../groups/GroupInfoDrawer';
@@ -56,7 +55,6 @@ import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
 import useIsDesktop from '../../hooks/useIsDesktop';
 import useChatStore, { selectRoomScrollPosition } from '../../store/useChatStore';
-import { useDeleteMessage } from '../../hooks/useDeleteMessage';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import ImageViewer from './ImageViewer';
 import MediaViewer from '../media/MediaViewer';
@@ -83,37 +81,48 @@ const GroupChat = () => {
     const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
     const { initializeGroupCall, joinGroupCall, leaveGroupCall } = useGroupCall();
     const isDesktop = useIsDesktop();
-    const queryClient = useQueryClient();
-    const { chats: allChats } = useData();
+    const allChats = useLiveQuery(() => db.chats_list.toArray()) || [];
     const { showGroupInfo } = React.useContext(UserDetailsContext) || {};
 
     // Store actions
     const saveScrollPosition = useChatStore(state => state.saveScrollPosition);
     const initialScrollPosition = useChatStore(selectRoomScrollPosition(validChatId));
 
-    // Delete Mutation
+    // Delete Mutation (Assuming useDeleteMessage takes care of Dexie + Supabase now, if not we fall back)
     const { mutate: deleteMessageMutation } = useDeleteMessage(validChatId);
 
     // Group Details
     const { data: groupDetails, isLoading: isGroupLoading, error: groupError } = useGroupDetails(validChatId);
 
-    // Messages Pagination
-    const {
-        data: infiniteData,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
-        isLoading: isMessagesLoading
-    } = useInfiniteMessages(validChatId);
+    // Messages Pagination with Dexie
+    const limit = 50;
+    const rawMessages = useLiveQuery(
+        () => db.messages.where('chat_id').equals(validChatId).reverse().sortBy('created_at'),
+        [validChatId]
+    ) || [];
 
-    // Derive messages from infinite data
     const messages = useMemo(() => {
-        if (!infiniteData?.pages) return [];
-        const allMsgs = infiniteData.pages.flatMap(page => page.data);
-        // Important: VirtualizedMessageList usually expects them in order, 
-        // but let's check what it expects. Usually it's reversed for infinite scroll.
-        return [...allMsgs].reverse();
-    }, [infiniteData]);
+        return rawMessages.map(msg => dbToFrontend(msg));
+    }, [rawMessages]);
+
+    useEffect(() => {
+        if (validChatId) {
+            loadInitialMessagesIfNeeded(validChatId);
+        }
+    }, [validChatId]);
+
+    const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+    const hasNextPage = rawMessages.length > 0 && rawMessages.length % limit === 0;
+
+    const fetchNextPage = useCallback(async () => {
+        if (!hasNextPage || isFetchingNextPage) return;
+        setIsFetchingNextPage(true);
+        const lastMsg = rawMessages[rawMessages.length - 1];
+        await fetchMessagesPage({ chatId: validChatId, beforeTimestamp: lastMsg.created_at, limit });
+        setIsFetchingNextPage(false);
+    }, [validChatId, hasNextPage, isFetchingNextPage, rawMessages]);
+
+    const isMessagesLoading = rawMessages.length === 0;
 
     const [group, setGroup] = useState(() => {
         const state = location.state;
@@ -282,29 +291,24 @@ const GroupChat = () => {
             status: navigator.onLine ? 'sending' : 'pending'
         };
 
-        const tempMessage = { ...dbToFrontend(dbData), sender: currentUser, id: tempId, tempId };
+        const tempMessage = { ...dbToFrontend(dbData), sender: currentUser, id: `temp_${tempId}`, tempId };
 
-        // Optimistic Update
-        queryClient.setQueryData(['messages', validChatId], (old) => {
-            if (!old) return { pages: [{ data: [tempMessage] }], pageParams: [null] };
-            const newPages = [...old.pages];
-            newPages[0] = { ...newPages[0], data: [tempMessage, ...newPages[0].data] };
-            return { ...old, pages: newPages };
-        });
+        // Optimistic Update to Dexie
+        try {
+            await db.messages.put({ ...dbData, id: `temp_${tempId}`, tempId });
+        } catch (e) {
+            console.error('Optimistic local insert failed', e);
+        }
 
         try {
             if (navigator.onLine) {
                 const { data, error } = await supabase.from('messages').insert(dbData).select().single();
                 if (error) throw error;
 
-                // Replace temp message with real one
-                queryClient.setQueryData(['messages', validChatId], (old) => {
-                    if (!old) return old;
-                    const newPages = old.pages.map(page => ({
-                        ...page,
-                        data: page.data.map(m => m.tempId === tempId ? { ...dbToFrontend(data), sender: currentUser } : m)
-                    }));
-                    return { ...old, pages: newPages };
+                // Replace temp message with real one safely using a transaction
+                await db.transaction('rw', db.messages, async () => {
+                    await db.messages.delete(`temp_${tempId}`).catch(() => {});
+                    await db.messages.put(data);
                 });
             } else {
                 await addToSyncQueue('send_message', { ...dbData, tempId });
@@ -312,7 +316,7 @@ const GroupChat = () => {
         } catch (e) {
             toast.error('Send failed');
             // Rollback optimistic update
-            queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
+            await db.messages.delete(`temp_${tempId}`).catch(() => {});
         }
     };
 
@@ -332,15 +336,12 @@ const GroupChat = () => {
         };
 
         const previewUrl = isFile ? URL.createObjectURL(fileOrPath) : fileOrPath;
-        const tempMessage = { ...dbToFrontend(dbData), sender: currentUser, id: tempId, tempId, media_url: previewUrl };
+        const tempMessage = { ...dbToFrontend(dbData), sender: currentUser, id: `temp_${tempId}`, tempId, media_url: previewUrl };
 
-        // Optimistic Update
-        queryClient.setQueryData(['messages', validChatId], (old) => {
-            if (!old) return { pages: [{ data: [tempMessage] }], pageParams: [null] };
-            const newPages = [...old.pages];
-            newPages[0] = { ...newPages[0], data: [tempMessage, ...newPages[0].data] };
-            return { ...old, pages: newPages };
-        });
+        // Optimistic Update to Dexie
+        try {
+            await db.messages.put({ ...dbData, id: `temp_${tempId}`, tempId, media_url: previewUrl });
+        } catch(e) { /* ignore */}
 
         try {
             await addToSyncQueue('send_message', { ...dbData, tempId, file: isFile ? fileOrPath : null });
@@ -348,7 +349,7 @@ const GroupChat = () => {
         } catch (e) {
             toast.error('Media upload failed');
             // Rollback
-            queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
+            await db.messages.delete(`temp_${tempId}`).catch(() => {});
         }
     };
 
@@ -444,21 +445,16 @@ const GroupChat = () => {
         exitSelectionMode();
 
         try {
-            // Optimistic update for multiple deletion (optional, but good for UX)
-            queryClient.setQueryData(['messages', validChatId], (old) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    pages: old.pages.map(page => ({
-                        ...page,
-                        data: page.data.map(m => ids.includes(m.id) ? { ...m, is_deleted: true, isDeleted: true } : m)
-                    }))
-                };
-            });
+            // Optimistic update for multiple deletion in Dexie
+            let previousMessages = [];
+            try {
+                previousMessages = await db.messages.where('id').anyOf(ids).toArray();
+                await db.messages.where('id').anyOf(ids).delete();
+            } catch(e){}
 
             const { error } = await supabase
                 .from('messages')
-                .update({ is_deleted: true })
+                .delete()
                 .in('id', ids);
 
             if (error) throw error;
@@ -466,7 +462,11 @@ const GroupChat = () => {
         } catch (error) {
             console.error('Error deleting messages:', error);
             toast.error('Failed to delete messages');
-            queryClient.invalidateQueries({ queryKey: ['messages', validChatId] });
+            if (previousMessages.length > 0) {
+              try {
+                  await db.messages.bulkPut(previousMessages);
+              } catch(e){}
+            }
         }
     };
 

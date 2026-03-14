@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
-import { useData } from '../../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import Modal from '../common/Modal';
 import DpPicker from '../common/DpPicker';
@@ -23,7 +24,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
 
   const createGroupMutation = useCreateGroup();
 
-  const { contacts: cachedContacts } = useData();
+  const cachedContacts = useLiveQuery(() => db.contacts.toArray()) || [];
   const [step, setStep] = useState(1); // 1: Select members, 2: Group info
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState([]);

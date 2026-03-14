@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
-import { useData } from '../contexts/DataContext';
 import { useUserFullProfile } from '../hooks/useUserFullProfile';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
 import { useCall } from '../contexts/CallContext';
 import useAuthStore from '../store/authStore';
 import { dpOptions } from '../utils/dpOptions';
@@ -29,7 +30,6 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     const userId = propUserId || paramUserId;
     const navigate = useNavigate();
     const { supabase } = useSupabase();
-    const { refreshContacts } = useData();
     const { startCall } = useCall();
     const queryClient = useQueryClient();
     const currentUser = useAuthStore((state) => state.dbUser);
@@ -239,7 +239,6 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             if (error) throw error;
 
             invalidateProfile();
-            refreshContacts();
             toast.success('Contact added');
         } catch (err) {
             toast.error('Failed to add contact');
@@ -326,7 +325,6 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 if (error) throw error;
             }
             invalidateProfile();
-            refreshContacts();
             setShowEditContactModal(false);
             toast.success('Contact updated');
         } catch (err) {
@@ -422,7 +420,6 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
             setShowDeleteModal(false);
             invalidateProfile();
-            refreshContacts();
             toast.success('Deleted successfully');
             navigate('/');
         } catch (err) {

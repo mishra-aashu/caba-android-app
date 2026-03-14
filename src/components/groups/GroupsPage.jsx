@@ -10,7 +10,6 @@ import { useGroupActions } from '../../hooks/useGroupActions';
 import GroupInfoDrawer from './GroupInfoDrawer';
 import CreateGroupModal from './CreateGroupModal';
 import { Users, Search, Plus, MoreVertical, MessageCircle } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import './GroupsPage.css';
 
 const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {

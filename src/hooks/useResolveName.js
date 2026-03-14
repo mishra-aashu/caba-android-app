@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { useData } from '../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
 
 /**
  * useResolveName - Custom hook to resolve saved contact names globally
@@ -13,7 +14,7 @@ import { useData } from '../contexts/DataContext';
  * @returns {string} The resolved name
  */
 export const useResolveName = (userId, defaultName = null) => {
-    const { contacts } = useData();
+    const contacts = useLiveQuery(() => db.contacts.toArray()) || [];
 
     return useMemo(() => {
         if (!userId) return defaultName || 'Unknown';

@@ -8,7 +8,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDialog } from '../../contexts/DialogContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { useData } from '../../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useChatStore, { selectRoomScrollPosition } from '../../store/useChatStore';
 // FIX: Missing toast import — was causing runtime crash
@@ -30,7 +31,9 @@ const useChatRoom = (options = {}) => {
   const queryClient = useQueryClient();
   const { user: currentUser, loading: authLoading, isAuthenticated } = useAuth();
   const { showAlert } = useDialog();
-  const { chats: allChats, loading: isDataLoading } = useData();
+  const rawChats = useLiveQuery(() => db.chats_list.toArray());
+  const allChats = rawChats || [];
+  const isDataLoading = rawChats === undefined;
   const { supabase } = useSupabase();
 
   // ─── ROUTING & IDENTITY ───

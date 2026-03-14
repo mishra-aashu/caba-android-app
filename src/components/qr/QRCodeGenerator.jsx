@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import QRCode from 'react-qrcode-logo';
+import React, { useEffect, useState, useRef } from 'react';
+import qrcode from 'qrcode';
 import { useDialog } from '../../contexts/DialogContext';
 import './QRCodeGenerator.css';
 
@@ -10,6 +10,7 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
   const [selectedStyle, setSelectedStyle] = useState('classic');
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const canvasRef = useRef(null);
 
   const qrStyles = {
     classic: { fgColor: '#000000', bgColor: '#FFFFFF', eyeRadius: 0 },
@@ -28,6 +29,23 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
   };
 
   const qrData = JSON.stringify(userData);
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      qrcode.toCanvas(canvasRef.current, qrData, {
+        width: 160,
+        margin: 1,
+        color: {
+          dark: qrStyles[selectedStyle].fgColor,
+          light: qrStyles[selectedStyle].bgColor
+        }
+      }, (err) => {
+        if (err) console.error(err);
+      });
+    }
+  }, [qrData, selectedStyle]);
+
+
 
   // Swipe functionality
   const minSwipeDistance = 50;
@@ -128,7 +146,7 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
                     ‹
                   </button>
 
-                  <div
+                    <div
                     className="qr-swiper-container"
                     onTouchStart={onTouchStart}
                     onTouchMove={onTouchMove}
@@ -137,22 +155,7 @@ const QRCodeGenerator = ({ userId, userName, userPhone, onDownload, onClose }) =
                     tabIndex={0}
                   >
                     <div className="qr-swiper-content">
-                      <QRCode
-                        value={qrData}
-                        size={160}
-                        fgColor={qrStyles[selectedStyle].fgColor}
-                        bgColor={qrStyles[selectedStyle].bgColor}
-                        qrStyle="squares"
-                        eyeRadius={qrStyles[selectedStyle].eyeRadius}
-                        eyeColor={qrStyles[selectedStyle].fgColor}
-                        logoImage=""
-                        logoWidth={30}
-                        logoHeight={30}
-                        logoOpacity={0.8}
-                        removeQrCodeBehindLogo={true}
-                        logoPadding={3}
-                        logoPaddingStyle="circle"
-                      />
+                      <canvas ref={canvasRef} />
                       <div className="qr-style-name">
                         {selectedStyle.charAt(0).toUpperCase() + selectedStyle.slice(1)}
                       </div>

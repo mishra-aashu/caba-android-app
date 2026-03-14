@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useData } from '../../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import { useGroupDetails } from '../../hooks/useGroupDetails';
 import useUserStore from '../../store/userStore';
 
@@ -16,7 +17,7 @@ export function useChatParticipant({
   currentUser,
 }) {
   const location = useLocation();
-  const { chats: allChats } = useData();
+  const allChats = useLiveQuery(() => db.chats_list.toArray()) || [];
   const { data: groupDetails } = useGroupDetails(isGroupChat ? chatId : null);
 
   const [otherUser, setOtherUser] = useState(() => {

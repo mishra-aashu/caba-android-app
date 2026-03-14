@@ -1,11 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
-import { useInfiniteMessages } from '../../hooks/useMessages';
+import { fetchMessagesPage, loadInitialMessagesIfNeeded } from '../../hooks/useMessages';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useDeleteMessage } from '../../hooks/useDeleteMessage';
 import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
 import { db, addToSyncQueue } from '../../db/db';
+import { useLiveQuery } from 'dexie-react-hooks';
 import toast from 'react-hot-toast';
 import hapticsManager from '../../utils/hapticsManager';
 import { useNavigate } from 'react-router-dom';
@@ -30,25 +30,36 @@ export function useChatMessages({
   onNewMessage,
 }) {
   const { supabase } = useSupabase();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [replyingTo, setReplyingTo] = useState(null);
 
-  // ─── PAGINATION ───
-  const {
-    data: infiniteData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isMessagesLoading,
-  } = useInfiniteMessages(chatId);
+  // ─── DEXIE LIVE QUERY ───
+  const limit = 50;
+  const rawMessages = useLiveQuery(
+    () => db.messages.where('chat_id').equals(chatId).reverse().sortBy('created_at'),
+    [chatId]
+  ) || [];
 
-  // Flatten messages for UI (reverse to chronological order)
   const messages = useMemo(() => {
-    if (!infiniteData?.pages) return [];
-    const allMsgs = infiniteData.pages.flatMap((page) => page.data);
-    return [...allMsgs].reverse();
-  }, [infiniteData]);
+    return rawMessages.map(msg => dbToFrontend(msg));
+  }, [rawMessages]);
+
+  useEffect(() => {
+    loadInitialMessagesIfNeeded(chatId);
+  }, [chatId]);
+
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+  const hasNextPage = rawMessages.length > 0 && rawMessages.length % limit === 0;
+
+  const fetchNextPage = useCallback(async () => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    setIsFetchingNextPage(true);
+    const lastMsg = rawMessages[rawMessages.length - 1];
+    await fetchMessagesPage({ chatId, beforeTimestamp: lastMsg.created_at, limit });
+    setIsFetchingNextPage(false);
+  }, [chatId, hasNextPage, isFetchingNextPage, rawMessages]);
+
+  const isMessagesLoading = rawMessages.length === 0;
 
   // ─── REALTIME ───
   const { status: connectionStatus, retry: retryConnection } = useRealtimeMessages(
@@ -68,27 +79,20 @@ export function useChatMessages({
     async (selectedIds, callback) => {
       if (!selectedIds?.length) return;
 
-      const previousData = queryClient.getQueryData(['messages', chatId]);
-
-      // Optimistic update
-      queryClient.setQueryData(['messages', chatId], (old) => {
-        if (!old) return old;
-        const idSet = new Set(selectedIds);
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            data: page.data.map((m) =>
-              idSet.has(m.id) ? { ...m, is_deleted: true, isDeleted: true } : m
-            ),
-          })),
-        };
-      });
+      // Optimistic update - hard delete in Dexie
+      // We don't rollback this block because we want it gone immediately, and it will be resynced if Supabase fails (by refetching) or we just accept the risk of it being out of sync briefly.
+      let previousMessages = [];
+      try {
+        previousMessages = await db.messages.where('id').anyOf(selectedIds).toArray();
+        await db.messages.where('id').anyOf(selectedIds).delete();
+      } catch (e) {
+        console.error('Optimistic local delete failed', e);
+      }
 
       try {
         const { data, error } = await supabase
           .from('messages')
-          .update({ is_deleted: true })
+          .delete()
           .in('id', selectedIds)
           .select('id');
 
@@ -97,45 +101,43 @@ export function useChatMessages({
           throw new Error('Deletion failed — likely RLS block');
         }
 
-        await db.messages.where('id').anyOf(selectedIds).delete();
-
         if (callback) callback();
         toast.success('Messages deleted');
       } catch (error) {
         console.error('Error deleting messages:', error);
-        queryClient.setQueryData(['messages', chatId], previousData);
+        // Rollback optimistic update
+        if (previousMessages.length > 0) {
+            try {
+              await db.messages.bulkPut(previousMessages);
+            } catch (e) {
+               // Ignore
+            }
+        }
         toast.error(error.message || 'Failed to delete messages');
       }
     },
-    [chatId, supabase, queryClient]
+    [chatId, supabase]
   );
 
   const clearChat = useCallback(async () => {
     if (isNewChat) return;
 
-    const previousData = queryClient.getQueryData(['messages', chatId]);
-
-    queryClient.setQueryData(['messages', chatId], {
-      pages: [{ data: [], nextCursor: null }],
-      pageParams: [null],
-    });
-
     try {
+      await db.messages.where('chat_id').equals(chatId).delete();
+      
       const { error } = await supabase
         .from('messages')
-        .update({ is_deleted: true })
+        .delete()
         .eq('chat_id', chatId);
 
       if (error) throw error;
 
-      await db.messages.where('chat_id').equals(chatId).delete();
       toast.success('Chat cleared');
     } catch (error) {
       console.error('Error clearing chat:', error);
-      queryClient.setQueryData(['messages', chatId], previousData);
       toast.error('Failed to clear chat');
     }
-  }, [chatId, isNewChat, supabase, queryClient]);
+  }, [chatId, isNewChat, supabase]);
 
   // ─── SENDING ───
   const sendMessage = useCallback(
@@ -163,21 +165,6 @@ export function useChatMessages({
         sender: currentUser,
         tempId,
       };
-
-      // Optimistic insert
-      queryClient.setQueryData(['messages', chatId], (old) => {
-        if (!old)
-          return {
-            pages: [{ data: [optimisticMsg], nextCursor: null }],
-            pageParams: [null],
-          };
-        return {
-          ...old,
-          pages: old.pages.map((page, i) =>
-            i === 0 ? { ...page, data: [optimisticMsg, ...page.data] } : page
-          ),
-        };
-      });
 
       setReplyingTo(null);
       hapticsManager.impact();
@@ -208,27 +195,10 @@ export function useChatMessages({
 
         // Handle transition from 'new' chat
         if (isNewChat) {
-          queryClient.setQueryData(['messages', data.chat_id], {
-            pages: [{ data: [finalMsg], nextCursor: null }],
-            pageParams: [null],
-          });
+          await db.messages.put(data);
           navigate(`/chat/${data.chat_id}/${otherUserId}`, { replace: true });
           return data;
         }
-
-        // Replace optimistic with real
-        queryClient.setQueryData(['messages', chatId], (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              data: page.data.map((msg) =>
-                msg.tempId === tempId ? finalMsg : msg
-              ),
-            })),
-          };
-        });
 
         // FIX: Use transaction with .put() for safety
         await db.transaction('rw', db.messages, async () => {
@@ -246,7 +216,7 @@ export function useChatMessages({
     },
     [
       chatId, otherUserId, isGroupChat, isNewChat,
-      currentUser, replyingTo, supabase, queryClient, navigate,
+      currentUser, replyingTo, supabase, navigate,
     ]
   );
 
@@ -266,16 +236,9 @@ export function useChatMessages({
     }
 
     // Optimistic update
-    queryClient.setQueryData(['messages', chatId], (old) => {
-      if (!old) return old;
-      return {
-        ...old,
-        pages: old.pages.map(page => ({
-          ...page,
-          data: page.data.map(m => m.id === messageId ? { ...m, metadata: newMetadata } : m)
-        }))
-      };
-    });
+    try {
+      await db.messages.update(messageId, { metadata: newMetadata });
+    } catch(e) { /* ignore */ }
 
     try {
       const { error } = await supabase
@@ -284,23 +247,15 @@ export function useChatMessages({
         .eq('id', messageId);
 
       if (error) throw error;
-      await db.messages.update(messageId, { metadata: newMetadata });
     } catch (error) {
       console.error('Error toggling reaction:', error);
       // Rollback
-      queryClient.setQueryData(['messages', chatId], (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map(page => ({
-            ...page,
-            data: page.data.map(m => m.id === messageId ? { ...m, metadata: currentMetadata } : m)
-          }))
-        };
-      });
+      try {
+        await db.messages.update(messageId, { metadata: currentMetadata });
+      } catch(e) { /* ignore */ }
       toast.error('Failed to update reaction');
     }
-  }, [chatId, currentUser, messages, supabase, queryClient]);
+  }, [currentUser, messages, supabase]);
 
   return {
     messages,

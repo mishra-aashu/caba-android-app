@@ -1,20 +1,26 @@
-import { set, get, del } from 'idb-keyval';
+import Dexie from 'dexie';
+
+const persisterDb = new Dexie('ReactQueryPersister');
+persisterDb.version(1).stores({
+  keyval: 'key'
+});
 
 /**
  * Creates an IndexedDB persister for TanStack Query
- * Uses idb-keyval for async IndexedDB operations
+ * Uses Dexie for async IndexedDB operations
  * @param {string} idbValidKey - The key to use in IndexedDB
  */
 export const createIDBPersister = (idbValidKey = 'reactQueryClient') => {
   return {
     persistClient: async (client) => {
-      await set(idbValidKey, client);
+      await persisterDb.keyval.put({ key: idbValidKey, val: client });
     },
     restoreClient: async () => {
-      return await get(idbValidKey);
+      const record = await persisterDb.keyval.get(idbValidKey);
+      return record ? record.val : undefined;
     },
     removeClient: async () => {
-      await del(idbValidKey);
+      await persisterDb.keyval.delete(idbValidKey);
     },
   };
 };

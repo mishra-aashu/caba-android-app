@@ -1,9 +1,25 @@
-import React from 'react';
-import QRCode from "react-qr-code";
+import React, { useEffect, useRef } from 'react';
+import qrcode from 'qrcode';
 import './UserQRCode.css';
 
 const UserQRCode = ({ userId, publicKey, userName }) => {
     const qrValue = `caba://add?id=${userId}&key=${publicKey}`;
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        if (canvasRef.current) {
+            qrcode.toCanvas(canvasRef.current, qrValue, {
+                width: 200,
+                margin: 0,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            }, (err) => {
+                if (err) console.error(err);
+            });
+        }
+    }, [qrValue]);
 
     return (
         <div className="user-qr-card">
@@ -19,13 +35,7 @@ const UserQRCode = ({ userId, publicKey, userName }) => {
 
             <div className="user-qr-container">
                 <div className="qr-wrapper shadow-premium">
-                    <QRCode
-                        value={qrValue}
-                        size={200}
-                        level="H"
-                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                        viewBox={`0 0 256 256`}
-                    />
+                    <canvas ref={canvasRef} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
                     {/* Logo Overlay */}
                     <div className="qr-logo-overlay">
                         <div className="logo-inner">

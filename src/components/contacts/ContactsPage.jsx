@@ -14,9 +14,9 @@ import {
     UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSupabase } from '../../contexts/SupabaseContext';
-import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import { dpOptions } from '../../utils/dpOptions';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
@@ -26,9 +26,11 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
     const { supabase } = useSupabase();
     const { user } = useAuth();
     const { showConfirm } = useDialog();
-    const { contacts: baseContacts, refreshContacts } = useData();
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+
+    const baseContacts = useLiveQuery(() => db.contacts.toArray(), []) || [];
+    const refreshContacts = () => queryClient.invalidateQueries({ queryKey: ['contacts', user?.id] });
 
     const [showContactForm, setShowContactForm] = useState(false);
     const [contactName, setContactName] = useState('');

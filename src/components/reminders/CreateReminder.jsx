@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useAuthStore from '../../store/authStore';
-import { useData } from '../../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import { useDialog } from '../../contexts/DialogContext';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -93,7 +94,8 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
   const { supabase } = useSupabase();
   const currentUser = useAuthStore((state) => state.dbUser);
   const { showAlert, showConfirm } = useDialog();
-  const { contacts: cachedContacts, chats: cachedChats } = useData();
+  const cachedContacts = useLiveQuery(() => db.contacts.toArray()) || [];
+  const cachedChats = useLiveQuery(() => db.chats_list.toArray()) || [];
   const queryClient = useQueryClient();
 
   // Form state

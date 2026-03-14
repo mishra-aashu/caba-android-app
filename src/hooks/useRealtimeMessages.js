@@ -1,9 +1,9 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { realtimeManager } from '../utils/realtimeManager';
 import { supabase } from '../config/supabase';
 import useUserStore from '../store/userStore';
 import { safeDbConversion } from '../utils/dbFieldMapping';
+import { db } from '../db/db';
 
 function enrichSender(senderId) {
   const cached = useUserStore.getState().getUser(senderId);
@@ -21,8 +21,6 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
   const lastMessageRef = useRef(null);
   const catchUpTimerRef = useRef(null);
   const mountedRef = useRef(true);
-
-  const queryClient = useQueryClient();
 
   // Keep refs in sync to prevent stale closures
   useEffect(() => {
@@ -77,102 +75,55 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
       _log('Realtime INSERT', { id });
       const frontendMsg = safeDbConversion(newRecord);
 
-      // Fetch sender info
-      const sender = await useUserStore.getState().fetchUserIfNeeded(frontendMsg.senderId);
+      const senderId = frontendMsg.senderId || frontendMsg.sender_id;
+      const sender = await useUserStore.getState().fetchUserIfNeeded(senderId);
 
       const enrichedMsg = {
         ...frontendMsg,
-        sender: sender || enrichSender(frontendMsg.senderId),
+        sender: sender || enrichSender(senderId),
       };
 
-      // ── FIX: Reconcile optimistic messages using client_id ──
-      const clientId = newRecord?.client_id;
+      const finalMsg = {
+        ...newRecord, // Store in db with DB casing
+        tempId: newRecord.client_id || undefined,
+      };
 
-      queryClient.setQueryData(['messages', chatIdRef.current], (old) => {
-        if (!old) return old;
-
-        const allMessages = old.pages.flatMap((p) => p.data);
-
-        // Standard id-based dedup
-        if (allMessages.some((m) => m.id === enrichedMsg.id)) return old;
-
-        // FIX: Check for optimistic message by client_id / tempId
-        if (clientId) {
-          const hasOptimistic = allMessages.some(
-            (m) =>
-              m.tempId === clientId ||
-              m.tempId === Number(clientId) ||
-              m.clientId === clientId
-          );
-
-          if (hasOptimistic) {
-            // Replace optimistic message with real one
-            return {
-              ...old,
-              pages: old.pages.map((page) => ({
-                ...page,
-                data: page.data.map((m) =>
-                  m.tempId === clientId ||
-                  m.tempId === Number(clientId) ||
-                  m.clientId === clientId
-                    ? enrichedMsg
-                    : m
-                ),
-              })),
-            };
+      try {
+        await db.transaction('rw', db.messages, async () => {
+          if (newRecord.client_id) {
+            await db.messages.delete(`temp_${newRecord.client_id}`).catch(() => {});
           }
-        }
-
-        // New message — prepend to first page
-        return {
-          ...old,
-          pages: old.pages.map((page, i) =>
-            i === 0
-              ? { ...page, data: [enrichedMsg, ...page.data] }
-              : page
-          ),
-        };
-      });
+          await db.messages.put(finalMsg);
+        });
+      } catch (err) {
+        console.error('Failed to save realtime msg to Dexie', err);
+      }
 
       if (mountedRef.current && handlersRef.current.onNewMessage) {
         handlersRef.current.onNewMessage(enrichedMsg);
       }
     } else if (eventType === 'UPDATE' && newRecord) {
-      const updatedMsg = safeDbConversion(newRecord);
-
-      queryClient.setQueryData(['messages', chatIdRef.current], (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            data: page.data.map((msg) =>
-              msg.id === updatedMsg.id ? { ...msg, ...updatedMsg } : msg
-            ),
-          })),
-        };
-      });
+      try {
+        await db.messages.update(newRecord.id, newRecord);
+      } catch (err) {
+        console.error('Failed to update realtime msg in Dexie', err);
+      }
 
       if (mountedRef.current && handlersRef.current.onUpdateMessage) {
-        handlersRef.current.onUpdateMessage(updatedMsg);
+        handlersRef.current.onUpdateMessage(newRecord);
       }
-    } else if (eventType === 'DELETE' && oldRecord?.id) {
-      queryClient.setQueryData(['messages', chatIdRef.current], (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            data: page.data.filter((msg) => msg.id !== oldRecord.id),
-          })),
-        };
-      });
+    } else if (eventType === 'DELETE' && oldRecord) {
+      try {
+        await db.messages.delete(oldRecord.id);
+      } catch (err) {
+        console.error('Failed to delete realtime msg from Dexie', err);
+      }
 
-      if (handlersRef.current.onDeleteMessage) {
+      if (mountedRef.current && handlersRef.current.onDeleteMessage) {
         handlersRef.current.onDeleteMessage(oldRecord.id);
       }
     }
-  }, [queryClient, _log]);
+  }, [_log]);
 
   /**
    * Catch-up: fetch missed messages anchored to last known message
@@ -239,32 +190,16 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             useUserStore.getState().getUser(m.senderId) || enrichSender(m.senderId),
         }));
 
-        // FIX: Better catch-up merge — deduplicate properly
-        queryClient.setQueryData(['messages', currentChatId], (old) => {
-          if (!old) return old;
-
-          const existingIds = new Set(
-            old.pages.flatMap((p) => p.data.map((m) => m.id))
-          );
-          const newMsgs = enriched.filter((m) => !existingIds.has(m.id));
-
-          if (newMsgs.length === 0) return old;
-
-          // Prepend new messages to first page
-          return {
-            ...old,
-            pages: old.pages.map((page, i) =>
-              i === 0
-                ? { ...page, data: [...newMsgs, ...page.data] }
-                : page
-            ),
-          };
-        });
+        try {
+          await db.messages.bulkPut(data); // Insert all raw missed messages
+        } catch (err) {
+          console.error('Failed to catch up messages in Dexie', err);
+        }
 
         handlersRef.current.onCatchup(enriched);
       }
     }
-  }, [queryClient, _log]);
+  }, [_log]);
 
   const retry = useCallback(() => {
     if (!chatIdRef.current || chatIdRef.current === 'new') return;

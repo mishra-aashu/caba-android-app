@@ -255,26 +255,7 @@
   transform: translateY(-1px);
 }
 
-/* Override html5-qrcode library styles */
-.qr-scanner-content #qr-reader {
-  border: none;
-  border-radius: 15px;
-  overflow: hidden;
-}
 
-.qr-scanner-content #qr-reader__dashboard {
-  display: none;
-}
-
-.qr-scanner-content #qr-reader__camera_permission_button {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 12px 24px;
-  font-size: 14px;
-  font-weight: 600;
-}
 
 /* Custom scanner overlay */
 .qr-reader::before {

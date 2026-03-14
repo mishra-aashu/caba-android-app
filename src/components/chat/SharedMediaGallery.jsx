@@ -10,7 +10,8 @@ import { formatChatDivider } from '../../utils/dateFormatter';
 import ImageViewer from './ImageViewer';
 import MediaViewer from '../media/MediaViewer';
 import { motion } from 'framer-motion';
-import { useData } from '../../contexts/DataContext';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import ForwardModal from './ForwardModal';
 import toast from 'react-hot-toast';
 import styles from './SharedMediaGallery.module.css';
@@ -34,7 +35,7 @@ const SharedMediaGallery = () => {
 
     const [showForwardModal, setShowForwardModal] = useState(false);
     const [messagesToForward, setMessagesToForward] = useState([]);
-    const { chats: allChats } = useData();
+    const allChats = useLiveQuery(() => db.chats_list.toArray()) || [];
     const { supabase } = useSupabase();
 
     // Sync initial media to local state

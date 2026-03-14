@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { realtimeManager } from '../utils/realtimeManager';
 import { initializeFileSystem, loadChatsFromDevice, saveChatsToDevice } from '../utils/FileSystemManager';
 import { isUserOnline } from '../utils/dateFormatter';
 import { normalizeChat } from '../utils/chatHelpers';
+import { db } from '../db/db';
 
 // Fetch chat list function for React Query - Unified (chats + groups)
 const fetchChatList = async ({ supabase, userId }) => {
@@ -49,8 +49,6 @@ const fetchChatList = async ({ supabase, userId }) => {
 
 export const useChatListRealtime = (currentUserId) => {
     const { supabase } = useSupabase();
-    const queryClient = useQueryClient();
-    const [chats, setChats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [hasMoreChats, setHasMoreChats] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -59,15 +57,27 @@ export const useChatListRealtime = (currentUserId) => {
         console.log(`[RT] ${message}`, { userId: currentUserId, ...detail });
     };
 
-    // TanStack Query for chat list caching
-    const { data: queryChats, isLoading: queryLoading, isFetching } = useQuery({
-        queryKey: ['chatList', currentUserId],
-        queryFn: () => fetchChatList({ supabase, userId: currentUserId }),
-        enabled: !!currentUserId && !!supabase,
-        staleTime: 1000 * 60 * 3,
-        gcTime: 1000 * 60 * 30,
-        refetchOnWindowFocus: false,
-    });
+    const loadAndSyncChats = useCallback(async () => {
+        if (!currentUserId || !supabase) return;
+        setLoading(true);
+        try {
+            const freshChats = await fetchChatList({ supabase, userId: currentUserId });
+            const updatedChats = freshChats.map(chat => ({
+               ...chat,
+               is_online: isUserOnline(Boolean(chat.is_online), chat.last_seen)
+            }));
+            
+            await db.transaction('rw', db.chats_list, async () => {
+                await db.chats_list.clear();
+                await db.chats_list.bulkPut(updatedChats);
+            });
+            setHasMoreChats(updatedChats.length >= 20);
+        } catch (error) {
+            console.error('Error syncing chats:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [currentUserId, supabase]);
 
     // Initial load from device storage
     useEffect(() => {
@@ -77,38 +87,25 @@ export const useChatListRealtime = (currentUserId) => {
                 await initializeFileSystem();
                 const localChats = await loadChatsFromDevice();
                 if (localChats && localChats.length > 0) {
-                    setChats(localChats);
-                    setLoading(false);
+                    await db.transaction('rw', db.chats_list, async () => {
+                        await db.chats_list.clear();
+                        await db.chats_list.bulkPut(localChats);
+                    });
                 }
-            } catch (error) {
-                console.error('Error loading initial chats:', error);
-            }
+            } catch (error) {}
+            // Then fetch from remote
+            loadAndSyncChats();
         };
         loadInitialData();
-    }, [currentUserId]);
+    }, [currentUserId, loadAndSyncChats]);
 
-    // Sync query data to chats state
-    useEffect(() => {
-        if (queryChats) {
-            const updatedChats = queryChats.map(chat => ({
-                ...chat,
-                is_online: isUserOnline(Boolean(chat.is_online), chat.last_seen)
-            }));
-            setChats(updatedChats);
-            setHasMoreChats(queryChats.length >= 20);
-        }
-        if (!queryLoading && !isFetching) {
-            setLoading(false);
-        }
-    }, [queryChats, queryLoading, isFetching]);
-
-    // Handle load more with pagination - Unified
     const loadMoreChats = useCallback(async () => {
         if (!currentUserId || !hasMoreChats || loadingMore || !supabase) return;
 
         setLoadingMore(true);
         try {
-            const lastChat = chats[chats.length - 1];
+            const currentChats = await db.chats_list.orderBy('timestamp').reverse().toArray();
+            const lastChat = currentChats[currentChats.length - 1];
             const lastTimestamp = lastChat?.timestamp;
 
             let query = supabase
@@ -126,11 +123,14 @@ export const useChatListRealtime = (currentUserId) => {
 
             if (data && data.length > 0) {
                 const formattedChats = data.map(rawItem => normalizeChat(rawItem, currentUserId));
-                setChats(prev => {
-                    const combined = [...prev, ...formattedChats];
-                    saveChatsToDevice(combined);
-                    return combined;
+                
+                await db.transaction('rw', db.chats_list, async () => {
+                    await db.chats_list.bulkPut(formattedChats);
                 });
+                
+                const combined = [...currentChats, ...formattedChats];
+                saveChatsToDevice(combined);
+                
                 setHasMoreChats(data.length === 20);
             } else {
                 setHasMoreChats(false);
@@ -140,54 +140,25 @@ export const useChatListRealtime = (currentUserId) => {
         } finally {
             setLoadingMore(false);
         }
-    }, [currentUserId, hasMoreChats, loadingMore, chats, supabase]);
+    }, [currentUserId, hasMoreChats, loadingMore, supabase]);
 
-    // Real-time: single channel, strict cleanup to prevent leaks and setState-after-unmount
+    // Real-time
     const mountedRef = useRef(true);
     const currentUserIdRef = useRef(currentUserId);
-    const queryClientRef = useRef(queryClient);
-
+    
     useEffect(() => {
         mountedRef.current = true;
         currentUserIdRef.current = currentUserId;
-        queryClientRef.current = queryClient;
-    }, [currentUserId, queryClient]);
+    }, [currentUserId]);
 
     const handlePayload = useCallback((payload) => {
         if (!mountedRef.current) return;
-        const currentId = currentUserIdRef.current;
-        const qClient = queryClientRef.current;
-
         _log('Chat list real-time update', { event: payload.eventType });
 
-        // For updates/deletes, just invalidate the whole list
-        if (payload.eventType === 'DELETE' || payload.eventType === 'UPDATE') {
-            qClient.invalidateQueries({ queryKey: ['chatList', currentId] });
-            return;
-        }
-
-        // For inserts, try to move the chat to top optimistically
-        if (payload.eventType === 'INSERT' && payload.new) {
-            const newMessage = payload.new;
-            setChats(prev => {
-                const chatIndex = prev.findIndex(c => c.id === newMessage.chat_id);
-                if (chatIndex === -1) {
-                    // New chat started, refetch list
-                    qClient.invalidateQueries({ queryKey: ['chatList', currentId] });
-                    return prev;
-                }
-                const chat = { ...prev[chatIndex] };
-                chat.lastMessage = newMessage.content ?? (newMessage.message_type !== 'text' ? `[${newMessage.message_type}]` : '');
-                chat.timestamp = newMessage.created_at;
-                if (newMessage.sender_id !== currentId) chat.unreadCount = (chat.unreadCount || 0) + 1;
-
-                const next = [...prev];
-                next.splice(chatIndex, 1);
-                next.unshift(chat);
-                return next;
-            });
-        }
-    }, []);
+        // Simple approach: any change triggers a refetch of the first page
+        // since unified_chat_list logic is complex to duplicate locally
+        loadAndSyncChats();
+    }, [loadAndSyncChats]);
 
 
     useEffect(() => {
@@ -201,49 +172,13 @@ export const useChatListRealtime = (currentUserId) => {
             {},
             {
                 postgres_changes: [
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'messages',
-                        handler: handlePayload
-                    },
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'chats',
-                        handler: (payload) => {
-                            _log('Chat record changed', { id: payload.new?.id });
-                            if (mountedRef.current) queryClientRef.current.invalidateQueries({ queryKey: ['chatList', currentUserIdRef.current] });
-                        }
-                    },
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'groups',
-                        handler: (payload) => {
-                            _log('Group record changed', { id: payload.new?.id });
-                            if (mountedRef.current) queryClientRef.current.invalidateQueries({ queryKey: ['chatList', currentUserIdRef.current] });
-                        }
-                    },
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'group_members',
-                        handler: (payload) => {
-                            if (!mountedRef.current) return;
-                            const currentId = currentUserIdRef.current;
-                            if (payload?.new?.user_id === currentId || payload?.old?.user_id === currentId) {
-                                _log('User group membership changed');
-                                queryClientRef.current.invalidateQueries({ queryKey: ['chatList', currentId] });
-                            }
-                        }
-                    }
+                    { event: '*', schema: 'public', table: 'messages', handler: handlePayload },
+                    { event: '*', schema: 'public', table: 'chats', handler: handlePayload },
+                    { event: '*', schema: 'public', table: 'groups', handler: handlePayload },
+                    { event: '*', schema: 'public', table: 'group_members', handler: handlePayload }
                 ],
                 onReconnect: () => {
-                    if (mountedRef.current) {
-                        _log('Re-syncing chat list after reconnect');
-                        queryClientRef.current.invalidateQueries({ queryKey: ['chatList', currentUserIdRef.current] });
-                    }
+                    if (mountedRef.current) loadAndSyncChats();
                 }
             }
         );
@@ -252,9 +187,9 @@ export const useChatListRealtime = (currentUserId) => {
             console.log(`[useChatListRealtime] Unsubscribing: ${currentUserId}`);
             realtimeManager.unsubscribe(channelName);
         };
-    }, [currentUserId, handlePayload]);
+    }, [currentUserId, handlePayload, loadAndSyncChats]);
 
-    return { chats, setChats, loading, hasMoreChats, loadingMore, loadMoreChats };
+    return { loading, hasMoreChats, loadingMore, loadMoreChats };
 };
 
 export default useChatListRealtime;

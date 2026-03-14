@@ -535,6 +535,9 @@ const Chat = () => {
                   onRejectGame={handleRejectGame}
                   onJoinGame={handleJoinGame}
                   isLoading={isMessagesLoading}
+                  isFetchingNextPage={isFetchingNextPage}
+                  fetchNextPage={fetchNextPage}
+                  hasNextPage={hasNextPage}
                   isGroupChat={Boolean(isGroupChat)}
                   onSenderClick={(senderId) => {
                     const isMobile = window.matchMedia('(max-width: 768px)').matches;

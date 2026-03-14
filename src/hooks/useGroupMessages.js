@@ -3,10 +3,12 @@
  * Handles fetching messages and realtime subscriptions
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
 import { supabase } from '../config/supabase';
 import { fetchGroupMessages, sendGroupMessage, reportScreenshot } from '../services/groupService';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
+import { dbToFrontend } from '../utils/dbFieldMapping';
 
 /**
  * Hook for fetching group messages
@@ -15,87 +17,20 @@ import { fetchGroupMessages, sendGroupMessage, reportScreenshot } from '../servi
  * @returns {Object} - Messages and loading states
  */
 export const useGroupMessages = (groupId, currentUserId) => {
-  const queryClient = useQueryClient();
-  const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
 
-  // TanStack Query for messages
-  const { data: queryMessages, isLoading, isFetching, error } = useQuery({
-    queryKey: ['groupMessages', groupId],
-    queryFn: () => fetchGroupMessages(groupId, 50),
-    enabled: !!groupId,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
-  });
+  // Dexie live query
+  const rawMessages = useLiveQuery(
+    () => db.messages.where('chat_id').equals(groupId).sortBy('created_at'),
+    [groupId]
+  ) || [];
 
-  // Update messages when query data changes
-  useEffect(() => {
-    if (queryMessages && queryMessages.length > 0) {
-      setMessages(queryMessages);
-    }
-  }, [queryMessages]);
+  const messages = rawMessages.map(msg => dbToFrontend(msg));
+  const isLoading = rawMessages.length === 0;
 
-  // Handle new message from realtime
-  const handleNewMessage = useCallback((payload) => {
-    const newMessage = payload.new;
-    
-    // Only add if it's for this group and not from current user (to avoid duplicates)
-    if (newMessage.chat_id === groupId) {
-      setMessages(prev => {
-        // Check for duplicates
-        const exists = prev.some(msg => msg.id === newMessage.id);
-        if (exists) return prev;
-        
-        // Fetch sender details for the new message
-        return [...prev, newMessage];
-      });
-    }
-  }, [groupId]);
-
-  // Realtime subscription for messages
-  useEffect(() => {
-    if (!groupId) return;
-
-    const messagesChannel = supabase
-      .channel(`group_messages_${groupId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `chat_id=eq.${groupId}`,
-      }, handleNewMessage)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'messages',
-        filter: `chat_id=eq.${groupId}`,
-      }, (payload) => {
-        const updatedMessage = payload.new;
-        setMessages(prev =>
-          prev.map(msg =>
-            msg.id === updatedMessage.id ? updatedMessage : msg
-          )
-        );
-      })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'messages',
-        filter: `chat_id=eq.${groupId}`,
-      }, (payload) => {
-        const deletedMessage = payload.old;
-        setMessages(prev =>
-          prev.filter(msg => msg.id !== deletedMessage.id)
-        );
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(messagesChannel);
-    };
-  }, [groupId, handleNewMessage]);
-
-  // Send message function
+  // Realtime subscription handled globally by useChatListRealtime / useRealtimeMessages 
+  // No need to keep a discrete subscription here if we centralize, but leaving a basic stub
+  // if needed. Group messages should follow the exact same path.
   const sendMessage = useCallback(async ({
     content,
     mediaPath = null,
@@ -154,9 +89,12 @@ export const useGroupMessages = (groupId, currentUserId) => {
   }, [groupId, currentUserId]);
 
   // Refresh messages
-  const refreshMessages = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['groupMessages', groupId] });
-  }, [groupId, queryClient]);
+  const refreshMessages = useCallback(async () => {
+    const freshMsgs = await fetchGroupMessages(groupId, 50);
+    if(freshMsgs && freshMsgs.length > 0) {
+       await db.messages.bulkPut(freshMsgs);
+    }
+  }, [groupId]);
 
   // Get unlocked messages (filter time capsule)
   const getUnlockedMessages = useCallback(() => {
@@ -176,10 +114,9 @@ export const useGroupMessages = (groupId, currentUserId) => {
 
   return {
     messages,
-    setMessages,
-    isLoading: isLoading && !messages.length,
-    isFetching,
-    error,
+    isLoading,
+    isFetching: false,
+    error: null,
     sendMessage,
     reportScreenCapture,
     markAsRead,
