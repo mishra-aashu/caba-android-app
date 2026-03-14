@@ -66,6 +66,7 @@ import SyncIndicator from './components/common/SyncIndicator';
 import Terms from './components/legal/Terms';
 import Privacy from './components/legal/Privacy';
 import SharedProfile from './components/shared-profile';
+import APKUpdateModal from './components/APKUpdateModal';
 
 // Lazy load truly non-critical/heavy components that are NOT statically imported elsewhere
 const Chat = lazy(() => import('./components/chat/Chat'));
@@ -108,9 +109,11 @@ const AppContent = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/download-apk" element={<PublicRoute><DownloadAPK /></PublicRoute>} />
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+    <>
+      <APKUpdateModal />
+      <Routes>
+        <Route path="/download-apk" element={<PublicRoute><DownloadAPK /></PublicRoute>} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
       <Route path="/shared-profile/:userId" element={<SharedProfile />} />
       <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
@@ -150,7 +153,8 @@ const AppContent = () => {
 
       {/* 404 */}
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 };
 

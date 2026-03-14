@@ -26,5 +26,18 @@
     "ios/App/App.xcodeproj/project.pbxproj": "ios-missing",
     "ios/App/Podfile": "ios-missing"
   },
-  "generatedAt": 1773471359074
+  "meta": {
+    "capacitor.config.ts": "Capacitor — App config, server scheme, plugins",
+    "package.json": "Capacitor — Plugin versions (filtered)",
+    "android/app/src/main/AndroidManifest.xml": "Android — Permissions, intent filters, activities",
+    "android/app/build.gradle": "Android — Build config, dependencies, signing",
+    "android/variables.gradle": "Android — SDK versions (compileSdk, targetSdk)",
+    "android/gradle.properties": "Android — JVM args, AndroidX flags, network config",
+    "android/app/proguard-rules.pro": "Android — Code shrinking / obfuscation rules",
+    "android/app/src/main/res/values/strings.xml": "Android — App name, display strings",
+    "ios/App/App/Info.plist": "iOS — Permissions, bundle ID, display name",
+    "ios/App/App.xcodeproj/project.pbxproj": "iOS — Xcode project file, signing, capabilities",
+    "ios/App/Podfile": "iOS — CocoaPods dependencies"
+  },
+  "generatedAt": 1773472710857
 }
