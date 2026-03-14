@@ -1,14 +1,20 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Image, Video, X, Paperclip } from 'lucide-react';
+import { Image, Video, Camera, MapPin, User, FileText } from 'lucide-react';
 import styles from './AttachmentMenu.module.css';
+import hapticsManager from '../../utils/hapticsManager';
 
-const AttachmentMenu = ({ isOpen, onClose, onFileSelect, onQuickSelect }) => {
+const AttachmentMenu = ({ isOpen, onClose, onFileSelect }) => {
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
-  const handleIconClick = (accept) => {
-    fileInputRef.current.accept = accept;
-    fileInputRef.current.click();
+  const handleOptionClick = (type) => {
+    hapticsManager.impact();
+    if (type === 'gallery') {
+      fileInputRef.current.click();
+    } else if (type === 'camera') {
+      cameraInputRef.current.click();
+    }
   };
 
   const handleFileChange = (event) => {
@@ -20,91 +26,72 @@ const AttachmentMenu = ({ isOpen, onClose, onFileSelect, onQuickSelect }) => {
     onClose();
   };
 
+  const handleMockAction = (label) => {
+    hapticsManager.impact();
+    console.log(`[AttachmentMenu] ${label} clicked (mock)`);
+    onClose();
+  };
+
+  const options = [
+    { icon: <Image size={24} />, label: 'Gallery', onClick: () => handleOptionClick('gallery'), color: styles['photo-option'] },
+    { icon: <Camera size={24} />, label: 'Camera', onClick: () => handleOptionClick('camera'), color: styles['camera-option'] },
+    { icon: <Video size={24} />, label: 'Video', onClick: () => handleOptionClick('gallery'), color: styles['video-option'] }, // Video also uses gallery for now
+    { icon: <FileText size={24} />, label: 'File', onClick: () => handleOptionClick('gallery'), color: styles['file-option'] },
+    { icon: <MapPin size={24} />, label: 'Location', onClick: () => handleMockAction('Location'), color: styles['location-option'] },
+    { icon: <User size={24} />, label: 'Contact', onClick: () => handleMockAction('Contact'), color: styles['contact-option'] },
+  ];
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay/Backdrop to prevent background clicks */}
           <motion.div
             className={styles['attachment-menu-overlay']}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              zIndex: 99,
-              backdropFilter: 'blur(2px)'
-            }}
           />
 
           <motion.div
             className={styles['attachment-menu-modal']}
-            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            initial={{ opacity: 0, scale: 0.8, y: 20, transformOrigin: 'bottom right' }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 10 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            style={{ zIndex: 100 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
           >
-            <div className={styles['attachment-menu-header']}>
-              <h3>Attach</h3>
-              <motion.button
-                onClick={onClose}
-                className={styles['close-btn']}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <X size={18} />
-              </motion.button>
-            </div>
-
-            <div className={styles['attachment-options']}>
-              <motion.div
-                className={styles['attachment-option']}
-                onClick={() => handleIconClick('image/*')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <div className={`${styles['icon-wrapper']} ${styles['photo-option']}`}>
-                  <Image size={20} />
-                </div>
-                <span>Photo</span>
-              </motion.div>
-
-              <motion.div
-                className={styles['attachment-option']}
-                onClick={() => handleIconClick('video/*')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <div className={`${styles['icon-wrapper']} ${styles['video-option']}`}>
-                  <Video size={20} />
-                </div>
-                <span>Video</span>
-              </motion.div>
-
-              <motion.div
-                className={styles['attachment-option']}
-                onClick={() => { onQuickSelect && onQuickSelect(); onClose(); }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <div className={`${styles['icon-wrapper']} ${styles['quick-option']}`}>
-                  <Paperclip size={20} />
-                </div>
-                <span>File</span>
-              </motion.div>
+            <div className={styles['attachment-menu-grid']}>
+              {options.map((opt, i) => (
+                <motion.div
+                  key={opt.label}
+                  className={styles['attachment-option']}
+                  onClick={opt.onClick}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                >
+                  <div className={`${styles['icon-wrapper']} ${opt.color}`}>
+                    {opt.icon}
+                  </div>
+                  <span>{opt.label}</span>
+                </motion.div>
+              ))}
             </div>
 
             <input
               type="file"
               ref={fileInputRef}
               style={{ display: 'none' }}
+              accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+              onChange={handleFileChange}
+            />
+
+            <input
+              type="file"
+              ref={cameraInputRef}
+              style={{ display: 'none' }}
+              accept="image/*"
+              capture="environment"
               onChange={handleFileChange}
             />
           </motion.div>

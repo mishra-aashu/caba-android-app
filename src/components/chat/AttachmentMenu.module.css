@@ -1,62 +1,24 @@
-/* Simple Attachment Menu - Clean & Professional */
-.attachment-menu-wrapper {
-  position: relative;
-}
-
+/* Premium Attachment Menu - Telegram Inspired */
 .attachment-menu-modal {
   position: absolute;
-  bottom: calc(100% + 15px);
-  right: 10px;
-  background: var(--surface-color);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
-  z-index: 100;
-  max-width: 350px;
-  width: max-content;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  /* Glassmorphism effect */
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  bottom: calc(100% + 20px);
+  right: 0px;
   background: var(--dropdown-bg);
+  border-radius: 24px;
+  padding: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  width: 280px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  overflow: hidden;
 }
 
-
-.attachment-menu-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.attachment-menu-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.attachment-menu-header .close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 4px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.attachment-menu-header .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
-}
-
-.attachment-options {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
+.attachment-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
 .attachment-option {
@@ -64,134 +26,93 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px 12px;
-  border-radius: 12px;
+  padding: 12px 4px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-  min-width: 80px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background: transparent;
-  border: 1px solid transparent;
 }
 
 .attachment-option:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
 }
 
-.attachment-option .icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+.icon-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 8px;
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.1);
-  transition: all 0.2s ease;
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, filter 0.2s ease;
 }
 
 .attachment-option:hover .icon-wrapper {
-  background: var(--brand-primary);
-  color: white;
-  transform: scale(1.05);
-}
-
-:global(body.light-mode) .attachment-option .icon-wrapper {
-  background: rgba(0, 168, 132, 0.1);
-  color: #1a3a2a;
-}
-
-:global(body.light-mode) .attachment-option:hover .icon-wrapper {
-  background: var(--brand-primary);
-  color: white;
-}
-
-/* Simple icon backgrounds */
-.icon-wrapper.photo-option {
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.icon-wrapper.video-option {
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.icon-wrapper.quick-option {
-  background: rgba(34, 197, 94, 0.1);
+  transform: scale(1.08);
+  filter: brightness(1.1);
 }
 
 .attachment-option span {
-  font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  transition: color 0.2s ease;
-}
-
-.attachment-option:hover span {
+  font-size: 12px;
   color: var(--text-primary);
+  font-weight: 500;
+  opacity: 0.9;
 }
 
-:global(body.light-mode) .attachment-option span {
-  color: #1a3a2a;
+/* Telegram Color Palette */
+.photo-option {
+  background: linear-gradient(135deg, #4da1ff, #2196f3);
+}
+
+.video-option {
+  background: linear-gradient(135deg, #ff6b6b, #ee5253);
+}
+
+.file-option {
+  background: linear-gradient(135deg, #576574, #222f3e);
+}
+
+.camera-option {
+  background: linear-gradient(135deg, #ff9f43, #ee5253);
+}
+
+.location-option {
+  background: linear-gradient(135deg, #1dd1a1, #10ac84);
+}
+
+.contact-option {
+  background: linear-gradient(135deg, #5f27cd, #341f97);
+}
+
+.attachment-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 999;
 }
 
 /* Mobile Responsive Design */
 @media (max-width: 480px) {
   .attachment-menu-modal {
-    position: fixed;
-    bottom: calc(var(--chat-input-height, 60px) + 20px);
-    left: 16px;
-    right: 16px;
     width: auto;
-    max-width: unset;
-    min-width: unset;
-    margin: 0;
-    border-radius: 12px;
+    left: 10px;
+    right: 10px;
+    bottom: calc(var(--chat-input-height, 60px) + 15px);
+    border-radius: 20px;
+  }
+  
+  .attachment-menu-grid {
+    gap: 4px;
   }
 
-  .attachment-options {
-    gap: 8px;
+  .icon-wrapper {
+    width: 48px;
+    height: 48px;
   }
-
-  .attachment-option {
-    padding: 12px 8px;
-    min-width: 70px;
-  }
-
-  .attachment-option .icon-wrapper {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-  }
-
-  .attachment-option span {
-    font-size: 12px;
-  }
-}
-
-/* Quick Replies Menu adjustments */
-.quick-replies-menu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
-}
-
-.quick-reply-option {
-  background-color: var(--bg-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  padding: 8px 12px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.quick-reply-option:hover {
-  background-color: var(--brand-primary);
-  color: white;
-  border-color: var(--brand-primary);
 }

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Smile, Paperclip } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
+import hapticsManager from '../../../utils/hapticsManager';
 import styles from '../../../styles/chat.module.css';
 
 const InputBar = ({
@@ -17,6 +18,11 @@ const InputBar = ({
   onToggleAttachment,
   showEmojiPicker
 }) => {
+  const handleToggleAttachment = () => {
+    hapticsManager.impact();
+    onToggleAttachment();
+  };
+
   if (isRecording || voiceBlob) return null;
 
   return (
@@ -37,7 +43,7 @@ const InputBar = ({
 
       <button 
         className={styles['btn-attach-icon']} 
-        onClick={onToggleAttachment}
+        onClick={handleToggleAttachment}
         title="Attach"
       >
         <Paperclip size={22} />
