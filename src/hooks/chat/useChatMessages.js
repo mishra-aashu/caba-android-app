@@ -36,7 +36,7 @@ export function useChatMessages({
   // ─── DEXIE LIVE QUERY ───
   const limit = 50;
   const rawMessages = useLiveQuery(
-    () => db.messages.where('chat_id').equals(chatId).reverse().sortBy('created_at'),
+    () => db.messages.where('chat_id').equals(chatId).sortBy('created_at'),
     [chatId]
   ) || [];
 
@@ -54,8 +54,8 @@ export function useChatMessages({
   const fetchNextPage = useCallback(async () => {
     if (!hasNextPage || isFetchingNextPage) return;
     setIsFetchingNextPage(true);
-    const lastMsg = rawMessages[rawMessages.length - 1];
-    await fetchMessagesPage({ chatId, beforeTimestamp: lastMsg.created_at, limit });
+    const firstMsg = rawMessages[0];
+    await fetchMessagesPage({ chatId, beforeTimestamp: firstMsg.created_at, limit });
     setIsFetchingNextPage(false);
   }, [chatId, hasNextPage, isFetchingNextPage, rawMessages]);
 
