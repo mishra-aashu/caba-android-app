@@ -560,7 +560,7 @@ const LandingPage = () => {
                         <span className={`${styles['title-line']} ${styles['italic-accent']}`}>Stays in Eleven.</span>
                     </h1>
                     <p className={styles['hero-subtitle']}>
-                        Elevengram brings people together through secure messaging, crystal-clear calls & a modern experience that just works.
+                        Zero servers. Zero logs. Just pure, direct connections and crystal-clear communication.
                     </p>
                     <div className={styles['hero-actions']}>
                         {!isMobile && (
