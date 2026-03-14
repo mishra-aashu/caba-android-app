@@ -5,7 +5,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateNativeHash } from './native-integrity.js';
 
-// Load environment variables from .env file
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,38 +27,43 @@ console.log(`🔌 Connecting to: ${SUPABASE_URL.slice(0, 40)}...`);
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function updateAppVersion() {
-    console.log(`🚀 Updating app version to ${currentVersion} in Supabase (Row ID: 1)...`);
+    console.log(`\n🚀 Updating app version to ${currentVersion} in Supabase (Row ID: 1)...\n`);
 
-    // Generate native hash
+    // Generate native fingerprint (v2 — per-file hashes)
     console.log('🔍 Generating native integrity hash...');
-    const { hash: nativeHash, details: nativeDetails } = generateNativeHash();
+    const { hash: nativeHash, details: nativeDetails, fileHashes } = generateNativeHash();
     console.log(`🔐 Native hash: ${nativeHash.slice(0, 16)}...`);
-    console.log(`📂 Files checked: ${Object.keys(nativeDetails).join(', ')}`);
+
+    const present = Object.entries(nativeDetails).filter(([, v]) => v === 'present');
+    const missing = Object.entries(nativeDetails).filter(([, v]) => v !== 'present');
+    console.log(`📂 Present (${present.length}): ${present.map(([f]) => f.split('/').pop()).join(', ')}`);
+    if (missing.length) console.log(`⚠️  Missing/optional (${missing.length}): ${missing.map(([f, s]) => `${f.split('/').pop()} [${s}]`).join(', ')}`);
 
     try {
-        // Update the single existing record (ID: 1)
-        const { error: updateError } = await supabase
+        const { error } = await supabase
             .from('app_versions')
             .update({
                 latest_version: currentVersion,
                 min_required_version: currentVersion,
                 native_hash: nativeHash,
-                native_details: nativeDetails
+                native_details: nativeDetails,
+                file_hashes: fileHashes,   // per-file SHA-256 for Admin DIFF panel
             })
             .eq('id', 1);
 
-        if (updateError) throw updateError;
+        if (error) throw error;
 
-        console.log(`✅ Successfully updated app_versions in Supabase:`);
+        console.log(`\n✅ Successfully updated app_versions in Supabase:`);
         console.log(`   version:     ${currentVersion}`);
         console.log(`   native_hash: ${nativeHash.slice(0, 16)}...`);
+        console.log(`   file_hashes: ${Object.keys(fileHashes).length} files tracked`);
 
-        // Also write the native-integrity.json to public/ for local builds
+        // Write native-integrity.json to public/ (for Admin Dashboard hash comparison)
         const publicDir = path.resolve(__dirname, '../public');
         if (fs.existsSync(publicDir)) {
             fs.writeFileSync(
                 path.join(publicDir, 'native-integrity.json'),
-                JSON.stringify({ hash: nativeHash, details: nativeDetails, generatedAt: Date.now() }, null, 2)
+                JSON.stringify({ hash: nativeHash, fileHashes, details: nativeDetails, generatedAt: Date.now() }, null, 2)
             );
             console.log('📄 Also written to public/native-integrity.json');
         }
@@ -68,7 +72,7 @@ async function updateAppVersion() {
         const msg = error?.message || JSON.stringify(error) || 'Unknown error';
         console.error('❌ Error updating app version in Supabase:', msg);
         if (msg.includes('permission denied')) {
-            console.error('💡 TIP: Check if the "anon" role has UPDATE permissions for the "app_versions" table in Supabase RLS.');
+            console.error('💡 TIP: Check RLS policies for the "app_versions" table in Supabase.');
         }
         process.exit(1);
     }

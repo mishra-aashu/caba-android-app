@@ -1,0 +1,38 @@
+#!/bin/sh
+# .husky/pre-commit
+# Checks if critical native files have changed since last synced APK hash.
+# Warns the developer but does NOT block the commit (just a reminder).
+
+echo ""
+echo "🔐 [Native Integrity] Checking for native file changes..."
+
+# Run the native integrity check
+OUTPUT=$(node scripts/native-integrity.js 2>/dev/null)
+LOCAL_HASH=$(echo "$OUTPUT" | grep "Combined hash:" | awk '{print $NF}')
+
+# Try to read the last synced hash from public/native-integrity.json
+if [ -f "public/native-integrity.json" ]; then
+  SAVED_HASH=$(node -e "try{const d=require('./public/native-integrity.json');console.log(d.hash||'')}catch(e){}" 2>/dev/null)
+else
+  SAVED_HASH=""
+fi
+
+if [ -z "$LOCAL_HASH" ]; then
+  echo "⚠️  [Native Integrity] Could not generate hash. Skipping check."
+elif [ -z "$SAVED_HASH" ]; then
+  echo "🟡 [Native Integrity] No baseline hash found. Run 'npm run version-sync' after your APK build."
+elif [ "$LOCAL_HASH" != "$SAVED_HASH" ]; then
+  echo ""
+  echo "┌─────────────────────────────────────────────────────┐"
+  echo "│  🚨 NATIVE FILES CHANGED — NEW APK MAY BE NEEDED   │"
+  echo "│                                                     │"
+  echo "│  Run 'npm run version-sync' after building APK.    │"
+  echo "│  Admin Dashboard will show an alert until synced.  │"
+  echo "└─────────────────────────────────────────────────────┘"
+  echo ""
+  # NOT blocking — just warn. Remove 'exit 0' below to block commits.
+  exit 0
+else
+  echo "✅ [Native Integrity] Native state matches last APK. All good!"
+fi
+echo ""

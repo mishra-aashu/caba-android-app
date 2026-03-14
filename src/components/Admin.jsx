@@ -708,7 +708,7 @@ const Admin = () => {
         const res = await fetch(`/native-integrity.json?_cb=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (mountedRef.current) setNativeIntegrity({ localHash: data.hash, loading: false, error: null });
+        if (mountedRef.current) setNativeIntegrity({ localHash: data.hash, fileHashes: data.fileHashes || {}, loading: false, error: null });
       } catch (e) {
         if (mountedRef.current) setNativeIntegrity({ localHash: null, loading: false, error: e.message });
       }
@@ -2323,12 +2323,12 @@ const Admin = () => {
                     </div>
                   </div>
 
-                  {/* ── Native Integrity Panel ── */}
+                  {/* ── Native Integrity Panel v2 — DIFF View ── */}
                   <div className="setting-card full-width" style={{ marginTop: '16px' }}>
                     <div className="setting-header">
                       <div className="setting-title">
                         <h4>🔐 Native Build Integrity</h4>
-                        <p>Detects if Android/Capacitor files changed and a new APK is required</p>
+                        <p>Exact file-level DIFF — detects which native files changed and if a new APK is required</p>
                       </div>
                     </div>
                     <div style={{ padding: '12px 0' }}>
@@ -2337,44 +2337,124 @@ const Admin = () => {
                       ) : nativeIntegrity.error ? (
                         <div style={{ padding: '12px', background: '#2d1b1b', borderRadius: '8px', border: '1px solid #ff4444' }}>
                           <p style={{ color: '#ff6b6b', margin: 0 }}>⚠️ Could not fetch native-integrity.json: {nativeIntegrity.error}</p>
-                          <p style={{ color: '#aaa', margin: '4px 0 0', fontSize: '12px' }}>Ensure you ran <code>npm run build</code> or <code>npm run version-sync</code> locally first.</p>
+                          <p style={{ color: '#aaa', margin: '4px 0 0', fontSize: '12px' }}>Run <code>npm run build</code> or <code>npm run version-sync</code> to generate it.</p>
                         </div>
                       ) : (() => {
                         const localHash = nativeIntegrity.localHash;
+                        const localFileHashes = nativeIntegrity.fileHashes || {};
                         const savedHash = appVersion.native_hash;
+                        const savedFileHashes = appVersion.file_hashes || {};
                         const hashMatch = localHash && savedHash && localHash === savedHash;
                         const neverSynced = !savedHash;
+
+                        // Build per-file diff
+                        const allFiles = Object.keys(localFileHashes);
+                        const fileDiff = allFiles.map(filePath => {
+                          const localH = localFileHashes[filePath];
+                          const savedH = savedFileHashes[filePath];
+                          const isNew = localH && !savedH;
+                          const isRemoved = !localH && savedH;
+                          const isChanged = localH && savedH && localH !== savedH;
+                          const isUnchanged = localH && savedH && localH === savedH;
+                          const isOptionalMissing = !localH;
+
+                          const platform = filePath.startsWith('android/') ? '🤖 Android'
+                            : filePath.startsWith('ios/') ? '🍎 iOS'
+                            : '⚡ Capacitor';
+
+                          return { filePath, localH, savedH, isNew, isRemoved, isChanged, isUnchanged, isOptionalMissing, platform };
+                        });
+
+                        const changedFiles = fileDiff.filter(f => f.isChanged || f.isNew || f.isRemoved);
+                        const platformGroups = ['⚡ Capacitor', '🤖 Android', '🍎 iOS'];
+
                         return (
                           <div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                              <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: '1px solid #333' }}>
-                                <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Build Hash (local)</p>
-                                <code style={{ color: '#7c8cf8', fontSize: '12px', wordBreak: 'break-all' }}>{localHash ? localHash.slice(0, 24) + '...' : 'N/A'}</code>
-                              </div>
-                              <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: '1px solid #333' }}>
-                                <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Last APK Build Hash (DB)</p>
-                                <code style={{ color: savedHash ? '#3fcf8e' : '#888', fontSize: '12px', wordBreak: 'break-all' }}>{savedHash ? savedHash.slice(0, 24) + '...' : 'Not set'}</code>
-                              </div>
-                            </div>
+                            {/* ── Status banner ── */}
                             {neverSynced && (
-                              <div style={{ padding: '14px', background: '#1a2d1a', borderRadius: '8px', border: '1px solid #3fcf8e', marginBottom: '12px' }}>
+                              <div style={{ padding: '14px', background: '#1a2d1a', borderRadius: '8px', border: '1px solid #3fcf8e', marginBottom: '16px' }}>
                                 <p style={{ color: '#3fcf8e', fontWeight: 600, margin: '0 0 4px' }}>🟢 First Time Setup</p>
-                                <p style={{ color: '#aaa', margin: 0, fontSize: '13px' }}>No APK hash recorded yet. Build your APK and click "Mark APK as Built" to baseline the native state.</p>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '13px' }}>Build your APK then click "Mark APK as Built" to baseline the native state.</p>
                               </div>
                             )}
                             {!neverSynced && !hashMatch && (
-                              <div style={{ padding: '14px', background: '#2d1b0e', borderRadius: '8px', border: '2px solid #ff8c00', marginBottom: '12px' }}>
-                                <p style={{ color: '#ff8c00', fontWeight: 700, margin: '0 0 6px', fontSize: '15px' }}>🚨 APK REBUILD REQUIRED</p>
-                                <p style={{ color: '#ffcc80', margin: '0 0 4px', fontSize: '13px' }}>Native files have changed since the last APK build. Users with the old APK may experience broken features.</p>
-                                <p style={{ color: '#aaa', margin: 0, fontSize: '12px' }}>Changed detection is based on: <code>capacitor.config.ts</code>, Capacitor plugins in <code>package.json</code>, <code>AndroidManifest.xml</code>, <code>build.gradle</code>, <code>variables.gradle</code>.</p>
+                              <div style={{ padding: '14px', background: '#2d1b0e', borderRadius: '8px', border: '2px solid #ff8c00', marginBottom: '16px' }}>
+                                <p style={{ color: '#ff8c00', fontWeight: 700, margin: '0 0 4px', fontSize: '15px' }}>🚨 APK REBUILD REQUIRED</p>
+                                <p style={{ color: '#ffcc80', margin: 0, fontSize: '13px' }}>
+                                  {changedFiles.length > 0
+                                    ? `${changedFiles.length} native file${changedFiles.length > 1 ? 's' : ''} changed since last APK build.`
+                                    : 'Native files changed. Users with old APK may experience broken features.'}
+                                </p>
                               </div>
                             )}
                             {!neverSynced && hashMatch && (
-                              <div style={{ padding: '14px', background: '#1a2d1a', borderRadius: '8px', border: '1px solid #3fcf8e', marginBottom: '12px' }}>
+                              <div style={{ padding: '14px', background: '#1a2d1a', borderRadius: '8px', border: '1px solid #3fcf8e', marginBottom: '16px' }}>
                                 <p style={{ color: '#3fcf8e', fontWeight: 600, margin: '0 0 4px' }}>✅ Native State Matches Last APK</p>
                                 <p style={{ color: '#aaa', margin: 0, fontSize: '13px' }}>No native changes detected. Vercel-only deploys are safe.</p>
                               </div>
                             )}
+
+                            {/* ── Per-file DIFF table ── */}
+                            {allFiles.length > 0 && (
+                              <div style={{ marginBottom: '16px' }}>
+                                <p style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                                  File-level Analysis {!neverSynced && changedFiles.length > 0 && <span style={{ color: '#ff8c00', marginLeft: '8px' }}>● {changedFiles.length} changed</span>}
+                                </p>
+                                {platformGroups.map(platform => {
+                                  const group = fileDiff.filter(f => f.platform === platform);
+                                  if (!group.length) return null;
+                                  return (
+                                    <div key={platform} style={{ marginBottom: '12px' }}>
+                                      <p style={{ color: '#666', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '1px' }}>{platform}</p>
+                                      {group.map(({ filePath, localH, isChanged, isNew, isUnchanged, isOptionalMissing }) => {
+                                        const fileName = filePath.split('/').pop();
+                                        const status = isChanged ? 'CHANGED' : isNew ? 'NEW' : isOptionalMissing ? 'OPTIONAL' : 'OK';
+                                        const colors = {
+                                          CHANGED: { bg: '#2d1b0a', border: '#ff8c00', text: '#ff8c00', icon: '↕' },
+                                          NEW:     { bg: '#0a2d1a', border: '#3fcf8e', text: '#3fcf8e', icon: '+' },
+                                          OPTIONAL:{ bg: '#1c1c2e', border: '#444',    text: '#666',    icon: '○' },
+                                          OK:      { bg: '#0a0a0a', border: '#222',    text: '#3fcf8e', icon: '✓' },
+                                        }[status];
+                                        return (
+                                          <div key={filePath} style={{
+                                            display: 'flex', alignItems: 'center', gap: '8px',
+                                            padding: '6px 10px', marginBottom: '4px',
+                                            background: colors.bg, borderRadius: '6px', border: `1px solid ${colors.border}`,
+                                          }}>
+                                            <span style={{ color: colors.text, fontWeight: 700, width: '14px', textAlign: 'center', flexShrink: 0, fontSize: '13px' }}>{colors.icon}</span>
+                                            <span style={{ color: '#ddd', fontSize: '12px', flex: 1, fontFamily: 'monospace' }}>{fileName}</span>
+                                            {status === 'CHANGED' && (
+                                              <span style={{ color: '#ff8c00', fontSize: '10px', fontFamily: 'monospace' }}>
+                                                {localH ? localH.slice(0, 8) + '...' : '?'}
+                                              </span>
+                                            )}
+                                            {status === 'OK' && (
+                                              <span style={{ color: '#444', fontSize: '10px' }}>unchanged</span>
+                                            )}
+                                            {status === 'OPTIONAL' && (
+                                              <span style={{ color: '#444', fontSize: '10px' }}>not present (optional)</span>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* ── Combined hash row ── */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                              <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: '1px solid #333' }}>
+                                <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase' }}>Current Build Hash</p>
+                                <code style={{ color: '#7c8cf8', fontSize: '12px' }}>{localHash ? localHash.slice(0, 20) + '...' : 'N/A'}</code>
+                              </div>
+                              <div style={{ padding: '10px 14px', background: '#1a1a2e', borderRadius: '8px', border: '1px solid #333' }}>
+                                <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase' }}>Last APK Build Hash</p>
+                                <code style={{ color: savedHash ? '#3fcf8e' : '#666', fontSize: '12px' }}>{savedHash ? savedHash.slice(0, 20) + '...' : 'Not set'}</code>
+                              </div>
+                            </div>
+
                             <button
                               className="action-btn"
                               style={{ background: hashMatch ? '#1e3a1e' : '#5c3400', borderColor: hashMatch ? '#3fcf8e' : '#ff8c00' }}

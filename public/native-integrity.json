@@ -1,5 +1,18 @@
 {
-  "hash": "2635c9e0f0292181bfbb4131a46d0e6abeb70c76cf75c1e153dcc026cee12e0e",
+  "hash": "73e12d5eee71f539668357abbe12395eb7c999ab10407340f2bd708e9ccf094f",
+  "fileHashes": {
+    "capacitor.config.ts": "0d401069336dfd46dcb0767e12696a4aa58b5dc52d19818ab7906d3e10196667",
+    "package.json": "aebc0926e125c4d3e0306836f1c0f66345df3df32a6d45a9ec3e25417a93f0ef",
+    "android/app/src/main/AndroidManifest.xml": "6cfa98f0df716dcaf33310e30545dae972c8a4b1f59db0986d9748d408144f07",
+    "android/app/build.gradle": "6f428651480ab2c9b2a5631c929a3ee998b294725bb614724ffa5d6c400f7f36",
+    "android/variables.gradle": "68c60011757051a2190fe46d42da0660239bd8760f66b5273e62c59154201395",
+    "android/gradle.properties": "d88061dd4167dac47194b6808192477aefca371d689600703f1c1f2a54a6d3b5",
+    "android/app/proguard-rules.pro": "56fd960cf225f6ca40f982b13a5dbb0d8bc3dfde13ff76422825c6070d0a1890",
+    "android/app/src/main/res/values/strings.xml": "e30528433e74dfdc1d6baa50f100167adb4d496aa486a445a0705125867c79aa",
+    "ios/App/App/Info.plist": null,
+    "ios/App/App.xcodeproj/project.pbxproj": null,
+    "ios/App/Podfile": null
+  },
   "details": {
     "capacitor.config.ts": "present",
     "package.json": "present",
@@ -8,7 +21,10 @@
     "android/variables.gradle": "present",
     "android/gradle.properties": "present",
     "android/app/proguard-rules.pro": "present",
-    "android/app/src/main/res/values/strings.xml": "present"
+    "android/app/src/main/res/values/strings.xml": "present",
+    "ios/App/App/Info.plist": "ios-missing",
+    "ios/App/App.xcodeproj/project.pbxproj": "ios-missing",
+    "ios/App/Podfile": "ios-missing"
   },
-  "generatedAt": 1773471055834
+  "generatedAt": 1773471359074
 }
