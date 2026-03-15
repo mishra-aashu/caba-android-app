@@ -1210,9 +1210,9 @@ const Admin = () => {
   const TabLoader = ({ tabKey, children }) => {
     if (tabLoading[tabKey]) {
       return (
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading...</p>
+        <div className="premium-loader-inline">
+          <div className="premium-spinner"></div>
+          <p className="premium-loader-text">Loading...</p>
         </div>
       );
     }
@@ -1224,9 +1224,11 @@ const Admin = () => {
   // ═══════════════════════════════════════════════════════════
   if (loading || (authUser && !currentUser)) {
     return (
-      <div className="admin-root admin-loading">
-        <div className="loading-spinner"></div>
-        <p>Verifying admin access...</p>
+      <div className="premium-loader-overlay">
+        <div className="premium-loader-container">
+          <div className="premium-spinner"></div>
+          <p className="premium-loader-text">Verifying admin access...</p>
+        </div>
       </div>
     );
   }

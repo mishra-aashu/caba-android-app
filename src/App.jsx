@@ -31,6 +31,7 @@ import '../src/styles/call-screen.css';
 import './styles/offline-indicator.css';
 import './styles/emoji-styles.css';
 import './styles/safeArea.css';
+import './styles/loaders.css';
 
 // Lazy load non-critical components
 const Login = lazy(() => import('./components/auth/Login'));

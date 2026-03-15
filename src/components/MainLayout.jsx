@@ -365,9 +365,11 @@ const MainLayout = () => {
     // Only show full-screen loader on initial data fetch to prevent blinking during route changes
     if (loading && chats.length === 0 && !isChatViewActive) {
         return (
-            <div className="loading-container glass" style={{ backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}>
-                <div className="loading-spinner"></div>
-                <p>Loading Your Experience...</p>
+            <div className="premium-loader-overlay">
+                <div className="premium-loader-container">
+                    <div className="premium-spinner"></div>
+                    <p className="premium-loader-text">Loading Your Experience...</p>
+                </div>
             </div>
         );
     }
