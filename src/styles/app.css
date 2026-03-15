@@ -347,7 +347,7 @@ body {
     bottom: 0;
     display: flex;
     flex-direction: column;
-    transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    /* transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1); */ /* Handled by Framer Motion */
     backface-visibility: hidden;
     will-change: transform;
   }
@@ -357,24 +357,23 @@ body {
   }
 
   .list-view {
-    transform: translateX(0);
     z-index: 2;
+    transform-origin: center center;
   }
 
   .chat-view {
-    transform: translateX(100%);
     z-index: 3;
-    box-shadow: -8px 0 30px rgba(0, 20, 15, 0.18);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     background-color: var(--surface-color);
+    overflow: hidden;
   }
 
   .mobile-layout.show-chat .list-view {
-    transform: translateX(-40%);
     filter: brightness(0.92);
   }
 
   .mobile-layout.show-chat .chat-view {
-    transform: translateX(0);
+    transform: none; /* Reset CSS transform as Framer Motion handles it */
   }
 
   .search-bar {

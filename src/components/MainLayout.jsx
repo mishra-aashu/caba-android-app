@@ -17,6 +17,7 @@ import { useDialog } from '../contexts/DialogContext';
 import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
 import ParticleOverlay from './chat/ParticleOverlay';
+import PageTransition from './common/PageTransition';
 import { formatTime } from '../utils/dateFormatter';
 
 
@@ -373,14 +374,25 @@ const MainLayout = () => {
 
     if (!isDesktop) {
         return (
-            <div className={`mobile-layout ${isChatViewActive ? 'show-chat' : ''}`}>
-                <div className="list-view">
+            <div className="mobile-layout">
+                <motion.div 
+                    className="list-view"
+                    animate={{ 
+                        filter: isChatViewActive ? 'brightness(0.9)' : 'brightness(1)',
+                    }}
+                    transition={{ duration: 0.3 }}
+                >
                     <ChatListPanel {...chatListPanelProps} />
-                </div>
-                <div className="chat-view">
-                    <Outlet />
-                </div>
+                </motion.div>
                 {!isChatViewActive && <BottomNavigation />}
+
+                <AnimatePresence mode="wait">
+                    {isChatViewActive && (
+                        <PageTransition key="chat-view-container" className="chat-view">
+                            <Outlet />
+                        </PageTransition>
+                    )}
+                </AnimatePresence>
             </div>
         )
     }

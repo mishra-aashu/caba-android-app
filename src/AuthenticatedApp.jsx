@@ -6,6 +6,7 @@
  * They only load AFTER the user is confirmed to be authenticated.
  */
 import { Suspense, lazy, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ChatThemeProvider } from './contexts/ChatThemeProvider';
@@ -67,6 +68,7 @@ const PhoneAuthModal = lazy(() => import('./components/auth/PhoneAuthModal'));
 const DesktopNavbar = lazy(() => import('./components/common/DesktopNavbar'));
 const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
+import PageTransition from './components/common/PageTransition';
 
 // Core shell components (small, needed immediately for layout)
 import ChatPlaceholder from './components/common/ChatPlaceholder';
@@ -166,42 +168,44 @@ const AppContent = () => {
         <APKUpdateModal />
       </SafeSuspense>
       <Suspense fallback={<div className="loading" />}>
-        <Routes>
-          <Route path="/shared-profile/:userId" element={<SharedProfile />} />
-          <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
-          <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
-          <Route path="/about" element={<About />} />
-          <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedLayout><ArenaPage /></ProtectedLayout>} />
-          <Route path="/chat/:chatId/arena" element={<ProtectedLayout><ArenaPage /></ProtectedLayout>} />
-          <Route path="/" element={<ProtectedLayout><MainLayout /></ProtectedLayout>}>
-            <Route index element={<ChatPlaceholder />} />
-            <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
-            <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
-            <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
-            <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
-            <Route path="user-details/:id" element={<UserDetails />} />
-            <Route path="groups" element={<GroupsPage />} />
-            <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
-            <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
-            <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="settings/security" element={<SecuritySettings />} />
-            <Route path="settings/help" element={<HelpCenter />} />
-            <Route path="emoji-settings" element={<EmojiSettings />} />
-            <Route path="history" element={<History />} />
-            <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
-            <Route path="support" element={<SupportChat />} />
-          </Route>
-          <Route path="/reminders" element={<ProtectedLayout><Reminders /></ProtectedLayout>} />
-          <Route path="/create-reminder" element={<ProtectedLayout><CreateReminder /></ProtectedLayout>} />
-          <Route path="/calls" element={<ProtectedLayout><Calls /></ProtectedLayout>} />
-          <Route path="/qr" element={<ProtectedLayout><QRPage /></ProtectedLayout>} />
-          <Route path="/admin" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
-          <Route path="/admin-about" element={<AdminAbout />} />
-          <Route path="/call/:callId" element={<ProtectedLayout><CallScreen /></ProtectedLayout>} />
-          <Route path="/room/:roomId" element={<RoomRedirect />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AnimatePresence mode="wait">
+          <Routes location={location}>
+            <Route path="/shared-profile/:userId" element={<PageTransition><SharedProfile /></PageTransition>} />
+            <Route path="/terms" element={<PageTransition><div className="legal-page-wrapper"><Terms /></div></PageTransition>} />
+            <Route path="/privacy" element={<PageTransition><div className="legal-page-wrapper"><Privacy /></div></PageTransition>} />
+            <Route path="/about" element={<PageTransition><About /></PageTransition>} />
+            <Route path="/chat/:chatId/:otherUserId/arena" element={<PageTransition><ProtectedLayout><ArenaPage /></ProtectedLayout></PageTransition>} />
+            <Route path="/chat/:chatId/arena" element={<PageTransition><ProtectedLayout><ArenaPage /></ProtectedLayout></PageTransition>} />
+            <Route path="/" element={<ProtectedLayout><MainLayout /></ProtectedLayout>}>
+              <Route index element={<ChatPlaceholder />} />
+              <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
+              <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
+              <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
+              <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
+              <Route path="user-details/:id" element={<UserDetails />} />
+              <Route path="groups" element={<GroupsPage />} />
+              <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
+              <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
+              <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="settings/security" element={<SecuritySettings />} />
+              <Route path="settings/help" element={<HelpCenter />} />
+              <Route path="emoji-settings" element={<EmojiSettings />} />
+              <Route path="history" element={<History />} />
+              <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
+              <Route path="support" element={<SupportChat />} />
+            </Route>
+            <Route path="/reminders" element={<PageTransition><ProtectedLayout><Reminders /></ProtectedLayout></PageTransition>} />
+            <Route path="/create-reminder" element={<PageTransition><ProtectedLayout><CreateReminder /></ProtectedLayout></PageTransition>} />
+            <Route path="/calls" element={<PageTransition><ProtectedLayout><Calls /></ProtectedLayout></PageTransition>} />
+            <Route path="/qr" element={<PageTransition><ProtectedLayout><QRPage /></ProtectedLayout></PageTransition>} />
+            <Route path="/admin" element={<PageTransition><ProtectedLayout><Admin /></ProtectedLayout></PageTransition>} />
+            <Route path="/admin-about" element={<PageTransition><AdminAbout /></PageTransition>} />
+            <Route path="/call/:callId" element={<PageTransition><ProtectedLayout><CallScreen /></ProtectedLayout></PageTransition>} />
+            <Route path="/room/:roomId" element={<RoomRedirect />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AnimatePresence>
       </Suspense>
     </>
   );
