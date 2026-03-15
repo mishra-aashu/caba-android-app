@@ -52,3 +52,6 @@ supabase-worker.js
 
 # Hardcoded config files with secrets
 public/supabase-config.js
+
+# Documentation / Temporary files
+messagingsystem.markdown
