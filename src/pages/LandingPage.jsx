@@ -21,6 +21,8 @@ import Download from 'lucide-react/dist/esm/icons/download';
 import { ThemeContext } from '../contexts/ThemeContext';
 import styles from '../styles/LandingPage.module.css';
 import AppName from '../components/common/AppName';
+import ThemeGuide from '../components/common/ThemeGuide';
+import X from 'lucide-react/dist/esm/icons/x';
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
@@ -559,9 +561,12 @@ const LandingPage = () => {
                         <button onClick={() => scrollTo('features')}>Features</button>
                         <button onClick={() => scrollTo('story')}>Story</button>
                         <button onClick={() => scrollTo('tech')}>Tech</button>
-                        <button className={styles['theme-toggle-btn']} onClick={toggleTheme}>
-                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                        </button>
+                        <div style={{ position: 'relative' }}>
+                            <button className={styles['theme-toggle-btn']} onClick={toggleTheme}>
+                                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                            </button>
+                            <ThemeGuide />
+                        </div>
                         {!isMobile && (
                             <button className={styles['nav-cta']} onClick={handleLogin}>
                                 Open Web App <ChevronRight size={16} />

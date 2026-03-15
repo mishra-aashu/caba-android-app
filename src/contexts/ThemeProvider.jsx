@@ -73,6 +73,7 @@ export const ThemeProvider = ({ children }) => {
   // Context value
   const value = {
     theme,
+    setTheme,
     toggleTheme,
     isDark: theme === 'dark',
     isLight: theme === 'light'

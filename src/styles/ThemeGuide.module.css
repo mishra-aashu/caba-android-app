@@ -1,0 +1,122 @@
+.guideWrapper {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 1001;
+  width: 280px;
+  pointer-events: auto;
+}
+
+.guideBubble {
+  background: var(--lp-bg-2);
+  border: 1px solid var(--lp-accent);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+  color: var(--lp-text);
+}
+
+[data-theme='light'] .guideBubble {
+  box-shadow: 0 10px 30px rgba(0, 168, 132, 0.15);
+}
+
+.guideArrow {
+  position: absolute;
+  top: -10px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  background: var(--lp-bg-2);
+  border-left: 1px solid var(--lp-accent);
+  border-top: 1px solid var(--lp-accent);
+  transform: rotate(45deg);
+  border-top-left-radius: 4px;
+}
+
+.guideHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.guideHeader h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--lp-accent);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--lp-text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.closeBtn:hover {
+  color: var(--lp-text);
+}
+
+.guideText {
+  font-size: 14px;
+  color: var(--lp-text-dim);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.guideOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.optionCard {
+  background: var(--lp-bg-card);
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.optionCard:hover {
+  background: var(--lp-bg-card-hover);
+  border-color: var(--lp-accent-glow);
+  transform: translateY(-2px);
+}
+
+.optionCard.active {
+  border-color: var(--lp-accent);
+  background: rgba(0, 168, 132, 0.1);
+}
+
+.optionCard span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .guideWrapper {
+    position: fixed;
+    top: auto;
+    bottom: 24px;
+    left: 24px;
+    right: 24px;
+    width: auto;
+  }
+  
+  .guideArrow {
+    display: none;
+  }
+}
