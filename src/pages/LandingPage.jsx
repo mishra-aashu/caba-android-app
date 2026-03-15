@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useContext } from 'react';
+import { useEffect, useState, useRef, useContext, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MessageCircle from 'lucide-react/dist/esm/icons/message-circle';
 import Phone from 'lucide-react/dist/esm/icons/phone';
@@ -209,6 +209,7 @@ const useCountUp = (target, duration = 2000, start = false) => {
 const useInView = (options = {}) => {
     const ref = useRef(null);
     const [inView, setInView] = useState(false);
+    const { threshold = 0.2, repeat = false } = options;
 
     useEffect(() => {
         const el = ref.current;
@@ -217,15 +218,15 @@ const useInView = (options = {}) => {
         const observer = new IntersectionObserver(([entry]) => {
             if (entry.isIntersecting) {
                 setInView(true);
-                if (!options.repeat) observer.unobserve(el);
-            } else if (options.repeat) {
+                if (!repeat) observer.unobserve(el);
+            } else if (repeat) {
                 setInView(false);
             }
-        }, { threshold: options.threshold || 0.2 });
+        }, { threshold });
 
         observer.observe(el);
         return () => observer.disconnect();
-    }, [options.threshold, options.repeat]);
+    }, [threshold, repeat]);
 
     return [ref, inView];
 };
@@ -234,7 +235,7 @@ const useInView = (options = {}) => {
 // HERO MARQUEE COMPONENT
 // ═══════════════════════════════════════════════════════
 
-const BackgroundMarquee = () => {
+const BackgroundMarquee = memo(() => {
     // Generate 12 items (FEATURES length)
     const rowItems = [...FEATURES];
 
@@ -287,9 +288,9 @@ const BackgroundMarquee = () => {
             </div>
         </div>
     );
-};
+});
 
-const HeroCanvas = ({ isMobile }) => {
+const HeroCanvas = memo(({ isMobile }) => {
     const canvasRef = useRef(null);
     const particlesRef = useRef([]);
     const animRef = useRef(null);
@@ -397,13 +398,13 @@ const HeroCanvas = ({ isMobile }) => {
     }, [isMobile]);
 
     return <canvas ref={canvasRef} className={styles['hero-canvas']} />;
-};
+});
 
 // ═══════════════════════════════════════════════════════
 // STAT CARD
 // ═══════════════════════════════════════════════════════
 
-const StatCard = ({ value, suffix, label, inView }) => {
+const StatCard = memo(({ value, suffix, label, inView }) => {
     const count = useCountUp(value, 1800, inView);
     return (
         <div className={styles['stat-card']}>
@@ -413,7 +414,36 @@ const StatCard = ({ value, suffix, label, inView }) => {
             <div className={styles['stat-label']}>{label}</div>
         </div>
     );
-};
+});
+
+// ═══════════════════════════════════════════════════════
+// CURSOR GLOW COMPONENT (Isolated to prevent full re-renders)
+// ═══════════════════════════════════════════════════════
+
+const CursorGlow = memo(({ isMobile }) => {
+    const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
+
+    useEffect(() => {
+        if (isMobile) return;
+        const handleMouseMove = (e) => {
+            setMousePos({ x: e.clientX, y: e.clientY });
+        };
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, [isMobile]);
+
+    if (isMobile) return null;
+
+    return (
+        <div 
+            className={styles['cursor-glow']} 
+            style={{ 
+                transform: `translate3d(${mousePos.x}px, ${mousePos.y}px, 0) translate(-50%, -50%)`
+            }} 
+        />
+    );
+});
+
 
 // ═══════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -458,7 +488,10 @@ const LandingPage = () => {
         let ticking = false;
 
         const updateParallax = () => {
-            el.style.setProperty('--parallax-offset', `${lastScrollY * 0.3}px`);
+            // Check if element still exists to avoid errors on unmount
+            if (containerRef.current) {
+                containerRef.current.style.setProperty('--parallax-offset', `${lastScrollY * 0.3}px`);
+            }
             ticking = false;
         };
 
@@ -484,7 +517,7 @@ const LandingPage = () => {
     useEffect(() => {
         const timer = setInterval(() => {
             setActiveFeature(prev => (prev + 1) % FEATURES.length);
-        }, 3000);
+        }, 5000); // Slower rotate
         return () => clearInterval(timer);
     }, []);
 
@@ -512,26 +545,10 @@ const LandingPage = () => {
         );
     }
 
-    const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
-
-    useEffect(() => {
-        if (isMobile) return;
-        const handleMouseMove = (e) => {
-            setMousePos({ x: e.clientX, y: e.clientY });
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, [isMobile]);
-
     return (
         <div className={styles.landing} data-theme={theme} ref={containerRef}>
             <div className={styles['noise-overlay']} />
-            {!isMobile && (
-                <div 
-                    className={styles['cursor-glow']} 
-                    style={{ left: mousePos.x, top: mousePos.y }} 
-                />
-            )}
+            <CursorGlow isMobile={isMobile} />
             <nav className={`${styles['landing-nav']} ${isScrolled ? styles.scrolled : ''}`}>
                 <div className={styles['nav-inner']}>
                     <div className={styles['nav-brand']} onClick={() => scrollTo('hero')}>
