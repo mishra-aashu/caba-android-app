@@ -9,7 +9,7 @@ db.version(1).stores({
     contacts: 'id, contact_name',
     user_profiles: 'id, name',
     groups: 'id, name',
-    sync_queue: '++id, status, type, created_at' // ++id for auto-increment
+    sync_queue: '++id, status, type, created_at'
 });
 
 db.version(2).stores({
@@ -24,7 +24,9 @@ export const addToSyncQueue = async (type, payload) => {
         type,
         payload,
         status: 'pending',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        retry_count: 0,
+        total_resets: 0,
     });
 };
 
@@ -46,16 +48,28 @@ export const markSyncItemCompleted = async (id) => {
 };
 
 /**
- * Helper to manually retry a failed sync item
+ * [FIX #1] manualRetrySyncItem — was using unindexed nested path 'payload.tempId'
+ * Dexie only supports querying on indexed fields defined in the schema.
+ * Now uses .filter() on the 'failed' status index to find matching items.
  */
 export const manualRetrySyncItem = async (tempId) => {
-    // 1. Reset sync queue item
-    await db.sync_queue
-        .where('payload.tempId')
-        .equals(tempId)
-        .modify({ status: 'pending', retry_count: 0, failed_at: null });
+    // 1. Find failed sync queue items that match the tempId inside payload
+    const failedItems = await db.sync_queue
+        .where('status')
+        .equals('failed')
+        .filter(item => item.payload?.tempId === tempId)
+        .toArray();
 
-    // 2. Reset message status
+    // 2. Reset each matching sync queue item
+    for (const item of failedItems) {
+        await db.sync_queue.update(item.id, {
+            status: 'pending',
+            retry_count: 0,
+            failed_at: null,
+        });
+    }
+
+    // 3. Reset message status in Dexie
     await db.messages
         .where('tempId')
         .equals(tempId)
@@ -74,4 +88,3 @@ export const requestPersistentStorage = async () => {
 };
 
 export default db;
-

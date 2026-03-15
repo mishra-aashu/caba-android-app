@@ -1,5 +1,5 @@
-import React, { useRef, useLayoutEffect, useState } from 'react';
-import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag, Heart } from 'lucide-react';
+import React, { useRef, useLayoutEffect, useState, useEffect, useCallback } from 'react';
+import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import EmojiRenderer from '../common/EmojiRenderer';
 import styles from './DesktopContextMenu.module.css';
@@ -20,43 +20,80 @@ const DesktopContextMenu = ({
   onReactionSelect,
   preferredEmojis = [],
   emojiStyle = 'apple',
-  isDeleted = false
+  isDeleted = false,
 }) => {
   const menuRef = useRef(null);
-  const [adjustedPos, setAdjustedPos] = useState(position);
+  // [FIX #5] Start with visibility hidden to prevent flicker
+  // Menu renders invisible, useLayoutEffect calculates position, then shows
+  const [adjustedPos, setAdjustedPos] = useState({ x: -9999, y: -9999 });
+  const [isPositioned, setIsPositioned] = useState(false);
 
+  // [FIX #5] Calculate position BEFORE paint
   useLayoutEffect(() => {
-    if (isVisible && menuRef.current) {
-      const menuRect = menuRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const margin = 10;
-
-      let { x, y } = position;
-
-      // Vertical correction (Prioritize staying above the bottom edge)
-      if (y + menuRect.height > viewportHeight - margin) {
-        y = viewportHeight - menuRect.height - margin;
-      }
-
-      // Ensure it doesn't go above the top edge
-      if (y < margin) {
-        y = margin;
-      }
-
-      // Horizontal correction
-      if (x + menuRect.width > viewportWidth - margin) {
-        x = viewportWidth - menuRect.width - margin;
-      }
-
-      // Ensure it doesn't go off left edge
-      if (x < margin) {
-        x = margin;
-      }
-
-      setAdjustedPos({ x, y });
+    if (!isVisible || !menuRef.current) {
+      setIsPositioned(false);
+      return;
     }
+
+    const menuRect = menuRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const margin = 10;
+
+    let { x, y } = position;
+
+    // Vertical: prefer below click point, push up if overflows
+    if (y + menuRect.height > viewportHeight - margin) {
+      y = viewportHeight - menuRect.height - margin;
+    }
+    if (y < margin) y = margin;
+
+    // Horizontal: prefer right of click, push left if overflows
+    if (x + menuRect.width > viewportWidth - margin) {
+      x = viewportWidth - menuRect.width - margin;
+    }
+    if (x < margin) x = margin;
+
+    setAdjustedPos({ x, y });
+    setIsPositioned(true);
   }, [isVisible, position]);
+
+  // [FIX #2] Escape key handler
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose?.();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [isVisible, onClose]);
+
+  // [FIX #4] Close on scroll — menu becomes disconnected from message
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleScroll = () => {
+      onClose?.();
+    };
+
+    // Use capture to catch scroll on any element
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [isVisible, onClose]);
+
+  // [FIX #7] Safe handler wrapper — prevents crash if handler is undefined
+  const safeCall = useCallback((handler) => {
+    return () => {
+      handler?.();
+      onClose?.();
+    };
+  }, [onClose]);
 
   if (!isVisible) return null;
 
@@ -64,98 +101,154 @@ const DesktopContextMenu = ({
     if (onReplyWithHighlight) {
       onReplyWithHighlight();
     } else {
-      onReply();
+      onReply?.();
     }
-    onClose();
+    onClose?.();
   };
 
-  // Determine the actual emojis to display
-  const emojisToDisplay = preferredEmojis && preferredEmojis.length > 0
+  const emojisToDisplay = preferredEmojis?.length > 0
     ? preferredEmojis
     : ['❤️', '👍', '🔥', '😂', '😮', '😢', '🙏'];
 
   const menuContent = (
-    <div
-      ref={menuRef}
-      className={styles['context-menu']}
-      style={{
-        position: 'fixed',
-        top: adjustedPos.y,
-        left: adjustedPos.x,
-        transformOrigin: 'center center',
-        zIndex: 10000,
-      }}
-    >
-      {/* Reactions Row - Moved to TOP */}
-      {!isDeleted && (
-        <div className={styles['menu-reactions-row']}>
-          {emojisToDisplay.map((emoji) => (
-            <button
-              key={emoji}
-              className={styles['menu-reaction-btn']}
-              onClick={() => {
-                onReactionSelect(emoji);
-                onClose();
-              }}
-              title={`React with ${emoji}`}
-            >
-              <EmojiRenderer
-                text={emoji}
-                styleOverride={emojiStyle}
-                className={emojiStyle === 'native' ? 'native-emoji' : 'custom-emoji-img'}
-              />
-            </button>
-          ))}
+    <>
+      {/* [FIX #1] Overlay backdrop — clicking outside closes the menu */}
+      <div
+        className={styles['menu-overlay']}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose?.();
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onClose?.();
+        }}
+      />
+
+      <div
+        ref={menuRef}
+        className={styles['context-menu']}
+        // [FIX #10] Accessibility
+        role="menu"
+        aria-label="Message actions"
+        style={{
+          position: 'fixed',
+          top: adjustedPos.y,
+          left: adjustedPos.x,
+          zIndex: 10000,
+          // [FIX #5] Prevent flicker — hidden until positioned
+          opacity: isPositioned ? 1 : 0,
+          pointerEvents: isPositioned ? 'auto' : 'none',
+        }}
+      >
+        {/* ── Reactions Row ── */}
+        {!isDeleted && (
+          <div className={styles['menu-reactions-row']}>
+            {emojisToDisplay.map((emoji) => (
+              <button
+                key={emoji}
+                className={styles['menu-reaction-btn']}
+                role="menuitem"
+                aria-label={`React with ${emoji}`}
+                onClick={() => {
+                  onReactionSelect?.(emoji);
+                  onClose?.();
+                }}
+              >
+                <EmojiRenderer
+                  text={emoji}
+                  styleOverride={emojiStyle}
+                  className={emojiStyle === 'native' ? 'native-emoji' : 'custom-emoji-img'}
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!isDeleted && <div className={styles['menu-divider']} />}
+
+        {/* ── Select — always available ── */}
+        <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onSelect)}>
+          <span className={styles.icon}><MousePointer size={16} /></span>
+          <span>Select</span>
         </div>
-      )}
 
-      {!isDeleted && <div className={styles['menu-divider']}></div>}
+        {!isDeleted && (
+          <>
+            {/* ── Reply ── */}
+            <div className={styles['menu-item']} role="menuitem" onClick={handleReplyClick}>
+              <span className={styles.icon}><Reply size={16} /></span>
+              <span>Reply</span>
+            </div>
 
-      {/* Actions Below Reactions */}
-      <div className={styles['menu-item']} onClick={() => { onSelect(); onClose(); }}>
-        <span className={styles.icon}><MousePointer size={16} /></span>
-        <span>Select</span>
-      </div>
+            {/* ── Copy ── */}
+            <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onCopy)}>
+              <span className={styles.icon}><Copy size={16} /></span>
+              <span>Copy</span>
+            </div>
 
-      {!isDeleted && (
-        <>
-          <div className={styles['menu-item']} onClick={handleReplyClick}>
-            <span className={styles.icon}><Reply size={16} /></span>
-            <span>Reply</span>
-          </div>
+            {/* ── Forward ── */}
+            <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onForward)}>
+              <span className={styles.icon}><Share2 size={16} /></span>
+              <span>Forward</span>
+            </div>
 
-          <div className={styles['menu-item']} onClick={() => { onCopy(); onClose(); }}>
-            <span className={styles.icon}><Copy size={16} /></span>
-            <span>Copy</span>
-          </div>
+            {/* [FIX #3] Edit — ONLY for sender's own messages */}
+            {isSent && onEdit && (
+              <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onEdit)}>
+                <span className={styles.icon}><Edit size={16} /></span>
+                <span>Edit</span>
+              </div>
+            )}
 
-          <div className={styles['menu-item']} onClick={() => { onForward(); onClose(); }}>
-            <span className={styles.icon}><Share2 size={16} /></span>
-            <span>Forward</span>
-          </div>
+            {/* [FIX #6] Delete — different label for sent vs received */}
+            {isSent ? (
+              <div
+                className={`${styles['menu-item']} ${styles.delete}`}
+                role="menuitem"
+                onClick={safeCall(onDelete)}
+              >
+                <span className={styles.icon}><Trash2 size={16} /></span>
+                <span>Delete</span>
+              </div>
+            ) : (
+              <div
+                className={`${styles['menu-item']} ${styles.delete}`}
+                role="menuitem"
+                onClick={safeCall(onDelete)}
+              >
+                <span className={styles.icon}><Trash2 size={16} /></span>
+                <span>Delete for me</span>
+              </div>
+            )}
+          </>
+        )}
 
-          <div className={styles['menu-item']} onClick={() => { onEdit(); onClose(); }}>
-            <span className={styles.icon}><Edit size={16} /></span>
-            <span>Edit</span>
-          </div>
-
-          <div className={`${styles['menu-item']} ${styles.delete}`} onClick={() => { onDelete(); onClose(); }}>
+        {/* If deleted message — still allow delete for cleanup */}
+        {isDeleted && (
+          <div
+            className={`${styles['menu-item']} ${styles.delete}`}
+            role="menuitem"
+            onClick={safeCall(onDelete)}
+          >
             <span className={styles.icon}><Trash2 size={16} /></span>
             <span>Delete</span>
           </div>
-        </>
-      )}
+        )}
 
-      {!isSent && onReport && (
-        <>
-          <div className={styles['menu-divider']}></div>
-          <div className={styles['menu-item']} onClick={() => { onReport(); onClose(); }}>
-            <span className={styles.icon}><Flag size={16} /></span>
-            <span>Report</span>
-          </div>
-        </>
-      )}
-    </div>
+        {/* ── Report — only for received messages ── */}
+        {!isSent && onReport && (
+          <>
+            <div className={styles['menu-divider']} />
+            <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onReport)}>
+              <span className={styles.icon}><Flag size={16} /></span>
+              <span>Report</span>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 
   return createPortal(menuContent, document.body);

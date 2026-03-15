@@ -2,89 +2,80 @@ import { create } from 'zustand';
 
 /**
  * useChatStore - Zustand store for UI state only
- * 
- * Following the new architecture, message data is managed by TanStack Query.
+ *
+ * Following the new architecture, message data is managed by Dexie + useLiveQuery.
  * This store only holds volatile UI state like scroll positions.
  */
 
 const useChatStore = create((set, get) => ({
-  // ─── STATE (UI ONLY) ───────────────────────────────────────────────────
-  roomScrollPositions: {}, // Format: { [chatId]: index }
-  isSyncing: false,
-  isSelectionMode: false,
-  selectedMessageIds: new Set(),
+    // ─── STATE (UI ONLY) ───────────────────────────────────────────────────
+    roomScrollPositions: {},
+    isSyncing: false,
+    isSelectionMode: false,
+    selectedMessageIds: new Set(),
 
-  // ─── ACTIONS ──────────────────────────────────────────────────────────
+    // ─── ACTIONS ──────────────────────────────────────────────────────────
 
-  enterSelectionMode: (firstMessageId) => {
-    const ids = new Set();
-    if (firstMessageId) ids.add(firstMessageId);
-    set({ isSelectionMode: true, selectedMessageIds: ids });
-    
-    // Haptic feedback if available
-    if (navigator.vibrate) {
-      navigator.vibrate(30);
-    }
-  },
+    enterSelectionMode: (firstMessageId) => {
+        const ids = new Set();
+        if (firstMessageId) ids.add(firstMessageId);
+        set({ isSelectionMode: true, selectedMessageIds: ids });
 
-  toggleMessageSelection: (messageId) => {
-    console.log('toggleMessageSelection called with:', messageId);
-    if (!messageId) return;
-    const { selectedMessageIds } = get();
-    const newSelected = new Set(selectedMessageIds);
+        if (navigator.vibrate) {
+            navigator.vibrate(30);
+        }
+    },
 
-    if (newSelected.has(messageId)) {
-      newSelected.delete(messageId);
-      // Auto-exit if nothing selected
-      if (newSelected.size === 0) {
-        console.log('Auto-exiting selection mode');
-        set({ selectedMessageIds: new Set(), isSelectionMode: false });
-        return;
-      }
-    } else {
-      newSelected.add(messageId);
-      // Auto-enter selection mode when first message is selected
-      console.log('Auto-entering selection mode');
-      set({ isSelectionMode: true, selectedMessageIds: newSelected });
-      return;
-    }
+    toggleMessageSelection: (messageId) => {
+        console.log('toggleMessageSelection called with:', messageId);
+        if (!messageId) return;
+        const { selectedMessageIds } = get();
+        const newSelected = new Set(selectedMessageIds);
 
-    set({ selectedMessageIds: newSelected });
-  },
+        if (newSelected.has(messageId)) {
+            newSelected.delete(messageId);
+            if (newSelected.size === 0) {
+                console.log('Auto-exiting selection mode');
+                set({ selectedMessageIds: new Set(), isSelectionMode: false });
+                return;
+            }
+        } else {
+            newSelected.add(messageId);
+            console.log('Auto-entering selection mode');
+            set({ isSelectionMode: true, selectedMessageIds: newSelected });
+            return;
+        }
 
-  clearSelection: () => set({ isSelectionMode: false, selectedMessageIds: new Set() }),
+        set({ selectedMessageIds: newSelected });
+    },
 
-  setSelectionMode: (enabled) => set({ isSelectionMode: enabled }),
+    clearSelection: () => set({ isSelectionMode: false, selectedMessageIds: new Set() }),
 
-  getSelectedCount: () => get().selectedMessageIds.size,
+    setSelectionMode: (enabled) => set({ isSelectionMode: enabled }),
 
-  getSelectedIdsArray: () => Array.from(get().selectedMessageIds),
+    getSelectedCount: () => get().selectedMessageIds.size,
 
-  isMessageSelected: (messageId) => get().selectedMessageIds.has(messageId),
+    getSelectedIdsArray: () => Array.from(get().selectedMessageIds),
 
-  saveScrollPosition: (chatId, index) => {
-    if (!chatId) return;
-    set((state) => ({
-      roomScrollPositions: {
-        ...state.roomScrollPositions,
-        [chatId]: index
-      }
-    }));
-  },
+    isMessageSelected: (messageId) => get().selectedMessageIds.has(messageId),
 
-  setSyncing: (status) => set({ isSyncing: status }),
+    saveScrollPosition: (chatId, index) => {
+        if (!chatId) return;
+        set((state) => ({
+            roomScrollPositions: {
+                ...state.roomScrollPositions,
+                [chatId]: index,
+            },
+        }));
+    },
+
+    setSyncing: (status) => set({ isSyncing: status }),
 }));
 
 // ─── SELECTORS ──────────────────────────────────────────────────────────
 
-/**
- * Select the scroll position for a specific chatId
- */
 export const selectRoomScrollPosition = (chatId) => (state) => state.roomScrollPositions[chatId];
 
-/**
- * Select the sync status
- */
 export const selectIsSyncing = (state) => state.isSyncing;
 
 export default useChatStore;

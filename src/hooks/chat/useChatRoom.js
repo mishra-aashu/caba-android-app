@@ -7,7 +7,6 @@ import { useEffect, useCallback, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDialog } from '../../contexts/DialogContext';
-import { useQueryClient } from '@tanstack/react-query';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import { useSupabase } from '../../contexts/SupabaseContext';
@@ -28,7 +27,6 @@ const useChatRoom = (options = {}) => {
   const { chatId, otherUserId: rawOtherUserId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const { user: currentUser, loading: authLoading, isAuthenticated } = useAuth();
   const { showAlert } = useDialog();
   const rawChats = useLiveQuery(() => db.chats_list.toArray());
@@ -228,7 +226,6 @@ const useChatRoom = (options = {}) => {
     showAlert,
     initialScrollPosition,
     saveScrollPosition,
-    queryClient,
     handleShareAsForward,
     handleAcceptGame,
     handleJoinGame,

@@ -3,15 +3,29 @@ import db from '../db/db';
 import { supabase } from '../config/supabase';
 import { uploadMedia, uploadVoiceMessage } from '../services/mediaService';
 import useChatStore from '../store/useChatStore';
-import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * useNetworkSync monitors online/offline status and processes the sync_queue
  * when the internet connection is restored.
+ *
+ * [FIX #6]  Removed all TanStack Query (queryClient) usage.
+ *           useChatMessages reads from Dexie live queries, NOT from TanStack Query cache.
+ *           Dexie's useLiveQuery auto-reacts to db.messages.put() calls, so manual
+ *           query cache invalidation was targeting a nonexistent cache — dead code.
+ *
+ * [FIX #3]  File objects don't survive IndexedDB serialization. When queuing offline
+ *           media messages, callers must serialize files as ArrayBuffer + metadata.
+ *           This hook now reconstructs File objects from that serialized form.
+ *
+ * [FIX #10] Prevented infinite recovery loop by tracking total_resets per item.
+ *           Previously, failed items within 24h were reset to pending on every
+ *           processQueue run with retry_count: 0, creating an infinite cycle.
+ *
+ * [FIX #16] Auth session is checked once before the loop, not per item.
+ *           Re-checks only if a 401-like error occurs mid-loop.
  */
 const useNetworkSync = () => {
     const isSyncing = useRef(false);
-    const queryClient = useQueryClient();
 
     useEffect(() => {
         const processQueue = async () => {
@@ -20,23 +34,34 @@ const useNetworkSync = () => {
 
             try {
                 useChatStore.getState().setSyncing(true);
-                // 1. Auth Check: Ensure session is valid/refreshed before sync
+
+                // [FIX #16] Single auth check before processing
                 const { data: { session }, error: authError } = await supabase.auth.getSession();
 
                 if (authError || !session) {
                     console.warn('Sync postponed: No active session');
-                    // ✅ If specifically a session error, we might need to notify authStore
                     return;
                 }
 
-                // 2. Recovery: Reset failed items that are recent (< 24h) back to pending
+                let currentSession = session;
+
+                // [FIX #10] Recovery: Reset failed items that are recent (< 24h)
+                // BUT limit total automatic resets to 3 to prevent infinite loops
                 const now = new Date();
                 const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-                
+
                 await db.sync_queue
                     .where('status').equals('failed')
-                    .and(item => item.failed_at && item.failed_at > twentyFourHoursAgo)
-                    .modify({ status: 'pending', retry_count: 0 });
+                    .and(item =>
+                        item.failed_at &&
+                        item.failed_at > twentyFourHoursAgo &&
+                        (item.total_resets || 0) < 3
+                    )
+                    .modify(item => {
+                        item.status = 'pending';
+                        item.retry_count = 0;
+                        item.total_resets = (item.total_resets || 0) + 1;
+                    });
 
                 const pendingItems = await db.sync_queue
                     .where('status')
@@ -49,38 +74,41 @@ const useNetworkSync = () => {
 
                 for (const item of pendingItems) {
                     try {
-                        // 1. Per-item Auth Verification: Protect against session expiry mid-sync
-                        const { data: { session }, error: authError } = await supabase.auth.getSession();
-                        if (authError || !session) {
-                            console.warn('Sync aborted mid-loop: Invalid session');
-                            break; // Stop processing further items until re-authenticated
-                        }
-
                         let error = null;
-                        let syncedData = null;
 
                         switch (item.type) {
-                            case 'send_message':
-                                // [FIX 1] Offline Media Upload
-                                // Extract payload and potential local file
-                                const { tempId, file, ...supabasePayload } = item.payload;
+                            case 'send_message': {
+                                // [FIX #3] Extract serialized file data instead of raw File object
+                                const {
+                                    tempId,
+                                    file,        // legacy — may be a dead plain object
+                                    fileData,    // ArrayBuffer (correct serialized form)
+                                    fileName,
+                                    fileType,
+                                    ...supabasePayload
+                                } = item.payload;
 
                                 let finalPayload = { ...supabasePayload };
 
                                 // Group Message Fix: receiver_id must be sender placeholder for groups
                                 if (finalPayload.is_group_message && !finalPayload.receiver_id) {
-                                    finalPayload.receiver_id = session.user.id;
+                                    finalPayload.receiver_id = currentSession.user.id;
                                 }
 
-                                // If there's a local file, upload it first
-                                if (file) {
+                                // [FIX #3] Reconstruct File from serialized ArrayBuffer
+                                if (fileData && fileName) {
                                     console.log('Syncing media file for message...', item.id);
                                     let mediaPath = null;
+                                    const reconstructedFile = new File(
+                                        [fileData],
+                                        fileName,
+                                        { type: fileType || 'application/octet-stream' }
+                                    );
 
                                     if (supabasePayload.media_type === 'voice') {
-                                        mediaPath = await uploadVoiceMessage(file, session.user.id);
+                                        mediaPath = await uploadVoiceMessage(reconstructedFile, currentSession.user.id);
                                     } else {
-                                        mediaPath = await uploadMedia(file, session.user.id);
+                                        mediaPath = await uploadMedia(reconstructedFile, currentSession.user.id);
                                     }
 
                                     if (!mediaPath) {
@@ -98,108 +126,106 @@ const useNetworkSync = () => {
                                     .single();
 
                                 if (!msgError && msgData) {
-                                    syncedData = msgData;
-                                    // 2. Precision Reconciliation: Atomic Swap
-                                    // Wrap everything in a single transaction to prevent duplicates/ghost messages
+                                    // Atomic swap in Dexie: delete temp, insert final
                                     await db.transaction('rw', [db.messages, db.sync_queue], async () => {
                                         if (tempId) {
-                                            const recordByTempId = await db.messages.where('tempId').equals(tempId).first();
+                                            const recordByTempId = await db.messages
+                                                .where('tempId')
+                                                .equals(tempId)
+                                                .first();
                                             if (recordByTempId) {
                                                 await db.messages.delete(recordByTempId.id);
                                             }
                                         }
-                                        await db.messages.add(msgData);
+                                        await db.messages.put(msgData);
 
-                                        // Mark sync item as completed ATOMICALLY with the DB update
+                                        // Mark sync item as completed ATOMICALLY
                                         await db.sync_queue.update(item.id, {
                                             status: 'completed',
-                                            synced_at: new Date().toISOString()
+                                            synced_at: new Date().toISOString(),
                                         });
                                     });
 
-                                    // [FIX 2] Real-time UI Invalidation (TanStack Query)
-                                    // Instantly update the UI status from 'pending' to 'sent'
-                                    if (tempId && finalPayload.chat_id) {
-                                        queryClient.setQueryData(['messages', finalPayload.chat_id], (old) => {
-                                            if (!old) return old;
-                                            return {
-                                                ...old,
-                                                pages: old.pages.map(page => ({
-                                                    ...page,
-                                                    data: page.data.map(m => m.tempId === tempId ? { ...msgData, status: 'sent', sender: m.sender } : m)
-                                                }))
-                                            };
-                                        });
-                                    }
+                                    // [FIX #6] REMOVED: queryClient.setQueryData / invalidateQueries
+                                    // Dexie useLiveQuery handles UI reactivity automatically.
 
-                                    // Invalidate React Query if applicable
-                                    if (finalPayload.chat_id) {
-                                        queryClient.invalidateQueries({ queryKey: ['messages', finalPayload.chat_id] });
-                                    }
-
-                                    // Reset error so the outer loop doesn't try to mark it again
                                     error = null;
                                 } else {
                                     error = msgError;
                                 }
                                 break;
+                            }
 
-
-                            case 'update_profile':
+                            case 'update_profile': {
                                 const { error: profileError } = await supabase
                                     .from('users')
                                     .update(item.payload.data)
                                     .eq('id', item.payload.id);
                                 error = profileError;
                                 break;
+                            }
 
                             default:
                                 console.warn(`Unknown sync item type: ${item.type}`);
                                 break;
                         }
 
-                        // 2. Atomic Update: Mark as completed only if it wasn't already handled in the 'send_message' block
+                        // Mark as completed only if not already handled in the transaction above
                         if (!error) {
                             const currentItem = await db.sync_queue.get(item.id);
-                            if (currentItem.status === 'pending') {
+                            if (currentItem && currentItem.status === 'pending') {
                                 await db.sync_queue.update(item.id, {
                                     status: 'completed',
-                                    synced_at: new Date().toISOString()
+                                    synced_at: new Date().toISOString(),
                                 });
                             }
                         } else {
                             console.error(`Failed to sync item ${item.id}:`, error);
 
-                            // Increment retry count or mark as failed
+                            // [FIX #16] Check if it's an auth error — refresh session if so
+                            const errorMsg = error.message || '';
+                            if (errorMsg.includes('401') || errorMsg.includes('JWT') || errorMsg.includes('token')) {
+                                const refreshResult = await supabase.auth.getSession();
+                                if (!refreshResult.data.session) {
+                                    console.warn('Session expired during sync. Aborting.');
+                                    break;
+                                }
+                                currentSession = refreshResult.data.session;
+                            }
+
+                            // Increment retry count or mark as permanently failed
                             const currentRetryCount = (item.retry_count || 0) + 1;
                             if (currentRetryCount >= 3) {
                                 console.warn(`Item ${item.id} failed after 3 attempts. Marking as failed.`);
                                 await db.sync_queue.update(item.id, {
                                     status: 'failed',
+                                    retry_count: currentRetryCount,
                                     failed_at: new Date().toISOString(),
-                                    last_error: error.message || 'Unknown error'
+                                    last_error: errorMsg || 'Unknown error',
                                 });
 
                                 // Update local message status for UI
                                 if (item.type === 'send_message' && item.payload?.tempId) {
-                                    await db.messages.where('tempId').equals(item.payload.tempId).modify({ status: 'failed' });
+                                    await db.messages
+                                        .where('tempId')
+                                        .equals(item.payload.tempId)
+                                        .modify({ status: 'failed' });
                                 }
                             } else {
                                 await db.sync_queue.update(item.id, {
                                     retry_count: currentRetryCount,
-                                    last_error: error.message || 'Unknown error'
+                                    last_error: errorMsg || 'Unknown error',
                                 });
                             }
                         }
                     } catch (err) {
                         console.error(`Error processing sync item ${item.id}:`, err);
-                        // Ensure we don't hang the loop; mark as failed on unexpected exception
                         await db.sync_queue.update(item.id, {
                             status: 'failed',
-                            last_error: err.message || 'Unexpected exception'
-                        });
+                            failed_at: new Date().toISOString(),
+                            last_error: err.message || 'Unexpected exception',
+                        }).catch(() => {});
                     }
-
                 }
             } finally {
                 isSyncing.current = false;
@@ -221,8 +247,7 @@ const useNetworkSync = () => {
         return () => {
             window.removeEventListener('online', handleOnline);
         };
-    }, [queryClient]);
+    }, []); // [FIX #6] Removed queryClient from deps — no longer used
 };
 
 export default useNetworkSync;
-

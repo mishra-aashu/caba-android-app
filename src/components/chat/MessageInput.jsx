@@ -11,7 +11,6 @@ import useDraftStore from '../../store/useDraftStore';
 import hapticsManager from '../../utils/hapticsManager';
 import styles from '../../styles/chat.module.css';
 
-// Sub-components
 import MediaPreview from './input/MediaPreview';
 import VoiceRecorder from './input/VoiceRecorder';
 import InputBar from './input/InputBar';
@@ -39,7 +38,7 @@ const MessageInput = ({
   const [voiceBlob, setVoiceBlob] = useState(null);
   const [isRecordingUI, setIsRecordingUI] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  
+
   const textareaRef = useRef(null);
   const containerRef = useRef(null);
   const sendSoundRef = useRef(null);
@@ -130,18 +129,9 @@ const MessageInput = ({
     hapticsManager.impact();
     setIsUploading(true);
 
-    let mediaPath = null;
-    let contentType = 'text';
-
     try {
       if (finalVoiceBlob) {
-        if (!navigator.onLine) {
-          onSendMedia(finalVoiceBlob, 'voice');
-        } else {
-          const voiceFile = new File([finalVoiceBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
-          mediaPath = await uploadVoiceMessage(voiceFile, currentUser.id);
-        }
-        contentType = 'voice';
+        onSendMedia(finalVoiceBlob, 'voice');
       } else if (filePreview) {
         const { file } = filePreview;
         const fileType = file.type.startsWith('image/') ? 'image' : 'video';
@@ -152,31 +142,25 @@ const MessageInput = ({
         } else {
           processedFile = await handleVideo(file);
         }
-        
+
         if (!processedFile) {
           showAlert('Processing failed', 'Could not process your media file.');
           return;
         }
 
-        if (!navigator.onLine) {
-          onSendMedia(processedFile, fileType);
-        } else {
-          mediaPath = await uploadMedia(processedFile, currentUser.id);
-        }
-        contentType = fileType;
+        onSendMedia(processedFile, fileType);
       } else if (trimmedMessage) {
         onSendMessage(trimmedMessage);
-        contentType = 'text';
       }
-
-      if (mediaPath) {
-        onSendMedia(mediaPath, contentType);
-      }
-
     } catch (error) {
       console.error('Error sending message:', error);
       showAlert('Send failed', 'Could not send your message. Please try again.');
     } finally {
+      // [FIX #1 — CRITICAL] Added setIsUploading(false)
+      // Previously: isUploading was set to true but NEVER reset to false.
+      // This permanently disabled the send/mic button after the first message
+      // was sent, requiring a full page reload to send another message.
+      setIsUploading(false);
       setMessage('');
       setVoiceBlob(null);
       setFilePreview(null);
@@ -196,10 +180,10 @@ const MessageInput = ({
 
   const handleRecordingComplete = (blob) => {
     if (blob) {
-        handleSend(blob);
+      handleSend(blob);
     } else {
-        setVoiceBlob(null);
-        setIsRecordingUI(false);
+      setVoiceBlob(null);
+      setIsRecordingUI(false);
     }
   };
 
@@ -213,9 +197,9 @@ const MessageInput = ({
         onFileSelect={handleFileSelect}
       />
 
-      <MediaPreview 
-        filePreview={filePreview} 
-        onRemove={() => setFilePreview(null)} 
+      <MediaPreview
+        filePreview={filePreview}
+        onRemove={() => setFilePreview(null)}
       />
 
       {replyingTo && (
@@ -232,16 +216,14 @@ const MessageInput = ({
       )}
 
       <div className={styles['input-row']}>
-
-
-        <VoiceRecorder 
+        <VoiceRecorder
           isExternalRecording={isRecordingUI}
           onRecordingComplete={handleRecordingComplete}
           onCancel={() => setIsRecordingUI(false)}
           formatTime={formatTime}
         />
 
-        <InputBar 
+        <InputBar
           message={message}
           setMessage={setMessage}
           textareaRef={textareaRef}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import MessageItem from './MessageItem';
 import styles from '../../styles/chat.module.css';
 
@@ -39,7 +39,20 @@ const MessageList = ({
     return groups;
   };
 
-  const groupedMessages = groupMessagesByDate(messages);
+  // [FIX #7] Calculate lastReadMessageId — was not computed at all
+  // This means isLastRead was never passed, so "Seen" indicators never showed
+  const lastReadMessageId = useMemo(() => {
+    if (!messages?.length || !currentUser?.id) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      const isMine = (msg.sender_id || msg.senderId) === currentUser.id;
+      const isRead = msg.is_read || msg.isRead;
+      if (isMine && isRead) return msg.id;
+    }
+    return null;
+  }, [messages, currentUser?.id]);
+
+  const groupedMessages = groupMessagesByDate(messages || []);
 
   if (!messages || messages.length === 0) {
     if (isLoading) {
@@ -69,6 +82,9 @@ const MessageList = ({
     );
   }
 
+  // [FIX #7] Track global message index for MessageItem's `index` prop
+  let globalIndex = 0;
+
   return (
     <div className={styles['messages-wrapper']}>
       {Object.entries(groupedMessages).map(([dateKey, dateMessages], groupIdx) => (
@@ -80,21 +96,21 @@ const MessageList = ({
           </div>
 
           {dateMessages.map((message, msgIdx) => {
-            // Safely get repliedMsg - only pass if it exists and has an id
             const replyTo = message.replyTo || message.reply_to;
             const repliedMsg = replyTo
               ? messages.find(m => m && m.id === replyTo)
               : null;
 
+            // [FIX #7] Pass correct global index and isLastRead
+            const currentIndex = globalIndex++;
+
             return (
               <MessageItem
                 key={message.id || message.tempId || `msg-${groupIdx}-${msgIdx}`}
                 message={message}
+                index={currentIndex}
                 repliedMsg={repliedMsg}
                 currentUser={currentUser}
-                isSelected={selectedMessages.has(message.id)}
-                isSelectionMode={isSelectionMode}
-                onSelect={() => onMessageSelect(message.id)}
                 onReply={() => onReply(message)}
                 onForward={() => onForward(message)}
                 onDelete={onDelete}
@@ -103,6 +119,8 @@ const MessageList = ({
                 onMediaDownload={onMediaDownload}
                 isGroupChat={isGroupChat}
                 onSenderClick={onSenderClick}
+                // [FIX #7] Was: not passed — "Seen" timestamp never showed
+                isLastRead={message.id === lastReadMessageId}
               />
             );
           })}

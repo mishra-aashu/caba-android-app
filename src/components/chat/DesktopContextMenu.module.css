@@ -1,50 +1,81 @@
+/* ──────────────────────────────────────────────
+   Context Menu Container
+   ────────────────────────────────────────────── */
 .context-menu {
     position: fixed;
     background-color: #233138;
-    min-width: 140px;
+    min-width: 160px;
+    max-width: 240px;
     border-radius: 12px;
-    padding: 8px 0;
+    padding: 6px 0;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.08);
     z-index: 10000;
-    animation: menuPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform-origin: top left;
+    animation: menuPop 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* [FIX #5] Smooth transition for repositioning */
+    transition: opacity 0.1s ease;
+    /* Prevent text selection while interacting with menu */
+    user-select: none;
+    -webkit-user-select: none;
 }
 
+/* ──────────────────────────────────────────────
+   [FIX #1] Overlay — closes menu on outside click
+   Previously existed in CSS but was never rendered
+   ────────────────────────────────────────────── */
 .menu-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 9998;
+    z-index: 9999;
+    /* Transparent but captures all clicks */
     background: transparent;
+    /* On mobile, slight backdrop helps user understand it's a modal-like interaction */
+    -webkit-tap-highlight-color: transparent;
 }
 
+/* ──────────────────────────────────────────────
+   Menu Items
+   ────────────────────────────────────────────── */
 .menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: 10px;
+    padding: 10px 16px;
     font-size: 13px;
     font-weight: 500;
     color: #e9edef;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+    /* Prevent item text from wrapping */
+    white-space: nowrap;
 }
 
 .menu-item:hover {
     background-color: #182229;
-    transform: translateX(4px);
+}
+
+/* [REMOVED] transform: translateX(4px) on hover
+   — It caused layout jank on fast mouse movements
+   and looked janky on mobile tap */
+
+.menu-item:active {
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .menu-item .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 14px;
-    opacity: 0.8;
+    opacity: 0.75;
     width: 20px;
-    text-align: center;
+    flex-shrink: 0;
 }
 
+/* ── Delete variant ── */
 .menu-item.delete {
     color: #ff5f5f;
 }
@@ -54,74 +85,159 @@
 }
 
 .menu-item.delete .icon {
-    filter: drop-shadow(0 0 2px rgba(255, 0, 0, 0.4));
+    opacity: 0.9;
 }
 
+/* ──────────────────────────────────────────────
+   Divider
+   ────────────────────────────────────────────── */
 .menu-divider {
     height: 1px;
-    background-color: rgba(255, 255, 255, 0.1);
-    margin: 6px 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    margin: 4px 0;
 }
 
-/* Reactions Row in Menu */
+/* ──────────────────────────────────────────────
+   Reactions Row
+   ────────────────────────────────────────────── */
+/* [FIX #8] Changed from rgba(0,0,0,0.02) which was invisible on dark bg */
 .menu-reactions-row {
     display: flex;
-    justify-content: space-between;
-    padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.02);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .menu-reaction-btn {
     background: none;
     border: none;
-    font-size: 18px;
+    font-size: 20px;
     cursor: pointer;
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    padding: 4px;
-    border-radius: 4px;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                background-color 0.15s ease;
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Minimum touch target for mobile */
+    min-width: 36px;
+    min-height: 36px;
 }
 
 .menu-reaction-btn:hover {
-    transform: scale(1.35) rotate(-10deg);
-    background: rgba(0, 0, 0, 0.05);
+    transform: scale(1.3);
+    background: rgba(255, 255, 255, 0.08);
 }
 
+.menu-reaction-btn:active {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* ──────────────────────────────────────────────
+   Animation
+   ────────────────────────────────────────────── */
 @keyframes menuPop {
     from {
         opacity: 0;
-        transform: scale(0.95) translateY(-5px);
+        transform: scale(0.92) translateY(-4px);
     }
-
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
     }
 }
 
-/* Dark mode adjustments - though it's already dark-themed */
-/* Dark mode adjustments - though it's already dark-themed */
-:global([data-theme='light']) {
+/* ──────────────────────────────────────────────
+   [FIX #9] Light Theme Support
+   
+   Previously used :global([data-theme='light']) with
+   nested selectors — this doesn't work in standard
+   CSS Modules. Each override needs its own :global wrapper.
+   ────────────────────────────────────────────── */
+:global([data-theme='light']) .context-menu {
+    background-color: #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12),
+                0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+:global([data-theme='light']) .menu-item {
+    color: #1a1a1a;
+}
+
+:global([data-theme='light']) .menu-item:hover {
+    background-color: #f0f2f5;
+}
+
+:global([data-theme='light']) .menu-item:active {
+    background-color: #e4e6e9;
+}
+
+:global([data-theme='light']) .menu-item.delete {
+    color: #e53935;
+}
+
+:global([data-theme='light']) .menu-item.delete:hover {
+    background-color: rgba(229, 57, 53, 0.08);
+}
+
+:global([data-theme='light']) .menu-divider {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+:global([data-theme='light']) .menu-reactions-row {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+:global([data-theme='light']) .menu-reaction-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+:global([data-theme='light']) .menu-reaction-btn:active {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* ──────────────────────────────────────────────
+   Mobile Adjustments
+   ────────────────────────────────────────────── */
+@media (max-width: 768px) {
     .context-menu {
-        background-color: #ffffff;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        border-color: #e0e0e0;
+        min-width: 180px;
     }
 
     .menu-item {
-        color: #1a1a1a;
+        padding: 12px 16px;
+        font-size: 14px;
     }
 
-    .menu-item:hover {
-        background-color: #f5f5f5;
+    .menu-reaction-btn {
+        font-size: 22px;
+        min-width: 40px;
+        min-height: 40px;
     }
 
-    .menu-divider {
-        background-color: #e0e0e0;
+    /* Slight dark backdrop on mobile for better UX */
+    .menu-overlay {
+        background: rgba(0, 0, 0, 0.2);
+    }
+}
+
+/* ──────────────────────────────────────────────
+   Reduced Motion
+   ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .context-menu {
+        animation: none;
     }
 
-    .menu-reactions-row {
-        background: rgba(0, 0, 0, 0.02);
-        border-bottom-color: rgba(0, 0, 0, 0.1);
+    .menu-reaction-btn {
+        transition: none;
+    }
+
+    .menu-item {
+        transition: none;
     }
 }

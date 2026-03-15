@@ -83,13 +83,13 @@ const ChatScreen = () => {
     typingUsers, sendTyping,
     isMuted, isTempChat, setIsTempChat, vanishPresets, setVanishPresets,
     selectedVanishDuration, setSelectedVanishDuration,
-    sendMessage, handleSendMedia, replyingTo, handleReply, cancelReply, deleteMessage,
+    sendMessage, handleSendMedia, replyingTo, handleReply, cancelReply, deleteMessage, forwardMessages,
     activeGroupCall, showGroupCallScreen, setShowGroupCallScreen,
     handleVoiceCall, handleVideoCall, handleEndGroupCall, handleStartGroupCall,
     handleMuteToggle, confirmClearChat, confirmBlockUser, confirmSelectionDelete,
     handleShareAsForward, handleMediaDownload,
     handleAcceptGame, handleRejectGame, handleJoinGame, handleReactionToggle,
-    supabase, showAlert, initialScrollPosition, saveScrollPosition, queryClient,
+    supabase, showAlert, initialScrollPosition, saveScrollPosition,
     isMessagesLoading, allChats, 
     connectionStatus, retryConnection,
     authError,
@@ -239,36 +239,9 @@ const ChatScreen = () => {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, unreadCount, markMessagesAsRead]);
 
-  const handleForwardMessages = async (messages, targetChat) => {
-    try {
-      const isGroupTarget = targetChat.isGroup || targetChat.is_group || false;
-      for (const message of messages) {
-        const vanishAt = isTempChat
-          ? new Date(Date.now() + selectedVanishDuration * 1000).toISOString()
-          : null;
-
-        const { error } = await supabase.from('messages').insert({
-          chat_id: targetChat.id,
-          senderId: currentUser.id,
-          receiverId: isGroupTarget ? null : (targetChat.otherUser?.id || null),
-          content: message.content,
-          mediaPath: message.mediaPath || message.media_path,
-          mediaType: message.mediaType || message.media_type,
-          messageType: message.messageType || message.message_type
-            || (message.media_type === 'voice' ? 'audio' : message.media_type)
-            || 'text',
-          reply_to: null,
-          is_group_message: Boolean(isGroupTarget),
-          vanish_at: vanishAt,
-        });
-        if (error) throw error;
-      }
-      toast.success(`Message${messages.length > 1 ? 's' : ''} forwarded successfully`);
-    } catch (error) {
-      console.error('Error forwarding messages:', error);
-      hapticsManager.error();
-      toast.error('Failed to forward messages');
-    }
+  const handleForwardMessages = async (msgs, targetChat) => {
+    if (!forwardMessages) return;
+    await forwardMessages(msgs, targetChat);
   };
 
   const handleSelectionForward = () => {

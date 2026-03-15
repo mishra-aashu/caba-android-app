@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect, useMemo, memo } from 'react';
+import React, { useRef, useCallback, useMemo, memo } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import MessageItem from './MessageItem';
 import TypingIndicator from './TypingIndicator';
@@ -48,11 +48,17 @@ const VirtualizedMessageList = React.forwardRef(({
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
 
-  // Optimized items with pre-calculated index map
+  // [FIX #6] Track both scroll states via refs so each callback can report both
+  // Previously: atBottomStateChange only sent {isAtBottom}, atTopStateChange only sent {isAtTop}
+  // This caused the parent's handleScroll to incorrectly set isAtBottom=false
+  // when atTopStateChange fired (because isAtBottom was undefined → false)
+  const isAtBottomRef = useRef(true);
+  const isAtTopRef = useRef(false);
+
   const { itemsWithHeaders, messageIdToIndex } = useMemo(() => {
     const items = [];
     const idMap = new Map();
-    
+
     messages.forEach((message, index) => {
       const msgId = message.id || message.tempId;
       if (msgId) idMap.set(msgId, index);
@@ -138,8 +144,9 @@ const VirtualizedMessageList = React.forwardRef(({
     lastReadMessageId,
   ]);
 
-  const renderItem = useCallback((index) => {
-    const item = itemsWithHeaders[index];
+  const renderItem = useCallback((index, item) => {
+    // [NOTE] Using the `item` parameter directly from Virtuoso
+    // instead of itemsWithHeaders[index] — cleaner and avoids stale closure
     if (!item) return <div style={{ minHeight: '1px' }} />;
 
     if (item.type === 'date-header') {
@@ -155,7 +162,7 @@ const VirtualizedMessageList = React.forwardRef(({
     const mId = item.message?.id || item.message?.tempId;
     const messageIndex = mId ? (messageIdToIndex.get(mId) ?? -1) : -1;
     return renderMessage(messageIndex, item.message);
-  }, [itemsWithHeaders, messageIdToIndex, renderMessage]);
+  }, [messageIdToIndex, renderMessage]);
 
   if (isLoadingTotal) {
     return (
@@ -198,8 +205,16 @@ const VirtualizedMessageList = React.forwardRef(({
           initialTopMostItemIndex ?? (itemsWithHeaders.length > 0 ? itemsWithHeaders.length - 1 : 0)
         }
         followOutput="auto"
-        atBottomStateChange={(isAtBottom) => onScroll?.({ isAtBottom })}
-        atTopStateChange={(isAtTop) => onScroll?.({ isAtTop })}
+        // [FIX #6] Both callbacks now send BOTH isAtBottom and isAtTop
+        // using refs to track the other value
+        atBottomStateChange={(atBottom) => {
+          isAtBottomRef.current = atBottom;
+          onScroll?.({ isAtBottom: atBottom, isAtTop: isAtTopRef.current });
+        }}
+        atTopStateChange={(atTop) => {
+          isAtTopRef.current = atTop;
+          onScroll?.({ isAtTop: atTop, isAtBottom: isAtBottomRef.current });
+        }}
         rangeChanged={(range) => onRangeChanged?.(range.startIndex)}
         itemContent={renderItem}
         computeItemKey={(index, item) => item?.key || `item-${index}`}
@@ -215,11 +230,21 @@ const VirtualizedMessageList = React.forwardRef(({
   );
 });
 
+// [FIX #2 — CRITICAL] Added messages check to memo
+// Previously: memo only checked isLoading, currentUser, chatId, isGroupChat, typingUsers
+// MISSING: messages — so when new messages arrived (send/receive), the Virtuoso
+// data prop never updated and the list showed stale content.
+// New messages were completely invisible until something else forced a re-render.
 export default memo(VirtualizedMessageList, (prevProps, nextProps) => {
+  // Messages changed → MUST re-render
+  if (prevProps.messages !== nextProps.messages) return false;
+
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.currentUser?.id !== nextProps.currentUser?.id) return false;
   if (prevProps.chatId !== nextProps.chatId) return false;
   if (prevProps.isGroupChat !== nextProps.isGroupChat) return false;
+  if (prevProps.isFetchingNextPage !== nextProps.isFetchingNextPage) return false;
+  if (prevProps.hasNextPage !== nextProps.hasNextPage) return false;
 
   const prevTyping = Object.keys(prevProps.typingUsers || {}).length;
   const nextTyping = Object.keys(nextProps.typingUsers || {}).length;
@@ -227,4 +252,3 @@ export default memo(VirtualizedMessageList, (prevProps, nextProps) => {
 
   return true;
 });
-
