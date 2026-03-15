@@ -1,0 +1,1 @@
+const o=(t,s)=>{if(!s||!t)return!1;const l=t.startsWith("v")?t.slice(1):t,c=s.startsWith("v")?s.slice(1):s,r=l.split(".").map(Number),n=c.split(".").map(Number);for(let e=0;e<Math.max(r.length,n.length);e++){const a=r[e]||0,i=n[e]||0;if(a<i)return!0;if(a>i)return!1}return!1};export{o as i};
