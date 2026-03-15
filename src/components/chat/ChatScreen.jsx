@@ -550,18 +550,18 @@ const ChatScreen = () => {
           )}
 
           {showThemeModal && (
-            <Modal isOpen={true} onClose={() => setShowThemeModal(false)} title="Choose Theme" size="large">
+            <Modal isOpen={true} onClose={() => setShowThemeModal(false)} title="Choose Chat Theme" size="large">
               <div className={styles['theme-selector']}>
-                <div className={styles['theme-section']}>
-                  <h4 className={styles['theme-section-title']}>Chat Themes</h4>
-                  <div className={styles['theme-grid']}>
-                    {Object.entries(chatThemes).map(([key, theme]) => (
-                      <div key={key} className={`${styles['theme-capsule']} ${chatTheme === key ? styles.active : ''}`} onClick={() => selectTheme(key)}>
-                        <div className={styles['theme-capsule-preview']} style={{ background: theme.background }} />
+                <div className={styles['theme-grid']}>
+                  {Object.entries(chatThemes).map(([key, theme]) => (
+                    <div key={key} className={`${styles['theme-capsule']} ${chatTheme === key ? styles.active : ''}`} onClick={() => selectTheme(key)}>
+                      <div className={styles['theme-capsule-preview']} style={{ background: theme.background }} />
+                      <div className={styles['theme-capsule-info']}>
                         <span className={styles['theme-capsule-name']}>{theme.name}</span>
+                        <span className={styles['theme-capsule-category']}>{theme.category}</span>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </Modal>

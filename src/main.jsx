@@ -1,25 +1,33 @@
-import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
+import { lazy, Suspense } from 'react';
+import { createRoot } from 'react-dom/client';
+import { HashRouter } from 'react-router-dom';
 import './styles/tokens.css';
 import './styles/game-tokens.css';
 import './index.css';
 import './styles/theme-tokens.css';
-import './styles/theme-integration.css'
+import './styles/theme-integration.css';
 import './styles/app.css';
-import App from './App.jsx'
-import { ThemeProvider } from './contexts/ThemeProvider.jsx'
-import { ChatThemeProvider } from './contexts/ChatThemeProvider.jsx'
-import { EmojiStyleProvider } from './contexts/EmojiStyleProvider.jsx'
-import { SupabaseProvider } from './contexts/SupabaseProvider.jsx'
-import { AuthProvider } from './contexts/AuthProvider.jsx'
-import { useAuth } from './contexts/AuthContext.js'
-import { CallProvider } from './contexts/CallProvider.jsx'
+
+// CSS for the initial shell (always needed)
+import './styles/desktop.css';
+import './styles/call-screen.css';
+import './styles/offline-indicator.css';
+import './styles/emoji-styles.css';
+import './styles/safeArea.css';
+
+// Minimal root-level providers (lightweight, always needed)
+import { ThemeProvider } from './contexts/ThemeProvider.jsx';
+import { SupabaseProvider } from './contexts/SupabaseProvider.jsx';
+import { AuthProvider } from './contexts/AuthProvider.jsx';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import AppErrorBoundary from './components/common/AppErrorBoundary';
 
-// Create the LocalStorage persister
+// PublicApp handles the split between lean public routes (Landing, Login)
+// and the heavy AuthenticatedApp shell.
+const PublicApp = lazy(() => import('./PublicApp'));
+
 const persister = createSyncStoragePersister({
   storage: window.localStorage,
 });
@@ -27,10 +35,10 @@ const persister = createSyncStoragePersister({
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 Minutes (Global)
-      gcTime: 1000 * 60 * 30, // 30 Minutes
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
       refetchOnWindowFocus: false,
-      refetchOnMount: true, // Allow refetch on mount if stale
+      refetchOnMount: true,
       retry: 1,
       networkMode: 'offlineFirst',
     },
@@ -40,16 +48,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-// Create a component to wrap CallProvider and pass user
-const AppWithCallProvider = () => {
-  const { user } = useAuth();
-  return (
-    <CallProvider currentUser={user}>
-      <App />
-    </CallProvider>
-  );
-};
 
 createRoot(document.getElementById('root')).render(
   <AppErrorBoundary>
@@ -64,15 +62,14 @@ createRoot(document.getElementById('root')).render(
         <SupabaseProvider>
           <AuthProvider>
             <ThemeProvider>
-              <ChatThemeProvider>
-                <EmojiStyleProvider>
-                  <AppWithCallProvider />
-                </EmojiStyleProvider>
-              </ChatThemeProvider>
+              {/* PublicApp handles initial lean routes and lazy-loads AuthenticatedApp */}
+              <Suspense fallback={<div className="loading" />}>
+                <PublicApp />
+              </Suspense>
             </ThemeProvider>
           </AuthProvider>
         </SupabaseProvider>
       </PersistQueryClientProvider>
     </HashRouter>
   </AppErrorBoundary>
-)
+);

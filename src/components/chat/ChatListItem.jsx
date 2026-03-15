@@ -13,7 +13,9 @@ const ChatListItem = ({
   chat, 
   onClick, 
   isActive, 
-  onLongPress, 
+  onLongPressStart,
+  onLongPressEnd,
+  onLongPressMove,
   onContextMenu,
   selectionMode,
   isSelected,
@@ -78,9 +80,9 @@ const ChatListItem = ({
         }
       }}
       onContextMenu={(e) => onContextMenu && onContextMenu(e, chat)}
-      onTouchStart={() => isMobile && onLongPress && onLongPress(chat.id)}
-      onTouchEnd={() => isMobile && onLongPress && onLongPress.end && onLongPress.end()}
-      onTouchMove={() => isMobile && onLongPress && onLongPress.move && onLongPress.move()}
+      onTouchStart={() => isMobile && onLongPressStart && onLongPressStart(chat.id)}
+      onTouchEnd={() => isMobile && onLongPressEnd && onLongPressEnd()}
+      onTouchMove={() => isMobile && onLongPressMove && onLongPressMove()}
       onMouseEnter={handlePrefetch}
       onPointerDown={handlePrefetch}
     >

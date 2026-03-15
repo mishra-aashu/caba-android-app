@@ -23,7 +23,7 @@ import DropdownMenu from './common/DropdownMenu';
 import ChatListItem from './chat/ChatListItem';
 import { getPublicMediaUrl } from '../services/mediaService';
 import { getDpPath } from '../utils/dpOptions';
-import ImageViewer from './chat/ImageViewer';
+const ImageViewer = lazy(() => import('./chat/ImageViewer'));
 import { getInitials } from '../utils/stringUtils';
 import { isUserOnline } from '../utils/dateFormatter';
 // lazy loaded below
@@ -33,7 +33,8 @@ import { useChatDeletion } from '../hooks/useChatDeletion';
 import ChatSelectionHeader from './chat/ChatSelectionHeader';
 import DeleteConfirmation from './chat/DeleteConfirmation';
 import ChatContextMenu from './chat/ChatContextMenu';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
+import messageReadsService from '../services/messageReadsService';
 const CreateGroupModal = lazy(() => import('./groups/CreateGroupModal'));
 
 import styles from '../styles/ChatListItem.module.css';
@@ -110,7 +111,6 @@ const ChatListPanel = ({
     setDeleteData({ isOpen: false, chat: null, isGroup: false });
     clearSelection();
   };
-
   // Create a fast lookup map for contacts
   const contactMap = useMemo(() => {
     const map = new Map();
@@ -227,11 +227,35 @@ const ChatListPanel = ({
         selectionMode={selectionMode}
         isSelected={selectedChats.includes(chat.id)}
         onSelect={toggleChatSelection}
-        onLongPress={handleTouchStart}
+        onLongPressStart={handleTouchStart}
+        onLongPressEnd={handleTouchEnd}
+        onLongPressMove={handleTouchMove}
         onContextMenu={handleContextMenu}
         isMobile={!isDesktop}
       />
     );
+  };
+
+  const handleMarkRead = async () => {
+    try {
+      const promises = selectedChats.map(chatId => messageReadsService.markAllAsRead(chatId, user.id));
+      await Promise.all(promises);
+      toast.success('Chats marked as read');
+      clearSelection();
+    } catch (error) {
+      console.error('Error marking chats as read:', error);
+      toast.error('Failed to mark chats as read');
+    }
+  };
+
+  const handleMuteSelected = () => {
+    const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
+    selectedChats.forEach(chatId => {
+      mutedChats[chatId] = true;
+    });
+    localStorage.setItem('mutedChats', JSON.stringify(mutedChats));
+    toast.success('Chats muted');
+    clearSelection();
   };
 
   return (
@@ -242,6 +266,8 @@ const ChatListPanel = ({
           selectedCount={selectedChats.length}
           onClear={clearSelection}
           onDelete={() => openDeleteModal(selectedChats)}
+          onMarkRead={handleMarkRead}
+          onMute={handleMuteSelected}
         />
       )}
       <header className={`${styles['top-header']} ${selectionMode ? styles.hidden : ''}`}>
@@ -397,14 +423,16 @@ const ChatListPanel = ({
         />
       )}
 
-      <DeleteConfirmation
-        isOpen={deleteData.isOpen}
-        onClose={() => setDeleteData({ isOpen: false, chat: null, isGroup: false })}
-        onConfirm={confirmDelete}
-        title={selectionMode ? "Delete Chats?" : "Delete Chat?"}
-        selectedCount={selectionMode ? selectedChats.length : 1}
-        isMobile={!isDesktop}
-      />
+      <Suspense fallback={null}>
+        <DeleteConfirmation
+          isOpen={deleteData.isOpen}
+          onClose={() => setDeleteData({ isOpen: false, chat: null, isGroup: false })}
+          onConfirm={confirmDelete}
+          title={selectionMode ? "Delete Chats?" : "Delete Chat?"}
+          selectedCount={selectionMode ? selectedChats.length : 1}
+          isMobile={!isDesktop}
+        />
+      </Suspense>
     </main>
   );
 };

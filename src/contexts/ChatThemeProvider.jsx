@@ -4,103 +4,115 @@ import useAuthStore from '../store/authStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChatThemeContext, chatThemes, chatPatterns } from './ChatThemeContext';
 import { useTheme } from './ThemeContext';
+import { colorizeSVG } from '../utils/svgColorizer';
 
 
 // ─── Pure function: applies theme vars to DOM — NO React state dependency ───
 // Takes all values explicitly so it's always called with fresh, correct data.
 function applyThemeToDom({
   themeKey,
-  wallpaperUrl,   // null = no wallpaper, undefined = don't touch wallpaper slot
-  patternId,      // null = no pattern, undefined = don't touch pattern slot
+  wallpaperUrl,
+  patternId,
 }) {
   const root = document.documentElement;
   const theme = chatThemes[themeKey] || chatThemes.classic_purple;
-
+  
   const setProp = (name, value) => {
     if (value != null && value !== '') root.style.setProperty(name, value);
     else root.style.removeProperty(name);
   };
 
-  // ─── 1. data-attribute (drives CSS selectors in enhanced-themes.css) ───
+  // 1. Core Data Attribute
   const chatThemeAttr = themeKey.replace(/_/g, '-');
-  document.documentElement.setAttribute('data-chat-theme', chatThemeAttr);
+  root.setAttribute('data-chat-theme', chatThemeAttr);
   document.body.setAttribute('data-chat-theme', chatThemeAttr);
 
   const isDarkMode = root.getAttribute('data-theme') === 'dark';
 
-  // ─── 2. Wallpaper (only touch if explicitly passed — not undefined) ───
-  if (wallpaperUrl !== undefined) {
-    if (wallpaperUrl) {
-      setProp('--chat-bg-image', `url("${wallpaperUrl}")`);
-    } else {
-      root.style.removeProperty('--chat-bg-image');
-    }
+  // 2. Wallpaper & Base Background
+  if (wallpaperUrl) {
+    setProp('--chat-bg-image', `url("${wallpaperUrl}")`);
+  } else {
+    root.style.removeProperty('--chat-bg-image');
   }
 
-  // ─── 3. Theme background/colors ───
-  if (theme.cssOnly) {
-    // Let enhanced-themes.css drive everything — clear manual overrides
-    [
-      '--chat-bg-gradient', '--chat-bg-base',
-      '--sent-message-bg', '--sent-message-text', '--sent-message-border', '--sent-message-shadow',
-      '--received-message-bg', '--received-message-text', '--received-message-border', '--received-message-shadow',
-      '--chat-header-bg', '--chat-header-text', '--chat-header-icon-color', '--chat-header-border',
-      '--chat-input-bg', '--chat-input-text', '--chat-input-placeholder', '--chat-input-icon-color', '--chat-input-border',
-      '--chat-composer-bg', '--chat-composer-border',
-      '--chat-send-btn-bg', '--chat-send-btn-color',
-    ].forEach(prop => root.style.removeProperty(prop));
-  } else {
-    // Full variable sync for "Premium" JS themes
-    setProp('--chat-bg-gradient', theme.background);
-    setProp('--chat-bg-base', theme.backgroundBase || (isDarkMode ? '#0b141a' : '#e5ddd5'));
+  // Set the base background color and gradient from the theme
+  setProp('--chat-bg-gradient', theme.background);
+  setProp('--chat-bg-base', theme.backgroundBase || (isDarkMode ? '#0b141a' : '#e5ddd5'));
 
-    // Helper to map message sub-objects (handles both 'bg' and 'background' keys)
-    const mapSubProps = (prefix, obj) => {
-      if (!obj) return;
-      setProp(`${prefix}-bg`, obj.background || obj.bg);
-      setProp(`${prefix}-text`, obj.text);
-      setProp(`${prefix}-border`, obj.border);
-      setProp(`${prefix}-shadow`, obj.shadow);
+  // 3. Message Bubble Styles
+  const mapSubProps = (prefix, obj) => {
+    if (!obj) return;
+    setProp(`${prefix}-bg`, obj.background || obj.bg);
+    setProp(`${prefix}-text`, obj.text);
+    setProp(`${prefix}-border`, obj.border);
+    setProp(`${prefix}-shadow`, obj.shadow);
+  };
+
+  mapSubProps('--sent-message', theme.sentMessage);
+  mapSubProps('--received-message', theme.receivedMessage);
+
+  // Header/Input overrides if thematic
+  if (theme.header) {
+    setProp('--chat-header-bg', theme.header.background);
+    setProp('--chat-header-text', theme.header.text);
+    setProp('--chat-header-icon-color', theme.header.iconColor);
+  } else {
+    ['--chat-header-bg', '--chat-header-text', '--chat-header-icon-color'].forEach(p => root.style.removeProperty(p));
+  }
+
+  if (theme.input) {
+    setProp('--chat-input-bg', theme.input.background);
+    setProp('--chat-input-text', theme.input.text);
+    setProp('--chat-input-icon-color', theme.input.iconColor);
+  } else {
+    ['--chat-input-bg', '--chat-input-text', '--chat-input-icon-color'].forEach(p => root.style.removeProperty(p));
+  }
+
+  // 4. Pattern Management
+  if (patternId) {
+    // Determine pattern contrast
+    const isDarkBackground = (bg) => {
+      if (!bg) return isDarkMode;
+      const darkKeywords = ['#000', '#111', '#222', '#1a1a1a', '#0a0a0a', 'black'];
+      return darkKeywords.some(kw => bg.toLowerCase().includes(kw));
     };
 
-    mapSubProps('--sent-message', theme.sentMessage);
-    mapSubProps('--received-message', theme.receivedMessage);
+    const effectivelyDark = theme.category === 'Dark' || isDarkBackground(theme.background) || isDarkMode;
+    const patternColor = effectivelyDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.12)';
 
-    // Map other slots if defined in the theme object
-    if (theme.header) {
-      setProp('--chat-header-bg', theme.header.background);
-      setProp('--chat-header-text', theme.header.text);
-      setProp('--chat-header-icon-color', theme.header.iconColor);
-    }
+    setProp('--chat-pattern-color', patternColor);
+    setProp('--chat-pattern-opacity', wallpaperUrl ? '0.04' : '0.1');
+    setProp('--chat-pattern-blend', 'overlay');
+    setProp('--chat-pattern-size', '420px');
 
-    if (theme.input) {
-      setProp('--chat-input-bg', theme.input.background);
-      setProp('--chat-input-text', theme.input.text);
-      setProp('--chat-input-icon-color', theme.input.iconColor);
-    }
-  }
-
-  // ─── 4. Pattern (only touch if explicitly passed — not undefined) ───
-  if (patternId !== undefined) {
-    if (patternId) {
-      const patternPath = `/assets/${patternId}.svg`;
-      setProp('--pattern-url', `url("${patternPath}")`);
-
-      let patternColor = theme.receivedMessage?.text;
-      if (!patternColor) {
-        patternColor = isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.12)';
+    // Load and Apply SVG Pattern
+    (async () => {
+      try {
+        const response = await fetch(`/assets/${patternId}.svg`);
+        if (response.ok) {
+          const svgText = await response.text();
+          let dataUri;
+          
+          if (window.colorizeSVG) {
+            dataUri = window.colorizeSVG(svgText, patternColor);
+          } else {
+            const base64Svg = window.btoa(unescape(encodeURIComponent(
+              svgText.includes('<style') ? 
+              svgText.replace(/fill:[^;]*;/g, `fill:${patternColor};`) : 
+              svgText.replace('<svg', `<svg fill="${patternColor}"`)
+            )));
+            dataUri = `data:image/svg+xml;base64,${base64Svg}`;
+          }
+          setProp('--pattern-url', `url("${dataUri}")`);
+        }
+      } catch (err) {
+        console.warn('[ChatTheme] Pattern load failed:', err);
+        setProp('--pattern-url', `url("/assets/${patternId}.svg")`);
       }
-      setProp('--chat-pattern-color', patternColor);
-      setProp('--chat-pattern-opacity', wallpaperUrl ? '0.04' : (theme.is_pattern ? '0.12' : '0.08'));
-      setProp('--chat-pattern-blend', theme.chat_pattern_blend || 'overlay');
-      setProp('--chat-pattern-size', theme.chat_pattern_size || '420px');
-    } else {
-      root.style.removeProperty('--pattern-url');
-      root.style.removeProperty('--chat-pattern-opacity');
-      root.style.removeProperty('--chat-pattern-color');
-      root.style.removeProperty('--chat-pattern-blend');
-      root.style.removeProperty('--chat-pattern-size');
-    }
+    })();
+  } else {
+    ['--pattern-url', '--chat-pattern-opacity', '--chat-pattern-color', '--chat-pattern-blend', '--chat-pattern-size'].forEach(p => root.style.removeProperty(p));
   }
 }
 

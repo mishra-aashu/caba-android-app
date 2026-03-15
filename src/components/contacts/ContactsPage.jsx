@@ -20,6 +20,7 @@ import { db } from '../../db/db';
 import { dpOptions } from '../../utils/dpOptions';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
+import BottomNavigation from '../common/BottomNavigation';
 import './ContactsPage.css';
 
 const ContactsPage = ({ onClose, isDesktop = false }) => {
@@ -621,6 +622,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {!isDesktop && <BottomNavigation />}
         </div>
     );
 };

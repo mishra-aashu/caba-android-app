@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useUserFullProfile } from '../hooks/useUserFullProfile';
@@ -29,6 +29,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     const { id: paramUserId } = useParams();
     const userId = propUserId || paramUserId;
     const navigate = useNavigate();
+    const location = useLocation();
     const { supabase } = useSupabase();
     const { startCall } = useCall();
     const queryClient = useQueryClient();
@@ -429,6 +430,14 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         }
     };
 
+    const handleBack = () => {
+        if (isPanel && onClose) {
+            onClose();
+            return;
+        }
+        navigate('/');
+    };
+
     // ─── Loading Skeleton ───
     if (isProfileLoading && !profileData) {
         return (
@@ -489,7 +498,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             <header className="ud-header">
                 <button
                     className="ud-header-btn"
-                    onClick={isPanel ? (onClose || (() => navigate(-1))) : (() => navigate(-1))}
+                    onClick={handleBack}
                 >
                     {isPanel ? <X size={22} /> : <ArrowLeft size={22} />}
                 </button>

@@ -62,7 +62,8 @@ const MainLayout = () => {
         location.pathname.startsWith('/user-details/') ||
         location.pathname === '/groups' ||
         location.pathname === '/contacts' ||
-        location.pathname.startsWith('/settings/') ||
+        location.pathname.startsWith('/settings') ||
+        location.pathname.startsWith('/profile') ||
         location.pathname === '/terms' ||
         location.pathname === '/privacy' ||
         location.pathname === '/blocked' ||

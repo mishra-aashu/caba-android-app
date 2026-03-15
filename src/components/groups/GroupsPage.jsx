@@ -10,6 +10,7 @@ import { useGroupActions } from '../../hooks/useGroupActions';
 import GroupInfoDrawer from './GroupInfoDrawer';
 import CreateGroupModal from './CreateGroupModal';
 import { Users, Search, Plus, MoreVertical, MessageCircle } from 'lucide-react';
+import BottomNavigation from '../common/BottomNavigation';
 import './GroupsPage.css';
 
 const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
@@ -188,6 +189,7 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
           setShowCreateModal(false);
         }}
       />
+      {!isDrawer && <BottomNavigation />}
     </>
   );
 };

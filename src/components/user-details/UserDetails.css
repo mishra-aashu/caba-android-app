@@ -52,7 +52,7 @@ body.dark-mode .ud-screen {
     border-bottom: 1px solid var(--ud-border);
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: 999;
     min-height: 56px;
 }
 
@@ -68,8 +68,8 @@ body.dark-mode .ud-screen {
 }
 
 .ud-header-btn {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     border: none;
     background: transparent;

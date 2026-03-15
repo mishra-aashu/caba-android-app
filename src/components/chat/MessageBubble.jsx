@@ -2,6 +2,7 @@ import React, { memo, useState, useEffect, useMemo } from 'react';
 import EmojiRenderer from '../common/EmojiRenderer';
 import { isOnlyEmoji } from '../../utils/emojiUtils';
 import { formatLastSeen } from '../../utils/dateFormatter';
+import { Clock, AlertCircle, RefreshCcw } from 'lucide-react';
 import styles from './MessageBubble.module.css';
 
 // Icon for deleted messages
@@ -42,6 +43,7 @@ const MessageBubble = memo(({
   sender,
   message,
   isLastRead,
+  onRetry,
 }) => {
   const [unlockCountdown, setUnlockCountdown] = useState('');
 
@@ -124,8 +126,25 @@ const MessageBubble = memo(({
             <span className={styles.timestamp}>
               {time}
               {isEdited && <span className={styles['edited-indicator']}> (ed)</span>}
+              
+              {isMine && (
+                <span className={styles['status-indicator']}>
+                  {(status === 'pending' || status === 'sending') && <Clock size={10} className={styles['status-icon']} />}
+                  {status === 'failed' && <AlertCircle size={10} className={styles['status-icon-failed']} />}
+                </span>
+              )}
             </span>
           </div>
+
+          {isMine && status === 'failed' && (
+            <button 
+              className={styles['retry-button']} 
+              onClick={(e) => { e.stopPropagation(); onRetry?.(); }}
+            >
+              <RefreshCcw size={10} />
+              <span>Retry</span>
+            </button>
+          )}
         </div>
       </div>
       

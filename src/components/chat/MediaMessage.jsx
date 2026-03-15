@@ -3,9 +3,10 @@ import { getPublicMediaUrl } from '../../services/mediaService';
 import EmojiRenderer from '../common/EmojiRenderer';
 import CachedImage from '../common/CachedImage';
 import { formatLastSeen } from '../../utils/dateFormatter';
+import { Clock, AlertCircle, RefreshCcw } from 'lucide-react';
 import styles from './MediaMessage.module.css';
 
-const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, onMediaClick, isLastRead }) => {
+const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, onMediaClick, isLastRead, onRetry }) => {
   const [mediaUrl, setMediaUrl] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,9 +80,25 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
             {imageLoaded && (
               <div className={styles['media-time-overlay']}>
                 <span>{time}</span>
+                {isSender && (
+                  <span className={styles['status-indicator']}>
+                    {(status === 'pending' || status === 'sending') && <Clock size={10} />}
+                    {status === 'failed' && <AlertCircle size={10} className={styles['status-icon-failed']} />}
+                  </span>
+                )}
               </div>
             )}
           </div>
+
+          {isSender && status === 'failed' && (
+            <button 
+              className={styles['retry-button']} 
+              onClick={(e) => { e.stopPropagation(); onRetry?.(); }}
+            >
+              <RefreshCcw size={10} />
+              <span>Retry</span>
+            </button>
+          )}
 
           {message?.metadata && Object.keys(message.metadata).length > 0 && (
             <div className={styles['message-reactions']}>

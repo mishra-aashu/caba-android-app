@@ -29,6 +29,15 @@ const useNetworkSync = () => {
                     return;
                 }
 
+                // 2. Recovery: Reset failed items that are recent (< 24h) back to pending
+                const now = new Date();
+                const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+                
+                await db.sync_queue
+                    .where('status').equals('failed')
+                    .and(item => item.failed_at && item.failed_at > twentyFourHoursAgo)
+                    .modify({ status: 'pending', retry_count: 0 });
+
                 const pendingItems = await db.sync_queue
                     .where('status')
                     .equals('pending')
@@ -57,6 +66,11 @@ const useNetworkSync = () => {
                                 const { tempId, file, ...supabasePayload } = item.payload;
 
                                 let finalPayload = { ...supabasePayload };
+
+                                // Group Message Fix: receiver_id must be sender placeholder for groups
+                                if (finalPayload.is_group_message && !finalPayload.receiver_id) {
+                                    finalPayload.receiver_id = session.user.id;
+                                }
 
                                 // If there's a local file, upload it first
                                 if (file) {
@@ -162,8 +176,14 @@ const useNetworkSync = () => {
                                 console.warn(`Item ${item.id} failed after 3 attempts. Marking as failed.`);
                                 await db.sync_queue.update(item.id, {
                                     status: 'failed',
+                                    failed_at: new Date().toISOString(),
                                     last_error: error.message || 'Unknown error'
                                 });
+
+                                // Update local message status for UI
+                                if (item.type === 'send_message' && item.payload?.tempId) {
+                                    await db.messages.where('tempId').equals(item.payload.tempId).modify({ status: 'failed' });
+                                }
                             } else {
                                 await db.sync_queue.update(item.id, {
                                     retry_count: currentRetryCount,

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { Trash2, Archive, BellOff } from 'lucide-react';
 import styles from './ChatContextMenu.module.css';
 
 const ChatContextMenu = ({ x, y, onClose, onDelete, chat }) => {
@@ -21,16 +22,16 @@ const ChatContextMenu = ({ x, y, onClose, onDelete, chat }) => {
       style={{ left: x, top: y }}
     >
       <div className={styles.item} onClick={() => { onDelete(); onClose(); }}>
-        <span className={styles.icon}>🗑️</span>
+        <span className={styles.icon}><Trash2 size={16} /></span>
         <span>Delete Chat</span>
       </div>
       <div className={styles.item} onClick={onClose}>
-        <span className={styles.icon}>📁</span>
+        <span className={styles.icon}><Archive size={16} /></span>
         <span>Archive</span>
       </div>
       <div className={styles.divider} />
       <div className={styles.item} onClick={onClose}>
-        <span className={styles.icon}>🔇</span>
+        <span className={styles.icon}><BellOff size={16} /></span>
         <span>Mute Notifications</span>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, Smile } from 'lucide-react';
 import hapticsManager from '../../../utils/hapticsManager';
 import styles from '../../../styles/chat.module.css';
 
@@ -23,10 +23,24 @@ const InputBar = ({
     onToggleAttachment();
   };
 
+  const handleToggleEmoji = () => {
+    hapticsManager.impact();
+    onToggleEmoji();
+  };
+
   if (isRecording || voiceBlob) return null;
 
   return (
     <div className={styles['input-pill']}>
+      <button 
+        className={styles['btn-emoji-icon']} 
+        onClick={handleToggleEmoji}
+        title="Emoji"
+        type="button"
+      >
+        <Smile size={24} />
+      </button>
+
       <div className={styles['auto-resize-wrapper']}>
         <span className={styles['textarea-mirror']}>{message + '\n'}</span>
         <textarea
@@ -45,6 +59,7 @@ const InputBar = ({
         className={styles['btn-attach-icon']} 
         onClick={handleToggleAttachment}
         title="Attach"
+        type="button"
       >
         <Paperclip size={22} />
       </button>

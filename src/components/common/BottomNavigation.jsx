@@ -17,6 +17,9 @@ const BottomNavigation = () => {
     if (path === '/') {
       return location.pathname === '/' || location.pathname.startsWith('/chat');
     }
+    if (path === '/settings') {
+      return location.pathname.startsWith('/settings') || location.pathname.startsWith('/profile');
+    }
     return location.pathname.startsWith(path);
   };
 

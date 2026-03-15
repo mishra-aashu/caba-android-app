@@ -13,6 +13,7 @@ import FullscreenImageModal from "./FullscreenImageModal";
 import { useDialog } from "../../contexts/DialogContext";
 import toast from "react-hot-toast";
 import CachedImage from "../common/CachedImage";
+import BottomNavigation from "../common/BottomNavigation";
 
 const Profile = ({ isModal = false, isSidebar = false }) => {
   const isOverlay = isModal || isSidebar;
@@ -545,6 +546,7 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
           </div>
         </div>
       )}
+      <BottomNavigation />
     </div>
   );
 };

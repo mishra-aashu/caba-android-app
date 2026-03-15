@@ -10,6 +10,48 @@
   align-items: flex-end;
 }
 
+/* Status & Retry Styles */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.status-icon-failed {
+  color: #ff4d4f;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.retry-button {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  margin-top: 6px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-end;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.retry-button:hover {
+  background: rgba(0, 0, 0, 0.3);
+  transform: scale(1.02);
+}
+
 .message-row {
   display: flex;
   width: 100%;

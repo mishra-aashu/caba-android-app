@@ -1,11 +1,23 @@
 import { useEffect, useState, useRef, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    MessageCircle, Phone, Image as ImageIcon, Users, Lock, Smartphone,
-    Palette, QrCode, Clock, Newspaper, History, Bell,
-    UserPlus, Send,
-    Sun, Moon, ChevronRight, Download,
-} from 'lucide-react';
+import MessageCircle from 'lucide-react/dist/esm/icons/message-circle';
+import Phone from 'lucide-react/dist/esm/icons/phone';
+import ImageIcon from 'lucide-react/dist/esm/icons/image';
+import Users from 'lucide-react/dist/esm/icons/users';
+import Lock from 'lucide-react/dist/esm/icons/lock';
+import Smartphone from 'lucide-react/dist/esm/icons/smartphone';
+import Palette from 'lucide-react/dist/esm/icons/palette';
+import QrCode from 'lucide-react/dist/esm/icons/qr-code';
+import Clock from 'lucide-react/dist/esm/icons/clock';
+import Newspaper from 'lucide-react/dist/esm/icons/newspaper';
+import History from 'lucide-react/dist/esm/icons/history';
+import Bell from 'lucide-react/dist/esm/icons/bell';
+import UserPlus from 'lucide-react/dist/esm/icons/user-plus';
+import Send from 'lucide-react/dist/esm/icons/send';
+import Sun from 'lucide-react/dist/esm/icons/sun';
+import Moon from 'lucide-react/dist/esm/icons/moon';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
+import Download from 'lucide-react/dist/esm/icons/download';
 import { ThemeContext } from '../contexts/ThemeContext';
 import styles from '../styles/LandingPage.module.css';
 import AppName from '../components/common/AppName';

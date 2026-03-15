@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense, laz
 import debounce from 'lodash/debounce';
 import AttachmentMenu from './AttachmentMenu';
 import EmojiRenderer from '../common/EmojiRenderer';
-import { Send, LoaderCircle, Mic, Pause } from 'lucide-react';
+import { Send, LoaderCircle, Mic, Pause, Smile } from 'lucide-react';
 import { uploadMedia, uploadVoiceMessage } from '../../services/mediaService';
 import { compressImage, handleVideo } from '../../utils/mediaCompressor';
 import { useDialog } from '../../contexts/DialogContext';
@@ -232,15 +232,7 @@ const MessageInput = ({
       )}
 
       <div className={styles['input-row']}>
-        {canShowInputBar && (
-          <button 
-            className={styles['btn-emoji-icon']} 
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            title="Emoji"
-          >
-            <EmojiRenderer emoji="😊" size={24} />
-          </button>
-        )}
+
 
         <VoiceRecorder 
           isExternalRecording={isRecordingUI}
@@ -295,6 +287,7 @@ const MessageInput = ({
             isOpen={showEmojiPicker}
             onEmojiSelect={handleEmojiSelect}
             onClose={() => setShowEmojiPicker(false)}
+            showTrigger={false}
           />
         )}
       </Suspense>

@@ -5,6 +5,8 @@ import { formatBubbleTime } from '../../utils/dateFormatter';
 import { Check } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import useChatStore from '../../store/useChatStore';
+import { manualRetrySyncItem } from '../../db/db';
+import toast from 'react-hot-toast';
 import styles from '../../styles/chat.module.css';
 
 // Lazy load heavy interactive components
@@ -85,6 +87,25 @@ const MessageItem = ({
     }
   };
 
+  const handleRetry = useCallback(async () => {
+    if (msgId) {
+        try {
+            // tempId is used for retry, extract from msgId if it's a temp string
+            const tempIdToRetry = String(msgId).includes('temp_') ? String(msgId).split('temp_')[1] : msgId;
+            await manualRetrySyncItem(Number(tempIdToRetry));
+            toast.success('Retrying message...');
+            
+            // Trigger sync manually if online
+            if (navigator.onLine) {
+                window.dispatchEvent(new Event('online'));
+            }
+        } catch (err) {
+            console.error('Retry failed:', err);
+            toast.error('Failed to retry');
+        }
+    }
+  }, [msgId]);
+
   const renderContent = () => {
     const mediaPath = message.mediaPath || message.media_path;
     const mediaType = message.mediaType || message.media_type;
@@ -127,9 +148,10 @@ const MessageItem = ({
         time={time}
         isMine={isSent}
         isDeleted={message.isDeleted || message.is_deleted}
-        status={isRead ? 'read' : 'sent'}
+        status={message.status || (isRead ? 'read' : 'sent')}
         message={message}
         isLastRead={isLastRead}
+        onRetry={handleRetry}
       />
     );
   };

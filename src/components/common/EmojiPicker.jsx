@@ -42,7 +42,6 @@ const EmojiPicker = ({
 }) => {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('emoji');
-    const [isVisible, setIsVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('smileys');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -54,24 +53,21 @@ const EmojiPicker = ({
     const pickerRef = useRef(null);
     const scrollRef = useRef(null);
 
-    // Show/hide animation state
+    // Initial render level
     useEffect(() => {
         if (isOpen) {
-            setIsVisible(true);
             setRenderLevel(1);
         } else {
-            setIsVisible(false);
             setRenderLevel(0);
         }
     }, [isOpen]);
 
-    // Incremental rendering logic: Add one category every 50ms until done
-    // This prevents the "freeze" by spreading DOM insertion over time.
+    // Incremental rendering logic
     useEffect(() => {
         if (isOpen && renderLevel > 0 && renderLevel < ALL_PROCESSED_CATEGORIES.length) {
             const timer = setTimeout(() => {
                 setRenderLevel(prev => prev + 1);
-            }, 60); // Tune this for smoothness vs speed
+            }, 60);
             return () => clearTimeout(timer);
         }
     }, [isOpen, renderLevel]);
@@ -93,8 +89,6 @@ const EmojiPicker = ({
     const handleEmojiSelect = useCallback((emojiData) => {
         const nativeEmoji = emojiData.native || (emojiData.skins && emojiData.skins[0]?.native);
         onEmojiSelect(nativeEmoji);
-        // Do NOT close the picker here — parent decides when to close.
-        // This lets users pick multiple emojis without the popup disappearing.
     }, [onEmojiSelect]);
 
     const handleToggle = useCallback(() => {
@@ -114,19 +108,13 @@ const EmojiPicker = ({
         }
     }, []);
 
-    // Close ONLY on outside click — not on emoji click
+    // Close on outside click
     useEffect(() => {
         const handleClickOutside = (event) => {
-            // If the user clicked the toggle button, let the parent's toggle handle it
-            // We use the class 'emoji-toggle-btn' to identify the trigger
             if (event.target.closest('.emoji-toggle-btn')) return;
-
             if (pickerRef.current && !pickerRef.current.contains(event.target)) {
-                if (onOpenChange) {
-                    onOpenChange(false);
-                } else {
-                    setInternalIsOpen(false);
-                }
+                if (onOpenChange) onOpenChange(false);
+                else setInternalIsOpen(false);
                 onClose && onClose();
             }
         };
@@ -138,7 +126,10 @@ const EmojiPicker = ({
     }, [isOpen, onOpenChange, onClose]);
 
     return (
-        <div className="emoji-picker-container" ref={pickerRef}>
+        <div 
+            className={`emoji-picker-container ${!showTrigger ? 'no-trigger' : ''}`} 
+            ref={pickerRef}
+        >
             {showTrigger && (
                 <button
                     type="button"
@@ -153,17 +144,15 @@ const EmojiPicker = ({
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        className={`emoji-picker-popup ${isVisible ? 'visible' : ''} ${isInline ? 'inline' : ''}`}
-                        initial={isInline ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 10 }}
-                        animate={isVisible 
-                            ? (isInline ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 })
-                            : (isInline ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 10 })
-                        }
-                        exit={isInline ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 15 }}
+                        className={`emoji-picker-popup ${isOpen ? 'visible' : ''} ${isInline ? 'inline' : ''}`}
+                        initial={isInline ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 15 }}
+                        animate={isInline ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+                        exit={isInline ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 20 }}
                         transition={{
-                            type: 'tween',
-                            ease: 'easeOut',
-                            duration: 0.15
+                            type: 'spring',
+                            damping: 25,
+                            stiffness: 300,
+                            duration: 0.2
                         }}
                     >
                         <div className="picker-header">

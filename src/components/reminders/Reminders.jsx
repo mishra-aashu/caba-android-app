@@ -14,6 +14,7 @@ import { useDialog } from '../../contexts/DialogContext';
 import { toast } from 'react-hot-toast';
 import CreateReminder from './CreateReminder';
 import ReminderSettings from './ReminderSettings';
+import BottomNavigation from '../common/BottomNavigation';
 import '../../styles/reminders.css';
 
 // Field mapping utility for consistent camelCase conversion
@@ -1202,6 +1203,7 @@ const Reminders = () => {
       {showMoreOptions && (
         <div className="overlay-click-catcher" onClick={() => setShowMoreOptions(null)} />
       )}
+      <BottomNavigation />
     </div>
   );
 };

@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import { useAudioBlob } from '../../hooks/useAudioBlob';
 import EmojiRenderer from '../common/EmojiRenderer';
-import { Play, Pause, LoaderCircle, AlertTriangle } from 'lucide-react';
+import { Play, Pause, LoaderCircle, AlertTriangle, Clock, AlertCircle, RefreshCcw } from 'lucide-react';
 import { formatLastSeen } from '../../utils/dateFormatter';
 import styles from './VoiceMessage.module.css';
 
-const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, isLastRead }) => {
+const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, isLastRead, onRetry }) => {
   const { audioUrl, isLoading, error: hookError } = useAudioBlob(message.mediaPath || message.media_path);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -137,8 +137,24 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
 
             <div className={styles['voice-time-overlay']}>
               <span>{time}</span>
+              {isSender && (
+                <span className={styles['status-indicator']}>
+                  {(status === 'pending' || status === 'sending') && <Clock size={10} />}
+                  {status === 'failed' && <AlertCircle size={10} className={styles['status-icon-failed']} />}
+                </span>
+              )}
             </div>
           </div>
+
+          {isSender && status === 'failed' && (
+            <button 
+              className={styles['retry-button']} 
+              onClick={(e) => { e.stopPropagation(); onRetry?.(); }}
+            >
+              <RefreshCcw size={10} />
+              <span>Retry</span>
+            </button>
+          )}
 
           {message?.metadata && Object.keys(message.metadata).length > 0 && (
             <div className={styles['message-reactions']}>

@@ -12,6 +12,10 @@ db.version(1).stores({
     sync_queue: '++id, status, type, created_at' // ++id for auto-increment
 });
 
+db.version(2).stores({
+    sync_queue: '++id, status, type, created_at, retry_count, failed_at'
+});
+
 /**
  * Helper to add an item to the sync queue
  */
@@ -39,6 +43,23 @@ export const getPendingSyncItems = async () => {
  */
 export const markSyncItemCompleted = async (id) => {
     return await db.sync_queue.update(id, { status: 'completed' });
+};
+
+/**
+ * Helper to manually retry a failed sync item
+ */
+export const manualRetrySyncItem = async (tempId) => {
+    // 1. Reset sync queue item
+    await db.sync_queue
+        .where('payload.tempId')
+        .equals(tempId)
+        .modify({ status: 'pending', retry_count: 0, failed_at: null });
+
+    // 2. Reset message status
+    await db.messages
+        .where('tempId')
+        .equals(tempId)
+        .modify({ status: 'pending' });
 };
 
 /**

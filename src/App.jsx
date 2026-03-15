@@ -62,17 +62,19 @@ const SharedProfile = lazy(() => import('./components/shared-profile'));
 const SecuritySettings = lazy(() => import('./components/settings/SecuritySettings'));
 const HelpCenter = lazy(() => import('./components/settings/HelpCenter'));
 
+// Lazy load call-related components and other heavy modals
+const CallScreen = lazy(() => import('./components/CallScreen'));
+const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
+const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
+const GroupIncomingCallNotification = lazy(() => import('./components/group/GroupIncomingCallNotification'));
+const APKUpdateModal = lazy(() => import('./components/APKUpdateModal'));
+
 // Core components that remain static for initial shell
-import CallScreen from './components/CallScreen';
-import CallStatusIndicator from './components/CallStatusIndicator';
-import IncomingCallModal from './components/IncomingCallModal';
-import GroupIncomingCallNotification from './components/group/GroupIncomingCallNotification';
 import ChatPlaceholder from './components/common/ChatPlaceholder';
 import DesktopNavbar from './components/common/DesktopNavbar';
 import Modal from './components/common/Modal';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import SyncIndicator from './components/common/SyncIndicator';
-import APKUpdateModal from './components/APKUpdateModal';
 
 // Lazy load truly non-critical/heavy components that are NOT statically imported elsewhere
 const Chat = lazy(() => import('./components/chat/ChatScreen'));
@@ -118,52 +120,56 @@ const AppContent = () => {
 
   return (
     <>
-      <APKUpdateModal />
-      <Routes>
-        <Route path="/download-apk" element={<PublicRoute><DownloadAPK /></PublicRoute>} />
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <SafeSuspense>
+        <APKUpdateModal />
+      </SafeSuspense>
+      <SafeSuspense fallback={<div className="loading" />}>
+        <Routes>
+          <Route path="/download-apk" element={<PublicRoute><DownloadAPK /></PublicRoute>} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
-      <Route path="/shared-profile/:userId" element={<SharedProfile />} />
-      <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
-      <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
-      <Route path="/about" element={<About />} />
+        <Route path="/shared-profile/:userId" element={<SharedProfile />} />
+        <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
+        <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
+        <Route path="/about" element={<About />} />
 
-      {/* Arena — fullscreen, outside MainLayout */}
-      <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
-      <Route path="/chat/:chatId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
+        {/* Arena — fullscreen, outside MainLayout */}
+        <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
+        <Route path="/chat/:chatId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
 
-      <Route path="/" element={isAuthenticated ? <ProtectedRoute><MainLayout /></ProtectedRoute> : <LandingPage />}>
-        <Route index element={<ChatPlaceholder />} />
-        <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
-        <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
-        <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
-        <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
-        <Route path="user-details/:id" element={<UserDetails />} />
-        <Route path="groups" element={<GroupsPage />} />
-        <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
-        <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
-        <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="settings/security" element={<SecuritySettings />} />
-        <Route path="settings/help" element={<HelpCenter />} />
-        <Route path="emoji-settings" element={<EmojiSettings />} />
-        <Route path="history" element={<History />} />
-        <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
-        <Route path="support" element={<SupportChat />} />
-      </Route>
+        <Route path="/" element={isAuthenticated ? <ProtectedRoute><MainLayout /></ProtectedRoute> : <LandingPage />}>
+          <Route index element={<ChatPlaceholder />} />
+          <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
+          <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
+          <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
+          <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
+          <Route path="user-details/:id" element={<UserDetails />} />
+          <Route path="groups" element={<GroupsPage />} />
+          <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
+          <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
+          <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="settings/security" element={<SecuritySettings />} />
+          <Route path="settings/help" element={<HelpCenter />} />
+          <Route path="emoji-settings" element={<EmojiSettings />} />
+          <Route path="history" element={<History />} />
+          <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
+          <Route path="support" element={<SupportChat />} />
+        </Route>
 
-      <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-      <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
-      <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
-      <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-      <Route path="/admin-about" element={<AdminAbout />} />
-      <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
-      <Route path="/room/:roomId" element={<RoomRedirect />} />
+        <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+        <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
+        <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
+        <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/admin-about" element={<AdminAbout />} />
+        <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
+        <Route path="/room/:roomId" element={<RoomRedirect />} />
 
-      {/* 404 */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        {/* 404 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </SafeSuspense>
     </>
   );
 };

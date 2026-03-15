@@ -206,7 +206,7 @@
   background-color: var(--bg-color, #0b141a);
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to prevent clipping popups */
   position: relative;
   z-index: 1;
 }
@@ -860,6 +860,7 @@ body.light-mode .message-time {
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  position: relative; /* Stable anchor for children like emoji picker */
 }
 
 [data-theme='light'] .chat-input-container {

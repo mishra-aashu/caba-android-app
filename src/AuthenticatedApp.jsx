@@ -1,0 +1,291 @@
+/**
+ * AuthenticatedApp.jsx
+ *
+ * This component is LAZY-loaded, so all providers and heavy
+ * dependencies inside it are excluded from the initial bundle.
+ * They only load AFTER the user is confirmed to be authenticated.
+ */
+import { Suspense, lazy, useState, useEffect } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ChatThemeProvider } from './contexts/ChatThemeProvider';
+import { EmojiStyleProvider } from './contexts/EmojiStyleProvider';
+import { CallProvider } from './contexts/CallProvider';
+import { GroupCallProvider } from './contexts/GroupCallProvider';
+import { DialogProvider } from './contexts/DialogProvider';
+import { Toaster } from 'react-hot-toast';
+import { useAuth } from './hooks/useAuth';
+import { supabase } from './config/supabase';
+import useAuthStore from './store/authStore';
+import useIsDesktop from './hooks/useIsDesktop';
+import { useAutoRefresh } from './hooks/useAutoRefresh';
+import useOnlineStatus from './hooks/useOnlineStatus';
+import useNetworkSync from './hooks/useNetworkSync';
+import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import { Capacitor } from '@capacitor/core';
+import { initializePushNotifications } from './utils/PushNotifications';
+import { requestPersistentStorage } from './db/db';
+import { FileCache } from './utils/FileCache';
+import { SafeAreaDetector } from './utils/safeAreaDetector';
+import { KeyboardHandler } from './utils/keyboardHandler';
+
+// Lazy-load non-critical components
+const Intro = lazy(() => import('./components/Intro'));
+const GroupsPage = lazy(() => import('./components/groups').then(m => ({ default: m.GroupsPage })));
+const GroupInfoPage = lazy(() => import('./components/groups').then(m => ({ default: m.GroupInfoPage })));
+const GroupChat = lazy(() => import('./components/chat/ChatScreen'));
+const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
+const ArenaPage = lazy(() => import('./components/chat/ArenaPage'));
+const Profile = lazy(() => import('./components/profile/Profile'));
+const UserDetails = lazy(() => import('./components/UserDetails'));
+const Settings = lazy(() => import('./components/settings'));
+const EmojiSettings = lazy(() => import('./components/settings/EmojiSettings'));
+const Reminders = lazy(() => import('./components/reminders'));
+const CreateReminder = lazy(() => import('./components/reminders/CreateReminder'));
+const Calls = lazy(() => import('./components/calls'));
+const History = lazy(() => import('./components/History'));
+const Blocked = lazy(() => import('./components/blocked'));
+const About = lazy(() => import('./components/About'));
+const SupportChat = lazy(() => import('./components/SupportChat'));
+const QRPage = lazy(() => import('./components/qr').then(m => ({ default: m.QRPage })));
+const SharedProfile = lazy(() => import('./components/shared-profile'));
+const SecuritySettings = lazy(() => import('./components/settings/SecuritySettings'));
+const HelpCenter = lazy(() => import('./components/settings/HelpCenter'));
+const CallScreen = lazy(() => import('./components/CallScreen'));
+const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
+const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
+const GroupIncomingCallNotification = lazy(() => import('./components/group/GroupIncomingCallNotification'));
+const APKUpdateModal = lazy(() => import('./components/APKUpdateModal'));
+const Chat = lazy(() => import('./components/chat/ChatScreen'));
+const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
+const Admin = lazy(() => import('./components/Admin'));
+const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
+const AutoRefreshBanner = lazy(() => import('./components/common/AutoRefreshBanner'));
+const MainLayout = lazy(() => import('./components/MainLayout'));
+const PhoneAuthModal = lazy(() => import('./components/auth/PhoneAuthModal'));
+const DesktopNavbar = lazy(() => import('./components/common/DesktopNavbar'));
+const Terms = lazy(() => import('./components/legal/Terms'));
+const Privacy = lazy(() => import('./components/legal/Privacy'));
+
+// Core shell components (small, needed immediately for layout)
+import ChatPlaceholder from './components/common/ChatPlaceholder';
+import Modal from './components/common/Modal';
+import OfflineIndicator from './components/common/OfflineIndicator';
+import SyncIndicator from './components/common/SyncIndicator';
+import SafeAreaDebugger from './components/common/SafeAreaDebugger';
+import GlobalDialog from './components/common/GlobalDialog';
+
+const SafeSuspense = ({ children, fallback = null }) => (
+  <Suspense fallback={fallback}>
+    <ErrorBoundary fallback={null}>
+      {children}
+    </ErrorBoundary>
+  </Suspense>
+);
+
+const ProtectedLayout = ({ children }) => {
+  const { isAuthenticated, dbUser } = useAuth();
+  const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
+
+  const [showPhoneAuth, setShowPhoneAuth] = useState(() => !isAuthenticated);
+  const [showPhoneCollect, setShowPhoneCollect] = useState(false);
+
+  const handleAuthSuccess = () => setShowPhoneAuth(false);
+
+  const handleCollectSuccess = async ({ phone, name }) => {
+    try {
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .update({ phone, name })
+        .eq('id', dbUser.id)
+        .select()
+        .single();
+      if (error) throw error;
+      useAuthStore.setState({ dbUser: updatedUser });
+      setShowPhoneCollect(false);
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
+
+  return (
+    <>
+      <div className="app-layout">
+        {isDesktop && (
+          <SafeSuspense>
+            <DesktopNavbar />
+          </SafeSuspense>
+        )}
+        <main className="app-content">
+          {children}
+        </main>
+      </div>
+      <SafeSuspense>
+        <PhoneAuthModal
+          isOpen={showPhoneCollect}
+          onClose={() => setShowPhoneCollect(false)}
+          mode="collect"
+          onCollectSuccess={handleCollectSuccess}
+        />
+      </SafeSuspense>
+    </>
+  );
+};
+
+const RoomRedirect = () => {
+  const { roomId } = useParams();
+  return <Navigate to={`/chat/${roomId}/arena`} replace />;
+};
+
+// ──────────────────────────────────────────────
+// AppContent: All routes, inside the authenticated shell
+// ──────────────────────────────────────────────
+const AppContent = () => {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+  const isDesktop = useIsDesktop();
+  const [splashFinished, setSplashFinished] = useState(false);
+  useOnlineStatus();
+
+  if (loading) return null;
+
+  if (isAuthenticated && !splashFinished && isDesktop) {
+    return <Intro onComplete={() => setSplashFinished(true)} />;
+  }
+
+  const isNative = Capacitor.isNativePlatform();
+  if (!isAuthenticated && isNative && location.pathname === '/') {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <>
+      <SafeSuspense>
+        <APKUpdateModal />
+      </SafeSuspense>
+      <Suspense fallback={<div className="loading" />}>
+        <Routes>
+          <Route path="/shared-profile/:userId" element={<SharedProfile />} />
+          <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
+          <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
+          <Route path="/about" element={<About />} />
+          <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedLayout><ArenaPage /></ProtectedLayout>} />
+          <Route path="/chat/:chatId/arena" element={<ProtectedLayout><ArenaPage /></ProtectedLayout>} />
+          <Route path="/" element={<ProtectedLayout><MainLayout /></ProtectedLayout>}>
+            <Route index element={<ChatPlaceholder />} />
+            <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
+            <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
+            <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
+            <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
+            <Route path="user-details/:id" element={<UserDetails />} />
+            <Route path="groups" element={<GroupsPage />} />
+            <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
+            <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
+            <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="settings/security" element={<SecuritySettings />} />
+            <Route path="settings/help" element={<HelpCenter />} />
+            <Route path="emoji-settings" element={<EmojiSettings />} />
+            <Route path="history" element={<History />} />
+            <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
+            <Route path="support" element={<SupportChat />} />
+          </Route>
+          <Route path="/reminders" element={<ProtectedLayout><Reminders /></ProtectedLayout>} />
+          <Route path="/create-reminder" element={<ProtectedLayout><CreateReminder /></ProtectedLayout>} />
+          <Route path="/calls" element={<ProtectedLayout><Calls /></ProtectedLayout>} />
+          <Route path="/qr" element={<ProtectedLayout><QRPage /></ProtectedLayout>} />
+          <Route path="/admin" element={<ProtectedLayout><Admin /></ProtectedLayout>} />
+          <Route path="/admin-about" element={<AdminAbout />} />
+          <Route path="/call/:callId" element={<ProtectedLayout><CallScreen /></ProtectedLayout>} />
+          <Route path="/room/:roomId" element={<RoomRedirect />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </>
+  );
+};
+
+// ──────────────────────────────────────────────
+// AuthenticatedApp: heavy providers + all routes
+// This whole module is lazy-loaded from main.jsx
+// ──────────────────────────────────────────────
+const AuthenticatedApp = () => {
+  const { dbUser, loading: authLoading } = useAuth();
+  const { needsRefresh, handleRefresh, handleDismiss, isRefreshing } = useAutoRefresh();
+
+  useCapacitorPlugins();
+  useNetworkSync();
+
+  useEffect(() => {
+    SafeAreaDetector.getInstance();
+    KeyboardHandler.getInstance();
+
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const platform = isIOS ? 'ios' : (isAndroid ? 'android' : 'web');
+    document.body.classList.add(`platform-${platform}`);
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone ||
+      document.referrer.includes('android-app://');
+    document.documentElement.setAttribute('data-standalone', isStandalone ? 'true' : 'false');
+
+    const updateAppHeight = () => {
+      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    };
+    updateAppHeight();
+    window.addEventListener('resize', updateAppHeight);
+
+    if (isIOS) document.body.style.overscrollBehavior = 'none';
+
+    initializePushNotifications();
+    requestPersistentStorage();
+    FileCache.init();
+
+    return () => window.removeEventListener('resize', updateAppHeight);
+  }, []);
+
+  return (
+    <ChatThemeProvider>
+      <EmojiStyleProvider>
+        <AppWithCallProvider dbUser={dbUser} authLoading={authLoading} needsRefresh={needsRefresh} handleRefresh={handleRefresh} handleDismiss={handleDismiss} isRefreshing={isRefreshing} />
+      </EmojiStyleProvider>
+    </ChatThemeProvider>
+  );
+};
+
+const AppWithCallProvider = ({ dbUser, authLoading, needsRefresh, handleRefresh, handleDismiss, isRefreshing }) => {
+  return (
+    <DialogProvider>
+      <GroupCallProvider currentUser={authLoading ? null : dbUser}>
+        <CallProvider currentUser={authLoading ? null : dbUser}>
+          <SafeAreaDebugger />
+          <OfflineIndicator>
+            <AppContent />
+          </OfflineIndicator>
+          <SafeSuspense><CallStatusIndicator /></SafeSuspense>
+          <SafeSuspense><IncomingCallModal /></SafeSuspense>
+          <SafeSuspense><GroupIncomingCallNotification /></SafeSuspense>
+          <SyncIndicator />
+          <Toaster
+            position="bottom-center"
+            toastOptions={{ duration: 3000, style: { maxWidth: '90vw' } }}
+          />
+          <GlobalDialog />
+          <SafeSuspense>
+            <AutoRefreshBanner
+              needsRefresh={needsRefresh}
+              isRefreshing={isRefreshing}
+              handleRefresh={handleRefresh}
+              handleDismiss={handleDismiss}
+            />
+          </SafeSuspense>
+        </CallProvider>
+      </GroupCallProvider>
+    </DialogProvider>
+  );
+};
+
+export default AuthenticatedApp;

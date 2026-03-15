@@ -7,7 +7,7 @@ import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import { ArrowLeft, Image as ImageIcon, Video, Download, Share2 } from 'lucide-react';
 import { formatChatDivider } from '../../utils/dateFormatter';
-import ImageViewer from './ImageViewer';
+const ImageViewer = React.lazy(() => import('./ImageViewer'));
 const MediaViewer = React.lazy(() => import('../media/MediaViewer'));
 import { motion } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';

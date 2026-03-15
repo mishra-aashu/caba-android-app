@@ -3,64 +3,107 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
-  background: var(--bg-primary, #111827);
+  height: 64px;
+  background: var(--chat-header-bg, #ffffff);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  z-index: 100;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  animation: slideDown 0.3s ease;
+  padding-top: var(--safe-top);
+  z-index: 1000;
+  box-shadow: var(--chat-header-shadow, 0 1px 3px rgba(0, 0, 0, 0.1));
+  border-bottom: var(--chat-header-border, 1px solid rgba(0, 0, 0, 0.05));
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: var(--theme-backdrop-blur, blur(16px));
+  -webkit-backdrop-filter: var(--theme-backdrop-blur, blur(16px));
 }
 
 .left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .iconBtn {
-  background: none;
+  background: transparent;
   border: none;
-  color: var(--text-primary, #F3F4F6);
-  font-size: 1.5rem;
+  color: var(--chat-header-icon-color, #1a3a2a);
   cursor: pointer;
-  padding: 8px;
+  padding: 10px;
   border-radius: 50%;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .iconBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 168, 132, 0.08);
+  color: var(--brand-primary, #00a884);
+}
+
+.iconBtn:active {
+  transform: scale(0.9);
 }
 
 .count {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary, #F3F4F6);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--chat-header-text, #0c1e17);
+  letter-spacing: -0.3px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionBtn {
+  background: transparent;
+  border: none;
+  color: var(--chat-header-icon-color, #aebac1);
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionBtn:hover {
+  background: rgba(0, 168, 132, 0.08);
+  color: var(--brand-primary, #00a884);
+}
+
+.actionBtn:active {
+  transform: scale(0.9);
 }
 
 .deleteBtn {
-  background: none;
+  background: transparent;
   border: none;
   color: #EF4444;
-  font-size: 1.5rem;
   cursor: pointer;
-  padding: 8px;
+  padding: 10px;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .deleteBtn:hover {
   background: rgba(239, 68, 68, 0.1);
-  transform: scale(1.1);
+  transform: scale(1.05);
+}
+
+.deleteBtn:active {
+  transform: scale(0.9);
 }
 
 @keyframes slideDown {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
