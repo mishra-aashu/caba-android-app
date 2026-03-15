@@ -17,9 +17,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
-import { dpOptions } from '../../utils/dpOptions';
+import { dpOptions, getDpPath } from '../../utils/dpOptions';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
+import { useSupabase } from '../../contexts/SupabaseContext';
+import { useContacts } from '../../hooks/useCommonQueries';
 import BottomNavigation from '../common/BottomNavigation';
 import './ContactsPage.css';
 
@@ -30,8 +32,32 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
+    const { data: supabaseContacts, isLoading: contactsLoading } = useContacts(user?.id);
     const baseContacts = useLiveQuery(() => db.contacts.toArray(), []) || [];
     const refreshContacts = () => queryClient.invalidateQueries({ queryKey: ['contacts', user?.id] });
+
+    // Sync Supabase contacts into Dexie for offline support
+    useEffect(() => {
+        if (supabaseContacts && supabaseContacts.length > 0) {
+            const syncToDexie = async () => {
+                try {
+                    const formatted = supabaseContacts.map(c => ({
+                        id: c.id,
+                        contactName: c.contactName,
+                        otherUser: c.contactUser,
+                        avatar: c.contactUser?.avatar, // Flatten for easier access
+                        contactUserId: c.contactUserId,
+                        userId: c.userId,
+                        isFavorite: c.isFavorite
+                    }));
+                    await db.contacts.bulkPut(formatted);
+                } catch (err) {
+                    console.error('Failed to sync contacts to Dexie:', err);
+                }
+            };
+            syncToDexie();
+        }
+    }, [supabaseContacts]);
 
     const [showContactForm, setShowContactForm] = useState(false);
     const [contactName, setContactName] = useState('');
@@ -62,16 +88,18 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
         };
     }, [contactMenuOpen]);
 
-    const getAvatarSrc = useCallback((otherUser) => {
-        if (!otherUser?.avatar) {
+    const getAvatarSrc = useCallback((otherUser, contactAvatar) => {
+        const avatarValue = otherUser?.avatar || contactAvatar;
+        if (!avatarValue) {
             return 'https://ionicframework.com/docs/img/demos/avatar.svg';
         }
-        const avatarId = parseInt(otherUser.avatar);
-        if (!isNaN(avatarId)) {
-            const dp = dpOptions.find(d => d.id === avatarId);
-            return dp?.path || 'https://ionicframework.com/docs/img/demos/avatar.svg';
+        
+        // Resolve numeric ID
+        if (!isNaN(parseInt(avatarValue)) && avatarValue.toString().length < 5) {
+            return getDpPath(avatarValue) || 'https://ionicframework.com/docs/img/demos/avatar.svg';
         }
-        return otherUser.avatar;
+        
+        return avatarValue;
     }, []);
 
     const handleSaveContact = async () => {
@@ -89,7 +117,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
         try {
             const { data: existingUser, error: userError } = await supabase
                 .from('users')
-                .select('id')
+                .select('id, name, avatar')
                 .eq('phone', trimmedPhone)
                 .single();
 
@@ -339,7 +367,12 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
 
                 <div className="saved-contacts-list">
                     <AnimatePresence mode="popLayout">
-                        {filteredContacts.length > 0 ? (
+                        {contactsLoading && baseContacts.length === 0 ? (
+                            <div className="contacts-loading">
+                                <div className="loading-spinner"></div>
+                                <p>Loading contacts...</p>
+                            </div>
+                        ) : filteredContacts.length > 0 ? (
                             filteredContacts.map((contact, index) => (
                                 <motion.div
                                     key={contact.id}
@@ -362,7 +395,8 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                                         <div className="contact-avatar">
                                             <img
                                                 src={getAvatarSrc(
-                                                    contact.otherUser
+                                                    contact.otherUser,
+                                                    contact.avatar
                                                 )}
                                                 alt={contact.contactName}
                                                 loading="lazy"
