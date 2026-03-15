@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import './styles/loaders.css';
 
 // Public components are relative lightweight
 const LandingPage = lazy(() => import('./pages/LandingPage'));

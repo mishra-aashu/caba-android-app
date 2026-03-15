@@ -30,6 +30,7 @@ import { requestPersistentStorage } from './db/db';
 import { FileCache } from './utils/FileCache';
 import { SafeAreaDetector } from './utils/safeAreaDetector';
 import { KeyboardHandler } from './utils/keyboardHandler';
+import './styles/loaders.css';
 
 // Lazy-load non-critical components
 const Intro = lazy(() => import('./components/Intro'));
