@@ -9,7 +9,11 @@ export const EmojiStyleProvider = ({ children }) => {
   const [emojiStyle, setEmojiStyle] = useState('apple');
   const [preferredEmojis, setPreferredEmojis] = useState(['❤️', '👍', '🔥', '😂', '😮', '😢', '🙏']);
   const [loading, setLoading] = useState(true);
+  const [emojiMap, setEmojiMap] = useState(null);
+  const [mapLoading, setMapLoading] = useState(true);
   const { supabase } = useSupabase();
+
+  const baseUrl = import.meta.env.BASE_URL || '/';
 
   // Load emoji style from database
   const loadEmojiStyle = async () => {
@@ -32,6 +36,20 @@ export const EmojiStyleProvider = ({ children }) => {
       console.error('Error loading emoji style:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load emoji mapping JSON from public assets
+  const loadEmojiMap = async () => {
+    try {
+      const response = await fetch(`${baseUrl}assets/emojis/emoji-map.json`);
+      if (!response.ok) throw new Error('Failed to load emoji map');
+      const data = await response.json();
+      setEmojiMap(data);
+    } catch (error) {
+      console.error('Error loading emoji map:', error);
+    } finally {
+      setMapLoading(false);
     }
   };
 
@@ -92,6 +110,7 @@ export const EmojiStyleProvider = ({ children }) => {
   // Initialize on mount
   useEffect(() => {
     loadEmojiStyle();
+    loadEmojiMap();
   }, []);
 
   // Context value
@@ -105,7 +124,9 @@ export const EmojiStyleProvider = ({ children }) => {
     isTwitter: emojiStyle === 'twitter',
     isGoogle: emojiStyle === 'google',
     isApple: emojiStyle === 'apple',
-    isFacebook: emojiStyle === 'facebook'
+    isFacebook: emojiStyle === 'facebook',
+    emojiMap,
+    mapLoading
   };
 
   return (

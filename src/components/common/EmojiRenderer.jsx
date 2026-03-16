@@ -1,7 +1,5 @@
-import React, { useState, useMemo } from 'react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import '../../styles/emoji-styles.css';
-import emojiMap from '../../constants/emoji-map.json';
 
 const baseUrl = import.meta.env.BASE_URL || '/';
 
@@ -25,9 +23,12 @@ const getEmojiHex = (emoji) => {
  */
 const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
   const [hasError, setHasError] = useState(false);
+  const { emojiMap, mapLoading } = useEmojiStyle();
   
+  if (mapLoading) return <span className={className} style={{ width: '1.2em', height: '1.2em', display: 'inline-block' }} />;
+
   // Get mapping for this hex code and vendor
-  const mapping = emojiMap[vendor]?.[hex];
+  const mapping = emojiMap?.[vendor]?.[hex];
 
   // FALLBACK: If mapping not found, image fails, or vendor is native, show native unicode emoji
   if (hasError || vendor === 'native' || !mapping) {

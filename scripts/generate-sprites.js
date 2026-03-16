@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const EMOJI_DIR = 'public/assets/emojis';
 const OUTPUT_DIR = 'public/assets/emojis/spritesheets';
-const MAP_FILE = 'src/constants/emoji-map.json';
+const MAP_FILE = 'public/assets/emojis/emoji-map.json';
 const VENDORS = ['apple', 'google', 'twitter', 'facebook'];
 const GRID_SIZE = 16; // 16x16 = 256 emojis per sheet
 const TILE_SIZE = 32; // 32x32px emojis

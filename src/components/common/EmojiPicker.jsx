@@ -4,7 +4,6 @@ import { Smile, Search, X } from 'lucide-react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import KlipyGifPicker from '../chat/GifPicker.jsx';
 import './EmojiPicker.css';
-import emojiMap from '../../constants/emoji-map.json';
 
 const baseUrl = import.meta.env.BASE_URL || '/';
 
@@ -290,10 +289,14 @@ const EmojiPicker = ({
     );
 };
 
-// Use memo to prevent re-rendering every emoji on every picker update
 const EmojiItem = memo(({ emoji, style, onSelect }) => {
+    const { emojiMap, mapLoading } = useEmojiStyle();
+    
+    // Show placeholder while mapping loads
+    if (mapLoading) return <div className="emoji-item" style={{ width: '36px', height: '36px' }} />;
+
     // Get mapping for this hex code and vendor
-    const mapping = emojiMap[style]?.[emoji.hex];
+    const mapping = emojiMap?.[style]?.[emoji.hex];
 
     // FALLBACK: If mapping not found or style is native, show native unicode emoji
     if (style === 'native' || !mapping) {
