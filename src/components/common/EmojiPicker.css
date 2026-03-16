@@ -325,11 +325,10 @@
       -webkit-backface-visibility: hidden;
   }
 
-  .emoji-item img {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
-      /* GPU Acceleration for images */
+  .emoji-sprite-item {
+      width: 24px;
+      height: 24px;
+      /* GPU Acceleration for sprites */
       transform: translateZ(0);
       -webkit-transform: translateZ(0);
       will-change: opacity;

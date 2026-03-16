@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import '../../styles/emoji-styles.css';
+import emojiMap from '../../constants/emoji-map.json';
+
+const baseUrl = import.meta.env.BASE_URL || '/';
 
 /**
  * Utility to convert an emoji string (grapheme) to its standard hex code format.
@@ -22,10 +25,12 @@ const getEmojiHex = (emoji) => {
  */
 const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
   const [hasError, setHasError] = useState(false);
-  const src = `/assets/emojis/${vendor}/${hex}.webp`;
+  
+  // Get mapping for this hex code and vendor
+  const mapping = emojiMap[vendor]?.[hex];
 
-  // FALLBACK: If image fails or vendor is native, show native unicode emoji
-  if (hasError || vendor === 'native') {
+  // FALLBACK: If mapping not found, image fails, or vendor is native, show native unicode emoji
+  if (hasError || vendor === 'native' || !mapping) {
     return (
       <span
         className={`native-emoji-fallback ${className}`}
@@ -36,22 +41,31 @@ const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
     );
   }
 
+  const spriteUrl = `${baseUrl}assets/emojis/spritesheets/${mapping.sheet}`;
+  
+  // Calculate percentage positions for a 16x16 grid
+  // GRID_SIZE = 16. Formulas: (col / (N-1)) * 100, (row / (N-1)) * 100
+  const col = mapping.x / 32;
+  const row = mapping.y / 32;
+  const posX = (col / 15) * 100;
+  const posY = (row / 15) * 100;
+
   return (
-    <img
-      src={src}
-      alt={emoji}
-      className={`custom-emoji-img ${className}`}
+    <span
+      className={`custom-emoji-sprite ${className}`}
+      title={emoji}
+      role="img"
+      aria-label={emoji}
       style={{
         display: 'inline-block',
         verticalAlign: 'middle',
         width: '1.2em',
         height: '1.2em',
+        backgroundImage: `url(${spriteUrl})`,
+        backgroundPosition: `${posX}% ${posY}%`,
+        backgroundSize: '1600% 1600%',
+        backgroundRepeat: 'no-repeat',
         ...style
-      }}
-      loading="lazy"
-      onError={() => {
-        // console.warn(`Emoji asset not found: ${src}`);
-        setHasError(true);
       }}
     />
   );

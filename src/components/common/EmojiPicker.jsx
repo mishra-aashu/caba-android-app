@@ -4,6 +4,9 @@ import { Smile, Search, X } from 'lucide-react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import KlipyGifPicker from '../chat/GifPicker.jsx';
 import './EmojiPicker.css';
+import emojiMap from '../../constants/emoji-map.json';
+
+const baseUrl = import.meta.env.BASE_URL || '/';
 
 const BASIC_EMOJIS = [
   { id: 'smileys', name: 'Smileys & People', emojis: '😀 😃 😄 😁 😆 😅 😂 🤣 🥲 ☺️ 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🫣 🤗 🤔 🫢 🤭 🤫 🤥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤑 🤠 😈 👿 👹 👺 🤡 💩 👻 💀 👽 👾 🤖 🎃 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👋 🤚 🖐 ✋ 🖖 👌 🤌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦵 🦶 👂 🦻 👃 🧠 🫀 🫁 🦷 骨 👀 👁 👅 👄 💋 🩸'.split(' ') },
@@ -289,8 +292,29 @@ const EmojiPicker = ({
 
 // Use memo to prevent re-rendering every emoji on every picker update
 const EmojiItem = memo(({ emoji, style, onSelect }) => {
-    const [hasError, setHasError] = useState(false);
-    const assetPath = `/assets/emojis/${style}/${emoji.hex}.webp`;
+    // Get mapping for this hex code and vendor
+    const mapping = emojiMap[style]?.[emoji.hex];
+
+    // FALLBACK: If mapping not found or style is native, show native unicode emoji
+    if (style === 'native' || !mapping) {
+        return (
+            <div
+                className="emoji-item"
+                onClick={() => onSelect(emoji)}
+                title={emoji.name}
+            >
+                <span style={{ fontSize: '1.2em' }}>{emoji.native}</span>
+            </div>
+        );
+    }
+
+    const spriteUrl = `${baseUrl}assets/emojis/spritesheets/${mapping.sheet}`;
+
+    // Calculate percentage positions for a 16x16 grid
+    const col = mapping.x / 32;
+    const row = mapping.y / 32;
+    const posX = (col / 15) * 100;
+    const posY = (row / 15) * 100;
 
     return (
         <div
@@ -298,16 +322,20 @@ const EmojiItem = memo(({ emoji, style, onSelect }) => {
             onClick={() => onSelect(emoji)}
             title={emoji.name}
         >
-            {(!hasError && style !== 'native') ? (
-                <img
-                    src={assetPath}
-                    alt={emoji.name}
-                    onError={() => setHasError(true)}
-                    className="emoji-img"
-                />
-            ) : (
-                <span style={{ fontSize: '1em' }}>{emoji.native}</span>
-            )}
+            <span
+                className="emoji-sprite-item"
+                role="img"
+                aria-label={emoji.name}
+                style={{
+                    display: 'inline-block',
+                    width: '24px',
+                    height: '24px',
+                    backgroundImage: `url(${spriteUrl})`,
+                    backgroundPosition: `${posX}% ${posY}%`,
+                    backgroundSize: '1600% 1600%',
+                    backgroundRepeat: 'no-repeat'
+                }}
+            />
         </div>
     );
 });

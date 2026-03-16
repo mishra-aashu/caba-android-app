@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "version-sync": "node scripts/update-app-version.js",
     "postversion": "npm run version-sync",
+    "generate-sprites": "node scripts/generate-sprites.js",
     "deploy": "cross-env GITHUB_PAGES=true vite build && gh-pages -d dist"
   },
   "dependencies": {
