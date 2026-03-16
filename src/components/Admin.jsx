@@ -2377,6 +2377,33 @@ const Admin = () => {
                           ))}
                         </div>
 
+                        {/* 📋 Major Version Update Guide */}
+                        <p style={{ color: '#7c8cf8', fontWeight: 700, margin: '0 0 12px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>🚀 Major Version Update Guide (e.g. v2 → v3)</p>
+                        <div style={{ marginBottom: '24px', padding: '16px', background: '#1a1a2e', borderRadius: '10px', border: '1px solid #3a3a6e' }}>
+                          {[
+                            ['1', '#4f46e5', 'package.json Update', 'version ko change karo, e.g. "2.0.0" se "3.0.0" change karke save karo.'],
+                            ['2', '#7c3aed', 'Sync to Supabase',    'Terminal mein <code>npm run version-sync</code> run karo. Isse latest_version aur min_required_version dono update ho jayenge.'],
+                            ['3', '#3fcf8e', 'Upload Naya APK',     'Apna naya APK build karke Firebase Storage ya web server par upload karo aur uska URL copy karlo.'],
+                            ['4', '#3fcf8e', 'Update Admin URL',    'Upar "App Version Control" form mein "APK Download URL" ko naye link se replace karo aur save karo.'],
+                          ].map(([step, color, title, body]) => (
+                            <div key={step} style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+                              <div style={{
+                                width: '22px', height: '22px', borderRadius: '50%',
+                                background: color, border: `1px solid ${color}`,
+                                color: '#fff', fontSize: '11px', fontWeight: 700,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                              }}>{step}</div>
+                              <div>
+                                <p style={{ color: '#fff', fontWeight: 600, margin: '0 0 2px', fontSize: '13px' }}>{title}</p>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '12px', lineHeight: '1.4' }} dangerouslySetInnerHTML={{ __html: body }}></p>
+                              </div>
+                            </div>
+                          ))}
+                          <p style={{ color: '#666', fontSize: '11px', margin: '8px 0 0', fontStyle: 'italic' }}>
+                            💡 Yeh steps follow karne se puraani version wale users ko turant update popup dikhne lagega.
+                          </p>
+                        </div>
+
                         {/* Step-by-step */}
                         <p style={{ color: '#7c8cf8', fontWeight: 700, margin: '0 0 12px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>📋 Native Change Workflow (7 Steps)</p>
                         <div style={{ marginBottom: '24px' }}>
