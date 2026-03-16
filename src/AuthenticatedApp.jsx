@@ -19,7 +19,6 @@ import { useAuth } from './hooks/useAuth';
 import { supabase } from './config/supabase';
 import useAuthStore from './store/authStore';
 import useIsDesktop from './hooks/useIsDesktop';
-import { useAutoRefresh } from './hooks/useAutoRefresh';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useNetworkSync from './hooks/useNetworkSync';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
@@ -63,7 +62,6 @@ const Chat = lazy(() => import('./components/chat/ChatScreen'));
 const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
 const Admin = lazy(() => import('./components/Admin'));
 const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
-const AutoRefreshBanner = lazy(() => import('./components/common/AutoRefreshBanner'));
 const MainLayout = lazy(() => import('./components/MainLayout'));
 const PhoneAuthModal = lazy(() => import('./components/auth/PhoneAuthModal'));
 const DesktopNavbar = lazy(() => import('./components/common/DesktopNavbar'));
@@ -218,7 +216,6 @@ const AppContent = () => {
 // ──────────────────────────────────────────────
 const AuthenticatedApp = () => {
   const { dbUser, loading: authLoading } = useAuth();
-  const { needsRefresh, handleRefresh, handleDismiss, isRefreshing } = useAutoRefresh();
 
   useCapacitorPlugins();
   useNetworkSync();
@@ -255,13 +252,13 @@ const AuthenticatedApp = () => {
   return (
     <ChatThemeProvider>
       <EmojiStyleProvider>
-        <AppWithCallProvider dbUser={dbUser} authLoading={authLoading} needsRefresh={needsRefresh} handleRefresh={handleRefresh} handleDismiss={handleDismiss} isRefreshing={isRefreshing} />
+        <AppWithCallProvider dbUser={dbUser} authLoading={authLoading} />
       </EmojiStyleProvider>
     </ChatThemeProvider>
   );
 };
 
-const AppWithCallProvider = ({ dbUser, authLoading, needsRefresh, handleRefresh, handleDismiss, isRefreshing }) => {
+const AppWithCallProvider = ({ dbUser, authLoading }) => {
   return (
     <DialogProvider>
       <GroupCallProvider currentUser={authLoading ? null : dbUser}>
@@ -279,14 +276,6 @@ const AppWithCallProvider = ({ dbUser, authLoading, needsRefresh, handleRefresh,
             toastOptions={{ duration: 3000, style: { maxWidth: '90vw' } }}
           />
           <GlobalDialog />
-          <SafeSuspense>
-            <AutoRefreshBanner
-              needsRefresh={needsRefresh}
-              isRefreshing={isRefreshing}
-              handleRefresh={handleRefresh}
-              handleDismiss={handleDismiss}
-            />
-          </SafeSuspense>
         </CallProvider>
       </GroupCallProvider>
     </DialogProvider>
