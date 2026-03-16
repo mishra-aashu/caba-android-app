@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Image, Video, Camera, MapPin, User, FileText } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import styles from './AttachmentMenu.module.css';
 import hapticsManager from '../../utils/hapticsManager';
 
@@ -32,13 +33,26 @@ const AttachmentMenu = ({ isOpen, onClose, onFileSelect }) => {
     onClose();
   };
 
+  const handleComingSoon = (label) => {
+    hapticsManager.impact();
+    toast.success(`${label} coming soon!`, {
+      icon: '🚀',
+      style: {
+        borderRadius: '12px',
+        background: '#333',
+        color: '#fff',
+      },
+    });
+    onClose();
+  };
+
   const options = [
     { icon: <Image size={24} />, label: 'Gallery', onClick: () => handleOptionClick('gallery'), color: styles['photo-option'] },
     { icon: <Camera size={24} />, label: 'Camera', onClick: () => handleOptionClick('camera'), color: styles['camera-option'] },
     { icon: <Video size={24} />, label: 'Video', onClick: () => handleOptionClick('gallery'), color: styles['video-option'] }, // Video also uses gallery for now
-    { icon: <FileText size={24} />, label: 'File', onClick: () => handleOptionClick('gallery'), color: styles['file-option'] },
-    { icon: <MapPin size={24} />, label: 'Location', onClick: () => handleMockAction('Location'), color: styles['location-option'] },
-    { icon: <User size={24} />, label: 'Contact', onClick: () => handleMockAction('Contact'), color: styles['contact-option'] },
+    { icon: <FileText size={24} />, label: 'File', onClick: () => handleComingSoon('File'), color: styles['file-option'] },
+    { icon: <MapPin size={24} />, label: 'Location', onClick: () => handleComingSoon('Location'), color: styles['location-option'] },
+    { icon: <User size={24} />, label: 'Contact', onClick: () => handleComingSoon('Contact'), color: styles['contact-option'] },
   ];
 
   return (
