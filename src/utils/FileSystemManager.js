@@ -70,6 +70,12 @@ export const initializeFileSystem = async () => {
 // --- CHATS KO SAVE KARNA (WRITE) ---
 export const saveChatsToDevice = async (allChats) => {
   try {
+    // Ensure parent directory exists before writing
+    await Filesystem.mkdir({
+      path: 'CaBa',
+      directory: Directory.Documents,
+      recursive: true,
+    }).catch(() => {}); // Ignore if already exists
     await Filesystem.writeFile({
       path: 'CaBa/chats.json',
       data: JSON.stringify(allChats),
@@ -138,6 +144,12 @@ const convertBlobToBase64 = (blob) => new Promise((resolve, reject) => {
 export const saveMessagesToDevice = async (chatId, messages) => {
   if (!chatId) return;
   try {
+    // Ensure parent directory exists before writing
+    await Filesystem.mkdir({
+      path: 'CaBa/Messages',
+      directory: Directory.Documents,
+      recursive: true,
+    }).catch(() => {}); // Ignore if already exists
     const path = `CaBa/Messages/chat_${chatId}.json`;
     await Filesystem.writeFile({
       path,
