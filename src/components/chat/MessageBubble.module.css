@@ -436,12 +436,17 @@
 
 /* Large custom emojis */
 .message-container.jumbo-emoji .text :global(.custom-emoji-img),
+.message-container.jumbo-emoji .text :global(.custom-emoji-sprite),
 .message-container.jumbo-emoji :global(.emoji-renderer-root) :global(.custom-emoji-img),
-.message-container .jumbo-emoji-bubble :global(.custom-emoji-img) {
+.message-container.jumbo-emoji :global(.emoji-renderer-root) :global(.custom-emoji-sprite),
+.message-container .jumbo-emoji-bubble :global(.custom-emoji-img),
+.message-container .jumbo-emoji-bubble :global(.custom-emoji-sprite) {
   width: 64px;
   height: 64px;
   margin: 0;
   object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .message-container.jumbo-emoji .message-content {

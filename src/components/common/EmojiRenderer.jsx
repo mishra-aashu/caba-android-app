@@ -29,10 +29,11 @@ const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
   if (mapLoading) return <span className={className} style={{ width: '1.2em', height: '1.2em', display: 'inline-block' }} />;
 
   // Get mapping for this hex code and vendor
-  const mapping = emojiMap?.[vendor]?.[hex];
+  const mapping = emojiMap?.mapping?.[hex];
+  const sheetName = emojiMap?.sheets?.[vendor];
 
   // FALLBACK: If mapping not found, image fails, or vendor is native, show native unicode emoji
-  if (hasError || vendor === 'native' || !mapping) {
+  if (hasError || vendor === 'native' || !mapping || !sheetName) {
     return (
       <span
         className={`native-emoji-fallback ${className}`}
@@ -43,14 +44,14 @@ const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
     );
   }
 
-  const spriteUrl = `${baseUrl}assets/emojis/spritesheets/${mapping.sheet}`;
+  const spriteUrl = `${baseUrl}assets/emojis/spritesheets/${sheetName}`;
   
-  // Calculate percentage positions for a 16x16 grid
-  // GRID_SIZE = 16. Formulas: (col / (N-1)) * 100, (row / (N-1)) * 100
-  const col = mapping.x / 32;
-  const row = mapping.y / 32;
-  const posX = (col / 15) * 100;
-  const posY = (row / 15) * 100;
+  // iamcal sheets are standard grids. For v16, it's 62x62 (0 to 61).
+  // Percentage formula: (index / (columns - 1)) * 100
+  // Note: We use 62 columns and 62 rows for modern datasource.
+  const GRID_SIZE = 62; 
+  const posX = (mapping.x / (GRID_SIZE - 1)) * 100;
+  const posY = (mapping.y / (GRID_SIZE - 1)) * 100;
 
   return (
     <span
@@ -65,8 +66,10 @@ const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
         height: '1.2em',
         backgroundImage: `url(${spriteUrl})`,
         backgroundPosition: `${posX}% ${posY}%`,
-        backgroundSize: '1600% 1600%',
+        backgroundSize: `${GRID_SIZE * 100}% ${GRID_SIZE * 100}%`,
         backgroundRepeat: 'no-repeat',
+        imageRendering: 'auto',
+        WebkitImageRendering: 'optimize-contrast',
         ...style
       }}
     />
@@ -130,7 +133,7 @@ const EmojiRenderer = ({ text, className = '', style = {}, styleOverride = null 
   }, [text, activeStyle, className, style]);
 
   return (
-    <span className={`emoji-renderer-root ${className}`} style={{ ...style, display: 'inline' }}>
+    <span className={`emoji-renderer-root ${className}`} style={{ display: 'inline' }}>
       {elements}
     </span>
   );

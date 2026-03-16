@@ -42,10 +42,35 @@ export const EmojiStyleProvider = ({ children }) => {
   // Load emoji mapping JSON from public assets
   const loadEmojiMap = async () => {
     try {
-      const response = await fetch(`${baseUrl}assets/emojis/emoji-map.json`);
+      // Fetchiamcal standardized data
+      const response = await fetch(`${baseUrl}assets/emojis/emoji-data.json`);
       if (!response.ok) throw new Error('Failed to load emoji map');
       const data = await response.json();
-      setEmojiMap(data);
+      
+      // Transform array into a faster lookup map (organized by unified hex)
+      // We'll also keep categories for the picker
+      const mapping = {};
+      data.forEach(item => {
+        mapping[item.unified.toLowerCase()] = {
+          x: item.sheet_x,
+          y: item.sheet_y,
+          has_apple: item.has_img_apple,
+          has_google: item.has_img_google,
+          has_twitter: item.has_img_twitter,
+          has_facebook: item.has_img_facebook
+        };
+      });
+
+      setEmojiMap({
+        mapping,
+        raw: data, // Keep raw for picker categories
+        sheets: {
+          apple: 'sheet_apple_64.png',
+          google: 'sheet_google_64.png',
+          twitter: 'sheet_twitter_64.png',
+          facebook: 'sheet_facebook_64.png'
+        }
+      });
     } catch (error) {
       console.error('Error loading emoji map:', error);
     } finally {
