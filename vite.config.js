@@ -8,6 +8,8 @@ import { generateNativeHash } from './scripts/native-integrity.js';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
+  // Single shared buildTime for BOTH version.json and HTML meta tag
+  const buildTime = Date.now();
   // Check if we are building for GitHub Pages
   const isGitHubPages = process.env.GITHUB_PAGES === 'true';
 
@@ -25,11 +27,11 @@ export default defineConfig(({ mode }) => {
       {
         name: 'generate-version-json',
         buildStart() {
-          const version = { buildTime: Date.now() };
+          const version = { buildTime };
           const publicDir = path.resolve(__dirname, 'public');
           if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
           fs.writeFileSync(path.join(publicDir, 'version.json'), JSON.stringify(version, null, 2));
-          console.log('[VersionGen] Generated public/version.json');
+          console.log('[VersionGen] Generated public/version.json with buildTime:', buildTime);
         }
       },
       {
@@ -52,8 +54,8 @@ export default defineConfig(({ mode }) => {
       createHtmlPlugin({
         inject: {
           data: {
-            buildTime: Date.now(),
-            buildDate: new Date().toISOString()
+            buildTime,  // Same value as version.json — critical for correct version comparison
+            buildDate: new Date(buildTime).toISOString()
           }
         }
       }),
