@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { Capacitor } from '@capacitor/core';
 import './styles/loaders.css';
 
 // Public components are relative lightweight
@@ -20,9 +21,12 @@ const PublicApp = () => {
 
   if (loading) return <div className="loading-screen" />;
 
-  // If authenticated, we should probably redirect to the internal shell
-  // But HashRouter and simple Routes will handle this.
-  
+  // Native App: Direct redirect for unauthenticated users
+  const isNative = Capacitor.isNativePlatform();
+  if (!isAuthenticated && isNative && location.pathname === '/') {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
     <Suspense fallback={<div className="loading" />}>
       {isAuthenticated ? (
