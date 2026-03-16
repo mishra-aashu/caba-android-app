@@ -1,3 +1,4 @@
+import React, { useState, useMemo } from 'react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import '../../styles/emoji-styles.css';
 
