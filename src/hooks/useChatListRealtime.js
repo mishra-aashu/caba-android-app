@@ -198,7 +198,7 @@ export const useChatListRealtime = (currentUserId) => {
         };
     }, [currentUserId, handlePayload, loadAndSyncChats]);
 
-    return { loading, hasMoreChats, loadingMore, loadMoreChats };
+    return { loading, hasMoreChats, loadingMore, loadMoreChats, refetch: loadAndSyncChats };
 };
 
 export default useChatListRealtime;

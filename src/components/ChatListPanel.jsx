@@ -17,8 +17,10 @@ import {
   MessageSquarePlus,
   Edit,
   Trash2,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
+import PullToRefresh from './common/PullToRefresh';
 import DropdownMenu from './common/DropdownMenu';
 import ChatListItem from './chat/ChatListItem';
 import { getPublicMediaUrl } from '../services/mediaService';
@@ -67,6 +69,7 @@ const ChatListPanel = ({
   savedContacts,
   isDesktop,
   currentChatId,
+  refetchChats, // Passed from MainLayout
 }) => {
   const { supabase } = useSupabase();
   const { useUserGroups } = useGroupActions();
@@ -88,6 +91,23 @@ const ChatListPanel = ({
     handleTouchEnd,
     handleTouchMove
   } = useChatDeletion(user?.id);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleManualRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      if (refetchChats) {
+        await refetchChats();
+      }
+    } catch (error) {
+      console.error('Refresh failed:', error);
+      toast.error('Failed to refresh chats');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const [contextMenu, setContextMenu] = useState(null);
   const [deleteData, setDeleteData] = useState({ isOpen: false, chat: null, isGroup: false });
@@ -261,6 +281,34 @@ const ChatListPanel = ({
   return (
     <main className={styles['chat-list-panel-content']}>
       <Toaster />
+      
+      {/* Desktop Refreshing Banner */}
+      <AnimatePresence>
+        {isDesktop && isRefreshing && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className={styles['refresh-banner']}
+            style={{
+              backgroundColor: 'var(--brand-light)',
+              color: 'var(--brand-primary)',
+              textAlign: 'center',
+              padding: '6px 0',
+              fontSize: '0.85rem',
+              fontWeight: '500',
+              borderBottom: '1px solid var(--brand-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            <RefreshCw size={14} className="animate-spin" />
+            Refreshing...
+          </motion.div>
+        )}
+      </AnimatePresence>
       {selectionMode && (
         <ChatSelectionHeader 
           selectedCount={selectedChats.length}
@@ -282,6 +330,16 @@ const ChatListPanel = ({
           >
             <User size={20} />
           </button>
+          {isDesktop && (
+            <button
+              className={`${styles['icon-btn']} ${isRefreshing ? 'animate-spin' : ''}`}
+              onClick={handleManualRefresh}
+              title="Refresh"
+              disabled={isRefreshing}
+            >
+              <RefreshCw size={20} />
+            </button>
+          )}
           <button
             className={styles['icon-btn']}
             onClick={() => setShowSearch(!showSearch)}
@@ -385,23 +443,25 @@ const ChatListPanel = ({
       </AnimatePresence>
 
       <motion.div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <ScrollableChatList
-          isDesktop={isDesktop}
-          groupChats={groupChats}
-          dmChats={dmChats}
-          filteredChats={displayChats}
-          activeFilter={activeFilter}
-          searchTerm={searchTerm}
-          currentChatId={currentChatId}
-          handleChatClick={handleChatClick}
-          loadingMore={loadingMore}
-          hasMoreChats={hasMoreChats}
-          loadMoreChats={() => {
-            if (hasMoreChats && !loadingMore) handleChatListScroll();
-          }}
-          renderChatItem={renderChatItem}
-          setShowCreateGroupModal={setShowCreateGroupModal}
-        />
+        <PullToRefresh onRefresh={handleManualRefresh}>
+          <ScrollableChatList
+            isDesktop={isDesktop}
+            groupChats={groupChats}
+            dmChats={dmChats}
+            filteredChats={displayChats}
+            activeFilter={activeFilter}
+            searchTerm={searchTerm}
+            currentChatId={currentChatId}
+            handleChatClick={handleChatClick}
+            loadingMore={loadingMore}
+            hasMoreChats={hasMoreChats}
+            loadMoreChats={() => {
+              if (hasMoreChats && !loadingMore) handleChatListScroll();
+            }}
+            renderChatItem={renderChatItem}
+            setShowCreateGroupModal={setShowCreateGroupModal}
+          />
+        </PullToRefresh>
       </motion.div>
 
       <Suspense fallback={null}>

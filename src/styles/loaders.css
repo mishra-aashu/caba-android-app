@@ -92,6 +92,10 @@
     100% { transform: rotate(360deg); }
 }
 
+.animate-spin {
+    animation: premium-spin 1s linear infinite;
+}
+
 @keyframes loaderPopIn {
     from {
         opacity: 0;

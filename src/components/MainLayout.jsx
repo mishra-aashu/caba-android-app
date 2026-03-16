@@ -44,7 +44,7 @@ const MainLayout = () => {
     const chats = useLiveQuery(() => db.chats_list.toArray(), []) || [];
     const savedContacts = useLiveQuery(() => db.contacts.toArray(), []) || [];
 
-    const { loading, hasMoreChats, loadingMore, loadMoreChats } = useChatListRealtime(user?.id);
+    const { loading, hasMoreChats, loadingMore, loadMoreChats, refetch: refetchChats } = useChatListRealtime(user?.id);
     const { refetch: refreshContacts } = useContacts(user?.id);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -360,6 +360,7 @@ const MainLayout = () => {
         handleStartChatWithContact,
         isDesktop,
         currentChatId,
+        refetchChats,
     };
 
     // Only show full-screen loader on initial data fetch to prevent blinking during route changes
