@@ -45,7 +45,7 @@ const MessageInput = ({
   const baseUrl = import.meta.env.BASE_URL || '/';
 
   useEffect(() => {
-    sendSoundRef.current = new Audio(`${baseUrl}assets/audio/message_send.mp3`);
+    sendSoundRef.current = new Audio(`${baseUrl}assets/audio/message_send.ogg`);
     sendSoundRef.current.load();
   }, [baseUrl]);
 

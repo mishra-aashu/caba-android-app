@@ -11,11 +11,11 @@ import { toast } from 'react-hot-toast';
 import '../../styles/reminders.css';
 
 const RINGTONES = [
-  { id: 'default', name: 'Default', file: 'reminder-default.mp3' },
-  { id: 'gentle', name: 'Gentle', file: 'reminder-gentle.mp3' },
-  { id: 'urgent', name: 'Urgent', file: 'reminder-urgent.mp3' },
-  { id: 'chime', name: 'Chime', file: 'reminder-chime.mp3' },
-  { id: 'bell', name: 'Bell', file: 'reminder-bell.mp3' },
+  { id: 'default', name: 'Default', file: 'nice_ring_tones.ogg' },
+  { id: 'gentle', name: 'Gentle', file: 'Sakura-Girl-Daisy-chosic.com_.ogg' },
+  { id: 'urgent', name: 'Urgent', file: 'Sakura-Girl-Wake-Up-chosic.com_.ogg' },
+  { id: 'chime', name: 'Chime', file: 'gio_office_0610.ogg' },
+  { id: 'bell', name: 'Bell', file: 'professional.ogg' },
   { id: 'none', name: 'None (Silent)', file: null }
 ];
 
@@ -39,6 +39,7 @@ const ReminderSettings = ({ onBack }) => {
   const { supabase } = useSupabase();
   const currentUser = useAuthStore((state) => state.dbUser);
   const { showAlert, showConfirm } = useDialog();
+  const baseUrl = import.meta.env.BASE_URL || '/';
 
   // Settings state
   const [settings, setSettings] = useState({
@@ -213,7 +214,7 @@ const ReminderSettings = ({ onBack }) => {
     }
 
     try {
-      const audio = new Audio(`/sounds/${ringtone.file}`);
+      const audio = new Audio(`${baseUrl}assets/audio/${ringtone.file}`);
       audio.volume = 0.5;
       audioRef.current = audio;
       setPlayingRingtone(ringtoneId);

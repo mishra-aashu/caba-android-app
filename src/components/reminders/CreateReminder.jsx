@@ -94,6 +94,7 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
   const { supabase } = useSupabase();
   const currentUser = useAuthStore((state) => state.dbUser);
   const { showAlert, showConfirm } = useDialog();
+  const baseUrl = import.meta.env.BASE_URL || '/';
   const cachedContacts = useLiveQuery(() => db.contacts.toArray()) || [];
   const cachedChats = useLiveQuery(() => db.chats_list.toArray()) || [];
   const queryClient = useQueryClient();
@@ -369,7 +370,7 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
   // Preview notification sound
   const previewSound = () => {
     try {
-      const audio = new Audio('/sounds/reminder-default.mp3');
+      const audio = new Audio(`${baseUrl}assets/audio/nice_ring_tones.ogg`);
       audio.volume = 0.5;
       audio.play().catch(() => {
         toast.error('Could not play sound');

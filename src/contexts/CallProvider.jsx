@@ -92,8 +92,8 @@ export function CallProvider({ children, currentUser }) {
   // Initialize audio objects
   useEffect(() => {
     // Loaded once on mount, but incoming src will be updated dynamically
-    outgoingAudioRef.current = createAudio(`${baseUrl}assets/audio/outgoing_ring.mp3`);
-    incomingAudioRef.current = createAudio(`${baseUrl}assets/audio/fm-freemusic-give-me-a-smile(chosic.com).mp3`); // default
+    outgoingAudioRef.current = createAudio(`${baseUrl}assets/audio/outgoing_ring.ogg`);
+    incomingAudioRef.current = createAudio(`${baseUrl}assets/audio/fm-freemusic-give-me-a-smile(chosic.com).ogg`); // default
 
     return () => {
       if (outgoingAudioRef.current) {
@@ -132,7 +132,7 @@ export function CallProvider({ children, currentUser }) {
       stopAudio(incomingAudioRef.current);
     } else if (state.callState === 'ringing') {
       // Update incoming ringtone from settings before playing
-      const savedRingtone = localStorage.getItem('callRingtone') || 'fm-freemusic-give-me-a-smile(chosic.com).mp3';
+      const savedRingtone = localStorage.getItem('callRingtone') || 'fm-freemusic-give-me-a-smile(chosic.com).ogg';
       if (incomingAudioRef.current) {
         incomingAudioRef.current.src = `${baseUrl}assets/audio/${savedRingtone}`;
       }

@@ -93,7 +93,7 @@ const Settings = ({ isSidebar = false }) => {
         allowEveryoneMessage: true,
         profileVisible: true,
         storageUsage: { app: 0, media: 0, total: 0 },
-        callRingtone: 'fm-freemusic-give-me-a-smile(chosic.com).mp3'
+        callRingtone: 'fm-freemusic-give-me-a-smile(chosic.com).ogg'
     });
 
     const [expandedSection, setExpandedSection] = useState(null);
@@ -109,20 +109,20 @@ const Settings = ({ isSidebar = false }) => {
     const [isPlaying, setIsPlaying] = useState(false);
 
     const ringtones = [
-        { file: 'fm-freemusic-give-me-a-smile(chosic.com).mp3', name: 'Give Me a Smile' },
-        { file: 'gio_office_0610.mp3', name: 'Office' },
-        { file: 'Journey(chosic.com).mp3', name: 'Journey' },
-        { file: 'Lights(chosic.com).mp3', name: 'Lights' },
-        { file: 'nice_ring_tones.mp3', name: 'Nice Ring' },
-        { file: 'PeriTune_Alleyway-chosic.com_.mp3', name: 'Alleyway' },
-        { file: 'PeriTune_Village_Fete-chosic.com_.mp3', name: 'Village Fete' },
-        { file: 'professional.mp3', name: 'Professional' },
-        { file: 'roa-music-summer-madness(chosic.com).mp3', name: 'Summer Madness' },
-        { file: 'Run-Amok(chosic.com).mp3', name: 'Run Amok' },
-        { file: 'Sakura-Girl-Daisy-chosic.com_.mp3', name: 'Daisy' },
-        { file: 'Sakura-Girl-Wake-Up-chosic.com_.mp3', name: 'Wake Up' },
-        { file: 'smta_own_tone.mp3', name: 'Own Tone' },
-        { file: '春のテーマ-Spring-field-(chosic.com).mp3', name: 'Spring Field' }
+        { file: 'fm-freemusic-give-me-a-smile(chosic.com).ogg', name: 'Give Me a Smile' },
+        { file: 'gio_office_0610.ogg', name: 'Office' },
+        { file: 'Journey(chosic.com).ogg', name: 'Journey' },
+        { file: 'Lights(chosic.com).ogg', name: 'Lights' },
+        { file: 'nice_ring_tones.ogg', name: 'Nice Ring' },
+        { file: 'PeriTune_Alleyway-chosic.com_.ogg', name: 'Alleyway' },
+        { file: 'PeriTune_Village_Fete-chosic.com_.ogg', name: 'Village Fete' },
+        { file: 'professional.ogg', name: 'Professional' },
+        { file: 'roa-music-summer-madness(chosic.com).ogg', name: 'Summer Madness' },
+        { file: 'Run-Amok(chosic.com).ogg', name: 'Run Amok' },
+        { file: 'Sakura-Girl-Daisy-chosic.com_.ogg', name: 'Daisy' },
+        { file: 'Sakura-Girl-Wake-Up-chosic.com_.ogg', name: 'Wake Up' },
+        { file: 'smta_own_tone.ogg', name: 'Own Tone' },
+        { file: '春のテーマ-Spring-field-(chosic.com).ogg', name: 'Spring Field' }
     ];
 
     // ── Init ──
@@ -165,7 +165,7 @@ const Settings = ({ isSidebar = false }) => {
             allowEveryoneMessage: get('allowEveryoneMessage'),
             profileVisible: get('profileVisible'),
             callRingtone: localStorage.getItem('callRingtone')
-                || 'fm-freemusic-give-me-a-smile(chosic.com).mp3',
+                || 'fm-freemusic-give-me-a-smile(chosic.com).ogg',
             storageUsage: { app: 0, media: 0, total: 0 }
         };
 
