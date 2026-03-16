@@ -1,0 +1,1 @@
+import{r as s}from"./vendor-react-0mK5w4BS.js";import{u as e}from"./dexie-react-hooks-CjuEhPZe.js";import{d as a}from"./AuthenticatedApp-BjUe3i57.js";const p=(t,n=null)=>{const r=e(()=>a.contacts.toArray())||[];return s.useMemo(()=>{if(!t)return n||"Unknown";const o=r?.find(c=>c.contact_user_id===t);return o&&o.contact_name?o.contact_name:n||"Unknown"},[t,n,r])};export{p as u};
