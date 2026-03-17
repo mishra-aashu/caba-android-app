@@ -41,7 +41,7 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_FIREBASE_VAPID_KEY: ${{ secrets.VITE_FIREBASE_VAPID_KEY }}
           GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
-        run: npm run build
+        run: npm run build && cp ignore-vercel.json dist/vercel.json
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
