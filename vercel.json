@@ -3,6 +3,11 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "installCommand": "npm install",
+  "git": {
+    "deploymentEnabled": {
+      "gh-pages": false
+    }
+  },
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
