@@ -257,13 +257,17 @@ export const useAutoRefresh = () => {
     sessionStorage.setItem(OTA_SESSION_GUARD, 'true');
 
     const isNative = isNativeRef.current;
+    
+    // ── Detect if we are already running from Vercel ──
+    // Even if it's a native APK, if it redirected once, the origin is now Vercel
+    const isAlreadyOnRemote = window.location.origin === new URL(REMOTE_ORIGIN).origin;
 
     try {
-      if (isNative) {
+      if (isNative && !isAlreadyOnRemote) {
         // ═══════════════════════════════════════════
-        // NATIVE APP: Redirect to Vercel
+        // INITIAL REDIRECT: Local → Vercel
         // ═══════════════════════════════════════════
-        console.log('[AutoRefresh] Native update — preparing redirect to Vercel...');
+        console.log('[AutoRefresh] Native update — initial switch to Vercel...');
 
         const targetUrl = REMOTE_ORIGIN + '/';
 
@@ -314,9 +318,9 @@ export const useAutoRefresh = () => {
 
       } else {
         // ═══════════════════════════════════════════
-        // WEB (Vercel): Activate waiting SW or hard reload
+        // SILENT UPDATE: Web OR Already on Vercel
         // ═══════════════════════════════════════════
-        console.log('[AutoRefresh] Web update...');
+        console.log('[AutoRefresh] Silent update (SW/Reload)...');
 
         if (swUpdateReadyRef.current) {
           // Best case: SW has new version waiting — activate it
