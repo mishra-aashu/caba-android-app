@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "cp ignore-vercel.json dist/vercel.json",
     "lint": "eslint .",
     "preview": "vite preview",
     "version-sync": "node scripts/update-app-version.js",
