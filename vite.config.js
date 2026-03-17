@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
 
-      // ══════════════════════════════════════════════════════════
+       // ══════════════════════════════════════════════════════════
       // PLUGIN 1: Generate version.json
       //
       // Creates { buildTime: 1749811200000 } in both public/ and dist/
