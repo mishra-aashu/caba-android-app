@@ -16,6 +16,7 @@ import { useAuth } from './hooks/useAuth';
 import { Capacitor } from '@capacitor/core';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import AutoRefreshBanner from './components/common/AutoRefreshBanner';
+import { Toaster } from 'react-hot-toast';
 import './styles/loaders.css';
 
 // Public components (relatively lightweight)
@@ -69,6 +70,39 @@ const PublicApp = () => {
         isRefreshing={isRefreshing}
         handleRefresh={handleRefresh}
         handleDismiss={handleDismiss}
+      />
+
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          duration: 3500,
+          className: 'premium-toast',
+          success: {
+            className: 'premium-toast premium-toast-success',
+            iconTheme: {
+              primary: 'var(--brand-primary)',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            className: 'premium-toast premium-toast-error',
+            iconTheme: {
+              primary: 'var(--error-color)',
+              secondary: '#fff',
+            },
+          },
+          loading: {
+            className: 'premium-toast premium-toast-loading',
+          },
+          style: {
+            background: 'transparent',
+            boxShadow: 'none',
+            border: 'none',
+          },
+        }}
+        containerStyle={{
+          bottom: 'calc(75px + var(--sab, 0px))',
+        }}
       />
     </>
   );

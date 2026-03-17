@@ -271,10 +271,6 @@ const AppWithCallProvider = ({ dbUser, authLoading }) => {
           <SafeSuspense><IncomingCallModal /></SafeSuspense>
           <SafeSuspense><GroupIncomingCallNotification /></SafeSuspense>
           <SyncIndicator />
-          <Toaster
-            position="bottom-center"
-            toastOptions={{ duration: 3000, style: { maxWidth: '90vw' } }}
-          />
           <GlobalDialog />
         </CallProvider>
       </GroupCallProvider>

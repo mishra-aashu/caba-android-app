@@ -280,7 +280,6 @@ const ChatListPanel = ({
 
   return (
     <main className={styles['chat-list-panel-content']}>
-      <Toaster />
       
       {/* Desktop Refreshing Banner */}
       <AnimatePresence>

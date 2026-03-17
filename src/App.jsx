@@ -366,16 +366,6 @@ const App = () => {
 
                         <SyncIndicator />
 
-                        <Toaster
-                            position="bottom-center"
-                            toastOptions={{
-                                duration: 3000,
-                                style: {
-                                    maxWidth: '90vw',
-                                },
-                            }}
-                        />
-
                         <GlobalDialog />
 
                         <SafeSuspense>
