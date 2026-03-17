@@ -9,6 +9,10 @@ const config: CapacitorConfig = {
     // url: 'https://caba-android-app.vercel.app',
     androidScheme: 'https',
     cleartext: false,
+    allowNavigation: [
+      'caba-android-app.vercel.app',
+      '*.supabase.co'
+    ]
   },
   plugins: {
     extConfig: {},

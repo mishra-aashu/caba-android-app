@@ -148,14 +148,28 @@
         if (root) root.style.display = 'none';
 
         var screen = document.createElement('div');
+        screen.id = 'ota-mount';
         screen.className = 'ota-boot-screen';
         screen.innerHTML =
           '<div class="ota-spinner"></div>' +
-          '<p>Loading latest version...</p>';
+          '<p>Loading latest version...</p>' +
+          '<button id="ota-cancel" style="margin-top: 40px; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.4); padding: 8px 16px; border-radius: 8px; font-size: 12px; cursor: pointer; display: none;">' +
+          'Cancel & Use Local App' +
+          '</button>';
         document.body.appendChild(screen);
 
-        // ── Step 5: Redirect to Vercel ──
-        // SW on Vercel has all assets cached → works offline too!
+        // ── Step 5: Redirect to Vercel with Timeout ──
+        // If it takes > 6s, show the cancel button
+        var timeout = setTimeout(function() {
+          var btn = document.getElementById('ota-cancel');
+          if (btn) btn.style.display = 'block';
+        }, 6000);
+
+        document.getElementById('ota-cancel').onclick = function() {
+          localStorage.removeItem('ota-target-url');
+          window.location.reload();
+        };
+
         window.location.replace(targetUrl);
 
       } catch (e) {

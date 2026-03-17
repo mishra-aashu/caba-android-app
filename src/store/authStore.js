@@ -30,6 +30,26 @@ const useAuthStore = create((set, get) => ({
 
   initializeAuth: async () => {
     try {
+      // ── Session Migration Check (for OTA domain switches) ──
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { Preferences } = await import('@capacitor/preferences');
+          const { value: migratedSessionJson } = await Preferences.get({ key: 'ota-migrated-session' });
+          if (migratedSessionJson) {
+            const migratedSession = JSON.parse(migratedSessionJson);
+            // Inject into Supabase and clear from storage
+            await supabase.auth.setSession({
+              access_token: migratedSession.access_token,
+              refresh_token: migratedSession.refresh_token
+            });
+            await Preferences.remove({ key: 'ota-migrated-session' });
+            console.log('[Auth] ✅ Successfully picked up migrated OTA session');
+          }
+        } catch (e) {
+          console.warn('[Auth] Session migration check failed:', e.message);
+        }
+      }
+
       // Supabase handles session persistence automatically.
       // We rely on onAuthStateChange to populate the store.
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();

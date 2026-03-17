@@ -277,9 +277,22 @@ export const useAutoRefresh = () => {
         console.log('[AutoRefresh] ✅ Target URL saved in localStorage');
 
         // 2. Also persist in Capacitor Preferences (backup — survives app data clear)
+        // AND handle session migration (allows staying logged in on Vercel)
         try {
           const { Preferences } = await import('@capacitor/preferences');
           await Preferences.set({ key: OTA_TARGET_KEY, value: targetUrl });
+          
+          // --- session migration ---
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await Preferences.set({ 
+              key: 'ota-migrated-session', 
+              value: JSON.stringify(session) 
+            });
+            console.log('[AutoRefresh] ✅ Session migrated to Preferences');
+          }
+          // -------------------------
+
           console.log('[AutoRefresh] ✅ Target URL backed up in Capacitor Preferences');
         } catch (e) {
           // Not critical — localStorage is primary
