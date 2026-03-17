@@ -22,19 +22,18 @@
       -webkit-backdrop-filter: blur(15px);
 
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
 
       display: flex;
       flex-direction: column;
       overflow: hidden;
       z-index: 10002;
-
-      /* GPU Acceleration & Performance isolation */
+      
+      /* Smooth Scrolling & GPU */
+      scroll-behavior: smooth;
       will-change: transform, opacity;
       contain: content;
-
-      /* Additional GPU Acceleration */
       transform: translateZ(0);
       -webkit-transform: translateZ(0);
       backface-visibility: hidden;
@@ -72,39 +71,45 @@
   /* Header with Tabs and Close */
   .picker-header {
       display: flex;
-      align-items: center;
+      align-items: center; /* Vertical centering */
       justify-content: space-between;
-      padding: 10px 16px;
-      background: rgba(0, 0, 0, 0.3);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 16px; /* slightly more padding for premium feel */
+      background: rgba(0, 0, 0, 0.35);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       width: 100%;
       box-sizing: border-box;
+      height: 60px; /* Fixed height for consistent alignment */
   }
 
   .picker-tabs {
       display: flex;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 4px;
-      gap: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 25px;
+      padding: 3px;
+      gap: 2px;
+      align-items: center;
   }
 
   .tab-btn {
       background: transparent;
       border: none;
-      color: #8696a0;
-      padding: 6px 16px;
-      border-radius: 16px;
+      color: rgba(255, 255, 255, 0.5);
+      padding: 6px 18px;
+      border-radius: 20px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
   }
 
   .tab-btn.active {
-      background: #242f3d;
+      background: rgba(255, 255, 255, 0.15);
       color: #fff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   .header-close-btn,
@@ -206,11 +211,11 @@
   .emoji-category-bar {
       display: flex;
       align-items: center;
-      justify-content: space-around;
-      padding: 6px 16px;
-      /* Reduced vertical padding */
-      background: rgba(0, 0, 0, 0.3);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      justify-content: space-between; /* Telegram style spacing */
+      padding: 4px 12px;
+      background: rgba(15, 20, 25, 0.5);
+      backdrop-filter: blur(5px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       width: 100%;
       box-sizing: border-box;
   }
@@ -223,32 +228,40 @@
   .cat-btn {
       background: transparent;
       border: none;
-      font-size: 22px; /* Slightly smaller for better fit */
-      width: 36px;    /* Wider for click area */
-      height: 36px;   /* Taller to prevent chopping */
+      font-size: 22px;
+      width: 44px;
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       padding: 0;
-      transition: all 0.2s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       opacity: 0.5;
-      /* removed grayscale for more vibrant feel */
+      position: relative;
   }
 
   .cat-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
       opacity: 0.8;
-      transform: scale(1.1);
-      border-radius: 10px;
   }
 
   .cat-btn.active {
       opacity: 1;
-      transform: scale(1.1);
-      /* Simple clean indicator: bottom border only */
-      box-shadow: 0 3px 0 0 #00a884;
-      border-radius: 0;
+      transform: scale(1.05);
+  }
+
+  .cat-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      left: 25%;
+      right: 25%;
+      height: 2px;
+      background: #00a884;
+      border-radius: 2px;
+      transition: all 0.3s ease;
   }
 
 
@@ -285,10 +298,11 @@
 
   .emoji-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(5, 1fr); /* Premium 5-column layout */
+      gap: 12px 8px; /* Vertical 12px, Horizontal 8px */
       width: 100%;
       justify-items: center;
+      padding-bottom: 10px;
   }
 
   /* Scrollbar Styling */
@@ -307,35 +321,35 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2px;
-      border-radius: 8px;
-      /* Optimized transition */
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+      padding: 4px;
+      border-radius: 10px; /* ELEVENGRAM style */
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      height: 100%;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       user-select: none;
-      width: 36px;
-      height: 36px;
-      /* Optimization: prevents layout shift */
-      contain: layout paint;
-      will-change: transform;
-
-      /* GPU Acceleration for smooth hover */
+      position: relative;
+      /* GPU Acceleration */
       transform: translateZ(0);
-      -webkit-transform: translateZ(0);
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
+      will-change: transform, background;
   }
 
+  .emoji-item:hover,
+  .emoji-item:active {
+      background: rgba(255, 255, 255, 0.08);
+      transform: scale(1.1);
+  }
+
+
   .emoji-sprite-item {
-      width: 24px;
-      height: 24px;
-      /* GPU Acceleration for sprites */
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
-      will-change: opacity;
+      width: 32px; /* Premium size range 32-36px */
+      height: 32px;
+      background-size: 6200% 6200%; /* Match grid size properly */
+      image-rendering: auto;
   }
 
   .emoji-item span {
-      font-size: 20px;
+      font-size: 32px; /* Match icon size for native emojis */
   }
 
   /* Hover Effect: Bigger and Highlighted */
@@ -353,8 +367,22 @@
   }
 
   /* Scrollbar styling */
-  .emoji-grid::-webkit-scrollbar {
-      width: 6px;
+  /* Thin Premium Scrollbar */
+  .emoji-scroll-area::-webkit-scrollbar {
+      width: 4px;
+  }
+  
+  .emoji-scroll-area::-webkit-scrollbar-track {
+      background: transparent;
+  }
+  
+  .emoji-scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+  }
+  
+  .emoji-scroll-area::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
   }
 
   .emoji-grid::-webkit-scrollbar-track {
@@ -488,9 +516,9 @@
           left: 0;
           bottom: 0;
           margin-bottom: 0;
-          border-radius: 20px 20px 0 0;
-          height: 45vh;
-          max-height: 45vh;
+          border-radius: 24px 24px 0 0;
+          height: 50vh; /* Increased from 45vh */
+          max-height: 50vh;
           max-width: 100vw;
           transform: translateY(100%);
           background: rgba(30, 40, 45, 1);
@@ -538,13 +566,22 @@
       }
 
       .emoji-grid {
-          /* Remove hardcoded columns, use the auto-fill logic defined above */
-          grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-          gap: 8px;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 12px 8px;
       }
-
+      
       .emoji-item {
-          padding: 2px;
+          max-width: none;
+          padding: 6px;
+      }
+      
+      .emoji-sprite-item {
+          width: 34px;
+          height: 34px;
+      }
+      
+      .emoji-item span {
+          font-size: 34px;
       }
 
       .gif-masonry {

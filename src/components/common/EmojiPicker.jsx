@@ -279,7 +279,7 @@ const EmojiPicker = ({
 const EmojiItem = memo(({ emoji, style, onSelect }) => {
     const { emojiMap, mapLoading } = useEmojiStyle();
     
-    if (mapLoading) return <div className="emoji-item" style={{ width: '36px', height: '36px' }} />;
+    if (mapLoading) return <div className="emoji-item" style={{ width: '100%', aspectRatio: '1/1' }} />;
 
     const mapping = emojiMap?.mapping?.[emoji.hex];
     const sheetName = emojiMap?.sheets?.[style];
