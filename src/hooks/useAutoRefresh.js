@@ -158,10 +158,6 @@ export const useAutoRefresh = () => {
         `${baseUrl}/version.json?_t=${Date.now()}`,
         {
           cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-          },
         }
       );
 
