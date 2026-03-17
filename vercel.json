@@ -5,6 +5,7 @@
   "installCommand": "npm install",
   "git": {
     "deploymentEnabled": {
+      "main": true,
       "gh-pages": false
     }
   },
