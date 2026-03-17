@@ -9,16 +9,72 @@
   <link rel="alternate icon" href="/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover, interactive-widget=resizes-content" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; media-src 'self' blob: https:; script-src 'self' blob: https://accounts.google.com https://apis.google.com https://ssl.gstatic.com https://esm.sh 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https: https://* blob: *; connect-src 'self' https: wss:;" />
   <title>Elevengram Web</title>
+
+  <!--
+    ═══════════════════════════════════════════════════════════
+    OTA BOOT SCREEN CSS
+    Dark background matching app theme — prevents white flash
+    during OTA redirect on native cold start
+    ═══════════════════════════════════════════════════════════
+  -->
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a2e;
+    }
+
+    .ota-boot-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #1a1a2e;
+      gap: 16px;
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+    }
+
+    .ota-boot-screen .ota-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(255, 255, 255, 0.08);
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: ota-spin 0.7s linear infinite;
+    }
+
+    .ota-boot-screen p {
+      color: rgba(255, 255, 255, 0.4);
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    @keyframes ota-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+
+  <!--
+    ═══════════════════════════════════════════════════════════
+    GitHub Pages SPA redirect (existing — untouched)
+    ═══════════════════════════════════════════════════════════
+  -->
   <script type="text/javascript">
-    // Single Page Apps for GitHub Pages
-    // https://github.com/rafgraph/spa-github-pages
     (function (l) {
       if (l.search[1] === '/') {
         var decoded = l.search.slice(1).split('&').map(function (s) {
@@ -33,6 +89,88 @@
 </head>
 
 <body>
+  <!--
+    ═══════════════════════════════════════════════════════════
+    OTA EARLY REDIRECT SCRIPT
+    
+    Runs in ~50ms, BEFORE React/Vite module loads.
+    
+    PURPOSE:
+    After user clicks "Update" in AutoRefreshBanner, we save
+    the Vercel URL in localStorage. On NEXT cold start from
+    local APK bundle, this script reads it and redirects
+    INSTANTLY — no React boot, no 2-5 second flash.
+    
+    WHY localStorage (not Capacitor Preferences)?
+    → localStorage.getItem() is SYNCHRONOUS (~1ms)
+    → Capacitor Preferences.get() is ASYNC (~100-500ms)
+    → We need speed here — every ms = visible flash
+    
+    SAFETY:
+    → Only runs on Capacitor native (localhost/capacitor origin)
+    → On Vercel domain, this script does nothing
+    → If anything fails, silently falls through to local bundle
+    → SW on Vercel serves cached assets (works offline too)
+    ═══════════════════════════════════════════════════════════
+  -->
+  <script>
+    (function () {
+      try {
+        // ── Step 1: Detect if running from LOCAL bundle (Capacitor) ──
+        var host = window.location.hostname;
+        var proto = window.location.protocol;
+
+        var isLocalBundle =
+          host === 'localhost' ||
+          host === '' ||
+          proto === 'capacitor:' ||
+          proto === 'file:';
+
+        // On Vercel or web browser → skip entirely
+        if (!isLocalBundle) return;
+
+        // ── Step 2: Check if OTA redirect URL exists ──
+        var targetUrl = localStorage.getItem('ota-target-url');
+        if (!targetUrl) return;  // First install or no update applied yet
+
+        // ── Step 3: Prevent redirect loop ──
+        try {
+          var targetOrigin = new URL(targetUrl).origin;
+          if (window.location.origin === targetOrigin) return;
+        } catch (e) {
+          // Invalid URL stored → clean up and skip
+          localStorage.removeItem('ota-target-url');
+          return;
+        }
+
+        // ── Step 4: Show loading screen (hides local bundle content) ──
+        var root = document.getElementById('root');
+        if (root) root.style.display = 'none';
+
+        var screen = document.createElement('div');
+        screen.className = 'ota-boot-screen';
+        screen.innerHTML =
+          '<div class="ota-spinner"></div>' +
+          '<p>Loading latest version...</p>';
+        document.body.appendChild(screen);
+
+        // ── Step 5: Redirect to Vercel ──
+        // SW on Vercel has all assets cached → works offline too!
+        window.location.replace(targetUrl);
+
+      } catch (e) {
+        // ── FALLBACK: If anything fails, show local bundle ──
+        // This ensures the app NEVER breaks — worst case user sees old version
+        try {
+          var root = document.getElementById('root');
+          if (root) root.style.display = '';
+          var screen = document.querySelector('.ota-boot-screen');
+          if (screen) screen.remove();
+        } catch (ignore) { }
+      }
+    })();
+  </script>
+
   <div id="root"></div>
   <script type="module" src="src/main.jsx"></script>
 </body>

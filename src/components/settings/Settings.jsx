@@ -4,7 +4,11 @@ import AppName from '../common/AppName';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import useAuthStore from '../../store/authStore';
+import useOnlineStatus from '../../hooks/useOnlineStatus';
+import useNetworkSync from '../../hooks/useNetworkSync';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { useAppVersions } from '../../hooks/useAppVersions';
+import { requestPersistentStorage } from '../../db/db';
 import { clearAllCachedData } from '../../utils/FileSystemManager';
 import { isOlderVersion } from '../../utils/versionUtils';
 import { Capacitor } from '@capacitor/core';
@@ -78,6 +82,12 @@ const Settings = ({ isSidebar = false }) => {
     const { theme, toggleTheme } = useTheme();
     const { showAlert, showConfirm } = useDialog();
     const { data: dbVersionData } = useAppVersions();
+    const { 
+        needsRefresh: webUpdateAvailable, 
+        checkForUpdates: checkWebUpdate, 
+        handleRefresh: applyWebUpdate, 
+        isRefreshing: isApplyingWebUpdate 
+    } = useAutoRefresh();
     const baseUrl = import.meta.env.BASE_URL || '/';
 
     // ── State ──
@@ -687,9 +697,22 @@ const Settings = ({ isSidebar = false }) => {
                     />
                     <SettingItem
                         icon={Download}
-                        label="Check for Updates"
+                        label="Check for APK Updates"
                         onClick={checkForUpdates}
                         loading={checkingUpdate}
+                    />
+
+                    <SettingItem
+                        icon={RefreshCw}
+                        label={webUpdateAvailable ? "Install Web Update" : "Check for Web Updates"}
+                        onClick={webUpdateAvailable ? applyWebUpdate : async () => {
+                            await checkWebUpdate();
+                            if (!webUpdateAvailable) {
+                                toast.success('You have the latest web version');
+                            }
+                        }}
+                        loading={isApplyingWebUpdate}
+                        chevron={!webUpdateAvailable}
                     />
                 </section>
 

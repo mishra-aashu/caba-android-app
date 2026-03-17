@@ -55,3 +55,9 @@ public/supabase-config.js
 
 # Documentation / Temporary files
 messagingsystem.markdown
+
+# ═══ Add these lines to your existing .gitignore ═══
+
+# Generated at build time by Vite plugins — never commit
+public/version.json
+public/native-integrity.json

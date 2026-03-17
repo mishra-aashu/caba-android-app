@@ -1,3 +1,14 @@
+/**
+ * AutoRefreshBanner.jsx
+ *
+ * Floating bottom banner that shows when a new version is available.
+ * Rendered by PublicApp.jsx (always visible regardless of auth state).
+ *
+ * Two states:
+ *   - "New update available! Tap to refresh" (idle)
+ *   - "Updating to latest version..." (refreshing)
+ */
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, RefreshCw } from 'lucide-react';
@@ -22,7 +33,9 @@ const AutoRefreshBanner = ({ needsRefresh, isRefreshing, handleRefresh, handleDi
               )}
             </div>
             <span className="refresh-text">
-              {isRefreshing ? 'Updating to latest version...' : 'New update available! Tap to refresh'}
+              {isRefreshing
+                ? 'Updating to latest version...'
+                : 'New update available! Tap to refresh'}
             </span>
           </div>
           {!isRefreshing && (
