@@ -61,7 +61,3 @@ messagingsystem.markdown
 # Generated at build time by Vite plugins — never commit
 public/version.json
 public/native-integrity.json
-
-# Vercel
-.vercel
-.vercel/
