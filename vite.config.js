@@ -142,7 +142,7 @@ export default defineConfig(({ mode }) => {
             ? '/caba-android-app/index.html'
             : 'index.html',
 
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,ogg,mp3}'],
 
           // ⚠️ CRITICAL: These files must NEVER be precached by Workbox.
           // version.json must always be fetched fresh from network

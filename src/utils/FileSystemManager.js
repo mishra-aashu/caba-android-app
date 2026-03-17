@@ -3,16 +3,10 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 // 1. Permission Maango aur Folder Banao
 export const initializeFileSystem = async () => {
   try {
-    // Permission check
-    const status = await Filesystem.checkPermissions();
-    if (status.publicStorage !== 'granted') {
-      await Filesystem.requestPermissions();
-    }
-
     try {
       const { type } = await Filesystem.stat({
         path: 'CaBa',
-        directory: Directory.Documents,
+        directory: Directory.Data,
       });
       // If CaBa exists and is a directory, do nothing.
       if (type === 'directory') {
@@ -22,7 +16,7 @@ export const initializeFileSystem = async () => {
       // If stat fails, it means the directory probably doesn't exist, so create it.
       await Filesystem.mkdir({
         path: 'CaBa',
-        directory: Directory.Documents,
+        directory: Directory.Data,
         recursive: true,
       });
     }
@@ -31,7 +25,7 @@ export const initializeFileSystem = async () => {
     try {
       const { type } = await Filesystem.stat({
         path: 'CaBa/Images',
-        directory: Directory.Documents,
+        directory: Directory.Data,
       });
       if (type === 'directory') {
         console.log('CaBa/Images directory already exists. Skipping creation.');
@@ -39,7 +33,7 @@ export const initializeFileSystem = async () => {
     } catch (e) {
       await Filesystem.mkdir({
         path: 'CaBa/Images',
-        directory: Directory.Documents,
+        directory: Directory.Data,
         recursive: true,
       });
     }
@@ -48,7 +42,7 @@ export const initializeFileSystem = async () => {
     try {
       const { type } = await Filesystem.stat({
         path: 'CaBa/Messages',
-        directory: Directory.Documents,
+        directory: Directory.Data,
       });
       if (type === 'directory') {
         console.log('CaBa/Messages directory already exists. Skipping creation.');
@@ -56,7 +50,7 @@ export const initializeFileSystem = async () => {
     } catch (e) {
       await Filesystem.mkdir({
         path: 'CaBa/Messages',
-        directory: Directory.Documents,
+        directory: Directory.Data,
         recursive: true,
       });
     }
@@ -73,13 +67,13 @@ export const saveChatsToDevice = async (allChats) => {
     // Ensure parent directory exists before writing
     await Filesystem.mkdir({
       path: 'CaBa',
-      directory: Directory.Documents,
+      directory: Directory.Data,
       recursive: true,
     }).catch(() => {}); // Ignore if already exists
     await Filesystem.writeFile({
       path: 'CaBa/chats.json',
       data: JSON.stringify(allChats),
-      directory: Directory.Documents,
+      directory: Directory.Data,
       encoding: Encoding.UTF8,
     });
     console.log('Chats Saved Locally 💾');
@@ -93,7 +87,7 @@ export const loadChatsFromDevice = async () => {
   try {
     const contents = await Filesystem.readFile({
       path: 'CaBa/chats.json',
-      directory: Directory.Documents,
+      directory: Directory.Data,
       encoding: Encoding.UTF8,
     });
     return JSON.parse(contents.data);
@@ -118,7 +112,7 @@ export const saveImageToDevice = async (photoUrl, messageId) => {
     const savedFile = await Filesystem.writeFile({
       path: `CaBa/Images/${fileName}`,
       data: base64Data,
-      directory: Directory.Documents,
+      directory: Directory.Data,
     });
 
     // 4. Local Path return karo (Taki app is path se image dikha sake)
@@ -147,14 +141,14 @@ export const saveMessagesToDevice = async (chatId, messages) => {
     // Ensure parent directory exists before writing
     await Filesystem.mkdir({
       path: 'CaBa/Messages',
-      directory: Directory.Documents,
+      directory: Directory.Data,
       recursive: true,
     }).catch(() => {}); // Ignore if already exists
     const path = `CaBa/Messages/chat_${chatId}.json`;
     await Filesystem.writeFile({
       path,
       data: JSON.stringify(messages),
-      directory: Directory.Documents,
+      directory: Directory.Data,
       encoding: Encoding.UTF8,
     });
   } catch (e) {
@@ -169,7 +163,7 @@ export const loadMessagesFromDevice = async (chatId) => {
     const path = `CaBa/Messages/chat_${chatId}.json`;
     const contents = await Filesystem.readFile({
       path,
-      directory: Directory.Documents,
+      directory: Directory.Data,
       encoding: Encoding.UTF8,
     });
     return JSON.parse(contents.data);
@@ -184,7 +178,7 @@ export const clearAllCachedData = async () => {
     // Delete the entire CaBa directory
     await Filesystem.rmdir({
       path: 'CaBa',
-      directory: Directory.Documents,
+      directory: Directory.Data,
       recursive: true,
     });
     console.log('All cached data cleared successfully. 🗑️');
