@@ -30,6 +30,7 @@ import { requestPersistentStorage } from './db/db';
 import { FileCache } from './utils/FileCache';
 import { SafeAreaDetector } from './utils/safeAreaDetector';
 import { KeyboardHandler } from './utils/keyboardHandler';
+import useSessionManager from './hooks/useSessionManager';
 import './styles/loaders.css';
 
 // Lazy-load non-critical components
@@ -260,6 +261,9 @@ const AuthenticatedApp = () => {
 
     return () => window.removeEventListener('resize', updateAppHeight);
   }, []);
+
+  // ✅ Professional Session Management Hook
+  useSessionManager(dbUser?.id);
 
   return (
     <ChatThemeProvider>

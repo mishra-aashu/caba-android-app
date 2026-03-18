@@ -674,3 +674,175 @@ input:checked ~ .toggle-track::after {
         max-width: 550px;
     }
 }
+
+/* ═══════════════════════════════════
+   Emoji Selection Screen
+   ═══════════════════════════════════ */
+
+.emoji-settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+.emoji-info-section {
+    padding: 0.5rem 0.25rem;
+}
+
+.emoji-description {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--text-1);
+    opacity: 0.8;
+    margin-top: 0.6rem;
+}
+
+.options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+/* Preview Card */
+.preview-card {
+    background: var(--bg-2);
+    border: 1.5px solid var(--glass-stroke);
+    border-radius: 18px;
+    padding: 1.1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.preview-card.selected {
+    border-color: var(--primary-0);
+    background: var(--bg-1);
+    box-shadow: 0 8px 24px rgba(0, 168, 132, 0.12);
+    transform: translateY(-2px);
+}
+
+.preview-card:hover:not(.selected) {
+    background: var(--bg-1);
+    border-color: var(--text-1);
+    opacity: 0.9;
+}
+
+.preview-card:active {
+    transform: scale(0.98);
+}
+
+.preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.style-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-0);
+    letter-spacing: -0.01em;
+}
+
+.check-icon {
+    width: 24px;
+    height: 24px;
+    background: var(--brand-gradient);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 900;
+    box-shadow: 0 4px 10px rgba(0, 168, 132, 0.3);
+}
+
+.preview-icons-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+    z-index: 1;
+}
+
+.emoji-wrapper {
+    background: var(--bg-1);
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--glass-stroke);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.selected .emoji-wrapper {
+    background: var(--bg-2);
+    border-color: rgba(0, 168, 132, 0.2);
+}
+
+.custom-emoji-img {
+    width: 32px !important;
+    height: 32px !important;
+    object-fit: contain;
+}
+
+.native-emoji {
+    font-size: 28px !important;
+    line-height: 1;
+}
+
+.style-desc {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-1);
+    opacity: 0.6;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* Note Section */
+.emoji-note {
+    background: rgba(124, 58, 237, 0.05);
+    border-radius: 16px;
+    padding: 1.1rem;
+    display: flex;
+    gap: 0.85rem;
+    border: 1px solid rgba(124, 58, 237, 0.1);
+    margin-top: 1rem;
+}
+
+[data-theme='light'] .emoji-note {
+    background: #f8f6ff;
+}
+
+.note-icon {
+    color: #7c3aed;
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+
+.note-content h4 {
+    margin: 0 0 0.3rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-0);
+}
+
+.note-content p {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-1);
+    opacity: 0.75;
+}

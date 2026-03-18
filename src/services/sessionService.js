@@ -1,0 +1,306 @@
+/**
+ * sessionService.js
+ *
+ * Manages user session lifecycle:
+ *   - Session registration (upsert on app load)
+ *   - Heartbeat (periodic last_active update)
+ *   - Session listing (for SecuritySettings UI)
+ *   - Session revocation (remote logout)
+ *   - Login history logging
+ *
+ * Uses localStorage for caba_session_id persistence.
+ */
+
+import { supabase } from '../config/supabase';
+import { getDeviceInfo, getCountryFlag, getPersistentSessionId } from '../utils/deviceInfo';
+
+// ── Constants ──
+const HEARTBEAT_INTERVAL = 2 * 60 * 1000; // 2 minutes
+
+/**
+ * Get approximate location from IP (free, no API key needed)
+ * Uses ip-api.com free tier (45 requests/minute)
+ */
+const getLocationFromIP = async () => {
+  try {
+    const res = await fetch('https://freeipapi.com/api/json', {
+      signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined, // 3 second timeout if supported
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      ip: data.ipAddress,
+      city: data.cityName || 'Unknown',
+      country: data.countryName || 'Unknown',
+      countryFlag: getCountryFlag(data.countryCode),
+    };
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Log login event to history
+ */
+const logLoginEvent = async (userId, info) => {
+    try {
+      await supabase.from('login_history').insert({
+        user_id: userId,
+        device_name: info.deviceName || info.device_name || 'Unknown',
+        device_type: info.deviceType || info.device_type || 'unknown',
+        ip_address: info.ip || info.ip_address || null,
+        city: info.city || null,
+        country: info.country || null,
+        country_flag: info.countryFlag || info.country_flag || null,
+        login_method: info.loginMethod || info.login_method || 'unknown',
+        action: info.action || 'login',
+      });
+    } catch (e) {
+      console.warn('[Session] History log failed:', e);
+    }
+  };
+
+export const sessionService = {
+/**
+ * Initialize session — call once when app loads (authenticated)
+ *
+ * @param {string} userId
+ * @param {string} loginMethod — "google", "phone", etc.
+ * @returns {Object} Session record
+ */
+async initSession(userId, loginMethod = 'google') {
+  console.log('[Session] 🚀 initSession called for:', userId);
+  const sessionId = getPersistentSessionId();
+  const device = getDeviceInfo();
+  const location = await getLocationFromIP();
+
+  const sessionData = {
+    user_id: userId,
+    caba_session_id: sessionId,
+    device_name: device.deviceName,
+    device_type: device.deviceType,
+    device_icon: device.deviceIcon,
+    browser: device.browser,
+    os: device.os,
+    app_version: device.appVersion,
+    ip_address: location?.ip || null,
+    city: location?.city || null,
+    country: location?.country || null,
+    country_flag: location?.countryFlag || null,
+    is_online: true,
+    is_current: true,
+    last_active: new Date().toISOString(),
+    login_method: loginMethod,
+  };
+
+  // Upsert — update if session exists, insert if new
+  const { data, error } = await supabase
+    .from('user_sessions')
+    .upsert(sessionData, {
+      onConflict: 'user_id,caba_session_id',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Session] Init failed:', error);
+    return null;
+  }
+
+  // Reset is_current on all OTHER sessions for this user
+  await supabase
+    .from('user_sessions')
+    .update({ is_current: false })
+    .eq('user_id', userId)
+    .neq('caba_session_id', sessionId);
+
+  // Log to login history
+  await logLoginEvent(userId, {
+    ...device,
+    ...location,
+    action: 'login',
+    loginMethod,
+  });
+
+  return data;
+},
+
+/**
+ * Heartbeat — update last_active timestamp
+ */
+async sendHeartbeat(userId) {
+  const sessionId = getPersistentSessionId();
+
+  const { error } = await supabase
+    .from('user_sessions')
+    .update({
+      is_online: true,
+      last_active: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .eq('caba_session_id', sessionId);
+
+  if (error) {
+    console.warn('[Session] Heartbeat failed:', error.message);
+  }
+},
+
+/**
+ * Mark session offline
+ */
+async markOffline(userId) {
+  const sessionId = getPersistentSessionId();
+
+  await supabase
+    .from('user_sessions')
+    .update({ is_online: false })
+    .eq('user_id', userId)
+    .eq('caba_session_id', sessionId);
+},
+
+/**
+ * Start heartbeat loop — returns cleanup function
+ */
+startHeartbeat(userId) {
+  // Initial heartbeat
+  this.sendHeartbeat(userId);
+
+  // Periodic heartbeat
+  const intervalId = setInterval(() => {
+    if (navigator.onLine && !document.hidden) {
+      this.sendHeartbeat(userId);
+    }
+  }, HEARTBEAT_INTERVAL);
+
+  // Visibility change handler
+  const handleVisibility = () => {
+    if (document.hidden) {
+      this.markOffline(userId);
+    } else {
+      this.sendHeartbeat(userId);
+    }
+  };
+  document.addEventListener('visibilitychange', handleVisibility);
+
+  // Cleanup function
+  return () => {
+    clearInterval(intervalId);
+    document.removeEventListener('visibilitychange', handleVisibility);
+    this.markOffline(userId);
+  };
+},
+
+/**
+ * Fetch all active sessions for user
+ */
+async getSessions() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('user_sessions')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('last_active', { ascending: false });
+
+  if (error) {
+    console.error('[Session] Fetch failed:', error);
+    return [];
+  }
+
+  return data || [];
+},
+
+/**
+ * Revoke a specific session (remote logout)
+ */
+async revokeSession(sessionId) {
+  const { data, error } = await supabase
+    .from('user_sessions')
+    .delete()
+    .eq('id', sessionId)
+    .select('user_id')
+    .single();
+
+  if (error) {
+    console.error('[Session] Revoke failed:', error);
+    return false;
+  }
+
+  if (data) {
+    await logLoginEvent(data.user_id, { action: 'revoked' });
+  }
+
+  return true;
+},
+
+/**
+ * Logout all OTHER sessions (keep current)
+ */
+async revokeAllOtherSessions(userId) {
+  const currentSessionId = getPersistentSessionId();
+
+  const { error } = await supabase
+    .from('user_sessions')
+    .delete()
+    .eq('user_id', userId)
+    .neq('caba_session_id', currentSessionId);
+
+  if (error) {
+    console.error('[Session] Revoke all failed:', error);
+    return false;
+  }
+
+  await logLoginEvent(userId, { action: 'revoked_all_others' });
+  return true;
+},
+
+/**
+ * Subscribe to session deletions (for remote logout detection)
+ */
+subscribeToSessionRevocation(userId, onRevoked) {
+  const currentSessionId = getPersistentSessionId();
+
+  const channel = supabase
+    .channel(`session-revoke-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'user_sessions',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        if (payload.old?.caba_session_id === currentSessionId) {
+          console.log('[Session] This session was revoked remotely!');
+          onRevoked();
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+},
+
+/**
+ * Fetch login history
+ */
+async fetchLoginHistory(userId, limit = 20) {
+  const { data, error } = await supabase
+    .from('login_history')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('[Session] History fetch failed:', error);
+    return [];
+  }
+
+  return data || [];
+}
+};

@@ -1138,25 +1138,31 @@ body {
    18. LEGAL PAGES
    ============================================= */
 .legal-page-wrapper {
-  height: var(--app-height);
+  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: var(--bg-color);
-  padding: 1rem;
+  background: var(--bg-gradient);
+  padding: 2rem 1rem;
   box-sizing: border-box;
 }
 
+.legal-page-wrapper.is-sidebar-view {
+  padding: 0;
+  background: transparent;
+}
+
 .legal-page-container {
-  padding: 2rem;
+  padding: 3rem;
   font-family: var(--font-sans);
-  line-height: 1.7;
-  max-width: 800px;
-  margin: 1rem auto;
+  line-height: var(--line-height-relaxed, 1.8);
+  max-width: 900px;
+  margin: 0 auto;
   background-color: var(--surface-color);
-  border-radius: 16px;
-  box-shadow: var(--shadow-sm);
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--border-color);
-  min-height: calc(var(--app-height) - 2rem);
+  position: relative;
+  overflow: hidden;
 }
 
 .legal-page-container.is-sidebar {
@@ -1164,28 +1170,38 @@ body {
   border-radius: 0;
   border: none;
   max-width: 100%;
-  padding: 1rem;
+  padding: 1.5rem;
   min-height: 100%;
   background-color: transparent;
   box-shadow: none;
 }
 
-.is-sidebar .legal-page-header {
-  margin-bottom: 1rem;
-}
-
-.is-sidebar .legal-page-container h1 {
-  font-size: 1.5rem;
-}
-
-.is-sidebar .legal-page-container h2 {
-  font-size: 1.2rem;
-}
-
 .legal-page-header {
   display: flex;
-  align-items: center;
-  margin-bottom: 1.5rem;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.legal-header-content {
+  flex: 1;
+}
+
+.legal-header-content h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.legal-header-content .last-updated {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0;
 }
 
 .legal-back-btn {
@@ -1216,19 +1232,12 @@ body {
   font-size: 1.2rem;
 }
 
-.legal-page-container h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
 .legal-page-container h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-top: 1.5rem;
-  margin-bottom: 0.8rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--brand-primary);
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
 }
 
 .legal-page-container p,

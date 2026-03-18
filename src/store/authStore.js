@@ -301,7 +301,7 @@ const useAuthStore = create((set, get) => ({
           .then(() => console.log("🟢 Online status updated"))
           .catch((err) => console.warn("⚠️ Online update failed:", err));
       }
-
+      
       set({ dbUser: dbToFrontend(dbUser) });
     } catch (error) {
       console.error("❌ handleUserSession crashed:", error);
