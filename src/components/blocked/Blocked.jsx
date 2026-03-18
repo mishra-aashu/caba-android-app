@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useAuthStore from '../../store/authStore';
 import { ArrowLeft } from 'lucide-react';

@@ -17,6 +17,7 @@ import { DialogProvider } from './contexts/DialogProvider';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
 import { supabase } from './config/supabase';
+import { dbToFrontend } from './utils/dbFieldMapping';
 import useAuthStore from './store/authStore';
 import useIsDesktop from './hooks/useIsDesktop';
 import useOnlineStatus from './hooks/useOnlineStatus';
@@ -104,7 +105,7 @@ const ProtectedLayout = ({ children }) => {
         .select()
         .single();
       if (error) throw error;
-      useAuthStore.setState({ dbUser: updatedUser });
+      useAuthStore.setState({ dbUser: dbToFrontend(updatedUser) });
       setShowPhoneCollect(false);
     } catch (error) {
       console.error('Error updating user:', error);
