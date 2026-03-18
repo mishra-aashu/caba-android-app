@@ -6,7 +6,7 @@ import '../../styles/loaders.css';
 const PULL_THRESHOLD = 60;
 const MAX_PULL = 120;
 
-const PullToRefresh = ({ onRefresh, children }) => {
+const PullToRefresh = ({ onRefresh, children, isAtTop = true }) => {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
@@ -18,7 +18,8 @@ const PullToRefresh = ({ onRefresh, children }) => {
     if (isRefreshing || !scrollContainerRef.current) return;
     
     // Only allow pull-to-refresh if we are at the top of the scroll container
-    if (scrollContainerRef.current.scrollTop > 0) return;
+    // and the inner content also reports being at the top
+    if (scrollContainerRef.current.scrollTop > 0 || !isAtTop) return;
 
     touchStart.current = e.touches[0].clientY;
     setIsPulling(true);
@@ -35,12 +36,14 @@ const PullToRefresh = ({ onRefresh, children }) => {
       const pull = Math.min(distance * 0.4, MAX_PULL);
       setPullDistance(pull);
       
-      // Prevent browser default pull-to-refresh if we're handling it
-      if (distance > 10 && e.cancelable) {
+      // Prevent browser default pull-to-refresh and stopping the list scroll 
+      // ONLY if we are actually pulling from the top
+      if (distance > 5 && e.cancelable) {
         e.preventDefault();
       }
     } else {
       setPullDistance(0);
+      setIsPulling(false); // Stop pulling if we start scrolling up
     }
   };
 

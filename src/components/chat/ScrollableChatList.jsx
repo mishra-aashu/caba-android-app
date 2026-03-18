@@ -18,7 +18,8 @@ const ScrollableChatList = ({
     hasMoreChats,
     loadMoreChats,
     renderChatItem,
-    setShowCreateGroupModal
+    setShowCreateGroupModal,
+    onAtTopChange
 }) => {
     // 1. Separate logic for the list header (Groups + Messages Label)
     const ListHeader = () => (
@@ -95,6 +96,7 @@ const ScrollableChatList = ({
                 overscan={15}
                 increaseViewportBy={300}
                 endReached={loadMoreChats}
+                atTopStateChange={onAtTopChange}
             />
 
             {/* Empty States */}

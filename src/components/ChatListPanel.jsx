@@ -93,6 +93,7 @@ const ChatListPanel = ({
   } = useChatDeletion(user?.id);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(true);
 
   const handleManualRefresh = async () => {
     if (isRefreshing) return;
@@ -442,7 +443,7 @@ const ChatListPanel = ({
       </AnimatePresence>
 
       <motion.div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <PullToRefresh onRefresh={handleManualRefresh}>
+        <PullToRefresh onRefresh={handleManualRefresh} isAtTop={isAtTop}>
           <ScrollableChatList
             isDesktop={isDesktop}
             groupChats={groupChats}
@@ -459,6 +460,7 @@ const ChatListPanel = ({
             }}
             renderChatItem={renderChatItem}
             setShowCreateGroupModal={setShowCreateGroupModal}
+            onAtTopChange={setIsAtTop}
           />
         </PullToRefresh>
       </motion.div>
