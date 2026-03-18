@@ -18,8 +18,8 @@ const config: CapacitorConfig = {
     extConfig: {},
     GoogleAuth: {
       scopes: ['profile', 'email'],
-      clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
-      serverClientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+      clientId: process.env.VITE_GOOGLE_CLIENT_ID || '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+      serverClientId: process.env.VITE_GOOGLE_CLIENT_ID || '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
       forceCodeForRefreshToken: true,
     },
     // ── Keyboard Plugin ────────────────────────────────────────────────────────

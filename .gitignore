@@ -16,6 +16,7 @@ dist-ssr
 
 # Android / Mobile
 android/app/google-services.json
+google-client-release.json
 android/local.properties
 *.jks
 *.keystore

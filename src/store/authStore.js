@@ -335,7 +335,7 @@ const useAuthStore = create((set, get) => ({
         if (!isGoogleAuthInitialized) {
           try {
             await GoogleAuth.initialize({
-              clientId: '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+              clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
               scopes: ['profile', 'email'],
               grantOfflineAccess: true,
             });
