@@ -13,13 +13,15 @@ import { safeDbConversion } from '../utils/dbFieldMapping';
 import {
   ArrowLeft, MessageSquare, Users, Settings, BarChart3, Shield,
   UserCheck, UserX, User, MessageCircle, Newspaper, Flag, Activity,
-  Database, Trash2, Edit, Eye, Ban, CheckCircle, XCircle,
+  Database, Trash2, Edit, Eye, CheckCircle, XCircle,
   Search, Download, RefreshCw, AlertTriangle,
   Calendar, Phone, FileText, Image,
   Video, Music, Archive, Upload, X, Clock, Mail, MapPin
 } from 'lucide-react';
 import NetworkVisualization from './admin/NetworkVisualization';
 import './admin/Admin.css';
+
+const BanEmoji = ({ size = 18 }) => <span style={{ fontSize: `${size}px` }}>🚫</span>;
 
 // ─── Helper: Avatar URL ─────────────────────────────────────────
 const getAvatarUrl = (avatar) => {
@@ -52,7 +54,7 @@ const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
-  { id: 'blocked', label: 'Blocked Users', icon: Ban },
+  { id: 'blocked', label: 'Blocked Users', icon: BanEmoji },
   { id: 'groups', label: 'Groups', icon: Users },
   { id: 'reminders', label: 'Reminders', icon: Calendar },
   { id: 'statuses', label: 'Statuses', icon: Activity },

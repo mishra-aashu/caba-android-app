@@ -15,7 +15,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Phone, Video, User, Bell, BellOff, Search,
     Image as ImageIcon, Palette, Clock, Settings as SettingsIcon,
-    Trash2, Ban, ArrowLeft, Gamepad2, Crown, MousePointer,
+    Trash2, ArrowLeft, Gamepad2, Crown, MousePointer,
     Copy, ArrowRight, X
 } from 'lucide-react';
 import DropdownMenu from '../../common/DropdownMenu';
@@ -213,14 +213,14 @@ const ChatHeader = memo(({
         // Block/Leave
         if (isGroupChat) {
             items.push({
-                icon: <Ban size={16} />,
+                icon: <span style={{ fontSize: '16px' }}>🚫</span>,
                 label: 'Leave Group',
                 onClick: () => isDesktop ? onShowGroupInfo?.() : resolvedNavigate(`/chat/${chatId}/group/info`),
                 danger: true,
             });
         } else {
             items.push({
-                icon: <Ban size={16} />,
+                icon: <span style={{ fontSize: '16px' }}>🚫</span>,
                 label: 'Block User',
                 onClick: onBlockUser,
                 danger: true,

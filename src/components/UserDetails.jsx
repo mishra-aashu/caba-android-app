@@ -14,7 +14,7 @@ import {
     ArrowLeft, Phone, Video, MessageCircle,
     Image, Link as LinkIcon, FileText,
     BellOff, Bell, UserPlus, Share2, Download,
-    Ban, Flag, Trash2, Edit, MoreVertical, X,
+    Flag, Trash2, Edit, MoreVertical, X,
     ChevronRight, Shield, Clock, Users, Info,
     Copy, CheckCircle2
 } from 'lucide-react';
@@ -770,7 +770,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             >
                                 <div className="ud-item-left">
                                     <div className="ud-item-icon danger">
-                                        <Ban size={18} />
+                                        <span style={{ fontSize: '18px' }}>🚫</span>
                                     </div>
                                     <span className="ud-item-label">
                                         {isBlocked ? 'Unblock Contact' : 'Block Contact'}

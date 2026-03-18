@@ -111,10 +111,12 @@
 .groups-loading,
 .groups-empty {
   display: flex;
+  flex: 1; /* Ensure it takes up space in the list */
+  height: 100%; /* Fill the container */
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
+  justify-content: flex-start;
+  padding: 15% 20px 40px 20px;
   text-align: center;
   color: var(--text-secondary);
 }

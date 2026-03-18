@@ -252,6 +252,15 @@
   margin: 0;
 }
 
+.no-messages-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 15% 20px 40px 20px;
+  text-align: center;
+  flex: 1;
+}
 
 /* ─────────────────────────────────────────────
    LOAD MORE INDICATOR

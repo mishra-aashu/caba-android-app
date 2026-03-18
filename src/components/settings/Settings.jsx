@@ -18,7 +18,6 @@ import {
     User,
     Lock,
     Shield,
-    Ban,
     Moon,
     Sun,
     Bell,
@@ -510,7 +509,7 @@ const Settings = ({ isSidebar = false }) => {
                     />
 
                     <SettingItem
-                        icon={Ban}
+                        icon={() => <span style={{ fontSize: '18px' }}>🚫</span>}
                         label="Blocked Users"
                         onClick={() => navigate('/blocked')}
                     />

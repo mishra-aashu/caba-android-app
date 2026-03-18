@@ -4,7 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import useAuthStore from '../../store/authStore';
 import {
   X, ArrowLeft, Plus, Settings, Clock, Check, CheckCircle,
-  Timer, Ban, Bell, Pill, Users, CalendarCheck, Cake,
+  Timer, Bell, Pill, Users, CalendarCheck, Cake,
   ClipboardList, List, Send, Inbox, Repeat, MapPin, BellOff,
   AlertCircle, Search, RefreshCw, Trash2, Edit, MoreVertical,
   ChevronDown, ChevronUp, Filter, Calendar, Eye, XCircle
@@ -599,7 +599,7 @@ const Reminders = () => {
       rejected: <XCircle size={16} />,
       completed: <CheckCircle size={16} />,
       snoozed: <Timer size={16} />,
-      cancelled: <Ban size={16} />,
+      cancelled: <span style={{ fontSize: '16px' }}>🚫</span>,
       expired: <AlertCircle size={16} />
     };
     return icons[status] || <Clock size={16} />;
