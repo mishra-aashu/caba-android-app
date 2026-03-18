@@ -170,7 +170,9 @@ const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onColle
             <button className="continue-btn" type="submit" disabled={loading}>
               {loading ? 'Checking...' : 'Continue'}
             </button>
-            <p className="back-to-login-link" onClick={onBackToLogin}>Back to Login</p>
+            {mode !== 'collect' && (
+              <p className="back-to-login-link" onClick={onBackToLogin}>Back to Login</p>
+            )}
           </form>
         ) : (
           <form onSubmit={handleNameSubmit}>

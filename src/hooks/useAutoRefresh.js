@@ -45,6 +45,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { onSWNeedRefresh, activateSWUpdate } from '../pwa';
+import { supabase } from '../config/supabase';
+
 
 // ── Configuration ──
 const VERSION_CHECK_INTERVAL = 5 * 60 * 1000;  // 5 minutes between checks

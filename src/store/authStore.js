@@ -66,9 +66,9 @@ const useAuthStore = create((set, get) => ({
           user: session.user,
           session: session,
           isAuthenticated: true,
-          loading: false
         });
         await get().handleUserSession(session.user);
+        set({ loading: false });
       } else {
         set({ loading: false });
       }

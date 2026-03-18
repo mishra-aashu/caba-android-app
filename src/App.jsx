@@ -9,7 +9,7 @@ import { Capacitor } from '@capacitor/core';
 import { Toaster } from 'react-hot-toast';
 import PhoneAuthModal from './components/auth/PhoneAuthModal';
 import { supabase } from './config/supabase';
-import useAuthStore from './store/authStore';
+import { dbToFrontend } from './utils/dbFieldMapping';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import useIsDesktop from './hooks/useIsDesktop';
 import { SafeAreaDetector } from './utils/safeAreaDetector';
@@ -208,8 +208,7 @@ const ProtectedRoute = ({ children }) => {
             setShowPhoneCollect(false);
         } else {
             setShowPhoneAuth(false);
-            const isOnline = navigator.onLine;
-            setShowPhoneCollect(isOnline && dbUser && (!dbUser.phone || dbUser.phone === ''));
+            setShowPhoneCollect(!!dbUser && (!dbUser.phone || dbUser.phone === ''));
         }
     }, [isAuthenticated, dbUser]);
 
@@ -226,7 +225,7 @@ const ProtectedRoute = ({ children }) => {
                 .select()
                 .single();
             if (error) throw error;
-            useAuthStore.setState({ dbUser: updatedUser });
+            useAuthStore.setState({ dbUser: dbToFrontend(updatedUser) });
             setShowPhoneCollect(false);
         } catch (error) {
             console.error('Error updating user:', error);
