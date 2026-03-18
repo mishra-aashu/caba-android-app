@@ -140,7 +140,7 @@ const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onColle
 
   if (!isOpen) return null;
 
-  const title = mode === 'collect' ? (step === 'phone' ? 'Enter Your Phone Number' : 'Enter Your Name') : (step === 'phone' ? 'Enter Phone Number' : 'Enter Your Name');
+  const title = mode === 'collect' ? 'Complete Your Profile!!!' : (step === 'phone' ? 'Enter Phone Number' : 'Enter Your Name');
 
   return (
     <div className="modal-overlay">
@@ -154,7 +154,7 @@ const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onColle
 
         {step === 'phone' ? (
           <form onSubmit={handlePhoneSubmit}>
-            <div className="input-wrapper">
+            <div className="auth-input-wrapper">
               <p className="phone-auth-subtitle">Allows others to search for you</p>
               <label className="input-label">Phone Number</label>
               <input
@@ -176,7 +176,7 @@ const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onColle
           </form>
         ) : (
           <form onSubmit={handleNameSubmit}>
-            <div className="input-wrapper">
+            <div className="auth-input-wrapper">
               <p className="phone-auth-subtitle">Display Name</p>
               <label className="input-label">Your Name</label>
               <input

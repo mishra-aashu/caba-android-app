@@ -94,6 +94,17 @@ const ProtectedLayout = ({ children }) => {
   const [showPhoneAuth, setShowPhoneAuth] = useState(() => !isAuthenticated);
   const [showPhoneCollect, setShowPhoneCollect] = useState(false);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setShowPhoneAuth(true);
+      setShowPhoneCollect(false);
+    } else {
+      setShowPhoneAuth(false);
+      // Show collect modal if phone is missing or blank
+      setShowPhoneCollect(!!dbUser && (!dbUser.phone || dbUser.phone === ''));
+    }
+  }, [isAuthenticated, dbUser]);
+
   const handleAuthSuccess = () => setShowPhoneAuth(false);
 
   const handleCollectSuccess = async ({ phone, name }) => {
