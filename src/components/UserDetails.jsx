@@ -16,7 +16,7 @@ import {
     BellOff, Bell, UserPlus, Share2, Download,
     Flag, Trash2, Edit, MoreVertical, X,
     ChevronRight, Shield, Clock, Users, Info,
-    Copy, CheckCircle2
+    Copy, CheckCircle2, Ban
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DropdownMenu from './common/DropdownMenu';
