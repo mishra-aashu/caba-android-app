@@ -69,7 +69,6 @@ export const sessionService = {
  * @returns {Object} Session record
  */
 async initSession(userId, loginMethod = 'google') {
-  console.log('[Session] 🚀 initSession called for:', userId);
   const sessionId = getPersistentSessionId();
   const device = getDeviceInfo();
   const location = await getLocationFromIP();

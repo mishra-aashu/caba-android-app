@@ -289,17 +289,24 @@ const useAuthStore = create((set, get) => ({
           dbUser = newUser;
         }
       } else {
-        // Step 3: Profile mil gaya → online status update karo
         dbUser = existingUser;
-        supabase
-          .from('users')
-          .update({
-            is_online: true,
-            last_seen: new Date().toISOString()
-          })
-          .eq('id', authUser.id)
-          .then(() => console.log("🟢 Online status updated"))
-          .catch((err) => console.warn("⚠️ Online update failed:", err));
+        
+        // Only update if currently offline or last_seen is older than 2 mins
+        const lastSeen = existingUser.last_seen ? new Date(existingUser.last_seen).getTime() : 0;
+        const now = Date.now();
+        const shouldUpdate = !existingUser.is_online || (now - lastSeen > 120000);
+
+        if (shouldUpdate) {
+          supabase
+            .from('users')
+            .update({
+              is_online: true,
+              last_seen: new Date().toISOString()
+            })
+            .eq('id', authUser.id)
+            .then(() => console.log("🟢 Online status updated"))
+            .catch((err) => console.warn("⚠️ Online update failed:", err));
+        }
       }
       
       set({ dbUser: dbToFrontend(dbUser) });

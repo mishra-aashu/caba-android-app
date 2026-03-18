@@ -16,7 +16,8 @@ const CachedImage = ({ src, alt, className, style, onClick, onLoad, onError }) =
 
             const cached = await FileCache.getCachedUrl(src);
             if (isMounted) {
-                setDisplaySrc(cached);
+                // Only update if path actually changed
+                setDisplaySrc(prev => prev === cached ? prev : cached);
             }
         };
 

@@ -4,6 +4,8 @@ import { Capacitor } from '@capacitor/core';
 const CACHE_DIR = Directory.Data;
 const IMAGE_CACHE_FOLDER = 'image_cache';
 
+const pendingDownloads = new Map();
+
 /**
  * FileCache Utility
  * Handles downloading and caching images (avatars, chat media) to the device filesystem.
@@ -66,27 +68,45 @@ export const FileCache = {
         if (!remoteUrl || !Capacitor.isNativePlatform() || !navigator.onLine) return;
         if (!remoteUrl.startsWith('http')) return;
 
-        const fileName = this._urlToFileName(remoteUrl);
-        const filePath = `${IMAGE_CACHE_FOLDER}/${fileName}`;
+        // Deduplicate inflight downloads
+        if (pendingDownloads.has(remoteUrl)) {
+            return pendingDownloads.get(remoteUrl);
+        }
 
-        try {
-            const response = await fetch(remoteUrl);
-            const blob = await response.blob();
+        const downloadPromise = (async () => {
+            const fileName = this._urlToFileName(remoteUrl);
+            const filePath = `${IMAGE_CACHE_FOLDER}/${fileName}`;
 
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = async () => {
-                const base64data = reader.result.split(',')[1];
+            try {
+                const response = await fetch(remoteUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const blob = await response.blob();
+
+                const reader = new FileReader();
+                const dataUrlPromise = new Promise((resolve, reject) => {
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+
+                const result = await dataUrlPromise;
+                const base64data = result.split(',')[1];
+
                 await Filesystem.writeFile({
                     path: filePath,
                     data: base64data,
                     directory: CACHE_DIR
                 });
                 // console.log('[FileCache] Cached:', fileName);
-            };
-        } catch (e) {
-            // console.error('[FileCache] Download failed:', e);
-        }
+            } catch (e) {
+                // console.error('[FileCache] Download failed:', e);
+            } finally {
+                pendingDownloads.delete(remoteUrl);
+            }
+        })();
+
+        pendingDownloads.set(remoteUrl, downloadPromise);
+        return downloadPromise;
     },
 
     /**
