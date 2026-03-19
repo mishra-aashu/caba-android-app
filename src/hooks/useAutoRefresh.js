@@ -50,7 +50,7 @@ import { supabase } from '../config/supabase';
 
 // ── Configuration ──
 const VERSION_CHECK_INTERVAL = 5 * 60 * 1000;  // 5 minutes between checks
-const INITIAL_CHECK_DELAY = 4000;               // 4s after mount (let app settle)
+const INITIAL_CHECK_DELAY = 6500;               // ~6.5s after mount (avoid freshness-window skip)
 const FRESHNESS_WINDOW = 5000;                  // Skip checks within 5s of mount
 
 // ── Storage Keys ──
@@ -138,77 +138,77 @@ export const useAutoRefresh = () => {
     // ── Guards ──
     if (isRefreshing) return;   // Already updating
     if (isDismissed) return;    // User dismissed banner
-    if (!navigator.onLine) return;  // No network
-
-    // Skip if we just mounted (CDN might have lag, avoid false positives)
-    if (Date.now() - mountTimeRef.current < FRESHNESS_WINDOW) return;
-
-    // Can't compare without local build time
-    if (!currentBuildTimeRef.current) {
-      console.warn('[AutoRefresh] Skipping check — no local buildTime to compare against');
-      return;
-    }
-
     try {
-      // Native: fetch from Vercel domain
-      // Web: fetch from same origin (relative URL), supporting subpaths if any
-      const baseUrl = isNativeRef.current
-        ? REMOTE_ORIGIN
-        : (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+      // Important: early-return cases (offline / freshness-window / missing meta) MUST NOT stop polling.
+      const online = navigator.onLine !== false; // Treat "undefined" as "maybe online"
+      const freshnessOk = Date.now() - mountTimeRef.current >= FRESHNESS_WINDOW;
 
-      const response = await fetch(
-        `${baseUrl}/version.json?_t=${Date.now()}`,
-        {
-          cache: 'no-store',
+      if (online && freshnessOk) {
+        // Can't compare without local build time
+        if (!currentBuildTimeRef.current) {
+          console.warn('[AutoRefresh] Skipping check — no local buildTime to compare against');
+          return;
         }
-      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        // Native: fetch from Vercel domain
+        // Web: fetch from same origin (relative URL), supporting subpaths if any
+        const baseUrl = isNativeRef.current
+          ? REMOTE_ORIGIN
+          : (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+
+        const response = await fetch(
+          `${baseUrl}/version.json?_t=${Date.now()}`,
+          {
+            cache: 'no-store',
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const remoteBuildTime = data.buildTime ? String(data.buildTime) : null;
+
+        // ── Validate remote data ──
+        if (!remoteBuildTime) {
+          console.warn('[AutoRefresh] Remote version.json has no buildTime field');
+          return;
+        }
+
+        // ── Compare ──
+        const localBuildTime = String(currentBuildTimeRef.current);
+
+        if (remoteBuildTime === localBuildTime) {
+          // Same version — no update needed (silent, no log spam)
+          return;
+        }
+
+        // ── Session guard: don't show if we just refreshed ──
+        if (sessionStorage.getItem(OTA_SESSION_GUARD)) {
+          return;
+        }
+
+        // ── New version detected! ──
+        const remoteDate = new Date(Number(remoteBuildTime)).toLocaleString();
+        const localDate = new Date(Number(localBuildTime)).toLocaleString();
+
+        console.log(
+          '[AutoRefresh] ✨ New version available!\n' +
+          `  Remote: ${remoteBuildTime} (${remoteDate})\n` +
+          `  Local:  ${localBuildTime} (${localDate})`
+        );
+
+        setNeedsRefresh(true);
       }
-
-      const data = await response.json();
-      const remoteBuildTime = data.buildTime ? String(data.buildTime) : null;
-
-      // ── Validate remote data ──
-      if (!remoteBuildTime) {
-        console.warn('[AutoRefresh] Remote version.json has no buildTime field');
-        return;
-      }
-
-      // ── Compare ──
-      const localBuildTime = String(currentBuildTimeRef.current);
-
-      if (remoteBuildTime === localBuildTime) {
-        // Same version — no update needed (silent, no log spam)
-        return;
-      }
-
-      // ── Session guard: don't show if we just refreshed ──
-      if (sessionStorage.getItem(OTA_SESSION_GUARD)) {
-        return;
-      }
-
-      // ── New version detected! ──
-      const remoteDate = new Date(Number(remoteBuildTime)).toLocaleString();
-      const localDate = new Date(Number(localBuildTime)).toLocaleString();
-
-      console.log(
-        '[AutoRefresh] ✨ New version available!\n' +
-        `  Remote: ${remoteBuildTime} (${remoteDate})\n` +
-        `  Local:  ${localBuildTime} (${localDate})`
-      );
-
-      setNeedsRefresh(true);
-
     } catch (error) {
       // Non-fatal — will retry on next interval
       console.warn('[AutoRefresh] Version check failed:', error.message);
+    } finally {
+      // ── Schedule next check ──
+      if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+      checkTimeoutRef.current = setTimeout(checkForUpdates, VERSION_CHECK_INTERVAL);
     }
-
-    // ── Schedule next check ──
-    if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
-    checkTimeoutRef.current = setTimeout(checkForUpdates, VERSION_CHECK_INTERVAL);
   }, [isRefreshing, isDismissed]);
 
   // ═══════════════════════════════════════════════════════════
@@ -224,7 +224,7 @@ export const useAutoRefresh = () => {
 
     // Re-check when user returns to app/tab
     const handleVisibility = () => {
-      if (!document.hidden && navigator.onLine) {
+      if (!document.hidden && navigator.onLine !== false) {
         // Small delay to avoid check during tab-switch animation
         setTimeout(checkForUpdates, 1000);
       }
