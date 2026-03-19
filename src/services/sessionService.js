@@ -19,22 +19,25 @@ const HEARTBEAT_INTERVAL = 2 * 60 * 1000; // 2 minutes
 
 /**
  * Get approximate location from IP (free, no API key needed)
- * Uses ip-api.com free tier (45 requests/minute)
+ * Uses ipapi.co (CORS-friendly, HTTPS supported)
  */
 const getLocationFromIP = async () => {
   try {
-    const res = await fetch('https://freeipapi.com/api/json', {
-      signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined, // 3 second timeout if supported
+    const res = await fetch('https://ipapi.co/json/', {
+      signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined, // 4 second timeout
     });
     if (!res.ok) return null;
     const data = await res.json();
+    
+    // Mapping for ipapi.co response
     return {
-      ip: data.ipAddress,
-      city: data.cityName || 'Unknown',
-      country: data.countryName || 'Unknown',
-      countryFlag: getCountryFlag(data.countryCode),
+      ip: data.ip,
+      city: data.city || 'Unknown',
+      country: data.country_name || 'Unknown',
+      countryFlag: getCountryFlag(data.country_code),
     };
-  } catch {
+  } catch (err) {
+    console.warn('[Session] IP Location failed:', err.message);
     return null;
   }
 };
