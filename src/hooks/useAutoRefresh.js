@@ -140,10 +140,12 @@ export const useAutoRefresh = () => {
     if (isDismissed) return;    // User dismissed banner
     try {
       // Important: early-return cases (offline / freshness-window / missing meta) MUST NOT stop polling.
-      const online = navigator.onLine !== false; // Treat "undefined" as "maybe online"
       const freshnessOk = Date.now() - mountTimeRef.current >= FRESHNESS_WINDOW;
+      // Android WebView me `navigator.onLine` kabhi-kabhi false aata hai despite internet.
+      // Native (Capacitor) ke liye fetch try karna better hai; errors catch me handle hote hain.
+      const shouldFetch = (isNativeRef.current || navigator.onLine !== false) && freshnessOk;
 
-      if (online && freshnessOk) {
+      if (shouldFetch) {
         // Can't compare without local build time
         if (!currentBuildTimeRef.current) {
           console.warn('[AutoRefresh] Skipping check — no local buildTime to compare against');
@@ -214,7 +216,7 @@ export const useAutoRefresh = () => {
   // ═══════════════════════════════════════════════════════════
   // STEP 3: Start polling + visibility listener
   //
-  // - Initial check after 4 seconds (let app settle)
+  // - Initial check after ~6.5 seconds (let app settle)
   // - Re-check when tab becomes visible (user returning to app)
   // - Regular interval every 5 minutes
   // ═══════════════════════════════════════════════════════════
