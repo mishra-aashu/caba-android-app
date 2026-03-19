@@ -50,20 +50,24 @@ export const initializePushNotifications = async () => {
 
     // --- ANDROID/iOS LOGIC ---
     if (platform !== 'web') {
-      await PushNotifications.requestPermissions();
-      await PushNotifications.register();
+      try {
+        await PushNotifications.requestPermissions();
+        await PushNotifications.register();
 
-      // TOKEN LISTENER
-      PushNotifications.addListener('registration', async (token) => {
-        console.log('🔥🔥 MY ANDROID/iOS TOKEN:', token.value);
+        // TOKEN LISTENER
+        PushNotifications.addListener('registration', async (token) => {
+          console.log('🔥🔥 MY ANDROID/iOS TOKEN:', token.value);
 
-        // Save to Supabase
-        await saveTokenToSupabase(token.value);
-      });
+          // Save to Supabase
+          await saveTokenToSupabase(token.value);
+        });
 
-      PushNotifications.addListener('registrationError', (error) => {
-        console.error('❌ Error on registration: ', error);
-      });
+        PushNotifications.addListener('registrationError', (error) => {
+          console.error('❌ Error on registration: ', error);
+        });
+      } catch (e) {
+        console.warn('[PushNotifications] Plugin not implemented or failed:', e.message);
+      }
     }
 
     // --- WEB LOGIC ---

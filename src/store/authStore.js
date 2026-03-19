@@ -189,11 +189,15 @@ const useAuthStore = create((set, get) => ({
       // Native platform listener
       let appStateListener;
       if (Capacitor.isNativePlatform()) {
-        appStateListener = App.addListener('appStateChange', (state) => {
-          if (state.isActive) {
-            smartRefresh('appStateChange');
-          }
-        });
+        try {
+          appStateListener = App.addListener('appStateChange', (state) => {
+            if (state.isActive) {
+              smartRefresh('appStateChange');
+            }
+          });
+        } catch (e) {
+          console.warn('[Auth] App plugin not implemented or failed:', e.message);
+        }
       }
 
       // ✅ CIRCUIT BREAKER: Listen for terminal connectivity failures
@@ -210,7 +214,7 @@ const useAuthStore = create((set, get) => ({
           handleVisibilityChange
         );
         window.removeEventListener('online', handleOnline);
-        if (appStateListener) {
+        if (appStateListener && typeof appStateListener.remove === 'function') {
           appStateListener.remove();
         }
       };

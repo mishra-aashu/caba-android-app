@@ -13,17 +13,21 @@ export const useResumeRevalidate = () => {
 
     let appStateListener;
     if (Capacitor.isNativePlatform()) {
-      appStateListener = App.addListener('appStateChange', (state) => {
-        console.log('App state changed:', state);
-        if (state.isActive) {
-          console.log('App resumed on native platform');
-          // Let individual hooks handle their own reconnection
-        }
-      });
+      try {
+        appStateListener = App.addListener('appStateChange', (state) => {
+          console.log('App state changed:', state);
+          if (state.isActive) {
+            console.log('App resumed on native platform');
+            // Let individual hooks handle their own reconnection
+          }
+        });
+      } catch (e) {
+        console.warn('[ResumeRevalidate] App plugin not implemented:', e.message);
+      }
     }
 
     return () => {
-      if (appStateListener) {
+      if (appStateListener && typeof appStateListener.remove === 'function') {
         appStateListener.remove();
       }
     };
