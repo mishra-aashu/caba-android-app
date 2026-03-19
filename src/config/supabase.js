@@ -8,17 +8,33 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // Singleton instance to prevent multiple connections
 let instance = null;
 
-// Capacitor storage adapter for Supabase Auth
+// ── Resilient Storage Adapter ──
+// Falls back to localStorage if Preferences plugin fails or is not implemented.
 const CapacitorStorage = {
   getItem: async (key) => {
-    const { value } = await Preferences.get({ key });
-    return value;
+    try {
+      const { value } = await Preferences.get({ key });
+      return value;
+    } catch (e) {
+      console.warn(`[Supabase Storage] Preferences.get failed, falling back to localStorage:`, e.message);
+      return window.localStorage.getItem(key);
+    }
   },
   setItem: async (key, value) => {
-    await Preferences.set({ key, value });
+    try {
+      await Preferences.set({ key, value });
+    } catch (e) {
+      console.warn(`[Supabase Storage] Preferences.set failed, falling back to localStorage:`, e.message);
+      window.localStorage.setItem(key, value);
+    }
   },
   removeItem: async (key) => {
-    await Preferences.remove({ key });
+    try {
+      await Preferences.remove({ key });
+    } catch (e) {
+      console.warn(`[Supabase Storage] Preferences.remove failed, falling back to localStorage:`, e.message);
+      window.localStorage.removeItem(key);
+    }
   },
 };
 

@@ -325,10 +325,7 @@ export const useAutoRefresh = () => {
           }
         }
 
-        // 5. Brief delay for UI to show "Updating..." state
-        await new Promise(resolve => setTimeout(resolve, 600));
-
-        // 6. Redirect!
+        // 5. Redirect!
         // On Vercel: new SW will register and cache everything for offline
         console.log('[AutoRefresh] 🚀 Redirecting to:', targetUrl);
         window.location.replace(targetUrl);
