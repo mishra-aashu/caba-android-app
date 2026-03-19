@@ -16,6 +16,10 @@ const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum
 let isHandlingSession = false; // Prevent duplicate handleUserSession calls
 let isRefreshing = false; // ✅ Prevent concurrent refreshSession calls
 let isGoogleAuthInitialized = false; // ✅ Optimized one-time init
+const isPreferencesAvailable = () =>
+  Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Preferences');
+const isAppPluginAvailable = () =>
+  Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('App');
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -31,7 +35,7 @@ const useAuthStore = create((set, get) => ({
   initializeAuth: async () => {
     try {
       // ── Session Migration Check (for OTA domain switches) ──
-      if (Capacitor.isNativePlatform()) {
+      if (isPreferencesAvailable()) {
         try {
           const { Preferences } = await import('@capacitor/preferences');
           const { value: migratedSessionJson } = await Preferences.get({ key: 'ota-migrated-session' });
@@ -187,10 +191,10 @@ const useAuthStore = create((set, get) => ({
       window.addEventListener('online', handleOnline);
 
       // Native platform listener
-      let appStateListener;
-      if (Capacitor.isNativePlatform()) {
+      let appStateListenerPromise = null;
+      if (isAppPluginAvailable()) {
         try {
-          appStateListener = App.addListener('appStateChange', (state) => {
+          appStateListenerPromise = App.addListener('appStateChange', (state) => {
             if (state.isActive) {
               smartRefresh('appStateChange');
             }
@@ -214,8 +218,17 @@ const useAuthStore = create((set, get) => ({
           handleVisibilityChange
         );
         window.removeEventListener('online', handleOnline);
-        if (appStateListener && typeof appStateListener.remove === 'function') {
-          appStateListener.remove();
+        if (appStateListenerPromise) {
+          Promise.resolve(appStateListenerPromise)
+            .then((listener) => {
+              if (listener && typeof listener.remove === 'function') {
+                return listener.remove();
+              }
+              return null;
+            })
+            .catch((e) => {
+              console.warn('[Auth] App listener cleanup failed:', e?.message || e);
+            });
         }
       };
 

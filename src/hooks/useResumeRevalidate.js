@@ -11,10 +11,10 @@ export const useResumeRevalidate = () => {
     // Auto-reconnect is now handled by individual realtime hooks
     // This prevents conflicts between old and new reconnection logic
 
-    let appStateListener;
-    if (Capacitor.isNativePlatform()) {
+    let appStateListenerPromise = null;
+    if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('App')) {
       try {
-        appStateListener = App.addListener('appStateChange', (state) => {
+        appStateListenerPromise = App.addListener('appStateChange', (state) => {
           console.log('App state changed:', state);
           if (state.isActive) {
             console.log('App resumed on native platform');
@@ -27,8 +27,17 @@ export const useResumeRevalidate = () => {
     }
 
     return () => {
-      if (appStateListener && typeof appStateListener.remove === 'function') {
-        appStateListener.remove();
+      if (appStateListenerPromise) {
+        Promise.resolve(appStateListenerPromise)
+          .then((listener) => {
+            if (listener && typeof listener.remove === 'function') {
+              return listener.remove();
+            }
+            return null;
+          })
+          .catch((e) => {
+            console.warn('[ResumeRevalidate] App listener cleanup failed:', e?.message || e);
+          });
       }
     };
   }, [supabase, ensureConnected]);

@@ -7,11 +7,16 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Singleton instance to prevent multiple connections
 let instance = null;
+const isPreferencesAvailable = () =>
+  Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Preferences');
 
 // ── Resilient Storage Adapter ──
 // Falls back to localStorage if Preferences plugin fails or is not implemented.
 const CapacitorStorage = {
   getItem: async (key) => {
+    if (!isPreferencesAvailable()) {
+      return window.localStorage.getItem(key);
+    }
     try {
       const { value } = await Preferences.get({ key });
       return value;
@@ -21,6 +26,10 @@ const CapacitorStorage = {
     }
   },
   setItem: async (key, value) => {
+    if (!isPreferencesAvailable()) {
+      window.localStorage.setItem(key, value);
+      return;
+    }
     try {
       await Preferences.set({ key, value });
     } catch (e) {
@@ -29,6 +38,10 @@ const CapacitorStorage = {
     }
   },
   removeItem: async (key) => {
+    if (!isPreferencesAvailable()) {
+      window.localStorage.removeItem(key);
+      return;
+    }
     try {
       await Preferences.remove({ key });
     } catch (e) {
@@ -57,7 +70,7 @@ const createSupabaseClient = () => {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: Capacitor.isNativePlatform() ? CapacitorStorage : window.localStorage,
+      storage: isPreferencesAvailable() ? CapacitorStorage : window.localStorage,
     },
     db: {
       schema: 'public'

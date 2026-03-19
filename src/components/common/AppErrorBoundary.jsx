@@ -30,9 +30,15 @@ class AppErrorBoundary extends React.Component {
             reason?.name === 'AbortError' ||
             reason?.message?.toLowerCase().includes('aborted') ||
             (typeof reason === 'string' && reason.toLowerCase().includes('aborted'));
+        const reasonMessage = (reason?.message || reason || '').toString().toLowerCase();
+        const isCapacitorPluginAvailabilityNoise =
+            reasonMessage.includes('plugin is not implemented on android') ||
+            reasonMessage.includes('plugin is not implemented on ios');
+        const isListenerCleanupNoise =
+            reasonMessage.includes('is not a function') && reasonMessage.includes('remove');
 
-        if (isAbortError) {
-            console.warn('AppErrorBoundary: Silently ignoring AbortError rejection');
+        if (isAbortError || isCapacitorPluginAvailabilityNoise || isListenerCleanupNoise) {
+            console.warn('AppErrorBoundary: Ignoring non-fatal promise rejection');
             event.preventDefault(); // Stop browser from logging it as unhandled
             return;
         }
