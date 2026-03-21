@@ -219,7 +219,9 @@ export default defineConfig(({ mode }) => {
                 manualChunks: {
                     'vendor-react': ['react', 'react-dom', 'react-router-dom'],
                     'vendor-supabase': ['@supabase/supabase-js'],
-                    'vendor-ui': ['framer-motion', 'lucide-react', 'react-hot-toast'],
+                    'vendor-motion': ['framer-motion'],
+                    'vendor-icons': ['lucide-react'],
+                    'vendor-ui-extras': ['react-hot-toast'],
                     'vendor-db': ['dexie', 'dexie-react-hooks'],
                     'vendor-query': [
                       '@tanstack/react-query',

@@ -108,10 +108,6 @@ const AppContent = () => {
         return null;
     }
 
-    if (isAuthenticated && !splashFinished && isDesktop) {
-        return <Intro onComplete={() => setSplashFinished(true)} />;
-    }
-
     // Native App: Direct redirect to login for unauthenticated users
     // Using Capacitor.isNativePlatform() directly here because it's safe on Vercel origin 
     // and correctly identifies the platform even after redirect.

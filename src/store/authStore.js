@@ -13,6 +13,8 @@ const DIRECT_SUPABASE_URL = import.meta.env.VITE_SUPABASE_DIRECT_URL;
 // ✅ Track refresh timing OUTSIDE store to prevent loops
 let lastRefreshTime = 0;
 const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum
+const MIN_DB_UPDATE_INTERVAL = 5 * 60 * 1000; // ✅ 5 minutes between online pings
+let lastDbUpdateTime = 0; // ✅ Track last user update
 let isHandlingSession = false; // Prevent duplicate handleUserSession calls
 let isRefreshing = false; // ✅ Prevent concurrent refreshSession calls
 let isGoogleAuthInitialized = false; // ✅ Optimized one-time init
@@ -341,14 +343,15 @@ const useAuthStore = create((set, get) => ({
           dbUser = newUser;
         }
       } else {
-        dbUser = existingUser;
-        
-        // Only update if currently offline or last_seen is older than 2 mins
-        const lastSeen = existingUser.last_seen ? new Date(existingUser.last_seen).getTime() : 0;
+        dbUser = existingUser; // ✅ RESTORED MISSING ASSIGNMENT
+
+        // ✅ OPTIMIZED: Only update if last update was > 5 minutes ago
         const now = Date.now();
-        const shouldUpdate = !existingUser.is_online || (now - lastSeen > 120000);
+        const shouldUpdate = !existingUser.is_online || (now - lastDbUpdateTime > MIN_DB_UPDATE_INTERVAL);
 
         if (shouldUpdate) {
+          lastDbUpdateTime = now;
+          // 🔥 NON-BLOCKING: Fire and forget to speed up boot
           supabase
             .from('users')
             .update({

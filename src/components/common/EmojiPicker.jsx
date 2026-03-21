@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { Smile, Search, X } from 'lucide-react';
+import { Smile, Search, X, Frown } from 'lucide-react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import KlipyGifPicker from '../chat/GifPicker.jsx';
 import './EmojiPicker.css';
@@ -214,12 +213,7 @@ const EmojiPicker = ({
                     title="Add emoji"
                 >
                     <div className="lottie-trigger-container">
-                        <DotLottieReact
-                            src="https://lottie.host/6ad896a2-8353-4690-971c-4613c7268d06/p9Xq0Y1J9Y.lottie"
-                            loop
-                            autoplay
-                            style={{ width: '28px', height: '28px' }}
-                        />
+                        <Smile size={24} className="emoji-trigger-icon" />
                     </div>
                 </button>
             )}
@@ -304,12 +298,7 @@ const EmojiPicker = ({
                                                 ))}
                                                 {filteredEmojis.length === 0 && (
                                                     <div className="empty-state">
-                                                        <DotLottieReact
-                                                            src="https://lottie.host/98c2ca8b-703c-41c3-8874-9b2f4477b789/E65X3X0W2N.lottie"
-                                                            loop
-                                                            autoplay
-                                                            style={{ width: '120px', height: '120px' }}
-                                                        />
+                                                        <Frown size={48} className="empty-state-icon" />
                                                         <div className="no-recent">No emojis found</div>
                                                     </div>
                                                 )}
@@ -346,12 +335,7 @@ const EmojiItem = memo(({ emoji, style, onSelect }) => {
     
     if (mapLoading) return (
         <div className="emoji-item loading">
-            <DotLottieReact
-                src="https://lottie.host/5db4b486-0683-4876-b634-934c718f4a38/7XWl9a8X9X.lottie"
-                loop
-                autoplay
-                style={{ width: '20px', height: '20px' }}
-            />
+            <div className="mini-spinner"></div>
         </div>
     );
 

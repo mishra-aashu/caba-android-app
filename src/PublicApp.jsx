@@ -26,6 +26,7 @@ import { initializePushNotifications } from './utils/PushNotifications';
 import { requestPersistentStorage } from './db/db';
 import { FileCache } from './utils/FileCache';
 import useOnlineStatus from './hooks/useOnlineStatus';
+import useIsDesktop from './hooks/useIsDesktop';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { DialogProvider } from './contexts/DialogProvider';
 import GlobalDialog from './components/common/GlobalDialog';
@@ -41,6 +42,7 @@ const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
 const About = lazy(() => import('./components/About'));
 const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
+const Intro = lazy(() => import('./components/Intro'));
 
 // AuthenticatedApp is the heavy one — only loaded when user is logged in
 // AuthenticatedApp is the heavy one — only loaded when user is logged in
@@ -52,49 +54,19 @@ const RoomRedirect = () => {
   return <Navigate to={`/chat/${roomId}/arena`} replace />;
 };
 
+import usePlatformInit from './hooks/usePlatformInit';
+
 const PublicApp = () => {
   const { isAuthenticated, loading } = useAuth();
   const { needsRefresh, handleRefresh, handleDismiss, isRefreshing } = useAutoRefresh();
   const location = useLocation();
+  const isDesktop = useIsDesktop();
+  const [splashFinished, setSplashFinished] = useState(false);
+  
   useOnlineStatus();
+  usePlatformInit(); // ✅ Consolidated platform initialization
 
   // Handle deep linking for OAuth callbacks
-  useEffect(() => {
-    const { search } = window.location;
-    if (search.startsWith('?/')) {
-      const path = search.slice(2).replace(/~and~/g, '&');
-      window.history.replaceState(null, '', path);
-    }
-  }, []);
-
-  useEffect(() => {
-    SafeAreaDetector.getInstance();
-    KeyboardHandler.getInstance();
-
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    const platform = isIOS ? 'ios' : (isAndroid ? 'android' : 'web');
-    document.body.classList.add(`platform-${platform}`);
-
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone ||
-      document.referrer.includes('android-app://');
-    document.documentElement.setAttribute('data-standalone', isStandalone ? 'true' : 'false');
-
-    const updateAppHeight = () => {
-      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-    };
-    updateAppHeight();
-    window.addEventListener('resize', updateAppHeight);
-
-    if (isIOS) document.body.style.overscrollBehavior = 'none';
-
-    initializePushNotifications();
-    requestPersistentStorage();
-    FileCache.init();
-
-    return () => window.removeEventListener('resize', updateAppHeight);
-  }, []);
 
   // ═══ NEW: Hide splash screen after app renders ═══
   useEffect(() => {
@@ -114,6 +86,16 @@ const PublicApp = () => {
     };
     hideSplash();
   }, [loading]);
+
+  // 🔥 IMMEDIATE INTRO ON DESKTOP
+  // This plays while auth is initializing in the background.
+  if (!splashFinished && isDesktop) {
+    return (
+      <Suspense fallback={<div className="loading" />}>
+        <Intro onComplete={() => setSplashFinished(true)} />
+      </Suspense>
+    );
+  }
 
   // Show a themed loader while auth state is being determined
   // This prevents the "white flash" when React mounts but loading is still true.

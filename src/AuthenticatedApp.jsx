@@ -166,10 +166,6 @@ const AppContent = () => {
 
   if (loading) return null;
 
-  if (isAuthenticated && !splashFinished && isDesktop) {
-    return <Intro onComplete={() => setSplashFinished(true)} />;
-  }
-
   const isNative = isNativeWithPlugins();
   if (!isAuthenticated && isNative && location.pathname === '/') {
     return <Navigate to="/login" replace />;
@@ -233,35 +229,6 @@ const AuthenticatedApp = () => {
 
   useCapacitorPlugins();
   useNetworkSync();
-
-  useEffect(() => {
-    SafeAreaDetector.getInstance();
-    KeyboardHandler.getInstance();
-
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    const platform = isIOS ? 'ios' : (isAndroid ? 'android' : 'web');
-    document.body.classList.add(`platform-${platform}`);
-
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone ||
-      document.referrer.includes('android-app://');
-    document.documentElement.setAttribute('data-standalone', isStandalone ? 'true' : 'false');
-
-    const updateAppHeight = () => {
-      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-    };
-    updateAppHeight();
-    window.addEventListener('resize', updateAppHeight);
-
-    if (isIOS) document.body.style.overscrollBehavior = 'none';
-
-    initializePushNotifications();
-    requestPersistentStorage();
-    FileCache.init();
-
-    return () => window.removeEventListener('resize', updateAppHeight);
-  }, []);
 
   // ✅ Professional Session Management Hook
   useSessionManager(dbUser?.id);

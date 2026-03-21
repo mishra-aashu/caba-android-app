@@ -139,11 +139,17 @@
       justify-content: center;
       width: 28px;
       height: 28px;
-      transition: transform 0.2s ease;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
-  .emoji-picker-btn:hover .lottie-trigger-container {
-      transform: scale(1.1);
+  .emoji-trigger-icon {
+      color: var(--text-secondary, #8696a0);
+      transition: all 0.2s ease;
+  }
+
+  .emoji-picker-btn:hover .emoji-trigger-icon {
+      transform: scale(1.1) rotate(5deg);
+      color: var(--brand-primary, #00a884);
   }
 
   .header-actions {
@@ -337,6 +343,15 @@
       align-items: center;
       justify-content: center;
       opacity: 0.6;
+  }
+
+  .mini-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--brand-primary, #00a884);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
   }
 
 
@@ -633,6 +648,11 @@
       color: #8696a0;
       font-size: 14px;
       padding: 0;
+  }
+
+  .empty-state-icon {
+      color: rgba(255, 255, 255, 0.1);
+      margin-bottom: 8px;
   }
 
   @keyframes spin {
