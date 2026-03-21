@@ -20,7 +20,8 @@ self.addEventListener('activate', (event) => {
     const url = new URL(event.request.url);
     
     // Only intercept local requests on the app origin
-    if (url.origin === self.location.origin) {
+    // Skip if it's the service worker script itself to avoid registration/update loops
+    if (url.origin === self.location.origin && !url.pathname.endsWith('sw-proxy.js')) {
       event.respondWith(
         caches.open(CACHE_NAME).then(async (cache) => {
           try {
