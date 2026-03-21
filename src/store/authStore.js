@@ -387,7 +387,7 @@ const useAuthStore = create((set, get) => ({
         // Note: Using native plugins on Vercel origin can be unstable if the bridge is failing.
         // We use safePluginCall for everything.
         
-        return await safePluginCall(async () => {
+        const nativeResult = await safePluginCall(async () => {
           if (!isGoogleAuthInitialized) {
             try {
               await GoogleAuth.initialize({
@@ -417,10 +417,19 @@ const useAuthStore = create((set, get) => ({
           if (error) throw error;
           console.log('[Auth] Native Google login successful');
           return { success: true };
-        }, { success: false, error: 'Native bridge unavailable - please try again or use web' });
+        }, { success: false, isBridgeError: true });
 
-      } else {
-        const redirectUrl = getRedirectUrl();
+        // If native attempt failed specifically due to bridge issues, 
+        // fall through to the Web flow below.
+        if (nativeResult && !nativeResult.success && nativeResult.isBridgeError) {
+          console.log('[Auth] Bridge unavailable, falling back to Web Flow...');
+        } else {
+          return nativeResult;
+        }
+      }
+      
+      // ── WEB LOGIN (Fallback or default for web) ──
+      const redirectUrl = getRedirectUrl();
         console.log('[Auth] Using Web OAuth flow with direct bypass redirect...');
 
         // Create a temporary client pointing DIRECTLY to Supabase to avoid proxy CSP blocks
@@ -439,7 +448,6 @@ const useAuthStore = create((set, get) => ({
         });
         if (error) throw error;
         return { success: true };
-      }
     } catch (error) {
       console.error("Google Sign In Error:", error);
 

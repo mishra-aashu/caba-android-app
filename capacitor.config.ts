@@ -11,7 +11,9 @@ const config: CapacitorConfig = {
     cleartext: false,
     allowNavigation: [
       'caba-android-app.vercel.app',
-      '*.supabase.co'
+      '*.supabase.co',
+      'accounts.google.com',
+      '*.google.com'
     ]
   },
   plugins: {
