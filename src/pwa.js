@@ -132,7 +132,9 @@ if (OTA_BUILD) {
    * Non-fatal — app still works, just without offline support.
    */
   onRegisterError(error) {
-    console.error('[PWA] ❌ Registration failed:', error);
+    // Non-fatal — happens in some dev environments or when SW is blocked by WebView.
+    // We log it as a info/warn to keep the console clean for the user.
+    console.info('[PWA] Service Worker registration skipped or failed. This is normal in dev-mode.', error.message);
   },
 });
 }
