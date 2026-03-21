@@ -96,6 +96,25 @@ const PublicApp = () => {
     return () => window.removeEventListener('resize', updateAppHeight);
   }, []);
 
+  // ═══ NEW: Hide splash screen after app renders ═══
+  useEffect(() => {
+    if (loading) return;
+    
+    const hideSplash = async () => {
+      if (!isNativeWithPlugins()) return;
+      try {
+        const { SplashScreen } = await import('@capacitor/splash-screen');
+        // Small delay to ensure first paint is complete
+        await new Promise(r => setTimeout(r, 400));
+        await SplashScreen.hide({ fadeOutDuration: 400 });
+        console.log('[Splash] Hidden after PublicApp render');
+      } catch (e) {
+        console.warn('[Splash] Hide failed:', e.message);
+      }
+    };
+    hideSplash();
+  }, [loading]);
+
   // Show nothing while auth state is being determined
   if (loading) return null;
 

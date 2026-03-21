@@ -36,7 +36,6 @@ export const useAutoRefresh = () => {
   const mountTimeRef = useRef(Date.now());
   const swUpdateReadyRef = useRef(false);
 
-  // Detect if we're on local Capacitor bundle
   const isLocalNativeRef = useRef(isNativeWithPlugins());
 
   // ─── Initialize ───
@@ -50,7 +49,6 @@ export const useAutoRefresh = () => {
       console.log('[AutoRefresh] Local build:', currentBuildTimeRef.current);
     }
 
-    // Listen for SW update events (only fires on Vercel domain)
     onSWNeedRefresh(() => {
       swUpdateReadyRef.current = true;
       if (sessionStorage.getItem(OTA_SESSION_GUARD)) {
@@ -73,8 +71,6 @@ export const useAutoRefresh = () => {
     if (!currentBuildTimeRef.current) return;
 
     try {
-      // On local native: fetch from Vercel
-      // On Vercel domain: fetch from same origin
       const baseUrl = isLocalNativeRef.current ? REMOTE_ORIGIN : '';
 
       const response = await fetch(
@@ -144,22 +140,22 @@ export const useAutoRefresh = () => {
           sessionHash = `#access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
         }
 
-        // 2. Capture current path to stay on same page
+        // 2. Build URLs
         const currentPath = window.location.pathname + window.location.search;
         const persistentTargetUrl = REMOTE_ORIGIN + currentPath;
         const immediateTargetUrl = persistentTargetUrl + sessionHash;
 
-        // Save CLEAN URL in localStorage (read by early redirect script in index.html)
-        // This ensures subsequent cold starts are fast but don't carry old tokens
+        // 3. Save CLEAN URL (no tokens) for future cold starts
         localStorage.setItem(OTA_TARGET_KEY, persistentTargetUrl);
 
-        // Backup in Capacitor Preferences (only if available)
+        // 4. Backup in Capacitor Preferences (only if plugins work)
+        // ═══ BUG FIX: was "targetUrl" (undefined), now "persistentTargetUrl" ═══
         await safePluginCall(async () => {
           const { Preferences } = await import('@capacitor/preferences');
-          await Preferences.set({ key: OTA_TARGET_KEY, value: targetUrl });
+          await Preferences.set({ key: OTA_TARGET_KEY, value: persistentTargetUrl });
         });
 
-        // Clear any existing SW + caches on localhost
+        // 5. Clear local SW + caches
         if ('serviceWorker' in navigator) {
           try {
             const regs = await navigator.serviceWorker.getRegistrations();
@@ -173,10 +169,10 @@ export const useAutoRefresh = () => {
           } catch (e) {}
         }
 
-        // Brief delay for UI feedback
+        // 6. Brief delay for UI feedback
         await new Promise(r => setTimeout(r, 600));
 
-        // REDIRECT — Vercel serves new index.html with new hashed files
+        // 7. REDIRECT with session tokens (one-time)
         window.location.replace(immediateTargetUrl);
 
       } else {
@@ -186,11 +182,8 @@ export const useAutoRefresh = () => {
         console.log('[AutoRefresh] Web update...');
 
         if (swUpdateReadyRef.current) {
-          // SW has new version waiting → activate it
           activateSWUpdate();
-          // Page reloads automatically after SW activation
         } else {
-          // Fallback: clear caches and hard reload
           if ('serviceWorker' in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
             await Promise.all(regs.map(r => r.unregister()));
