@@ -14,6 +14,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { supabase } from '../config/supabase';
 import { onSWNeedRefresh, activateSWUpdate } from '../pwa';
 import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 
@@ -134,12 +135,23 @@ export const useAutoRefresh = () => {
         // ══════════════════════════════════════
         // NATIVE LOCAL → Redirect to Vercel
         // ══════════════════════════════════════
-        console.log('[AutoRefresh] Redirecting to Vercel...');
+        console.log('[AutoRefresh] Redirecting to Vercel with session migration...');
 
-        const targetUrl = REMOTE_ORIGIN + '/';
+        // 1. Capture current session for migration
+        const { data: { session } } = await supabase.auth.getSession();
+        let sessionHash = '';
+        if (session) {
+          sessionHash = `#access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
+        }
 
-        // Save in localStorage (read by early redirect script)
-        localStorage.setItem(OTA_TARGET_KEY, targetUrl);
+        // 2. Capture current path to stay on same page
+        const currentPath = window.location.pathname + window.location.search;
+        const persistentTargetUrl = REMOTE_ORIGIN + currentPath;
+        const immediateTargetUrl = persistentTargetUrl + sessionHash;
+
+        // Save CLEAN URL in localStorage (read by early redirect script in index.html)
+        // This ensures subsequent cold starts are fast but don't carry old tokens
+        localStorage.setItem(OTA_TARGET_KEY, persistentTargetUrl);
 
         // Backup in Capacitor Preferences (only if available)
         await safePluginCall(async () => {
@@ -165,7 +177,7 @@ export const useAutoRefresh = () => {
         await new Promise(r => setTimeout(r, 600));
 
         // REDIRECT — Vercel serves new index.html with new hashed files
-        window.location.replace(targetUrl);
+        window.location.replace(immediateTargetUrl);
 
       } else {
         // ══════════════════════════════════════

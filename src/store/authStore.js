@@ -31,6 +31,28 @@ const useAuthStore = create((set, get) => ({
   initializeAuth: async () => {
     try {
       // ── Session Migration Check (for OTA domain switches) ──
+
+      // 1. Check URL Fragment (Most reliable for cross-origin redirect)
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token=') && hash.includes('refresh_token=')) {
+        try {
+          const params = new URLSearchParams(hash.substring(1));
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+
+          if (access_token && refresh_token) {
+            console.log('[Auth] 🔑 URL session detected, migrating...');
+            await supabase.auth.setSession({ access_token, refresh_token });
+            
+            // Clear hash to prevent leakage in history/refresh
+            window.history.replaceState(null, null, window.location.pathname + window.location.search);
+          }
+        } catch (e) {
+          console.warn('[Auth] URL session migration failed:', e.message);
+        }
+      }
+
+      // 2. Check Capacitor Preferences (Backup/Legacy)
       const migratedSessionJson = await safePluginCall(
         async () => {
           const { Preferences } = await import('@capacitor/preferences');
@@ -43,20 +65,18 @@ const useAuthStore = create((set, get) => ({
       if (migratedSessionJson) {
         try {
           const migratedSession = JSON.parse(migratedSessionJson);
-          // Inject into Supabase and clear from storage
           await supabase.auth.setSession({
             access_token: migratedSession.access_token,
             refresh_token: migratedSession.refresh_token
           });
 
           await safePluginCall(async () => {
-            const { Preferences } = await import('@capacitor/preferences');
-            await Preferences.remove({ key: 'ota-migrated-session' });
+             const { Preferences } = await import('@capacitor/preferences');
+             await Preferences.remove({ key: 'ota-migrated-session' });
           });
-
-          console.log('[Auth] ✅ Successfully picked up migrated OTA session');
+          console.log('[Auth] ✅ Successfully picked up migrated Preferences session');
         } catch (e) {
-          console.warn('[Auth] Session migration processing failed:', e.message);
+          console.warn('[Auth] Preferences session migration failed:', e.message);
         }
       }
 
