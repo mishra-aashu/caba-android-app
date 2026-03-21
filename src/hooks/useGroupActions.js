@@ -30,11 +30,33 @@ import toast from 'react-hot-toast';
 export const useGroupActions = (groupId) => {
   const queryClient = useQueryClient();
 
-  // Query: Get user's groups
+  // Query: Get user's groups with sync to Dexie
   const useUserGroups = (userId) => {
     return useQuery({
       queryKey: ['userGroups', userId],
-      queryFn: () => getUserGroups(userId),
+      queryFn: async () => {
+        const data = await getUserGroups(userId);
+        if (data && data.length > 0) {
+          // Sync to Dexie (flattening for easier local access)
+          try {
+            const formatted = data.map(g => ({
+              id: g.group_id,
+              name: g.group?.name || 'Unnamed Group',
+              avatar_url: g.group?.avatar_url,
+              description: g.group?.description,
+              member_count: g.group?.member_count || 0,
+              role: g.role,
+              created_at: g.group?.created_at,
+              userId: userId // For filtering
+            }));
+            const { db } = await import('../db/db');
+            await db.groups.bulkPut(formatted);
+          } catch (err) {
+            console.error('[Sync] Groups sync failed:', err);
+          }
+        }
+        return data;
+      },
       enabled: !!userId,
       staleTime: 1000 * 60 * 5, // 5 minutes
     });

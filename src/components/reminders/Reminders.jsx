@@ -15,6 +15,8 @@ import { toast } from 'react-hot-toast';
 import CreateReminder from './CreateReminder';
 import ReminderSettings from './ReminderSettings';
 import BottomNavigation from '../common/BottomNavigation';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import '../../styles/reminders.css';
 
 // Field mapping utility for consistent camelCase conversion
@@ -84,6 +86,18 @@ const Reminders = () => {
   const [showMoreOptions, setShowMoreOptions] = useState(null);
   const [sortOrder, setSortOrder] = useState('asc'); // asc or desc
 
+  // 1. Live Query from Dexie for instant offline access
+  const cachedReminders = useLiveQuery(
+    () => {
+      if (!currentUser?.id) return [];
+      return db.reminders
+        .where('sender_id').equals(currentUser.id)
+        .or('receiver_id').equals(currentUser.id)
+        .toArray();
+    },
+    [currentUser?.id]
+  ) || [];
+
   // Refs
   const mountedRef = useRef(true);
   const loadRemindersRef = useRef(null);
@@ -134,6 +148,12 @@ const Reminders = () => {
       if (mountedRef.current) {
         const mappedReminders = (data || []).map(mapReminderFields);
         setReminders(mappedReminders);
+        
+        // Sync to Dexie
+        if (mappedReminders.length > 0) {
+          await db.reminders.bulkPut(mappedReminders);
+        }
+        
         setError(null);
       }
     } catch (err) {
@@ -627,7 +647,8 @@ const Reminders = () => {
   const getFilteredReminders = useMemo(() => {
     const now = new Date();
 
-    let filtered = reminders;
+    // Favor cachedReminders if the state is empty (initial load/offline)
+    let filtered = reminders.length > 0 ? reminders : cachedReminders;
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -711,8 +732,8 @@ const Reminders = () => {
     );
   }
 
-  // Loading state
-  if (loading) {
+  // Loading state (only show if cache is also empty)
+  if (loading && cachedReminders.length === 0) {
     return (
       <div className="reminders-loading">
         <div className="loading-spinner"></div>

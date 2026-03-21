@@ -12,9 +12,11 @@ db.version(1).stores({
     sync_queue: '++id, status, type, created_at'
 });
 
-db.version(3).stores({
+db.version(4).stores({
     sync_queue: '++id, status, type, created_at, retry_count, failed_at',
-    call_history: 'id, started_at, caller_id, receiver_id'
+    call_history: 'id, started_at, caller_id, receiver_id',
+    groups: 'id, name',
+    reminders: 'id, reminder_time, sender_id, receiver_id'
 });
 
 /**

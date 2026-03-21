@@ -11,6 +11,8 @@ import GroupInfoDrawer from './GroupInfoDrawer';
 import CreateGroupModal from './CreateGroupModal';
 import { Users, Search, Plus, MoreVertical, MessageCircle } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import './GroupsPage.css';
 
 const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
@@ -24,18 +26,21 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(null);
 
-  const { data: groupsData = [], isLoading, refetch } = useUserGroups(user?.id);
+  // 1. Live Query from Dexie for instant offline access
+  const cachedGroups = useLiveQuery(
+    () => {
+      if (!user?.id) return [];
+      return db.groups.where('userId').equals(user.id).toArray();
+    },
+    [user?.id]
+  ) || [];
 
-  // Format groups data
-  const groups = (groupsData || []).map(g => ({
-    id: g.group_id,
-    name: g.group?.name || 'Unnamed Group',
-    avatar_url: g.group?.avatar_url,
-    description: g.group?.description,
-    member_count: g.group?.member_count || 0,
-    role: g.role,
-    created_at: g.group?.created_at,
-  }));
+  const { isLoading, refetch } = useUserGroups(user?.id);
+
+  // 2. Use cached groups if available, otherwise transform network data
+  const groups = cachedGroups.length > 0 ? cachedGroups : [];
+  
+  // Note: network sync happens inside useUserGroups hook
 
   // Filter by search
   const filteredGroups = groups.filter(group =>
@@ -106,7 +111,7 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
 
         {/* Groups List */}
         <div className="groups-list">
-          {isLoading ? (
+          {isLoading && groups.length === 0 ? (
             <div className="groups-loading">
               <div className="loading-spinner"></div>
               <p>Loading groups...</p>
