@@ -37,8 +37,17 @@ class AppErrorBoundary extends React.Component {
         const isListenerCleanupNoise =
             reasonMessage.includes('is not a function') && reasonMessage.includes('remove');
 
-        if (isAbortError || isCapacitorPluginAvailabilityNoise || isListenerCleanupNoise) {
-            console.warn('AppErrorBoundary: Ignoring non-fatal promise rejection');
+        const isNetworkError =
+            reasonMessage.includes('failed to fetch') ||
+            reasonMessage.includes('network error') ||
+            reasonMessage.includes('load failed') ||
+            reasonMessage.includes('network request failed') ||
+            reasonMessage.includes('status code: 0') ||
+            reasonMessage.includes('connection refused') ||
+            reasonMessage.includes('dns_probe_finished_no_internet');
+
+        if (isAbortError || isCapacitorPluginAvailabilityNoise || isListenerCleanupNoise || isNetworkError) {
+            console.warn('AppErrorBoundary: Ignoring non-fatal network or noise rejection:', reasonMessage);
             event.preventDefault(); // Stop browser from logging it as unhandled
             return;
         }
