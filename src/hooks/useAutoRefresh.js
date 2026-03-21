@@ -58,6 +58,7 @@ const FRESHNESS_WINDOW = 5000;                  // Skip checks within 5s of moun
 // in index.html reads it synchronously before React boots
 const OTA_TARGET_KEY = 'ota-target-url';
 const OTA_SESSION_GUARD = 'ota-just-refreshed';
+const OTA_AUTO_ACTIVATE_SW_KEY = 'ota-auto-activate-sw';
 
 // ── Remote Origin ──
 // This is where your app is deployed on Vercel
@@ -116,6 +117,25 @@ export const useAutoRefresh = () => {
 
       console.log('[AutoRefresh] SW detected new precached content — update available');
       setNeedsRefresh(true);
+
+      // Native OTA redirect ke baad, waiting SW ko auto-activate kar dete hain,
+      // taki user ko banner par dobara tap na karna pade.
+      try {
+        const shouldAutoActivate = localStorage.getItem(OTA_AUTO_ACTIVATE_SW_KEY) === 'true';
+        if (shouldAutoActivate) {
+          localStorage.removeItem(OTA_AUTO_ACTIVATE_SW_KEY);
+          sessionStorage.setItem(OTA_SESSION_GUARD, 'true');
+
+          const root = document.getElementById('root');
+          if (root) root.style.display = 'none';
+
+          console.log('[AutoRefresh] Auto-activating waiting SW (OTA redirect flow)');
+          activateSWUpdate();
+        }
+      } catch (e) {
+        // Non-fatal — banner-based update hamesha fallback rahega.
+        console.warn('[AutoRefresh] Auto-activate SW flag handling failed:', e?.message || e);
+      }
     });
 
     // ── 1c. Clean up session guard from previous refresh ──
@@ -328,6 +348,15 @@ export const useAutoRefresh = () => {
         // 5. Redirect!
         // On Vercel: new SW will register and cache everything for offline
         console.log('[AutoRefresh] 🚀 Redirecting to:', targetUrl);
+
+        // After redirect, SW update can be in "waiting" state due to skipWaiting: false.
+        // Set a flag so the next SW "need refresh" event auto-activates and reloads smoothly.
+        try {
+          localStorage.setItem(OTA_AUTO_ACTIVATE_SW_KEY, 'true');
+        } catch (e) {
+          // Non-fatal
+          console.warn('[AutoRefresh] Could not set auto-activate flag:', e?.message || e);
+        }
         window.location.replace(targetUrl);
 
       } else {
