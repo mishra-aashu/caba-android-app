@@ -31,68 +31,29 @@
     ═══════════════════════════════════════════════════════════
     OTA Redirect & Rollback Safety (Phase 1 & 2)
     ═══════════════════════════════════════════════════════════
-    1. Check for stored Vercel URL
-    2. Detect "Crash Loop" (3 crashes in 60s)
-    3. Redirect immediately to avoid "Banner Loop"
-  -->
-  <script type="text/javascript">
-    (function () {
-      const url = localStorage.getItem('ota-target-url');
-      if (!url) return;
-      
-      // If we are already on the target origin, do nothing
-      try {
-        if (window.location.origin === new URL(url).origin) return;
-      } catch (e) { return; }
-
-      // --- IDEA 4: Rollback Safety Net ---
-      const now = Date.now();
-      const lastCrash = parseInt(localStorage.getItem('ota-last-crash') || '0');
-      const crashCount = parseInt(localStorage.getItem('ota-crash-count') || '0');
-
-      if (now - lastCrash < 60000) {
-        if (crashCount >= 3) {
-          console.error('[OTA] Crash Loop detected — rolling back to APK');
-          localStorage.removeItem('ota-target-url');
-          localStorage.removeItem('ota-crash-count');
-          return;
-        }
-        localStorage.setItem('ota-crash-count', (crashCount + 1).toString());
-      } else {
-        localStorage.setItem('ota-crash-count', '1');
-      }
-      localStorage.setItem('ota-last-crash', now.toString());
-      // -----------------------------------
-
-      console.log('[OTA] Early redirect to:', url);
-      window.location.replace(url);
-    })();
-  </script>
-
-  <!--
-    ═══════════════════════════════════════════════════════════
-    GitHub Pages SPA redirect (existing — untouched)
-    ═══════════════════════════════════════════════════════════
-  -->
-  <script type="text/javascript">
-    (function (l) {
-      if (l.search[1] === '/') {
-        var decoded = l.search.slice(1).split('&').map(function (s) {
-          return s.replace(/~and~/g, '&')
-        }).join('?');
-        window.history.replaceState(null, null,
-          l.pathname.slice(0, -1) + decoded + l.hash
-        );
-      }
-    }(window.location))
-  </script>
+-->
 </head>
 
 <body>
+  <!-- 
+      🛡️ OTA ROOT PROXY (Mirror Vercel to Localhost)
+      Registers the SW-Proxy early if an OTA build is selected.
+    -->
+  <script type="text/javascript">
+    (function () {
+      const ACTIVE_BUILD = 'ota-active-build';
+      if (localStorage.getItem(ACTIVE_BUILD) && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw-proxy.js', { scope: '/' });
+        console.log('[OTA] 🛡️ Root Proxy active for build:', localStorage.getItem(ACTIVE_BUILD));
+      }
+    })();
+  </script>
+
   <!-- Initial loading state handled by React -->
 
+  <!-- Main App -->
   <div id="root"></div>
-  <script type="module" src="src/main.jsx"></script>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 
 </html>

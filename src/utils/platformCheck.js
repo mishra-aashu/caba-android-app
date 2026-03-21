@@ -25,27 +25,18 @@ import { Capacitor } from '@capacitor/core';
  *   - NOT redirected to external URL
  */
 export const isNativeWithPlugins = () => {
-  if (!Capacitor.isNativePlatform()) return false;
-
-  const host = window.location.hostname;
-  const proto = window.location.protocol;
-
-  // Plugins only work on these origins
-  return (
-    host === 'localhost' ||
-    host === '127.0.0.1' ||
-    host === '' ||
-    proto === 'capacitor:' ||
-    proto === 'file:'
-  );
+  // Now simpler because we ALWAYS stay on localhost origin.
+  // Capacitor bridge is guaranteed to be injected and functional.
+  return Capacitor.isNativePlatform();
 };
 
 /**
  * Are we running from Vercel? (after OTA redirect)
  */
 export const isRunningOnVercel = () => {
-  return window.location.hostname.includes('vercel.app') ||
-         window.location.hostname.includes('caba-android-app');
+  // We no longer redirect to Vercel domain, but we can detect if the 
+  // currently running assets were served from the OTA mirror.
+  return !!localStorage.getItem('ota-active-build');
 };
 
 /**

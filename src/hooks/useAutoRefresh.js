@@ -59,7 +59,7 @@ const FRESHNESS_WINDOW = 5000;                  // Skip checks within 5s of moun
 // in index.html reads it synchronously before React boots
 const OTA_TARGET_KEY = 'ota-target-url';
 const OTA_SESSION_GUARD = 'ota-just-refreshed';
-const OTA_AUTO_ACTIVATE_SW_KEY = 'ota-auto-activate-sw';
+const OTA_ACTIVE_VERSION_KEY = 'ota-active-build';
 
 // ── Remote Origin ──
 const REMOTE_ORIGIN = 'https://caba-android-app.vercel.app';
@@ -306,79 +306,41 @@ export const useAutoRefresh = () => {
     const isAlreadyOnRemote = window.location.origin === new URL(REMOTE_ORIGIN).origin;
 
     try {
-      if (isNative && !isAlreadyOnRemote) {
+      if (isNative) {
         // ═══════════════════════════════════════════
-        // INITIAL REDIRECT: Local → Vercel
+        // ROOT OTA: Mirror Vercel to Localhost
         // ═══════════════════════════════════════════
-        console.log('[AutoRefresh] Native update — initial switch to Vercel...');
+        console.log('[AutoRefresh] Native update — mirroring Vercel to Localhost...');
 
-        const targetUrl = REMOTE_ORIGIN + '/';
-
-        // 1. Save in localStorage (READ by early redirect script in index.html)
-        //    This is the PRIMARY storage — synchronous, fast, reliable
-        localStorage.setItem(OTA_TARGET_KEY, targetUrl);
-        console.log('[AutoRefresh] ✅ Target URL saved in localStorage');
-
-        // 2. Also persist in Capacitor Preferences (backup — survives app data clear)
-        // AND handle session migration (allows staying logged in on Vercel)
-        if (isNativeWithPlugins()) {
-          try {
-            const { Preferences } = await import('@capacitor/preferences');
-            await Preferences.set({ key: OTA_TARGET_KEY, value: targetUrl });
-
-            // --- session migration ---
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              await Preferences.set({
-                key: 'ota-migrated-session',
-                value: JSON.stringify(session)
-              });
-              console.log('[AutoRefresh] ✅ Session migrated to Preferences');
-            }
-            // -------------------------
-
-            console.log('[AutoRefresh] ✅ Target URL backed up in Capacitor Preferences');
-          } catch (e) {
-            // Not critical — localStorage is primary
-            console.warn('[AutoRefresh] Preferences backup/migration failed (non-critical):', e.message);
-          }
-        }
-
-        // 3. Unregister local SW (no longer needed — Vercel has its own)
+        // 1. Tell the SW-Proxy to activate
         if ('serviceWorker' in navigator) {
           try {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registrations.map(r => r.unregister()));
-            console.log('[AutoRefresh] ✅ Local service workers unregistered');
+            const reg = await navigator.serviceWorker.register('/sw-proxy.js', { scope: '/' });
+            await reg.update();
+            
+            // 2. Trigger the "Mirror Now" process
+            if (reg.active) {
+              reg.active.postMessage({ type: 'MIRROR_NOW' });
+            } else if (reg.installing) {
+              reg.installing.postMessage({ type: 'MIRROR_NOW' });
+            }
+            console.log('[AutoRefresh] ✅ SW-Proxy registered and MIRROR_NOW triggered');
+            
+            // Wait slightly for mirroring to start
+            await new Promise(r => setTimeout(r, 800));
           } catch (e) {
-            console.warn('[AutoRefresh] SW unregister failed:', e.message);
+            console.error('[AutoRefresh] SW registration failed:', e);
           }
         }
 
-        // 4. Clear local caches (free up storage)
-        if ('caches' in window) {
-          try {
-            const names = await caches.keys();
-            await Promise.all(names.map(n => caches.delete(n)));
-            console.log('[AutoRefresh] ✅ Local caches cleared');
-          } catch (e) {
-            console.warn('[AutoRefresh] Cache clear failed:', e.message);
-          }
-        }
-
-        // 5. Redirect!
-        // On Vercel: new SW will register and cache everything for offline
-        console.log('[AutoRefresh] 🚀 Redirecting to:', targetUrl);
-
-        // After redirect, SW update can be in "waiting" state due to skipWaiting: false.
-        // Set a flag so the next SW "need refresh" event auto-activates and reloads smoothly.
-        try {
-          localStorage.setItem(OTA_AUTO_ACTIVATE_SW_KEY, 'true');
-        } catch (e) {
-          // Non-fatal
-          console.warn('[AutoRefresh] Could not set auto-activate flag:', e?.message || e);
-        }
-        window.location.replace(targetUrl);
+        // 2. Clear flags from any old "Redirect" attempt
+        localStorage.removeItem(OTA_TARGET_KEY);
+        
+        // 3. Mark the new version and reload
+        localStorage.setItem(OTA_ACTIVE_VERSION_KEY, updateInfo?.buildTime || 'latest');
+        
+        console.log('[AutoRefresh] 🚀 Reloading to apply local mirror...');
+        window.location.reload();
 
       } else {
         // ═══════════════════════════════════════════
@@ -387,16 +349,10 @@ export const useAutoRefresh = () => {
         console.log('[AutoRefresh] Silent update (SW/Reload)...');
 
         if (swUpdateReadyRef.current) {
-          // Best case: SW has new version waiting — activate it
-          // registerSW's controllerchange handler will reload the page
           console.log('[AutoRefresh] Activating waiting service worker...');
           activateSWUpdate();
-          // Page will reload automatically after SW activation
         } else {
-          // Fallback: No waiting SW (maybe detected via version.json only)
-          // Clean everything and hard reload
           console.log('[AutoRefresh] No waiting SW — doing hard reload...');
-
           if ('serviceWorker' in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
             await Promise.all(regs.map(r => r.unregister()));
@@ -405,18 +361,15 @@ export const useAutoRefresh = () => {
             const names = await caches.keys();
             await Promise.all(names.map(n => caches.delete(n)));
           }
-
           await new Promise(resolve => setTimeout(resolve, 300));
           window.location.reload();
         }
       }
-
     } catch (error) {
       console.error('[AutoRefresh] ❌ Update failed:', error);
-      // Ultimate fallback — just reload and hope for the best
       window.location.reload();
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, updateInfo]);
 
   // ═══════════════════════════════════════════════════════════
   // STEP 5: Dismiss banner

@@ -59,10 +59,31 @@ export function activateSWUpdate() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// Register the Service Worker
+// Conditional Registration: OTA Proxy vs Normal SW
 // ══════════════════════════════════════════════════════════════
+const OTA_BUILD = localStorage.getItem('ota-active-build');
 
-_updateSW = registerSW({
+if (OTA_BUILD) {
+  console.log('[PWA] 🛡️ Service Worker Proxy mode for build:', OTA_BUILD);
+  
+  // Register the proxy and setup a simple update listener
+  navigator.serviceWorker.register('/sw-proxy.js', { scope: '/' }).then(reg => {
+    reg.onupdatefound = () => {
+      const newWorker = reg.installing;
+      newWorker.onstatechange = () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          if (_onNeedRefreshCallback) _onNeedRefreshCallback();
+        }
+      };
+    };
+  });
+
+  _updateSW = (reload) => {
+    if (reload) window.location.reload();
+  };
+
+} else {
+  _updateSW = registerSW({
   // Register immediately on import (don't wait for user action)
   immediate: true,
 
@@ -114,3 +135,4 @@ _updateSW = registerSW({
     console.error('[PWA] ❌ Registration failed:', error);
   },
 });
+}
