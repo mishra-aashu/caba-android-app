@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useCall } from '../contexts/CallContext';
-import ARCamera from './media/ARCamera';
+
 import {
   Phone,
   PhoneOff,
@@ -39,16 +39,14 @@ export function ActiveCallScreen() {
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const arCameraRef = useRef(null);
   const [showControls, setShowControls] = useState(true);
-  const [isAREnabled, setIsAREnabled] = useState(false);
 
   // Set up video elements
   useEffect(() => {
-    if (localVideoRef.current && localStream && !isAREnabled) {
+    if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
     }
-  }, [localStream, isAREnabled]);
+  }, [localStream]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
@@ -64,16 +62,7 @@ export function ActiveCallScreen() {
     }
   }, [callState, showControls]);
   
-  useEffect(() => {
-    if (isAREnabled && arCameraRef.current) {
-      const stream = arCameraRef.current.captureStream();
-      if (stream) {
-        replaceLocalStream(stream);
-      }
-    } else {
-      restoreCameraStream();
-    }
-  }, [isAREnabled, replaceLocalStream, restoreCameraStream]);
+
 
   if (!['calling', 'connecting', 'connected'].includes(callState)) {
     return null;
@@ -95,20 +84,12 @@ export function ActiveCallScreen() {
       onClick={() => setShowControls(!showControls)}
     >
       {/* Remote Video (Full Screen) */}
-      {isVideoCall && !isAREnabled && (
+      {isVideoCall && (
         <video
           ref={remoteVideoRef}
           autoPlay
           playsInline
           className="absolute inset-0 w-full h-full object-cover"
-        />
-      )}
-      
-      {isAREnabled && (
-        <ARCamera 
-          ref={arCameraRef}
-          licenseKey="ef8e3a8114ba4aef4de308c38d40deb07ba1554d052ee7fc8b07c184e6a65ea2a470efe9339fcb65" // IMPORTANT: Replace with your DeepAR license key
-          effect="https://cdn.deepar.ai/effects/aviators"
         />
       )}
 
@@ -137,7 +118,7 @@ export function ActiveCallScreen() {
       )}
 
       {/* Local Video (Picture-in-Picture) */}
-      {isVideoCall && localStream && !isAREnabled && (
+      {isVideoCall && localStream && (
         <div className="absolute top-20 right-4 w-32 h-44 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20">
           <video
             ref={localVideoRef}
@@ -201,17 +182,7 @@ export function ActiveCallScreen() {
             </button>
           )}
 
-          {/* AR Effects Button */}
-          {isVideoCall && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsAREnabled(!isAREnabled); }}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                isAREnabled ? 'bg-purple-500' : 'bg-white/20 hover:bg-white/30'
-              }`}
-            >
-              <Wand2 className="w-6 h-6 text-white" />
-            </button>
-          )}
+
 
           {/* Screen Share Button (only for video calls) */}
           {isVideoCall && (
