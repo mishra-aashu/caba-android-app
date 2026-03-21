@@ -42,6 +42,20 @@
   color: #fff;
 }
 
+.connection-banner.offline-mini {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  color: #e9edef;
+  padding: 4px 12px;
+  font-size: 11px;
+  border-radius: 20px;
+  width: auto;
+  margin: 8px auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+}
+
 .connection-banner .spinner {
   width: 14px;
   height: 14px;

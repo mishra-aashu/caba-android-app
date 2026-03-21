@@ -26,7 +26,10 @@ const OfflineIndicator = ({
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
+    let timeoutId;
+
     const handleOnline = () => {
+      clearTimeout(timeoutId);
       setIsOnline(true);
       // Hide banner after 2 seconds when back online
       setTimeout(() => {
@@ -36,13 +39,18 @@ const OfflineIndicator = ({
 
     const handleOffline = () => {
       setIsOnline(false);
-      setShowBanner(true);
+      // Delay showing the banner by 3 seconds
+      timeoutId = setTimeout(() => {
+        setShowBanner(true);
+      }, 3000);
     };
 
     // Set initial state
-    setIsOnline(navigator.onLine);
-    if (!navigator.onLine) {
-      setShowBanner(true);
+    const online = navigator.onLine;
+    setIsOnline(online);
+    if (!online) {
+      // Even if initially offline, wait 3 seconds before showing banner
+      handleOffline();
     }
 
     // Listen for network changes
@@ -52,6 +60,7 @@ const OfflineIndicator = ({
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearTimeout(timeoutId);
     };
   }, []);
 

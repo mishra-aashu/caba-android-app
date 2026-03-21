@@ -137,6 +137,21 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
         const currentChatId = chatIdRef.current;
         _log('Catch-up fetch started', { isReconnect });
 
+        // ── 1. Recovery: If lastMessageRef is null, try to load from Dexie ──
+        if (!lastMessageRef.current) {
+            const latestInDexie = await db.messages
+                .where('chat_id')
+                .equals(currentChatId)
+                .reverse()
+                .sortBy('created_at')
+                .then(msgs => msgs[0]);
+            
+            if (latestInDexie) {
+                lastMessageRef.current = { id: latestInDexie.id, created_at: latestInDexie.created_at };
+                _log('Recovered anchor from Dexie', { anchor: lastMessageRef.current });
+            }
+        }
+
         let query = supabase
             .from('messages')
             .select('*')
@@ -174,10 +189,14 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                     id: latestFromData.id,
                     created_at: latestFromData.created_at,
                 };
+                
+                // Persist to chats_list
+                await db.chats_list.update(currentChatId, { 
+                    last_message_at: latestFromData.created_at 
+                }).catch(() => {});
             }
 
             if (handlersRef.current.onCatchup) {
-                // [FIX #12] Call safeDbConversion only ONCE
                 const converted = safeDbConversion(data);
                 const frontendMsgs = Array.isArray(converted) ? converted : [converted];
 
@@ -193,7 +212,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                 }));
 
                 try {
-                    await db.messages.bulkPut(data); // Insert all raw missed messages
+                    await db.messages.bulkPut(data);
                 } catch (err) {
                     console.error('Failed to catch up messages in Dexie', err);
                 }
@@ -206,6 +225,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
     const retry = useCallback(() => {
         if (!chatIdRef.current || chatIdRef.current === 'new') return;
         const channelName = `chat_messages_${chatIdRef.current}`;
+        setStatus('connecting'); // Immediate feedback on manual retry
         realtimeManager.refreshChannel(channelName);
         fetchMissedMessages(true);
     }, [fetchMissedMessages]);
@@ -237,7 +257,15 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                                     : newStatus === 'SUBSCRIBING' || newStatus === 'RECONNECTING'
                                         ? 'connecting'
                                         : 'disconnected';
-                            setStatus(mapped);
+                            
+                            // [UX] Delay reporting 'connecting' to prevent immediate banner flashes
+                            if (mapped === 'connecting') {
+                                setTimeout(() => {
+                                    if (mountedRef.current) setStatus(mapped);
+                                }, 2000);
+                            } else {
+                                setStatus(mapped);
+                            }
                         }
                     },
                     onReconnect: () => {

@@ -83,8 +83,41 @@ export const fetchMessagesPage = async ({ chatId, beforeTimestamp = null, limit 
  */
 export const loadInitialMessagesIfNeeded = async (chatId) => {
     if (!chatId || chatId === 'new') return;
-    const count = await db.messages.where('chat_id').equals(chatId).count();
-    if (count === 0) {
+    
+    // 1. Check what we have in Dexie
+    const latestMsg = await db.messages
+        .where('chat_id')
+        .equals(chatId)
+        .reverse()
+        .sortBy('created_at')
+        .then(msgs => msgs[0]);
+
+    // 2. If we have nothing, fetch first page
+    if (!latestMsg) {
         await fetchMessagesPage({ chatId });
+        return;
+    }
+
+    // 3. If we have data, try to fetch ONLY new messages since the latest one
+    // only if online. This is a background "catch-up".
+    if (navigator.onLine) {
+        try {
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*, sender:sender_id(id, name, avatar), receiver:receiver_id(id, name, avatar)')
+                .eq('chat_id', chatId)
+                .gt('created_at', latestMsg.created_at)
+                .order('created_at', { ascending: true });
+
+            if (!error && data?.length > 0) {
+                await db.messages.bulkPut(data);
+                // Also update the chat list last_message_at
+                await db.chats_list.update(chatId, { 
+                    last_message_at: data[data.length - 1].created_at 
+                });
+            }
+        } catch (err) {
+            console.warn('[Sync] Background catch-up failed:', err);
+        }
     }
 };

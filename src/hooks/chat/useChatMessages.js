@@ -45,7 +45,9 @@ export function useChatMessages({
         });
     }, [chatId]);
 
-    const isMessagesLoading = !hasInitiallyLoaded;
+    // [UX] Only consider "loading" if we have zero messages and haven't finished the initial sync check.
+    // If we have cached messages, we show them immediately.
+    const isMessagesLoading = !hasInitiallyLoaded && messages.length === 0;
 
     // ─── PAGINATION ───
     const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);

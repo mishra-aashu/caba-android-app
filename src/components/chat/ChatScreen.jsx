@@ -440,15 +440,16 @@ const ChatScreen = () => {
                                 </div>
                             )}
 
-                            {!navigator.onLine && connectionStatus === 'connecting' && (
-                                <div className={`${styles['connection-banner']} ${styles.connecting}`}>
-                                    <div className={styles.spinner} />
-                                    Waiting for network...
-                                </div>
-                            )}
-                            {!navigator.onLine && connectionStatus === 'disconnected' && (
-                                <div className={`${styles['connection-banner']} ${styles.disconnected}`} onClick={retryConnection}>
-                                    Offline. Tap to retry.
+                            {!navigator.onLine && (connectionStatus === 'connecting' || connectionStatus === 'disconnected') && (
+                                <div className={`${styles['connection-banner']} ${messages.length > 0 ? styles['offline-mini'] : styles.disconnected}`} onClick={retryConnection}>
+                                    {messages.length > 0 ? (
+                                        <><span>Offline. Tap to retry.</span></>
+                                    ) : (
+                                        <>
+                                            <div className={styles.spinner} />
+                                            Waiting for network...
+                                        </>
+                                    )}
                                 </div>
                             )}
 
