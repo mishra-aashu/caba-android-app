@@ -115,8 +115,18 @@ const PublicApp = () => {
     hideSplash();
   }, [loading]);
 
-  // Show nothing while auth state is being determined
-  if (loading) return null;
+  // Show a themed loader while auth state is being determined
+  // This prevents the "white flash" when React mounts but loading is still true.
+  if (loading) {
+    return (
+      <div className="premium-loader-overlay" style={{ background: '#1a1a2e' }}>
+        <div className="premium-loader-container">
+          <div className="premium-spinner"></div>
+          <p className="premium-loader-text">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Native App: Redirect unauthenticated users to login
   // Using Capacitor.isNativePlatform() directly here because it's safe on Vercel origin 
