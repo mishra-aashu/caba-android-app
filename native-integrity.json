@@ -1,7 +1,7 @@
 {
-  "hash": "8ea5b1ea2415d1b2a338e0edb0ef8daaea02bf81bcf78c82cb28b9ab1884bd66",
+  "hash": "c96a4133af0845e69d192ce58eaad2f39b08afb5ed730270ddd80cd3101873ce",
   "fileHashes": {
-    "capacitor.config.ts": "b9fc79cff9c57b6f21bef21c036c8a40bc286dc9f96a5c2930f07adc8e9a2fd9",
+    "capacitor.config.ts": "898843efc6d9994f4e043da506a0fd7c3ef282deb9aeb7dc8c7f45474ac8fa87",
     "package.json": "ce8cb6045298039d5f9e680d19608ff3f2c577ef0e7d1e2464e02ac4a6a1cfd4",
     "android/app/src/main/AndroidManifest.xml": "6cfa98f0df716dcaf33310e30545dae972c8a4b1f59db0986d9748d408144f07",
     "android/app/build.gradle": "7ab6b666ecd54bbf16607da48480e714cd5296b5e9cab52ef63ef6e052669f42",
@@ -39,5 +39,5 @@
     "ios/App/App.xcodeproj/project.pbxproj": "iOS — Xcode project file, signing, capabilities",
     "ios/App/Podfile": "iOS — CocoaPods dependencies"
   },
-  "generatedAt": 1774080205971
+  "generatedAt": 1774080506736
 }
