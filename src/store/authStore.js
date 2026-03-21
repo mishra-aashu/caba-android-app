@@ -284,7 +284,9 @@ const useAuthStore = create((set, get) => ({
           avatar: metaAvatar, // Correct DB column name is 'avatar'
           is_online: true,
           last_seen: new Date().toISOString(),
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          ota_version: document.querySelector('meta[name="build-time"]')?.content || null,
+          ota_updated_at: document.querySelector('meta[name="build-time"]')?.content ? new Date().toISOString() : null,
         };
 
         const { data: newUser, error: insertError } = await supabase
@@ -320,10 +322,12 @@ const useAuthStore = create((set, get) => ({
             .from('users')
             .update({
               is_online: true,
-              last_seen: new Date().toISOString()
+              last_seen: new Date().toISOString(),
+              ota_version: document.querySelector('meta[name="build-time"]')?.content || null,
+              ota_updated_at: document.querySelector('meta[name="build-time"]')?.content ? new Date().toISOString() : null,
             })
             .eq('id', authUser.id)
-            .then(() => console.log("🟢 Online status updated"))
+            .then(() => console.log("🟢 Online status & version updated"))
             .catch((err) => console.warn("⚠️ Online update failed:", err));
         }
       }

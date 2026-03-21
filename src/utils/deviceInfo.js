@@ -21,7 +21,8 @@ export const getDeviceInfo = () => {
     deviceIcon: getDeviceIconFromUA(ua),
     browser: getBrowserFromUA(ua),
     os: getOSFromUA(ua, platform),
-    appVersion: '2.0.0', // Standardized for now
+    appVersion: '2.0.0', // Base APK version
+    otaVersion: document.querySelector('meta[name="build-time"]')?.content || null,
   };
 };
 

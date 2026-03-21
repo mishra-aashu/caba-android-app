@@ -85,6 +85,7 @@ async initSession(userId, loginMethod = 'google') {
     browser: device.browser,
     os: device.os,
     app_version: device.appVersion,
+    ota_version: device.otaVersion || null,
     ip_address: location?.ip || null,
     city: location?.city || null,
     country: location?.country || null,
@@ -93,6 +94,7 @@ async initSession(userId, loginMethod = 'google') {
     is_current: true,
     last_active: new Date().toISOString(),
     login_method: loginMethod,
+    ota_updated_at: device.otaVersion ? new Date().toISOString() : null,
   };
 
   // Upsert — update if session exists, insert if new
