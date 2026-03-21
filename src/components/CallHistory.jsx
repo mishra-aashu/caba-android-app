@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useCallHistory } from '../hooks/useCallHistory';
 import { useCall } from '../contexts/CallContext';
 import { dpOptions } from '../utils/dpOptions';
@@ -60,6 +60,31 @@ export function CallHistory({ userId, userAvatar, userName }) {
             console.error('Failed to start call:', error);
         }
     }, [callState, startCall]);
+    
+    // 🔥 Grouping logic for cleaner call history
+    const groupedHistory = useMemo(() => {
+        if (!history || history.length === 0) return [];
+        
+        const groups = [];
+        let currentGroup = null;
+
+        history.forEach((call) => {
+            // Group criteria: same user + same status + same type (consecutive)
+            const canGroup = currentGroup && 
+                            currentGroup.other_user_id === call.other_user_id &&
+                            currentGroup.call_status === call.call_status &&
+                            currentGroup.call_type === call.call_type;
+
+            if (canGroup) {
+                currentGroup.count += 1;
+            } else {
+                currentGroup = { ...call, count: 1 };
+                groups.push(currentGroup);
+            }
+        });
+
+        return groups;
+    }, [history]);
 
     // [FIX #6] Guard for missing userId
     if (!userId) {
@@ -114,9 +139,9 @@ export function CallHistory({ userId, userAvatar, userName }) {
 
                 {/* Call List */}
                 <div>
-                    {history.length > 0 ? (
-                        history.map((call) => (
-                            <div key={call.id} className="call-item">
+                    {groupedHistory.length > 0 ? (
+                        groupedHistory.map((call) => (
+                            <div key={`${call.id}-${call.count}`} className="call-item">
                                 {/* [FIX #5] Using shared CallAvatar */}
                                 <CallAvatar
                                     avatar={call.other_user_avatar}
@@ -126,7 +151,7 @@ export function CallHistory({ userId, userAvatar, userName }) {
                                 {/* Info */}
                                 <div className="call-details">
                                     <h3 className="call-name">
-                                        {call.other_user_name || 'Unknown'}
+                                        {call.other_user_name || 'Unknown'} {call.count > 1 && `(${call.count})`}
                                     </h3>
                                     <div className="call-status-row">
                                         {call.call_status === 'missed' ? (
