@@ -1,24 +1,49 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { callService } from '../services/callService';
+import { db } from '../db/db';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 /**
- * Hook for fetching call history using TanStack Query
- * Provides caching, automatic refetching, and offline support
+ * Hook for fetching call history using TanStack Query + Dexie for offline
+ * Provides caching, automatic refetching, and persistent offline support
  */
 export function useCallHistory(userId) {
   const queryClient = useQueryClient();
+
+  // 1. Live Query from Dexie for instant offline access
+  const cachedHistory = useLiveQuery(
+    () => {
+      if (!userId) return [];
+      return db.call_history
+        .where('caller_id').equals(userId)
+        .or('receiver_id').equals(userId)
+        .reverse()
+        .sortBy('started_at');
+    },
+    [userId]
+  ) || [];
 
   // Set up real-time subscription
   useEffect(() => {
     if (!userId) return;
 
     console.log('🔔 Subscribing to call history for user:', userId);
-    const channelName = callService.subscribeToCallHistory(userId, (payload) => {
+    const channelName = callService.subscribeToCallHistory(userId, async (payload) => {
       console.log('🚀 Real-time call history update detected:', payload);
-      // Invalidate queries to trigger refetch
-      queryClient.invalidateQueries({ queryKey: ['callHistory', userId] });
-      queryClient.invalidateQueries({ queryKey: ['missedCallsCount', userId] });
+      
+      // Update Dexie if it's a new or updated call
+      if (payload.new && payload.new.id) {
+        try {
+          // Note: callService handles transformation (otherUserInfo) in getCallHistory.
+          // For realtime, we might just trigger a refetch or do a single fetch.
+          // Simplest is to invalidate and let useQuery fetch + save.
+          queryClient.invalidateQueries({ queryKey: ['callHistory', userId] });
+          queryClient.invalidateQueries({ queryKey: ['missedCallsCount', userId] });
+        } catch (err) {
+          console.warn('Realtime Dexie update failed', err);
+        }
+      }
     });
 
     return () => {
@@ -27,47 +52,56 @@ export function useCallHistory(userId) {
     };
   }, [userId, queryClient]);
 
-  // Query for call history with caching
+  // 2. Query for call history with caching + Sync to Dexie
   const {
-    data: historyData,
     isLoading,
     error,
-    refetch
+    refetch,
+    data: queryData
   } = useQuery({
     queryKey: ['callHistory', userId],
     queryFn: async () => {
       if (!userId) return { calls: [], hasMore: false };
-      const result = await callService.getCallHistory(userId, 20, null);
-      return result;
+      
+      try {
+        const result = await callService.getCallHistory(userId, 50, null);
+        
+        // Sync to Dexie
+        if (result.calls?.length > 0) {
+          await db.call_history.bulkPut(result.calls);
+        }
+        
+        return result;
+      } catch (err) {
+        console.warn('[Sync] Call history sync failed:', err);
+        // If offline, React Query will retry or use its own cache.
+        // Component will use cachedHistory from useLiveQuery anyway.
+        throw err;
+      }
     },
     enabled: !!userId,
-    staleTime: 1000 * 5, // Reduced staleTime to 5 seconds for better reactivity
-    gcTime: 1000 * 60 * 5, // 5 minutes - keep in cache
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    staleTime: 1000 * 10, // 10 seconds
+    gcTime: 1000 * 60 * 5,
   });
 
-  // Separate query for missed calls count
-  const {
-    data: missedData,
-  } = useQuery({
+  // 3. Missed calls query
+  const { data: missedData } = useQuery({
     queryKey: ['missedCallsCount', userId],
     queryFn: async () => {
       if (!userId) return 0;
       return await callService.getMissedCallsCount(userId);
     },
     enabled: !!userId,
-    staleTime: 1000 * 30, // 30 seconds
-    gcTime: 1000 * 60 * 2, // 2 minutes
   });
 
   return {
-    history: historyData?.calls || [],
-    loading: isLoading,
+    // Return cachedHistory for instant UI, falling back to query results if Dexie is empty
+    history: cachedHistory.length > 0 ? cachedHistory : (queryData?.calls || []),
+    loading: isLoading && cachedHistory.length === 0, // Only "loading" if we have NOTHING
     error: error?.message || null,
     missedCount: missedData || 0,
     refetch,
-    hasMore: historyData?.hasMore || false,
+    hasMore: queryData?.hasMore || false,
   };
 }
 
