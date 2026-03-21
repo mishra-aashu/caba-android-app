@@ -1,1 +1,0 @@
-import{j as a}from"./vendor-ui-Dn0iF3j_.js";import"./vendor-react-DlBOsDqa.js";const s=({className:e="",size:r="medium"})=>a.jsx("div",{className:`brand-badge-pill ${r} ${e} gpu-accelerated`,children:"ELEVENGRAM"});export{s as A};
