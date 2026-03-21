@@ -14,12 +14,16 @@ export const useResumeRevalidate = () => {
     let appStateListenerPromise = null;
     if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('App')) {
       try {
+        // App.addListener returns a promise; ensure we catch async rejection.
         appStateListenerPromise = App.addListener('appStateChange', (state) => {
           console.log('App state changed:', state);
           if (state.isActive) {
             console.log('App resumed on native platform');
             // Let individual hooks handle their own reconnection
           }
+        }).catch((e) => {
+          console.warn('[ResumeRevalidate] App listener init failed (non-fatal):', e?.message || e);
+          return null;
         });
       } catch (e) {
         console.warn('[ResumeRevalidate] App plugin not implemented:', e.message);

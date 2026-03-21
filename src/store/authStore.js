@@ -194,10 +194,15 @@ const useAuthStore = create((set, get) => ({
       let appStateListenerPromise = null;
       if (isAppPluginAvailable()) {
         try {
+          // App.addListener returns a promise (listener handle). If the plugin isn't implemented,
+          // the promise can reject asynchronously, so we MUST catch it here to avoid unhandled rejections.
           appStateListenerPromise = App.addListener('appStateChange', (state) => {
             if (state.isActive) {
               smartRefresh('appStateChange');
             }
+          }).catch((e) => {
+            console.warn('[Auth] App listener init failed (non-fatal):', e?.message || e);
+            return null;
           });
         } catch (e) {
           console.warn('[Auth] App plugin not implemented or failed:', e.message);
