@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, RotateCcw, Upload, Camera, QrCode, Lightbulb, Hand, Square } from 'lucide-react';
 import './QRCodeScanner.css';
+import { Capacitor } from '@capacitor/core';
+import { safePluginCall } from '../../utils/platformCheck';
 
 const QRCodeScanner = ({ onScan, onClose, onError }) => {
   const videoRef = useRef(null);
@@ -23,6 +25,14 @@ const QRCodeScanner = ({ onScan, onClose, onError }) => {
       setError('');
       setIsScanning(true);
       isScanningRef.current = true;
+
+      // Request native permissions if on native platform
+      if (Capacitor.isNativePlatform()) {
+        await safePluginCall(
+          () => import('@capacitor/camera'),
+          (mod) => mod.Camera.requestPermissions({ permissions: ['camera'] })
+        );
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" }

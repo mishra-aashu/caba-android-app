@@ -58,7 +58,10 @@ class WebRTCService {
    * Request media permissions for Camera and Microphone
    */
   async requestMediaPermissions(video = true, audio = true) {
-    if (!isNativeWithPlugins()) {
+    // Check if we are on a native platform (Android/iOS)
+    const isNative = Capacitor.isNativePlatform();
+
+    if (!isNative) {
       console.log('Checking permissions on web...');
       try {
         // Just a check, the real stream is acquired later
@@ -71,28 +74,31 @@ class WebRTCService {
       }
     }
 
-    // On native platforms (Android/iOS)
+    // On native platforms (Android/iOS), even if running on Vercel
     try {
       if (video) {
-        console.log('Requesting camera permissions...');
+        console.log('Requesting native camera permissions...');
+        // This will now correctly trigger because safePluginCall is fixed!
         const cameraPermissions = await safePluginCall(
           () => import('@capacitor/camera'),
-          (mod) => mod.Camera.requestPermissions({ permissions: ['camera', 'photos'] })
+          (mod) => mod.Camera.requestPermissions({ permissions: ['camera'] })
         );
+        
         if (cameraPermissions?.camera !== 'granted') {
-          throw new Error('Camera permission was denied.');
+          console.warn('⚠️ Camera permission not granted:', cameraPermissions?.camera);
+          // We don't throw here yet, because getUserMedia might still work 
+          // if the user handles the browser-level popup.
         }
       }
 
       if (audio) {
         console.log('Requesting microphone permissions via getUserMedia...');
-        // On Android, the WebView doesn't always automatically proxy the request to the OS
-        // unless you trigger it. Capacitor 6 bridge usually handles this if declared in manifest,
-        // but a direct getUserMedia call is the most reliable "trigger".
+        // On Android, triggering getUserMedia is the standard way to get 
+        // the the WebView to request the RECORD_AUDIO permission from the OS.
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
           stream.getTracks().forEach(track => track.stop());
-          console.log('🎤 Microphone permission granted.');
+          console.log('✅ Microphone access verified.');
         } catch (audioError) {
           console.error("❌ Microphone access failed:", audioError);
           throw new Error("Microphone permission denied or hardware unavailable");
@@ -102,7 +108,6 @@ class WebRTCService {
       return true;
     } catch (e) {
       console.error("❌ Native permission request error:", e);
-      // Re-throw with a more descriptive message if it's a known error
       if (e.name === 'NotAllowedError' || e.message?.includes('denied')) {
         throw new Error("Permissions denied by user");
       }

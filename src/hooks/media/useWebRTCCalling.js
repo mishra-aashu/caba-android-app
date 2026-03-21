@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '../../config/supabase';
 import { useTURNConfig } from './useTURNConfig';
+import { safePluginCall } from '../../utils/platformCheck';
 
 /**
  * React hook for WebRTC calling functionality
@@ -224,6 +226,22 @@ export const useWebRTCCalling = () => {
    */
   const getLocalMedia = useCallback(async (callType) => {
     try {
+      // Request native permissions if on native platform, even on Vercel
+      if (Capacitor.isNativePlatform()) {
+        console.log('Requesting native permissions for call type:', callType);
+        
+        // Always request camera if video/screen, and also handle potential mic needs
+        if (callType === 'video' || callType === 'screen') {
+          await safePluginCall(
+            () => import('@capacitor/camera'),
+            (mod) => mod.Camera.requestPermissions({ permissions: ['camera'] })
+          );
+        }
+        
+        // For audio, we'll let the getUserMedia popup handle it, 
+        // as there's no official core "Microphone" plugin.
+      }
+
       let constraints;
 
       if (callType === 'screen') {

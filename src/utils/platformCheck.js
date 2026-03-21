@@ -11,26 +11,17 @@ import { Capacitor } from '@capacitor/core';
 /**
  * TRUE only when Capacitor plugins are guaranteed to work
  * (running on localhost inside native WebView)
+ * UPDATED: Now much more inclusive - checks if we're on native at all.
  */
 export const isNativeWithPlugins = () => {
-  if (!Capacitor.isNativePlatform()) return false;
-
-  const host = window.location.hostname;
-  const proto = window.location.protocol;
-
-  return (
-    host === 'localhost' ||
-    host === '' ||
-    proto === 'capacitor:' ||
-    proto === 'file:'
-  );
+  return Capacitor.isNativePlatform();
 };
 
 /**
  * TRUE when running from Vercel (after OTA redirect)
  */
 export const isRunningOnVercel = () => {
-  return window.location.hostname.includes('vercel.app');
+  return typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 };
 
 /**
@@ -45,14 +36,20 @@ export const isInsideWebView = () => {
  * Root Fix: Instead of just checking for "localhost", we check if the 
  * window.Capacitor bridge is functional. This allows plugins to work 
  * on Vercel IF the bridge is properly injected.
+ * 
+ * Support both:
+ * 1. safePluginCall(() => import('...'), (mod) => mod.Plugin.method())
+ * 2. safePluginCall(async () => { ... do everything ... })
  */
-export const safePluginCall = async (pluginFn, fallbackValue = null) => {
+export const safePluginCall = async (pluginFn, fallbackOrCall = null) => {
   const isNative = Capacitor.isNativePlatform();
   
-  // 1. If not native at all (pure web browser), always use fallback
-  if (!isNative) return fallbackValue;
+  // 1. If not native at all (pure web browser), return fallback if it's not a function
+  if (!isNative) {
+    return typeof fallbackOrCall === 'function' ? null : fallbackOrCall;
+  }
 
-  // 2. Check bridge health (Root of "window.Capacitor.triggerEvent is not a function")
+  // 2. Check bridge health
   const isBridgeHealthy = 
     typeof window !== 'undefined' && 
     window.Capacitor && 
@@ -62,14 +59,21 @@ export const safePluginCall = async (pluginFn, fallbackValue = null) => {
     if (isRunningOnVercel()) {
       console.warn('[Plugin] Bridge not functional on Vercel. Falling back.');
     }
-    return fallbackValue;
+    return typeof fallbackOrCall === 'function' ? null : fallbackOrCall;
   }
 
   // 3. Final safety: try-catch the actual plugin call
   try {
-    return await pluginFn();
+    const result = await pluginFn();
+    
+    // If second arg is a function, it's the "Import + Call" pattern
+    if (typeof fallbackOrCall === 'function') {
+      return await fallbackOrCall(result, result);
+    }
+    
+    return result;
   } catch (e) {
     console.warn('[Plugin] Runtime call failed:', e.message);
-    return fallbackValue;
+    return typeof fallbackOrCall === 'function' ? null : fallbackOrCall;
   }
 };
