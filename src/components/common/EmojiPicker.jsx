@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { Smile, Search, X } from 'lucide-react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import KlipyGifPicker from '../chat/GifPicker.jsx';
@@ -39,6 +40,12 @@ const EmojiPicker = ({
                 return itemNative === native;
             });
         };
+        // Optimization: Create a Map for O(1) lookup of raw emoji data by native string
+        const nativeToRawEmojiMap = new Map();
+        emojiMap.raw.forEach(item => {
+            const native = String.fromCodePoint(...item.unified.split('-').map(u => parseInt(u, 16)));
+            nativeToRawEmojiMap.set(native, item);
+        });
 
         const transformEmoji = (item, catName) => ({
             id: item.unified.toLowerCase(),
@@ -55,7 +62,7 @@ const EmojiPicker = ({
                 name: 'Recent',
                 icon: '🕒',
                 emojis: preferredEmojis.map(native => {
-                    const item = findEmojiByNative(native);
+                    const item = nativeToRawEmojiMap.get(native); // Use the optimized map
                     return item ? transformEmoji(item, 'Recent') : null;
                 }).filter(Boolean)
             };
@@ -206,7 +213,14 @@ const EmojiPicker = ({
                     onClick={handleToggle}
                     title="Add emoji"
                 >
-                    <Smile size={20} />
+                    <div className="lottie-trigger-container">
+                        <DotLottieReact
+                            src="https://lottie.host/6ad896a2-8353-4690-971c-4613c7268d06/p9Xq0Y1J9Y.lottie"
+                            loop
+                            autoplay
+                            style={{ width: '28px', height: '28px' }}
+                        />
+                    </div>
                 </button>
             )}
 
@@ -288,7 +302,17 @@ const EmojiPicker = ({
                                                 {filteredEmojis.map(emoji => (
                                                     <EmojiItem key={emoji.id} emoji={emoji} style={emojiStyle} onSelect={handleEmojiSelect} />
                                                 ))}
-                                                {filteredEmojis.length === 0 && <div className="no-recent">No emojis found</div>}
+                                                {filteredEmojis.length === 0 && (
+                                                    <div className="empty-state">
+                                                        <DotLottieReact
+                                                            src="https://lottie.host/98c2ca8b-703c-41c3-8874-9b2f4477b789/E65X3X0W2N.lottie"
+                                                            loop
+                                                            autoplay
+                                                            style={{ width: '120px', height: '120px' }}
+                                                        />
+                                                        <div className="no-recent">No emojis found</div>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <>
@@ -320,7 +344,16 @@ const EmojiPicker = ({
 const EmojiItem = memo(({ emoji, style, onSelect }) => {
     const { emojiMap, mapLoading } = useEmojiStyle();
     
-    if (mapLoading) return <div className="emoji-item" style={{ width: '100%', aspectRatio: '1/1' }} />;
+    if (mapLoading) return (
+        <div className="emoji-item loading">
+            <DotLottieReact
+                src="https://lottie.host/5db4b486-0683-4876-b634-934c718f4a38/7XWl9a8X9X.lottie"
+                loop
+                autoplay
+                style={{ width: '20px', height: '20px' }}
+            />
+        </div>
+    );
 
     const mapping = emojiMap?.mapping?.[emoji.hex];
     const sheetName = emojiMap?.sheets?.[style];

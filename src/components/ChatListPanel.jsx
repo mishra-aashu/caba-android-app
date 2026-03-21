@@ -1,6 +1,5 @@
 import React, { useRef, useState, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSupabase } from '../contexts/SupabaseContext';
 import {
   MessageCircle,
   User,
@@ -20,15 +19,21 @@ import {
   X,
   RefreshCw
 } from 'lucide-react';
+import { useSupabase } from '../contexts/SupabaseContext';
+import { useNavigate } from 'react-router-dom';
+import { useChatListRealtime } from '../hooks/useChatListRealtime';
+import { useContacts } from '../hooks/useCommonQueries';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
+import { useQueryClient } from '@tanstack/react-query';
+import useIsDesktop from '../hooks/useIsDesktop';
 import PullToRefresh from './common/PullToRefresh';
 import DropdownMenu from './common/DropdownMenu';
 import ChatListItem from './chat/ChatListItem';
 import { getPublicMediaUrl } from '../services/mediaService';
 import { getDpPath } from '../utils/dpOptions';
-const ImageViewer = lazy(() => import('./chat/ImageViewer'));
 import { getInitials } from '../utils/stringUtils';
-import { isUserOnline } from '../utils/dateFormatter';
-// lazy loaded below
+import { isUserOnline, formatTime } from '../utils/dateFormatter';
 import { useGroupActions } from '../hooks/useGroupActions';
 import ScrollableChatList from './chat/ScrollableChatList';
 import { useChatDeletion } from '../hooks/useChatDeletion';
@@ -37,49 +42,48 @@ import DeleteConfirmation from './chat/DeleteConfirmation';
 import ChatContextMenu from './chat/ChatContextMenu';
 import { Toaster, toast } from 'react-hot-toast';
 import messageReadsService from '../services/messageReadsService';
+
 const CreateGroupModal = lazy(() => import('./groups/CreateGroupModal'));
 
 import styles from '../styles/ChatListItem.module.css';
 
 const ChatListPanel = ({
-  searchTerm,
-  setSearchTerm,
-  showSearch,
-  setShowSearch,
-  searchSuggestions,
-  setSearchSuggestions,
-  showSuggestions = false,
-  setShowSuggestions,
-  handleSearchChange,
-  handleSuggestionClick,
   handleChatClick,
-  filteredChats, // These are passed from MainLayout, but we'll use 'chats' from hook or props
-  handleChatListScroll,
-  chatListRef,
-  loadingMore,
-  hasMoreChats,
-  dpOptions,
-  formatTime,
-  setShowNewContactModal,
-  handleNavigation,
-  handleAboutApp,
-  handleHelp,
-  handleLogout,
-  isAdmin,
-  savedContacts,
-  isDesktop,
+  isDesktop: isDesktopProp,
   currentChatId,
-  refetchChats, // Passed from MainLayout
+  user: userProp,
 }) => {
   const { supabase } = useSupabase();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const isDesktop = useIsDesktop();
+  const user = userProp;
   const { useUserGroups } = useGroupActions();
 
-  // State for Create Group Modal
+  // Local Data Management
+  const chats = useLiveQuery(() => db.chats_list.toArray(), []) || [];
+  const savedContacts = useLiveQuery(() => db.contacts.toArray(), []) || [];
+  
+  const { 
+    loading, 
+    hasMoreChats, 
+    loadingMore, 
+    loadMoreChats, 
+    refetch: refetchChats 
+  } = useChatListRealtime(user?.id);
+
+  // Search & UI State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'chats', 'groups'
+  const [activeFilter, setActiveFilter] = useState('all'); 
+  
+  const chatListRef = useRef();
+  const debounceTimeout = useRef(null);
 
   // Chat Deletion Hook
-  const { user } = useSupabase();
   const {
     selectionMode,
     selectedChats,
@@ -102,6 +106,7 @@ const ChatListPanel = ({
       if (refetchChats) {
         await refetchChats();
       }
+      queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
     } catch (error) {
       console.error('Refresh failed:', error);
       toast.error('Failed to refresh chats');
@@ -109,6 +114,107 @@ const ChatListPanel = ({
       setIsRefreshing(false);
     }
   };
+
+  const handleSearchChange = (e) => {
+    const query = e.target.value.replace(/\D/g, '');
+    setSearchTerm(query);
+
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    if (query.length !== 10) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    debounceTimeout.current = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, name, phone, avatar')
+          .eq('phone', query)
+          .neq('id', user.id)
+          .limit(1);
+
+        if (error) throw error;
+
+        setSearchSuggestions(data || []);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error('Error searching users:', error);
+        toast.error('Failed to search for users.');
+      }
+    }, 500);
+  };
+
+  const handleSuggestionClick = async (suggestedUser) => {
+    setSearchTerm('');
+    setShowSuggestions(false);
+    setShowSearch(false);
+
+    try {
+      const { data: chat, error: chatError } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${suggestedUser.id}),and(user1_id.eq.${suggestedUser.id},user2_id.eq.${user.id})`)
+        .single();
+
+      if (chatError && chatError.code !== 'PGRST116') throw chatError;
+
+      if (chat) {
+        navigate(`/chat/${chat.id}/${suggestedUser.id}`);
+      } else {
+        const { data: newChatData, error: newChatError } = await supabase
+          .from('chats')
+          .insert([{ user1_id: user.id, user2_id: suggestedUser.id }])
+          .select()
+          .single();
+
+        if (newChatError) throw newChatError;
+        if (newChatData) navigate(`/chat/${newChatData.id}/${suggestedUser.id}`);
+      }
+    } catch (error) {
+      console.error('Error starting chat from suggestion:', error);
+      toast.error('Could not start chat.');
+    }
+  };
+
+  const handleNavigation = (path) => navigate(path);
+  const setShowNewContactModal = (val) => val ? navigate('/contacts') : navigate('/');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
+  const handleAboutApp = () => navigate('/about');
+  const handleHelp = () => navigate('/support');
+  const isAdmin = false; 
+
+  const handleChatListScroll = () => {
+    if (chatListRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = chatListRef.current;
+        if (scrollTop + clientHeight >= scrollHeight - 500 && hasMoreChats && !loadingMore) {
+            loadMoreChats();
+        }
+    }
+  };
+
+  // Filter and sort chats locally
+  const filteredChats = useMemo(() => {
+    let result = chats;
+    if (searchTerm.trim()) {
+      result = chats.filter(chat =>
+        chat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        chat.metadata?.otherUserPhone?.includes(searchTerm)
+      );
+    }
+    return [...result].sort((a, b) => {
+      const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return timeB - timeA;
+    });
+  }, [chats, searchTerm]);
 
   const [contextMenu, setContextMenu] = useState(null);
   const [deleteData, setDeleteData] = useState({ isOpen: false, chat: null, isGroup: false });

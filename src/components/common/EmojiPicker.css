@@ -18,12 +18,10 @@
 
       /* Enhanced Glassmorphism Effect */
       background: rgba(30, 40, 45, 1); /* Opaque for visibility */
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
-
+      background: #1a1d21; /* Solid background is much faster than blur */
+      border: 1px solid var(--border-color);
       border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 
       display: flex;
       flex-direction: column;
@@ -133,6 +131,19 @@
   .header-close-btn:hover,
   .header-action-btn:hover {
       color: #fff;
+  }
+
+  .lottie-trigger-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      transition: transform 0.2s ease;
+  }
+
+  .emoji-picker-btn:hover .lottie-trigger-container {
+      transform: scale(1.1);
   }
 
   .header-actions {
@@ -319,6 +330,13 @@
   .emoji-item:active {
       background: rgba(255, 255, 255, 0.1);
       transform: scale(1.15);
+  }
+
+  .emoji-item.loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
   }
 
 
@@ -602,10 +620,19 @@
   }
 
   .empty-state {
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 40px 20px;
+      gap: 12px;
+  }
+
+  .empty-state .no-recent {
+      text-align: center;
       color: #8696a0;
       font-size: 14px;
+      padding: 0;
   }
 
   @keyframes spin {

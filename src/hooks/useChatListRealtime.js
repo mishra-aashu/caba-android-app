@@ -57,9 +57,9 @@ export const useChatListRealtime = (currentUserId) => {
         console.log(`[RT] ${message}`, { userId: currentUserId, ...detail });
     };
 
-    const loadAndSyncChats = useCallback(async () => {
+    const loadAndSyncChats = useCallback(async (silent = false) => {
         if (!currentUserId || !supabase) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         try {
             const freshChats = await fetchChatList({ supabase, userId: currentUserId });
             const updatedChats = freshChats.map(chat => ({
@@ -68,17 +68,13 @@ export const useChatListRealtime = (currentUserId) => {
             }));
             
             await db.transaction('rw', db.chats_list, async () => {
-                // Remove clear() - we want surgical updates
                 await db.chats_list.bulkPut(updatedChats);
-                
-                // Optional: Cleanup old chats that are no longer in the top 20/first page
-                // But generally bulkPut is enough for performance
             });
             setHasMoreChats(updatedChats.length >= 20);
         } catch (error) {
             console.error('Error syncing chats:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [currentUserId, supabase]);
 
@@ -159,14 +155,14 @@ export const useChatListRealtime = (currentUserId) => {
         if (!mountedRef.current) return;
         
         const now = Date.now();
-        if (now - lastSyncTimeRef.current < 1000) {
+        if (now - lastSyncTimeRef.current < 2000) { // Increased throttle to 2s
             _log('Throttling chat list update');
             return;
         }
         
         lastSyncTimeRef.current = now;
         _log('Chat list real-time update', { event: payload.eventType });
-        loadAndSyncChats();
+        loadAndSyncChats(true); // Silent sync for real-time updates
     }, [loadAndSyncChats]);
 
 

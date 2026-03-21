@@ -211,20 +211,23 @@ export default defineConfig(({ mode }) => {
     },
 
     build: {
-      chunkSizeWarningLimit: 3000,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-ui': ['framer-motion', 'lucide-react'],
-            'vendor-query': [
-              '@tanstack/react-query',
-              '@tanstack/react-query-persist-client',
-            ],
-          },
-        },
-      },
-    },
+        target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
+        cssCodeSplit: true,
+        chunkSizeWarningLimit: 1000, // Lowered to encourage better chunking
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+                    'vendor-supabase': ['@supabase/supabase-js'],
+                    'vendor-ui': ['framer-motion', 'lucide-react', 'react-hot-toast'],
+                    'vendor-db': ['dexie', 'dexie-react-hooks'],
+                    'vendor-query': [
+                      '@tanstack/react-query',
+                      '@tanstack/react-query-persist-client',
+                    ],
+                }
+            }
+        }
+    }
   };
 });
