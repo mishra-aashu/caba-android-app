@@ -100,8 +100,8 @@ const PublicApp = () => {
   if (loading) return null;
 
   // Native App: Redirect unauthenticated users to login
-  const isNative = isNativeWithPlugins();
-  if (!isAuthenticated && isNative && location.pathname === '/') {
+  // Using Capacitor.isNativePlatform() directly here because it's safe on Vercel origin 
+  if (!isAuthenticated && Capacitor.isNativePlatform() && location.pathname === '/') {
     return <Navigate to="/login" replace />;
   }
 
