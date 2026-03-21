@@ -1,1 +1,0 @@
-import{r as e}from"./vendor-react-CNDcy7It.js";import{u as s}from"./vendor-db-BjmFu2VQ.js";import{d as a}from"./PublicApp-CQA27uTg.js";const p=(o,r=null)=>{const n=s(()=>a.contacts.toArray())||[];return e.useMemo(()=>{if(!o)return r||"Unknown";const t=n==null?void 0:n.find(c=>c.contact_user_id===o);return t&&t.contact_name?t.contact_name:r||"Unknown"},[o,r,n])};export{p as u};
