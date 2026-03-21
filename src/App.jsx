@@ -5,6 +5,7 @@ import { X, Sparkles, RefreshCw } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 // [FIX #11] Removed unused ChatThemeProvider import
 import { GroupCallProvider } from './contexts/GroupCallProvider';
+import { isNativeWithPlugins } from './utils/platformCheck';
 import { Capacitor } from '@capacitor/core';
 import { Toaster } from 'react-hot-toast';
 import PhoneAuthModal from './components/auth/PhoneAuthModal';
@@ -112,7 +113,7 @@ const AppContent = () => {
     }
 
     // Native App: Direct redirect for unauthenticated users
-    const isNative = Capacitor.isNativePlatform();
+    const isNative = isNativeWithPlugins();
     if (!isAuthenticated && isNative && location.pathname === '/') {
         return <Navigate to="/login" replace />;
     }

@@ -1,6 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
-import { isNativeWithPlugins } from './platformCheck';
+import { isNativeWithPlugins, safePluginCall } from './platformCheck';
 import { supabase } from '../config/supabase';
 
 async function saveTokenToSupabase(token) {
@@ -44,28 +43,38 @@ async function saveTokenToSupabase(token) {
 
 
 export const initializePushNotifications = async () => {
-  console.log("🚀 Initializing Push Notifications..."); // Ye dikhna chahiye pehle
+  console.log("🚀 Initializing Push Notifications..."); 
 
   try {
-    const platform = Capacitor.getPlatform();
-
     // --- ANDROID/iOS LOGIC ---
     if (isNativeWithPlugins()) {
       try {
-        await PushNotifications.requestPermissions();
-        await PushNotifications.register();
+        await safePluginCall(
+          () => import('@capacitor/push-notifications'),
+          (mod) => mod.PushNotifications.requestPermissions()
+        );
+        
+        await safePluginCall(
+          () => import('@capacitor/push-notifications'),
+          (mod) => mod.PushNotifications.register()
+        );
 
         // TOKEN LISTENER
-        PushNotifications.addListener('registration', async (token) => {
-          console.log('🔥🔥 MY ANDROID/iOS TOKEN:', token.value);
+        await safePluginCall(
+          () => import('@capacitor/push-notifications'),
+          (mod) => mod.PushNotifications.addListener('registration', async (token) => {
+            console.log('🔥🔥 MY ANDROID/iOS TOKEN:', token.value);
+            // Save to Supabase
+            await saveTokenToSupabase(token.value);
+          })
+        );
 
-          // Save to Supabase
-          await saveTokenToSupabase(token.value);
-        });
-
-        PushNotifications.addListener('registrationError', (error) => {
-          console.error('❌ Error on registration: ', error);
-        });
+        await safePluginCall(
+          () => import('@capacitor/push-notifications'),
+          (mod) => mod.PushNotifications.addListener('registrationError', (error) => {
+            console.error('❌ Error on registration: ', error);
+          })
+        );
       } catch (e) {
         console.warn('[PushNotifications] Plugin not implemented or failed:', e.message);
       }

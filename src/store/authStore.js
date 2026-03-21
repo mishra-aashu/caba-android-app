@@ -4,8 +4,7 @@ import { dbToFrontend } from '../utils/dbFieldMapping';
 import { getRedirectUrl } from '../utils/authUtils';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
-import { isNativeWithPlugins } from '../utils/platformCheck';
+import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 import { createClient } from '@supabase/supabase-js';
 
 // Direct Supabase URL for bypassing proxy during OAuth redirects
@@ -32,22 +31,32 @@ const useAuthStore = create((set, get) => ({
   initializeAuth: async () => {
     try {
       // ── Session Migration Check (for OTA domain switches) ──
-      if (isNativeWithPlugins()) {
-        try {
+      const migratedSessionJson = await safePluginCall(
+        async () => {
           const { Preferences } = await import('@capacitor/preferences');
-          const { value: migratedSessionJson } = await Preferences.get({ key: 'ota-migrated-session' });
-          if (migratedSessionJson) {
-            const migratedSession = JSON.parse(migratedSessionJson);
-            // Inject into Supabase and clear from storage
-            await supabase.auth.setSession({
-              access_token: migratedSession.access_token,
-              refresh_token: migratedSession.refresh_token
-            });
+          const { value } = await Preferences.get({ key: 'ota-migrated-session' });
+          return value;
+        },
+        null
+      );
+
+      if (migratedSessionJson) {
+        try {
+          const migratedSession = JSON.parse(migratedSessionJson);
+          // Inject into Supabase and clear from storage
+          await supabase.auth.setSession({
+            access_token: migratedSession.access_token,
+            refresh_token: migratedSession.refresh_token
+          });
+
+          await safePluginCall(async () => {
+            const { Preferences } = await import('@capacitor/preferences');
             await Preferences.remove({ key: 'ota-migrated-session' });
-            console.log('[Auth] ✅ Successfully picked up migrated OTA session');
-          }
+          });
+
+          console.log('[Auth] ✅ Successfully picked up migrated OTA session');
         } catch (e) {
-          console.warn('[Auth] Session migration check failed:', e.message);
+          console.warn('[Auth] Session migration processing failed:', e.message);
         }
       }
 
@@ -188,22 +197,22 @@ const useAuthStore = create((set, get) => ({
       window.addEventListener('online', handleOnline);
 
       // Native platform listener
-      let appStateListenerPromise = null;
+      let appListener = null;
+
       if (isNativeWithPlugins()) {
-        try {
-          // App.addListener returns a promise (listener handle). If the plugin isn't implemented,
-          // the promise can reject asynchronously, so we MUST catch it here to avoid unhandled rejections.
-          appStateListenerPromise = App.addListener('appStateChange', (state) => {
-            if (state.isActive) {
-              smartRefresh('appStateChange');
-            }
-          }).catch((e) => {
-            console.warn('[Auth] App listener init failed (non-fatal):', e?.message || e);
-            return null;
-          });
-        } catch (e) {
-          console.warn('[Auth] App plugin not implemented or failed:', e.message);
-        }
+        const setupAppListener = async () => {
+          try {
+            const { App } = await import('@capacitor/app');
+            appListener = await App.addListener('appStateChange', (state) => {
+              if (state.isActive) {
+                smartRefresh('appStateChange');
+              }
+            });
+          } catch (e) {
+            console.warn('[Auth] App listener init failed:', e.message);
+          }
+        };
+        setupAppListener();
       }
 
       // ✅ CIRCUIT BREAKER: Listen for terminal connectivity failures
@@ -220,17 +229,14 @@ const useAuthStore = create((set, get) => ({
           handleVisibilityChange
         );
         window.removeEventListener('online', handleOnline);
-        if (appStateListenerPromise) {
-          Promise.resolve(appStateListenerPromise)
-            .then((listener) => {
-              if (listener && typeof listener.remove === 'function') {
-                return listener.remove();
-              }
-              return null;
-            })
-            .catch((e) => {
-              console.warn('[Auth] App listener cleanup failed:', e?.message || e);
-            });
+        if (appListener) {
+          try {
+            if (typeof appListener.remove === 'function') {
+              appListener.remove();
+            }
+          } catch (e) {
+            console.warn('[Auth] App listener cleanup failed:', e.message);
+          }
         }
       };
 

@@ -11,6 +11,7 @@ import TypingIndicator from './TypingIndicator';
 import { messageReadsService } from '../../services/messageReadsService';
 import debounce from 'lodash/debounce';
 import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from '../../utils/platformCheck';
 import hapticsManager from '../../utils/hapticsManager';
 import { UserDetailsContext } from '../../contexts/UserDetailsContext';
 import useIsDesktop from '../../hooks/useIsDesktop';
@@ -178,9 +179,8 @@ const ChatScreen = () => {
     const handleToggleEmoji = useCallback(() => {
         setShowEmojiPicker(prev => !prev);
     }, []);
-
     useEffect(() => {
-        if (!Capacitor.isNativePlatform()) return;
+        if (!isNativeWithPlugins()) return;
         let cleanup;
         const setup = async () => {
             try {

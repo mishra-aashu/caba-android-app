@@ -1,7 +1,6 @@
 import callService from './callService';
 import { Capacitor } from '@capacitor/core';
-import { Camera } from '@capacitor/camera';
-import { isNativeWithPlugins } from '../utils/platformCheck';
+import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 import { ICE_SERVERS, WEBRTC_CONFIG } from '../constants/webrtcConfig';
 import { generateCallId } from '../utils/idGenerators';
 
@@ -76,8 +75,11 @@ class WebRTCService {
     try {
       if (video) {
         console.log('Requesting camera permissions...');
-        const cameraPermissions = await Camera.requestPermissions({ permissions: ['camera'] });
-        if (cameraPermissions.camera !== 'granted') {
+        const cameraPermissions = await safePluginCall(
+          () => import('@capacitor/camera'),
+          (mod) => mod.Camera.requestPermissions({ permissions: ['camera', 'photos'] })
+        );
+        if (cameraPermissions?.camera !== 'granted') {
           throw new Error('Camera permission was denied.');
         }
       }

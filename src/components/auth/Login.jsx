@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
-import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from '../../utils/platformCheck';
 import ArrowLeft from 'lucide-react/dist/esm/icons/arrow-left';
 import CheckCircle from 'lucide-react/dist/esm/icons/check-circle';
 import Info from 'lucide-react/dist/esm/icons/info';
@@ -68,7 +68,7 @@ const Login = () => {
     <div className={`${styles['art-login-container']} ${styles['gpu-max']}`}>
 
       {/* Back Button - Top Left (Web Only) */}
-      {!Capacitor.isNativePlatform() && (
+      {!isNativeWithPlugins() && (
         <button className={styles['back-btn-top-left']} onClick={handleBackToLanding} title="Back to Home">
           <ArrowLeft size={24} />
         </button>

@@ -1,8 +1,6 @@
-import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
-import { isNativeWithPlugins } from './platformCheck';
+import { isNativeWithPlugins, safePluginCall } from './platformCheck';
 
-const CACHE_DIR = Directory.Data;
 const IMAGE_CACHE_FOLDER = 'image_cache';
 
 const pendingDownloads = new Map();
@@ -17,15 +15,17 @@ export const FileCache = {
      */
     async init() {
         if (!isNativeWithPlugins()) return;
-        try {
-            await Filesystem.mkdir({
+        
+        await safePluginCall(
+            () => import('@capacitor/filesystem'),
+            (mod, { Directory }) => mod.Filesystem.mkdir({
                 path: IMAGE_CACHE_FOLDER,
-                directory: CACHE_DIR,
+                directory: Directory.Data,
                 recursive: true
-            });
-        } catch (e) {
+            })
+        ).catch(() => {
             // Directory might already exist
-        }
+        });
     },
 
     /**
@@ -42,18 +42,27 @@ export const FileCache = {
 
         try {
             // Check if file exists
-            const stat = await Filesystem.stat({
-                path: filePath,
-                directory: CACHE_DIR
-            });
+            await safePluginCall(
+                () => import('@capacitor/filesystem'),
+                (mod, { Directory }) => mod.Filesystem.stat({
+                    path: filePath,
+                    directory: Directory.Data
+                })
+            );
 
             // return local path if exists
-            const uri = await Filesystem.getUri({
-                path: filePath,
-                directory: CACHE_DIR
-            });
+            const uri = await safePluginCall(
+                () => import('@capacitor/filesystem'),
+                (mod, { Directory }) => mod.Filesystem.getUri({
+                    path: filePath,
+                    directory: Directory.Data
+                })
+            );
 
-            return Capacitor.convertFileSrc(uri.uri);
+            if (uri && uri.uri) {
+                return Capacitor.convertFileSrc(uri.uri);
+            }
+            return remoteUrl;
         } catch (e) {
             // File doesn't exist, download it in background
             this.downloadAndCache(remoteUrl);
@@ -93,12 +102,14 @@ export const FileCache = {
                 const result = await dataUrlPromise;
                 const base64data = result.split(',')[1];
 
-                await Filesystem.writeFile({
-                    path: filePath,
-                    data: base64data,
-                    directory: CACHE_DIR
-                });
-                // console.log('[FileCache] Cached:', fileName);
+                await safePluginCall(
+                    () => import('@capacitor/filesystem'),
+                    (mod, { Directory }) => mod.Filesystem.writeFile({
+                        path: filePath,
+                        data: base64data,
+                        directory: Directory.Data
+                    })
+                );
             } catch (e) {
                 // console.error('[FileCache] Download failed:', e);
             } finally {

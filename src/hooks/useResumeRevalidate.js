@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useSupabase } from "../contexts/SupabaseContext";
-import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { isNativeWithPlugins } from '../utils/platformCheck';
 
@@ -8,41 +7,34 @@ export const useResumeRevalidate = () => {
   const { supabase, validateSessionAndRefresh, ensureConnected } = useSupabase();
 
   useEffect(() => {
-    // Note: Removed aggressive session refresh on visibility change
-    // Auto-reconnect is now handled by individual realtime hooks
-    // This prevents conflicts between old and new reconnection logic
+    let appListener = null;
 
-    let appStateListenerPromise = null;
     if (isNativeWithPlugins()) {
-      try {
-        // App.addListener returns a promise; ensure we catch async rejection.
-        appStateListenerPromise = App.addListener('appStateChange', (state) => {
-          console.log('App state changed:', state);
-          if (state.isActive) {
-            console.log('App resumed on native platform');
-            // Let individual hooks handle their own reconnection
-          }
-        }).catch((e) => {
-          console.warn('[ResumeRevalidate] App listener init failed (non-fatal):', e?.message || e);
-          return null;
-        });
-      } catch (e) {
-        console.warn('[ResumeRevalidate] App plugin not implemented:', e.message);
-      }
+      const setup = async () => {
+        try {
+          const { App } = await import('@capacitor/app');
+          appListener = await App.addListener('appStateChange', (state) => {
+            console.log('App state changed:', state);
+            if (state.isActive) {
+              console.log('App resumed on native platform');
+            }
+          });
+        } catch (e) {
+          console.warn('[ResumeRevalidate] App listener failed:', e.message);
+        }
+      };
+      setup();
     }
 
     return () => {
-      if (appStateListenerPromise) {
-        Promise.resolve(appStateListenerPromise)
-          .then((listener) => {
-            if (listener && typeof listener.remove === 'function') {
-              return listener.remove();
-            }
-            return null;
-          })
-          .catch((e) => {
-            console.warn('[ResumeRevalidate] App listener cleanup failed:', e?.message || e);
-          });
+      if (appListener) {
+        try {
+          if (typeof appListener.remove === 'function') {
+            appListener.remove();
+          }
+        } catch (e) {
+          console.warn('[ResumeRevalidate] Cleanup failed:', e.message);
+        }
       }
     };
   }, [supabase, ensureConnected]);

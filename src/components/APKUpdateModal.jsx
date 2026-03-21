@@ -11,6 +11,7 @@
  */
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 import { useAppVersions } from '../hooks/useAppVersions';
 import { isOlderVersion } from '../utils/versionUtils';
 
@@ -22,7 +23,7 @@ const APKUpdateModal = () => {
   const { data: versionData } = useAppVersions();
 
   // Only active on native Android
-  if (!Capacitor.isNativePlatform() || dismissed) return null;
+  if (!isNativeWithPlugins() || dismissed) return null;
   if (!versionData) return null;
 
   const { latest_version, min_required_version, apk_download_url, release_notes } = versionData;

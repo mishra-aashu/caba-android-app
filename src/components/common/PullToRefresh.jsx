@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from '../../utils/platformCheck';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../../styles/loaders.css';
 
@@ -12,7 +12,7 @@ const PullToRefresh = ({ onRefresh, children, isAtTop = true }) => {
   const [isPulling, setIsPulling] = useState(false);
   const touchStart = useRef(0);
   const scrollContainerRef = useRef(null);
-  const isNative = Capacitor.isNativePlatform();
+  const isNative = isNativeWithPlugins();
 
   const handleTouchStart = (e) => {
     if (isRefreshing || !scrollContainerRef.current) return;

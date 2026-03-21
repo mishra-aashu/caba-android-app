@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
-import { isNativeWithPlugins } from '../utils/platformCheck';
+import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -10,43 +9,35 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 let instance = null;
 
 // ── Resilient Storage Adapter ──
-// Falls back to localStorage if Preferences plugin fails or is not implemented.
+// Falls back to localStorage if Preferences plugin fails or is not available.
 const CapacitorStorage = {
   getItem: async (key) => {
-    if (!isNativeWithPlugins()) {
-      return window.localStorage.getItem(key);
-    }
-    try {
-      const { value } = await Preferences.get({ key });
-      return value;
-    } catch (e) {
-      console.warn(`[Supabase Storage] Preferences.get failed, falling back to localStorage:`, e.message);
-      return window.localStorage.getItem(key);
-    }
+    return safePluginCall(
+      async () => {
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value } = await Preferences.get({ key });
+        return value;
+      },
+      window.localStorage.getItem(key)
+    );
   },
   setItem: async (key, value) => {
-    if (!isNativeWithPlugins()) {
-      window.localStorage.setItem(key, value);
-      return;
-    }
-    try {
-      await Preferences.set({ key, value });
-    } catch (e) {
-      console.warn(`[Supabase Storage] Preferences.set failed, falling back to localStorage:`, e.message);
-      window.localStorage.setItem(key, value);
-    }
+    return safePluginCall(
+      async () => {
+        const { Preferences } = await import('@capacitor/preferences');
+        await Preferences.set({ key, value });
+      },
+      window.localStorage.setItem(key, value)
+    );
   },
   removeItem: async (key) => {
-    if (!isNativeWithPlugins()) {
-      window.localStorage.removeItem(key);
-      return;
-    }
-    try {
-      await Preferences.remove({ key });
-    } catch (e) {
-      console.warn(`[Supabase Storage] Preferences.remove failed, falling back to localStorage:`, e.message);
-      window.localStorage.removeItem(key);
-    }
+    return safePluginCall(
+      async () => {
+        const { Preferences } = await import('@capacitor/preferences');
+        await Preferences.remove({ key });
+      },
+      window.localStorage.removeItem(key)
+    );
   },
 };
 

@@ -1,6 +1,5 @@
-import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
-import { isNativeWithPlugins } from './platformCheck';
+import { isNativeWithPlugins, safePluginCall } from './platformCheck';
 
 /**
  * HapticsManager
@@ -13,47 +12,55 @@ export const hapticsManager = {
      * Impact feedback (light/medium/heavy)
      * Good for button clicks, message sends, etc.
      */
-    async impact(style = ImpactStyle.Light) {
+    async impact(styleName = 'Light') {
         if (!isNativeWithPlugins()) return;
-        try {
-            await Haptics.impact({ style });
-        } catch (e) {
-            console.warn('Haptics impact failed', e);
-        }
+        
+        await safePluginCall(
+            () => import('@capacitor/haptics'),
+            (mod, { ImpactStyle }) => mod.Haptics.impact({ 
+                style: ImpactStyle[styleName] || ImpactStyle.Light 
+            })
+        ).catch(() => {
+            // Silently fail or fallback if needed
+        });
     },
 
     /**
      * Notification feedback (Success/Warning/Error)
      * Good for form submissions, errors, etc.
      */
-    async notification(type = NotificationType.Success) {
+    async notification(typeName = 'Success') {
         if (!isNativeWithPlugins()) return;
-        try {
-            await Haptics.notification({ type });
-        } catch (e) {
-            console.warn('Haptics notification failed', e);
-        }
+        
+        await safePluginCall(
+            () => import('@capacitor/haptics'),
+            (mod, { NotificationType }) => mod.Haptics.notification({ 
+                type: NotificationType[typeName] || NotificationType.Success 
+            })
+        ).catch(() => {
+            // Silently fail
+        });
     },
 
     /**
      * Success feedback shorthand
      */
     async success() {
-        await this.notification(NotificationType.Success);
+        await this.notification('Success');
     },
 
     /**
      * Error feedback shorthand
      */
     async error() {
-        await this.notification(NotificationType.Error);
+        await this.notification('Error');
     },
 
     /**
      * Warning feedback shorthand
      */
     async warning() {
-        await this.notification(NotificationType.Warning);
+        await this.notification('Warning');
     },
 
     /**
@@ -62,12 +69,15 @@ export const hapticsManager = {
      */
     async selectionChanged() {
         if (!isNativeWithPlugins()) return;
-        try {
-            await Haptics.selectionChanged();
-        } catch (e) {
-            console.warn('Haptics selectionChanged failed', e);
-        }
+        
+        await safePluginCall(
+            () => import('@capacitor/haptics'),
+            (mod) => mod.Haptics.selectionChanged()
+        ).catch(() => {
+            // Silently fail
+        });
     }
 };
 
 export default hapticsManager;
+/* SAFE */

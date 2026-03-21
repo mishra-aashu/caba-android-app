@@ -13,6 +13,7 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { isNativeWithPlugins } from './utils/platformCheck';
 import { Capacitor } from '@capacitor/core';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import AutoRefreshBanner from './components/common/AutoRefreshBanner';
@@ -99,7 +100,7 @@ const PublicApp = () => {
   if (loading) return null;
 
   // Native App: Redirect unauthenticated users to login
-  const isNative = Capacitor.isNativePlatform();
+  const isNative = isNativeWithPlugins();
   if (!isAuthenticated && isNative && location.pathname === '/') {
     return <Navigate to="/login" replace />;
   }

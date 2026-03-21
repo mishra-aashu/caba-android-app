@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { chatDeletionService } from '../services/chatDeletionService';
 import toast from 'react-hot-toast';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { isNativeWithPlugins } from '../utils/platformCheck';
+import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 
 export const useChatDeletion = (currentUserId) => {
   const [selectionMode, setSelectionMode] = useState(false);
@@ -17,16 +16,20 @@ export const useChatDeletion = (currentUserId) => {
   // Refs for touch handlers
   const longPressTimerRef = useRef(null);
 
-  const triggerHaptic = async (style = ImpactStyle.Medium) => {
+  const triggerHaptic = (styleName = 'Medium') => {
     if (!isNativeWithPlugins()) {
       if (navigator.vibrate) navigator.vibrate(50);
       return;
     }
-    try {
-      await Haptics.impact({ style });
-    } catch (e) {
+
+    safePluginCall(
+      () => import('@capacitor/haptics'),
+      (mod, { ImpactStyle }) => mod.Haptics.impact({
+        style: ImpactStyle[styleName] || ImpactStyle.Medium
+      })
+    ).catch(() => {
       if (navigator.vibrate) navigator.vibrate(50);
-    }
+    });
   };
 
   const toggleSelectionMode = useCallback(() => {
@@ -134,7 +137,7 @@ export const useChatDeletion = (currentUserId) => {
   // Touch event handlers for Mobile Long Press
   const handleTouchStart = useCallback((chatId) => {
     longPressTimerRef.current = setTimeout(() => {
-      triggerHaptic(ImpactStyle.Heavy);
+      triggerHaptic('Heavy');
       setSelectionMode(true);
       toggleChatSelection(chatId);
     }, 500);

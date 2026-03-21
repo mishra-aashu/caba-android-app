@@ -24,6 +24,7 @@ import useOnlineStatus from './hooks/useOnlineStatus';
 import useNetworkSync from './hooks/useNetworkSync';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { isNativeWithPlugins } from './utils/platformCheck';
 import { Capacitor } from '@capacitor/core';
 import { initializePushNotifications } from './utils/PushNotifications';
 import { requestPersistentStorage } from './db/db';
@@ -169,7 +170,7 @@ const AppContent = () => {
     return <Intro onComplete={() => setSplashFinished(true)} />;
   }
 
-  const isNative = Capacitor.isNativePlatform();
+  const isNative = isNativeWithPlugins();
   if (!isAuthenticated && isNative && location.pathname === '/') {
     return <Navigate to="/login" replace />;
   }

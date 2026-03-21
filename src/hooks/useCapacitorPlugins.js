@@ -5,7 +5,9 @@
  *  1. StatusBar  → matches dark theme color (#1a1a2e), style DARK
  *  2. Keyboard   → sets resizeOnFullScreen so the webview shrinks, not overlaps
  *
- * Only runs on native Android/iOS (Capacitor.isNativePlatform()).
+ * Uses isNativeWithPlugins() instead of Capacitor.isNativePlatform()
+ * → Only runs when plugins ACTUALLY work (localhost, not Vercel)
+ * → After OTA redirect to Vercel, plugins are NOT available — safely skipped
  */
 
 import { useEffect } from 'react';
@@ -13,46 +15,45 @@ import { Capacitor } from '@capacitor/core';
 import { isNativeWithPlugins } from '../utils/platformCheck';
 
 export function useCapacitorPlugins() {
-    useEffect(() => {
-        if (!isNativeWithPlugins()) return;
+  useEffect(() => {
+    if (!isNativeWithPlugins()) return;
 
-        // ── StatusBar setup ──────────────────────────────────────────────────────
-        const setupStatusBar = async () => {
-            try {
-                const { StatusBar, Style } = await import('@capacitor/status-bar');
+    // ── StatusBar setup ──
+    const setupStatusBar = async () => {
+      try {
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
 
-                // Match the app's dark background (#1a1a2e → rgb(26, 26, 46))
-                await StatusBar.setBackgroundColor({ color: '#1a1a2e' });
+        // Match the app's dark background (#1a1a2e)
+        await StatusBar.setBackgroundColor({ color: '#1a1a2e' });
 
-                // DARK style = light text/icons on dark background
-                await StatusBar.setStyle({ style: Style.Dark });
+        // DARK style = light text/icons on dark background
+        await StatusBar.setStyle({ style: Style.Dark });
 
-                // Make sure it's visible (not hidden)
-                await StatusBar.show();
-            } catch (err) {
-                console.warn('[StatusBar] setup failed:', err);
-            }
-        };
+        // Make sure it's visible (not hidden)
+        await StatusBar.show();
+      } catch (err) {
+        console.warn('[StatusBar] setup failed:', err.message);
+      }
+    };
 
-        // ── Keyboard setup ───────────────────────────────────────────────────────
-        const setupKeyboard = async () => {
-            try {
-                const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard');
+    // ── Keyboard setup ──
+    const setupKeyboard = async () => {
+      try {
+        const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard');
 
-                // Native resize: the webview viewport shrinks when the keyboard appears.
-                // This is the most reliable way to ensure the chat input stays visible.
-                await Keyboard.setResizeMode({ mode: KeyboardResize.Native });
+        // Native resize: webview viewport shrinks when keyboard appears
+        await Keyboard.setResizeMode({ mode: KeyboardResize.Native });
 
-                // Disable the iOS-only "accessory bar" (optional, harmless on Android)
-                if (Capacitor.getPlatform() === 'ios') {
-                    await Keyboard.setAccessoryBarVisible({ isVisible: false });
-                }
-            } catch (err) {
-                console.warn('[Keyboard] setup failed:', err);
-            }
-        };
+        // Disable iOS-only accessory bar (harmless if not iOS)
+        if (Capacitor.getPlatform() === 'ios') {
+          await Keyboard.setAccessoryBarVisible({ isVisible: false });
+        }
+      } catch (err) {
+        console.warn('[Keyboard] setup failed:', err.message);
+      }
+    };
 
-        setupStatusBar();
-        setupKeyboard();
-    }, []);
+    setupStatusBar();
+    setupKeyboard();
+  }, []);
 }
