@@ -15,7 +15,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { onSWNeedRefresh, activateSWUpdate } from '../pwa';
-import { isNativeWithPlugins } from '../utils/platformCheck';
+import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 
 const VERSION_CHECK_INTERVAL = 5 * 60 * 1000;
 const INITIAL_CHECK_DELAY = 4000;

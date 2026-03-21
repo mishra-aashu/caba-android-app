@@ -1,4 +1,6 @@
 import React, { useReducer, useCallback, useEffect, useRef } from 'react';
+import { onSWNeedRefresh, activateSWUpdate } from '../pwa';
+import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 import { callService } from '../services/callService';
 import { webRTCService } from '../services/webrtcService';
 import { CallContext } from './CallContext';
@@ -87,13 +89,19 @@ export function CallProvider({ children, currentUser }) {
   const callStartTimeRef = useRef(null);
   const outgoingAudioRef = useRef(null);
   const incomingAudioRef = useRef(null);
-  const baseUrl = import.meta.env.BASE_URL || '/';
+
+  // Helper to get absolute asset path
+  const getAssetPath = useCallback((path) => {
+    // Ensuring root-relative path
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `${window.location.origin}${cleanPath}`;
+  }, []);
 
   // Initialize audio objects
   useEffect(() => {
     // Loaded once on mount, but incoming src will be updated dynamically
-    outgoingAudioRef.current = createAudio(`${baseUrl}assets/audio/outgoing_ring.ogg`);
-    incomingAudioRef.current = createAudio(`${baseUrl}assets/audio/fm-freemusic-give-me-a-smile(chosic.com).ogg`); // default
+    outgoingAudioRef.current = createAudio(getAssetPath('assets/audio/outgoing_ring.ogg'));
+    incomingAudioRef.current = createAudio(getAssetPath('assets/audio/fm-freemusic-give-me-a-smile(chosic.com).ogg')); // default
 
     return () => {
       if (outgoingAudioRef.current) {
@@ -134,7 +142,7 @@ export function CallProvider({ children, currentUser }) {
       // Update incoming ringtone from settings before playing
       const savedRingtone = localStorage.getItem('callRingtone') || 'fm-freemusic-give-me-a-smile(chosic.com).ogg';
       if (incomingAudioRef.current) {
-        incomingAudioRef.current.src = `${baseUrl}assets/audio/${savedRingtone}`;
+        incomingAudioRef.current.src = getAssetPath(`assets/audio/${savedRingtone}`);
       }
       playAudio(incomingAudioRef.current);
       stopAudio(outgoingAudioRef.current);
