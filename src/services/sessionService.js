@@ -28,6 +28,11 @@ let lastInitTime = 0; // Guard for rapid repeated calls
 const getLocationFromIP = async () => {
   if (cachedLocation) return cachedLocation;
 
+  // Skip if offline or on Vercel (where CORS often blocks it)
+  if (!navigator.onLine || window.location.hostname.includes('vercel.app')) {
+    return { ip: null, city: 'Offline/Vercel', country: 'Unknown', countryFlag: '🌍' };
+  }
+
   try {
     const res = await fetch('https://ipapi.co/json/', {
       signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined, // 4 second timeout
