@@ -196,7 +196,7 @@ const PublicRoute = ({ children }) => {
 // ProtectedRoute
 // ──────────────────────────────────────────────
 const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, dbUser } = useAuth();
+    const { isAuthenticated, dbUser, isDbUserLoaded } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const isDesktop = useIsDesktop();
@@ -210,9 +210,10 @@ const ProtectedRoute = ({ children }) => {
             setShowPhoneCollect(false);
         } else {
             setShowPhoneAuth(false);
-            setShowPhoneCollect(!!dbUser && (!dbUser.phone || dbUser.phone === '') && navigator.onLine);
+            const shouldCollect = !!dbUser && !dbUser._isFallback && isDbUserLoaded && (!dbUser.phone || dbUser.phone === '') && navigator.onLine;
+            setShowPhoneCollect(shouldCollect);
         }
-    }, [isAuthenticated, dbUser]);
+    }, [isAuthenticated, dbUser, isDbUserLoaded]);
 
     const handleAuthSuccess = () => {
         setShowPhoneAuth(false);

@@ -26,6 +26,7 @@ const useAuthStore = create((set, get) => ({
   loading: true,
   isPhoneAuth: false,
   isServerUnreachable: false,
+  isDbUserLoaded: false,
 
   clearServerError: () => set({ isServerUnreachable: false }),
 
@@ -152,7 +153,8 @@ const useAuthStore = create((set, get) => ({
                 user: null,
                 session: null,
                 dbUser: null,
-                isAuthenticated: false
+                isAuthenticated: false,
+                isDbUserLoaded: false
               });
               break;
 
@@ -361,7 +363,10 @@ const useAuthStore = create((set, get) => ({
         }
       }
       
-      set({ dbUser: dbToFrontend(dbUser) });
+      set({ 
+        dbUser: dbToFrontend(dbUser),
+        isDbUserLoaded: true 
+      });
     } catch (error) {
       console.error("❌ handleUserSession crashed:", error);
       // ✅ KABHI BHI "Login to View" mat dikhao agar session valid hai
@@ -371,8 +376,9 @@ const useAuthStore = create((set, get) => ({
           email: authUser.email,
           name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || "User",
           avatar: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
-          _fallback: true
-        })
+          _isFallback: true
+        }),
+        isDbUserLoaded: false // Reset or keep false if fallback
       });
     } finally {
       isHandlingSession = false;
@@ -499,7 +505,8 @@ const useAuthStore = create((set, get) => ({
       session: null,
       dbUser: null,
       isAuthenticated: false,
-      isPhoneAuth: false
+      isPhoneAuth: false,
+      isDbUserLoaded: false
     });
   },
 }));
