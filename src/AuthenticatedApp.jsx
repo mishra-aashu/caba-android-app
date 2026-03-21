@@ -102,8 +102,8 @@ const ProtectedLayout = ({ children }) => {
       setShowPhoneCollect(false);
     } else {
       setShowPhoneAuth(false);
-      // Show collect modal if phone is missing or blank
-      setShowPhoneCollect(!!dbUser && (!dbUser.phone || dbUser.phone === ''));
+      // Show collect modal if phone is missing/blank AND user is online
+      setShowPhoneCollect(!!dbUser && (!dbUser.phone || dbUser.phone === '') && navigator.onLine);
     }
   }, [isAuthenticated, dbUser]);
 

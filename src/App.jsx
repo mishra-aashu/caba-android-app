@@ -210,7 +210,7 @@ const ProtectedRoute = ({ children }) => {
             setShowPhoneCollect(false);
         } else {
             setShowPhoneAuth(false);
-            setShowPhoneCollect(!!dbUser && (!dbUser.phone || dbUser.phone === ''));
+            setShowPhoneCollect(!!dbUser && (!dbUser.phone || dbUser.phone === '') && navigator.onLine);
         }
     }, [isAuthenticated, dbUser]);
 
