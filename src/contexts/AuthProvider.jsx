@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
         cleanup();
       }
     };
-  }, [initializeAuth]);
+  }, []);
 
   useEffect(() => {
     const publicPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/terms', '/privacy', '/intro', '/admin-about', '/about', '/download-apk'];

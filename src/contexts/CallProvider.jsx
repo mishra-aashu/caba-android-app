@@ -92,9 +92,9 @@ export function CallProvider({ children, currentUser }) {
 
   // Helper to get absolute asset path
   const getAssetPath = useCallback((path) => {
-    // Ensuring root-relative path
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    return `${window.location.origin}${cleanPath}`;
+    // Ensuring root-relative path (relative to origin)
+    // Using simple relative paths works better in Capacitor WebViews
+    return path.startsWith('/') ? path : `/${path}`;
   }, []);
 
   // Initialize audio objects

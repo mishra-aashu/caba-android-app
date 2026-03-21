@@ -17,11 +17,17 @@ import { getDeviceInfo, getCountryFlag, getPersistentSessionId } from '../utils/
 // ── Constants ──
 const HEARTBEAT_INTERVAL = 2 * 60 * 1000; // 2 minutes
 
+let cachedLocation = null; // Memory cache for the session
+let isInitInProgress = false; // Guard for concurrent calls
+let lastInitTime = 0; // Guard for rapid repeated calls
+
 /**
  * Get approximate location from IP (free, no API key needed)
  * Uses ipapi.co (CORS-friendly, HTTPS supported)
  */
 const getLocationFromIP = async () => {
+  if (cachedLocation) return cachedLocation;
+
   try {
     const res = await fetch('https://ipapi.co/json/', {
       signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined, // 4 second timeout
@@ -30,15 +36,17 @@ const getLocationFromIP = async () => {
     const data = await res.json();
     
     // Mapping for ipapi.co response
-    return {
+    cachedLocation = {
       ip: data.ip,
       city: data.city || 'Unknown',
       country: data.country_name || 'Unknown',
       countryFlag: getCountryFlag(data.country_code),
     };
+    return cachedLocation;
   } catch (err) {
     console.warn('[Session] IP Location failed:', err.message);
-    return null;
+    // Return a placeholder to prevent repeated fetches in a loop if it's failing
+    return { ip: null, city: 'Unknown', country: 'Unknown', countryFlag: '🌍' };
   }
 };
 
@@ -72,7 +80,18 @@ export const sessionService = {
  * @returns {Object} Session record
  */
 async initSession(userId, loginMethod = 'google') {
-  const sessionId = getPersistentSessionId();
+  // Prevent redundant calls — especially loops
+  const now = Date.now();
+  if (isInitInProgress || (now - lastInitTime < 5000)) {
+    console.log('[Session] Init skipped (in progress or too soon)');
+    return null;
+  }
+
+  isInitInProgress = true;
+  lastInitTime = now;
+
+  try {
+    const sessionId = getPersistentSessionId();
   const device = getDeviceInfo();
   const location = await getLocationFromIP();
 
@@ -126,7 +145,10 @@ async initSession(userId, loginMethod = 'google') {
     loginMethod,
   });
 
-  return data;
+    return data;
+  } finally {
+    isInitInProgress = false;
+  }
 },
 
 /**

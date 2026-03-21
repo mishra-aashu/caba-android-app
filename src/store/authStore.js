@@ -16,6 +16,7 @@ const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum
 let isHandlingSession = false; // Prevent duplicate handleUserSession calls
 let isRefreshing = false; // ✅ Prevent concurrent refreshSession calls
 let isGoogleAuthInitialized = false; // ✅ Optimized one-time init
+let isAuthInitialized = false; // ✅ Prevent redundant initializeAuth calls
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -29,6 +30,8 @@ const useAuthStore = create((set, get) => ({
   clearServerError: () => set({ isServerUnreachable: false }),
 
   initializeAuth: async () => {
+    if (isAuthInitialized) return;
+    isAuthInitialized = true;
     try {
       // ── Session Migration Check (for OTA domain switches) ──
 
