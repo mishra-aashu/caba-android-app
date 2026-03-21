@@ -112,9 +112,10 @@ const AppContent = () => {
         return <Intro onComplete={() => setSplashFinished(true)} />;
     }
 
-    // Native App: Direct redirect for unauthenticated users
-    const isNative = isNativeWithPlugins();
-    if (!isAuthenticated && isNative && location.pathname === '/') {
+    // Native App: Direct redirect to login for unauthenticated users
+    // Using Capacitor.isNativePlatform() directly here because it's safe on Vercel origin 
+    // and correctly identifies the platform even after redirect.
+    if (!isAuthenticated && Capacitor.isNativePlatform() && location.pathname === '/') {
         return <Navigate to="/login" replace />;
     }
 
