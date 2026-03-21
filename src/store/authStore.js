@@ -377,30 +377,48 @@ const useAuthStore = create((set, get) => ({
   },
 
   signInWithGoogle: async () => {
-    set({ isServerUnreachable: false }); // Reset error state on new attempt
-    console.log('[Auth] signInWithGoogle initialized, platform:', Capacitor.getPlatform(), 'isNativeWithPlugins:', isNativeWithPlugins());
+    set({ isServerUnreachable: false }); 
+    const isPlatformNative = Capacitor.isNativePlatform();
+    console.log('[Auth] signInWithGoogle initialized, nativePlatform:', isPlatformNative);
+
     try {
-      if (isNativeWithPlugins()) {
-        if (!isGoogleAuthInitialized) {
-          try {
-            await GoogleAuth.initialize({
-              clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
-              scopes: ['profile', 'email'],
-              grantOfflineAccess: true,
-            });
-            isGoogleAuthInitialized = true;
-          } catch (initError) {
-            console.warn('GoogleAuth already initialized or failed:', initError);
-            isGoogleAuthInitialized = true; // Mark as true anyway to prevent retries
+      if (isPlatformNative) {
+        // ── NATIVE LOGIN ──
+        // Note: Using native plugins on Vercel origin can be unstable if the bridge is failing.
+        // We use safePluginCall for everything.
+        
+        return await safePluginCall(async () => {
+          if (!isGoogleAuthInitialized) {
+            try {
+              await GoogleAuth.initialize({
+                clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+                scopes: ['profile', 'email'],
+                grantOfflineAccess: true,
+              });
+              isGoogleAuthInitialized = true;
+            } catch (initError) {
+              console.warn('[Auth] GoogleAuth init failed or already done:', initError);
+              isGoogleAuthInitialized = true; 
+            }
           }
-        }
-        const googleUser = await GoogleAuth.signIn();
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: googleUser.authentication.idToken,
-        });
-        if (error) throw error;
-        return { success: true };
+
+          console.log('[Auth] Triggering native GoogleAuth.signIn()...');
+          const googleUser = await GoogleAuth.signIn();
+          
+          if (!googleUser?.authentication?.idToken) {
+            throw new Error('Google Sign-In failed: No ID Token returned');
+          }
+
+          const { error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: googleUser.authentication.idToken,
+          });
+
+          if (error) throw error;
+          console.log('[Auth] Native Google login successful');
+          return { success: true };
+        }, { success: false, error: 'Native bridge unavailable - please try again or use web' });
+
       } else {
         const redirectUrl = getRedirectUrl();
         console.log('[Auth] Using Web OAuth flow with direct bypass redirect...');

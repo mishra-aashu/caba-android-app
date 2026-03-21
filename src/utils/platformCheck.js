@@ -2,18 +2,14 @@
  * platformCheck.js
  *
  * After OTA redirect to Vercel, app runs inside Android WebView
- * but on Vercel domain. Capacitor plugins ONLY work on localhost.
- *
- * Capacitor.isNativePlatform() = TRUE  (still in WebView)
- * Plugins available?           = FALSE (not on localhost)
- *
- * This utility gives CORRECT answers.
+ * but on Vercel domain. Capacitor core is usually available,
+ * but plugins might be unstable if the bridge fails.
  */
 
 import { Capacitor } from '@capacitor/core';
 
 /**
- * TRUE only when Capacitor plugins actually work
+ * TRUE only when Capacitor plugins are guaranteed to work
  * (running on localhost inside native WebView)
  */
 export const isNativeWithPlugins = () => {
@@ -32,39 +28,48 @@ export const isNativeWithPlugins = () => {
 
 /**
  * TRUE when running from Vercel (after OTA redirect)
- * Still inside Android WebView but on external URL
  */
 export const isRunningOnVercel = () => {
   return window.location.hostname.includes('vercel.app');
 };
 
 /**
- * TRUE when inside ANY native WebView
- * (both localhost AND Vercel)
+ * TRUE when inside ANY native WebView (localhost or Vercel)
  */
 export const isInsideWebView = () => {
   return Capacitor.isNativePlatform();
 };
 
 /**
- * Safely call a Capacitor plugin
- * Returns fallback if plugins not available
- *
- * Usage:
- *   const result = await safePluginCall(
- *     async () => {
- *       const { Preferences } = await import('@capacitor/preferences');
- *       return Preferences.get({ key: 'my-key' });
- *     },
- *     { value: null }
- *   );
+ * Safely call a Capacitor plugin.
+ * Root Fix: Instead of just checking for "localhost", we check if the 
+ * window.Capacitor bridge is functional. This allows plugins to work 
+ * on Vercel IF the bridge is properly injected.
  */
 export const safePluginCall = async (pluginFn, fallbackValue = null) => {
-  if (!isNativeWithPlugins()) return fallbackValue;
+  const isNative = Capacitor.isNativePlatform();
+  
+  // 1. If not native at all (pure web browser), always use fallback
+  if (!isNative) return fallbackValue;
+
+  // 2. Check bridge health (Root of "window.Capacitor.triggerEvent is not a function")
+  const isBridgeHealthy = 
+    typeof window !== 'undefined' && 
+    window.Capacitor && 
+    typeof window.Capacitor.triggerEvent === 'function';
+
+  if (!isBridgeHealthy) {
+    if (isRunningOnVercel()) {
+      console.warn('[Plugin] Bridge not functional on Vercel. Falling back.');
+    }
+    return fallbackValue;
+  }
+
+  // 3. Final safety: try-catch the actual plugin call
   try {
     return await pluginFn();
   } catch (e) {
-    console.warn('[Plugin] Call failed:', e.message);
+    console.warn('[Plugin] Runtime call failed:', e.message);
     return fallbackValue;
   }
 };
