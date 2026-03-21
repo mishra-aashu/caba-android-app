@@ -1,6 +1,7 @@
 import callService from './callService';
 import { Capacitor } from '@capacitor/core';
 import { Camera } from '@capacitor/camera';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 import { ICE_SERVERS, WEBRTC_CONFIG } from '../constants/webrtcConfig';
 import { generateCallId } from '../utils/idGenerators';
 
@@ -58,7 +59,7 @@ class WebRTCService {
    * Request media permissions for Camera and Microphone
    */
   async requestMediaPermissions(video = true, audio = true) {
-    if (!Capacitor.isNativePlatform()) {
+    if (!isNativeWithPlugins()) {
       console.log('Checking permissions on web...');
       try {
         // Just a check, the real stream is acquired later

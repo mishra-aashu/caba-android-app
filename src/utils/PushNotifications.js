@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { isNativeWithPlugins } from './platformCheck';
 import { supabase } from '../config/supabase';
 
 async function saveTokenToSupabase(token) {
@@ -49,7 +50,7 @@ export const initializePushNotifications = async () => {
     const platform = Capacitor.getPlatform();
 
     // --- ANDROID/iOS LOGIC ---
-    if (platform !== 'web') {
+    if (isNativeWithPlugins()) {
       try {
         await PushNotifications.requestPermissions();
         await PushNotifications.register();

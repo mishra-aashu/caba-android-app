@@ -1,5 +1,6 @@
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from './platformCheck';
 
 /**
  * HapticsManager
@@ -13,7 +14,7 @@ export const hapticsManager = {
      * Good for button clicks, message sends, etc.
      */
     async impact(style = ImpactStyle.Light) {
-        if (!Capacitor.isNativePlatform()) return;
+        if (!isNativeWithPlugins()) return;
         try {
             await Haptics.impact({ style });
         } catch (e) {
@@ -26,7 +27,7 @@ export const hapticsManager = {
      * Good for form submissions, errors, etc.
      */
     async notification(type = NotificationType.Success) {
-        if (!Capacitor.isNativePlatform()) return;
+        if (!isNativeWithPlugins()) return;
         try {
             await Haptics.notification({ type });
         } catch (e) {
@@ -60,7 +61,7 @@ export const hapticsManager = {
      * Good for scrolling through a picker or toggling a switch.
      */
     async selectionChanged() {
-        if (!Capacitor.isNativePlatform()) return;
+        if (!isNativeWithPlugins()) return;
         try {
             await Haptics.selectionChanged();
         } catch (e) {

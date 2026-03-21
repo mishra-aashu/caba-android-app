@@ -29,6 +29,48 @@
 
   <!--
     ═══════════════════════════════════════════════════════════
+    OTA Redirect & Rollback Safety (Phase 1 & 2)
+    ═══════════════════════════════════════════════════════════
+    1. Check for stored Vercel URL
+    2. Detect "Crash Loop" (3 crashes in 60s)
+    3. Redirect immediately to avoid "Banner Loop"
+  -->
+  <script type="text/javascript">
+    (function () {
+      const url = localStorage.getItem('ota-target-url');
+      if (!url) return;
+      
+      // If we are already on the target origin, do nothing
+      try {
+        if (window.location.origin === new URL(url).origin) return;
+      } catch (e) { return; }
+
+      // --- IDEA 4: Rollback Safety Net ---
+      const now = Date.now();
+      const lastCrash = parseInt(localStorage.getItem('ota-last-crash') || '0');
+      const crashCount = parseInt(localStorage.getItem('ota-crash-count') || '0');
+
+      if (now - lastCrash < 60000) {
+        if (crashCount >= 3) {
+          console.error('[OTA] Crash Loop detected — rolling back to APK');
+          localStorage.removeItem('ota-target-url');
+          localStorage.removeItem('ota-crash-count');
+          return;
+        }
+        localStorage.setItem('ota-crash-count', (crashCount + 1).toString());
+      } else {
+        localStorage.setItem('ota-crash-count', '1');
+      }
+      localStorage.setItem('ota-last-crash', now.toString());
+      // -----------------------------------
+
+      console.log('[OTA] Early redirect to:', url);
+      window.location.replace(url);
+    })();
+  </script>
+
+  <!--
+    ═══════════════════════════════════════════════════════════
     GitHub Pages SPA redirect (existing — untouched)
     ═══════════════════════════════════════════════════════════
   -->

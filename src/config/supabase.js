@@ -1,20 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Singleton instance to prevent multiple connections
 let instance = null;
-const isPreferencesAvailable = () =>
-  Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Preferences');
 
 // ── Resilient Storage Adapter ──
 // Falls back to localStorage if Preferences plugin fails or is not implemented.
 const CapacitorStorage = {
   getItem: async (key) => {
-    if (!isPreferencesAvailable()) {
+    if (!isNativeWithPlugins()) {
       return window.localStorage.getItem(key);
     }
     try {
@@ -26,7 +25,7 @@ const CapacitorStorage = {
     }
   },
   setItem: async (key, value) => {
-    if (!isPreferencesAvailable()) {
+    if (!isNativeWithPlugins()) {
       window.localStorage.setItem(key, value);
       return;
     }
@@ -38,7 +37,7 @@ const CapacitorStorage = {
     }
   },
   removeItem: async (key) => {
-    if (!isPreferencesAvailable()) {
+    if (!isNativeWithPlugins()) {
       window.localStorage.removeItem(key);
       return;
     }
@@ -70,7 +69,7 @@ const createSupabaseClient = () => {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: isPreferencesAvailable() ? CapacitorStorage : window.localStorage,
+      storage: isNativeWithPlugins() ? CapacitorStorage : window.localStorage,
     },
     db: {
       schema: 'public'

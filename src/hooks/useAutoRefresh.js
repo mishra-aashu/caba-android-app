@@ -44,6 +44,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 import { onSWNeedRefresh, activateSWUpdate } from '../pwa';
 import { supabase } from '../config/supabase';
 
@@ -61,14 +62,18 @@ const OTA_SESSION_GUARD = 'ota-just-refreshed';
 const OTA_AUTO_ACTIVATE_SW_KEY = 'ota-auto-activate-sw';
 
 // ── Remote Origin ──
-// This is where your app is deployed on Vercel
 const REMOTE_ORIGIN = 'https://caba-android-app.vercel.app';
+
+// ── IDEA 2: Graceful Moments (Safe Routes) ──
+const SAFE_UPDATE_ROUTES = ['/', '/settings', '/contacts', '/profile', '/history'];
+const UNSAFE_UPDATE_PREFIXES = ['/chat/', '/call/', '/room/'];
 
 export const useAutoRefresh = () => {
   // ── State ──
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState({ changelog: [], priority: 'normal' });
 
   // ── Refs (persist across renders without triggering re-renders) ──
   const currentBuildTimeRef = useRef(null);    // Local build time from <meta> tag
@@ -142,6 +147,14 @@ export const useAutoRefresh = () => {
     if (sessionStorage.getItem(OTA_SESSION_GUARD)) {
       sessionStorage.removeItem(OTA_SESSION_GUARD);
     }
+
+    // ── 1d. IDEA 4 Success Signal: Clear crash count after 60s of stability ──
+    const stabilityTimer = setTimeout(() => {
+      console.log('[AutoRefresh] Stability period reached — clearing crash count');
+      localStorage.removeItem('ota-crash-count');
+    }, 60000);
+
+    return () => clearTimeout(stabilityTimer);
   }, []);
 
   // ═══════════════════════════════════════════════════════════
@@ -191,6 +204,8 @@ export const useAutoRefresh = () => {
 
         const data = await response.json();
         const remoteBuildTime = data.buildTime ? String(data.buildTime) : null;
+        const changelog = data.changelog || [];
+        const priority = data.priority || 'normal';
 
         // ── Validate remote data ──
         if (!remoteBuildTime) {
@@ -221,15 +236,12 @@ export const useAutoRefresh = () => {
           `  Local:  ${localBuildTime} (${localDate})`
         );
 
+        setUpdateInfo({ changelog, priority });
         setNeedsRefresh(true);
       }
     } catch (error) {
-      // Non-fatal — will retry on next interval
+      // Non-fatal — will retry on next trigger
       console.warn('[AutoRefresh] Version check failed:', error.message);
-    } finally {
-      // ── Schedule next check ──
-      if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
-      checkTimeoutRef.current = setTimeout(checkForUpdates, VERSION_CHECK_INTERVAL);
     }
   }, [isRefreshing, isDismissed]);
 
@@ -241,23 +253,30 @@ export const useAutoRefresh = () => {
   // - Regular interval every 5 minutes
   // ═══════════════════════════════════════════════════════════
   useEffect(() => {
-    // Initial delayed check
+    // Initial delayed check (Cold Start)
     const initialTimer = setTimeout(checkForUpdates, INITIAL_CHECK_DELAY);
 
-    // Re-check when user returns to app/tab
+    // ── IDEA 7: Smart Scheduling (Background Return) ──
+    // Re-check when user returns to app/tab, but only if some time has passed
+    let lastCheckTime = Date.now();
+
     const handleVisibility = () => {
       if (!document.hidden && navigator.onLine !== false) {
-        // Small delay to avoid check during tab-switch animation
-        setTimeout(checkForUpdates, 1000);
+        const now = Date.now();
+        const minutesSinceLastCheck = (now - lastCheckTime) / (1000 * 60);
+
+        if (minutesSinceLastCheck >= 30) {
+          console.log(`[AutoRefresh] Checking after ${Math.round(minutesSinceLastCheck)}m background duration...`);
+          lastCheckTime = now;
+          setTimeout(checkForUpdates, 1000);
+        }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
 
-    // Cleanup
     return () => {
       clearTimeout(initialTimer);
-      if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [checkForUpdates]);
@@ -302,25 +321,27 @@ export const useAutoRefresh = () => {
 
         // 2. Also persist in Capacitor Preferences (backup — survives app data clear)
         // AND handle session migration (allows staying logged in on Vercel)
-        try {
-          const { Preferences } = await import('@capacitor/preferences');
-          await Preferences.set({ key: OTA_TARGET_KEY, value: targetUrl });
-          
-          // --- session migration ---
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            await Preferences.set({ 
-              key: 'ota-migrated-session', 
-              value: JSON.stringify(session) 
-            });
-            console.log('[AutoRefresh] ✅ Session migrated to Preferences');
-          }
-          // -------------------------
+        if (isNativeWithPlugins()) {
+          try {
+            const { Preferences } = await import('@capacitor/preferences');
+            await Preferences.set({ key: OTA_TARGET_KEY, value: targetUrl });
 
-          console.log('[AutoRefresh] ✅ Target URL backed up in Capacitor Preferences');
-        } catch (e) {
-          // Not critical — localStorage is primary
-          console.warn('[AutoRefresh] Preferences backup failed (non-critical):', e.message);
+            // --- session migration ---
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              await Preferences.set({
+                key: 'ota-migrated-session',
+                value: JSON.stringify(session)
+              });
+              console.log('[AutoRefresh] ✅ Session migrated to Preferences');
+            }
+            // -------------------------
+
+            console.log('[AutoRefresh] ✅ Target URL backed up in Capacitor Preferences');
+          } catch (e) {
+            // Not critical — localStorage is primary
+            console.warn('[AutoRefresh] Preferences backup/migration failed (non-critical):', e.message);
+          }
         }
 
         // 3. Unregister local SW (no longer needed — Vercel has its own)
@@ -409,12 +430,33 @@ export const useAutoRefresh = () => {
     console.log('[AutoRefresh] Banner dismissed by user');
   }, []);
 
+  // ── IDEA 2: Graceful Moments logic ──
+  const isSafeRoute = () => {
+    try {
+      // HashRouter context might not be available if hook used outside provider,
+      // but usually App level is safe.
+      const path = window.location.hash.replace(/^#/, '') || '/';
+      
+      // Specifically unsafe prefixes
+      if (UNSAFE_UPDATE_PREFIXES.some(prefix => path.startsWith(prefix))) return false;
+      
+      // Explicitly safe routes
+      if (SAFE_UPDATE_ROUTES.includes(path)) return true;
+      
+      // Default to true for standard pages
+      return true;
+    } catch (e) { return true; }
+  };
+
+  const shouldShowPrompt = needsRefresh && !isDismissed && isSafeRoute();
+
   // ── Return API ──
   return {
-    needsRefresh: needsRefresh && !isDismissed,
+    needsRefresh: shouldShowPrompt,
     handleRefresh,
     handleDismiss,
     checkForUpdates,
     isRefreshing,
+    updateInfo,
   };
 };

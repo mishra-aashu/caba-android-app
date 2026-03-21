@@ -5,6 +5,7 @@ import { getRedirectUrl } from '../utils/authUtils';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 import { createClient } from '@supabase/supabase-js';
 
 // Direct Supabase URL for bypassing proxy during OAuth redirects
@@ -16,10 +17,6 @@ const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum
 let isHandlingSession = false; // Prevent duplicate handleUserSession calls
 let isRefreshing = false; // ✅ Prevent concurrent refreshSession calls
 let isGoogleAuthInitialized = false; // ✅ Optimized one-time init
-const isPreferencesAvailable = () =>
-  Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Preferences');
-const isAppPluginAvailable = () =>
-  Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('App');
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -35,7 +32,7 @@ const useAuthStore = create((set, get) => ({
   initializeAuth: async () => {
     try {
       // ── Session Migration Check (for OTA domain switches) ──
-      if (isPreferencesAvailable()) {
+      if (isNativeWithPlugins()) {
         try {
           const { Preferences } = await import('@capacitor/preferences');
           const { value: migratedSessionJson } = await Preferences.get({ key: 'ota-migrated-session' });
@@ -192,7 +189,7 @@ const useAuthStore = create((set, get) => ({
 
       // Native platform listener
       let appStateListenerPromise = null;
-      if (isAppPluginAvailable()) {
+      if (isNativeWithPlugins()) {
         try {
           // App.addListener returns a promise (listener handle). If the plugin isn't implemented,
           // the promise can reject asynchronously, so we MUST catch it here to avoid unhandled rejections.
@@ -351,9 +348,9 @@ const useAuthStore = create((set, get) => ({
 
   signInWithGoogle: async () => {
     set({ isServerUnreachable: false }); // Reset error state on new attempt
-    console.log('[Auth] signInWithGoogle initialized, platform:', Capacitor.getPlatform(), 'isNative:', Capacitor.isNativePlatform());
+    console.log('[Auth] signInWithGoogle initialized, platform:', Capacitor.getPlatform(), 'isNativeWithPlugins:', isNativeWithPlugins());
     try {
-      if (Capacitor.isNativePlatform()) {
+      if (isNativeWithPlugins()) {
         if (!isGoogleAuthInitialized) {
           try {
             await GoogleAuth.initialize({

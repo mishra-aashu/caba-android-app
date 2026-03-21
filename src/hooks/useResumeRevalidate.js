@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSupabase } from "../contexts/SupabaseContext";
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 
 export const useResumeRevalidate = () => {
   const { supabase, validateSessionAndRefresh, ensureConnected } = useSupabase();
@@ -12,7 +13,7 @@ export const useResumeRevalidate = () => {
     // This prevents conflicts between old and new reconnection logic
 
     let appStateListenerPromise = null;
-    if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('App')) {
+    if (isNativeWithPlugins()) {
       try {
         // App.addListener returns a promise; ensure we catch async rejection.
         appStateListenerPromise = App.addListener('appStateChange', (state) => {

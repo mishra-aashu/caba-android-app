@@ -299,7 +299,7 @@ const SafeSuspense = ({ children, fallback = null }) => (
 // ──────────────────────────────────────────────
 const App = () => {
     const { dbUser, loading: authLoading } = useAuth();
-    const { needsRefresh, handleRefresh, handleDismiss, isRefreshing } = useAutoRefresh();
+    const { needsRefresh, handleRefresh, handleDismiss, isRefreshing, updateInfo } = useAutoRefresh();
 
     useCapacitorPlugins();
 
@@ -373,6 +373,7 @@ const App = () => {
                                 isRefreshing={isRefreshing}
                                 handleRefresh={handleRefresh}
                                 handleDismiss={handleDismiss}
+                                updateInfo={updateInfo}
                             />
                         </SafeSuspense>
                     </GroupCallProvider>

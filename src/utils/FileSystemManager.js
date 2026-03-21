@@ -1,7 +1,9 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { isNativeWithPlugins } from './platformCheck';
 
 // 1. Permission Maango aur Folder Banao
 export const initializeFileSystem = async () => {
+  if (!isNativeWithPlugins()) return;
   try {
     try {
       const { type } = await Filesystem.stat({
@@ -63,6 +65,7 @@ export const initializeFileSystem = async () => {
 
 // --- CHATS KO SAVE KARNA (WRITE) ---
 export const saveChatsToDevice = async (allChats) => {
+  if (!isNativeWithPlugins()) return;
   try {
     // Ensure parent directory exists before writing
     await Filesystem.mkdir({
@@ -84,6 +87,7 @@ export const saveChatsToDevice = async (allChats) => {
 
 // --- CHATS KO LOAD KARNA (READ) ---
 export const loadChatsFromDevice = async () => {
+  if (!isNativeWithPlugins()) return [];
   try {
     const contents = await Filesystem.readFile({
       path: 'CaBa/chats.json',
@@ -98,6 +102,7 @@ export const loadChatsFromDevice = async () => {
 };
 
 export const saveImageToDevice = async (photoUrl, messageId) => {
+  if (!isNativeWithPlugins()) return photoUrl;
   try {
     // 1. Image Download karo
     const response = await fetch(photoUrl);
@@ -136,7 +141,7 @@ const convertBlobToBase64 = (blob) => new Promise((resolve, reject) => {
 
 // --- SAVE MESSAGES FOR A CHAT ---
 export const saveMessagesToDevice = async (chatId, messages) => {
-  if (!chatId) return;
+  if (!chatId || !isNativeWithPlugins()) return;
   try {
     // Ensure parent directory exists before writing
     await Filesystem.mkdir({
@@ -158,7 +163,7 @@ export const saveMessagesToDevice = async (chatId, messages) => {
 
 // --- LOAD MESSAGES FOR A CHAT ---
 export const loadMessagesFromDevice = async (chatId) => {
-  if (!chatId) return [];
+  if (!chatId || !isNativeWithPlugins()) return [];
   try {
     const path = `CaBa/Messages/chat_${chatId}.json`;
     const contents = await Filesystem.readFile({
@@ -174,6 +179,7 @@ export const loadMessagesFromDevice = async (chatId) => {
 
 // --- CLEAR ALL CACHED DATA ---
 export const clearAllCachedData = async () => {
+  if (!isNativeWithPlugins()) return;
   try {
     // Delete the entire CaBa directory
     await Filesystem.rmdir({

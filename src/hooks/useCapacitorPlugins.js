@@ -10,10 +10,11 @@
 
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 
 export function useCapacitorPlugins() {
     useEffect(() => {
-        if (!Capacitor.isNativePlatform()) return;
+        if (!isNativeWithPlugins()) return;
 
         // ── StatusBar setup ──────────────────────────────────────────────────────
         const setupStatusBar = async () => {

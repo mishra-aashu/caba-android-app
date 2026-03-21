@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { chatDeletionService } from '../services/chatDeletionService';
 import toast from 'react-hot-toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 
 export const useChatDeletion = (currentUserId) => {
   const [selectionMode, setSelectionMode] = useState(false);
@@ -17,10 +18,13 @@ export const useChatDeletion = (currentUserId) => {
   const longPressTimerRef = useRef(null);
 
   const triggerHaptic = async (style = ImpactStyle.Medium) => {
+    if (!isNativeWithPlugins()) {
+      if (navigator.vibrate) navigator.vibrate(50);
+      return;
+    }
     try {
       await Haptics.impact({ style });
     } catch (e) {
-      // Fallback for web
       if (navigator.vibrate) navigator.vibrate(50);
     }
   };

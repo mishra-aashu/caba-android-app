@@ -1,5 +1,6 @@
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
+import { isNativeWithPlugins } from './platformCheck';
 
 const CACHE_DIR = Directory.Data;
 const IMAGE_CACHE_FOLDER = 'image_cache';
@@ -15,7 +16,7 @@ export const FileCache = {
      * Initialize the cache directory
      */
     async init() {
-        if (!Capacitor.isNativePlatform()) return;
+        if (!isNativeWithPlugins()) return;
         try {
             await Filesystem.mkdir({
                 path: IMAGE_CACHE_FOLDER,
@@ -33,7 +34,7 @@ export const FileCache = {
      * @returns {Promise<string>} localUrl or remoteUrl if failed
      */
     async getCachedUrl(remoteUrl) {
-        if (!remoteUrl || !Capacitor.isNativePlatform()) return remoteUrl;
+        if (!remoteUrl || !isNativeWithPlugins()) return remoteUrl;
         if (!remoteUrl.startsWith('http')) return remoteUrl;
 
         const fileName = this._urlToFileName(remoteUrl);
@@ -65,7 +66,7 @@ export const FileCache = {
      * @param {string} remoteUrl 
      */
     async downloadAndCache(remoteUrl) {
-        if (!remoteUrl || !Capacitor.isNativePlatform() || !navigator.onLine) return;
+        if (!remoteUrl || !isNativeWithPlugins() || !navigator.onLine) return;
         if (!remoteUrl.startsWith('http')) return;
 
         // Deduplicate inflight downloads
