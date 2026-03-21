@@ -12,11 +12,13 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     z-index: 10000;
     animation: menuPop 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    /* [FIX #5] Smooth transition for repositioning */
+    /* [FIX] Smooth transition for repositioning */
     transition: opacity 0.1s ease;
-    /* Prevent text selection while interacting with menu */
     user-select: none;
     -webkit-user-select: none;
+    max-height: 85vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* ──────────────────────────────────────────────
@@ -104,8 +106,8 @@
 .menu-reactions-row {
     display: flex;
     justify-content: center;
-    gap: 2px;
-    padding: 8px 10px;
+    gap: 1px;
+    padding: 6px 4px;
     background: rgba(255, 255, 255, 0.04);
 }
 
@@ -205,18 +207,27 @@
    ────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .context-menu {
-        min-width: 180px;
+        min-width: 160px;
+        max-width: 230px;
+        border-radius: 10px;
     }
 
     .menu-item {
-        padding: 12px 16px;
-        font-size: 14px;
+        padding: 10px 14px;
+        gap: 10px;
+        font-size: 13px;
     }
 
     .menu-reaction-btn {
-        font-size: 22px;
-        min-width: 40px;
-        min-height: 40px;
+        font-size: 18px;
+        min-width: 28px;
+        min-height: 28px;
+        padding: 2px;
+    }
+
+    .menu-reactions-row {
+        padding: 6px 4px;
+        gap: 1px;
     }
 
     /* Slight dark backdrop on mobile for better UX */

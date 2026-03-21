@@ -53,32 +53,42 @@ const MessageItem = ({
   // [FIX #8] Track touch vs mouse to prevent double-firing
   const isTouchDevice = useRef(false);
 
-  const handleTouchStart = () => {
+  const handleTouchStart = (e) => {
     isTouchDevice.current = true;
     isLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
-      if (!isSelectionMode) {
-        hapticsManager.impact();
+      if (isSelectionMode) {
         toggleSelection(msgId);
+      } else {
+        hapticsManager.impact();
+        setMenuPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+        setShowActions(true);
       }
     }, 500);
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
+    }
+    if (isLongPress.current) {
+      e.preventDefault();
+      e.stopPropagation();
     }
   };
 
   // [FIX #8] Mouse handlers only fire if not a touch device
-  const handleMouseDown = () => {
+  const handleMouseDown = (e) => {
     if (isTouchDevice.current) return;
     isLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
-      if (!isSelectionMode) {
+      if (isSelectionMode) {
         toggleSelection(msgId);
+      } else {
+        setMenuPos({ x: e.clientX, y: e.clientY });
+        setShowActions(true);
       }
     }, 500);
   };
@@ -110,13 +120,13 @@ const MessageItem = ({
 
   const handleMessageTap = (e) => {
     if (isSelectionMode) {
+      e.preventDefault();
+      e.stopPropagation();
       toggleSelection(msgId);
       return;
     }
-    if (!isLongPress.current) {
-      setMenuPos({ x: e.clientX, y: e.clientY });
-      setShowActions(true);
-    }
+    // [FIX] No longer triggering actions on simple click
+    // Actions are now triggered ONLY on Long Press above.
   };
 
   const handleRetry = useCallback(async () => {

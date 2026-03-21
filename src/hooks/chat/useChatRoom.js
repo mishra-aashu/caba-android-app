@@ -11,8 +11,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useChatStore, { selectRoomScrollPosition } from '../../store/useChatStore';
-// FIX: Missing toast import — was causing runtime crash
 import toast from 'react-hot-toast';
+import { messageReadsService } from '../../services/messageReadsService';
 
 // Sub-hooks
 import { useChatParticipant } from './useChatParticipant';
@@ -22,8 +22,7 @@ import { useChatPresence } from './useChatPresence';
 import { useChatCalls } from './useChatCalls';
 import { useChatSettings } from './useChatSettings';
 
-const useChatRoom = (options = {}) => {
-  const { onNewMessage } = options;
+const useChatRoom = () => {
   const { chatId, otherUserId: rawOtherUserId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,6 +51,42 @@ const useChatRoom = (options = {}) => {
     currentUser,
   });
 
+  // ─── PRESENCE ───
+  const presenceApi = useChatPresence({
+    chatId,
+    otherUserId,
+    isGroupChat,
+    currentUserId: currentUser?.id,
+    onPresenceChange: useCallback(
+      (status) => {
+        setOtherUser((prev) => (prev ? { ...prev, ...status } : prev));
+      },
+      [setOtherUser]
+    ),
+  });
+
+  // ─── READ STATUS ───
+  const markMessagesAsRead = useCallback(async () => {
+    try {
+      if (!currentUser || !chatId || chatId === 'new') return;
+      await messageReadsService.markAllAsRead(chatId, currentUser.id);
+    } catch (error) {
+      console.error('[ChatRoom] Error marking messages as read:', error);
+    }
+  }, [currentUser?.id, chatId]);
+
+  // ─── NEW MESSAGE HANDLER ───
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+
+  const onNewMessage = useCallback((msg) => {
+    if (!isScrolledToBottom) {
+      setUnreadCount(prev => prev + 1);
+    } else {
+      markMessagesAsRead();
+    }
+  }, [isScrolledToBottom, markMessagesAsRead]);
+
   // ─── MESSAGES ───
   const messagesApi = useChatMessages({
     chatId,
@@ -71,20 +106,6 @@ const useChatRoom = (options = {}) => {
     isNewChat,
     replyingTo: messagesApi.replyingTo,
     setReplyingTo: messagesApi.setReplyingTo,
-  });
-
-  // ─── PRESENCE ───
-  const presenceApi = useChatPresence({
-    chatId,
-    otherUserId,
-    isGroupChat,
-    currentUserId: currentUser?.id,
-    onPresenceChange: useCallback(
-      (status) => {
-        setOtherUser((prev) => (prev ? { ...prev, ...status } : prev));
-      },
-      [setOtherUser]
-    ),
   });
 
   // ─── CALLS ───
@@ -232,6 +253,11 @@ const useChatRoom = (options = {}) => {
     handleRejectGame,
     handleReactionToggle: messagesApi.toggleReaction,
     authError,
+    markMessagesAsRead,
+    unreadCount,
+    setUnreadCount,
+    isScrolledToBottom,
+    setIsScrolledToBottom,
   };
 };
 

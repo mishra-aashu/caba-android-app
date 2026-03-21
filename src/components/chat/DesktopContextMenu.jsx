@@ -38,20 +38,24 @@ const DesktopContextMenu = ({
     const menuRect = menuRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const margin = 10;
+    const isMobile = viewportWidth <= 768;
+    const margin = isMobile ? 16 : 10;
+    const bottomMargin = isMobile ? 24 : 10;
 
     let { x, y } = position;
 
-    // Vertical: prefer below click point, push up if overflows
-    if (y + menuRect.height > viewportHeight - margin) {
-      y = viewportHeight - menuRect.height - margin;
+    // Vertical: ensure it doesn't go off bottom
+    if (y + menuRect.height > viewportHeight - bottomMargin) {
+      y = viewportHeight - menuRect.height - bottomMargin;
     }
+    // Ensure it doesn't go off top
     if (y < margin) y = margin;
 
     // Horizontal: prefer right of click, push left if overflows
     if (x + menuRect.width > viewportWidth - margin) {
       x = viewportWidth - menuRect.width - margin;
     }
+    // Ensure it doesn't go off left
     if (x < margin) x = margin;
 
     setAdjustedPos({ x, y });

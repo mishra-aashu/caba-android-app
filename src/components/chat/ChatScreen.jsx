@@ -51,35 +51,11 @@ const dbToFrontend = (msg) => {
 };
 
 const ChatScreen = () => {
-    const { chatId, otherUserId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { user: currentUser, authLoading, isAuthenticated } = useAuth();
-
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
-
-    const markMessagesAsRead = useCallback(async () => {
-        try {
-            if (!currentUser || !chatId || chatId === 'new') return;
-            await messageReadsService.markAllAsRead(chatId, currentUser.id);
-        } catch (error) {
-            console.error('Error marking messages as read:', error);
-        }
-    }, [currentUser?.id, chatId]);
-
-    const onNewMessage = useCallback((msg) => {
-        if (!isScrolledToBottom) {
-            setUnreadCount(prev => prev + 1);
-        } else {
-            markMessagesAsRead();
-        }
-    }, [isScrolledToBottom, markMessagesAsRead]);
-
-    const chatRoomOptions = useMemo(() => ({ onNewMessage }), [onNewMessage]);
 
     const {
-        validChatId, isGroupChat,
+        chatId, otherUserId, isGroupChat, validChatId,
         otherUser, setOtherUser, isInitializing,
         messages, isFetchingNextPage, hasNextPage, fetchNextPage,
         typingUsers, sendTyping,
@@ -94,8 +70,9 @@ const ChatScreen = () => {
         supabase, showAlert, initialScrollPosition, saveScrollPosition,
         isMessagesLoading, allChats,
         connectionStatus, retryConnection,
-        authError,
-    } = useChatRoom(chatRoomOptions);
+        authError, currentUser,
+        markMessagesAsRead, unreadCount, setUnreadCount, isScrolledToBottom, setIsScrolledToBottom
+    } = useChatRoom();
 
     useEffect(() => {
         if (handleReactionToggle) {
@@ -179,52 +156,6 @@ const ChatScreen = () => {
     const handleToggleEmoji = useCallback(() => {
         setShowEmojiPicker(prev => !prev);
     }, []);
-    useEffect(() => {
-        if (!isNativeWithPlugins()) return;
-        let cleanup;
-        const setup = async () => {
-            try {
-                const { Keyboard } = await import('@capacitor/keyboard');
-                await Keyboard.addListener('keyboardWillShow', () => {
-                    setTimeout(() => handleScrollToBottom('auto'), 50);
-                });
-                cleanup = () => Keyboard.removeAllListeners();
-            } catch (err) {
-                console.warn('[Chat] Keyboard listeners failed:', err);
-            }
-        };
-        setup();
-        return () => { if (cleanup) cleanup(); };
-    }, []);
-
-    const debouncedSaveScroll = useCallback(
-        debounce((id, index) => saveScrollPosition(id, index), 500),
-        [saveScrollPosition],
-    );
-
-    useEffect(() => {
-        if (chatId && currentUser && chatId !== 'new') {
-            const timer = setTimeout(() => {
-                markMessagesAsRead();
-            }, 300);
-            return () => clearTimeout(timer);
-        }
-    }, [chatId, currentUser?.id, markMessagesAsRead]);
-
-    useEffect(() => {
-        const handleEvents = () => {
-            if (!document.hidden && chatId && currentUser && chatId !== 'new') {
-                markMessagesAsRead();
-            }
-        };
-
-        window.addEventListener('focus', handleEvents);
-        document.addEventListener('visibilitychange', handleEvents);
-        return () => {
-            window.removeEventListener('focus', handleEvents);
-            document.removeEventListener('visibilitychange', handleEvents);
-        };
-    }, [chatId, currentUser?.id, markMessagesAsRead]);
 
     const handleScrollToBottom = useCallback((behavior = 'auto') => {
         if (messagesContainerRef.current?.scrollToBottom) {
@@ -239,6 +170,55 @@ const ChatScreen = () => {
             setIsScrolledToBottom(true);
         }
     }, [markMessagesAsRead]);
+
+    useEffect(() => {
+        if (!isNativeWithPlugins()) return;
+        let keyboardSubscription;
+        
+        const setup = async () => {
+            try {
+                const { Keyboard } = await import('@capacitor/keyboard');
+                // Use keyboardDidShow to ensure the layout has already resized (adjustResize)
+                // before we trigger the scroll, avoiding "jumping" during the transition.
+                keyboardSubscription = await Keyboard.addListener('keyboardDidShow', () => {
+                    handleScrollToBottom('auto');
+                });
+            } catch (err) {
+                console.warn('[Chat] Keyboard listeners failed:', err);
+            }
+        };
+        setup();
+        return () => { 
+            if (keyboardSubscription) keyboardSubscription.remove();
+        };
+    }, [handleScrollToBottom]);
+
+    const debouncedSaveScroll = useCallback(
+        debounce((id, index) => saveScrollPosition(id, index), 500),
+        [saveScrollPosition],
+    );
+
+    // ─── READ STATUS ORCHESTRATOR ───
+    useEffect(() => {
+        if (!chatId || !currentUser || chatId === 'new') return;
+
+        const handleReadTrigger = () => {
+            if (document.visibilityState === 'visible' && !document.hidden && window.document.hasFocus()) {
+                markMessagesAsRead();
+            }
+        };
+
+        // Initial mark
+        markMessagesAsRead();
+
+        window.addEventListener('focus', handleReadTrigger);
+        document.addEventListener('visibilitychange', handleReadTrigger);
+        return () => {
+            window.removeEventListener('focus', handleReadTrigger);
+            document.removeEventListener('visibilitychange', handleReadTrigger);
+        };
+    }, [chatId, currentUser?.id, markMessagesAsRead]);
+
 
     const handleScroll = useCallback((scrollLocation) => {
         if (scrollLocation.isAtTop && hasNextPage && !isFetchingNextPage) {

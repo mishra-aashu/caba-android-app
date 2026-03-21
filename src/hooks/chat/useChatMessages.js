@@ -30,6 +30,7 @@ export function useChatMessages({
     ) || [];
 
     const messages = useMemo(() => {
+        // [PERF] Map only once per message; use memoized mapping
         return rawMessages.map(msg => dbToFrontend(msg));
     }, [rawMessages]);
 
