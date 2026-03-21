@@ -170,16 +170,7 @@
       height: auto;
   }
 
-  /* Ensure the scroll area takes up the remaining space */
-  .emoji-scroll-area {
-      flex: 1;
-      overflow-y: auto;
-      width: 100%;
-      padding: 8px 12px 4px 12px;
-      /* Momentum scrolling for mobile */
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-  }
+
 
   /* Triangle Pointer Arrow */
   .picker-arrow {
@@ -266,43 +257,35 @@
 
 
 
-  /* Emoji Grid Adjustment */
   .emoji-scroll-area {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 12px;
-      position: relative;
-      /* For sticky positioning */
+      padding: 6px 8px;               /* ← Tighter padding */
       width: 100%;
       box-sizing: border-box;
-      padding-right: 8px;
-      /* Reduce right padding to fill space */
-
-      /* GPU Acceleration for smooth scrolling */
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       transform: translateZ(0);
       -webkit-transform: translateZ(0);
       will-change: scroll-position;
-      -webkit-overflow-scrolling: touch;
-
-      /* Performance optimizations */
       contain: content;
   }
 
   .category-section {
-      margin-bottom: 16px;
-      /* Browser optimization: don't paint categories until they are near the viewport */
+      margin-bottom: 8px;             /* ← Reduced from 16px */
       content-visibility: auto;
       contain-intrinsic-size: 100% 200px;
   }
 
   .emoji-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr); /* Premium 5-column layout */
-      gap: 12px 8px; /* Vertical 12px, Horizontal 8px */
+      grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+      gap: 2px;                        /* ← Tight uniform gap */
       width: 100%;
       justify-items: center;
-      padding-bottom: 10px;
+      align-items: center;
+      padding: 4px 0 10px 0;
   }
 
   /* Scrollbar Styling */
@@ -315,55 +298,50 @@
       border-radius: 10px;
   }
 
-  /* Individual Emoji Items */
   .emoji-item {
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 4px;
-      border-radius: 10px; /* ELEVENGRAM style */
-      aspect-ratio: 1 / 1;
-      width: 100%;
-      height: 100%;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 42px;                     /* ← Fixed size, not 100% */
+      height: 42px;                    /* ← Fixed size, not 100% */
+      padding: 3px;
+      border-radius: 8px;
+      /* aspect-ratio REMOVED — was causing stretched boxes */
+      transition: all 0.15s ease;
       user-select: none;
       position: relative;
-      /* GPU Acceleration */
       transform: translateZ(0);
-      will-change: transform, background;
+      will-change: transform;
   }
 
   .emoji-item:hover,
   .emoji-item:active {
-      background: rgba(255, 255, 255, 0.08);
-      transform: scale(1.1);
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(1.15);
   }
 
 
   .emoji-sprite-item {
-      width: 32px; /* Premium size range 32-36px */
-      height: 32px;
-      background-size: 6200% 6200%; /* Match grid size properly */
+      width: 30px;
+      height: 30px;
+      background-size: 6200% 6200%;
       image-rendering: auto;
   }
 
   .emoji-item span {
-      font-size: 32px; /* Match icon size for native emojis */
+      font-size: 30px;
+      line-height: 1;
   }
 
-  /* Hover Effect: Bigger and Highlighted */
-  .emoji-item:hover,
-  .emoji-item:active {
-      transform: scale(1.1);
-  }
+
 
   .no-recent {
       text-align: center;
       color: #8696a0;
       font-size: 13px;
       padding: 20px;
-      grid-column: span 8;
+      grid-column: 1 / -1;           /* ← Works with auto-fill */
   }
 
   /* Scrollbar styling */
@@ -552,8 +530,7 @@
       }
 
       .emoji-category-bar {
-          padding: 10px 50px 10px 10px;
-          /* Less right padding on mobile */
+          padding: 8px 10px;          /* ← Fixed uneven mobile padding */
       }
 
       .cat-btn {
@@ -562,26 +539,28 @@
       }
 
       .emoji-scroll-area {
-          padding: 10px;
+          padding: 6px;
       }
 
       .emoji-grid {
-          grid-template-columns: repeat(5, 1fr);
-          gap: 12px 8px;
+          grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+          gap: 2px;
       }
-      
+
       .emoji-item {
+          width: 40px;
+          height: 40px;
+          padding: 3px;
           max-width: none;
-          padding: 6px;
       }
-      
+
       .emoji-sprite-item {
-          width: 34px;
-          height: 34px;
+          width: 28px;
+          height: 28px;
       }
-      
+
       .emoji-item span {
-          font-size: 34px;
+          font-size: 28px;
       }
 
       .gif-masonry {

@@ -24,15 +24,44 @@ const EmojiPicker = ({
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [renderLevel, setRenderLevel] = useState(0);
 
-    const { emojiStyle, emojiMap, mapLoading } = useEmojiStyle();
+    const { emojiStyle, emojiMap, mapLoading, preferredEmojis = [] } = useEmojiStyle();
 
     // Dynamically group emojis from iamcal raw data
     const categories = useMemo(() => {
         if (!emojiMap?.raw) return [];
         
         const groups = {};
+        
+        // Helper to find raw emoji data by native/unified
+        const findEmojiByNative = (native) => {
+            return emojiMap.raw.find(item => {
+                const itemNative = String.fromCodePoint(...item.unified.split('-').map(u => parseInt(u, 16)));
+                return itemNative === native;
+            });
+        };
+
+        const transformEmoji = (item, catName) => ({
+            id: item.unified.toLowerCase(),
+            name: item.short_name,
+            native: String.fromCodePoint(...item.unified.split('-').map(u => parseInt(u, 16))),
+            hex: item.unified.toLowerCase(),
+            category: catName
+        });
+
+        // 1. Handle "Frequently Used" / "Recent"
+        if (preferredEmojis.length > 0) {
+            groups['Recent'] = {
+                id: 'recent',
+                name: 'Recent',
+                icon: '🕒',
+                emojis: preferredEmojis.map(native => {
+                    const item = findEmojiByNative(native);
+                    return item ? transformEmoji(item, 'Recent') : null;
+                }).filter(Boolean)
+            };
+        }
+
         emojiMap.raw.forEach(item => {
-            // Clean category names and handle icons
             const rawCat = item.category;
             let catName = rawCat;
             if (rawCat === 'Smileys & Emotion') catName = 'Smileys';
@@ -42,20 +71,32 @@ const EmojiPicker = ({
                     id: catName.replace(/\s+/g, '-'), 
                     name: catName, 
                     emojis: [],
-                    // Best icon for category
+                    // Default icon is first emoji, but we'll override special ones
                     icon: String.fromCodePoint(...item.unified.split('-').map(u => parseInt(u, 16)))
                 };
+                
+                // Override icons for better visual clarity
+                if (catName === 'Smileys') groups[catName].icon = '😀';
+                if (catName === 'People & Body') groups[catName].icon = '👋';
             }
-            groups[catName].emojis.push({
-                id: item.unified.toLowerCase(),
-                name: item.short_name,
-                native: String.fromCodePoint(...item.unified.split('-').map(u => parseInt(u, 16))),
-                hex: item.unified.toLowerCase(),
-                category: catName
-            });
+            
+            groups[catName].emojis.push(transformEmoji(item, catName));
         });
+
+        // 2. Special sorting for "Smileys" to put actual faces first
+        // Most face smileys start with 1f6 or 1f9
+        if (groups['Smileys']) {
+            groups['Smileys'].emojis.sort((a, b) => {
+                const isFaceA = a.hex.startsWith('1f6') || a.hex.startsWith('1f9aa') || (a.hex >= '1f600' && a.hex <= '1f64f');
+                const isFaceB = b.hex.startsWith('1f6') || b.hex.startsWith('1f9aa') || (b.hex >= '1f600' && b.hex <= '1f64f');
+                if (isFaceA && !isFaceB) return -1;
+                if (!isFaceA && isFaceB) return 1;
+                return 0; // Keep original order for same type
+            });
+        }
         
         const order = [
+            'Recent',
             'Smileys',
             'People & Body',
             'Animals & Nature',
@@ -68,7 +109,7 @@ const EmojiPicker = ({
         ];
 
         return order.map(name => groups[name]).filter(Boolean);
-    }, [emojiMap]);
+    }, [emojiMap, preferredEmojis]);
 
     // Set initial category when categories are loaded
     useEffect(() => {
