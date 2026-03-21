@@ -48,19 +48,15 @@ class AppErrorBoundary extends React.Component {
 
         if (isAbortError || isCapacitorPluginAvailabilityNoise || isListenerCleanupNoise || isNetworkError) {
             console.warn('AppErrorBoundary: Ignoring non-fatal network or noise rejection:', reasonMessage);
-            event.preventDefault(); // Stop browser from logging it as unhandled
+            event.preventDefault(); 
             return;
         }
 
         console.error('AppErrorBoundary caught unhandled rejection:', reason);
-
-        // Force the fallback UI for async errors
-        this.setState({
-            hasError: true,
-            error: reason
-        });
-
-        // Prevent the error from crashing the browser tab/appearing in console as unhandled
+        
+        // [UX] Instead of crashing the whole app for an async rejection, 
+        // we just log it and prevent the browser's default behavior.
+        // This keeps the UI interactive.
         event.preventDefault();
     };
 
