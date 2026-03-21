@@ -14,9 +14,9 @@ import {
   ArrowLeft, MessageSquare, Users, Settings, BarChart3, Shield,
   UserCheck, UserX, User, MessageCircle, Newspaper, Flag, Activity,
   Database, Trash2, Edit, Eye, CheckCircle, XCircle,
-  Search, Download, RefreshCw, AlertTriangle,
+  Search, Download, RefreshCw, AlertTriangle, Ban,
   Calendar, Phone, FileText, Image,
-  Video, Music, Archive, Upload, X, Clock, Mail, MapPin
+  Video, Music, Archive, Upload, X, Clock, Mail, MapPin, Send
 } from 'lucide-react';
 import NetworkVisualization from './admin/NetworkVisualization';
 import './admin/Admin.css';
