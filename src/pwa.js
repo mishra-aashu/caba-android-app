@@ -76,6 +76,8 @@ if (OTA_BUILD) {
         }
       };
     };
+  }).catch(err => {
+    console.log('[PWA] SW-Proxy registration failed (expected in dev):', err.message);
   });
 
   _updateSW = (reload) => {

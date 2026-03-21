@@ -43,7 +43,8 @@
     (function () {
       const ACTIVE_BUILD = 'ota-active-build';
       if (localStorage.getItem(ACTIVE_BUILD) && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw-proxy.js', { scope: '/' });
+        navigator.serviceWorker.register('/sw-proxy.js', { scope: '/' })
+          .catch(err => console.log('[OTA] Proxy registration skipped:', err.message));
         console.log('[OTA] 🛡️ Root Proxy active for build:', localStorage.getItem(ACTIVE_BUILD));
       }
     })();
