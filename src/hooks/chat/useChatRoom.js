@@ -127,6 +127,26 @@ const useChatRoom = () => {
   // ─── AUTHORIZATION CHECK ───
   const [authError, setAuthError] = useState(null);
 
+  // ─── NEW CHAT AUTO-TRANSITION ───
+  useEffect(() => {
+    if (!isNewChat || !otherUserId || allChats.length === 0) return;
+
+    // Look for a chat that was just created with this otherUserId
+    const newActiveChat = allChats.find(c => 
+      !c.is_group && (
+        String(c.user1_id) === String(otherUserId) || 
+        String(c.user2_id) === String(otherUserId) ||
+        String(c.other_user_id) === String(otherUserId) ||
+        String(c.otherUser?.id) === String(otherUserId)
+      )
+    );
+
+    if (newActiveChat) {
+      console.log('[ChatRoom] New chat detected, navigating...', newActiveChat.id);
+      navigate(`/chat/${newActiveChat.id}/${otherUserId}`, { replace: true });
+    }
+  }, [isNewChat, otherUserId, allChats, navigate]);
+
   useEffect(() => {
     if (authLoading || isDataLoading || isNewChat || !chatId || !currentUser) return;
 

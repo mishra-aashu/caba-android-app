@@ -7,28 +7,16 @@ import useChatStore from '../store/useChatStore';
 /**
  * useNetworkSync monitors online/offline status and processes the sync_queue
  * when the internet connection is restored.
- *
- * [FIX #6]  Removed all TanStack Query (queryClient) usage.
- *           useChatMessages reads from Dexie live queries, NOT from TanStack Query cache.
- *           Dexie's useLiveQuery auto-reacts to db.messages.put() calls, so manual
- *           query cache invalidation was targeting a nonexistent cache — dead code.
- *
- * [FIX #3]  File objects don't survive IndexedDB serialization. When queuing offline
- *           media messages, callers must serialize files as ArrayBuffer + metadata.
- *           This hook now reconstructs File objects from that serialized form.
- *
- * [FIX #10] Prevented infinite recovery loop by tracking total_resets per item.
- *           Previously, failed items within 24h were reset to pending on every
- *           processQueue run with retry_count: 0, creating an infinite cycle.
- *
- * [FIX #16] Auth session is checked once before the loop, not per item.
- *           Re-checks only if a 401-like error occurs mid-loop.
  */
 const useNetworkSync = () => {
     const isSyncing = useRef(false);
 
     useEffect(() => {
         const processQueue = async () => {
+            // [FIX] Phased Loading: Wait for app to settle (2s) before hitting the DB
+            // Especially during the Cinematic Intro on desktop.
+            await new Promise(r => setTimeout(r, 2000));
+
             if (isSyncing.current) return;
             isSyncing.current = true;
 
@@ -146,9 +134,6 @@ const useNetworkSync = () => {
                                         });
                                     });
 
-                                    // [FIX #6] REMOVED: queryClient.setQueryData / invalidateQueries
-                                    // Dexie useLiveQuery handles UI reactivity automatically.
-
                                     error = null;
                                 } else {
                                     error = msgError;
@@ -247,7 +232,7 @@ const useNetworkSync = () => {
         return () => {
             window.removeEventListener('online', handleOnline);
         };
-    }, []); // [FIX #6] Removed queryClient from deps — no longer used
+    }, []);
 };
 
 export default useNetworkSync;

@@ -5,31 +5,23 @@
  * Handles the split between:
  *   - Public routes (Landing, Login, Terms, etc.) → lightweight
  *   - AuthenticatedApp → heavy, lazy-loaded only when user is logged in
- *
- * AutoRefreshBanner is rendered HERE (outside authenticated shell)
- * so update detection works even on public pages.
  */
 
-import { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { isNativeWithPlugins } from './utils/platformCheck';
 import { Capacitor } from '@capacitor/core';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import AutoRefreshBanner from './components/common/AutoRefreshBanner';
 import { Toaster } from 'react-hot-toast';
-import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { SafeAreaDetector } from './utils/safeAreaDetector';
-import { KeyboardHandler } from './utils/keyboardHandler';
-import { initializePushNotifications } from './utils/PushNotifications';
-import { requestPersistentStorage } from './db/db';
-import { FileCache } from './utils/FileCache';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useIsDesktop from './hooks/useIsDesktop';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { DialogProvider } from './contexts/DialogProvider';
 import GlobalDialog from './components/common/GlobalDialog';
+import usePlatformInit from './hooks/usePlatformInit';
+import Intro from './components/Intro';
 
 import './styles/loaders.css';
 import './styles/safeArea.css';
@@ -42,19 +34,15 @@ const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
 const About = lazy(() => import('./components/About'));
 const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
-const Intro = lazy(() => import('./components/Intro'));
+const SharedProfile = lazy(() => import('./components/shared-profile'));
 
 // AuthenticatedApp is the heavy one — only loaded when user is logged in
-// AuthenticatedApp is the heavy one — only loaded when user is logged in
 const AuthenticatedApp = lazy(() => import('./AuthenticatedApp'));
-const SharedProfile = lazy(() => import('./components/shared-profile'));
 
 const RoomRedirect = () => {
   const { roomId } = useParams();
   return <Navigate to={`/chat/${roomId}/arena`} replace />;
 };
-
-import usePlatformInit from './hooks/usePlatformInit';
 
 const PublicApp = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -64,11 +52,9 @@ const PublicApp = () => {
   const [splashFinished, setSplashFinished] = useState(false);
   
   useOnlineStatus();
-  usePlatformInit(); // ✅ Consolidated platform initialization
+  usePlatformInit();
 
-  // Handle deep linking for OAuth callbacks
-
-  // ═══ NEW: Hide splash screen after app renders ═══
+  // ═══ Hide native splash screen after app renders ═══
   useEffect(() => {
     if (loading) return;
     
@@ -76,10 +62,8 @@ const PublicApp = () => {
       if (!isNativeWithPlugins()) return;
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen');
-        // Small delay to ensure first paint is complete
         await new Promise(r => setTimeout(r, 400));
         await SplashScreen.hide({ fadeOutDuration: 400 });
-        console.log('[Splash] Hidden after PublicApp render');
       } catch (e) {
         console.warn('[Splash] Hide failed:', e.message);
       }
@@ -87,21 +71,36 @@ const PublicApp = () => {
     hideSplash();
   }, [loading]);
 
-  // 🔥 IMMEDIATE INTRO ON DESKTOP
-  // This plays while auth is initializing in the background.
-  if (!splashFinished && isDesktop) {
+  const isNative = Capacitor.isNativePlatform();
+
+  // 1. DESKTOP CINEMATIC INTRO (Buffered Loading)
+  // plays ONLY on desktop for first-time launch.
+  // We show it IMMEDIATELY without waiting for auth loading.
+  if (isDesktop && !splashFinished) {
     return (
-      <Suspense fallback={<div className="loading" />}>
+      <div className="launch-container" style={{ background: '#000000', height: '100vh', width: '100vw' }}>
         <Intro onComplete={() => setSplashFinished(true)} />
-      </Suspense>
+        {/* Render AuthenticatedApp hidden in background so it can WARM UP during intro */}
+        {isAuthenticated && (
+          <div style={{ display: 'none' }} aria-hidden="true">
+             <Suspense fallback={null}>
+               <AuthenticatedApp />
+             </Suspense>
+          </div>
+        )}
+      </div>
     );
   }
 
-  // Show a themed loader while auth state is being determined
-  // This prevents the "white flash" when React mounts but loading is still true.
+  // 2. MOBILE NATIVE: Direct redirect to login for unauthenticated users
+  if (!isAuthenticated && !loading && isNative && location.pathname === '/') {
+    return <Navigate to="/login" replace />;
+  }
+
+  // 3. INITIALIZING LOADER (Safety fallback)
   if (loading) {
     return (
-      <div className="premium-loader-overlay" style={{ background: '#1a1a2e' }}>
+      <div className="premium-loader-overlay" style={{ background: '#0b141a' }}>
         <div className="premium-loader-container">
           <div className="premium-spinner"></div>
           <p className="premium-loader-text">Initializing...</p>
@@ -110,20 +109,12 @@ const PublicApp = () => {
     );
   }
 
-  // Native App: Redirect unauthenticated users to login
-  // Using Capacitor.isNativePlatform() directly here because it's safe on Vercel origin 
-  if (!isAuthenticated && Capacitor.isNativePlatform() && location.pathname === '/') {
-    return <Navigate to="/login" replace />;
-  }
-
   return (
     <>
       <Suspense fallback={<div className="loading" />}>
         {isAuthenticated ? (
-          // Heavy authenticated shell — lazy-loaded
           <AuthenticatedApp />
         ) : (
-          // Lightweight public routes
           <ErrorBoundary>
             <DialogProvider>
               <Routes>
@@ -144,7 +135,6 @@ const PublicApp = () => {
         )}
       </Suspense>
 
-      {/* Update banner — always visible regardless of auth state */}
       <AutoRefreshBanner
         needsRefresh={needsRefresh}
         isRefreshing={isRefreshing}
@@ -152,38 +142,7 @@ const PublicApp = () => {
         handleDismiss={handleDismiss}
       />
 
-      <Toaster
-        position="bottom-center"
-        toastOptions={{
-          duration: 3500,
-          className: 'premium-toast',
-          success: {
-            className: 'premium-toast premium-toast-success',
-            iconTheme: {
-              primary: 'var(--brand-primary)',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            className: 'premium-toast premium-toast-error',
-            iconTheme: {
-              primary: 'var(--error-color)',
-              secondary: '#fff',
-            },
-          },
-          loading: {
-            className: 'premium-toast premium-toast-loading',
-          },
-          style: {
-            background: 'transparent',
-            boxShadow: 'none',
-            border: 'none',
-          },
-        }}
-        containerStyle={{
-          bottom: 'calc(75px + var(--sab, 0px))',
-        }}
-      />
+      <Toaster position="bottom-center" toastOptions={{ duration: 3500 }} />
     </>
   );
 };

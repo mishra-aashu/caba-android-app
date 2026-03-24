@@ -6,6 +6,7 @@
     OTA EARLY REDIRECT (Instant Boot)
     Moved to top of head to execute before ANY rendering.
     Redirects to Vercel instantly if an update was previously received.
+    Redirects to Vercel instantly if an update was previously received.
   -->
   <script>
     (function() {
@@ -49,7 +50,7 @@
   <title>Elevengram Web</title>
 
   <style>
-    html, body { margin: 0; padding: 0; background: #1a1a2e; }
+    html, body { margin: 0; padding: 0; background: #000000; }
   </style>
 
   <script type="text/javascript">
@@ -71,34 +72,19 @@
 
   <div id="root">
     <!-- 
-      INSTANT BOOT LOADER
-      Visible immediately before React mounts.
-      Styled with inline CSS to avoid network dependency.
+      INSTANT DARK BOOT
+      Vite loader is hidden until React mounts.
+      Background is pitch black to match the Cinematic Intro.
     -->
     <style>
       .boot-loader {
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
-        background-color: #1a1a2e;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        background-color: #000000;
         z-index: 9999;
       }
-      .boot-spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid rgba(255, 255, 255, 0.1);
-        border-top-color: #6366f1;
-        border-radius: 50%;
-        animation: boot-spin 0.8s linear infinite;
-      }
-      @keyframes boot-spin { to { transform: rotate(360deg); } }
     </style>
-    <div class="boot-loader">
-      <div class="boot-spinner"></div>
-    </div>
+    <div class="boot-loader"></div>
   </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>

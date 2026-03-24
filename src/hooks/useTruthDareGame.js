@@ -71,7 +71,7 @@ export const useTruthDareGame = (roomId, userId, { enabled = true } = {}) => {
     supabase 
   });
 
-  const { sendGameEvent, peers, connectionState, chatMessages, mediaProgress, sendChat, sendMedia } = webrtc;
+  const { sendGameEvent, peers, connectionState, chatMessages, gameEvents, mediaProgress, sendChat, sendMedia } = webrtc;
 
   // Authoritative Host: Sync state to new peers
   useEffect(() => {

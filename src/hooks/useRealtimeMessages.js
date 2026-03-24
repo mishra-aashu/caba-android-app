@@ -40,9 +40,9 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
 
         const { eventType, new: newRecord, old: oldRecord } = payload;
 
-        // Wrong-room guard
+        // Wrong-room guard (Case-insensitive)
         const msgChatId = newRecord?.chat_id || oldRecord?.chat_id;
-        if (msgChatId && msgChatId !== chatIdRef.current) {
+        if (msgChatId && msgChatId.toLowerCase() !== String(chatIdRef.current).toLowerCase()) {
             console.warn('[RT] Wrong-room message ignored', {
                 expected: chatIdRef.current,
                 actual: msgChatId,
@@ -93,7 +93,13 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                     if (newRecord.client_id) {
                         await db.messages.delete(`temp_${newRecord.client_id}`).catch(() => {});
                     }
-                    await db.messages.put(finalMsg);
+                    // [FIX] Always store enriched message in Dexie
+                    // This ensures useLiveQuery immediately sees the version with sender/receiver objects
+                    await db.messages.put({
+                        ...finalMsg,
+                        sender: enrichedMsg.sender,
+                        receiver: enrichedMsg.receiver
+                    });
                 });
             } catch (err) {
                 console.error('Failed to save realtime msg to Dexie', err);

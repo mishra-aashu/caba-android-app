@@ -179,13 +179,6 @@ body {
   overscroll-behavior-y: none;
 }
 
-#root {
-  height: var(--app-height);
-  width: 100vw;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
 
 /* Hidden Scrollbars */
 ::-webkit-scrollbar {
@@ -1847,3 +1840,31 @@ body,
 /* Custom icons or specific toast types if needed */
 .premium-toast-success svg { color: var(--brand-primary) !important; }
 .premium-toast-error svg { color: var(--error-color) !important; }
+
+/* =============================================
+   17. UTILITY CLASSES (TAILWIND-STYLE)
+   ============================================= */
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.justify-center { justify-content: center; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.absolute { position: absolute; }
+.inset-0 { inset: 0; }
+.object-cover { object-fit: cover; }
+.hidden { display: none; }
+.text-white { color: #ffffff; }
+.text-pink-500 { color: #ec4899; }
+.italic { font-style: italic; }
+.font-black { font-weight: 900; }
+.font-bold { font-weight: 700; }
+.uppercase { text-transform: uppercase; }
+.tracking-widest { letter-spacing: 0.1em; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mt-8 { margin-top: 2rem; }
+.p-1 { padding: 0.25rem; }

@@ -400,7 +400,7 @@ const TruthDareGame = ({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="w-full h-full min-h-[500px] flex flex-col justify-center items-center"
+                className={`${styles['td-container']} w-full h-full flex flex-col justify-center items-center`}
             >
                 {currentStage === GAME_STATES.IDLE && renderIdle()}
                 {currentStage === GAME_STATES.INVITING && renderInviting()}

@@ -73,7 +73,7 @@ const ArenaPage = () => {
                 <div className={styles['navbar-spacer']} />
             </nav>
 
-            <main className={styles['arena-main-p2p']}>
+            <main className={styles['arena-main']}>
                 <ArenaRoom 
                     chatId={chatId}
                     userId={dbUser?.id}

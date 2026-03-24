@@ -33,7 +33,7 @@ import AppErrorBoundary from './components/common/AppErrorBoundary';
 
 // PublicApp handles the split between lean public routes (Landing, Login)
 // and the heavy AuthenticatedApp shell (lazy-loaded only when logged in).
-const PublicApp = lazy(() => import('./PublicApp'));
+import PublicApp from './PublicApp';
 
 // ── TanStack Query persistence (offline-first) ──
 const persister = createSyncStoragePersister({
@@ -71,9 +71,7 @@ createRoot(document.getElementById('root')).render(
         <SupabaseProvider>
           <AuthProvider>
             <ThemeProvider>
-              <Suspense fallback={<div className="loading" />}>
-                <PublicApp />
-              </Suspense>
+              <PublicApp />
             </ThemeProvider>
           </AuthProvider>
         </SupabaseProvider>

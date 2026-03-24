@@ -104,16 +104,36 @@ export const loadInitialMessagesIfNeeded = async (chatId) => {
         try {
             const { data, error } = await supabase
                 .from('messages')
-                .select('*, sender:sender_id(id, name, avatar), receiver:receiver_id(id, name, avatar)')
+                .select(`
+                    *,
+                    sender:sender_id (
+                        id,
+                        name,
+                        avatar,
+                        is_online,
+                        last_seen
+                    ),
+                    receiver:receiver_id (
+                        id,
+                        name,
+                        avatar,
+                        is_online,
+                        last_seen
+                    )
+                `)
                 .eq('chat_id', chatId)
                 .gt('created_at', latestMsg.created_at)
                 .order('created_at', { ascending: true });
 
             if (!error && data?.length > 0) {
-                await db.messages.bulkPut(data);
+                // [FIX] Use safeDbConversion to match the frontend expectations
+                const { safeDbConversion } = await import('../utils/dbFieldMapping');
+                const converted = safeDbConversion(data);
+                
+                await db.messages.bulkPut(converted);
                 // Also update the chat list last_message_at
                 await db.chats_list.update(chatId, { 
-                    last_message_at: data[data.length - 1].created_at 
+                    last_message_at: converted[converted.length - 1].created_at 
                 });
             }
         } catch (err) {
