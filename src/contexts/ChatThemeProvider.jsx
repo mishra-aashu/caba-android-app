@@ -107,25 +107,25 @@ function applyThemeToDom({ themeKey, wallpaperUrl, patternId }) {
             return avgLum < 0.5;
         })();
 
-        // Pattern colour: near-black for light themes, white for dark themes.
-        // #1a1a1a is slightly softer than pure #000000 but still strongly dark.
-        const patternColor = effectivelyDark ? '#ffffff' : '#1a1a1a';
+        // Pattern colour: pure black (#000000) for light themes to ensure
+        // maximum visibility, and white (#ffffff) for dark themes.
+        const patternColor = effectivelyDark ? '#ffffff' : '#000000';
 
         // ── Opacity & Blend Mode tuning ──────────────────────────────────────
-        // We need much higher opacity for the pattern to be "properly visible".
+        // We need MAXIMUM visibility as requested by the user.
         //
-        // Light backgrounds:
-        //   - Dark pattern (#1a1a1a) at 0.35 opacity.
-        //   - Blend mode 'normal' for solid, crisp representation.
+        // Light backgrounds (e.g. Minimal Slate, Spring Vibes):
+        //   - Dark pattern (#000000) at 0.70 opacity.
+        //   - Blend mode 'multiply' for a strong, sharp black ink effect.
         //
-        // Dark backgrounds:
-        //   - White pattern (#ffffff) at 0.22 opacity.
-        //   - Blend mode 'screen' to make the white 'pop' against dark.
+        // Dark backgrounds (e.g. Blue/Purple themes):
+        //   - White pattern (#ffffff) at 0.35 opacity.
+        //   - Blend mode 'screen' to make the white "pop" and glow against dark.
         const opacity = effectivelyDark
-            ? (wallpaperUrl ? '0.12' : '0.22')   // dark bg  → white pattern
-            : (wallpaperUrl ? '0.18' : '0.35');  // light bg → dark pattern
+            ? (wallpaperUrl ? '0.15' : '0.35')  // dark bg  → white pattern
+            : (wallpaperUrl ? '0.30' : '0.70'); // light bg → black pattern (max clear)
 
-        const blendMode = effectivelyDark ? 'screen' : 'normal';
+        const blendMode = effectivelyDark ? 'screen' : 'multiply';
 
         setProp('--chat-pattern-color', patternColor);
         setProp('--chat-pattern-opacity', opacity);
