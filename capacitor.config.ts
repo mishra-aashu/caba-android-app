@@ -1,4 +1,5 @@
 import { CapacitorConfig } from '@capacitor/cli';
+import { KeyboardResize } from '@capacitor/keyboard';
 import 'dotenv/config';
 
 const config: CapacitorConfig = {
@@ -24,7 +25,7 @@ const config: CapacitorConfig = {
       forceCodeForRefreshToken: true,
     },
     Keyboard: {
-      resizeOnFullScreen: true,
+      resize: KeyboardResize.None,
     },
     StatusBar: {
       style: 'dark',

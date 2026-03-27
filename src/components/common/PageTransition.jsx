@@ -3,19 +3,19 @@ import { motion } from 'framer-motion';
 
 const pageVariants = {
     initial: {
-        y: 20,
-        opacity: 0
+        x: '100%',
+        opacity: 0.9
     },
     animate: {
-        y: 0,
+        x: 0,
         opacity: 1,
         transition: {
-            duration: 0.3,
+            duration: 0.25,
             ease: [0.4, 0, 0.2, 1]
         }
     },
     exit: {
-        y: 20,
+        x: '-30%',
         opacity: 0,
         transition: {
             duration: 0.2,
