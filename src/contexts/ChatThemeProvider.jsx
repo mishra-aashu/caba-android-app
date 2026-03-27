@@ -111,25 +111,21 @@ function applyThemeToDom({ themeKey, wallpaperUrl, patternId }) {
         // #1a1a1a is slightly softer than pure #000000 but still strongly dark.
         const patternColor = effectivelyDark ? '#ffffff' : '#1a1a1a';
 
-        // ── Opacity tuning ────────────────────────────────────────────────────
-        // Light backgrounds (Telegram Blue, Rose Gold, Spring Vibes, etc.):
-        //   The dark pattern needs MORE opacity to be clearly seen as dark shapes.
-        //   0.18 gives a strong "black se hlka dark" look without being too harsh.
+        // ── Opacity & Blend Mode tuning ──────────────────────────────────────
+        // We need much higher opacity for the pattern to be "properly visible".
         //
-        // Dark backgrounds (Classic Purple, Ocean Depths, etc.):
-        //   White pattern on dark bg is already high-contrast — keep it subtle (0.08).
+        // Light backgrounds:
+        //   - Dark pattern (#1a1a1a) at 0.35 opacity.
+        //   - Blend mode 'normal' for solid, crisp representation.
         //
-        // Both scale down when a wallpaper photo sits underneath (pattern is secondary).
+        // Dark backgrounds:
+        //   - White pattern (#ffffff) at 0.22 opacity.
+        //   - Blend mode 'screen' to make the white 'pop' against dark.
         const opacity = effectivelyDark
-            ? (wallpaperUrl ? '0.06' : '0.08')   // dark bg  → white pattern, subtle
-            : (wallpaperUrl ? '0.10' : '0.18');  // light bg → dark pattern, clearly visible
+            ? (wallpaperUrl ? '0.12' : '0.22')   // dark bg  → white pattern
+            : (wallpaperUrl ? '0.18' : '0.35');  // light bg → dark pattern
 
-        // ── Blend mode ────────────────────────────────────────────────────────
-        // Light themes → 'normal': renders the dark SVG paths as clean opaque shapes.
-        //   'multiply' looks great mathematically but at low-opacity it makes the
-        //   pattern look washed out on very light (near-white) backgrounds.
-        // Dark themes → 'overlay': boosts contrast of white pattern on dark gradient.
-        const blendMode = effectivelyDark ? 'overlay' : 'normal';
+        const blendMode = effectivelyDark ? 'screen' : 'normal';
 
         setProp('--chat-pattern-color', patternColor);
         setProp('--chat-pattern-opacity', opacity);
