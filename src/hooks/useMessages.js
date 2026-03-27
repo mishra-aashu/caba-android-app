@@ -92,15 +92,15 @@ export const loadInitialMessagesIfNeeded = async (chatId) => {
         .sortBy('created_at')
         .then(msgs => msgs[0]);
 
-    // 2. If we have nothing, fetch first page
     if (!latestMsg) {
         await fetchMessagesPage({ chatId });
         return;
     }
 
-    // 3. If we have data, try to fetch ONLY new messages since the latest one
-    // only if online. This is a background "catch-up".
+    // ── Background catch-up & enrichment retry ──
     if (navigator.onLine) {
+        // 1. Retry stale profile enrichments
+        enrichStaleMessages(chatId).catch(() => {});
         try {
             const { data, error } = await supabase
                 .from('messages')
@@ -139,5 +139,44 @@ export const loadInitialMessagesIfNeeded = async (chatId) => {
         } catch (err) {
             console.warn('[Sync] Background catch-up failed:', err);
         }
+    }
+};
+/**
+ * Lazy-retry enrichment for messages that failed profile fetch previously.
+ */
+export const enrichStaleMessages = async (chatId) => {
+    if (!chatId || chatId === 'new' || !navigator.onLine) return;
+
+    try {
+        const staleMessages = await db.messages
+            .where('chat_id')
+            .equals(chatId)
+            .filter(m => m.needsEnrichment === true)
+            .toArray();
+
+        if (staleMessages.length === 0) return;
+
+        console.log(`[Sync] Retrying enrichment for ${staleMessages.length} messages`);
+        
+        const { useUserStore } = await import('../store/userStore');
+        const userStore = useUserStore.getState();
+
+        for (const msg of staleMessages) {
+            try {
+                const senderId = msg.sender_id || msg.senderId;
+                const profile = await userStore.fetchUserIfNeeded(senderId);
+                
+                if (profile && profile.name && profile.name !== 'Unknown') {
+                    await db.messages.update(msg.id, {
+                        sender: profile,
+                        needsEnrichment: false
+                    });
+                }
+            } catch (err) {
+                // Silently skip; will retry on next chat open
+            }
+        }
+    } catch (err) {
+        console.warn('[Sync] Stale enrichment retry failed:', err);
     }
 };

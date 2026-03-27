@@ -76,16 +76,29 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             const frontendMsg = safeDbConversion(newRecord);
 
             const senderId = frontendMsg.senderId || frontendMsg.sender_id;
-            const sender = await useUserStore.getState().fetchUserIfNeeded(senderId);
+
+            // ── [RESILIENCE] Enrichment with graceful fallback ──
+            // If profile fetch fails, we still store the message with a placeholder
+            // sender so the chat doesn't break silently. The `needsEnrichment` flag
+            // allows lazy re-enrichment on next render or manual retry.
+            let sender = enrichSender(senderId);
+            try {
+                const fetched = await useUserStore.getState().fetchUserIfNeeded(senderId);
+                if (fetched) sender = fetched;
+            } catch (enrichErr) {
+                console.warn('[RT] Profile enrichment failed, using placeholder', { senderId, error: enrichErr?.message });
+            }
 
             const enrichedMsg = {
                 ...frontendMsg,
-                sender: sender || enrichSender(senderId),
+                sender,
+                needsEnrichment: !sender?.name || sender.name === 'Unknown',
             };
 
             const finalMsg = {
                 ...newRecord, // Store in db with DB casing
                 tempId: newRecord.client_id || undefined,
+                needsEnrichment: enrichedMsg.needsEnrichment,
             };
 
             try {
@@ -93,12 +106,13 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                     if (newRecord.client_id) {
                         await db.messages.delete(`temp_${newRecord.client_id}`).catch(() => {});
                     }
-                    // [FIX] Always store enriched message in Dexie
-                    // This ensures useLiveQuery immediately sees the version with sender/receiver objects
+                    // [FIX] Always store enriched message in Dexie via put() (upsert by primary key).
+                    // This is idempotent: overlapping real-time + background sync won't create duplicates.
+                    // The sender object is stored inline to ensure useLiveQuery sees it immediately.
                     await db.messages.put({
                         ...finalMsg,
                         sender: enrichedMsg.sender,
-                        receiver: enrichedMsg.receiver
+                        receiver: enrichedMsg.receiver,
                     });
                 });
             } catch (err) {
@@ -207,8 +221,13 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                 const frontendMsgs = Array.isArray(converted) ? converted : [converted];
 
                 const senderIds = Array.from(new Set(frontendMsgs.map((m) => m.senderId)));
+                // [RESILIENCE] Fetch profiles individually so one failure doesn't abort the batch
                 await Promise.all(
-                    senderIds.map((sid) => useUserStore.getState().fetchUserIfNeeded(sid))
+                    senderIds.map((sid) =>
+                        useUserStore.getState().fetchUserIfNeeded(sid).catch((e) => {
+                            console.warn('[RT] Catch-up enrichment failed for sender', { sid, error: e?.message });
+                        })
+                    )
                 );
 
                 const enriched = frontendMsgs.map((m) => ({
