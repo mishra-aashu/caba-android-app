@@ -3,26 +3,50 @@
  * This works by taking an SVG string and injecting a fill color.
  */
 
-export const colorizeSVG = (svgString, fill) => {
+export function colorizeSVG(svgString, fill) {
     if (!svgString) return '';
 
-    // Ensure the fill is properly formatted for XML
-    const escapedFill = fill.replace('#', '%23');
+    if (!fill) fill = 'currentColor';
 
-    // Inject fill attribute into the svg tag or add a style block
     let processedSvg = svgString;
 
-    if (svgString.includes('<style')) {
-        // If there's already a style tag, we might want to override it
-        processedSvg = svgString.replace(/fill:[^;]*;/g, `fill:${fill};`);
-    } else {
-        // Add a global fill to the SVG tag
-        processedSvg = svgString.replace('<svg', `<svg fill="${fill}"`);
+    // 1. Replace common hex and rgb patterns in styles/attributes, excluding "none"
+    processedSvg = processedSvg.replace(/(fill|stroke):\s*(?!none)[^;!}]*/gi, `$1: ${fill}`);
+    processedSvg = processedSvg.replace(/(fill|stroke)="(?!none)[^"]*"/gi, `$1="${fill}"`);
+    
+    // 2. Fallback: search for any solid hex colors in the SVG text
+    processedSvg = processedSvg.replace(/#[0-9a-fA-F]{3,6}(?=[^>]*>)/g, fill);
+
+    // 3. Inject a style tag to catch paths that inherit or use the common .stX classes
+    const styleTag = `<style>
+        svg * { 
+            fill: inherit !important; 
+            stroke: inherit !important; 
+        }
+        [fill="none"], .st-none { fill: none !important; }
+        [stroke="none"] { stroke: none !important; }
+    </style>`;
+    
+    if (processedSvg.includes('<svg')) {
+        // Correctly inject properties into the <svg> tag and handle xmlns if missing
+        processedSvg = processedSvg.replace(/<svg([^>]*)>/, (match, attrs) => {
+            let newAttrs = attrs;
+            if (!newAttrs.includes('fill=')) newAttrs += ` fill="${fill}"`;
+            if (!newAttrs.includes('stroke=')) newAttrs += ` stroke="${fill}"`;
+            return `<svg${newAttrs}>${styleTag}`;
+        });
     }
 
-    // Convert to data URI
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(processedSvg)}`;
-};
+    // Convert to Base64 data URI (much more stable for large SVGs and CSS variables)
+    try {
+        const base64 = btoa(unescape(encodeURIComponent(processedSvg)));
+        return `data:image/svg+xml;base64,${base64}`;
+    } catch (e) {
+        // Fallback to URI encoding if btoa fails
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(processedSvg)}`;
+    }
+}
+;
 
 /**
  * Specifically for the pattern.svg, since it's large, 

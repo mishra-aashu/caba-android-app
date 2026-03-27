@@ -209,7 +209,9 @@
   width: 100%;
   position: relative;
   z-index: 1;
-  background-color: var(--surface-color, #1f2c33);
+  /* ✅ FIX: Must be transparent — ChatBackground layers paint the backdrop.
+     Any opaque colour here will completely hide the wallpaper/gradient. */
+  background-color: transparent;
 }
 
 .nested-chat-content {
@@ -217,21 +219,22 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  background-color: var(--bg-color, #0b141a);
+  /* ✅ FIX: transparent — wallpaper/gradient shows through from ChatBackground */
+  background-color: transparent;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  overflow: visible; /* Changed from hidden to prevent clipping popups */
+  overflow: visible;
   position: relative;
   z-index: 1;
 }
 
-/* When a chat theme is active, go fully transparent to reveal background layers */
-:global(body[data-chat-theme]) .chat-main-area-content,
-:global(body[data-chat-theme]) .nested-chat-content,
-:global(body[data-chat-theme]) .messages-container,
-:global(body[data-chat-theme]) .chat-input-container {
+/* Belt-and-suspenders: also clear backgrounds when html has the theme attr,
+   in case any browser or SSR hydration sets it before body. */
+:global(html[data-chat-theme]) :local(.chat-main-area-content),
+:global(html[data-chat-theme]) :local(.nested-chat-content),
+:global(html[data-chat-theme]) :local(.messages-container),
+:global(html[data-chat-theme]) :local(.chat-input-container) {
   background-color: transparent !important;
-  background-image: none !important;
 }
 
 @media (max-width: 1024px) {

@@ -1,0 +1,20 @@
+
+/home/aashu/caba-android-app/src/components/chat/ChatScreen.jsx
+    1:59  error    'useMemo' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                     no-unused-vars
+    2:10  error    'useParams' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                   no-unused-vars
+    4:10  error    'useAuth' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                     no-unused-vars
+   11:10  error    'messageReadsService' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                         no-unused-vars
+   59:20  error    'setOtherUser' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                       no-unused-vars
+   59:34  error    'isInitializing' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                     no-unused-vars
+   65:47  error    'setShowGroupCallScreen' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                             no-unused-vars
+   96:11  error    'isSelectionMode' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                    no-unused-vars
+  114:9   error    'chatPatterns' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                       no-unused-vars
+  117:9   error    'selectPattern' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                      no-unused-vars
+  172:8   warning  React Hook useCallback has missing dependencies: 'setIsScrolledToBottom' and 'setUnreadCount'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  196:33  warning  React Hook useCallback received a function whose dependencies are unknown. Pass an inline function instead                                         react-hooks/exhaustive-deps
+  220:8   warning  React Hook useEffect has a missing dependency: 'currentUser'. Either include it or remove the dependency array                                     react-hooks/exhaustive-deps
+  236:8   warning  React Hook useCallback has missing dependencies: 'setIsScrolledToBottom' and 'setUnreadCount'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  281:29  warning  React Hook useCallback received a function whose dependencies are unknown. Pass an inline function instead                                         react-hooks/exhaustive-deps
+
+✖ 15 problems (10 errors, 5 warnings)
+

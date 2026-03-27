@@ -1,46 +1,65 @@
-.chat-background-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--chat-bg-base, #e5ddd5);
-}
+/* ======================================================
+   ChatBackground.module.css
+   Layer stack (bottom → top):
+     0  .chat-background-container  — base colour
+     1  .gradient-layer             — theme gradient / wallpaper photo
+     2  .pattern-layer              — repeating SVG tile (optional)
+     3  .content-layer              — transparent shell for header + messages
+   ====================================================== */
 
-.gradient-layer {
+/* ── Outer wrapper ─────────────────────────────────── */
+.chat-background-container {
     position: absolute;
     inset: 0;
     z-index: 0;
-    background-image: var(--chat-bg-image, none), var(--chat-bg-gradient, none);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    transition: background 0.3s ease;
+    overflow: hidden;
+    /* Base colour — visible only where gradient/pattern don't cover */
+    background-color: var(--chat-bg-base, #e5ddd5);
 }
 
-.pattern-layer {
+/* ── Gradient / wallpaper layer ────────────────────── */
+.gradient-layer {
     position: absolute;
     inset: 0;
     z-index: 1;
-    pointer-events: none;
-    
-    opacity: var(--chat-pattern-opacity, 0.08);
-    mix-blend-mode: var(--chat-pattern-blend, overlay);
+    /* Wallpaper photo goes first so gradient sits on top as a tint when no
+       photo is set. When --chat-bg-image is 'none' only the gradient shows. */
+    background-image: var(--chat-bg-image, none), var(--chat-bg-gradient, none);
+    background-size: cover, cover;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+    transition: background-image 0.35s ease, background-color 0.35s ease;
+}
 
+/* ── SVG pattern tile layer ────────────────────────── */
+.pattern-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    opacity: var(--chat-pattern-opacity, 0.10);
+    mix-blend-mode: var(--chat-pattern-blend, multiply);
     background-image: var(--pattern-url, none);
     background-size: var(--chat-pattern-size, 420px);
     background-repeat: repeat;
-    
+    background-position: center;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
     will-change: opacity;
 }
 
+/* ── Content shell (MUST be transparent) ───────────── */
 .content-layer {
     position: relative;
-    z-index: 2;
-    flex: 1;
+    z-index: 3;
     display: flex;
     flex-direction: column;
+    height: 100%;
     min-height: 0;
-    background: transparent;
+    /* Transparent by default — never paint over our gradient/pattern */
+    background: transparent !important;
+}
+
+/* Children of content-layer must also be transparent */
+.content-layer > * {
+    background-color: transparent;
 }

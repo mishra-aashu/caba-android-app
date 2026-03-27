@@ -1,51 +1,36 @@
 import React from 'react';
 import styles from './ChatBackground.module.css';
 
-// ✅ FIX: Removed unused `patternSvg` import — it was imported but never referenced.
-//         Pattern rendering is handled entirely via CSS variables set by ChatThemeProvider.
+/**
+ * ChatBackground — 3-layer background system
+ *
+ * Layer stack (bottom → top):
+ *   0  container       base colour (--chat-bg-base)
+ *   1  gradient-layer  theme gradient OR wallpaper photo
+ *   2  pattern-layer   repeating SVG tile (only when showPattern=true)
+ *   3  content-layer   transparent wrapper for app UI
+ *
+ * CSS variables are set on :root by ChatThemeProvider.
+ * This component has zero inline styles — everything comes through CSS vars
+ * so there is no clash between CSS Modules and inline props.
+ */
+const ChatBackground = ({ children, showPattern }) => {
+    return (
+        <div className={styles['chat-background-container']}>
+            {/* Layer 1: gradient / wallpaper */}
+            <div className={styles['gradient-layer']} aria-hidden="true" />
 
-const ChatBackground = ({
-  children,
-  active = true,
-  showPattern = true,
-  // Manual override props — only used when parent explicitly passes them.
-  // Leave undefined to let CSS variables from ChatThemeProvider drive everything.
-  gradient,
-  wallpaperUrl,
-  patternUrl,
-  patternOpacity,
-  patternSize,
-}) => {
-  // Only inject inline styles when props are EXPLICITLY provided.
-  // Undefined props are skipped so the CSS variables remain in control.
-  const containerStyles = {
-    ...(gradient      && { '--chat-bg-gradient':      gradient }),
-    ...(wallpaperUrl  && { '--chat-bg-image':         `url("${wallpaperUrl}")` }),
-    ...(patternUrl    && { '--pattern-url':           `url("${patternUrl}")` }),
-    ...(patternOpacity !== undefined && { '--chat-pattern-opacity': patternOpacity }),
-    ...(patternSize   && { '--chat-pattern-size':     patternSize }),
-  };
+            {/* Layer 2: SVG pattern tile — only mounted when relevant */}
+            {showPattern && (
+                <div className={styles['pattern-layer']} aria-hidden="true" />
+            )}
 
-  return (
-    <div
-      className={[
-        styles['chat-background-container'],
-        showPattern ? styles['has-pattern'] : '',
-      ].filter(Boolean).join(' ')}
-      style={Object.keys(containerStyles).length > 0 ? containerStyles : undefined}
-    >
-      {/* Layer 1: Gradient / wallpaper image */}
-      {active && <div className={styles['gradient-layer']} />}
-
-      {/* Layer 2: SVG pattern overlay */}
-      {active && showPattern && <div className={styles['pattern-layer']} />}
-
-      {/* Layer 3: Chat content — transparent so layers below show through */}
-      <div className={styles['content-layer']}>
-        {children}
-      </div>
-    </div>
-  );
+            {/* Layer 3: transparent content shell */}
+            <div className={styles['content-layer']}>
+                {children}
+            </div>
+        </div>
+    );
 };
 
-export default ChatBackground;
+export default React.memo(ChatBackground);
