@@ -19,6 +19,10 @@
         var target = localStorage.getItem('ota-target-url');
         if (!target) return;
 
+        // ✅ OFFLINE GUARD: Don't redirect if device has no internet
+        // Without this check, offline users get "webpage not available"
+        if (navigator.onLine === false) return;
+
         // Origin check to prevent loops
         try {
           if (window.location.origin === new URL(target).origin) return;
