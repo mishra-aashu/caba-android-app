@@ -80,7 +80,7 @@ const ChatListItem = ({
 
   return (
     <div
-      className={`${styles["chat-item"]} ${isActive ? styles.active : ""} ${isGroup ? styles["group-item"] : ""} ${is_vanish_enabled ? styles["vanish-mode"] : ""} ${isSelected ? styles.selected : ""} ${selectionMode ? styles["selection-mode"] : ""}`}
+      className={`${styles["chat-item"]} ${isActive ? styles.active : ""} ${isGroup ? styles["group-item"] : ""} ${is_vanish_enabled ? styles["vanish-mode"] : ""} ${isSelected ? styles.selected : ""} ${selectionMode ? styles["selection-mode"] : ""} native-touch`}
       onClick={(e) => {
         if (selectionMode) {
           onSelect(chat.id);

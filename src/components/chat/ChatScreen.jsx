@@ -410,7 +410,7 @@ const ChatScreen = () => {
                             isAdmin={currentUser?.isAdmin}
                         />
 
-                        <div className={styles['nested-chat-content']}>
+                        <div className={`${styles['nested-chat-content']} gpu-layer`}>
                             {activeGroupCall && (
                                 <div className={styles['active-call-banner']}>
                                     <div className={styles['banner-content']}>
@@ -433,7 +433,7 @@ const ChatScreen = () => {
                                 </div>
                             )}
 
-                            <div className={styles['messages-container']}>
+                            <div className={`${styles['messages-container']} smooth-scroll`}>
                                 {isFetchingNextPage && (
                                     <div className={styles['load-more-indicator']}>
                                         <div className={styles['loading-spinner']} />

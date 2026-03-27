@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MessageCircle, Phone, Settings } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
+import hapticsManager from '../../utils/hapticsManager';
 import styles from './BottomNavigation.module.css';
 
 const NAV_ITEMS = [
@@ -14,13 +15,13 @@ const NAV_ITEMS = [
 const NavButton = memo(({ path, icon: Icon, label, isActive, badge, onNavigate }) => {
     const handleClick = useCallback(() => {
         // Haptic feedback on native
-        if (navigator.vibrate) navigator.vibrate(8);
+        hapticsManager.selectionChanged();
         onNavigate(path);
     }, [path, onNavigate]);
 
     return (
         <button
-            className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+            className={`${styles.navItem} ${isActive ? styles.active : ''} native-touch`}
             onClick={handleClick}
             role="tab"
             aria-selected={isActive}

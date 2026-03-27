@@ -25,7 +25,7 @@ const config: CapacitorConfig = {
       forceCodeForRefreshToken: true,
     },
     Keyboard: {
-      resize: KeyboardResize.None,
+      resize: KeyboardResize.Ionic,
     },
     StatusBar: {
       style: 'dark',

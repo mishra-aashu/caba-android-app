@@ -19,11 +19,6 @@
     align-items: stretch;
     z-index: 100;
 
-    /* Frosted glass effect */
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    background: rgba(255, 255, 255, 0.88);
-
     /* Subtle top shadow */
     box-shadow:
         0 -1px 0 rgba(0, 0, 0, 0.04),
@@ -32,14 +27,15 @@
     /* Smooth show/hide transitions */
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Performance */
+    /* Performance: GPU acceleration hints */
+    transform: translateZ(0);
     will-change: transform;
     contain: layout style;
 }
 
 /* ─── Dark Mode ─── */
 [data-theme="dark"] .bottomNav {
-    background: rgba(30, 30, 30, 0.92);
+    background: var(--surface-color, #1e1e1e);
     border-top-color: rgba(255, 255, 255, 0.06);
     box-shadow:
         0 -1px 0 rgba(255, 255, 255, 0.04),

@@ -86,18 +86,19 @@
 }
 
 /* Elegant Divider — Starts after avatar */
-.chat-item:not(:last-child)::after {
+.chat-item:not(:last-child)::before {
   content: "";
   position: absolute;
   bottom: 0;
-  left: 76px; /* 16px padding + 48px avatar + 12px gap approx */
+  left: 76px;
   right: 0;
   height: 1px;
   background: var(--border-color, rgba(255, 255, 255, 0.05));
   pointer-events: none;
+  z-index: 1;
 }
 
-:global(body.light-mode) .chat-item:not(:last-child)::after {
+:global(body.light-mode) .chat-item:not(:last-child)::before {
   background: rgba(0, 0, 0, 0.05);
 }
 

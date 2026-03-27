@@ -61,6 +61,64 @@
   --glass-stroke: rgba(0, 168, 132, 0.12);
   --primary-0: #00a884;
   --primary-1: #00876a;
+  --app-height: 100vh;
+}
+
+/* =============================================
+   5. NATIVE UX ENHANCEMENTS
+   ============================================= */
+
+/* Native Ripple & Touch Feedback */
+.native-touch {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  cursor: pointer;
+  transform: translateZ(0); /* Force GPU layer */
+}
+
+.native-touch::after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #000 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition:
+    transform 0.3s,
+    opacity 0.5s;
+}
+
+.native-touch:active::after {
+  transform: scale(0, 0);
+  opacity: 0.12;
+  transition: 0s;
+}
+
+[data-theme="dark"] .native-touch::after {
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+}
+
+/* GPU Accelerated Layers */
+.gpu-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+  overscroll-behavior-y: none;
 }
 
 .icon-btn {
