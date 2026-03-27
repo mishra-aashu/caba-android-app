@@ -129,9 +129,16 @@ export const useAutoRefresh = () => {
     try {
       if (isLocalNativeRef.current) {
         // ══════════════════════════════════════
-        // NATIVE LOCAL → Redirect to Vercel
+        // NATIVE LOCAL → Session-only redirect to Vercel
+        //
+        // ❌ OLD BEHAVIOR: Save ota-target-url → permanent Vercel dependency
+        //    This caused "webpage not available" on every offline cold start.
+        //
+        // ✅ NEW BEHAVIOR: Redirect THIS session only to Vercel for new assets.
+        //    Next cold start still loads from local Android bundle.
+        //    No localStorage/Preferences persistence of target URL.
         // ══════════════════════════════════════
-        console.log('[AutoRefresh] Redirecting to Vercel with session migration...');
+        console.log('[AutoRefresh] Session-only redirect to Vercel for update...');
 
         // 1. Capture current session for migration
         const { data: { session } } = await supabase.auth.getSession();
@@ -140,22 +147,15 @@ export const useAutoRefresh = () => {
           sessionHash = `#access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
         }
 
-        // 2. Build URLs
+        // 2. Build one-time redirect URL (with session tokens)
         const currentPath = window.location.pathname + window.location.search;
-        const persistentTargetUrl = REMOTE_ORIGIN + currentPath;
-        const immediateTargetUrl = persistentTargetUrl + sessionHash;
+        const immediateTargetUrl = REMOTE_ORIGIN + currentPath + sessionHash;
 
-        // 3. Save CLEAN URL (no tokens) for future cold starts
-        localStorage.setItem(OTA_TARGET_KEY, persistentTargetUrl);
+        // ✅ DO NOT save to localStorage or Capacitor Preferences.
+        // Saving it caused the app to permanently run from Vercel on cold starts.
+        // Offline cold start = "webpage not available" → removed.
 
-        // 4. Backup in Capacitor Preferences (only if plugins work)
-        // ═══ BUG FIX: was "targetUrl" (undefined), now "persistentTargetUrl" ═══
-        await safePluginCall(async () => {
-          const { Preferences } = await import('@capacitor/preferences');
-          await Preferences.set({ key: OTA_TARGET_KEY, value: persistentTargetUrl });
-        });
-
-        // 5. Clear local SW + caches
+        // 3. Clear local SW + caches so Vercel serves fresh assets
         if ('serviceWorker' in navigator) {
           try {
             const regs = await navigator.serviceWorker.getRegistrations();
@@ -169,10 +169,10 @@ export const useAutoRefresh = () => {
           } catch (e) {}
         }
 
-        // 6. Brief delay for UI feedback
+        // 4. Brief delay for UI feedback
         await new Promise(r => setTimeout(r, 600));
 
-        // 7. REDIRECT with session tokens (one-time)
+        // 5. SESSION-ONLY redirect — next launch loads from local bundle
         window.location.replace(immediateTargetUrl);
 
       } else {

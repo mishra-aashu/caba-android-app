@@ -9,30 +9,17 @@
     Redirects to Vercel instantly if an update was previously received.
   -->
   <script>
+    // OTA CLEANUP: Remove any stale ota-target-url saved by the old system.
+    // Previously, the app saved Vercel's URL to localStorage and redirected
+    // to it on every cold start. This caused "webpage not available" offline.
+    // The new system only does a session-only redirect (never saves the URL).
+    // This cleanup runs once per launch to fix already-affected devices.
     (function() {
       try {
-        var host = window.location.hostname;
-        var proto = window.location.protocol;
-        var isLocal = host === 'localhost' || host === '' || proto === 'capacitor:' || proto === 'file:';
-        if (!isLocal) return;
-
-        var target = localStorage.getItem('ota-target-url');
-        if (!target) return;
-
-        // ✅ OFFLINE GUARD: Don't redirect if device has no internet
-        // Without this check, offline users get "webpage not available"
-        if (navigator.onLine === false) return;
-
-        // Origin check to prevent loops
-        try {
-          if (window.location.origin === new URL(target).origin) return;
-        } catch(e) {
+        if (localStorage.getItem('ota-target-url')) {
           localStorage.removeItem('ota-target-url');
-          return;
+          console.log('[OTA] Cleaned up stale ota-target-url from localStorage');
         }
-
-        // Silent Redirect — no splash screen needed because we are in <head>
-        window.location.replace(target);
       } catch(e) {}
     })();
   </script>
