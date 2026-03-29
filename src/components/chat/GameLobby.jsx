@@ -1,136 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useSupabase } from '../../contexts/SupabaseContext';
+import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import {
   Gamepad2,
   Play,
   Shield,
-  CheckCircle,
   Flame,
-  Plus,
   Clock,
   ChevronRight,
   TrendingUp
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { getAvatarPath, getInitials } from '../../utils/stringUtils';
 import PlayerAvatar from '../common/PlayerAvatar';
 import styles from './GameLobby.module.css';
-import { DB_TABLES } from '../../constants/gameData';
 
-const GameLobby = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
-  console.log("DEBUG: GameLobby Mounted", { chatId, otherUserId });
-  const { supabase } = useSupabase();
+const GameLobby = ({ 
+    chatId, 
+    otherUserId, 
+    invitations = [], 
+    loading = false, 
+    onStartTruthDare, 
+    onResumeGame,
+    onAcceptGame,
+    onRejectGame
+}) => {
   const { user } = useAuth();
-
-  const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
-
-  useEffect(() => {
-    if (chatId) {
-      loadGames();
-
-      const channel = supabase
-        .channel(`game_realtime_${chatId}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: DB_TABLES.GAME_INVITATIONS,
-          filter: `chat_id=eq.${chatId}`
-        }, (payload) => {
-          loadGames();
-        })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [chatId]);
-
-  const loadGames = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from(DB_TABLES.GAME_INVITATIONS)
-        .select(`
-          *,
-          sender:${DB_TABLES.USERS}!sender_id (id, name, avatar),
-          receiver:${DB_TABLES.USERS}!receiver_id (id, name, avatar)
-        `)
-        .eq('chat_id', chatId)
-        .in('status', ['pending', 'accepted'])
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      const gamesList = data || [];
-      setGames(gamesList);
-
-      // Auto-redirect if an active game is found
-      if (gamesList.length > 0) {
-        const activeGame = gamesList[0];
-        if (activeGame.status === 'accepted' || (activeGame.status === 'pending' && user?.id === activeGame.receiver_id)) {
-            if (onResumeGame) onResumeGame();
-        }
-      }
-    } catch (error) {
-      console.error('Error loading games:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAcceptGame = async (game) => {
-    try {
-      const { error } = await supabase
-        .from(DB_TABLES.GAME_INVITATIONS)
-        .update({ status: 'accepted' })
-        .eq('id', game.id);
-
-      if (error) throw error;
-      toast.success('Battle Accepted! 🔥');
-
-      const channelName = `game_realtime_${chatId}`;
-      const channel = supabase.channel(channelName);
-      
-      // Subscribe first, then send
-      channel.subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.send({
-            type: 'broadcast',
-            event: 'game_update',
-            payload: {
-              gameId: game.id,
-              gameState: { ...game.invitation_data, stage: 'picking' }
-            },
-          });
-          // Cleanup after send
-          setTimeout(() => supabase.removeChannel(channel), 2000);
-        }
-      });
-
-      loadGames();
-      if (onResumeGame) onResumeGame();
-    } catch (error) {
-      toast.error('Failed to join');
-    }
-  };
-
-  const handleRejectGame = async (game) => {
-    try {
-      const { error } = await supabase
-        .from(DB_TABLES.GAME_INVITATIONS)
-        .update({ status: 'rejected' })
-        .eq('id', game.id);
-
-      if (error) throw error;
-      loadGames();
-    } catch (error) {
-      toast.error('Failed to ignore');
-    }
-  };
-
 
   return (
     <div className={styles['lobby-container']}>
@@ -177,38 +71,8 @@ const GameLobby = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
                     className={styles['start-game-btn']}
                     onClick={async () => {
                       const result = await onStartTruthDare();
-                      if (result?.collision) {
-                        toast((t) => (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span>⚔️ Battle already active!</span>
-                            <button
-                              onClick={() => {
-                                toast.dismiss(t.id);
-                                if (onResumeGame) onResumeGame();
-                              }}
-                              style={{
-                                background: '#ec4899',
-                                color: '#white',
-                                border: 'none',
-                                padding: '4px 12px',
-                                borderRadius: '6px',
-                                fontSize: '10px',
-                                fontWeight: '900',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              OPEN
-                            </button>
-                          </div>
-                        ), {
-                          duration: 6000,
-                          style: {
-                            borderRadius: '1rem',
-                            background: '#1e293b',
-                            color: '#fff',
-                            border: '1px solid #ec4899'
-                          }
-                        });
+                      if (result?.error) {
+                          toast.error(result.error);
                       }
                     }}
                   >
@@ -227,21 +91,21 @@ const GameLobby = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
             </div>
 
             {/* 2. SESSIONS SECTION */}
-            {(loading || games.length > 0) && (
+            {(loading || invitations.length > 0) && (
               <div className={styles['lobby-section']}>
                 <div className={styles['section-header']}>
                   <h4 className={styles['section-title']}>Active Sessions</h4>
                   <Clock size={14} className={styles['accent-color-alt']} />
                 </div>
 
-                {loading && games.length === 0 ? (
+                {loading && invitations.length === 0 ? (
                   <div className={styles['loading-area']}>
                     <div className={styles.spinner} />
                     <p>Checking Arena...</p>
                   </div>
                 ) : (
                   <div className={styles['sessions-list']}>
-                    {games.map((game) => (
+                    {invitations.map((game) => (
                       <div key={game.id} className={styles['session-card']}>
                         <div className={styles['session-top']}>
                           <span className={styles['game-type']}>
@@ -281,10 +145,10 @@ const GameLobby = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
                         <div className={styles['session-actions']}>
                           {game.status === 'pending' && user?.id === game.receiver_id ? (
                             <>
-                              <button onClick={() => handleAcceptGame(game)} className={styles['accept-btn']}>
+                              <button onClick={() => onAcceptGame(game)} className={styles['accept-btn']}>
                                 ACCEPT
                               </button>
-                              <button onClick={() => handleRejectGame(game)} className={styles['skip-btn']}>
+                              <button onClick={() => onRejectGame(game)} className={styles['skip-btn']}>
                                 SKIP
                               </button>
                             </>
@@ -320,7 +184,7 @@ const GameLobby = ({ chatId, otherUserId, onStartTruthDare, onResumeGame }) => {
             <div className={styles['entry-actions']}>
               <button
                 className={styles['enter-arena-btn']}
-                onClick={onResumeGame}
+                onClick={() => onResumeGame(selectedGame)}
               >
                 <span>ENTER ARENA</span>
                 <ChevronRight size={20} />

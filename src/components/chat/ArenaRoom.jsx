@@ -5,6 +5,7 @@ import {
   Volume2, Play, Pause, Download, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 import TruthDareGame from './TruthDareGame';
 import styles from './ArenaRoom.module.css';
 
@@ -17,11 +18,13 @@ const ArenaRoom = ({
 }) => {
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'game' (for mobile)
   const [inputText, setInputText] = useState('');
-  const [isGameExpanded, setIsGameExpanded] = useState(true);
+  const [isGameExpanded, setIsGameExpanded] = useState(gameProps.gameState?.stage && gameProps.gameState.stage !== 'idle');
   const [fullscreenMedia, setFullscreenMedia] = useState(null);
   const scrollRef = useRef(null);
 
-  const { chatMessages, sendChat, sendMedia, mediaProgress } = webrtcProps;
+  const { chatMessages, sendChat, sendMedia, mediaProgress, peers, connectionState } = webrtcProps;
+  const peerCount = (peers || []).length;
+  const isConnected = connectionState === 'connected' || peerCount > 0;
 
   // Auto-scroll chat
   useEffect(() => {
@@ -32,14 +35,23 @@ const ArenaRoom = ({
 
   const handleSendText = () => {
     if (!inputText.trim()) return;
-    sendChat(inputText);
+    const sent = sendChat(inputText);
+    if (sent === false) {
+      // console.warn("P2P Message might not have been sent to any peers yet.");
+    }
     setInputText('');
   };
 
   const handleFileSelect = async (e, type) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await sendMedia(file, type);
+    
+    try {
+      await sendMedia(file, type);
+    } catch (err) {
+      console.error("Failed to send media:", err);
+      toast.error("Failed to send media. Check connection.");
+    }
   };
 
   return (
@@ -74,11 +86,23 @@ const ArenaRoom = ({
 
         <div className={styles.chatSection}>
           <div className={styles.sectionHeader}>
-            <MessageSquare size={20} />
-            <span>LIVE P2P CHAT</span>
+            <div className="flex items-center gap-2">
+              <MessageSquare size={20} />
+              <span>LIVE P2P CHAT</span>
+            </div>
+            <div className={`${styles.statusBadge} ${isConnected ? styles.online : styles.offline}`}>
+              <div className={styles.statusDot} />
+            </div>
           </div>
           
           <div className={styles.chatFeed} ref={scrollRef}>
+            {chatMessages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full opacity-30 text-xs py-10">
+                <MessageSquare size={32} className="mb-2" />
+                <p>No messages yet</p>
+                <p>Start chatting P2P!</p>
+              </div>
+            )}
             {chatMessages.map(msg => (
               <ChatMessage 
                 key={msg.id || msg.transferId} 
@@ -101,50 +125,76 @@ const ArenaRoom = ({
 
       {/* MOBILE LAYOUT */}
       <div className={styles.mobileLayout}>
-        <div className={styles.mobileChatArea}>
-          <div className={styles.chatFeed} ref={scrollRef}>
-            {chatMessages.map(msg => (
-              <ChatMessage 
-                key={msg.id || msg.transferId} 
-                msg={msg} 
-                isMe={msg.senderId === userId} 
-                onExpand={setFullscreenMedia}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Floating Game Drawer */}
-        <motion.div 
-          className={styles.gameDrawer}
-          initial={false}
-          animate={{ height: isGameExpanded ? '70vh' : '60px' }}
-        >
-          <div 
-            className={styles.drawerHandle}
-            onClick={() => setIsGameExpanded(!isGameExpanded)}
+        {/* Tab Switcher */}
+        <div className={styles.mobileTabs}>
+          <button 
+            className={`${styles.tabBtn} ${activeTab === 'chat' ? styles.tabBtnActive : ''}`}
+            onClick={() => setActiveTab('chat')}
           >
-            <div className={styles.handleBar} />
-            <div className={styles.drawerTitle}>
-               <Gamepad2 size={18} />
-               <span>{gameProps.gameState?.stage?.replace('-', ' ').toUpperCase() || 'TRUTH OR DARE'}</span>
-               {isGameExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-            </div>
-          </div>
-          <div className={styles.drawerContent}>
-            <TruthDareGame {...gameProps} userId={userId} isEmbedded={true} />
-          </div>
-        </motion.div>
-
-        <div className={styles.mobileInputArea}>
-           <ChatInput 
-            value={inputText}
-            onChange={setInputText}
-            onSend={handleSendText}
-            onFileSelect={handleFileSelect}
-            progress={mediaProgress}
-          />
+            <MessageSquare size={16} />
+            <span>CHAT</span>
+          </button>
+          <button 
+            className={`${styles.tabBtn} ${activeTab === 'game' ? styles.tabBtnActive : ''}`}
+            onClick={() => setActiveTab('game')}
+          >
+            <Gamepad2 size={16} />
+            <span>GAME</span>
+            {gameProps.gameState?.stage && gameProps.gameState.stage !== 'idle' && (
+              <div className={styles.statusDot} style={{ background: '#ec4899', marginLeft: '-5px', marginTop: '-10px' }} />
+            )}
+          </button>
         </div>
+
+        <AnimatePresence mode="wait">
+          {activeTab === 'chat' ? (
+            <motion.div 
+              key="chat"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              className={styles.mobileChatArea}
+            >
+              <div className={styles.chatFeed} ref={scrollRef}>
+                {chatMessages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-full opacity-30 text-xs py-10">
+                    <MessageSquare size={32} className="mb-2" />
+                    <p>No messages yet</p>
+                    <p>Start chatting P2P!</p>
+                  </div>
+                )}
+                {chatMessages.map(msg => (
+                  <ChatMessage 
+                    key={msg.id || msg.transferId} 
+                    msg={msg} 
+                    isMe={msg.senderId === userId} 
+                    onExpand={setFullscreenMedia}
+                  />
+                ))}
+              </div>
+              
+              <div className={styles.mobileInputArea}>
+                <ChatInput 
+                  value={inputText}
+                  onChange={setInputText}
+                  onSend={handleSendText}
+                  onFileSelect={handleFileSelect}
+                  progress={mediaProgress}
+                />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="game"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className={styles.mobileGameArea}
+            >
+              <TruthDareGame {...gameProps} userId={userId} isEmbedded={true} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

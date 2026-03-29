@@ -73,11 +73,13 @@ export default class WebRTCRoomManager extends EventTarget {
     this._signalingChannel
       .on('broadcast', { event: 'signal' }, ({ payload }) => {
         if (this._destroyed) return;
+        // console.log(`[WebRTC] Received signal: ${payload.type} from ${payload.senderId}`);
         if (payload.targetId && payload.targetId !== this.userId) return;
         this._handleSignal(payload);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
+          // console.log(`[WebRTC] Joined signaling channel: ${channelName}`);
           // Announce presence — existing peers will send offers
           await this._broadcast('peer-join', {
             userName: this.userName,
@@ -179,7 +181,10 @@ export default class WebRTCRoomManager extends EventTarget {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   _createPeerConnection(peerId, peerName) {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = new RTCPeerConnection({ 
+      iceServers: ICE_SERVERS,
+      iceCandidatePoolSize: 10
+    });
 
     const peerState = {
       pc,
@@ -248,14 +253,17 @@ export default class WebRTCRoomManager extends EventTarget {
     channel.binaryType = 'arraybuffer';
 
     channel.onopen = () => {
+      // console.log(`[WebRTC] Channel ${channel.label} opened with peer ${peerId}`);
       this._emit('channel-open', { peerId, channel: channel.label });
     };
 
     channel.onclose = () => {
+      // console.log(`[WebRTC] Channel ${channel.label} closed with peer ${peerId}`);
       this._emit('channel-close', { peerId, channel: channel.label });
     };
 
     channel.onerror = (err) => {
+      if (this._destroyed) return; // Silence errors during destruction
       console.error(`[WebRTC] Channel ${channel.label} error:`, err);
     };
 
@@ -375,9 +383,13 @@ export default class WebRTCRoomManager extends EventTarget {
       senderName: this.userName,
       timestamp: Date.now(),
     };
-    this._broadcastOnChannel('chat-text', JSON.stringify(msg));
-    // Also emit locally so sender sees their own message
+    const sent = this._broadcastOnChannel('chat-text', JSON.stringify(msg));
+    
+    // Fallback: If P2P fails, we could potentially use Supabase Broadcast as a backup, 
+    // but for now we just emit locally so the user sees their message.
     this._emit('chat-message', { ...msg, isLocal: true });
+    
+    return sent;
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -528,12 +540,21 @@ export default class WebRTCRoomManager extends EventTarget {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   _broadcastOnChannel(channelName, data) {
-    for (const [, peer] of this.peers) {
+    let sentCount = 0;
+    for (const [peerId, peer] of this.peers) {
       const channel = peer.channels.get(channelName);
       if (channel && channel.readyState === 'open') {
-        channel.send(data);
+        try {
+          channel.send(data);
+          sentCount++;
+        } catch (err) {
+          console.error(`[WebRTC] Failed to send on ${channelName} to ${peerId}:`, err);
+        }
+      } else {
+        // console.warn(`[WebRTC] Cannot send on ${channelName} to ${peerId}: state is ${channel?.readyState}`);
       }
     }
+    return sentCount > 0;
   }
 
   _waitForBufferDrain() {

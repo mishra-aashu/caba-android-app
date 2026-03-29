@@ -10,18 +10,26 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
   const [peers, setPeers] = useState([]);                // [{ peerId, userName }]
   const [connectionState, setConnectionState] = useState('initializing');
   const [chatMessages, setChatMessages] = useState([]);  // all chat + media msgs
-  const [gameEvents, setGameEvents] = useState([]);
+  const [lastGameEvent, setLastGameEvent] = useState(null);
   const [mediaProgress, setMediaProgress] = useState({}); // { transferId: 0-1 }
+  const [lastPeerId, setLastPeerId] = useState(null);
 
   // ── Initialize Manager ─────────────────────────────────
   useEffect(() => {
     if (!roomId || !userId || !supabase) return;
 
-    const manager = new WebRTCRoomManager({ roomId, userId, userName, supabase });
+    // Use a local variable to track the manager for this effect run
+    const manager = new WebRTCRoomManager({ 
+      roomId, 
+      userId, 
+      userName: userName || 'Player', 
+      supabase 
+    });
     managerRef.current = manager;
 
     // ── Event Listeners ────────────────────────────────
     const onPeerConnected = (e) => {
+      setLastPeerId(e.detail.peerId);
       setPeers((prev) => {
         if (prev.some((p) => p.peerId === e.detail.peerId)) return prev;
         return [...prev, { peerId: e.detail.peerId, userName: e.detail.userName }];
@@ -48,7 +56,8 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     };
 
     const onGameEvent = (e) => {
-      setGameEvents((prev) => [...prev, e.detail]);
+      // Root Fix: Only store the latest event to prevent state bloat and loops
+      setLastGameEvent({ ...e.detail, _ts: Date.now() });
     };
 
     const onMediaProgress = (e) => {
@@ -129,8 +138,9 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     peers,
     connectionState,
     chatMessages,
-    gameEvents,
+    lastGameEvent,
     mediaProgress,
+    lastPeerId,
     sendChat,
     sendGameEvent,
     sendMedia,

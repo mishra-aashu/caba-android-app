@@ -1,15 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../config/supabase';
+import { useReducer, useEffect, useCallback, useRef, useMemo } from 'react';
 import { TRUTHS, DARES, DB_TABLES, SCORING, GAME_MODES } from '../constants/gameData';
-import { prepareDataForDB } from '../utils/dbSchemaCompatibility';
 import useWebRTCRoom from './useWebRTCRoom';
 
 export const GAME_STATES = {
   IDLE: 'idle',
   INVITING: 'inviting',
+  JOINING: 'joining',
   ACCEPTED: 'accepted',
   SETUP: 'setup',
-  TURN_SPINNING: 'turn-spinning',
   TURN_ANNOUNCE: 'turn-announce',
   TURN_CHOOSING: 'turn-choosing',
   TURN_CHALLENGE: 'turn-challenge',
@@ -19,181 +17,103 @@ export const GAME_STATES = {
   GAME_OVER: 'game-over'
 };
 
-export const useTruthDareGame = (roomId, userId, { enabled = true } = {}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [gameId, setGameId] = useState(null);
-  const [gameState, setGameState] = useState({
-    stage: GAME_STATES.IDLE,
-    turn: null,
-    type: null, // 'truth' | 'dare'
-    content: '',
-    round: 1,
-    maxRounds: 5,
-    mode: GAME_MODES.CLASSIC,
-    timer: 0,
-    players: {}, // { userId: { points: 0, streak: 0, lastType: null } }
-    winnerId: null,
-    localPlayer: null,
-    partnerPlayer: null,
-    partnerId: null,
-    votes: {}, // { voterId: 'yes' | 'no' }
-  });
-  const [isHost, setIsHost] = useState(false);
-  const isHostRef = useRef(isHost);
-  const stateRef = useRef(gameState);
-  const gameIdRef = useRef(gameId);
-  const timerIntervalRef = useRef(null);
+const INITIAL_GAME_STATE = {
+  stage: GAME_STATES.IDLE,
+  gameId: null,
+  isHost: false,
+  turn: null,
+  type: null,
+  content: '',
+  round: 1,
+  maxRounds: 5,
+  mode: GAME_MODES.CLASSIC,
+  players: {},
+  winnerId: null,
+  partnerId: null,
+  votes: {},
+};
 
-  useEffect(() => {
-    isHostRef.current = isHost;
-  }, [isHost]);
+function gameReducer(state, action) {
+  switch (action.type) {
+    case 'SYNC_STATE':
+      // ROOT FIX: Never overwrite local isHost with network data
+      const { isHost, ...rest } = action.payload;
+      return { ...state, ...rest };
+    
+    case 'SET_HOST':
+      return { ...state, isHost: action.payload };
 
-  useEffect(() => {
-    stateRef.current = gameState;
-  }, [gameState]);
+    case 'UPDATE_GAME_ID':
+      return { ...state, gameId: action.payload };
 
-  useEffect(() => {
-    gameIdRef.current = gameId;
-  }, [gameId]);
+    case 'TRANSITION':
+      return { 
+        ...state, 
+        ...(action.payload || {}),
+        stage: action.stage,
+        // Reset turn-specific data on new turn announce
+        ...(action.stage === GAME_STATES.TURN_ANNOUNCE ? {
+          type: null,
+          content: '',
+          votes: {}
+        } : {})
+      };
 
-  // --- WebRTC Sync Core ---
+    case 'RESET':
+      return INITIAL_GAME_STATE;
 
-  const handleGameEvent = useCallback((event) => {
-    if (isHostRef.current) {
-      handleClientEvent(event.senderId, event);
-    }
-  }, []);
+    default:
+      return state;
+  }
+}
 
+export const useTruthDareGame = (roomId, userId, supabase) => {
+  const [state, dispatch] = useReducer(gameReducer, INITIAL_GAME_STATE);
+  const stateRef = useRef(state);
+  const timerRef = useRef(null);
+
+  // Sync ref to current state
+  useEffect(() => { stateRef.current = state; }, [state]);
+  
+  // WebRTC Core
   const webrtc = useWebRTCRoom({ 
     roomId, 
     userId, 
-    userName: stateRef.current.localPlayer?.name || 'Player',
+    userName: 'Player',
     supabase 
   });
 
-  const { sendGameEvent, peers, connectionState, chatMessages, gameEvents, mediaProgress, sendChat, sendMedia } = webrtc;
+  const { sendGameEvent, lastGameEvent, lastPeerId } = webrtc;
 
-  // Authoritative Host: Sync state to new peers
-  useEffect(() => {
-    if (isHost && peers.length > 0) {
-      // Broadcast current state to ensure new peers are in sync
-      syncGame(gameIdRef.current, stateRef.current);
+  // --- Helpers ---
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
-  }, [peers.length, isHost]); // Trigger when peer count changes
+  }, []);
 
-  // Handle incoming data from WebRTCRoomManager
-  useEffect(() => {
-    const lastEvent = gameEvents[gameEvents.length - 1];
-    if (!lastEvent) return;
+  const broadcastState = useCallback((newState) => {
+    // console.log("📡 [Host] Broadcasting game update:", newState.stage);
+    sendGameEvent({ 
+      type: 'GAME_UPDATE', 
+      gameId: newState.gameId, 
+      gameState: newState 
+    });
+  }, [sendGameEvent]);
 
-    if (lastEvent.type === 'GAME_UPDATE') {
-      const newState = {
-        ...lastEvent.gameState,
-        localPlayer: stateRef.current.localPlayer,
-        partnerPlayer: stateRef.current.partnerPlayer
-      };
-      setGameState(newState);
-      setGameId(lastEvent.gameId);
-      if (newState.stage !== GAME_STATES.IDLE) {
-        setIsOpen(true);
-      }
-    } else if (lastEvent.type === 'GAME_EVENT' && isHostRef.current) {
-      handleClientEvent(lastEvent.senderId, lastEvent.event);
-    }
-  }, [gameEvents]);
-
-  const syncGame = useCallback((newId, newState) => {
-    setGameId(newId);
-    setGameState(newState);
+  // --- Scoring Engine (Pure Function) ---
+  const calculateScores = (players, targetId, actionType, bonus = 0) => {
+    const nextPlayers = { ...players };
+    const p = { ...(nextPlayers[targetId] || { points: 0, streak: 0, lastType: null }) };
     
-    // Authoritative broadcast via the unified manager
-    sendGameEvent({ type: 'GAME_UPDATE', gameId: newId, gameState: newState });
-  }, [sendGameEvent, roomId]);
-
-  // --- Host Logic: Transitions and Scoring ---
-
-  const processTransition = useCallback((nextStage) => {
-    if (!isHostRef.current) return;
-    const current = stateRef.current;
-    let nextState = { ...current, stage: nextStage };
-
-    switch (nextStage) {
-      case GAME_STATES.TURN_ANNOUNCE:
-        // Set up next turn logic
-        nextState.type = null;
-        nextState.content = '';
-        nextState.votes = {};
-        break;
-      
-      case GAME_STATES.TURN_CHOOSING:
-        // Start turn timer if configured
-        break;
-
-      case GAME_STATES.TURN_RESULT:
-        // Delay and then next turn or game over
-        setTimeout(() => {
-          if (current.round >= current.maxRounds && current.turn === current.partnerId) {
-            // End of last round (both players moved)
-            const finalScores = current.players;
-            let winner = null;
-            let maxPoints = -Infinity;
-            Object.entries(finalScores).forEach(([id, stats]) => {
-              if (stats.points > maxPoints) {
-                maxPoints = stats.points;
-                winner = id;
-              }
-            });
-            processTransition(GAME_STATES.GAME_OVER);
-          } else {
-            // Next turn
-            const nextRound = current.turn === current.partnerId ? current.round + 1 : current.round;
-            const nextTurn = current.turn === userId ? current.partnerId : userId;
-            const newState = { 
-              ...stateRef.current, 
-              round: nextRound, 
-              turn: nextTurn,
-              stage: GAME_STATES.TURN_ANNOUNCE 
-            };
-            syncGame(gameIdRef.current, newState);
-          }
-        }, 2500);
-        break;
-
-      case GAME_STATES.GAME_OVER:
-        // Determine winner
-        let winningPlayerId = null;
-        let topScore = -1;
-        Object.entries(current.players).forEach(([id, stats]) => {
-          if (stats.points > topScore) {
-            topScore = stats.points;
-            winningPlayerId = id;
-          }
-        });
-        nextState.winnerId = winningPlayerId;
-        break;
-    }
-
-    syncGame(gameIdRef.current, nextState);
-  }, [userId, syncGame]);
-
-  const updateScore = (targetId, actionType, bonus = 0) => {
-    if (!isHostRef.current) return;
-    const current = stateRef.current;
-    const players = { ...current.players };
-    const p = players[targetId] || { points: 0, streak: 0, lastType: null };
+    const base = SCORING[actionType.toUpperCase()] || 0;
+    p.points += (base + bonus);
     
-    let basePoints = SCORING[actionType.toUpperCase()] || 0;
-    p.points += (basePoints + bonus);
-    
-    // Streaks
-    if (actionType === 'truth' || actionType === 'dare') {
-      if (p.lastType === actionType) {
-        p.streak += 1;
-        if (p.streak === 3) {
-          p.points += (actionType === 'dare' ? SCORING.STREAK_BONUS_DARE : SCORING.STREAK_BONUS_TRUTH);
-        }
-      } else {
-        p.streak = 1;
+    if (['truth', 'dare'].includes(actionType)) {
+      p.streak = p.lastType === actionType ? p.streak + 1 : 1;
+      if (p.streak >= 3) {
+        p.points += (actionType === 'dare' ? SCORING.STREAK_BONUS_DARE : SCORING.STREAK_BONUS_TRUTH);
       }
       p.lastType = actionType;
     } else {
@@ -201,272 +121,262 @@ export const useTruthDareGame = (roomId, userId, { enabled = true } = {}) => {
       p.lastType = null;
     }
 
-    players[targetId] = p;
-    return players;
+    nextPlayers[targetId] = p;
+    return nextPlayers;
   };
 
-  const handleClientEvent = (from, event) => {
-    if (!isHostRef.current) return;
-    let newState = { ...stateRef.current };
+  // --- Central Transition Logic (Host Only) ---
+  const hostTransition = useCallback((nextStage, extra = {}) => {
+    const current = stateRef.current;
+    if (!current.isHost) return;
+    clearTimer();
 
-    switch (event.type) {
-      case 'START_SESSION':
-        newState.stage = GAME_STATES.TURN_ANNOUNCE;
-        break;
-      case 'TRIGGER_SPIN': {
-          const newState = {
-              ...stateRef.current,
-              stage: GAME_STATES.TURN_SPINNING,
-              winnerId: null // Reset visual winner for spin
-          };
-          syncGame(gameId, newState);
+    let nextState = { ...current, ...extra, stage: nextStage };
+
+    if (nextStage === GAME_STATES.TURN_ANNOUNCE) {
+      nextState.type = null;
+      nextState.content = '';
+      timerRef.current = setTimeout(() => hostTransition(GAME_STATES.TURN_CHOOSING), 2500);
+    }
+
+    if (nextStage === GAME_STATES.TURN_RESULT) {
+      timerRef.current = setTimeout(() => {
+        const isFinalTurn = current.turn === current.partnerId;
+        const isLastRound = current.round >= current.maxRounds;
+
+        if (isFinalTurn && isLastRound) {
+          hostTransition(GAME_STATES.GAME_OVER);
+        } else {
+          hostTransition(GAME_STATES.TURN_ANNOUNCE, {
+            round: isFinalTurn ? current.round + 1 : current.round,
+            turn: current.turn === userId ? current.partnerId : userId
+          });
+        }
+      }, 3000);
+    }
+
+    if (nextStage === GAME_STATES.GAME_OVER) {
+      const winner = Object.entries(current.players).reduce((prev, [id, p]) => 
+        (p.points > (prev?.points || -1)) ? { id, ...p } : prev, null);
+      nextState.winnerId = winner?.id;
+    }
+
+    dispatch({ type: 'SYNC_STATE', payload: nextState });
+    broadcastState(nextState);
+  }, [userId, clearTimer, broadcastState]);
+
+  // --- Client Event Handler ---
+  const handleAction = useCallback((action) => {
+    const current = stateRef.current;
+    if (current.isHost) {
+      // Host processes immediately
+      let nextState = { ...current };
+      
+      switch (action.type) {
+        case 'PICK_TYPE':
+          nextState.type = action.payload;
+          nextState.stage = GAME_STATES.TURN_CHALLENGE;
           break;
+        case 'SEND_CHALLENGE':
+          nextState.content = action.payload;
+          nextState.stage = GAME_STATES.TURN_RESPONDING;
+          break;
+        case 'COMPLETE_TURN':
+          nextState.players = calculateScores(current.players, action.from, current.type);
+          dispatch({ type: 'SYNC_STATE', payload: nextState });
+          hostTransition(GAME_STATES.TURN_RESULT, { players: nextState.players });
+          return;
+        case 'SKIP_TURN':
+          nextState.players = calculateScores(current.players, action.from, 'SKIP');
+          dispatch({ type: 'SYNC_STATE', payload: nextState });
+          hostTransition(GAME_STATES.TURN_RESULT, { players: nextState.players });
+          return;
+        case 'SWITCH_TYPE':
+          nextState.type = current.type === 'truth' ? 'dare' : 'truth';
+          nextState.players = calculateScores(current.players, action.from, 'SWITCH');
+          nextState.stage = GAME_STATES.TURN_CHALLENGE;
+          break;
+        case 'CONFIRM_SETTINGS':
+          nextState = { ...nextState, ...action.payload };
+          dispatch({ type: 'SYNC_STATE', payload: nextState });
+          hostTransition(GAME_STATES.TURN_ANNOUNCE, action.payload);
+          return;
+        case 'ACCEPT_GAME':
+          // Host should transition to SETUP if game is fresh, otherwise just broadcast current state
+          if (current.stage === GAME_STATES.INVITING || current.stage === GAME_STATES.IDLE) {
+            hostTransition(GAME_STATES.TURN_ANNOUNCE, { round: 1 });
+          } else {
+            broadcastState(current);
+          }
+          return;
       }
-      case 'START_SESSION_INVITE':
-        // Receiver receives invitation via WebRTC
-        newState = { ...event.payload };
-        setIsOpen(true);
-        setIsHost(false);
-        break;
-      case 'ACCEPT_GAME':
-        // Host receives acceptance
-        newState.stage = GAME_STATES.TURN_ANNOUNCE;
-        newState.round = 1;
-        newState.maxRounds = 5;
-        newState.mode = GAME_MODES.CLASSIC;
-        break;
-      case 'JOIN_BATTLE':
-        if (stateRef.current.stage === GAME_STATES.INVITING || stateRef.current.stage === GAME_STATES.ACCEPTED) {
-            newState.stage = GAME_STATES.TURN_ANNOUNCE;
-            newState.round = 1;
-        }
-        break;
-      case 'PICK_TYPE':
-        newState = { ...newState, type: event.payload, stage: GAME_STATES.TURN_CHALLENGE };
-        break;
-      case 'SEND_CHALLENGE':
-        newState = { ...newState, content: event.payload, stage: GAME_STATES.TURN_RESPONDING };
-        break;
-      case 'COMPLETE_TURN':
-        // Move to voting or result
-        newState.players = updateScore(from, newState.type);
-        newState.stage = GAME_STATES.TURN_RESULT;
-        break;
-      case 'SKIP_TURN':
-        newState.players = updateScore(from, 'SKIP');
-        newState.stage = GAME_STATES.TURN_RESULT;
-        break;
-      case 'SWITCH_TYPE':
-        // Switching reduces points
-        newState.type = newState.type === 'truth' ? 'dare' : 'truth';
-        newState.stage = GAME_STATES.TURN_CHALLENGE;
-        // Optionally penalize for switching if desired, blueprint says "Switch then complete = half points"
-        // We'll handle this by giving the switch penalty now and full points later
-        newState.players = updateScore(from, 'SWITCH');
-        break;
-      case 'CAST_VOTE':
-        newState.votes[from] = event.payload;
-        // If everyone voted... (simplified for 2 players: other player votes)
-        if (Object.keys(newState.votes).length >= 1) { // In 1v1, 1 vote is enough
-           // ... logic for voting results ...
-        }
-        break;
-      case 'TRIGGER_SPIN':
-        const contestants = [userId, newState.partnerId];
-        const winner = contestants[Math.floor(Math.random() * contestants.length)];
-        newState = { ...newState, winnerId: winner, turn: winner };
-        // Spin result broadcast handled via the general sync
-        setTimeout(() => {
-          processTransition(GAME_STATES.TURN_ANNOUNCE);
-        }, 4000); // 4s animation
-        break;
+
+      dispatch({ type: 'SYNC_STATE', payload: nextState });
+      broadcastState(nextState);
+    } else {
+      // Client sends to host
+      // console.log("📲 [Client] Sending action to host:", action.type);
+      sendGameEvent({ type: 'GAME_ACTION', action: { ...action, from: userId } });
     }
+  }, [userId, hostTransition, broadcastState, sendGameEvent]);
+
+  // --- Realtime Sync Effects ---
+  useEffect(() => {
+    if (!lastGameEvent) return;
+
+    if (lastGameEvent.type === 'GAME_UPDATE') {
+      // Deep comparison to prevent redundant state updates
+      const isSameState = JSON.stringify(lastGameEvent.gameState) === JSON.stringify(stateRef.current);
+      if (!isSameState) {
+        // console.log("📥 [Client] Received game update:", lastGameEvent.gameState.stage);
+        dispatch({ type: 'SYNC_STATE', payload: lastGameEvent.gameState });
+      }
+    } else if (lastGameEvent.type === 'GAME_ACTION' && stateRef.current.isHost) {
+      // console.log("📥 [Host] Received client action:", lastGameEvent.action.type);
+      handleAction(lastGameEvent.action);
+    } else if (lastGameEvent.type === 'SYNC_REQUEST' && stateRef.current.isHost) {
+      broadcastState(stateRef.current);
+    }
+  }, [lastGameEvent, handleAction, broadcastState]);
+
+  // Request sync if stuck in joining
+  useEffect(() => {
+    if (state.stage === GAME_STATES.JOINING && !state.isHost) {
+      // console.log("🔄 [Client] Stuck in JOINING, requesting sync...");
+      sendGameEvent({ type: 'SYNC_REQUEST' }); // Send immediately
+      
+      const interval = setInterval(() => {
+        sendGameEvent({ type: 'SYNC_REQUEST' });
+      }, 2000); // Faster interval for joining
+      return () => clearInterval(interval);
+    }
+  }, [state.stage, state.isHost, sendGameEvent]);
+
+  // Broadcast state updates (Host only)
+  useEffect(() => {
+    if (state.isHost) {
+      broadcastState(state);
+    }
+  }, [state.isHost, broadcastState]); // Only broadcast on manual actions or role change
+
+  // --- Public DB Actions (Centralized) ---
+  const startGame = async (targetPartnerId) => {
+    dispatch({ type: 'SET_HOST', payload: true });
     
-    syncGame(gameIdRef.current, newState);
+    const { data, error } = await supabase
+      .from(DB_TABLES.GAME_INVITATIONS)
+      .insert({
+        chat_id: roomId,
+        sender_id: userId,
+        receiver_id: targetPartnerId,
+        game_type: 'truth_or_dare',
+        status: 'pending'
+      })
+      .select().single();
+
+    if (error) return { success: false, error };
+
+    const startState = {
+      ...INITIAL_GAME_STATE,
+      gameId: data.id,
+      isHost: true,
+      stage: GAME_STATES.INVITING,
+      turn: userId,
+      partnerId: targetPartnerId,
+      players: {
+        [userId]: { points: 0, streak: 0 },
+        [targetPartnerId]: { points: 0, streak: 0 }
+      }
+    };
+
+    dispatch({ type: 'SYNC_STATE', payload: startState });
+    broadcastState(startState);
+    return { success: true, gameId: data.id };
   };
 
-  // --- Public Handlers ---
+  const acceptGame = async (gameInvitation) => {
+    if (!gameInvitation?.id) return;
 
-  const startGame = useCallback(async (targetPartnerId) => {
+    dispatch({ type: 'SET_HOST', payload: false });
+    dispatch({ type: 'SYNC_STATE', payload: { gameId: gameInvitation.id, stage: GAME_STATES.JOINING } });
+    
     try {
-      console.log("DEBUG: P2P startGame called", { targetPartnerId, roomId, userId });
-      
-      // Zero DB writes - we just open the UI and broadcast intent
-      setIsOpen(true);
-      setIsHost(true);
+      const { error } = await supabase.from(DB_TABLES.GAME_INVITATIONS)
+        .update({ status: 'accepted' })
+        .eq('id', gameInvitation.id);
 
-      const initialPlayers = {
-        [userId]: { points: 0, streak: 0, lastType: null },
-        [targetPartnerId]: { points: 0, streak: 0, lastType: null }
-      };
-      
-      const initialState = {
-        ...stateRef.current,
-        stage: GAME_STATES.INVITING,
-        turn: userId,
-        partnerId: targetPartnerId,
-        players: initialPlayers
-      };
+      if (error) {
+        // Log the full PostgREST error to diagnose RLS / schema issues
+        console.error("❌ Failed to accept game in DB:", error.message, error.details, error.hint, error);
+        return;
+      }
 
-      setGameState(initialState);
-
-      // Broadcast the new game session to the partner
-      sendGameEvent({ 
-        type: 'GAME_EVENT', 
-        event: { 
-          type: 'START_SESSION_INVITE', 
-          payload: initialState 
-        } 
-      });
-
-      return { success: true };
+      sendGameEvent({ type: 'GAME_ACTION', action: { type: 'ACCEPT_GAME', from: userId } });
     } catch (err) {
-      console.error("DEBUG: Fatal error in P2P startGame", err);
-      return { success: false, error: err.message };
+      console.error("❌ Error in acceptGame logic:", err);
     }
-  }, [userId, roomId, sendGameEvent]);
+  };
 
-  const acceptGame = useCallback(() => {
-    // Zero DB writes - just signal acceptance
-    const newState = { 
-      ...stateRef.current, 
-      stage: GAME_STATES.TURN_ANNOUNCE,
-      round: 1 
-    };
-    setGameState(newState);
-    setIsOpen(true);
-
-    // Notify host to also jump to game
-    sendGameEvent({ type: 'GAME_EVENT', event: { type: 'ACCEPT_GAME' } });
-  }, [sendGameEvent]);
-
-  const joinBattle = useCallback(() => {
-    if (isHost) {
-      // Host jumps straight to announce
-      processTransition(GAME_STATES.TURN_ANNOUNCE);
-    } else {
-      sendGameEvent({ type: 'GAME_EVENT', event: { type: 'JOIN_BATTLE' } });
+  const closeGame = async () => {
+    const currentId = stateRef.current.gameId;
+    if (currentId) {
+      try {
+        const { error } = await supabase.from(DB_TABLES.GAME_INVITATIONS)
+          .update({ status: 'rejected' })
+          .eq('id', currentId);
+        if (error) console.error("❌ Error closing game in DB:", error.message, error.details, error);
+      } catch (err) {
+        console.error("❌ Error closing game in DB:", err);
+      }
     }
-  }, [isHost, processTransition, sendGameEvent]);
+    dispatch({ type: 'RESET' });
+    sendGameEvent({ type: 'GAME_UPDATE', gameId: null, gameState: INITIAL_GAME_STATE });
+  };
 
-  const confirmSettings = useCallback((settings) => {
-    if (!isHost) return;
-    const newState = { 
-      ...stateRef.current, 
-      ...settings, 
-      stage: GAME_STATES.TURN_ANNOUNCE,
-      round: 1 
-    };
-    syncGame(gameId, newState);
-  }, [isHost, gameId, syncGame]);
-
-  const pickType = useCallback((type) => {
-    if (stateRef.current.turn !== userId) return;
-    if (isHost) {
-      handleClientEvent(userId, { type: 'PICK_TYPE', payload: type });
-    } else {
-      sendGameEvent({ type: 'GAME_EVENT', event: { type: 'PICK_TYPE', payload: type } });
-    }
-  }, [isHost, userId, sendGameEvent]);
-
-  const sendChallenge = useCallback((text) => {
-    if (stateRef.current.turn !== userId) return;
-    if (isHost) {
-      handleClientEvent(userId, { type: 'SEND_CHALLENGE', payload: text });
-    } else {
-      sendGameEvent({ type: 'GAME_EVENT', event: { type: 'SEND_CHALLENGE', payload: text } });
-    }
-  }, [isHost, userId, sendGameEvent]);
-
-  const completeTurn = useCallback(() => {
-    if (stateRef.current.turn === userId) return; // Cannot complete your own
-    if (isHost) {
-      handleClientEvent(userId, { type: 'COMPLETE_TURN' });
-    } else {
-      sendGameEvent({ type: 'GAME_EVENT', event: { type: 'COMPLETE_TURN' } });
-    }
-  }, [isHost, userId, sendGameEvent]);
-
-  const skipTurn = useCallback(() => {
-    if (stateRef.current.turn !== userId) return;
-    if (isHost) {
-      handleClientEvent(userId, { type: 'SKIP_TURN' });
-    } else {
-      sendGameEvent({ type: 'GAME_EVENT', event: { type: 'SKIP_TURN' } });
-    }
-  }, [isHost, userId, sendGameEvent]);
-
-  const switchType = useCallback(() => {
-    if (stateRef.current.turn !== userId) return;
-    if (isHost) {
-      handleClientEvent(userId, { type: 'SWITCH_TYPE' });
-    } else {
-      sendGameEvent({ type: 'GAME_EVENT', event: { type: 'SWITCH_TYPE' } });
-    }
-  }, [isHost, userId, sendGameEvent]);
-
-  const startSpin = useCallback(() => {
-    if (!isHost) return;
-    handleClientEvent(userId, { type: 'TRIGGER_SPIN' });
-  }, [isHost, userId]);
-
-  const closeGame = useCallback(async () => {
-    setIsOpen(false);
-    if (gameId) {
-      await supabase.from(DB_TABLES.GAME_INVITATIONS).update({ status: 'completed' }).eq('id', gameId);
-    }
-    setGameState({ stage: GAME_STATES.IDLE });
-    syncGame(null, { stage: GAME_STATES.IDLE });
-  }, [gameId, syncGame]);
-
-  // --- Effects ---
-
-  // Auto-transitions for UI announcement phases
-  useEffect(() => {
-    if (!isHost) return;
+  const rejectGame = async (gameInvitation) => {
+    if (!gameInvitation?.id) return;
     
-    if (gameState.stage === GAME_STATES.TURN_SPINNING) {
-      const timer = setTimeout(() => {
-        // After spin animation (3.5s), pick a random turn and announce
-        processTransition(GAME_STATES.TURN_ANNOUNCE);
-      }, 4000);
-      return () => clearTimeout(timer);
+    try {
+      const { error } = await supabase.from(DB_TABLES.GAME_INVITATIONS)
+        .update({ status: 'rejected' })
+        .eq('id', gameInvitation.id);
+      
+      if (error) console.error("❌ Failed to reject game in DB:", error.message, error.details, error);
+    } catch (err) {
+      console.error("❌ Error in rejectGame logic:", err);
     }
-    
-    if (gameState.stage === GAME_STATES.TURN_ANNOUNCE) {
-      const timer = setTimeout(() => {
-        processTransition(GAME_STATES.TURN_CHOOSING);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [gameState.stage, isHost, processTransition]);
+    // ROOT FIX: Reset local state so the UI clears immediately
+    dispatch({ type: 'RESET' });
+  };
+
+  // --- Derived State ---
+  const derived = useMemo(() => ({
+    isMyTurn: state.turn === userId,
+    isActive: state.stage !== GAME_STATES.IDLE,
+    opponentId: state.partnerId === userId ? Object.keys(state.players).find(id => id !== userId) : state.partnerId
+  }), [state.stage, state.turn, state.partnerId, state.players, userId]);
 
   return {
-    isOpen,
-    gameState,
-    gameId,
-    isHost,
+    gameState: state,
+    isHost: state.isHost,
+    ...derived,
     startGame,
     acceptGame,
-    rejectGame: () => closeGame(), // simplified
-    joinBattle,
-    confirmSettings,
-    pickType,
-    sendChallenge,
-    completeTurn,
-    skipTurn,
-    switchType,
-    startSpin,
     closeGame,
-    setIsOpen,
-    // WebRTC P2P Data
-    webrtc: {
-      peers,
-      connectionState,
-      chatMessages,
-      mediaProgress,
-      sendChat,
-      sendMedia
-    }
+    rejectGame,
+    joinBattle: (id, isHost = false) => {
+      dispatch({ type: 'SYNC_STATE', payload: { 
+        gameId: id, 
+        isHost, 
+        stage: isHost ? GAME_STATES.INVITING : GAME_STATES.JOINING 
+      }});
+    },
+    pickType: (val) => handleAction({ type: 'PICK_TYPE', payload: val }),
+    sendChallenge: (val) => handleAction({ type: 'SEND_CHALLENGE', payload: val }),
+    completeTurn: () => handleAction({ type: 'COMPLETE_TURN' }),
+    skipTurn: () => handleAction({ type: 'SKIP_TURN' }),
+    switchType: () => handleAction({ type: 'SWITCH_TYPE' }),
+    confirmSettings: (s) => handleAction({ type: 'CONFIRM_SETTINGS', payload: s }),
+    webrtc
   };
 };
