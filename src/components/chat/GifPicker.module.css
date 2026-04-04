@@ -2,80 +2,102 @@
 .gif-picker-container {
   display: flex;
   flex-direction: column;
-  height: 450px; /* Fixed height */
-  background-color: #17212b; /* Dark Theme */
+  height: 450px; /* Fixed height for the picker */
+  background-color: #17212b; /* Dark Theme consistent with the app */
   border-radius: 12px;
   overflow: hidden;
+  max-width: 100%;
 }
 
 /* Search Bar */
 .gif-search-bar {
-  padding: 10px;
+  padding: 12px;
   background-color: #242f3d;
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .gif-search-bar input {
   width: 100%;
   background-color: #0e1621;
-  border: none;
-  padding: 10px 35px 10px 12px;
+  border: 1px solid #334155;
+  padding: 10px 40px 10px 14px;
   border-radius: 20px;
   color: #fff;
+  font-size: 14px;
   outline: none;
+  transition: border-color 0.2s;
 }
 
-.search-icon {
+.gif-search-bar input:focus {
+  border-color: #3b82f6;
+}
+
+.search-icon, .search-spinner {
   position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #aaa;
+  right: 24px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Grid Area */
 .gif-grid-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  overflow-x: hidden;
+  padding: 10px;
+  background-color: #0e1621;
 }
 
-/* Masonry Layout (Eeton ki tarah fit) */
-.gif-masonry {
-  column-count: 2; /* 2 Columns */
-  column-gap: 8px;
+/* Scrollbar Styling */
+.gif-grid-scroll::-webkit-scrollbar {
+  width: 6px;
 }
 
-.gif-item {
-  margin-bottom: 8px;
-  break-inside: avoid;
-  cursor: pointer;
-  border-radius: 8px;
-  overflow: hidden;
-  background-color: #242f3d;
-  transition: transform 0.2s;
-}
-
-.gif-item:hover {
-  transform: scale(1.02);
-}
-
-.gif-item img {
-  width: 100%;
-  display: block;
+.gif-grid-scroll::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
 }
 
 /* Branding Footer */
-.tenor-branding {
+.giphy-branding {
   text-align: center;
-  font-size: 10px;
-  color: #555;
-  padding: 5px;
-  background: #0e1621;
+  padding: 8px;
+  background: #242f3d;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.gif-loading {
-  text-align: center;
-  padding: 20px;
-  color: #fff;
+.giphy-branding img {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.giphy-branding img:hover {
+  opacity: 1;
+}
+
+/* Support for responsive width if needed */
+@media (max-width: 480px) {
+  .gif-picker-container {
+    height: 400px;
+  }
 }

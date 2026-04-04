@@ -29,6 +29,8 @@
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^6.0.3",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+    "@giphy/js-fetch-api": "^5.7.0",
+    "@giphy/react-components": "^10.1.1",
     "@ionic/react": "^8.7.15",
     "@lottiefiles/dotlottie-react": "^0.18.7",
     "@supabase/supabase-js": "^2.95.3",

@@ -1,105 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { GiphyFetch } from '@giphy/js-fetch-api';
+import { Grid } from '@giphy/react-components';
+import debounce from 'lodash/debounce';
 import styles from './GifPicker.module.css';
 
-// Tenor API Configuration (Google's GIF service, used by WhatsApp)
-const TENOR_API_KEY = "LIVDSRZULELA";
-const CLIENT_KEY = "CaBa_App";
+// Giphy API Configuration (Provided by USER)
+const gf = new GiphyFetch('q5HuloFjQZArLJ7yMJhecRiZvrr7Idza');
 
 const KlipyGifPicker = ({ onSelectGif }) => {
-  const [gifs, setGifs] = useState([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+    const [search, setSearch] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
+    const [gridKey, setGridKey] = useState("trending");
+    const [containerWidth, setContainerWidth] = useState(300); // Default fallback
+    
+    const containerRef = useRef(null);
 
-  // Fetch GIFs from Tenor API
-  const fetchGifs = async (query) => {
-    setLoading(true);
-    setError(false);
-    try {
-      let url = "";
-      if (query) {
-        url = `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&client_key=${CLIENT_KEY}&limit=20`;
-      } else {
-        url = `https://g.tenor.com/v1/trending?key=${TENOR_API_KEY}&client_key=${CLIENT_KEY}&limit=20`;
-      }
+    // Update width on resize
+    useEffect(() => {
+        const updateWidth = () => {
+            if (containerRef.current) {
+                setContainerWidth(containerRef.current.offsetWidth - 20); // Subtract padding
+            }
+        };
 
-      const res = await fetch(url);
-      const data = await res.json();
+        updateWidth();
+        window.addEventListener('resize', updateWidth);
+        return () => window.removeEventListener('resize', updateWidth);
+    }, []);
 
-      if (data.results) {
-        setGifs(data.results);
-      } else {
-        setGifs([]);
-      }
-    } catch (err) {
-      console.error("Tenor GIF Error:", err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Fetching function for Giphy Grid
+    const fetchGifs = (offset) => {
+        if (search.trim()) {
+            return gf.search(search, { offset, limit: 12 });
+        }
+        return gf.trending({ offset, limit: 12 });
+    };
 
-  // Initial load and search with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchGifs(search);
-    }, 600); // Slightly longer debounce for better UX
+    // Handle Search with Debounce
+    const debouncedSearch = useMemo(
+        () => debounce((query) => {
+            setIsSearching(false);
+            setGridKey(query || "trending");
+        }, 600),
+        []
+    );
 
-    return () => clearTimeout(timer);
-  }, [search]);
+    const handleSearch = (e) => {
+        const query = e.target.value;
+        setSearch(query);
+        setIsSearching(true);
+        debouncedSearch(query);
+    };
 
-  // Handle GIF selection
-  const handleSelect = (gif) => {
-    // Tenor structure: gif.media[0].gif.url for full GIF
-    const gifUrl = gif.media[0].gif.url;
-    onSelectGif(gifUrl);
-  };
+    // Handle GIF selection
+    const handleGifClick = (gif, e) => {
+        if (e) e.preventDefault();
+        // Use fixed_height for better quality
+        const gifUrl = gif.images.fixed_height.url;
+        onSelectGif(gifUrl);
+    };
 
-  return (
-    <div className={styles['gif-picker-container']}>
-
-      {/* Search Bar */}
-      <div className={styles['gif-search-bar']}>
-        <input
-          type="text"
-          placeholder="Search Tenor GIFs..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          autoFocus
-        />
-        {loading && <div className={styles['search-spinner']}></div>}
-        {!loading && <span className={styles['search-icon']}>🔍</span>}
-      </div>
-
-      {/* GIF Grid */}
-      <div className={styles['gif-grid-scroll']}>
-        {loading && gifs.length === 0 ? (
-          <div className={styles['loading-container']}>
-            <div className={styles['spinner-big']}></div>
-            <p>Searching...</p>
-          </div>
-        ) : error ? (
-          <div className={styles['empty-state']}>❌ Failed to load GIFs. Check connection.</div>
-        ) : gifs.length === 0 && !loading ? (
-          <div className={styles['empty-state']}>No GIFs found for "{search}"</div>
-        ) : (
-          <div className={styles['gif-masonry']}>
-            {gifs.map((gif) => (
-              <div key={gif.id} className={styles['gif-item']} onClick={() => handleSelect(gif)}>
-                <img
-                  src={gif.media[0].nanogif.url} // Nano GIF for fast preview
-                  alt="gif"
-                  loading="lazy"
+    return (
+        <div className={styles['gif-picker-container']} ref={containerRef}>
+            {/* Search Bar */}
+            <div className={styles['gif-search-bar']}>
+                <input
+                    type="text"
+                    placeholder="Search GIPHY..."
+                    value={search}
+                    onChange={handleSearch}
+                    autoFocus
                 />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                {isSearching ? (
+                    <div className={styles['search-spinner']}></div>
+                ) : (
+                    <span className={styles['search-icon']}>🔍</span>
+                )}
+            </div>
 
-      {!loading && <div className={styles['tenor-branding']}>Via Tenor</div>}
-    </div>
-  );
+            {/* Giphy SDK Grid */}
+            <div className={styles['gif-grid-scroll']}>
+                <Grid
+                    key={`${gridKey}-${containerWidth}`}
+                    onGifClick={handleGifClick}
+                    fetchGifs={fetchGifs}
+                    width={containerWidth}
+                    columns={containerWidth < 400 ? 2 : 3}
+                    gutter={8}
+                    noLink={true}
+                    hideAttribution={true}
+                />
+            </div>
+
+            <div className={styles['giphy-branding']}>
+                <img 
+                    src="https://developers.giphy.com/branch/master/static/header-logo-0fec0225d189c79ec4d773ad089eb376.png" 
+                    alt="Powered by GIPHY" 
+                    height="14" 
+                />
+            </div>
+        </div>
+    );
 };
 
 export default KlipyGifPicker;
