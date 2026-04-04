@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { useChatListRealtime } from '../hooks/useChatListRealtime';
 import { useContacts } from '../hooks/useCommonQueries';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -57,7 +58,7 @@ const ChatListPanel = ({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isDesktop = useIsDesktop();
-  const user = userProp;
+  const { user, dbUser } = useAuth();
   const { useUserGroups } = useGroupActions();
 
   // Local Data Management
@@ -189,7 +190,7 @@ const ChatListPanel = ({
   };
   const handleAboutApp = () => navigate('/about');
   const handleHelp = () => navigate('/support');
-  const isAdmin = false; 
+  const isAdmin = dbUser?.isAdmin || user?.isAdmin; 
 
   const handleChatListScroll = () => {
     if (chatListRef.current) {
