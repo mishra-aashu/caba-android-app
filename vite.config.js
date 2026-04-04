@@ -227,6 +227,7 @@ export default defineConfig(({ mode }) => {
                       '@tanstack/react-query',
                       '@tanstack/react-query-persist-client',
                     ],
+                    'vendor-giphy': ['@giphy/react-components', '@giphy/js-fetch-api', 'styled-components'],
                 }
             }
         }
