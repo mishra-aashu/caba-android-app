@@ -26,6 +26,13 @@ export const filterNonExistentFields = (data, tableName) => {
     group_members: ['id', 'group_id', 'user_id', 'role', 'joined_at'],
     game_invitations: ['id', 'chat_id', 'sender_id', 'receiver_id', 'game_type', 'invitation_message', 'invitation_data', 'status', 'created_at', 'updated_at'],
     temporary_chat_settings: ['id', 'chat_id', 'user_id', 'is_enabled', 'vanish_duration', 'vanish_duration_seconds', 'custom_duration', 'auto_delete_media', 'created_at', 'updated_at'],
+    user_sessions: ['id', 'user_id', 'caba_session_id', 'device_name', 'device_type', 'device_icon', 'browser', 'os', 'app_version', 'ota_version', 'ip_address', 'city', 'country', 'country_flag', 'is_online', 'is_current', 'last_active', 'login_method', 'ota_updated_at', 'created_at', 'updated_at'],
+    login_history: ['id', 'user_id', 'device_name', 'device_type', 'ip_address', 'city', 'country', 'country_flag', 'login_method', 'action', 'created_at'],
+    news_articles: ['id', 'title', 'content', 'image_url', 'category', 'status', 'created_at', 'updated_at'],
+    statuses: ['id', 'user_id', 'content', 'media_url', 'media_type', 'expires_at', 'created_at', 'updated_at'],
+    media_transfers: ['id', 'sender_id', 'receiver_id', 'file_name', 'file_size', 'file_type', 'status', 'created_at', 'updated_at'],
+    app_versions: ['id', 'latest_version', 'min_required_version', 'native_hash', 'apk_download_url', 'release_notes', 'created_at', 'updated_at'],
+    system_settings: ['id', 'key', 'value', 'updated_by', 'created_at', 'updated_at'],
   };
 
   const columns = existingColumns[tableName];

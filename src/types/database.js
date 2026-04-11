@@ -39,12 +39,26 @@ export const Message = {
   sender_id: 'string',
   receiver_id: 'string|null',
   content: 'string',
+  message_type: 'string|null', // 'text', 'image', 'video', 'audio', 'document', 'news_share'
+  media_url: 'string|null',
   media_path: 'string|null',
-  media_type: 'string|null', // 'image', 'video', 'audio', 'document', 'news_share'
+  media_type: 'string|null',
   reply_to: 'string|null', // Message ID
   is_read: 'boolean',
+  is_delivered: 'boolean',
   is_group_message: 'boolean',
   status: 'string', // 'sending', 'sent', 'delivered', 'read'
+  emoji_style: 'string|null',
+  vanish_at: 'string|null', // ISO timestamp
+  is_vanished: 'boolean',
+  vanish_duration_seconds: 'number|null',
+  seen_at: 'string|null', // ISO timestamp
+  is_viewed: 'boolean',
+  duration: 'number|null',
+  unlock_at: 'string|null', // ISO timestamp
+  is_anonymous: 'boolean',
+  anon_name: 'string|null',
+  anon_avatar_url: 'string|null',
 };
 
 // Chat entity
@@ -64,8 +78,16 @@ export const Group = {
   id: 'string',
   name: 'string',
   description: 'string|null',
+  avatar: 'string|null',
   avatar_url: 'string|null',
   created_by: 'string',
+  last_message: 'string|null',
+  last_message_time: 'string|null', // ISO timestamp
+  admins_only_edit_info: 'boolean',
+  admins_only_add_members: 'boolean',
+  admins_only_messages: 'boolean',
+  is_anonymous_mode: 'boolean',
+  anon_session_id: 'string|null',
 };
 
 // Group Member entity
@@ -100,6 +122,7 @@ export const Contact = {
   user_id: 'string',
   contact_user_id: 'string',
   contact_name: 'string',
+  is_favorite: 'boolean',
 };
 
 // Blocked User entity
@@ -110,7 +133,7 @@ export const BlockedUser = {
   blocked_id: 'string',
 };
 
-// Reminder entity (DB: title, description, status — no message/is_completed)
+// Reminder entity
 export const Reminder = {
   ...BaseEntity,
   id: 'string',
@@ -118,17 +141,30 @@ export const Reminder = {
   receiver_id: 'string',
   title: 'string',
   description: 'string|null',
-  reminder_time: 'string',
+  reminder_time: 'string', // ISO timestamp
+  location: 'string|null',
+  category: 'string|null',
+  priority: 'string|null', // 'low', 'medium', 'high'
   status: 'string', // pending, accepted, rejected, completed, snoozed, cancelled
+  accepted_at: 'string|null', // ISO timestamp
+  completed_at: 'string|null', // ISO timestamp
+  sound_enabled: 'boolean',
+  vibration_enabled: 'boolean',
+  is_recurring: 'boolean',
+  recurring_type: 'string|null', // 'daily', 'weekly', 'monthly'
+  requires_acceptance: 'boolean',
+  snooze_until: 'string|null', // ISO timestamp
+  snooze_count: 'number',
 };
 
-// Support Message entity (DB: admin_response not response)
+// Support Message entity
 export const SupportMessage = {
   ...BaseEntity,
   id: 'string',
   user_id: 'string',
   message: 'string',
   message_type: 'string',
+  is_read: 'boolean',
   responded_by: 'string|null',
   admin_response: 'string|null',
   responded_at: 'string|null',
@@ -248,8 +284,115 @@ export const GameInvitation = {
   sender_id: 'string',
   receiver_id: 'string',
   game_type: 'string',
+  invitation_message: 'string|null',
   status: 'string', // 'pending', 'accepted', 'rejected', 'completed'
   invitation_data: 'object', // JSONB
+};
+
+// User Session entity
+export const UserSession = {
+  ...BaseEntity,
+  id: 'string',
+  user_id: 'string',
+  caba_session_id: 'string',
+  device_name: 'string',
+  device_type: 'string',
+  device_icon: 'string|null',
+  browser: 'string|null',
+  os: 'string|null',
+  app_version: 'string|null',
+  ota_version: 'string|null',
+  ip_address: 'string|null',
+  city: 'string|null',
+  country: 'string|null',
+  country_flag: 'string|null',
+  is_online: 'boolean',
+  is_current: 'boolean',
+  last_active: 'string', // ISO timestamp
+  login_method: 'string',
+  ota_updated_at: 'string|null', // ISO timestamp
+};
+
+// Login History entity
+export const LoginHistory = {
+  ...BaseEntity,
+  id: 'string',
+  user_id: 'string',
+  device_name: 'string|null',
+  device_type: 'string|null',
+  ip_address: 'string|null',
+  city: 'string|null',
+  country: 'string|null',
+  country_flag: 'string|null',
+  login_method: 'string|null',
+  action: 'string', // 'login', 'revoked', etc.
+};
+
+// News Article entity
+export const NewsArticle = {
+  ...BaseEntity,
+  id: 'string',
+  title: 'string',
+  content: 'string',
+  image_url: 'string|null',
+  category: 'string|null',
+  status: 'string', // 'draft', 'published'
+};
+
+// Status entity
+export const Status = {
+  ...BaseEntity,
+  id: 'string',
+  user_id: 'string',
+  content: 'string|null',
+  media_url: 'string|null',
+  media_type: 'string|null',
+  expires_at: 'string', // ISO timestamp
+};
+
+// Media Transfer entity
+export const MediaTransfer = {
+  ...BaseEntity,
+  id: 'string',
+  sender_id: 'string',
+  receiver_id: 'string',
+  file_name: 'string',
+  file_size: 'number',
+  file_type: 'string',
+  status: 'string',
+};
+
+// App Version entity
+export const AppVersion = {
+  ...BaseEntity,
+  id: 'string',
+  latest_version: 'string',
+  min_required_version: 'string',
+  native_hash: 'string|null',
+  apk_download_url: 'string|null',
+  release_notes: 'string|null',
+};
+
+// System Setting entity
+export const SystemSetting = {
+  ...BaseEntity,
+  id: 'string',
+  key: 'string',
+  value: 'string', // JSON stringified
+  updated_by: 'string|null',
+};
+
+// Temporary Chat Settings entity
+export const TemporaryChatSettings = {
+  ...BaseEntity,
+  id: 'string',
+  chat_id: 'string',
+  user_id: 'string',
+  is_enabled: 'boolean',
+  vanish_duration: 'string|null',
+  vanish_duration_seconds: 'number|null',
+  custom_duration: 'number|null',
+  auto_delete_media: 'boolean',
 };
 
 // Type validation functions
