@@ -37,20 +37,42 @@ export const createGroup = async ({ name, description, avatarFile, avatarUrl: av
 
         console.log('Group created:', group);
 
-        // [FIX #8] Step 2: Deduplicate members — creator might already be in memberIds
-        const uniqueMembers = [...new Set([...memberIds, createdBy])];
-        const memberRecords = uniqueMembers.map((userId) => ({
-            group_id: group.id,
-            user_id: userId,
-            role: userId === createdBy ? 'admin' : 'member',
-            joined_at: new Date().toISOString(),
-        }));
-
-        const { error: membersError } = await supabase
+        // Step 2: Add creator as admin first (Deduplicated)
+        const { error: creatorError } = await supabase
             .from('group_members')
-            .insert(memberRecords);
+            .insert({
+                group_id: group.id,
+                user_id: createdBy,
+                role: 'admin',
+                joined_at: new Date().toISOString(),
+            });
 
-        if (membersError) throw membersError;
+        if (creatorError) {
+            console.error('Error adding creator to group:', creatorError);
+            throw creatorError;
+        }
+
+        // Step 3: Add other members separately
+        const otherMemberIds = memberIds.filter(id => id !== createdBy);
+        if (otherMemberIds.length > 0) {
+            const memberRecords = otherMemberIds.map((userId) => ({
+                group_id: group.id,
+                user_id: userId,
+                role: 'member',
+                joined_at: new Date().toISOString(),
+            }));
+
+            const { error: membersError } = await supabase
+                .from('group_members')
+                .insert(memberRecords);
+
+            if (membersError) {
+                console.error('Error adding other members:', membersError);
+                // We don't necessarily want to fail group creation if only participants fail, 
+                // but for consistency with the original code, we throw.
+                throw membersError;
+            }
+        }
 
         // [FIX #9] Step 3: System message with receiver_id set
         try {
@@ -405,12 +427,13 @@ export const reportScreenshot = async (groupId, senderId, messageId) => {
 /**
  * Upload group avatar to Supabase Storage
  */
-export const uploadGroupAvatar = async (file, groupId) => {
+export const uploadGroupAvatar = async (file, groupId, userId) => {
     try {
-        const fileName = `${groupId}_${Date.now()}.${file.name.split('.').pop()}`;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}/avatars/${groupId}_${Date.now()}.${fileExt}`;
 
         const { data, error } = await supabase.storage
-            .from('group-avatars')
+            .from('media')
             .upload(fileName, file, {
                 upsert: true,
                 contentType: file.type,
@@ -419,7 +442,7 @@ export const uploadGroupAvatar = async (file, groupId) => {
         if (error) throw error;
 
         const { data: urlData } = supabase.storage
-            .from('group-avatars')
+            .from('media')
             .getPublicUrl(fileName);
 
         return urlData.publicUrl;

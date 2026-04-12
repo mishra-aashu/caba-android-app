@@ -1,41 +1,33 @@
 import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { dpOptions } from '../utils/dpOptions';
+import { resolveAvatarUrl } from '../utils/avatarHelpers';
 
 /**
  * useResolveAvatar - Custom hook to resolve avatars globally
  * 
  * Logic:
- * 1. If absolute URL or path is provided as defaultAvatar, use it.
- * 2. If defaultAvatar is an ID, resolve it.
- * 3. Fallback to contact's avatar if userId is provided.
- * 
- * @param {string} userId - The user ID to resolve
- * @param {string} defaultAvatar - Fallback avatar URL/path/ID
- * @returns {string|null} Resolved avatar path/URL
+ * 1. If absolute URL or path is provided as defaultAvatar, resolve it (handles IDs).
+ * 2. Fallback to contact's avatar if userId is provided.
  */
 export const useResolveAvatar = (userId, defaultAvatar = null) => {
     const contacts = useLiveQuery(() => db.contacts.toArray()) || [];
 
     return useMemo(() => {
-        // Normalize input
-        let avatar = defaultAvatar;
+        // 1. Try to resolve the provided avatar first (handles IDs and URLs)
+        let resolved = resolveAvatarUrl(defaultAvatar);
+        if (resolved) return resolved;
 
-        // If no avatar provided, try to find it via contact
-        if (!avatar && userId) {
+        // 2. If nothing directly provided, try to find it via contact
+        if (userId) {
             const contact = contacts?.find(c => c.contact_user_id === userId);
-            avatar = contact?.otherUser?.avatar;
+            const contactAvatar = contact?.otherUser?.avatar;
+            if (contactAvatar) {
+                return resolveAvatarUrl(contactAvatar);
+            }
         }
 
-        // If we have an avatar (either passed in or from contact), check if it's an ID needing resolution
-        if (avatar && !isNaN(parseInt(avatar)) && avatar.toString().length < 5) {
-            const dp = dpOptions.find(dp => dp.id === parseInt(avatar));
-            if (dp) return dp.path;
-        }
-
-        // Otherwise return as is (could be a full URL or null)
-        return avatar;
+        return null;
     }, [userId, defaultAvatar, contacts]);
 };
 

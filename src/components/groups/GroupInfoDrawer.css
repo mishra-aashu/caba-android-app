@@ -694,14 +694,18 @@
 
 .setting-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  padding: 12px 0;
 }
 
 .setting-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .setting-label {
@@ -711,12 +715,12 @@
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  white-space: nowrap;
 }
 
 .setting-label svg {
   color: var(--brand-primary);
-  opacity: 0.8;
+  flex-shrink: 0;
 }
 
 .setting-desc {
@@ -724,6 +728,7 @@
   color: var(--text-secondary);
   line-height: 1.4;
   margin: 0;
+  opacity: 0.8;
 }
 
 /* Switch Toggle Styles - Premium Look */

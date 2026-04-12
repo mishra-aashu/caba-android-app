@@ -1369,7 +1369,7 @@ const Admin = () => {
           {activeTab === 'users' && (
             <div className="users-content">
               <div className="section-header">
-                <h2>User Management</h2>
+                <h2>User Management ({totalCounts.users})</h2>
                 <div className="header-actions">
                   <div className="search-bar">
                     <Search size={20} />

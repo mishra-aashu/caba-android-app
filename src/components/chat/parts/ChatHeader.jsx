@@ -61,7 +61,7 @@ const ChatHeader = memo(({
     const navigate = useNavigate();
     const location = useLocation();
     const resolvedName = useResolveName(!isGroupChat ? otherUser?.id : null, otherUser?.name);
-    const resolvedAvatar = useResolveAvatar(!isGroupChat ? otherUser?.id : null, otherUser?.avatar);
+    const resolvedAvatar = useResolveAvatar(!isGroupChat ? otherUser?.id : null, otherUser?.avatar || otherUser?.avatar_url);
 
     const [imgError, setImgError] = React.useState(false);
 

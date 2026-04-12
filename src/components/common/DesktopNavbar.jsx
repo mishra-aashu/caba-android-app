@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, User, History, Settings, Bell, Users } from 'lucide-react';
-import CreateGroupModal from '../groups/CreateGroupModal';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useContacts } from '../../hooks/useCommonQueries';
@@ -10,7 +9,7 @@ const DesktopNavbar = () => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const { user } = useAuth();
-  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const location = useLocation();
 
   // Use cached contacts hook
   const { data: contactsData } = useContacts(user?.id);
@@ -25,9 +24,17 @@ const DesktopNavbar = () => {
 
   // Unused raw fetch removed in favor of useContacts hook
 
-  // Clicking "Groups" button opens Create Group Modal
+  // Clicking "Groups" button triggers inline view in sidebar
   const handleGroupsClick = () => {
-    setShowCreateGroupModal(true);
+    // If we're already on home, just add/update query param
+    // Otherwise navigate to home with param
+    if (location.pathname === '/') {
+       const params = new URLSearchParams(location.search);
+       params.set('view', 'create-group');
+       navigate(`/?${params.toString()}`);
+    } else {
+       navigate('/?view=create-group');
+    }
   };
 
   return (
@@ -70,17 +77,6 @@ const DesktopNavbar = () => {
           </li>
         </ul>
       </nav>
-
-      {/* Create Group Modal - Opens when Groups button is clicked */}
-      <CreateGroupModal
-        isOpen={showCreateGroupModal}
-        onClose={() => setShowCreateGroupModal(false)}
-        onSuccess={() => {
-          setShowCreateGroupModal(false);
-          navigate('/');
-        }}
-        savedContacts={savedContacts}
-      />
     </>
   );
 };

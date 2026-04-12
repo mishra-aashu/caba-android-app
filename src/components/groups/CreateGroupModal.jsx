@@ -11,13 +11,13 @@ import { db } from '../../db/db';
 import { useGroupActions } from '../../hooks/useGroupActions';
 import Modal from '../common/Modal';
 import DpPicker from '../common/DpPicker';
-import { Search, Check, Image, Users } from 'lucide-react';
+import { Search, Check, Image, Users, Upload, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { dpOptions } from '../../utils/dpOptions';
 import { getInitials } from '../../utils/stringUtils';
 import './CreateGroupModal.css';
 
-const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propContacts = [] }) => {
+const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propContacts = [], inline = false }) => {
   const { supabase } = useSupabase();
   const { user } = useAuth();
   const { useCreateGroup } = useGroupActions();
@@ -32,28 +32,37 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
   const [groupDescription, setGroupDescription] = useState('');
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
-  const [selectedDp, setSelectedDp] = useState(null); // For DP picker
+  const [selectedDp, setSelectedDp] = useState(null);
   const [showDpPicker, setShowDpPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Use provided contacts or cached ones
   const baseContacts = propContacts.length > 0 ? propContacts : (cachedContacts || []);
 
-  // Transform baseContacts to contact format
+  // Transform baseContacts to contact format with robust mapping
   const contacts = baseContacts.map(contact => {
-    const userData = contact.otherUser || {};
-    // Handle avatar - can be number (DP ID), URL, or null
-    let avatarUrl = userData?.avatar || null;
-    if (avatarUrl && parseInt(avatarUrl)) {
-      // It's a DP ID, get the path from dpOptions
+    const userData = contact.otherUser || contact.contact_user || contact.contactUser || {};
+    
+    let avatarUrl = userData?.avatar || userData?.avatar_url || null;
+    if (avatarUrl && !isNaN(parseInt(avatarUrl)) && parseInt(avatarUrl) < 100) {
       const dp = dpOptions.find(dp => dp.id === parseInt(avatarUrl));
-      avatarUrl = dp?.path || null;
+      avatarUrl = dp?.path || avatarUrl;
     }
+    
+    const phone = userData?.phone || 
+                  userData?.phone_number || 
+                  userData?.phoneNumber || 
+                  '';
+
+    const about = userData?.about || 
+                  userData?.status || 
+                  (phone ? '' : 'Hey there! I am using ELEVENGRAM');
+
     return {
-      id: contact.contactUserId,
-      name: contact.contactName || userData?.name || userData?.phone || 'Unknown',
+      id: contact.contactUserId || userData?.id,
+      name: contact.contactName || userData?.name || phone || 'Unknown',
       avatar: avatarUrl,
-      phone: userData?.phone || contact.contactUserId || 'N/A',
+      phone: phone || about,
       is_online: userData?.is_online || false,
       last_seen: userData?.last_seen || null,
     };
@@ -77,12 +86,25 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
     });
   };
 
-  // Handle avatar selection - file upload
+  // Handle avatar file upload
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size should be less than 5MB');
+        return;
+      }
+
       setAvatarFile(file);
-      setSelectedDp(null); // Clear DP selection
+      setSelectedDp(null);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
@@ -95,7 +117,8 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
   const handleDpSelect = (dpPath) => {
     setSelectedDp(dpPath);
     setAvatarPreview(dpPath);
-    setAvatarFile(null); // Clear file upload
+    setAvatarFile(null);
+    setShowDpPicker(false);
   };
 
   // Create group
@@ -115,23 +138,22 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
     try {
       const memberIds = selectedContacts.map(c => c.id);
 
-      // If selectedDp is set, use it as avatar; otherwise use avatarFile
       await createGroupMutation.mutateAsync({
         name: groupName.trim(),
         description: groupDescription.trim() || null,
-        avatarFile: selectedDp ? null : avatarFile, // Use file OR DP URL
-        avatarUrl: selectedDp, // Pass DP URL if selected
+        avatarFile: selectedDp ? null : avatarFile,
+        avatarUrl: selectedDp,
         createdBy: user.id,
         memberIds,
       });
 
-      // Reset form
+      toast.success('Group created successfully!');
       resetForm();
       onSuccess?.();
       onClose();
     } catch (error) {
       console.error('Error creating group:', error);
-      toast.error('Failed to create group');
+      toast.error(error.message || 'Failed to create group');
     } finally {
       setLoading(false);
     }
@@ -146,10 +168,12 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
     setGroupDescription('');
     setAvatarPreview(null);
     setAvatarFile(null);
+    setSelectedDp(null);
   };
 
   // Handle close
   const handleClose = () => {
+    if (loading) return;
     resetForm();
     onClose();
   };
@@ -163,198 +187,270 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
     setStep(2);
   };
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={step === 1 ? 'Add Group Participants' : 'Create Group'}
-      size="medium"
-    >
-      <div className="create-group-modal">
-        {/* Step 1: Select Members */}
-        {step === 1 && (
-          <div className="step-1">
-            <div className="search-container">
-              <Search size={18} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search contacts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
-            </div>
+  // Render avatar for contact
+  const renderContactAvatar = (contact) => {
+    if (contact.avatar) {
+      // Check if avatar is a number (DP ID)
+      if (!isNaN(parseInt(contact.avatar)) && parseInt(contact.avatar) < 100) {
+        const dp = dpOptions.find(dp => dp.id === parseInt(contact.avatar));
+        return <img src={dp?.path || contact.avatar} alt={contact.name} />;
+      }
+      return <img src={contact.avatar} alt={contact.name} />;
+    }
+    return (
+      <div className="avatar-placeholder">
+        {getInitials(contact.name) || '?'}
+      </div>
+    );
+  };
 
-            <div className="selected-preview">
-              <span>{selectedContacts.length} selected</span>
-              {selectedContacts.length > 0 && (
-                <button className="clear-btn" onClick={() => setSelectedContacts([])}>
-                  Clear
-                </button>
-              )}
-            </div>
+  // Render member chip avatar
+  const renderChipAvatar = (contact) => {
+    if (contact.avatar) {
+      if (!isNaN(parseInt(contact.avatar)) && parseInt(contact.avatar) < 100) {
+        const dp = dpOptions.find(dp => dp.id === parseInt(contact.avatar));
+        return <img src={dp?.path || contact.avatar} alt={contact.name} className="chip-avatar" />;
+      }
+      return <img src={contact.avatar} alt={contact.name} className="chip-avatar" />;
+    }
+    return (
+      <div className="chip-avatar-placeholder">
+        {contact.name?.charAt(0)?.toUpperCase() || '?'}
+      </div>
+    );
+  };
 
-            <div className="contacts-list">
-              {baseContacts.length === 0 ? (
-                <div className="no-contacts">
-                  No contacts yet. Add contacts first to create a group.
-                </div>
-              ) : filteredContacts.length > 0 ? (
-                filteredContacts.map(contact => {
-                  const isSelected = selectedContacts.some(c => c.id === contact.id);
-                  return (
-                    <div
-                      key={contact.id}
-                      className={`contact-item ${isSelected ? 'selected' : ''}`}
-                      onClick={() => toggleContact(contact)}
-                    >
-                      <div className="contact-avatar">
-                        {contact.avatar ? (
-                          parseInt(contact.avatar) ? (
-                            <img src={dpOptions.find(dp => dp.id === parseInt(contact.avatar))?.path || contact.avatar} alt={contact.name} />
-                          ) : (
-                            <img src={contact.avatar} alt={contact.name} />
-                          )
-                        ) : (
-                          <div className="avatar-placeholder">
-                            {getInitials(contact.name) || '?'}
-                          </div>
-                        )}
-                        {isSelected && (
-                          <div className="check-icon">
-                            <Check size={14} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="contact-info">
-                        <div className="contact-name">{contact.name}</div>
-                        <div className="contact-phone">{contact.phone}</div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="no-contacts">
-                  {searchQuery ? 'No contacts found' : 'No contacts yet'}
-                </div>
-              )}
-            </div>
-
-            <div className="step-actions">
-              <button className="btn-primary" onClick={goToNextStep}>
-                Next
-              </button>
-            </div>
+  const ModalContent = (
+    <div className={`create-group-modal ${inline ? 'inline-mode' : ''}`}>
+      {/* Step 1: Select Members */}
+      {step === 1 && (
+        <div className="step-1">
+          <div className={inline ? "search-container-inline" : "search-container"}>
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search contacts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+              autoFocus
+            />
           </div>
-        )}
 
-        {/* Step 2: Group Info */}
-        {step === 2 && (
-          <div className="step-2">
-            <div className="avatar-section">
-              <div className="avatar-preview" onClick={() => setShowDpPicker(true)}>
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Group avatar" />
-                ) : (
-                  <div className="avatar-placeholder-large">
-                    <Image size={32} />
-                    <span>Choose Photo</span>
+          <div className="selected-preview">
+            <span>{selectedContacts.length} selected</span>
+            {selectedContacts.length > 0 && (
+              <button 
+                className="clear-btn" 
+                onClick={() => setSelectedContacts([])}
+                type="button"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="contacts-list">
+            {baseContacts.length === 0 ? (
+              <div className="no-contacts">
+                <UserPlus size={48} />
+                <span>No contacts yet. Add contacts first to create a group.</span>
+              </div>
+            ) : filteredContacts.length > 0 ? (
+              filteredContacts.map((contact, index) => {
+                const isSelected = selectedContacts.some(c => c.id === contact.id);
+                return (
+                  <div
+                    key={contact.id}
+                    className={`contact-item ${isSelected ? 'selected' : ''}`}
+                    onClick={() => toggleContact(contact)}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <div className="contact-avatar">
+                      {renderContactAvatar(contact)}
+                      {isSelected && (
+                        <div className="check-icon">
+                          <Check size={14} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="contact-info">
+                      <div className="contact-name">{contact.name}</div>
+                      <div className="contact-phone">{contact.phone}</div>
+                    </div>
                   </div>
-                )}
+                );
+              })
+            ) : (
+              <div className="no-contacts">
+                <Search size={48} />
+                <span>No contacts found matching "{searchQuery}"</span>
               </div>
-              <input
-                type="file"
-                id="group-avatar-input"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                style={{ display: 'none' }}
-              />
-              <div className="avatar-buttons">
-                <button
-                  className="btn-secondary avatar-btn"
-                  onClick={() => setShowDpPicker(true)}
-                >
-                  <Image size={16} />
-                  Choose from Gallery
-                </button>
-              </div>
-            </div>
+            )}
+          </div>
 
-            <div className="group-info-form">
-              <input
-                type="text"
-                placeholder="Group Name (required)"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                className="group-name-input"
-                maxLength={50}
-              />
+          <div className="step-actions">
+            <button 
+              className="btn-primary" 
+              onClick={goToNextStep}
+              disabled={selectedContacts.length === 0}
+              type="button"
+            >
+              Next ({selectedContacts.length})
+            </button>
+          </div>
+        </div>
+      )}
 
-              <input
-                type="text"
-                placeholder="Group Description (optional)"
-                value={groupDescription}
-                onChange={(e) => setGroupDescription(e.target.value)}
-                className="group-description-input"
-                maxLength={100}
-              />
-            </div>
-
-            <div className="members-preview">
-              <div className="members-header">
-                <Users size={16} />
-                <span>{selectedContacts.length + 1} participants</span>
-              </div>
-              <div className="members-list">
-                {/* Show creator */}
-                <div className="member-chip you">
-                  <span>You (Admin)</span>
+      {/* Step 2: Group Info */}
+      {step === 2 && (
+        <div className="step-2">
+          <div className="avatar-section">
+            <div 
+              className="avatar-preview" 
+              onClick={() => setShowDpPicker(true)}
+              role="button"
+              tabIndex={0}
+            >
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Group avatar" />
+              ) : (
+                <div className="avatar-placeholder-large">
+                  <Image size={32} />
+                  <span>Add Photo</span>
                 </div>
-                {/* Show selected contacts */}
-                {selectedContacts.slice(0, 5).map(contact => (
-                  <div key={contact.id} className="member-chip">
-                    {contact.avatar ? (
-                      <img src={contact.avatar} alt={contact.name} className="chip-avatar" />
-                    ) : (
-                      <div className="chip-avatar-placeholder">
-                        {contact.name?.charAt(0)?.toUpperCase()}
-                      </div>
-                    )}
-                    <span>{contact.name}</span>
-                  </div>
-                ))}
-                {selectedContacts.length > 5 && (
-                  <div className="member-chip more">
-                    +{selectedContacts.length - 5} more
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-
-            <div className="step-actions">
-              <button className="btn-secondary" onClick={() => setStep(1)}>
-                Back
+            
+            <input
+              type="file"
+              id="group-avatar-input"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              style={{ display: 'none' }}
+            />
+            
+            <div className="avatar-buttons">
+              <button
+                className="btn-secondary avatar-btn"
+                onClick={() => setShowDpPicker(true)}
+                type="button"
+              >
+                <Image size={16} />
+                Choose from Gallery
               </button>
               <button
-                className="btn-primary"
-                onClick={handleCreate}
-                disabled={loading || !groupName.trim()}
+                className="btn-secondary avatar-btn"
+                onClick={() => document.getElementById('group-avatar-input').click()}
+                type="button"
               >
-                {loading ? 'Creating...' : 'Create Group'}
+                <Upload size={16} />
+                Upload Photo
               </button>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* DP Picker Modal */}
+          <div className="group-info-form">
+            <input
+              type="text"
+              placeholder="Group Name (required)"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="group-name-input"
+              maxLength={50}
+              autoFocus
+            />
+
+            <input
+              type="text"
+              placeholder="Group Description (optional)"
+              value={groupDescription}
+              onChange={(e) => setGroupDescription(e.target.value)}
+              className="group-description-input"
+              maxLength={100}
+            />
+          </div>
+
+          <div className="members-preview">
+            <div className="members-header">
+              <Users size={16} />
+              <span>{selectedContacts.length + 1} participants</span>
+            </div>
+            <div className="members-list">
+              {/* Show creator */}
+              <div className="member-chip you">
+                <span>You (Admin)</span>
+              </div>
+              {/* Show selected contacts */}
+              {selectedContacts.slice(0, 5).map(contact => (
+                <div key={contact.id} className="member-chip">
+                  {renderChipAvatar(contact)}
+                  <span>{contact.name}</span>
+                </div>
+              ))}
+              {selectedContacts.length > 5 && (
+                <div className="member-chip more">
+                  +{selectedContacts.length - 5} more
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="step-actions">
+            <button 
+              className="btn-secondary" 
+              onClick={() => setStep(1)}
+              disabled={loading}
+              type="button"
+            >
+              Back
+            </button>
+            <button
+              className={`btn-primary ${loading ? 'loading' : ''}`}
+              onClick={handleCreate}
+              disabled={loading || !groupName.trim()}
+              type="button"
+            >
+              {loading ? '' : 'Create Group'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const DpPickerModal = (
+    <React.Suspense fallback={null}>
       <DpPicker
         isOpen={showDpPicker}
         onClose={() => setShowDpPicker(false)}
         onSelect={handleDpSelect}
         currentDp={selectedDp}
       />
-    </Modal>
+    </React.Suspense>
+  );
+
+  if (inline) {
+    return (
+      <>
+        {ModalContent}
+        {DpPickerModal}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={step === 1 ? 'Add Group Participants' : 'Create Group'}
+        size="medium"
+      >
+        {ModalContent}
+      </Modal>
+      {DpPickerModal}
+    </>
   );
 };
 

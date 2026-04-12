@@ -69,8 +69,13 @@ const MainLayout = () => {
     const handleChatClick = (chat) => {
         if (!chat) return;
 
-        // If it's a group, navigate to group chat with state for instant header
-        if (chat.isGroup || chat.chatType === 'group' || chat.type === 'group') {
+        // More robust group detection
+        const isGroup = chat.isGroup || 
+                       chat.chatType === 'group' || 
+                       chat.type === 'group' || 
+                       chat.group_id !== undefined;
+
+        if (isGroup) {
             navigate(`/chat/${chat.id}/group`, {
                 state: {
                     groupName: chat.name || 'Group Chat',

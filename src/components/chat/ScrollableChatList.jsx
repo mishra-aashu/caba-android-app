@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { MessageCircle, Search, Plus, Users } from 'lucide-react';
 import { Virtuoso } from 'react-virtuoso';
 import ChatListItem from './ChatListItem';
+import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 import styles from '../../styles/ChatListItem.module.css';
 
 const ScrollableChatList = ({
@@ -25,8 +26,8 @@ const ScrollableChatList = ({
     // 1. Separate logic for the list header (Groups + Messages Label)
     const ListHeader = () => (
         <>
-            {/* Desktop Groups Sidebar Section — Show only if 'all' or 'groups' is active */}
-            {isDesktop && groupChats.length > 0 && !searchTerm && (activeFilter === 'all' || activeFilter === 'groups') && (
+            {/* Desktop Groups Sidebar Section — Only show horizontally in 'all' view */}
+            {isDesktop && !searchTerm && activeFilter === 'all' && (
                 <div className={styles['sidebar-groups-section']}>
                     <div className={styles['sidebar-section-header']}>
                         <h3>Groups</h3>
@@ -34,25 +35,18 @@ const ScrollableChatList = ({
                             <Plus size={16} />
                         </button>
                     </div>
-                    <div className={styles['sidebar-groups-list']}>
-                        {groupChats.map(group => (
+                    {groupChats.length > 0 && (
+                        <div className={styles['sidebar-groups-list']}>
+                            {groupChats.map(group => (
                             <div
                                 key={group.id}
                                 className={`${styles['sidebar-group-item']} ${currentChatId === group.id ? styles.active : ''}`}
                                 onClick={() => handleChatClick(group)}
                             >
-                                <div 
-                                    className={styles['sidebar-group-avatar']}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (group.avatar) {
-                                            onAvatarClick?.(group.avatar, group.name);
-                                        }
-                                    }}
-                                >
-                                    {group.avatar ? (
+                                <div className={styles['sidebar-group-avatar']}>
+                                    {resolveAvatarUrl(group.avatar || group.avatar_url) ? (
                                         <img
-                                            src={group.avatar}
+                                            src={resolveAvatarUrl(group.avatar || group.avatar_url)}
                                             alt={group.name}
                                             onError={(e) => {
                                                 e.target.style.display = 'none';
@@ -60,9 +54,11 @@ const ScrollableChatList = ({
                                             }}
                                         />
                                     ) : null}
-                                    <div className={styles['group-avatar-fallback']}>
-                                        <Users size={22} />
-                                    </div>
+                                    {!resolveAvatarUrl(group.avatar || group.avatar_url) && (
+                                        <div className={styles['group-avatar-fallback']}>
+                                            <Users size={22} />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className={styles['sidebar-group-info']}>
                                     <span className={styles['sidebar-group-name']}>{group.name}</span>
@@ -71,6 +67,7 @@ const ScrollableChatList = ({
                             </div>
                         ))}
                     </div>
+                )}
                 </div>
             )}
 
@@ -90,7 +87,7 @@ const ScrollableChatList = ({
     // - **Fix**: Re-wrote `ScrollableChatList` with a robust Virtuoso architecture using internal scroll management and `flexbox` to guarantee height.
     // - **Infinite Loading**: Integrated `hasMoreChats` directly into Virtuoso for smoother scrolling beyond the first 20 chats.
     const data = isDesktop
-        ? (activeFilter === 'all' ? dmChats : (activeFilter === 'chats' ? dmChats : []))
+        ? (activeFilter === 'all' ? dmChats : (activeFilter === 'chats' ? dmChats : (activeFilter === 'groups' ? groupChats : [])))
         : filteredChats;
 
     return (

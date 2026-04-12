@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, lazy, Suspense } from 'react';
+import React, { useRef, useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageCircle,
@@ -17,10 +17,11 @@ import {
   Edit,
   Trash2,
   X,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react';
 import { useSupabase } from '../contexts/SupabaseContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useChatListRealtime } from '../hooks/useChatListRealtime';
 import { useContacts } from '../hooks/useCommonQueries';
@@ -33,6 +34,7 @@ import DropdownMenu from './common/DropdownMenu';
 import ChatListItem from './chat/ChatListItem';
 import { getPublicMediaUrl } from '../services/mediaService';
 import { getDpPath } from '../utils/dpOptions';
+import { getChatAvatar } from '../utils/avatarHelpers';
 import { getInitials } from '../utils/stringUtils';
 import { isUserOnline, formatTime } from '../utils/dateFormatter';
 import { useGroupActions } from '../hooks/useGroupActions';
@@ -79,7 +81,30 @@ const ChatListPanel = ({
   const [showSearch, setShowSearch] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [sidebarView, setSidebarView] = useState('chats'); // 'chats' or 'create-group'
+  const location = useLocation();
+
+  // Sync sidebarView with URL parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('view') === 'create-group') {
+      setSidebarView('create-group');
+    } else {
+      setSidebarView('chats');
+    }
+  }, [location.search]);
+
+  // Handle exiting inline group creation
+  const handleExitCreateGroup = () => {
+    setSidebarView('chats');
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('view') === 'create-group') {
+      searchParams.delete('view');
+      const newQuery = searchParams.toString();
+      navigate(newQuery ? `?${newQuery}` : location.pathname);
+    }
+  };
+
   const [activeFilter, setActiveFilter] = useState('all'); 
   
   const chatListRef = useRef();
@@ -342,7 +367,7 @@ const ChatListPanel = ({
     const displayName = contact?.contactName || chat.name;
 
     // 3. Robust Avatar resolution
-    const avatar = resolveAvatar(chat.avatar || chat.otherUser?.avatar, otherUserId);
+    const avatar = getChatAvatar(chat);
 
     // Merge everything into a clean object for ChatListItem
     const chatListItemProps = {
@@ -440,35 +465,52 @@ const ChatListPanel = ({
       )}
       <header className={`${styles['top-header']} ${selectionMode ? styles.hidden : ''}`}>
         <div className={styles['header-left']}>
-          <h1 className={styles['chats-title']}>Chats</h1>
+          {sidebarView === 'create-group' ? (
+            <>
+              <button 
+                className={styles['icon-btn']} 
+                onClick={handleExitCreateGroup}
+                style={{ marginRight: '12px' }}
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <h1 className={styles['chats-title']}>New Group</h1>
+            </>
+          ) : (
+            <h1 className={styles['chats-title']}>Chats</h1>
+          )}
         </div>
         <div className={styles['header-right']}>
-          <button
-            className={styles['icon-btn']}
-            onClick={() => setShowNewContactModal(true)}
-            title="Contacts"
-          >
-            <User size={20} />
-          </button>
-          {isDesktop && (
-            <button
-              className={`${styles['icon-btn']} ${isRefreshing ? 'animate-spin' : ''}`}
-              onClick={handleManualRefresh}
-              title="Refresh"
-              disabled={isRefreshing}
-            >
-              <RefreshCw size={20} />
-            </button>
-          )}
-          <button
-            className={styles['icon-btn']}
-            onClick={() => setShowSearch(!showSearch)}
-            title="Search"
-          >
-            <Search size={20} />
-          </button>
+          {sidebarView === 'chats' && (
+            <>
+              <button
+                className={styles['icon-btn']}
+                onClick={() => setShowNewContactModal(true)}
+                title="Contacts"
+              >
+                <User size={20} />
+              </button>
+              {isDesktop && (
+                <button
+                  className={`${styles['icon-btn']} ${isRefreshing ? 'animate-spin' : ''}`}
+                  onClick={handleManualRefresh}
+                  title="Refresh"
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw size={20} />
+                </button>
+              )}
+              <button
+                className={styles['icon-btn']}
+                onClick={() => setShowSearch(!showSearch)}
+                title="Search"
+              >
+                <Search size={20} />
+              </button>
 
-          <DropdownMenu items={dropdownItems} />
+              <DropdownMenu items={dropdownItems} />
+            </>
+          )}
         </div>
       </header>
 
@@ -506,26 +548,28 @@ const ChatListPanel = ({
         )}
       </AnimatePresence>
 
-      <motion.div layout className={styles['filter-bar']}>
-        <button
-          className={`${styles['filter-pill']} ${activeFilter === 'all' ? styles.active : ''}`}
-          onClick={() => setActiveFilter('all')}
-        >
-          All
-        </button>
-        <button
-          className={`${styles['filter-pill']} ${activeFilter === 'chats' ? styles.active : ''}`}
-          onClick={() => setActiveFilter('chats')}
-        >
-          Chats
-        </button>
-        <button
-          className={`${styles['filter-pill']} ${activeFilter === 'groups' ? styles.active : ''}`}
-          onClick={() => setActiveFilter('groups')}
-        >
-          Groups
-        </button>
-      </motion.div>
+      {sidebarView === 'chats' && (
+        <motion.div layout className={styles['filter-bar']}>
+          <button
+            className={`${styles['filter-pill']} ${activeFilter === 'all' ? styles.active : ''}`}
+            onClick={() => setActiveFilter('all')}
+          >
+            All
+          </button>
+          <button
+            className={`${styles['filter-pill']} ${activeFilter === 'chats' ? styles.active : ''}`}
+            onClick={() => setActiveFilter('chats')}
+          >
+            Chats
+          </button>
+          <button
+            className={`${styles['filter-pill']} ${activeFilter === 'groups' ? styles.active : ''}`}
+            onClick={() => setActiveFilter('groups')}
+          >
+            Groups
+          </button>
+        </motion.div>
+      )}
 
       <AnimatePresence>
         {showSearch && showSuggestions && searchSuggestions.length > 0 && (
@@ -563,43 +607,46 @@ const ChatListPanel = ({
       </AnimatePresence>
 
       <motion.div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <PullToRefresh onRefresh={handleManualRefresh} isAtTop={isAtTop}>
-          <ScrollableChatList
-            isDesktop={isDesktop}
-            groupChats={groupChats}
-            dmChats={dmChats}
-            filteredChats={displayChats}
-            activeFilter={activeFilter}
-            searchTerm={searchTerm}
-            currentChatId={currentChatId}
-            handleChatClick={handleChatClick}
-            loadingMore={loadingMore}
-            hasMoreChats={hasMoreChats}
-            loadMoreChats={() => {
-              if (hasMoreChats && !loadingMore) handleChatListScroll();
-            }}
-            renderChatItem={renderChatItem}
-            setShowCreateGroupModal={setShowCreateGroupModal}
-            onAtTopChange={setIsAtTop}
-            onAvatarClick={(imageUrl, name) => {
-              setAvatarViewerData({
-                isOpen: true,
-                imageUrl,
-                name
-              });
-            }}
-          />
-        </PullToRefresh>
+        {sidebarView === 'chats' ? (
+          <PullToRefresh onRefresh={handleManualRefresh} isAtTop={isAtTop}>
+            <ScrollableChatList
+              isDesktop={isDesktop}
+              groupChats={groupChats}
+              dmChats={dmChats}
+              filteredChats={displayChats}
+              activeFilter={activeFilter}
+              searchTerm={searchTerm}
+              currentChatId={currentChatId}
+              handleChatClick={handleChatClick}
+              loadingMore={loadingMore}
+              hasMoreChats={hasMoreChats}
+              loadMoreChats={() => {
+                if (hasMoreChats && !loadingMore) handleChatListScroll();
+              }}
+              renderChatItem={renderChatItem}
+              setShowCreateGroupModal={() => setSidebarView('create-group')}
+              onAtTopChange={setIsAtTop}
+              onAvatarClick={(imageUrl, name) => {
+                setAvatarViewerData({
+                  isOpen: true,
+                  imageUrl,
+                  name
+                });
+              }}
+            />
+          </PullToRefresh>
+        ) : (
+          <Suspense fallback={null}>
+            <CreateGroupModal
+              isOpen={sidebarView === 'create-group'}
+              onClose={handleExitCreateGroup}
+              onSuccess={handleExitCreateGroup}
+              savedContacts={savedContacts}
+              inline={true}
+            />
+          </Suspense>
+        )}
       </motion.div>
-
-      <Suspense fallback={null}>
-        <CreateGroupModal
-          isOpen={showCreateGroupModal}
-          onClose={() => setShowCreateGroupModal(false)}
-          onSuccess={() => setShowCreateGroupModal(false)}
-          savedContacts={savedContacts}
-        />
-      </Suspense>
 
       {contextMenu && (
         <ChatContextMenu

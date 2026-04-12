@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
 import useIsDesktop from '../../hooks/useIsDesktop';
 import { uploadGroupAvatar } from '../../services/groupService';
+import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 import './GroupInfoDrawer.css';
 
 const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
@@ -114,7 +115,7 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
 
     setIsUploadingAvatar(true);
     try {
-      const avatarUrl = await uploadGroupAvatar(file, groupId);
+      const avatarUrl = await uploadGroupAvatar(file, groupId, user.id);
 
       await updateGroupMutation.mutateAsync({
         groupId,
@@ -169,8 +170,8 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
             <div className="loading">Updating...</div>
           ) : (
             <div className={`group-avatar-large ${isAdmin ? 'editable' : ''}`} onClick={() => isAdmin && avatarInputRef.current?.click()}>
-              {activeGroup?.avatar_url ? (
-                <img src={activeGroup.avatar_url} alt={activeGroup.name} />
+              {resolveAvatarUrl(activeGroup?.avatar_url || activeGroup?.avatar) ? (
+                <img src={resolveAvatarUrl(activeGroup?.avatar_url || activeGroup?.avatar)} alt={activeGroup.name} />
               ) : (
                 <div className="avatar-placeholder">
                   {activeGroup?.name?.charAt(0)?.toUpperCase() || 'G'}
