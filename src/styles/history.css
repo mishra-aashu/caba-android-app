@@ -10,7 +10,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--surface-color, #ffffff);
+  background: var(--bg-primary);
 }
 
 .history-container.is-sidebar {
@@ -41,8 +41,8 @@
   padding-top: calc(var(--spacing-md) + var(--safe-top));
   padding-left: calc(var(--spacing-lg) + var(--safe-left));
   padding-right: calc(var(--spacing-lg) + var(--safe-right));
-  background: var(--surface-color, #ffffff);
-  border-bottom: 1px solid var(--border-color, #d1e8e8);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .is-sidebar .app-header {
@@ -63,7 +63,7 @@
   height: 40px;
   border: none;
   background: transparent;
-  color: var(--text-primary, #0c1e17);
+  color: var(--text-primary);
   cursor: pointer;
   border-radius: 50%;
 }
@@ -86,14 +86,14 @@
   height: 40px;
   border: none;
   background: transparent;
-  color: var(--text-primary, #0c1e17);
+  color: var(--text-primary);
   cursor: pointer;
   border-radius: 50%;
   transition: background-color 0.2s;
 }
 
 .history-container .refresh-btn:hover {
-  background: var(--hover-color, rgba(0, 168, 132, 0.06));
+  background: var(--bg-hover);
 }
 
 .history-container .refresh-btn:disabled {
@@ -119,13 +119,13 @@
   display: flex;
   align-items: center;
   padding: 12px 15px;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  border-bottom: 1px solid var(--border-subtle);
   cursor: pointer;
   min-height: 70px;
 }
 
 .history-item:hover {
-  background: var(--hover-color, rgba(0, 168, 132, 0.06));
+  background: var(--bg-hover);
 }
 
 /* LEFT: Avatar */
@@ -138,8 +138,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--avatar-bg, #e8e8e8);
-  color: var(--text-secondary, #666);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 16px;
   font-weight: 600;
   margin-right: 15px;
@@ -179,7 +179,7 @@
 .history-item .history-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary, #0c1e17);
+  color: var(--text-primary);
   margin: 0 0 4px 0;
   white-space: nowrap;
   overflow: hidden;
@@ -191,7 +191,7 @@
 
 .history-item .call-count {
   font-weight: 400;
-  color: var(--text-secondary, #4a6e5c);
+  color: var(--text-secondary);
   margin-left: 5px;
   font-size: 14px;
 }
@@ -202,7 +202,7 @@
   align-items: center;
   gap: 5px;
   font-size: 13px;
-  color: var(--text-secondary, #4a6e5c);
+  color: var(--text-secondary);
 }
 
 .history-item .history-status-row .status-icon {
@@ -212,15 +212,15 @@
 }
 
 .history-item .history-status-row .status-icon.missed {
-  color: #f44336;
+  color: var(--status-error);
 }
 
 .history-item .history-status-row .status-icon.outgoing {
-  color: #25d366;
+  color: var(--status-success);
 }
 
 .history-item .history-status-row .status-icon.incoming {
-  color: #0088ff;
+  color: var(--status-info);
 }
 
 .history-item .time-text {
@@ -229,7 +229,7 @@
 
 .history-item .duration-text {
   font-weight: 500;
-  color: #25d366;
+  color: var(--status-success);
 }
 
 .history-loader {
@@ -243,7 +243,7 @@
 
 .scroll-more-text,
 .no-more-calls {
-  color: var(--text-secondary, #4a6e5c);
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -254,7 +254,7 @@
   min-width: 44px;
   border: none;
   background: transparent;
-  color: #0088ff;
+  color: var(--status-info);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -266,11 +266,11 @@
 }
 
 .history-item .call-action-btn:hover {
-  background: var(--btn-hover-bg, #e8f4ff);
+  background: var(--bg-hover);
 }
 
 .history-item .call-action-btn:active {
-  background: var(--btn-active-bg, #d0e9ff);
+  background: var(--bg-active);
 }
 
 .history-item .call-action-btn:disabled {
@@ -294,8 +294,8 @@
 .history-loading .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #e8e8e8;
-  border-top-color: #0088ff;
+  border: 3px solid var(--border-subtle);
+  border-top-color: var(--status-info);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -307,7 +307,7 @@
 }
 
 .history-loading p {
-  color: var(--text-secondary, #4a6e5c);
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -325,13 +325,13 @@
 }
 
 .history-error p {
-  color: #f44336;
+  color: var(--status-error);
   font-size: 14px;
 }
 
 .history-error button {
   padding: 10px 24px;
-  background: #0088ff;
+  background: var(--status-info);
   color: white;
   border: none;
   border-radius: 20px;
@@ -341,7 +341,7 @@
 }
 
 .history-error button:hover {
-  background: #0077ee;
+  background: var(--status-info);
 }
 
 /* ============================================
@@ -360,7 +360,7 @@
 .history-content .empty-state svg {
   width: 64px;
   height: 64px;
-  color: var(--text-secondary, #8696a0);
+  color: var(--text-secondary);
   margin-bottom: 16px;
   opacity: 0.5;
 }
@@ -368,13 +368,13 @@
 .history-content .empty-state h3 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary, #0c1e17);
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .history-content .empty-state p {
   font-size: 14px;
-  color: var(--text-secondary, #4a6e5c);
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -385,22 +385,23 @@
 @media (max-width: 600px) {
   .history-container {
     min-height: var(--app-height);
-    background: #ffffff;
+    background: var(--bg-primary);
     width: 100%;
   }
 
   .history-item {
     padding: 10px;
     min-height: 60px;
-    background: #ffffff;
+    background: var(--bg-primary);
   }
 
-  /* Smaller Avatar */
   .history-item .call-avatar {
     width: 40px;
     height: 40px;
     min-width: 40px;
     margin-right: 12px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
     font-size: 14px;
   }
 
@@ -428,7 +429,7 @@
     font-size: 18px;
     font-weight: 600;
     margin: 0;
-    color: var(--text-primary, #0c1e17);
+    color: var(--text-primary);
   }
 
   .history-container .app-header {

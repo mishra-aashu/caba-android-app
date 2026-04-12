@@ -37,8 +37,8 @@
 }
 
 [data-theme='dark'] .calls-container .app-header {
-  background-color: #1e1e1e;
-  border-bottom-color: #2d2d2d;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .calls-container .header-left,
@@ -75,11 +75,11 @@
 }
 
 .calls-container .back-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--bg-hover);
 }
 
 [data-theme='dark'] .calls-container .back-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-active);
 }
 
 /* 3. Search Container */
@@ -91,8 +91,8 @@
 }
 
 [data-theme='dark'] .calls-container .search-container {
-  background-color: #1e1e1e;
-  border-bottom-color: #2d2d2d;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .calls-container .search-box {
@@ -127,7 +127,7 @@
 }
 
 [data-theme='dark'] .calls-container .search-box input {
-  background: #2a2a2a;
+  background: var(--bg-secondary);
 }
 
 /* 4. Scrollable Content Area */
@@ -186,11 +186,11 @@
 }
 
 [data-theme='dark'] .calls-container .contact-item {
-  border-bottom-color: #2d2d2d;
+  border-bottom-color: var(--border-default);
 }
 
 [data-theme='dark'] .calls-container .contact-item:hover {
-  background-color: #2a2a2a;
+  background-color: var(--bg-hover);
 }
 
 /* 6. Avatar */
@@ -225,12 +225,12 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #9E9E9E;
+  background: var(--text-secondary);
   border: 2px solid var(--surface-color);
 }
 
 .calls-container .call-avatar .online-status.online {
-  background: #4CAF50;
+  background: var(--status-success);
 }
 
 /* 7. Contact Info */
@@ -305,8 +305,8 @@
 .calls-loading .loading-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid var(--border-color, #E0E0E0);
-  border-top: 3px solid var(--brand-primary, #00BFA5);
+  border: 3px solid var(--border-default);
+  border-top: 3px solid var(--brand-primary);
   border-radius: 50%;
   animation: calls-spin 0.8s linear infinite;
   margin-bottom: 0.75rem;
@@ -368,12 +368,12 @@
   padding: 2px 8px;
   border-radius: 12px;
   background: #FFEBEE;
-  color: #D32F2F;
+  color: var(--status-error);
 }
 
 [data-theme='dark'] .missed-calls-badge {
   background: rgba(211, 47, 47, 0.2);
-  color: #EF5350;
+  color: var(--status-error);
 }
 
 .user-avatar-header {
@@ -403,11 +403,11 @@
 }
 
 [data-theme='dark'] .call-item {
-  border-bottom-color: #2d2d2d;
+  border-bottom-color: var(--border-default);
 }
 
 [data-theme='dark'] .call-item:hover {
-  background-color: #2a2a2a;
+  background-color: var(--bg-hover);
 }
 
 /* Call Item Avatar */
@@ -466,11 +466,11 @@
 }
 
 .status-icon.outgoing {
-  color: #4CAF50;
+  color: var(--status-success);
 }
 
 .status-icon.incoming {
-  color: #2196F3;
+  color: var(--status-info);
 }
 
 .call-time-text {

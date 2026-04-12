@@ -1,24 +1,35 @@
 :root {
-    /* Colors - Core Palette */
+    /* Backgrounds */
     --bg-primary: #ffffff;
-    --bg-secondary: #f5f5f5;
-    --bg-tertiary: #e9edef;
+    --bg-secondary: #f0f2f5;
+    --bg-surface: #ffffff;
+    --bg-overlay: rgba(255, 255, 255, 0.85);
+    --bg-hover: rgba(0, 168, 132, 0.08);
+    --bg-active: rgba(0, 168, 132, 0.12);
 
-    /* Core Backgrounds for backward compatibility */
-    --bg-0: #ffffff;
-    --bg-1: #f0f2f5;
-
-    --text-primary: #1a1a1a;
+    /* Text */
+    --text-primary: #111b21;
     --text-secondary: #54656f;
     --text-muted: #667781;
     --text-placeholder: #8696a0;
+    --text-inverse: #ffffff;
 
+    /* Brand / Accent */
     --brand-primary: #00a884;
     --brand-secondary: #128c7e;
-    --brand-accent: #22d3ee;
+    --brand-accent: #25d366;
+    --brand-gradient: linear-gradient(135deg, #00a884 0%, #00876a 100%);
 
-    --border-light: #e0e0e0;
-    --border-medium: #d1d7db;
+    /* Borders */
+    --border-subtle: rgba(0, 0, 0, 0.05);
+    --border-default: #d1d7db;
+    --border-strong: #8696a0;
+
+    /* Status */
+    --status-success: #25d366;
+    --status-error: #ef4444;
+    --status-warning: #ff9800;
+    --status-info: #2196f3;
 
     /* Spacing Scale (4px base) */
     --spacing-xxs: 2px;
@@ -57,21 +68,73 @@
     --sar: var(--safe-area-right);
 }
 
-/* Dark Mode Overrides (if applicable) */
+/* Glassmorphism & UI Accents */
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.35);
+    --glass-blur: 20px;
+    
+    --sidebar-bg: rgba(255, 255, 255, 0.75);
+    --sidebar-border: rgba(0, 0, 0, 0.08);
+
+    --chat-msg-sent-bg: #d9fdd3;
+    --chat-msg-sent-text: #111b21;
+    --chat-msg-received-bg: #ffffff;
+    --chat-msg-received-text: #111b21;
+
+    --chat-composer-bg: rgba(0, 0, 0, 0.04);
+    --chat-search-bg: rgba(0, 0, 0, 0.05);
+    
+    --aurora-1: rgba(18, 140, 126, 0.12);
+    --aurora-2: rgba(37, 211, 102, 0.08);
+    --aurora-3: rgba(0, 168, 132, 0.06);
+}
+
 [data-theme='dark'] {
+    --glass-bg: rgba(17, 27, 33, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    
+    --sidebar-bg: rgba(17, 27, 33, 0.75);
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+
+    --chat-msg-sent-bg: #005c4b;
+    --chat-msg-sent-text: #e9edef;
+    --chat-msg-received-bg: #202c33;
+    --chat-msg-received-text: #e9edef;
+
+    --chat-composer-bg: rgba(255, 255, 255, 0.06);
+    --chat-search-bg: rgba(255, 255, 255, 0.08);
+
+    --aurora-1: rgba(0, 92, 75, 0.25);
+    --aurora-2: rgba(11, 61, 54, 0.3);
+    --aurora-3: rgba(0, 168, 132, 0.08);
+}
+
+/* Dark Mode Overrides */
+[data-theme='dark'] {
+    /* Backgrounds */
     --bg-primary: #111b21;
     --bg-secondary: #202c33;
-    --bg-tertiary: #2a3942;
+    --bg-surface: #1f2c33;
+    --bg-overlay: rgba(11, 20, 26, 0.85);
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --bg-active: rgba(255, 255, 255, 0.12);
 
-    /* Core Backgrounds for backward compatibility */
-    --bg-0: #0b141a;
-    --bg-1: #1f2c33;
-
+    /* Text */
     --text-primary: #e9edef;
-    --text-secondary: #d1d7db;
-    --text-muted: #8696a0;
-    --text-placeholder: #667781;
+    --text-secondary: #8696a0;
+    --text-muted: #667781;
+    --text-placeholder: #54656f;
+    --text-inverse: #111b21;
 
-    --border-light: #222d34;
-    --border-medium: #3b4a54;
+    /* Brand / Accent overrides */
+    --brand-gradient: linear-gradient(135deg, #00a884 0%, #008f72 100%);
+
+    /* Borders */
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-default: #2a3942;
+    --border-strong: #3b4a54;
+
+    /* Status overrides */
+    --status-success: #00a884;
 }

@@ -13,100 +13,54 @@
   transform-style: preserve-3d;
 }
 
-/* --- Light Mode Support --- */
-/* --- Light Mode Support --- */
-:global(body.light-mode) .art-login-container {
-  background-color: #f5f5f5;
-  color: #1a1a1a;
+/* --- Theme Overrides --- */
+
+[data-theme='light'] .art-login-container {
+  --login-bg: #f5f5f5;
+  --login-text: #1a1a1a;
+  --login-glow-1: radial-gradient(circle, #128c7e 0%, transparent 70%);
+  --login-glow-2: radial-gradient(circle, #25d366 0%, transparent 70%);
+  --login-desc: #54656f;
+  --login-badge-border: rgba(0, 0, 0, 0.2);
+  --login-badge-bg: rgba(0, 0, 0, 0.03);
+  --login-card-bg: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  --login-card-border: rgba(0, 0, 0, 0.08);
+  --login-card-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+  --login-btn-bg: #128c7e;
+  --login-btn-hover: #0d6e63;
+  --login-link: #128c7e;
+  --login-checkbox-border: #667781;
 }
 
-:global(body.light-mode) .art-login-container .glow-1 {
-  background: radial-gradient(circle, #128c7e 0%, transparent 70%);
-}
-
-:global(body.light-mode) .art-login-container .glow-2 {
-  background: radial-gradient(circle, #25d366 0%, transparent 70%);
-}
-
-:global(body.light-mode) .art-login-container .art-hero-headline {
-  color: #1a1a1a;
-  background: none;
-  -webkit-background-clip: unset;
-  background-clip: unset;
-  -webkit-text-fill-color: initial;
-}
-
-:global(body.light-mode) .art-login-container .italic-text {
-  color: #128c7e;
-  background: none;
-  -webkit-background-clip: unset;
-  background-clip: unset;
-  -webkit-text-fill-color: initial;
-}
-
-:global(body.light-mode) .art-login-container .art-desc {
-  color: #54656f;
-}
-
-:global(body.light-mode) .art-login-container .art-features {
-  color: #54656f;
-}
-
-:global(body.light-mode) .art-login-container .brand-badge {
-  border-color: rgba(0, 0, 0, 0.2);
-  background: rgba(0, 0, 0, 0.03);
-  color: #54656f;
-}
-
-:global(body.light-mode) .art-login-container .paper-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow:
-    0 20px 40px -10px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(0, 0, 0, 0.05);
-}
-
-:global(body.light-mode) .art-login-container .card-header h2 {
-  color: #1a1a1a;
-}
-
-:global(body.light-mode) .art-login-container .card-header p {
-  color: #667781;
-}
-
-:global(body.light-mode) .art-login-container .google-art-btn {
-  background: #128c7e;
-  color: #ffffff;
-}
-
-:global(body.light-mode) .art-login-container .google-art-btn:hover {
-  background: #0d6e63;
-}
-
-:global(body.light-mode) .art-login-container .card-footer {
-  color: #667781;
-}
-
-:global(body.light-mode) .art-login-container .link {
-  color: #128c7e;
-}
-
-:global(body.light-mode) .art-login-container .checkbox-container .checkmark {
-  border-color: #667781;
+[data-theme='dark'] .art-login-container {
+  --login-bg: #050a0e;
+  --login-text: #e9edef;
+  --login-glow-1: radial-gradient(circle, #005c4b 0%, transparent 70%);
+  --login-glow-2: radial-gradient(circle, #0b3d36 0%, transparent 70%);
+  --login-desc: #94a3b8;
+  --login-badge-border: rgba(255, 255, 255, 0.2);
+  --login-badge-bg: rgba(255, 255, 255, 0.03);
+  --login-card-bg: linear-gradient(135deg, rgba(32, 44, 51, 0.9), rgba(11, 20, 26, 0.95));
+  --login-card-border: rgba(255, 255, 255, 0.08);
+  --login-card-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+  --login-btn-bg: #e2e8f0;
+  --login-btn-hover: #ffffff;
+  --login-link: #00a884;
+  --login-checkbox-border: #64748b;
 }
 
 /* --- 2. Main Container with MAXIMUM GPU ACCELERATION --- */
 .art-login-container {
   height: var(--app-height);
   width: 100%;
-  background-color: #050a0e;
+  background-color: var(--login-bg, #050a0e);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
   font-family: 'Inter', sans-serif;
-  color: #e9edef;
+  color: var(--login-text, #e9edef);
 
   /* GPU ACCELERATION - Force GPU compositing */
   transform: translateZ(0);
@@ -135,7 +89,7 @@
 .art-login-container .glow-1 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, #005c4b 0%, transparent 70%);
+  background: var(--login-glow-1);
   top: -100px;
   left: -100px;
   animation: float 10s infinite ease-in-out;
@@ -150,7 +104,7 @@
 .art-login-container .glow-2 {
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, #0b3d36 0%, transparent 70%);
+  background: var(--login-glow-2);
   bottom: -50px;
   right: -50px;
   animation: float 12s infinite ease-in-out reverse;
@@ -294,20 +248,9 @@
 .art-login-container .paper-card {
   width: 100%;
   max-width: 400px;
-
-  /* Paper Texture Background - Simplified for GPU */
-  background: linear-gradient(135deg, rgba(32, 44, 51, 0.9), rgba(11, 20, 26, 0.95));
-
-  /* Replace backdrop-filter with opacity for performance */
-  /* backdrop-filter: blur(20px); is very CPU intensive */
-  /* Using alternative approach with reduced backdrop */
-
-  /* Subtle Border Glow */
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 20px 40px -10px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-
+  background: var(--login-card-bg);
+  border: 1px solid var(--login-card-border);
+  box-shadow: var(--login-card-shadow);
   padding: 45px;
   border-radius: 24px;
   position: relative;
@@ -315,8 +258,6 @@
   transform: translateY(20px) translateZ(0);
   animation: fadeInUp 1s ease-out 0.4s forwards;
   will-change: transform, opacity;
-
-  /* GPU optimization */
   transform-style: preserve-3d;
   backface-visibility: hidden;
 }

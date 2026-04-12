@@ -15,8 +15,8 @@
 
 .sidebar-groups-section {
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--border-color, #2a3942);
-  background-color: var(--surface-color, #1f2c33);
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
   transition: background-color 0.3s ease;
 }
 
@@ -35,7 +35,7 @@
 .sidebar-section-header h3 {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-secondary, #8696a0);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin: 0;
@@ -46,7 +46,7 @@
 .create-group-icon-btn {
   background: none;
   border: none;
-  color: var(--brand-primary, #00a884);
+  color: var(--brand-primary);
   cursor: pointer;
   padding: 6px;
   border-radius: 8px;
@@ -58,7 +58,7 @@
 
 /* ✅ FIX: Was rgba(var(--brand-primary-rgb)) — undefined variable */
 .create-group-icon-btn:hover {
-  background-color: rgba(0, 168, 132, 0.1);
+  background-color: var(--bg-hover);
   transform: scale(1.08);
 }
 
@@ -125,7 +125,7 @@
 /* Hover — subtle bg + scale */
 .sidebar-group-item:hover {
   transform: scale(1.06);
-  background-color: rgba(0, 168, 132, 0.04);
+  background-color: var(--bg-hover);
 }
 
 /* Active/Tap feedback */
@@ -146,8 +146,8 @@
   border-radius: 50%;
   background: linear-gradient(
     135deg,
-    var(--brand-primary, #00a884),
-    var(--brand-secondary, #00876a)
+    var(--brand-primary),
+    var(--brand-secondary)
   );
   display: flex;
   align-items: center;
@@ -167,10 +167,10 @@
 
 /* Active ring — double border effect */
 .sidebar-group-item.active .sidebar-group-avatar {
-  border-color: var(--brand-primary, #00a884);
+  border-color: var(--brand-primary);
   box-shadow:
-    0 0 0 2px var(--surface-color, #1f2c33),
-    0 0 0 4px var(--brand-primary, #00a884),
+    0 0 0 2px var(--bg-surface),
+    0 0 0 4px var(--brand-primary),
     0 4px 12px rgba(0, 168, 132, 0.2);
   transform: scale(1.02);
 }
@@ -212,7 +212,7 @@
 
 .sidebar-group-name {
   font-size: 0.72rem;
-  color: var(--text-primary, #e9edef);
+  color: var(--text-primary);
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -225,7 +225,7 @@
 
 /* Active state — slightly bolder name */
 .sidebar-group-item.active .sidebar-group-name {
-  color: var(--brand-primary, #00a884);
+  color: var(--brand-primary);
   font-weight: 600;
 }
 
@@ -237,12 +237,12 @@
 .unread-dot {
   width: 10px;
   height: 10px;
-  background-color: var(--brand-primary, #00a884);
+  background-color: var(--brand-primary);
   border-radius: 50%;
   position: absolute;
   top: 6px;
   right: 4px;
-  border: 2px solid var(--surface-color, #1f2c33);
+  border: 2px solid var(--bg-surface);
   box-shadow: 0 2px 6px rgba(0, 168, 132, 0.35);
   z-index: 3;
   /* Subtle pulse animation for attention */
@@ -265,7 +265,7 @@
 
 .sidebar-groups-empty {
   font-size: 0.78rem;
-  color: var(--text-secondary, #8696a0);
+  color: var(--text-secondary);
   padding: 0.75rem 0;
   text-align: center;
   font-style: italic;
@@ -278,7 +278,7 @@
   justify-content: center;
   gap: 8px;
   font-size: 0.78rem;
-  color: var(--text-secondary, #8696a0);
+  color: var(--text-secondary);
   padding: 0.75rem 0;
 }
 
@@ -287,8 +287,8 @@
   content: '';
   width: 16px;
   height: 16px;
-  border: 2px solid var(--border-color, #2a3942);
-  border-top-color: var(--brand-primary, #00a884);
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--brand-primary);
   border-radius: 50%;
   animation: sg-spin 0.7s linear infinite;
 }
@@ -302,44 +302,37 @@
    9. LIGHT MODE OVERRIDES
    ============================================= */
 
-[data-theme='light'] .sidebar-groups-section,
-body.light-mode .sidebar-groups-section {
-  background-color: var(--surface-color, #ffffff);
-  border-bottom-color: var(--border-color, #d1e8da);
+[data-theme='light'] .sidebar-groups-section {
+  background-color: var(--bg-surface);
+  border-bottom-color: var(--border-color);
 }
 
-[data-theme='light'] .sidebar-group-item:hover,
-body.light-mode .sidebar-group-item:hover {
-  background-color: rgba(0, 168, 132, 0.04);
+[data-theme='light'] .sidebar-group-item:hover {
+  background-color: var(--bg-hover);
 }
 
-[data-theme='light'] .sidebar-group-avatar,
-body.light-mode .sidebar-group-avatar {
+[data-theme='light'] .sidebar-group-avatar {
   box-shadow: 0 4px 12px rgba(0, 60, 40, 0.1);
 }
 
-[data-theme='light'] .sidebar-group-item.active .sidebar-group-avatar,
-body.light-mode .sidebar-group-item.active .sidebar-group-avatar {
+[data-theme='light'] .sidebar-group-item.active .sidebar-group-avatar {
   box-shadow:
-    0 0 0 2px var(--surface-color, #ffffff),
-    0 0 0 4px var(--brand-primary, #00a884),
+    0 0 0 2px var(--bg-surface),
+    0 0 0 4px var(--brand-primary),
     0 4px 12px rgba(0, 168, 132, 0.15);
 }
 
-[data-theme='light'] .sidebar-group-name,
-body.light-mode .sidebar-group-name {
-  color: var(--text-primary, #0c1e17);
+[data-theme='light'] .sidebar-group-name {
+  color: var(--text-primary);
 }
 
-[data-theme='light'] .unread-dot,
-body.light-mode .unread-dot {
-  border-color: var(--surface-color, #ffffff);
+[data-theme='light'] .unread-dot {
+  border-color: var(--bg-surface);
   box-shadow: 0 2px 6px rgba(0, 168, 132, 0.25);
 }
 
-[data-theme='light'] .create-group-icon-btn:hover,
-body.light-mode .create-group-icon-btn:hover {
-  background-color: rgba(0, 168, 132, 0.06);
+[data-theme='light'] .create-group-icon-btn:hover {
+  background-color: var(--bg-hover);
 }
 
 
