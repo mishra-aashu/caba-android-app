@@ -210,6 +210,12 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chat-avatar-container:hover {
+  filter: drop-shadow(0 0 8px rgba(0, 168, 132, 0.4));
 }
 
 .chat-avatar {

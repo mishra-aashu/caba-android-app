@@ -12,6 +12,7 @@ export const DB_TO_FRONTEND_MAP = {
   'created_at': 'createdAt',
   'updated_at': 'updatedAt',
   'phone': 'phone',
+  'phone_number': 'phone',
   'phoneNumber': 'phone',
   'profile_image': 'profileImage',
   'emoji_style': 'emojiStyle',
@@ -73,6 +74,8 @@ export const DB_TO_FRONTEND_MAP = {
   // Contact fields
   'contact_user_id': 'contactUserId',
   'contact_name': 'contactName',
+  'contact_user': 'contactUser',
+  'other_user': 'otherUser',
 
   // Reminder fields
   'reminder_time': 'reminderTime',

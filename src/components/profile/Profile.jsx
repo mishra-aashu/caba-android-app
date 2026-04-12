@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MoreVertical, Camera, User, Info, Phone, Mail, QrCode, X, UserPlus } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import { useAuth } from "../../hooks/useAuth";
+import { safePluginCall } from "../../utils/platformCheck";
 import { UserQRCode, QRScanner } from "../qr";
 import { dpOptions } from "../../utils/dpOptions";
 import "../../styles/profile.css";
@@ -14,10 +16,12 @@ import { useDialog } from "../../contexts/DialogContext";
 import toast from "react-hot-toast";
 import CachedImage from "../common/CachedImage";
 import BottomNavigation from "../common/BottomNavigation";
+import { useMediaUpload } from "../../hooks/media/useMediaUpload";
 
 const Profile = ({ isModal = false, isSidebar = false }) => {
   const isOverlay = isModal || isSidebar;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { supabase } = useSupabase();
   const { user: authUser, loading: authLoading } = useAuth();
   const { showAlert } = useDialog();
@@ -33,6 +37,9 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
   const [editForm, setEditForm] = useState({ name: "", about: "", email: "" });
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [fullscreenImageUrl, setFullscreenImageUrl] = useState("");
+  const fileInputRef = useRef(null);
+  const { uploadFile } = useMediaUpload();
+  const [isUploading, setIsUploading] = useState(false);
 
   // NEW: Use React Query for efficient caching
   const {
@@ -186,6 +193,90 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
     } catch (error) {
       console.error("Error selecting DP:", error);
       showAlert("Failed to update profile picture");
+    }
+  };
+
+  const handleLocalAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Optional: immediate size check before even compression attempts
+    if (file.size > 10 * 1024 * 1024) {
+      showAlert("Image is too large (max 10MB)");
+      return;
+    }
+
+    setIsUploading(true);
+    const loadingToast = toast.loading("Compressing and uploading image...");
+
+    try {
+      // 1. Upload using the "proper" system hook (which handles compression)
+      const uploadResult = await uploadFile(file, 'avatar', authUser.id);
+      
+      if (!uploadResult || !uploadResult.storageUrl) {
+        throw new Error("Upload failed to return a URL");
+      }
+
+      const newAvatarUrl = uploadResult.storageUrl;
+
+      // 2. Update Database
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ avatar: newAvatarUrl })
+        .eq("id", authUser.id);
+
+      if (updateError) throw updateError;
+
+      // 3. Update local state and cache
+      const updatedUser = { ...user, avatar: newAvatarUrl };
+      setUser(updatedUser);
+      localStorage.setItem(`digidad_profile_${authUser.id}`, JSON.stringify(updatedUser));
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+      
+      // Update Query Cache
+      queryClient.setQueryData(["userProfile", authUser.id], updatedUser);
+
+      toast.success("Profile picture updated!", { id: loadingToast });
+      setShowDpModal(false);
+    } catch (error) {
+      console.error("Local avatar upload failed:", error);
+      toast.error("Failed to upload image: " + error.message, { id: loadingToast });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleUploadTrigger = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const PhotoModule = await import('@capacitor/camera');
+        const { Camera, CameraResultType, CameraSource } = PhotoModule;
+        
+        const photo = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: true,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Photos
+        });
+
+        if (photo.webPath) {
+          const response = await fetch(photo.webPath);
+          const blob = await response.blob();
+          const file = new File([blob], `avatar.${photo.format}`, { type: `image/${photo.format}` });
+          
+          // Re-use the existing upload logic
+          await handleLocalAvatarUpload({ target: { files: [file] } });
+        }
+      } catch (error) {
+        console.error("Native photo picker failed:", error);
+        // Only show error if not cancelled by user
+        if (error.message !== 'User cancelled photos app') {
+          toast.error("Failed to open photo picker");
+        }
+      }
+    } else {
+      fileInputRef.current?.click();
     }
   };
 
@@ -459,6 +550,21 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
               </button>
             </div>
             <div className="modal-body">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleLocalAvatarUpload} 
+                accept="image/*" 
+                style={{ display: 'none' }}
+              />
+              <button 
+                className="btn-primary" 
+                onClick={handleUploadTrigger}
+                disabled={isUploading}
+                style={{ marginBottom: '20px', width: '100%' }}
+              >
+                {isUploading ? "Uploading..." : "Upload from Device"}
+              </button>
               <div className="avatar-grid">
                 {dpOptions.map((option) => (
                   <img

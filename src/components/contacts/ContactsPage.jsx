@@ -38,25 +38,39 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
 
     // Sync Supabase contacts into Dexie for offline support
     useEffect(() => {
-        if (supabaseContacts && supabaseContacts.length > 0) {
-            const syncToDexie = async () => {
-                try {
-                    const formatted = supabaseContacts.map(c => ({
-                        id: c.id,
-                        contactName: c.contactName,
-                        otherUser: c.contactUser,
-                        avatar: c.contactUser?.avatar, // Flatten for easier access
-                        contactUserId: c.contactUserId,
-                        userId: c.userId,
-                        isFavorite: c.isFavorite
-                    }));
-                    await db.contacts.bulkPut(formatted);
-                } catch (err) {
-                    console.error('Failed to sync contacts to Dexie:', err);
+        if (!supabaseContacts) return;
+
+        const syncToDexie = async () => {
+            try {
+                // If the server list is empty, we must clear the local DB
+                if (supabaseContacts.length === 0) {
+                    await db.contacts.clear();
+                    return;
                 }
-            };
-            syncToDexie();
-        }
+
+                const formatted = supabaseContacts.map((c) => {
+                    const userObj = c.contactUser || c.contact_user || c.otherUser || c.other_user;
+                    return {
+                        id: c.id,
+                        contactName: c.contactName || c.contact_name,
+                        otherUser: userObj,
+                        avatar: userObj?.avatar,
+                        contactUserId: c.contactUserId || c.contact_user_id,
+                        userId: c.userId || c.user_id,
+                        isFavorite: c.isFavorite || c.is_favorite,
+                    };
+                });
+
+                // Use a transaction for safe clear + bulkPut
+                await db.transaction('rw', db.contacts, async () => {
+                    await db.contacts.clear();
+                    await db.contacts.bulkPut(formatted);
+                });
+            } catch (err) {
+                console.error('Failed to sync contacts to Dexie:', err);
+            }
+        };
+        syncToDexie();
     }, [supabaseContacts]);
 
     const [showContactForm, setShowContactForm] = useState(false);
@@ -117,7 +131,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
         try {
             const { data: existingUser, error: userError } = await supabase
                 .from('users')
-                .select('id, name, avatar')
+                .select('id, name, avatar, phone')
                 .eq('phone', trimmedPhone)
                 .single();
 
@@ -156,7 +170,6 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
             }
 
             queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
-            refreshContacts();
             resetForm();
         } catch (error) {
             console.error('Error saving contact:', error);
@@ -200,7 +213,6 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
             if (error) throw error;
             toast.success('Contact deleted');
             queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
-            refreshContacts();
         } catch (error) {
             console.error('Error deleting contact:', error);
             toast.error('Failed to delete contact');
@@ -283,6 +295,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
         const query = searchQuery.toLowerCase();
         return (
             contact.contactName?.toLowerCase().includes(query) ||
+            contact.otherUser?.name?.toLowerCase().includes(query) ||
             contact.otherUser?.phone?.includes(query)
         );
     });
@@ -329,7 +342,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                 <input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Search by name or phone..."
+                    placeholder="Search name, nickname or phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setSearchFocused(true)}
@@ -355,16 +368,6 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
 
             {/* ── Contact List ── */}
             <div className="contacts-content">
-                {isDesktop && (
-                    <button
-                        className="add-contact-btn-desktop"
-                        onClick={() => setShowContactForm(!showContactForm)}
-                    >
-                        <Plus size={18} />
-                        <span>Add New Contact</span>
-                    </button>
-                )}
-
                 <div className="saved-contacts-list">
                     <AnimatePresence mode="popLayout">
                         {contactsLoading && baseContacts.length === 0 ? (
@@ -387,9 +390,17 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                                         stiffness: 500,
                                         damping: 35
                                     }}
-                                    onClick={() =>
-                                        handleStartChatWithContact(contact)
-                                    }
+                                    onClick={(e) => {
+                                        if (
+                                            e.target.closest(
+                                                '.contact-actions'
+                                            ) ||
+                                            e.target.closest('.menu-container')
+                                        ) {
+                                            return;
+                                        }
+                                        handleStartChatWithContact(contact);
+                                    }}
                                 >
                                     <div className="contact-main">
                                         <div className="contact-avatar">

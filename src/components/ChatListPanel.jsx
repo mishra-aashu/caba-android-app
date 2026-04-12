@@ -45,6 +45,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import messageReadsService from '../services/messageReadsService';
 
 const CreateGroupModal = lazy(() => import('./groups/CreateGroupModal'));
+const AvatarModal = lazy(() => import('./chat/parts/AvatarModal'));
 
 import styles from '../styles/ChatListItem.module.css';
 
@@ -99,6 +100,11 @@ const ChatListPanel = ({
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
+  const [avatarViewerData, setAvatarViewerData] = useState({
+    isOpen: false,
+    imageUrl: '',
+    name: ''
+  });
 
   const handleManualRefresh = async () => {
     if (isRefreshing) return;
@@ -351,6 +357,13 @@ const ChatListPanel = ({
         key={chat.id}
         chat={chatListItemProps}
         onClick={() => handleChatClick(chat)}
+        onAvatarClick={(imageUrl, name) => {
+          setAvatarViewerData({
+            isOpen: true,
+            imageUrl,
+            name
+          });
+        }}
         isActive={chat.id == currentChatId}
         selectionMode={selectionMode}
         isSelected={selectedChats.includes(chat.id)}
@@ -568,6 +581,13 @@ const ChatListPanel = ({
             renderChatItem={renderChatItem}
             setShowCreateGroupModal={setShowCreateGroupModal}
             onAtTopChange={setIsAtTop}
+            onAvatarClick={(imageUrl, name) => {
+              setAvatarViewerData({
+                isOpen: true,
+                imageUrl,
+                name
+              });
+            }}
           />
         </PullToRefresh>
       </motion.div>
@@ -600,6 +620,17 @@ const ChatListPanel = ({
           selectedCount={selectionMode ? selectedChats.length : 1}
           isMobile={!isDesktop}
         />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        {avatarViewerData.isOpen && (
+          <AvatarModal
+            isOpen={avatarViewerData.isOpen}
+            imageUrl={avatarViewerData.imageUrl}
+            name={avatarViewerData.name}
+            onClose={() => setAvatarViewerData({ ...avatarViewerData, isOpen: false })}
+          />
+        )}
       </Suspense>
     </main>
   );

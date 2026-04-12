@@ -19,7 +19,8 @@ const ScrollableChatList = ({
     loadMoreChats,
     renderChatItem,
     setShowCreateGroupModal,
-    onAtTopChange
+    onAtTopChange,
+    onAvatarClick
 }) => {
     // 1. Separate logic for the list header (Groups + Messages Label)
     const ListHeader = () => (
@@ -40,7 +41,15 @@ const ScrollableChatList = ({
                                 className={`${styles['sidebar-group-item']} ${currentChatId === group.id ? styles.active : ''}`}
                                 onClick={() => handleChatClick(group)}
                             >
-                                <div className={styles['sidebar-group-avatar']}>
+                                <div 
+                                    className={styles['sidebar-group-avatar']}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (group.avatar) {
+                                            onAvatarClick?.(group.avatar, group.name);
+                                        }
+                                    }}
+                                >
                                     {group.avatar ? (
                                         <img
                                             src={group.avatar}

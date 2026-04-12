@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { motion } from "framer-motion";
 import { Timer, Users, User, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchMessagesPage } from "../../hooks/useMessages";
@@ -23,6 +24,7 @@ const ChatListItem = ({
   isSelected,
   onSelect,
   isMobile,
+  onAvatarClick,
 }) => {
   if (!chat) return null;
   const {
@@ -109,7 +111,18 @@ const ChatListItem = ({
           </div>
         </div>
       )}
-      <div className={styles["chat-avatar-container"]}>
+      <motion.div
+        className={styles["chat-avatar-container"]}
+        whileHover={{ scale: 1.05, filter: "brightness(1.15)" }}
+        whileTap={{ scale: 0.92 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (resolvedAvatar && !imgError) {
+            onAvatarClick && onAvatarClick(resolvedAvatar, resolvedName);
+          }
+        }}
+      >
         {resolvedAvatar && !imgError ? (
           <CachedImage
             src={resolvedAvatar}
@@ -128,7 +141,7 @@ const ChatListItem = ({
             {isGroup ? <Users size={24} /> : <User size={24} />}
           </div>
         )}
-      </div>
+      </motion.div>
 
       <div className={styles["chat-info"]}>
         <div className={styles["chat-header-row"]}>
