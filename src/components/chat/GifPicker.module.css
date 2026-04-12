@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   height: 450px; /* Fixed height for the picker */
-  background-color: #17212b; /* Dark Theme consistent with the app */
+  background-color: var(--bg-surface);
   border-radius: 12px;
   overflow: hidden;
   max-width: 100%;
@@ -12,7 +12,7 @@
 /* Search Bar */
 .gif-search-bar {
   padding: 12px;
-  background-color: #242f3d;
+  background-color: var(--bg-secondary);
   position: relative;
   display: flex;
   align-items: center;
@@ -20,11 +20,11 @@
 
 .gif-search-bar input {
   width: 100%;
-  background-color: #0e1621;
-  border: 1px solid #334155;
+  background-color: var(--chat-input-bg);
+  border: 1px solid var(--border-subtle);
   padding: 10px 40px 10px 14px;
   border-radius: 20px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
@@ -37,7 +37,7 @@
 .search-icon, .search-spinner {
   position: absolute;
   right: 24px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,7 +62,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 10px;
-  background-color: #0e1621;
+  background-color: var(--bg-surface);
 }
 
 /* Scrollbar Styling */
@@ -71,7 +71,7 @@
 }
 
 .gif-grid-scroll::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--border-strong);
   border-radius: 10px;
 }
 
@@ -79,8 +79,8 @@
 .giphy-branding {
   text-align: center;
   padding: 8px;
-  background: #242f3d;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   justify-content: center;
   align-items: center;

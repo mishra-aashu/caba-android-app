@@ -17,11 +17,10 @@
       max-height: min(380px, 80vh);
 
       /* Enhanced Glassmorphism Effect */
-      background: rgba(30, 40, 45, 1); /* Opaque for visibility */
-      background: #1a1d21; /* Solid background is much faster than blur */
-      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
       border-radius: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 
       display: flex;
       flex-direction: column;
@@ -71,9 +70,9 @@
       display: flex;
       align-items: center; /* Vertical centering */
       justify-content: space-between;
-      padding: 12px 16px; /* slightly more padding for premium feel */
-      background: rgba(0, 0, 0, 0.35);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
       width: 100%;
       box-sizing: border-box;
       height: 60px; /* Fixed height for consistent alignment */
@@ -81,7 +80,7 @@
 
   .picker-tabs {
       display: flex;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--bg-secondary);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border-radius: 25px;
@@ -93,7 +92,7 @@
   .tab-btn {
       background: transparent;
       border: none;
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-secondary);
       padding: 6px 18px;
       border-radius: 20px;
       font-size: 13px;
@@ -106,8 +105,8 @@
   }
 
   .tab-btn.active {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
+      background: var(--bg-active);
+      color: var(--brand-primary);
   }
 
   .header-close-btn,
@@ -130,7 +129,7 @@
 
   .header-close-btn:hover,
   .header-action-btn:hover {
-      color: #fff;
+      color: var(--brand-primary);
   }
 
   .lottie-trigger-container {
@@ -221,9 +220,9 @@
       align-items: center;
       justify-content: space-between; /* Telegram style spacing */
       padding: 4px 12px;
-      background: rgba(15, 20, 25, 0.5);
+      background: var(--bg-secondary);
       backdrop-filter: blur(5px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border-subtle);
       width: 100%;
       box-sizing: border-box;
   }
@@ -250,9 +249,9 @@
   }
 
   .cat-btn:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--bg-hover);
       border-radius: 8px;
-      opacity: 0.8;
+      opacity: 1;
   }
 
   .cat-btn.active {
@@ -328,13 +327,14 @@
       transition: all 0.15s ease;
       user-select: none;
       position: relative;
+      color: var(--text-primary);
       transform: translateZ(0);
       will-change: transform;
   }
 
   .emoji-item:hover,
   .emoji-item:active {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--bg-hover);
       transform: scale(1.15);
   }
 
@@ -409,37 +409,10 @@
       background: var(--text-secondary, #999);
   }
 
-  /* Dark mode support */
-  [data-theme="dark"] .emoji-picker-btn {
-      color: var(--text-secondary, #aaa);
-  }
-
-  [data-theme="dark"] .emoji-picker-btn:hover {
-      background-color: var(--hover-bg, rgba(255, 255, 255, 0.1));
-      color: var(--primary-color, #4da3ff);
-  }
-
-  [data-theme="dark"] .emoji-picker-popup {
-      background: var(--bg-primary, #1e1e1e);
-      border-color: var(--border-color, #333);
-  }
-
-  [data-theme="dark"] .emoji-picker-header {
-      border-bottom-color: var(--border-color, #333);
-      color: var(--text-primary, #e0e0e0);
-  }
-
-  [data-theme="dark"] .emoji-item:hover {
-      background-color: var(--hover-bg, rgba(255, 255, 255, 0.1));
-  }
-
-  [data-theme="dark"] .emoji-grid::-webkit-scrollbar-track {
-      background: var(--bg-secondary, #2a2a2a);
-  }
-
-  [data-theme="dark"] .emoji-grid::-webkit-scrollbar-thumb {
-      background: var(--border-color, #444);
-  }
+  /* Dark mode support - simplified to use tokens */
+[data-theme="dark"] .mini-spinner {
+    border-color: rgba(255, 255, 255, 0.1);
+}
 
   /* GIF Picker Styles */
   .picker-body .gif-picker-container {
@@ -453,18 +426,18 @@
 
   .gif-search-bar {
       padding: 10px;
-      background: rgba(0, 0, 0, 0.1);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
       position: relative;
   }
 
   .gif-search-bar input {
       width: 100%;
-      background-color: rgba(255, 255, 255, 0.08);
-      border: none;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
       padding: 10px 35px 10px 12px;
       border-radius: 20px;
-      color: #fff;
+      color: var(--text-primary);
       outline: none;
   }
 
