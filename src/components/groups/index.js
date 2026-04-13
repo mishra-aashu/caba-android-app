@@ -9,3 +9,5 @@ export { default as MemberItem } from './MemberItem';
 export { default as AddMembersModal } from './AddMembersModal';
 export { default as GroupsPage } from './GroupsPage';
 export { default as GroupInfoPage } from './GroupInfoPage';
+export { default as AddMembersPage } from './AddMembersPage';
+export { default as CreateGroupPage } from './CreateGroupPage';

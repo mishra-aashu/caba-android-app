@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useGroupActions } from '../../hooks/useGroupActions';
+import { useUserGroups, useCreateGroup } from '../../hooks/useGroupActions';
 import GroupInfoDrawer from './GroupInfoDrawer';
 import CreateGroupModal from './CreateGroupModal';
 import { Users, Search, Plus, MoreVertical, MessageCircle } from 'lucide-react';
@@ -18,12 +18,10 @@ import './GroupsPage.css';
 const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { useUserGroups } = useGroupActions();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(null);
 
   // 1. Live Query from Dexie for instant offline access
@@ -166,7 +164,7 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
         <div className="groups-footer">
           <button
             className="create-group-btn"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => navigate('/groups/create')}
           >
             <Plus size={20} />
             Create New Group
@@ -185,15 +183,6 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
           group={selectedGroup}
         />
       )}
-      {/* Create Group Modal */}
-      <CreateGroupModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={() => {
-          refetch();
-          setShowCreateModal(false);
-        }}
-      />
       {!isDrawer && <BottomNavigation />}
     </>
   );

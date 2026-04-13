@@ -19,14 +19,18 @@ import useChatStore from '../../store/useChatStore';
 import useChatRoom from '../../hooks/chat/useChatRoom';
 import ChatHeader from './parts/ChatHeader';
 import ChatBackground from './ChatBackground';
+import { useGroupDetails } from '../../hooks/useGroupDetails';
 import styles from '../../styles/chat.module.css';
 import { getStableMessageId, extractMessageContent } from '../../utils/messageHelpers';
+import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 
 const MediaViewer = lazy(() => import('../media/MediaViewer'));
 const ImageViewer = lazy(() => import('./ImageViewer'));
 const ForwardModal = lazy(() => import('./ForwardModal'));
 const GroupCallScreen = lazy(() => import('../group/GroupCallScreen'));
 const EmojiPicker = lazy(() => import('../common/EmojiPicker'));
+// [FIX #9] Removed unused lazy imports: GroupInfoDrawer, GameLobby, AddMembersModal
+
 // [FIX #9] Removed unused lazy imports: GroupInfoDrawer, GameLobby
 // They were imported but never rendered in JSX
 
@@ -130,7 +134,9 @@ const ChatScreen = () => {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
 
+    const { data: groupDetails } = useGroupDetails(isGroupChat ? chatId : null);
     const [showThemeModal, setShowThemeModal] = useState(false);
+
     const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
     const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
     const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -178,8 +184,6 @@ const ChatScreen = () => {
         const setup = async () => {
             try {
                 const { Keyboard } = await import('@capacitor/keyboard');
-                // Use keyboardDidShow to ensure the layout has already resized (adjustResize)
-                // before we trigger the scroll, avoiding "jumping" during the transition.
                 keyboardSubscription = await Keyboard.addListener('keyboardDidShow', () => {
                     handleScrollToBottom('auto');
                 });
@@ -198,7 +202,6 @@ const ChatScreen = () => {
         [saveScrollPosition],
     );
 
-    // ─── READ STATUS ORCHESTRATOR ───
     useEffect(() => {
         if (!chatId || !currentUser || chatId === 'new') return;
 
@@ -208,7 +211,6 @@ const ChatScreen = () => {
             }
         };
 
-        // Initial mark
         markMessagesAsRead();
 
         window.addEventListener('focus', handleReadTrigger);
@@ -394,20 +396,19 @@ const ChatScreen = () => {
                                 if (isDesktop) showGroupInfo?.(chatId, otherUser);
                                 else navigate(`/chat/${chatId}/group/info`);
                             }}
-                            // [FIX #1] These now call useChatRoom's dialog-based confirmations DIRECTLY
-                            // Previously: set modal state → modal never rendered → nothing happened
                             onBlockUser={confirmBlockUser}
                             onClearChat={confirmClearChat}
                             onCreateReminder={() => navigate(`/create-reminder?userId=${otherUserId}`)}
                             onTempChatToggle={handleTempChatToggle}
                             onTempChatSettings={() => {
-                                // TODO: Implement vanish settings modal
                                 showAlert('Vanish settings coming soon');
                             }}
                             onDeleteSelected={onSelectionDelete}
                             onCopySelected={handleSelectionCopy}
                             onForwardSelected={handleSelectionForward}
-                            isAdmin={currentUser?.isAdmin}
+                            onAddMember={() => navigate(`/chat/${chatId}/group/add-members`)}
+                            isAdmin={isGroupChat ? (otherUser?.my_role === 'admin' || otherUser?.my_role === 'owner') : false}
+
                         />
 
                         <div className={`${styles['nested-chat-content']} gpu-layer`}>
@@ -569,6 +570,8 @@ const ChatScreen = () => {
                             currentUser={currentUser}
                         />
                     )}
+
+
 
                     {showGroupCallScreen && (
                         <GroupCallScreen groupId={chatId} onEndCall={handleEndGroupCall} />

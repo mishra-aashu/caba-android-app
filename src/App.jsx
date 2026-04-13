@@ -41,6 +41,8 @@ const DownloadAPK = lazy(() => import('./pages/DownloadAPK'));
 const Intro = lazy(() => import('./components/Intro'));
 const GroupsPage = lazy(() => import('./components/groups').then(m => ({ default: m.GroupsPage })));
 const GroupInfoPage = lazy(() => import('./components/groups').then(m => ({ default: m.GroupInfoPage })));
+const AddMembersPage = lazy(() => import('./components/groups').then(m => ({ default: m.AddMembersPage })));
+const CreateGroupPage = lazy(() => import('./components/groups').then(m => ({ default: m.CreateGroupPage })));
 const GroupChat = lazy(() => import('./components/chat/ChatScreen'));
 const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
 const ArenaPage = lazy(() => import('./components/chat/ArenaPage'));
@@ -136,13 +138,10 @@ const AppContent = () => {
 
                     <Route path="/" element={isAuthenticated ? <ProtectedRoute><MainLayout /></ProtectedRoute> : <LandingPage />}>
                         <Route index element={<ChatPlaceholder />} />
-                        <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
                         <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
-                        <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
-                        <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
-                        <Route path="user-details/:id" element={<UserDetails />} />
-                        <Route path="groups" element={<GroupsPage />} />
                         <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
+                        <Route path="chat/:chatId/group/add-members" element={<AddMembersPage />} />
+                        <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
                         <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
                         <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
                         <Route path="settings" element={<Settings />} />

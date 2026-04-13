@@ -1483,7 +1483,7 @@ const Admin = () => {
           {activeTab === 'messages' && (
             <div className="messages-content">
               <div className="section-header">
-                <h2>Message Moderation</h2>
+                <h2>Message Moderation ({totalCounts.messages})</h2>
                 <div className="header-actions">
                   <div className="search-bar">
                     <Search size={20} />
@@ -1570,7 +1570,7 @@ const Admin = () => {
           {activeTab === 'news' && (
             <div className="news-content">
               <div className="section-header">
-                <h2>News Management</h2>
+                <h2>News Management ({totalCounts.news})</h2>
                 <div className="header-actions">
                   <button className="action-btn">
                     <Upload size={20} /> Add Article
@@ -1625,7 +1625,7 @@ const Admin = () => {
           {activeTab === 'reports' && (
             <div className="reports-content">
               <div className="section-header">
-                <h2>Reports Management</h2>
+                <h2>Reports Management ({totalCounts.reports})</h2>
                 <button className="action-btn" onClick={loadReports}>
                   <RefreshCw size={20} /> Refresh
                 </button>
@@ -1978,7 +1978,7 @@ const Admin = () => {
           {activeTab === 'groups' && (
             <div className="groups-content">
               <div className="section-header">
-                <h2>Groups Management</h2>
+                <h2>Groups Management ({totalCounts.groups})</h2>
                 <button className="action-btn" onClick={loadGroups}>
                   <RefreshCw size={20} />
                 </button>
@@ -2393,6 +2393,7 @@ const Admin = () => {
                                 width: '22px', height: '22px', borderRadius: '50%',
                                 background: color, border: `1px solid ${color}`,
                                 color: '#fff', fontSize: '11px', fontWeight: 700,
+
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                               }}>{step}</div>
                               <div>

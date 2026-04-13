@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useGroupActions } from '../../hooks/useGroupActions';
+import { useGroup } from '../../hooks/useGroupActions';
 import GroupInfoDrawer from './GroupInfoDrawer';
 import { useAuth } from '../../hooks/useAuth';
 import './GroupInfoDrawer.css';
@@ -9,7 +9,6 @@ const GroupInfoPage = () => {
     const { chatId } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { useGroup } = useGroupActions(chatId);
     const { data: group, isLoading } = useGroup(chatId);
 
     const handleClose = () => {

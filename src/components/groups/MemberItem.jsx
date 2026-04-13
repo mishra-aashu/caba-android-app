@@ -4,17 +4,17 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useGroupActions } from '../../hooks/useGroupActions';
+import { useRemoveMember, useMakeAdmin, useDemoteAdmin } from '../../hooks/useGroupActions';
 import { getDpById } from '../../utils/dpOptions';
 import { isUserOnline } from '../../utils/dateFormatter';
 import { useSupabase } from '../../contexts/SupabaseContext';
-import { MoreVertical, Crown, User, Phone, Trash2, ArrowUp, Flag } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
+import { resolveAvatarUrl } from '../../utils/avatarHelpers';
+import { MoreVertical, Crown, User, Trash2, ArrowUp, Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const MemberItem = ({ member, groupId, currentUserId, isCurrentUserAdmin, creatorId }) => {
   const { showAlert, showConfirm } = useDialog();
-  const { useRemoveMember, useMakeAdmin, useDemoteAdmin } = useGroupActions();
   const { supabase } = useSupabase();
 
   const [showMenu, setShowMenu] = useState(false);
@@ -35,20 +35,7 @@ const MemberItem = ({ member, groupId, currentUserId, isCurrentUserAdmin, creato
   const makeAdminMutation = useMakeAdmin();
   const demoteAdminMutation = useDemoteAdmin();
 
-  // Helper to get avatar source
-  const getAvatarSrc = () => {
-    if (!memberAvatar) return null;
-
-    // If it's an integer ID (preset DP)
-    if (!isNaN(parseInt(memberAvatar)) && parseInt(memberAvatar).toString() === memberAvatar.toString()) {
-      return getDpById(memberAvatar)?.path;
-    }
-
-    // Regular URL
-    return memberAvatar;
-  };
-
-  const avatarSrc = getAvatarSrc();
+  const avatarSrc = resolveAvatarUrl(memberAvatar);
 
   // Handle remove member
   const handleRemove = async () => {

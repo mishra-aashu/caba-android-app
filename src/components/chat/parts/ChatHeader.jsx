@@ -13,7 +13,7 @@
 import React, { memo, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    Phone, Video, User, Bell, BellOff, Search,
+    Phone, Video, User, Bell, BellOff, Search, Plus,
     Image as ImageIcon, Palette, Clock, Settings as SettingsIcon,
     Trash2, ArrowLeft, Gamepad2, Crown, MousePointer,
     Copy, ArrowRight, X
@@ -51,6 +51,7 @@ const ChatHeader = memo(({
     onCopySelected,
     onForwardSelected,
     onNavigate,
+    onAddMember,
     isAdmin,
 }) => {
     const isSelectionMode = useChatStore(state => state.isSelectionMode);
@@ -119,6 +120,14 @@ const ChatHeader = memo(({
                 label: 'View Group Info',
                 onClick: () => isDesktop ? onShowGroupInfo?.() : resolvedNavigate(`/chat/${chatId}/group/info`),
             });
+            
+            if (isAdmin) {
+                items.push({
+                    icon: <Plus size={16} />,
+                    label: 'Add Members',
+                    onClick: onAddMember,
+                });
+            }
         } else {
             items.push({
                 icon: <User size={16} />,

@@ -112,9 +112,10 @@
 }
 
 .drawer-content::-webkit-scrollbar-thumb {
-  background-color: var(--border-color);
+  background-color: var(--brand-primary);
   border-radius: 10px;
 }
+
 
 /* Group Info Section - Polished */
 .group-info-section {
@@ -842,4 +843,420 @@ input:checked+.slider:before {
   width: 100%;
   gap: 16px;
   background-color: var(--surface-color);
+}
+
+
+
+/* Additional Styles for GroupInfoDrawer */
+
+/* Avatar Edit Container */
+.avatar-edit-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.avatar-edit-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn-avatar-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-avatar-option:hover:not(:disabled) {
+  background: var(--brand-primary);
+  color: white;
+  border-color: var(--brand-primary);
+  transform: translateY(-2px);
+}
+
+.btn-avatar-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-avatar-option svg {
+  flex-shrink: 0;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.loading span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* No Members State */
+.no-members {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.no-members svg {
+  opacity: 0.3;
+}
+
+.no-members span {
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Save Button Loading State */
+.btn-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-save.loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+  padding: 10px;
+}
+
+.btn-save svg {
+  flex-shrink: 0;
+}
+
+/* Animate Spin */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Section Header with Icon */
+.section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Add Member Button Icon */
+.add-member-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Permission Section Header */
+.settings-section .section-header h3 {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Improved Edit Actions */
+.edit-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.edit-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-cancel {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-save {
+  background: var(--brand-gradient);
+  color: white;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: linear-gradient(135deg, #00a884 0%, #128c7e 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
+}
+
+.btn-save:disabled,
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mobile Responsive Improvements */
+@media (max-width: 768px) {
+  .avatar-edit-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-avatar-option {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .settings-section {
+    padding: 20px 16px;
+  }
+
+  .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .switch {
+    align-self: flex-end;
+  }
+}
+
+/* Dark Theme Adjustments */
+[data-theme='dark'] .btn-avatar-option {
+  background-color: #202c33;
+  border-color: #3b4a54;
+}
+
+[data-theme='dark'] .btn-avatar-option:hover:not(:disabled) {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+[data-theme='dark'] .btn-cancel {
+  background-color: #202c33;
+}
+
+[data-theme='dark'] .btn-cancel:hover:not(:disabled) {
+  background-color: #2a3942;
+}
+
+/* Premium Enhancements for GroupInfoDrawer */
+
+.group-info-drawer {
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+    background: var(--bg-color);
+}
+
+.drawer-header {
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 18px 20px;
+}
+
+.group-info-section {
+    padding: 24px 20px;
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 12px;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    background: var(--surface-color);
+    border-bottom: 10px solid var(--bg-color);
+}
+
+.action-btn {
+    flex: 1;
+    flex-direction: column;
+    height: auto;
+    padding: 12px 8px;
+    border-radius: 12px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--brand-primary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.action-btn:hover {
+    background: var(--brand-light);
+    transform: translateY(-2px);
+}
+
+.settings-section {
+    padding: 20px;
+    background: var(--surface-color);
+    border-bottom: 10px solid var(--bg-color);
+}
+
+.settings-section .section-header {
+    margin-bottom: 16px;
+}
+
+.setting-item {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.members-section {
+    padding: 20px;
+    background: var(--surface-color);
+}
+
+.member-item {
+    padding: 12px;
+    margin: 0 -12px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.member-item:hover {
+    background: var(--hover-color);
+}
+
+.leave-section {
+    padding: 24px 20px;
+    background: var(--bg-color);
+}
+
+.leave-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(229, 57, 53, 0.08);
+    color: #e53935;
+    border: 1px solid rgba(229, 57, 53, 0.2);
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.2s;
+}
+
+.leave-btn:hover {
+    background: #e53935;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.2);
+}
+
+/* Member Item Badges & Indicators */
+.member-avatar {
+    position: relative;
+}
+
+.online-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    background-color: var(--brand-primary);
+    border: 2px solid var(--surface-color);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(0, 168, 132, 0.1);
+}
+
+.creator-badge, .admin-badge {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.creator-badge {
+    background: var(--brand-light);
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary);
+}
+
+.admin-badge {
+    background: #fff9c4;
+    color: #fbc02d;
+    border: 1px solid #fbc02d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 4px;
+}
+
+[data-theme='dark'] .admin-badge {
+    background: rgba(251, 192, 45, 0.1);
+    border-color: #fbc02d;
+}
+/* Link version of the Add button */
+.add-member-btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--brand-primary);
+  border: none;
+  color: white !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  pointer-events: auto !important;
+  z-index: 9999 !important;
+  position: relative;
+}
+
+.add-member-btn-link:hover {
+  background: #00897B;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.2);
 }

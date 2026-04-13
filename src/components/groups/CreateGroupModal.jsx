@@ -8,7 +8,7 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
-import { useGroupActions } from '../../hooks/useGroupActions';
+import { useCreateGroup } from '../../hooks/useGroupActions';
 import Modal from '../common/Modal';
 import DpPicker from '../common/DpPicker';
 import { Search, Check, Image, Users, Upload, UserPlus } from 'lucide-react';
@@ -20,8 +20,6 @@ import './CreateGroupModal.css';
 const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propContacts = [], inline = false }) => {
   const { supabase } = useSupabase();
   const { user } = useAuth();
-  const { useCreateGroup } = useGroupActions();
-
   const createGroupMutation = useCreateGroup();
 
   const cachedContacts = useLiveQuery(() => db.contacts.toArray()) || [];
@@ -138,7 +136,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
     try {
       const memberIds = selectedContacts.map(c => c.id);
 
-      await createGroupMutation.mutateAsync({
+      const group = await createGroupMutation.mutateAsync({
         name: groupName.trim(),
         description: groupDescription.trim() || null,
         avatarFile: selectedDp ? null : avatarFile,
@@ -149,7 +147,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
 
       toast.success('Group created successfully!');
       resetForm();
-      onSuccess?.();
+      onSuccess?.(group);
       onClose();
     } catch (error) {
       console.error('Error creating group:', error);
