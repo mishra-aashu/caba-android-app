@@ -58,7 +58,7 @@ const ImageViewer = ({
       // Create hidden link and trigger download
       const link = document.createElement('a');
       link.href = url;
-      link.download = `CaBa_Media_${Date.now()}.jpg`;
+      link.download = `ELEVENGRAM_Media_${Date.now()}.jpg`;
       document.body.appendChild(link);
       link.click();
 

@@ -172,10 +172,28 @@ const ArenaPage = () => {
 
   // ─── Connection Status Toasts ──────────────────────────────
   const peerCount = game.webrtc?.peers?.length || 0;
+  const joinTimeoutRef = useRef(null);
   
   useEffect(() => {
     const prevCount = lastPeerCountRef.current;
     lastPeerCountRef.current = peerCount;
+
+    // Join Timeout logic
+    if (game.isActive && game.gameState.stage === GAME_STATES.JOINING) {
+      if (!joinTimeoutRef.current) {
+        joinTimeoutRef.current = setTimeout(() => {
+          if (peerCount === 0 && isMountedRef.current) {
+            toast.error('Connection timed out. Returning to lobby...', { id: 'arena-timeout' });
+            game.closeGame();
+          }
+        }, 20000); // 20s timeout
+      }
+    } else {
+      if (joinTimeoutRef.current) {
+        clearTimeout(joinTimeoutRef.current);
+        joinTimeoutRef.current = null;
+      }
+    }
 
     // Only show toast on actual connection change
     if (peerCount > 0 && prevCount === 0) {
@@ -184,12 +202,18 @@ const ArenaPage = () => {
         duration: 3000 
       });
     } else if (peerCount === 0 && prevCount > 0 && game.isActive) {
-      toast.error('🔌 Opponent Disconnected', { 
-        id: TOAST_IDS.DISCONNECTION,
-        duration: 3000 
-      });
+      // Disconnection handling with brief grace period to avoid flicker
+      const disconnectTimer = setTimeout(() => {
+        if (lastPeerCountRef.current === 0 && isMountedRef.current) {
+          toast.error('🔌 Opponent Disconnected', { 
+            id: TOAST_IDS.DISCONNECTION,
+            duration: 3000 
+          });
+        }
+      }, 3000); // 3s grace
+      return () => clearTimeout(disconnectTimer);
     }
-  }, [peerCount, game.isActive]);
+  }, [peerCount, game.isActive, game.gameState.stage]);
 
   // ─── Auto-Join Logic (Only Once Per Session) ───────────────
   useEffect(() => {

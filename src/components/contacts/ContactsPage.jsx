@@ -246,7 +246,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                     });
                 } else {
                     return toast.error(
-                        `${contact.contactName} is not on Caba yet.`
+                        `${contact.contactName} is not on ELEVENGRAM yet.`
                     );
                 }
             } catch (err) {

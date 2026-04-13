@@ -101,9 +101,25 @@ export const GameLobbyProvider = ({ children }) => {
                 }
             });
 
+        // Re-track when document becomes visible (app returns from background)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && channelRef.current && mountedRef.current) {
+                console.log('[GameLobbyProvider] App visible, re-tracking presence...');
+                channelRef.current.track({
+                    user_id: dbUserRef.current.id,
+                    name: dbUserRef.current.name,
+                    avatar: dbUserRef.current.avatar,
+                    online_at: new Date().toISOString(),
+                }).catch(err => console.error('[GameLobbyProvider] Re-track failed:', err));
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         return () => {
             mountedRef.current = false;
             console.log('[GameLobbyProvider] Cleaning up game_lobby_presence');
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             channel.untrack().catch(() => {});
             supabase.removeChannel(channel);
             channelRef.current = null;
