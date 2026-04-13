@@ -116,7 +116,7 @@ const MainLayout = () => {
                     <ChatListPanel {...chatListPanelProps} />
                 </motion.div>
                 
-                <BottomNavigation />
+                {!isChatViewActive && <BottomNavigation />}
 
                 <AnimatePresence mode="wait">
                     {isChatViewActive && (
