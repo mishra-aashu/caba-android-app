@@ -1,0 +1,1 @@
+import{g as e}from"./dpOptions-DvZtT8om.js";const s=r=>r?!isNaN(parseInt(r))&&r.toString().length<5?e(r)||null:r:null,l=r=>{var t;if(!r)return null;const n=r.avatar||r.avatar_url||((t=r.otherUser)==null?void 0:t.avatar);return s(n)};export{l as g,s as r};
