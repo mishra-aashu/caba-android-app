@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, User, History, Settings, Bell, Users } from 'lucide-react';
+import { Home, User, History, Settings, Bell, Users, Gamepad2 } from 'lucide-react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useContacts } from '../../hooks/useCommonQueries';
+import { supabase as supabaseClient } from '../../config/supabase';
 
 const DesktopNavbar = () => {
   const navigate = useNavigate();
@@ -37,6 +38,30 @@ const DesktopNavbar = () => {
     }
   };
 
+  // Live game invite badge
+  const [gameInviteCount, setGameInviteCount] = useState(0);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    const loadCount = async () => {
+      const { count } = await supabaseClient
+        .from('game_invitations')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', user.id)
+        .eq('status', 'pending');
+      if (!cancelled) setGameInviteCount(count || 0);
+    };
+    loadCount();
+    const ch = supabaseClient
+      .channel(`desktop_nav_game_invites_${user.id}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'game_invitations',
+        filter: `receiver_id=eq.${user.id}`,
+      }, loadCount)
+      .subscribe();
+    return () => { cancelled = true; supabaseClient.removeChannel(ch); };
+  }, [user?.id]);
+
   return (
     <>
       <nav className="desktop-navbar">
@@ -54,6 +79,23 @@ const DesktopNavbar = () => {
             >
               <Users className="desktop-nav-icon groups-icon" />
             </button>
+          </li>
+          <li className="desktop-nav-item" style={{ position: 'relative' }}>
+            <Link to="/games" className={`desktop-nav-link${location.pathname === '/games' ? ' active' : ''}`} data-tooltip="Game Hub">
+              <Gamepad2 className="desktop-nav-icon" style={{ color: location.pathname === '/games' ? '#a855f7' : undefined }} />
+              {gameInviteCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: '4px', right: '4px',
+                  background: '#ec4899', color: 'white',
+                  borderRadius: '50%', width: '16px', height: '16px',
+                  fontSize: '9px', fontWeight: '800',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '2px solid var(--surface-color)'
+                }}>
+                  {gameInviteCount > 9 ? '9+' : gameInviteCount}
+                </span>
+              )}
+            </Link>
           </li>
           <li className="desktop-nav-item">
             <Link to="/profile" className="desktop-nav-link" data-tooltip="Profile">

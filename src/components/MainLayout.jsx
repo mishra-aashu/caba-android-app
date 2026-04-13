@@ -56,7 +56,8 @@ const MainLayout = () => {
         location.pathname === '/blocked' ||
         location.pathname === '/support' ||
         location.pathname === '/emoji-settings' ||
-        location.pathname === '/history',
+        location.pathname === '/history' ||
+        location.pathname.startsWith('/games'),
         [location.pathname]);
 
     // State for side panel (user or group details)
@@ -114,7 +115,8 @@ const MainLayout = () => {
                 >
                     <ChatListPanel {...chatListPanelProps} />
                 </motion.div>
-                {!isChatViewActive && <BottomNavigation />}
+                
+                <BottomNavigation />
 
                 <AnimatePresence mode="wait">
                     {isChatViewActive && (
@@ -193,12 +195,13 @@ const MainLayout = () => {
     const isSupportRoute = location.pathname === '/support';
     const isEmojiSettingsRoute = location.pathname === '/emoji-settings';
     const isHistoryRoute = location.pathname === '/history';
+    const isGamesRoute = location.pathname === '/games';
 
     // Always render Outlet - Chat component stays mounted on desktop!
     // On mobile, Outlet renders Chat or UserDetails based on route
     const chatComponent = mobileUserDetails || (
         <UserDetailsContext.Provider value={{ showUserDetails: handleShowUserDetails, showGroupInfo: handleShowGroupInfo }}>
-            {isDesktop && (isContactsRoute || isProfileRoute || isSettingsRoute || isEmojiSettingsRoute || isHistoryRoute || isTermsRoute || isPrivacyRoute || isBlockedRoute || isSupportRoute) ? <ChatPlaceholder /> : <Outlet />}
+            {isDesktop && (isContactsRoute || isProfileRoute || isSettingsRoute || isEmojiSettingsRoute || isHistoryRoute || isTermsRoute || isPrivacyRoute || isBlockedRoute || isSupportRoute || isGamesRoute) ? <ChatPlaceholder /> : <Outlet />}
         </UserDetailsContext.Provider>
     );
 
@@ -216,6 +219,7 @@ const MainLayout = () => {
             isSupportRoute={isSupportRoute}
             isEmojiSettingsRoute={isEmojiSettingsRoute}
             isHistoryRoute={isHistoryRoute}
+            isGamesRoute={isGamesRoute}
             chatListPanelProps={chatListPanelProps}
             onCloseSidebar={() => navigate('/')}
         />

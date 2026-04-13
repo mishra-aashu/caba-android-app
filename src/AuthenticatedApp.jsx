@@ -13,6 +13,7 @@ import { ChatThemeProvider } from './contexts/ChatThemeProvider';
 import { EmojiStyleProvider } from './contexts/EmojiStyleProvider';
 import { CallProvider } from './contexts/CallProvider';
 import { GroupCallProvider } from './contexts/GroupCallProvider';
+import { GameLobbyProvider } from './contexts/GameLobbyProvider';
 import { DialogProvider } from './contexts/DialogProvider';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
@@ -70,6 +71,7 @@ const PhoneAuthModal = lazy(() => import('./components/auth/PhoneAuthModal'));
 const DesktopNavbar = lazy(() => import('./components/common/DesktopNavbar'));
 const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
+const GamesPanel = lazy(() => import('./components/games/GamesPanel'));
 import PageTransition from './components/common/PageTransition';
 
 // Core shell components (small, needed immediately for layout)
@@ -203,6 +205,7 @@ const AppContent = () => {
               <Route path="history" element={<History />} />
               <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
               <Route path="support" element={<SupportChat />} />
+              <Route path="games" element={<GamesPanel />} />
             </Route>
             <Route path="/reminders" element={<PageTransition><ProtectedLayout><Reminders /></ProtectedLayout></PageTransition>} />
             <Route path="/create-reminder" element={<PageTransition><ProtectedLayout><CreateReminder /></ProtectedLayout></PageTransition>} />
@@ -245,19 +248,21 @@ const AuthenticatedApp = () => {
 const AppWithCallProvider = ({ dbUser, authLoading }) => {
   return (
     <DialogProvider>
-      <GroupCallProvider currentUser={authLoading ? null : dbUser}>
-        <CallProvider currentUser={authLoading ? null : dbUser}>
-          <SafeAreaDebugger />
-          <OfflineIndicator>
-            <AppContent />
-          </OfflineIndicator>
-          <SafeSuspense><CallStatusIndicator /></SafeSuspense>
-          <SafeSuspense><IncomingCallModal /></SafeSuspense>
-          <SafeSuspense><GroupIncomingCallNotification /></SafeSuspense>
-          <SyncIndicator />
-          <GlobalDialog />
-        </CallProvider>
-      </GroupCallProvider>
+      <GameLobbyProvider>
+        <GroupCallProvider currentUser={authLoading ? null : dbUser}>
+          <CallProvider currentUser={authLoading ? null : dbUser}>
+            <SafeAreaDebugger />
+            <OfflineIndicator>
+              <AppContent />
+            </OfflineIndicator>
+            <SafeSuspense><CallStatusIndicator /></SafeSuspense>
+            <SafeSuspense><IncomingCallModal /></SafeSuspense>
+            <SafeSuspense><GroupIncomingCallNotification /></SafeSuspense>
+            <SyncIndicator />
+            <GlobalDialog />
+          </CallProvider>
+        </GroupCallProvider>
+      </GameLobbyProvider>
     </DialogProvider>
   );
 };

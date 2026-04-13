@@ -105,6 +105,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  min-height: 0;
 }
 
 .chatSection {
@@ -169,6 +170,7 @@
   flex: 1;
   overflow-y: auto;
   background: #0f0f0f;
+  min-height: 0;
 }
 
 .mobileInputArea {

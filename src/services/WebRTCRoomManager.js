@@ -372,6 +372,22 @@ export default class WebRTCRoomManager extends EventTarget {
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PUBLIC API: Re-Announce Presence (called after invite accept)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /**
+   * Re-broadcasts peer-join so any connected peers can re-initiate
+   * SDP negotiation. Call this when:
+   *   (a) A user accepts a game invitation (acceptGame)
+   *   (b) State was reset and WebRTC needs to reconnect
+   */
+  async reAnnounce() {
+    if (this._destroyed) return;
+    // console.log(`[WebRTC] Re-announcing presence in room ${this.roomId}`);
+    await this._broadcast('peer-join', { userName: this.userName });
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // PUBLIC API: Send Chat Message
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

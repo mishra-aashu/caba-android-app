@@ -14,6 +14,7 @@ const Terms = lazy(() => import('../legal/Terms'));
 const Privacy = lazy(() => import('../legal/Privacy'));
 const Blocked = lazy(() => import('../blocked/Blocked'));
 const SupportChat = lazy(() => import('../SupportChat'));
+const GamesPanel = lazy(() => import('../games/GamesPanel'));
 
 const Sidebar = ({
     isDesktop,
@@ -28,6 +29,7 @@ const Sidebar = ({
     isSupportRoute,
     isEmojiSettingsRoute,
     isHistoryRoute,
+    isGamesRoute,
     chatListPanelProps,
     onCloseSidebar
 }) => {
@@ -42,7 +44,27 @@ const Sidebar = ({
         }}>
             <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
                 <AnimatePresence mode="wait">
-                    {isDesktop && isContactsRoute ? (
+                    {isDesktop && isGamesRoute ? (
+                        <motion.div
+                            key="games"
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -20, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                zIndex: 10,
+                                backgroundColor: 'var(--surface-color)',
+                                willChange: 'transform, opacity'
+                            }}
+                        >
+                            <GamesPanel />
+                        </motion.div>
+                    ) : isDesktop && isContactsRoute ? (
                         <motion.div
                             key="contacts"
                             initial={{ x: -20, opacity: 0 }}

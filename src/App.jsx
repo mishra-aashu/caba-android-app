@@ -63,6 +63,7 @@ const Privacy = lazy(() => import('./components/legal/Privacy'));
 const SharedProfile = lazy(() => import('./components/shared-profile'));
 const SecuritySettings = lazy(() => import('./components/settings/SecuritySettings'));
 const HelpCenter = lazy(() => import('./components/settings/HelpCenter'));
+const GamesPanel = lazy(() => import('./components/games/GamesPanel'));
 
 // Lazy load call-related components and other heavy modals
 const CallScreen = lazy(() => import('./components/CallScreen'));
@@ -151,6 +152,7 @@ const AppContent = () => {
                         <Route path="history" element={<History />} />
                         <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
                         <Route path="support" element={<SupportChat />} />
+                        <Route path="games" element={<GamesPanel />} />
                     </Route>
 
                     <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />

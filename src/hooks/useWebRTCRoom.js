@@ -1,9 +1,16 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // useWebRTCRoom.js — React Hook wrapping WebRTCRoomManager
+//
+// ROOT FIX: Uses the webrtcSingleton registry so that the SAME
+// manager instance is shared across all re-mounts for a given
+// roomId. This prevents:
+//   - Duplicate signaling channels
+//   - Missed peer-join broadcasts during re-mounts
+//   - Game events not flowing after invitation acceptance
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import WebRTCRoomManager from '../services/WebRTCRoomManager';
+import { getOrCreateManager, releaseManager } from '../services/webrtcSingleton';
 
 export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
   const managerRef = useRef(null);
@@ -14,16 +21,16 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
   const [mediaProgress, setMediaProgress] = useState({}); // { transferId: 0-1 }
   const [lastPeerId, setLastPeerId] = useState(null);
 
-  // ── Initialize Manager ─────────────────────────────────
+  // ── Initialize Manager (via Singleton) ─────────────────
   useEffect(() => {
     if (!roomId || !userId || !supabase) return;
 
-    // Use a local variable to track the manager for this effect run
-    const manager = new WebRTCRoomManager({ 
-      roomId, 
-      userId, 
-      userName: userName || 'Player', 
-      supabase 
+    // Get or create a shared manager for this roomId
+    const manager = getOrCreateManager({
+      roomId,
+      userId,
+      userName: userName || 'Player',
+      supabase,
     });
     managerRef.current = manager;
 
@@ -115,7 +122,9 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
       manager.removeEventListener('game-event', onGameEvent);
       manager.removeEventListener('media-progress', onMediaProgress);
       manager.removeEventListener('media-received', onMediaReceived);
-      manager.destroy();
+
+      // Release singleton reference — destroys only when refCount hits 0
+      releaseManager(roomId);
       managerRef.current = null;
     };
   }, [roomId, userId, userName, supabase]);
@@ -134,6 +143,15 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     return managerRef.current?.sendMedia(file, mediaType, onProgress);
   }, []);
 
+  /**
+   * Re-announce presence after invitation acceptance.
+   * Triggers SDP re-negotiation so peers that already exist in the
+   * channel will re-connect to this client.
+   */
+  const reAnnounce = useCallback(async () => {
+    await managerRef.current?.reAnnounce();
+  }, []);
+
   return {
     peers,
     connectionState,
@@ -144,5 +162,6 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     sendChat,
     sendGameEvent,
     sendMedia,
+    reAnnounce,
   };
 }

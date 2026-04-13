@@ -86,7 +86,7 @@ const ArenaRoom = ({
 
         <div className={styles.chatSection}>
           <div className={styles.sectionHeader}>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MessageSquare size={20} />
               <span>LIVE P2P CHAT</span>
             </div>
@@ -97,8 +97,8 @@ const ArenaRoom = ({
           
           <div className={styles.chatFeed} ref={scrollRef}>
             {chatMessages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full opacity-30 text-xs py-10">
-                <MessageSquare size={32} className="mb-2" />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.3, fontSize: '12px', padding: '40px 0' }}>
+                <MessageSquare size={32} style={{ marginBottom: '8px' }} />
                 <p>No messages yet</p>
                 <p>Start chatting P2P!</p>
               </div>
@@ -157,8 +157,8 @@ const ArenaRoom = ({
             >
               <div className={styles.chatFeed} ref={scrollRef}>
                 {chatMessages.length === 0 && (
-                  <div className="flex flex-col items-center justify-center h-full opacity-30 text-xs py-10">
-                    <MessageSquare size={32} className="mb-2" />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.3, fontSize: '12px', padding: '40px 0' }}>
+                    <MessageSquare size={32} style={{ marginBottom: '8px' }} />
                     <p>No messages yet</p>
                     <p>Start chatting P2P!</p>
                   </div>

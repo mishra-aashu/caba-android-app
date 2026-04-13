@@ -1,21 +1,24 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { realtimeManager } from '../utils/realtimeManager';
 import { useAuth } from './useAuth';
 
 /**
  * useOnlineStatus Hook
- * 
- * Root fix: Replaced database heartbeats with Supabase Presence.
- * This handles online state in memory, reducing database load.
+ *
+ * Maintains the per-user private channel for connection status tracking.
+ *
+ * NOTE: The shared 'game_lobby_presence' channel (for the Games Hub) is now
+ * managed by <GameLobbyProvider> in AuthenticatedApp.jsx. This hook no longer
+ * touches that channel to avoid the Supabase channel dedup issue where
+ * supabase.channel(name) returns the same instance if called twice.
  */
 export const useOnlineStatus = () => {
   const { dbUser } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
-  const presenceChannelRef = useRef(null);
   const dbUserRef = useRef(dbUser);
   const mountedRef = useRef(true);
 
-  // Sync dbUser to ref
+  // Keep ref in sync
   useEffect(() => {
     dbUserRef.current = dbUser;
   }, [dbUser]);
@@ -35,14 +38,13 @@ export const useOnlineStatus = () => {
             if (mountedRef.current) {
               setIsConnected(status === 'SUBSCRIBED');
 
-              // Automatically re-track whenever we hit SUBSCRIBED state
               if (status === 'SUBSCRIBED') {
                 const channel = realtimeManager.getChannel(channelName)?.channel;
                 if (channel) {
                   channel.track({
                     user_id: dbUserRef.current.id,
                     online_at: new Date().toISOString(),
-                    name: dbUserRef.current.name
+                    name: dbUserRef.current.name,
                   }).catch(err => console.error('[RT] Presence track failed:', err));
                 }
               }
@@ -56,9 +58,7 @@ export const useOnlineStatus = () => {
 
     return () => {
       mountedRef.current = false;
-      console.log('[useOnlineStatus] Cleaning up presence tracking');
       realtimeManager.unsubscribe(channelName);
-      presenceChannelRef.current = null;
     };
   }, [dbUser?.id]);
 

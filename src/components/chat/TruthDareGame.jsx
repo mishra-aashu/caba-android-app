@@ -73,16 +73,16 @@ const TruthDareGame = ({
                     </>
                 ) : (
                     <>
-                        <Sparkles size={64} className="text-pink-500 mb-6" />
+                        <Sparkles size={64} style={{ color: '#ec4899', marginBottom: '24px' }} />
                         <h2 className={styles['td-title']}>BATTLE INVITATION!</h2>
                         <p className={styles['td-subtitle']}>Join for a session of truth and dares.</p>
                         <div className={styles['arena-invitation-actions']}>
                             <button className={styles['accept-btn']} onClick={() => {
-                                console.log("✅ ACCEPT clicked");
+                                console.log('✅ ACCEPT clicked');
                                 onAccept();
                             }}>ACCEPT</button>
                             <button className={styles['skip-btn']} onClick={() => {
-                                console.log("❌ DECLINE clicked");
+                                console.log('❌ DECLINE clicked');
                                 onReject();
                             }}>DECLINE</button>
                         </div>
@@ -117,7 +117,7 @@ const TruthDareGame = ({
                 <h2 className={styles['td-title']}>GAME SETTINGS</h2>
                 <p className={styles['td-subtitle']}>Customize your battle arena</p>
             </div>
-            <div className="w-full space-y-4">
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className={styles['setup-options']}>
                     {Object.values(GAME_MODES).map(m => (
                         <button key={m} onClick={() => setLocalMode(m)} className={`${styles['setup-btn']} ${localMode === m ? styles['active'] : ''}`}>{m}</button>
@@ -141,23 +141,31 @@ const TruthDareGame = ({
 
     const renderAnnounce = () => (
         <div className={styles['td-container']}>
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
-                <h3 className="text-[#ec4899] font-black text-sm uppercase mb-2">Round {round} of {maxRounds}</h3>
-                <h2 className="text-white font-black text-4xl uppercase mb-6 italic">{isMyTurn ? "IT'S YOUR TURN!" : "THEIR TURN!"}</h2>
-                <PlayerAvatar avatar={players[isMyTurn ? userId : partnerId]?.avatar} name={isMyTurn ? "You" : "Opponent"} size={100} />
+            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} style={{ textAlign: 'center' }}>
+                <h3 style={{ color: '#ec4899', fontWeight: '900', fontSize: '13px', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    Round {round} of {maxRounds}
+                </h3>
+                <h2 style={{ color: 'white', fontWeight: '900', fontSize: '36px', textTransform: 'uppercase', marginBottom: '24px', fontStyle: 'italic' }}>
+                    {isMyTurn ? "IT'S YOUR TURN!" : "THEIR TURN!"}
+                </h2>
+                <PlayerAvatar avatar={null} name={isMyTurn ? 'You' : 'Opponent'} size={80} />
             </motion.div>
         </div>
     );
 
     const renderChoosing = () => (
         <div className={styles['td-container']}>
-            <h2 className={styles['td-title']}>{isMyTurn ? "PICK YOUR POISON" : "WAITING FOR CHOICE..."}</h2>
+            <h2 className={styles['td-title']}>{isMyTurn ? 'PICK YOUR POISON' : 'WAITING FOR CHOICE...'}</h2>
             {isMyTurn ? (
                 <div className={styles['choice-grid']}>
                     <button onClick={() => onPick('truth')} className={`${styles['choice-card']} ${styles['truth']}`}><AlertCircle size={40} /><span>TRUTH</span></button>
                     <button onClick={() => onPick('dare')} className={`${styles['choice-card']} ${styles['dare']}`}><Flame size={40} /><span>DARE</span></button>
                 </div>
-            ) : <div className="animate-pulse">Opponent is deciding...</div>}
+            ) : (
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', animation: 'pulse 2s infinite' }}>
+                    Opponent is deciding...
+                </p>
+            )}
         </div>
     );
 
@@ -165,14 +173,32 @@ const TruthDareGame = ({
         <div className={styles['td-container']}>
             <h2 className={styles['td-title']}>SET THE {type?.toUpperCase()}</h2>
             {isMyTurn ? (
-                <div className="w-full space-y-4">
-                    <textarea value={challengeText} onChange={(e) => setChallengeText(e.target.value)} className={styles['td-textarea']} placeholder="Type your challenge..." />
-                    <div className="flex justify-between w-full">
-                        <button onClick={() => setChallengeText((type === 'truth' ? TRUTHS : DARES)[localMode][Math.floor(Math.random() * 10)])} className="text-xs text-white/40"><Sparkles size={12} /> Suggestion</button>
-                        <button onClick={handleSendChallenge} className={styles['launch-btn']} disabled={!challengeText.trim()}>SEND CHALLENGE</button>
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <textarea 
+                        value={challengeText} 
+                        onChange={(e) => setChallengeText(e.target.value)} 
+                        className={styles['td-textarea']} 
+                        placeholder="Type your challenge..." 
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <button 
+                            onClick={() => setChallengeText((type === 'truth' ? TRUTHS : DARES)[localMode][Math.floor(Math.random() * 10)])} 
+                            style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                            <Sparkles size={12} /> Suggestion
+                        </button>
+                        <button 
+                            onClick={handleSendChallenge} 
+                            className={styles['launch-btn']} 
+                            disabled={!challengeText.trim()}
+                        >
+                            SEND CHALLENGE
+                        </button>
                     </div>
                 </div>
-            ) : <div className="animate-pulse">Crafting your fate...</div>}
+            ) : (
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>Crafting your fate...</p>
+            )}
         </div>
     );
 
@@ -180,19 +206,27 @@ const TruthDareGame = ({
         <div className={styles['td-container']}>
             <div className={styles['challenge-box']}><p className={styles['challenge-text']}>{content}</p></div>
             {!isMyTurn ? (
-                <div className="grid grid-cols-3 gap-2 w-full">
-                    <button onClick={onComplete} className={styles['launch-btn']}><Check /> DONE</button>
-                    <button onClick={onSwitch} className={styles['setup-btn']}><RotateCcw /> SWITCH</button>
-                    <button onClick={onSkip} className={styles['setup-btn']}><X /> SKIP</button>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', width: '100%' }}>
+                    <button onClick={onComplete} className={styles['launch-btn']}>
+                        <Check size={16} /> DONE
+                    </button>
+                    <button onClick={onSwitch} className={styles['setup-btn']}>
+                        <RotateCcw size={16} /> SWITCH
+                    </button>
+                    <button onClick={onSkip} className={styles['setup-btn']}>
+                        <X size={16} /> SKIP
+                    </button>
                 </div>
-            ) : <div className="text-white/40">Waiting for completion...</div>}
+            ) : (
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>Waiting for completion...</p>
+            )}
         </div>
     );
 
     const renderResult = () => (
         <div className={styles['td-container']}>
-            <Zap size={64} className="text-yellow-400 mb-4" />
-            <h2 className="text-3xl font-black mb-4 uppercase">POINT EARNED!</h2>
+            <Zap size={64} style={{ color: '#fbbf24', marginBottom: '16px' }} />
+            <h2 style={{ fontSize: '28px', fontWeight: '900', marginBottom: '16px', textTransform: 'uppercase' }}>POINT EARNED!</h2>
             <div className={styles['score-stats']}>
                 <div><p>YOU</p><p>{players[userId]?.points || 0}</p></div>
                 <div><p>THEM</p><p>{players[partnerId]?.points || 0}</p></div>
@@ -202,14 +236,14 @@ const TruthDareGame = ({
 
     const renderGameOver = () => (
         <div className={styles['td-container']}>
-            <Trophy size={64} className="text-[#fbbf24] mb-4" />
-            <h2 className="text-4xl font-black italic">BATTLE OVER</h2>
+            <Trophy size={64} style={{ color: '#fbbf24', marginBottom: '16px' }} />
+            <h2 style={{ fontSize: '36px', fontWeight: '900', fontStyle: 'italic' }}>BATTLE OVER</h2>
             <button onClick={onStart} className={styles['launch-btn']}>REMATCH</button>
         </div>
     );
 
     return (
-        <div className="w-full h-full flex flex-col justify-center items-center">
+        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
             <AnimatePresence mode="wait">
                 <motion.div 
                     key={stage} 
@@ -217,7 +251,7 @@ const TruthDareGame = ({
                     animate={{ opacity: 1, y: 0 }} 
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="w-full h-full flex flex-col justify-center items-center"
+                    style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
                 >
                     {stage === GAME_STATES.INVITING && renderInviting()}
                     {stage === GAME_STATES.JOINING && renderJoining()}

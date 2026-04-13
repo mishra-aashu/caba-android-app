@@ -1,14 +1,17 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MessageCircle, Phone, Settings } from 'lucide-react';
+import { MessageCircle, Phone, Gamepad2, Settings } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import hapticsManager from '../../utils/hapticsManager';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../config/supabase';
 import styles from './BottomNavigation.module.css';
 
 const NAV_ITEMS = [
     { path: '/', icon: MessageCircle, label: 'Chats', matchPaths: ['/', '/chat'] },
     { path: '/calls', icon: Phone, label: 'Calls', matchPaths: ['/calls'] },
+    { path: '/games', icon: Gamepad2, label: 'Games', matchPaths: ['/games'] },
     { path: '/settings', icon: Settings, label: 'Settings', matchPaths: ['/settings', '/profile'] },
 ];
 
@@ -56,6 +59,7 @@ NavButton.displayName = 'NavButton';
 const BottomNavigation = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { dbUser } = useAuth();
 
     // Live unread count from Dexie
     const unreadCount = useLiveQuery(async () => {
@@ -67,6 +71,42 @@ const BottomNavigation = () => {
         }
     }, [], 0);
 
+    // Live game invite badge — count pending invites for current user
+    const [gameInviteCount, setGameInviteCount] = useState(0);
+
+    useEffect(() => {
+        if (!dbUser?.id) return;
+
+        let cancelled = false;
+
+        const loadCount = async () => {
+            const { count } = await supabase
+                .from('game_invitations')
+                .select('id', { count: 'exact', head: true })
+                .eq('receiver_id', dbUser.id)
+                .eq('status', 'pending');
+            if (!cancelled) setGameInviteCount(count || 0);
+        };
+
+        loadCount();
+
+        // Subscribe to realtime inserts/updates for this user's invites
+        const channel = supabase
+            .channel(`bottom_nav_game_invites_${dbUser.id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'game_invitations',
+                filter: `receiver_id=eq.${dbUser.id}`,
+            }, () => { loadCount(); })
+            .subscribe();
+
+        return () => {
+            cancelled = true;
+            supabase.removeChannel(channel);
+        };
+    }, [dbUser?.id]);
+
     const isActive = useCallback((matchPaths) => {
         return matchPaths.some(p => {
             if (p === '/') return location.pathname === '/';
@@ -77,14 +117,16 @@ const BottomNavigation = () => {
     const handleNavigate = useCallback((path) => {
         // Don't navigate if already on the same tab
         if (location.pathname === path) return;
+        hapticsManager.selectionChanged();
         navigate(path);
     }, [navigate, location.pathname]);
 
     // Get badge for each tab
     const getBadge = useCallback((path) => {
         if (path === '/') return unreadCount;
+        if (path === '/games') return gameInviteCount;
         return 0;
-    }, [unreadCount]);
+    }, [unreadCount, gameInviteCount]);
 
     return (
         <nav className={styles.bottomNav} role="tablist" aria-label="Main navigation">

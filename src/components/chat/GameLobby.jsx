@@ -120,11 +120,12 @@ const GameLobby = ({
                           <div className={styles.participant}>
                             <PlayerAvatar 
                               avatar={game.sender?.avatar} 
-                              name={game.sender?.name} 
+                              name={game.sender?.name || 'Unknown'} 
+                              size={36}
                               className={styles.avatar}
                               imgClassName={styles['avatar-img']}
                             />
-                            <span className={styles.name}>{game.sender?.name}</span>
+                            <span className={styles.name}>{game.sender?.name || 'Unknown'}</span>
                           </div>
 
                           <div className={styles['vs-divider']}>
@@ -134,11 +135,12 @@ const GameLobby = ({
                           <div className={styles.participant}>
                             <PlayerAvatar 
                               avatar={game.receiver?.avatar} 
-                              name={game.receiver?.name} 
+                              name={game.receiver?.name || 'Unknown'} 
+                              size={36}
                               className={styles.avatar}
                               imgClassName={styles['avatar-img']}
                             />
-                            <span className={styles.name}>{game.receiver?.name}</span>
+                            <span className={styles.name}>{game.receiver?.name || 'Unknown'}</span>
                           </div>
                         </div>
 
