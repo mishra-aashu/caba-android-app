@@ -1,10 +1,10 @@
 {
-  "hash": "b80dea6ab2ea4f349df3d5666237f2b5bb83810c780f8628a870d951240f7c8a",
+  "hash": "c26b5c9c060006ca7ad137cec98ad97cb3fdb25cd646372907ce8cb26cc29bc5",
   "fileHashes": {
     "capacitor.config.ts": "1a5b8083d58ae1b22c82bb20de1da5048536a2d5c5d00c2a0c6265b93783f3b4",
     "package.json": "a0edb6d9f1297d0a5bd333da3d15e0b48a2e13aa7ccc7769a03daa1c5b7bdf69",
     "android/app/src/main/AndroidManifest.xml": "6cfa98f0df716dcaf33310e30545dae972c8a4b1f59db0986d9748d408144f07",
-    "android/app/build.gradle": "7ab6b666ecd54bbf16607da48480e714cd5296b5e9cab52ef63ef6e052669f42",
+    "android/app/build.gradle": "d3c6f826094985cdd393a22088a176012ffa0efc9c834d4678cd038cd80cf2f8",
     "android/variables.gradle": "68c60011757051a2190fe46d42da0660239bd8760f66b5273e62c59154201395",
     "android/gradle.properties": "8caa606eaec7f8e65a642080d84f6339e6a1ba9a90a106b73abe3fd4ba5c49ae",
     "android/app/proguard-rules.pro": "56fd960cf225f6ca40f982b13a5dbb0d8bc3dfde13ff76422825c6070d0a1890",
@@ -39,5 +39,5 @@
     "ios/App/App.xcodeproj/project.pbxproj": "iOS — Xcode project file, signing, capabilities",
     "ios/App/Podfile": "iOS — CocoaPods dependencies"
   },
-  "generatedAt": 1776105711949
+  "generatedAt": 1776120540172
 }
