@@ -25,5 +25,10 @@ export const getAvatarPath = (avatar) => {
     }
     
     // Fallback to direct URL/path
+    // If it's a literal placeholder like "user" that isn't a valid path, return null
+    if (typeof avatar === 'string' && !avatar.includes('/') && !avatar.includes('.')) {
+        return null;
+    }
+    
     return avatar;
 };

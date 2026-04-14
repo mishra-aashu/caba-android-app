@@ -80,7 +80,8 @@ const createSupabaseClient = () => {
           try {
             const response = await fetch(url, options);
             if (response.status === 403) {
-              console.error(`Supabase Proxy 403 (Forbidden): Your current Origin (${window.location.origin}) might not be in the worker allowlist.`);
+              // Cloudflare Worker could block it, OR Supabase RLS could block it
+              console.error(`Supabase 403 (Forbidden): This could be an RLS issue or Cloudflare Worker block. Path: ${url}`);
             }
             if (response.status === 503 || response.status === 504) {
               throw new Error(`Server unstable (${response.status})`);
