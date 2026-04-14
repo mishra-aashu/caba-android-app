@@ -333,5 +333,18 @@ async fetchLoginHistory(userId, limit = 20) {
   }
 
   return data || [];
+},
+
+/**
+ * Update Two-Step verification status for user
+ */
+async updateTwoStep(userId, enabled) {
+    const { error } = await supabase
+        .from('users')
+        .update({ two_factor_enabled: enabled })
+        .eq('id', userId);
+    
+    if (error) throw error;
+    return true;
 }
 };

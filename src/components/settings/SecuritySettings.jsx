@@ -30,6 +30,8 @@ const SecuritySettings = ({ isSidebar = false }) => {
     const navigate = useNavigate();
     const { dbUser } = useAuth();
     const [privateProfile, setPrivateProfile] = useState(false);
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(dbUser?.two_factor_enabled || false);
+    const [passcodeLock, setPasscodeLock] = useState(localStorage.getItem('passcodeLock') === 'true');
     const [sessions, setSessions] = useState([]);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -117,6 +119,51 @@ const SecuritySettings = ({ isSidebar = false }) => {
                                 type="checkbox"
                                 checked={privateProfile}
                                 onChange={() => setPrivateProfile(!privateProfile)}
+                            />
+                            <span className="toggle-track"><span className="toggle-thumb" /></span>
+                        </label>
+                    </div>
+
+                    <div className="settings-item toggle-item">
+                        <div className="item-left">
+                            <div className="item-icon"><Shield size={18} /></div>
+                            <span className="item-label">Two-Step Verification</span>
+                        </div>
+                        <label className="toggle-switch">
+                            <input
+                                type="checkbox"
+                                checked={twoFactorEnabled}
+                                onChange={async () => {
+                                    const next = !twoFactorEnabled;
+                                    setTwoFactorEnabled(next);
+                                    try {
+                                        await sessionService.updateTwoStep(dbUser.id, next);
+                                        toast.success(`Two-step verification ${next ? 'enabled' : 'disabled'}`);
+                                    } catch (err) {
+                                        setTwoFactorEnabled(!next);
+                                        toast.error('Failed to update 2FA status');
+                                    }
+                                }}
+                            />
+                            <span className="toggle-track"><span className="toggle-thumb" /></span>
+                        </label>
+                    </div>
+
+                    <div className="settings-item toggle-item">
+                        <div className="item-left">
+                            <div className="item-icon"><Smartphone size={18} /></div>
+                            <span className="item-label">Passcode Lock</span>
+                        </div>
+                        <label className="toggle-switch">
+                            <input
+                                type="checkbox"
+                                checked={passcodeLock}
+                                onChange={() => {
+                                    const next = !passcodeLock;
+                                    setPasscodeLock(next);
+                                    localStorage.setItem('passcodeLock', next.toString());
+                                    toast.success(`Passcode lock ${next ? 'enabled' : 'disabled'}`);
+                                }}
                             />
                             <span className="toggle-track"><span className="toggle-thumb" /></span>
                         </label>

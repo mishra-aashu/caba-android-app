@@ -1,4 +1,7 @@
+// @ts-nocheck
+// @ts-ignore - Deno imports are not recognized by standard Node TS config
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
@@ -6,7 +9,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+serve(async (req: any) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -51,7 +54,7 @@ serve(async (req) => {
       'search': { max: 30, window: 60 },         // 30 per minute
       'messages': { max: 60, window: 60 },       // 60 per minute
       'upload': { max: 10, window: 60 },        // 10 uploads per minute
-    }
+    };
 
     const limitConfig = limits[endpoint] || limits['general']
 
@@ -61,7 +64,7 @@ serve(async (req) => {
       p_endpoint: endpoint,
       p_max_requests: limitConfig.max,
       p_window_seconds: limitConfig.window
-    }
+    });
 
     if (error || !allowed) {
       return new Response(
@@ -89,9 +92,9 @@ serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (err: any) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: err.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

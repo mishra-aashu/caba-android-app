@@ -13,6 +13,7 @@ import { clearAllCachedData } from '../../utils/FileSystemManager';
 import { isOlderVersion } from '../../utils/versionUtils';
 import { Capacitor } from '@capacitor/core';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sessionService } from '../../services/sessionService';
 import {
     ArrowLeft,
     User,
@@ -40,7 +41,11 @@ import {
     Check,
     X,
     Image,
-    Database
+    Database,
+    Smartphone,
+    Languages,
+    Type,
+    Wallpaper
 } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import toast from 'react-hot-toast';
@@ -78,7 +83,8 @@ const expandVariants = {
 const Settings = ({ isSidebar = false }) => {
     const navigate = useNavigate();
     const { supabase } = useSupabase();
-    const { theme, toggleTheme } = useTheme();
+    const { theme, toggleTheme, textSize, setTextSize } = useTheme();
+    const { dbUser } = useAuthStore();
     const { showAlert, showConfirm } = useDialog();
     const { data: dbVersionData } = useAppVersions();
     const { 
@@ -101,10 +107,15 @@ const Settings = ({ isSidebar = false }) => {
         showOnlineStatus: true,
         allowEveryoneMessage: true,
         profileVisible: true,
+        profilePhotoVisibility: 'everyone',
+        phoneVisibility: 'everyone',
+        language: 'en',
+        textSize: 16,
         storageUsage: { app: 0, media: 0, total: 0 },
         callRingtone: 'fm-freemusic-give-me-a-smile(chosic.com).ogg'
     });
 
+    const [sessions, setSessions] = useState([]);
     const [expandedSection, setExpandedSection] = useState(null);
     const [showRingtoneModal, setShowRingtoneModal] = useState(false);
     const [showSyncModal, setShowSyncModal] = useState(false);
@@ -137,8 +148,18 @@ const Settings = ({ isSidebar = false }) => {
     // ── Init ──
     useEffect(() => {
         loadSettings();
+        loadSessions();
         return () => stopAudio();
     }, []);
+
+    const loadSessions = async () => {
+        try {
+            const data = await sessionService.getSessions();
+            setSessions(data);
+        } catch (err) {
+            console.error('[Settings] Session load error:', err);
+        }
+    };
 
     // Stop audio when modal closes
     useEffect(() => {
@@ -173,10 +194,20 @@ const Settings = ({ isSidebar = false }) => {
             showOnlineStatus: get('showOnlineStatus'),
             allowEveryoneMessage: get('allowEveryoneMessage'),
             profileVisible: get('profileVisible'),
+            profilePhotoVisibility: dbUser?.profilePhotoVisibility || localStorage.getItem('profilePhotoVisibility') || 'everyone',
+            phoneVisibility: dbUser?.phoneVisibility || localStorage.getItem('phoneVisibility') || 'everyone',
+            language: dbUser?.language || localStorage.getItem('language') || 'en',
+            textSize: parseInt(localStorage.getItem('textSize')) || 16,
             callRingtone: localStorage.getItem('callRingtone')
                 || 'fm-freemusic-give-me-a-smile(chosic.com).ogg',
             storageUsage: { app: 0, media: 0, total: 0 }
         };
+
+        // Also update local storage if dbUser has fresher data
+        if (dbUser?.profilePhotoVisibility) localStorage.setItem('profilePhotoVisibility', dbUser.profilePhotoVisibility);
+        if (dbUser?.phoneVisibility) localStorage.setItem('phoneVisibility', dbUser.phoneVisibility);
+        if (dbUser?.language) localStorage.setItem('language', dbUser.language);
+
 
         setSettings(loaded);
         calculateStorageUsage();
@@ -228,6 +259,30 @@ const Settings = ({ isSidebar = false }) => {
             return { ...prev, [key]: newVal };
         });
     }, []);
+
+    const handleValueChange = useCallback(async (key, value) => {
+        if (key === 'textSize') {
+            setTextSize(parseInt(value));
+            return;
+        }
+        setSettings(prev => ({ ...prev, [key]: value }));
+        localStorage.setItem(key, value.toString());
+
+        // Update DB if it's a privacy/profile field
+        const dbFields = ['profilePhotoVisibility', 'phoneVisibility', 'language'];
+        if (dbFields.includes(key)) {
+            const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+            try {
+                const { error } = await supabase
+                    .from('users')
+                    .update({ [dbKey]: value })
+                    .eq('id', useAuthStore.getState().dbUser.id);
+                if (error) throw error;
+            } catch (err) {
+                console.error(`[Settings] Failed to update ${key} in DB:`, err);
+            }
+        }
+    }, [supabase]);
 
     const handleThemeToggle = useCallback(() => {
         toggleTheme();
@@ -498,6 +553,36 @@ const Settings = ({ isSidebar = false }) => {
                                     checked={settings.readReceipts}
                                     onChange={() => handleSettingToggle('readReceipts')}
                                 />
+
+                                <div className="settings-item dropdown-item">
+                                    <div className="item-left">
+                                        <div className="item-icon"><Image size={18} /></div>
+                                        <span className="item-label">Profile Photo</span>
+                                    </div>
+                                    <select 
+                                        value={settings.profilePhotoVisibility}
+                                        onChange={(e) => handleValueChange('profilePhotoVisibility', e.target.value)}
+                                    >
+                                        <option value="everyone">Everyone</option>
+                                        <option value="contacts">My Contacts</option>
+                                        <option value="nobody">Nobody</option>
+                                    </select>
+                                </div>
+
+                                <div className="settings-item dropdown-item">
+                                    <div className="item-left">
+                                        <div className="item-icon"><Smartphone size={18} /></div>
+                                        <span className="item-label">Phone Number</span>
+                                    </div>
+                                    <select 
+                                        value={settings.phoneVisibility}
+                                        onChange={(e) => handleValueChange('phoneVisibility', e.target.value)}
+                                    >
+                                        <option value="everyone">Everyone</option>
+                                        <option value="contacts">My Contacts</option>
+                                        <option value="nobody">Nobody</option>
+                                    </select>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -506,6 +591,13 @@ const Settings = ({ isSidebar = false }) => {
                         icon={Shield}
                         label="Security"
                         onClick={() => navigate('/settings/security')}
+                    />
+
+                    <SettingItem
+                        icon={Smartphone}
+                        label="Devices"
+                        onClick={() => navigate('/settings/devices')}
+                        value={sessions.length > 1 ? `${sessions.length} Active` : 'This device'}
                     />
 
                     <SettingItem
@@ -584,6 +676,45 @@ const Settings = ({ isSidebar = false }) => {
                         label="Emoji Style"
                         onClick={() => navigate('/emoji-settings')}
                     />
+
+                    <SettingItem
+                        icon={Wallpaper}
+                        label="Chat Wallpaper"
+                        onClick={() => toast.error('Global Chat Wallpaper settings are coming soon. Set wallpapers inside individual chats.')} 
+                        value="Custom"
+                    />
+
+                    <div className="settings-item range-item">
+                        <div className="item-left">
+                            <div className="item-icon"><Type size={18} /></div>
+                            <span className="item-label">Text Size</span>
+                        </div>
+                        <div className="range-container">
+                            <span className="size-label">A</span>
+                            <input 
+                                type="range" 
+                                min="12" 
+                                max="22" 
+                                value={settings.textSize}
+                                onChange={(e) => handleValueChange('textSize', e.target.value)}
+                            />
+                            <span className="size-label large">A</span>
+                        </div>
+                    </div>
+
+                    <div className="settings-item dropdown-item">
+                        <div className="item-left">
+                            <div className="item-icon"><Languages size={18} /></div>
+                            <span className="item-label">App Language</span>
+                        </div>
+                        <select 
+                            value={settings.language}
+                            onChange={(e) => handleValueChange('language', e.target.value)}
+                        >
+                            <option value="en">English</option>
+                            <option value="hi">Hindi (हिंदी)</option>
+                        </select>
+                    </div>
                 </section>
 
                 {/* Storage */}
@@ -660,6 +791,20 @@ const Settings = ({ isSidebar = false }) => {
                         icon={RefreshCw}
                         label="Manage Sync Queue"
                         onClick={() => setShowSyncModal(true)}
+                    />
+
+                    <ToggleItem
+                        icon={Download}
+                        label="Auto-download (Mobile Data)"
+                        checked={settings.autoDownloadMobile}
+                        onChange={() => handleSettingToggle('autoDownloadMobile')}
+                    />
+
+                    <ToggleItem
+                        icon={Download}
+                        label="Auto-download (Wi-Fi)"
+                        checked={settings.autoDownloadWifi}
+                        onChange={() => handleSettingToggle('autoDownloadWifi')}
                     />
                 </section>
 

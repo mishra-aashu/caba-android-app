@@ -57,6 +57,7 @@ const QRPage = lazy(() => import('./components/qr').then(m => ({ default: m.QRPa
 const SharedProfile = lazy(() => import('./components/shared-profile'));
 const SecuritySettings = lazy(() => import('./components/settings/SecuritySettings'));
 const HelpCenter = lazy(() => import('./components/settings/HelpCenter'));
+const Devices = lazy(() => import('./components/settings/Devices'));
 const CallScreen = lazy(() => import('./components/CallScreen'));
 const CallStatusIndicator = lazy(() => import('./components/CallStatusIndicator'));
 const IncomingCallModal = lazy(() => import('./components/IncomingCallModal'));
@@ -200,6 +201,7 @@ const AppContent = () => {
               <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
               <Route path="settings" element={<Settings />} />
               <Route path="settings/security" element={<SecuritySettings />} />
+              <Route path="settings/devices" element={<Devices />} />
               <Route path="settings/help" element={<HelpCenter />} />
               <Route path="emoji-settings" element={<EmojiSettings />} />
               <Route path="history" element={<History />} />

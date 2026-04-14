@@ -1,5 +1,9 @@
+// @ts-nocheck
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+// @ts-ignore
 import { JWT } from "https://esm.sh/google-auth-library@9"
 
 // 🔒 SECRETS ab Environment Variables se aayenge (Secure!)
@@ -9,7 +13,7 @@ const SERVICE_ACCOUNT = {
   private_key: Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n'),
 };
 
-serve(async (req: Request) => {
+serve(async (req: any) => {
   try {
     // 1. Check Payload
     const payload = await req.json();

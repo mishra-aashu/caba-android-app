@@ -16,6 +16,10 @@ export const ThemeProvider = ({ children }) => {
     return savedTheme || 'light';
   });
 
+  const [textSize, setTextSize] = useState(() => {
+    return parseInt(localStorage.getItem('textSize')) || 16;
+  });
+
   const queryClient = useQueryClient();
   const { data: dbTheme } = useUserTheme(user?.id);
 
@@ -70,13 +74,32 @@ export const ThemeProvider = ({ children }) => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Apply text size to document
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-font-size', `${textSize}px`);
+    document.documentElement.style.fontSize = `${textSize}px`;
+    localStorage.setItem('textSize', textSize.toString());
+  }, [textSize]);
+
+  // Sync text size from localStorage changes (optional but good for consistency)
+  useEffect(() => {
+    const handleStorage = () => {
+      const size = parseInt(localStorage.getItem('textSize'));
+      if (size && size !== textSize) setTextSize(size);
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [textSize]);
+
   // Context value
   const value = {
     theme,
     setTheme,
     toggleTheme,
     isDark: theme === 'dark',
-    isLight: theme === 'light'
+    isLight: theme === 'light',
+    textSize,
+    setTextSize
   };
 
   return (

@@ -22,6 +22,11 @@ export const DB_TO_FRONTEND_MAP = {
   'auth_password': 'authPassword',
   'fcm_token_android': 'fcmTokenAndroid',
   'fcm_token_web': 'fcmTokenWeb',
+  'profile_photo_visibility': 'profilePhotoVisibility',
+  'phone_visibility': 'phoneVisibility',
+  'last_seen_visibility': 'lastSeenVisibility',
+  'two_factor_enabled': 'twoFactorEnabled',
+  'language_preference': 'language',
 
   // Message fields
   'sender_id': 'senderId',

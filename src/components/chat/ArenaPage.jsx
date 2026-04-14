@@ -107,7 +107,13 @@ const ArenaPage = () => {
 
   // ─── Load Invitations ──────────────────────────────────────
   const loadInvitations = useCallback(async () => {
-    if (!chatId || isLoadingRef.current) return;
+    // Basic UUID validation to prevent 400 Bad Request on "default" or invalid strings
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(chatId);
+    if (!chatId || !isUuid || isLoadingRef.current) {
+        if (!isUuid && chatId) console.warn('[Arena] Invalid chatId (not a UUID):', chatId);
+        setLoadingInvites(false);
+        return;
+    }
     
     isLoadingRef.current = true;
     setLoadingInvites(true);
