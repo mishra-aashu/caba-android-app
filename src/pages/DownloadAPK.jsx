@@ -18,13 +18,7 @@ const DownloadAPK = () => {
         background: '#13131f', border: '1px solid #2a2a3e',
         borderRadius: '16px', padding: '40px 32px'
       }}>
-        {/* App icon placeholder */}
-        <div style={{
-          width: '72px', height: '72px', margin: '0 auto 20px',
-          background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-          borderRadius: '18px', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: '36px'
-        }}>📱</div>
+        {/* App icon removed to keep rebranding clean */}
 
         <h2 style={{ color: '#fff', margin: '0 0 8px', fontSize: '22px', fontWeight: 700 }}>
           ELEVENGRAM

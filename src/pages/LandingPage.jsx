@@ -352,9 +352,12 @@ const HeroCanvas = memo(({ isMobile }) => {
             const ps = particlesRef.current;
             const connectionDistance = isMobile ? 70 : 130;
 
-            // Draw connections
+            // Draw connections - BATCHED for performance
             const distSq = connectionDistance * connectionDistance;
+            ctx.beginPath();
             ctx.lineWidth = 0.5;
+            ctx.strokeStyle = `rgba(0,168,132,0.08)`; // Simplified slightly for batching
+
             for (let i = 0; i < ps.length; i++) {
                 const p1 = ps[i];
                 for (let j = i + 1; j < ps.length; j++) {
@@ -363,15 +366,12 @@ const HeroCanvas = memo(({ isMobile }) => {
                     const dy = p1.y - p2.y;
                     const d2 = dx * dx + dy * dy;
                     if (d2 < distSq) {
-                        const d = Math.sqrt(d2);
-                        ctx.beginPath();
                         ctx.moveTo(p1.x, p1.y);
                         ctx.lineTo(p2.x, p2.y);
-                        ctx.strokeStyle = `rgba(0,168,132,${(1 - d / connectionDistance) * 0.1})`;
-                        ctx.stroke();
                     }
                 }
             }
+            ctx.stroke();
 
             // Draw & update particles
             ps.forEach(p => {
@@ -554,7 +554,6 @@ const LandingPage = () => {
             <nav className={`${styles['landing-nav']} ${isScrolled ? styles.scrolled : ''}`}>
                 <div className={styles['nav-inner']}>
                     <div className={styles['nav-brand']} onClick={() => scrollTo('hero')}>
-                        <img src="/pwa-192x192.png" alt="Elevengram" className={styles['nav-logo']} />
                         <AppName size="small" />
                     </div>
                     <div className={`${styles['nav-links']} ${mobileMenuOpen ? styles.open : ''}`}>
