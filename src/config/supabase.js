@@ -79,6 +79,9 @@ const createSupabaseClient = () => {
         while (attempt < MAX_RETRIES) {
           try {
             const response = await fetch(url, options);
+            if (response.status === 403) {
+              console.error(`Supabase Proxy 403 (Forbidden): Your current Origin (${window.location.origin}) might not be in the worker allowlist.`);
+            }
             if (response.status === 503 || response.status === 504) {
               throw new Error(`Server unstable (${response.status})`);
             }
