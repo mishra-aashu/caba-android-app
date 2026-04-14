@@ -16,10 +16,10 @@ export function useCallHistory(userId) {
     () => {
       if (!userId) return [];
       return db.call_history
-        .where('caller_id').equals(userId)
-        .or('receiver_id').equals(userId)
+        .where('callerId').equals(userId)
+        .or('receiverId').equals(userId)
         .reverse()
-        .sortBy('started_at');
+        .sortBy('startedAt');
     },
     [userId]
   ) || [];

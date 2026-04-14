@@ -61,9 +61,9 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             // Track last message for monotonic catch-up
             if (
                 !lastMessageRef.current ||
-                new Date(newRecord.created_at) > new Date(lastMessageRef.current.created_at)
+                new Date(newRecord.created_at) > new Date(lastMessageRef.current.createdAt)
             ) {
-                lastMessageRef.current = { id: newRecord.id, created_at: newRecord.created_at };
+                lastMessageRef.current = { id: newRecord.id, createdAt: newRecord.created_at };
             }
 
             // Cap dedup set size
@@ -161,7 +161,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                 .then(msgs => msgs[0]);
             
             if (latestInDexie) {
-                lastMessageRef.current = { id: latestInDexie.id, created_at: latestInDexie.created_at };
+                lastMessageRef.current = { id: latestInDexie.id, createdAt: latestInDexie.createdAt };
                 _log('Recovered anchor from Dexie', { anchor: lastMessageRef.current });
             }
         }
@@ -171,10 +171,10 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             .select('*')
             .eq('chat_id', currentChatId);
 
-        if (lastMessageRef.current) {
-            const { created_at, id } = lastMessageRef.current;
+        if (lastMessageRef.current?.createdAt) {
+            const { createdAt, id } = lastMessageRef.current;
             query = query
-                .or(`created_at.gt.${created_at},and(created_at.eq.${created_at},id.gt.${id})`)
+                .or(`created_at.gt.${createdAt},and(created_at.eq.${createdAt},id.gt.${id})`)
                 .order('created_at', { ascending: true })
                 .limit(100);
         } else {
@@ -197,11 +197,11 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
 
             if (
                 !lastMessageRef.current ||
-                new Date(latestFromData.created_at) > new Date(lastMessageRef.current.created_at)
+                new Date(latestFromData.created_at) > new Date(lastMessageRef.current.createdAt)
             ) {
                 lastMessageRef.current = {
                     id: latestFromData.id,
-                    created_at: latestFromData.created_at,
+                    createdAt: latestFromData.created_at,
                 };
                 
                 // Persist to chats_list

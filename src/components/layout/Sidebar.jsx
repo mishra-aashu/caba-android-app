@@ -47,10 +47,10 @@ const Sidebar = ({
                     {isDesktop && isGamesRoute ? (
                         <motion.div
                             key="games"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -67,10 +67,10 @@ const Sidebar = ({
                     ) : isDesktop && isContactsRoute ? (
                         <motion.div
                             key="contacts"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -87,10 +87,10 @@ const Sidebar = ({
                     ) : isDesktop && isProfileRoute ? (
                         <motion.div
                             key="profile"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -107,10 +107,10 @@ const Sidebar = ({
                     ) : isDesktop && isSettingsRoute ? (
                         <motion.div
                             key="settings"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -133,10 +133,10 @@ const Sidebar = ({
                     ) : isDesktop && isTermsRoute ? (
                         <motion.div
                             key="terms"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -153,10 +153,10 @@ const Sidebar = ({
                     ) : isDesktop && isPrivacyRoute ? (
                         <motion.div
                             key="privacy"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -173,10 +173,10 @@ const Sidebar = ({
                     ) : isDesktop && isBlockedRoute ? (
                         <motion.div
                             key="blocked"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -193,10 +193,10 @@ const Sidebar = ({
                     ) : isDesktop && isSupportRoute ? (
                         <motion.div
                             key="support"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -213,10 +213,10 @@ const Sidebar = ({
                     ) : isDesktop && isEmojiSettingsRoute ? (
                         <motion.div
                             key="emoji-settings"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,
@@ -233,10 +233,10 @@ const Sidebar = ({
                     ) : isDesktop && isHistoryRoute ? (
                         <motion.div
                             key="history"
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -20, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: 0,

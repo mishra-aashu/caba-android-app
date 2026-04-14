@@ -41,7 +41,7 @@ export const DB_TO_FRONTEND_MAP = {
   'status': 'status',
   'is_edited': 'isEdited',
   'vanish_at': 'vanishAt',
-  'client_id': 'clientId',
+  'client_id': 'tempId',
   'message_type': 'messageType',
 
   // Call fields

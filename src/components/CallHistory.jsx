@@ -69,11 +69,15 @@ export function CallHistory({ userId, userAvatar, userName }) {
         let currentGroup = null;
 
         history.forEach((call) => {
+            const otherId = call.otherUserId || call.other_user_id;
+            const status = call.callStatus || call.call_status;
+            const type = call.callType || call.call_type;
+
             // Group criteria: same user + same status + same type (consecutive)
             const canGroup = currentGroup && 
-                            currentGroup.other_user_id === call.other_user_id &&
-                            currentGroup.call_status === call.call_status &&
-                            currentGroup.call_type === call.call_type;
+                            (currentGroup.otherUserId || currentGroup.other_user_id) === otherId &&
+                            (currentGroup.callStatus || currentGroup.call_status) === status &&
+                            (currentGroup.callType || currentGroup.call_type) === type;
 
             if (canGroup) {
                 currentGroup.count += 1;
@@ -140,46 +144,56 @@ export function CallHistory({ userId, userAvatar, userName }) {
                 {/* Call List */}
                 <div>
                     {groupedHistory.length > 0 ? (
-                        groupedHistory.map((call) => (
-                            <div key={`${call.id}-${call.count}`} className="call-item">
-                                {/* [FIX #5] Using shared CallAvatar */}
-                                <CallAvatar
-                                    avatar={call.other_user_avatar}
-                                    name={call.other_user_name}
-                                />
+                        groupedHistory.map((call) => {
+                            const status = call.callStatus || call.call_status;
+                            const type = call.callType || call.call_type;
+                            const callerId = call.callerId || call.caller_id;
+                            const startedAt = call.startedAt || call.started_at;
+                            const otherUserName = call.otherUserName || call.other_user_name;
+                            const otherUserAvatar = call.otherUserAvatar || call.other_user_avatar;
+                            const otherUserId = call.otherUserId || call.other_user_id;
 
-                                {/* Info */}
-                                <div className="call-details">
-                                    <h3 className="call-name">
-                                        {call.other_user_name || 'Unknown'} {call.count > 1 && `(${call.count})`}
-                                    </h3>
-                                    <div className="call-status-row">
-                                        {call.call_status === 'missed' ? (
-                                            <PhoneMissed size={14} className="status-icon missed" />
-                                        ) : call.caller_id === userId ? (
-                                            <PhoneOutgoing size={14} className="status-icon outgoing" />
-                                        ) : (
-                                            <PhoneIncoming size={14} className="status-icon incoming" />
-                                        )}
-                                        <span className="call-time-text">{formatTime(call.started_at)}</span>
+                            return (
+                                <div key={`${call.id}-${call.count}`} className="call-item">
+                                    {/* [FIX #5] Using shared CallAvatar */}
+                                    <CallAvatar
+                                        avatar={otherUserAvatar}
+                                        name={otherUserName}
+                                    />
+
+                                    {/* Info */}
+                                    <div className="call-details">
+                                        <h3 className="call-name">
+                                            {otherUserName || 'Unknown'} {call.count > 1 && `(${call.count})`}
+                                        </h3>
+                                        <div className="call-status-row">
+                                            {status === 'missed' ? (
+                                                <PhoneMissed size={14} className="status-icon missed" />
+                                            ) : callerId === userId ? (
+                                                <PhoneOutgoing size={14} className="status-icon outgoing" />
+                                            ) : (
+                                                <PhoneIncoming size={14} className="status-icon incoming" />
+                                            )}
+                                            <span className="call-time-text">{formatTime(startedAt)}</span>
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Call Button */}
-                                <button
-                                    className="call-action-btn"
-                                    onClick={() => handleCall(call.other_user_id, call.call_type)}
-                                    disabled={callState !== 'idle'}
-                                    title={call.call_type === 'video' ? 'Video Call' : 'Voice Call'}
-                                >
-                                    {call.call_type === 'video' ? (
-                                        <Video size={22} />
-                                    ) : (
-                                        <Phone size={22} />
-                                    )}
-                                </button>
-                            </div>
-                        ))
+                                    {/* Call Button */}
+                                    <button
+                                        className="call-action-btn"
+                                        onClick={() => handleCall(otherUserId, type)}
+                                        disabled={callState !== 'idle'}
+                                        title={type === 'video' ? 'Video Call' : 'Voice Call'}
+                                    >
+                                        {type === 'video' ? (
+                                            <Video size={22} />
+                                        ) : (
+                                            <Phone size={22} />
+                                        )}
+                                    </button>
+                                </div>
+                            );
+                        })
                     ) : (
                         <div className="empty-state">
                             <Phone size={48} />

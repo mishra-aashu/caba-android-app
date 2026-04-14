@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Monitor, Smartphone, Globe, Shield, LogOut, RefreshCw, MapPin, Search } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import useAuthStore from '../../store/authStore';
+import { useDialog } from '../../contexts/DialogContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../../styles/settings.css';
@@ -14,6 +15,8 @@ const Devices = () => {
     const [loading, setLoading] = useState(true);
     const [revokingId, setRevokingId] = useState(null);
     const [revokingAll, setRevokingAll] = useState(false);
+
+    const { showConfirm } = useDialog();
 
     useEffect(() => {
         loadSessions();
@@ -33,7 +36,13 @@ const Devices = () => {
     };
 
     const handleRevoke = async (sessionId) => {
-        if (!window.confirm('Are you sure you want to log out this device?')) return;
+        const confirmed = await showConfirm('Are you sure you want to log out this device?', {
+            title: 'Logout Device',
+            confirmText: 'Logout',
+            variant: 'destructive'
+        });
+
+        if (!confirmed) return;
         
         setRevokingId(sessionId);
         try {
@@ -52,7 +61,13 @@ const Devices = () => {
     };
 
     const handleRevokeOthers = async () => {
-        if (!window.confirm('This will log you out of all other devices except this one. Continue?')) return;
+        const confirmed = await showConfirm('This will log you out of all other devices except this one. Continue?', {
+            title: 'Terminate All Other Sessions',
+            confirmText: 'Terminate All',
+            variant: 'destructive'
+        });
+
+        if (!confirmed) return;
         
         setRevokingAll(true);
         try {
@@ -100,7 +115,7 @@ const Devices = () => {
                     disabled={loading}
                     title="Refresh"
                 >
-                    <RefreshCw size={20} className={loading ? 'spin' : ''} />
+                    <RefreshCw size={20} className={loading ? 'spin-devices' : ''} />
                 </button>
             </header>
 
@@ -176,128 +191,6 @@ const Devices = () => {
                 )}
             </div>
             
-            <style jsx>{`
-                .section-info {
-                    text-align: center;
-                    padding: 24px 16px;
-                    background: var(--surface-hover);
-                    border-radius: 12px;
-                    margin-bottom: 24px;
-                }
-                .info-icon {
-                    color: var(--primary-color);
-                    margin-bottom: 12px;
-                }
-                .section-info p {
-                    font-size: 0.9rem;
-                    color: var(--text-secondary);
-                    margin-top: 8px;
-                }
-                .device-list {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-                .device-item {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 16px;
-                    background: var(--surface-color);
-                    border: 1px solid var(--border-color);
-                    border-radius: 12px;
-                }
-                .device-item.current {
-                    border-color: var(--primary-color);
-                    background: var(--primary-light);
-                }
-                .device-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                }
-                .device-icon-wrapper {
-                    position: relative;
-                    width: 48px;
-                    height: 48px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: var(--surface-hover);
-                    border-radius: 50%;
-                    color: var(--text-primary);
-                }
-                .online-dot {
-                    position: absolute;
-                    bottom: 2px;
-                    right: 2px;
-                    width: 10px;
-                    height: 10px;
-                    background: #22c55e;
-                    border: 2px solid var(--surface-color);
-                    border-radius: 50%;
-                }
-                .device-details {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 2px;
-                }
-                .device-name {
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-                .current-tag {
-                    font-size: 0.7rem;
-                    padding: 2px 6px;
-                    background: var(--primary-color);
-                    color: white;
-                    border-radius: 4px;
-                }
-                .device-meta {
-                    font-size: 0.85rem;
-                    color: var(--text-secondary);
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-                .device-time {
-                    font-size: 0.75rem;
-                    color: var(--text-muted);
-                }
-                .revoke-btn {
-                    padding: 8px;
-                    color: #ef4444;
-                    background: transparent;
-                    border-radius: 8px;
-                    transition: background 0.2s;
-                }
-                .revoke-btn:hover {
-                    background: #fee2e2;
-                }
-                .logout-others-btn {
-                    width: 100%;
-                    padding: 12px;
-                    background: #ef4444;
-                    color: white;
-                    border-radius: 12px;
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                }
-                .zone-hint {
-                    font-size: 0.8rem;
-                    color: var(--text-muted);
-                    text-align: center;
-                }
-                .spin {
-                    animation: spin 1s linear infinite;
-                }
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
         </div>
     );
 };

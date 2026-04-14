@@ -157,16 +157,19 @@ class CallService {
         });
       }
 
-      // Transform data to include other_user info
+      // Transform data with normalization
+      const { safeDbConversion } = await import('../utils/dbFieldMapping');
+      
       const transformedData = calls.map(call => {
-        const otherUserId = call.caller_id === userId ? call.receiver_id : call.caller_id;
+        const normalized = safeDbConversion(call);
+        const otherUserId = normalized.callerId === userId ? normalized.receiverId : normalized.callerId;
         const otherUser = userMap[otherUserId] || {};
 
         return {
-          ...call,
-          other_user_id: otherUserId,
-          other_user_name: otherUser.name || 'Unknown',
-          other_user_avatar: otherUser.avatar || null
+          ...normalized,
+          otherUserId, // CamelCase
+          otherUserName: otherUser.name || 'Unknown',
+          otherUserAvatar: otherUser.avatar || null
         };
       });
 

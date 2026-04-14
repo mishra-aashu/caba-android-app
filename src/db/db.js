@@ -57,7 +57,7 @@ export const addToSyncQueue = async (type, payload) => {
         status: 'pending',
         createdAt: new Date().toISOString(),
         retryCount: 0,
-        total_resets: 0,
+        totalResets: 0,
     });
 };
 

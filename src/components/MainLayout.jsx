@@ -49,16 +49,17 @@ const MainLayout = () => {
         location.pathname.startsWith('/user-details/') ||
         location.pathname === '/groups' ||
         location.pathname === '/contacts' ||
-        location.pathname.startsWith('/settings') ||
-        location.pathname.startsWith('/profile') ||
+        location.pathname.startsWith('/settings/') ||
+        location.pathname === '/profile' ||
         location.pathname === '/terms' ||
         location.pathname === '/privacy' ||
         location.pathname === '/blocked' ||
         location.pathname === '/support' ||
         location.pathname === '/emoji-settings' ||
-        location.pathname === '/history' ||
-        location.pathname.startsWith('/games'),
+        location.pathname === '/history',
         [location.pathname]);
+
+    const isSubPage = useMemo(() => location.pathname !== '/', [location.pathname]);
 
     // State for side panel (user or group details)
     const [sidePanelType, setSidePanelType] = useState(null); 
@@ -119,8 +120,8 @@ const MainLayout = () => {
                 {!isChatViewActive && <BottomNavigation />}
 
                 <AnimatePresence mode="wait">
-                    {isChatViewActive && (
-                        <PageTransition key="chat-view-container" className="chat-view">
+                    {isSubPage && (
+                        <PageTransition key={location.pathname} className="chat-view">
                             <Outlet />
                         </PageTransition>
                     )}

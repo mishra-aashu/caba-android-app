@@ -56,7 +56,7 @@ const GlobalDialog = () => {
                         </button>
                     )}
                     <button
-                        className="dialog-btn confirm-btn"
+                        className={`dialog-btn confirm-btn ${dialogState.variant === 'destructive' ? 'destructive' : ''}`}
                         onClick={handleConfirm}
                     >
                         {type === 'prompt' ? 'Submit' : (confirmText || 'OK')}

@@ -191,24 +191,24 @@ export function useChatMessages({
                     return null;
                 }
 
+                // Online path: Perform Supabase insert
                 const { data, error } = await supabase
                     .from('messages')
                     .insert(dbData)
                     .select()
                     .single();
 
-                if (error) throw error;
-                if (!data) throw new Error('Message blocked by RLS');
-
-                if (isNewChat) {
-                    await db.messages.put(data);
-                    navigate(`/chat/${data.chat_id}/${otherUserId}`, { replace: true });
-                    return data;
+                if (error) {
+                    // Update Dexie status to failed so user can retry
+                    await db.messages.update(`temp_${tempId}`, { status: 'failed' });
+                    throw error;
                 }
+
+                const normalizedData = dbToFrontend(data);
 
                 await db.transaction('rw', db.messages, async () => {
                     await db.messages.delete(`temp_${tempId}`).catch(() => {});
-                    await db.messages.put(data);
+                    if (normalizedData) await db.messages.put(normalizedData);
                 });
 
                 return data;
@@ -311,9 +311,11 @@ export function useChatMessages({
 
                     if (error) throw error;
 
+                    const normalizedData = dbToFrontend(data);
+
                     await db.transaction('rw', db.messages, async () => {
                         await db.messages.delete(`temp_${tempId}`).catch(() => {});
-                        if (data) await db.messages.put(data);
+                        if (normalizedData) await db.messages.put(normalizedData);
                     });
                 }
             } catch (err) {

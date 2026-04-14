@@ -24,29 +24,29 @@ const mapReminderFields = (reminder) => {
   if (!reminder) return null;
   return {
     id: reminder.id,
-    senderId: reminder.sender_id,
-    receiverId: reminder.receiver_id,
+    senderId: reminder.sender_id || reminder.senderId,
+    receiverId: reminder.receiver_id || reminder.receiverId,
     title: reminder.title,
     description: reminder.description,
-    reminderTime: reminder.reminder_time,
+    reminderTime: reminder.reminder_time || reminder.reminderTime,
     location: reminder.location,
     category: reminder.category || 'general',
     priority: reminder.priority || 'medium',
     status: reminder.status || 'pending',
-    isRecurring: reminder.is_recurring || false,
-    recurringType: reminder.recurring_type,
-    recurringDays: reminder.recurring_days,
-    recurringEndDate: reminder.recurring_end_date,
-    soundEnabled: reminder.sound_enabled ?? true,
-    vibrationEnabled: reminder.vibration_enabled ?? true,
-    requiresAcceptance: reminder.requires_acceptance ?? true,
-    acceptedAt: reminder.accepted_at,
-    completedAt: reminder.completed_at,
-    snoozeUntil: reminder.snooze_until,
-    snoozeCount: reminder.snooze_count || 0,
-    parentReminderId: reminder.parent_reminder_id,
-    createdAt: reminder.created_at,
-    updatedAt: reminder.updated_at,
+    isRecurring: reminder.is_recurring ?? reminder.isRecurring ?? false,
+    recurringType: reminder.recurring_type || reminder.recurringType,
+    recurringDays: reminder.recurring_days || reminder.recurringDays,
+    recurringEndDate: reminder.recurring_end_date || reminder.recurringEndDate,
+    soundEnabled: reminder.sound_enabled ?? reminder.soundEnabled ?? true,
+    vibrationEnabled: reminder.vibration_enabled ?? reminder.vibrationEnabled ?? true,
+    requiresAcceptance: reminder.requires_acceptance ?? reminder.requiresAcceptance ?? true,
+    acceptedAt: reminder.accepted_at || reminder.acceptedAt,
+    completedAt: reminder.completed_at || reminder.completedAt,
+    snoozeUntil: reminder.snooze_until || reminder.snoozeUntil,
+    snoozeCount: reminder.snooze_count ?? reminder.snoozeCount ?? 0,
+    parentReminderId: reminder.parent_reminder_id || reminder.parentReminderId,
+    createdAt: reminder.created_at || reminder.createdAt,
+    updatedAt: reminder.updated_at || reminder.updatedAt,
     sender: reminder.sender ? {
       id: reminder.sender.id,
       name: reminder.sender.name,
@@ -91,8 +91,8 @@ const Reminders = () => {
     () => {
       if (!currentUser?.id) return [];
       return db.reminders
-        .where('sender_id').equals(currentUser.id)
-        .or('receiver_id').equals(currentUser.id)
+        .where('senderId').equals(currentUser.id)
+        .or('receiverId').equals(currentUser.id)
         .toArray();
     },
     [currentUser?.id]

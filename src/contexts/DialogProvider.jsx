@@ -33,15 +33,17 @@ export const DialogProvider = ({ children }) => {
         });
     }, []);
 
-    const showConfirm = useCallback((message, title = 'Confirm Action') => {
+    const showConfirm = useCallback((message, options = {}) => {
+        const { title = 'Confirm Action', confirmText = 'Confirm', cancelText = 'Cancel', variant = 'default' } = options;
         return new Promise((resolve) => {
             setDialogState({
                 isOpen: true,
                 type: 'confirm',
                 title,
                 message,
-                confirmText: 'Confirm',
-                cancelText: 'Cancel',
+                confirmText,
+                cancelText,
+                variant,
                 onConfirm: () => {
                     setDialogState(prev => ({ ...prev, isOpen: false }));
                     resolve(true);

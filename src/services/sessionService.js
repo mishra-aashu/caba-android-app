@@ -20,6 +20,7 @@ const HEARTBEAT_INTERVAL = 2 * 60 * 1000; // 2 minutes
 let cachedLocation = null; // Memory cache for the session
 let isInitInProgress = false; // Guard for concurrent calls
 let lastInitTime = 0; // Guard for rapid repeated calls
+let currentDbId = null; // Store the primary key (UUID) of the current session
 
 /**
  * Get approximate location from IP (free, no API key needed)
@@ -149,6 +150,10 @@ async initSession(userId, loginMethod = 'google') {
     action: 'login',
     loginMethod,
   });
+
+    if (data) {
+        currentDbId = data.id; // Store for revocation detection
+    }
 
     return data;
   } finally {
@@ -303,8 +308,17 @@ subscribeToSessionRevocation(userId, onRevoked) {
         filter: `user_id=eq.${userId}`,
       },
       (payload) => {
-        if (payload.old?.caba_session_id === currentSessionId) {
+        // [FIX] Use database primary key (id) for comparison.
+        // For DELETE events, caba_session_id might not be in payload.old 
+        // unless REPLICA IDENTITY FULL is enabled. id is always present.
+        const targetId = payload.old?.id;
+        
+        if (targetId && targetId === currentDbId) {
           console.log('[Session] This session was revoked remotely!');
+          onRevoked();
+        } else if (!currentDbId && payload.old?.caba_session_id === currentSessionId) {
+          // Fallback to client ID if DB ID isn't set yet (race condition on load)
+          console.log('[Session] This session was revoked remotely (via client ID)!');
           onRevoked();
         }
       }

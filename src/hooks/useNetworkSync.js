@@ -43,12 +43,12 @@ const useNetworkSync = () => {
                     .and(item =>
                         item.failedAt &&
                         item.failedAt > twentyFourHoursAgo &&
-                        (item.total_resets || 0) < 3
+                        (item.totalResets || 0) < 3
                     )
                     .modify(item => {
                         item.status = 'pending';
                         item.retryCount = 0;
-                        item.total_resets = (item.total_resets || 0) + 1;
+                        item.totalResets = (item.totalResets || 0) + 1;
                     });
 
                 const pendingItems = await db.sync_queue
