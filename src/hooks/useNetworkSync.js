@@ -141,6 +141,87 @@ const useNetworkSync = () => {
                                 break;
                             }
 
+                            case 'create_group': {
+                                const { tempId, payload } = item.payload;
+                                const { name, description, avatar_url, created_by, memberIds } = payload;
+
+                                // Step 1: Insert group
+                                const { data: groupData, error: groupError } = await supabase
+                                    .from('groups')
+                                    .insert({ name, description, avatar_url, created_by })
+                                    .select()
+                                    .single();
+
+                                if (groupError) {
+                                    error = groupError;
+                                    break;
+                                }
+
+                                const groupId = groupData.id;
+
+                                // Step 2: Add members
+                                // Creator first (admin)
+                                await supabase.from('group_members').insert({
+                                    group_id: groupId,
+                                    user_id: created_by,
+                                    role: 'admin',
+                                    joined_at: new Date().toISOString(),
+                                });
+
+                                // Others
+                                const otherMemberIds = (memberIds || []).filter(id => id !== created_by);
+                                if (otherMemberIds.length > 0) {
+                                    const memberRecords = otherMemberIds.map(userId => ({
+                                        group_id: groupId,
+                                        user_id: userId,
+                                        role: 'member',
+                                        joined_at: new Date().toISOString(),
+                                    }));
+                                    await supabase.from('group_members').insert(memberRecords);
+                                }
+
+                                // Step 3: System message
+                                await supabase.from('messages').insert({
+                                    chat_id: groupId,
+                                    sender_id: created_by,
+                                    receiver_id: created_by,
+                                    content: `Group "${name}" was created`,
+                                    is_group_message: true,
+                                    message_type: 'system',
+                                });
+
+                                // Step 4: Atomic swap in Dexie
+                                await db.transaction('rw', [db.groups, db.chats_list, db.sync_queue], async () => {
+                                    if (tempId) {
+                                        // Update group ID
+                                        const localGroup = await db.groups.where('id').equals(tempId).first();
+                                        if (localGroup) {
+                                            await db.groups.delete(tempId);
+                                            await db.groups.put({ ...groupData, is_syncing: false });
+                                        }
+
+                                        // Update chats_list ID
+                                        const localChat = await db.chats_list.where('id').equals(tempId).first();
+                                        if (localChat) {
+                                            await db.chats_list.delete(tempId);
+                                            await db.chats_list.put({
+                                                ...localChat,
+                                                id: groupId,
+                                                tempId: null, // Clear temp ID
+                                            });
+                                        }
+                                    }
+
+                                    await db.sync_queue.update(item.id, {
+                                        status: 'completed',
+                                        synced_at: new Date().toISOString(),
+                                    });
+                                });
+
+                                error = null;
+                                break;
+                            }
+
                             case 'update_profile': {
                                 const { error: profileError } = await supabase
                                     .from('users')
@@ -194,6 +275,20 @@ const useNetworkSync = () => {
                                     await db.messages
                                         .where('tempId')
                                         .equals(item.payload.tempId)
+                                        .modify({ status: 'failed' });
+                                }
+
+                                // [FIX #11] New: Update local group/chat status for UI
+                                if (item.type === 'create_group' && item.payload?.tempId) {
+                                    const tempId = item.payload.tempId;
+                                    await db.groups
+                                        .where('id')
+                                        .equals(tempId)
+                                        .modify({ status: 'failed' });
+
+                                    await db.chats_list
+                                        .where('id')
+                                        .equals(tempId)
                                         .modify({ status: 'failed' });
                                 }
                             } else {

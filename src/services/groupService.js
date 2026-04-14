@@ -8,96 +8,66 @@
 
 import { supabase } from '../config/supabase';
 import { logUserActivity } from '../utils/activityLogger';
+import { db, addToSyncQueue } from '../db/db';
 
 /**
- * Create a new group
+ * Create a new group (Local-First Pattern)
  */
-export const createGroup = async ({ name, description, avatarFile, avatarUrl: avatarUrlParam, createdBy, memberIds }) => {
+export const createGroup = async ({ name, description, avatarUrl: avatarUrlParam, createdBy, memberIds }) => {
     try {
-        let avatarUrl = avatarUrlParam || null;
+        const tempId = `tmp_${Date.now()}`;
+        const avatarUrl = avatarUrlParam || null;
 
-        // Step 1: Insert group into groups table
-        console.log('Creating group with:', { name, description, avatarUrl, createdBy });
+        // Step 1: Prepare local record
+        const localGroup = {
+            id: tempId,
+            name,
+            description: description || null,
+            avatar_url: avatarUrl || null,
+            created_by: createdBy,
+            created_at: new Date().toISOString(),
+            is_syncing: true, // UI indicator
+            tempId,
+        };
 
-        const { data: group, error: groupError } = await supabase
-            .from('groups')
-            .insert({
+        // Step 2: Insert into local Dexie immediately
+        await db.groups.put(localGroup);
+
+        // [FIX #9] Ensure unified chat list view also sees the new group locally
+        // This prevents the chat from "disappearing" until the next sync
+        await db.chats_list.put({
+            id: tempId,
+            name,
+            avatar_url: avatarUrl,
+            last_message: `You created group "${name}"`,
+            last_message_time: new Date().toISOString(),
+            is_group: true,
+            tempId,
+        });
+
+        // Step 3: Add other members separately in Dexie (group_members table)
+        // Note: db.group_members was missing from db.js version 4, check if we need to add it or just use groups table details
+        // Existing db.js version 4 has 'groups: "id, name"'. 
+        // We'll store members in a nested way if needed, or update Dexie schema later.
+
+        // Step 4: Queue for Supabase sync
+        await addToSyncQueue('create_group', {
+            tempId,
+            payload: {
                 name,
-                description: description || null,
-                avatar_url: avatarUrl || null,
+                description,
+                avatar_url: avatarUrl,
                 created_by: createdBy,
-            })
-            .select()
-            .single();
-
-        if (groupError) {
-            console.error('Group insert error:', groupError);
-            throw groupError;
-        }
-
-        console.log('Group created:', group);
-
-        // Step 2: Add creator as admin first (Deduplicated)
-        const { error: creatorError } = await supabase
-            .from('group_members')
-            .insert({
-                group_id: group.id,
-                user_id: createdBy,
-                role: 'admin',
-                joined_at: new Date().toISOString(),
-            });
-
-        if (creatorError) {
-            console.error('Error adding creator to group:', creatorError);
-            throw creatorError;
-        }
-
-        // Step 3: Add other members separately
-        const otherMemberIds = memberIds.filter(id => id !== createdBy);
-        if (otherMemberIds.length > 0) {
-            const memberRecords = otherMemberIds.map((userId) => ({
-                group_id: group.id,
-                user_id: userId,
-                role: 'member',
-                joined_at: new Date().toISOString(),
-            }));
-
-            const { error: membersError } = await supabase
-                .from('group_members')
-                .insert(memberRecords);
-
-            if (membersError) {
-                console.error('Error adding other members:', membersError);
-                // We don't necessarily want to fail group creation if only participants fail, 
-                // but for consistency with the original code, we throw.
-                throw membersError;
+                memberIds, // Include members in payload for the sync handler
             }
-        }
+        });
 
-        // [FIX #9] Step 3: System message with receiver_id set
-        try {
-            const { error: systemMsgError } = await supabase
-                .from('messages')
-                .insert({
-                    chat_id: group.id,
-                    sender_id: createdBy,
-                    receiver_id: createdBy, // FIX: Use creator as placeholder — consistent with sendGroupMessage
-                    content: `Group "${name}" was created`,
-                    is_group_message: true,
-                    message_type: 'system',
-                });
+        // Log activity locally
+        logUserActivity(createdBy, 'create_group_local', { tempId, name });
 
-            if (systemMsgError) console.warn('System message failed:', systemMsgError);
-        } catch (e) {
-            console.warn('System message skipped:', e);
-        }
-
-        // Log activity
-        logUserActivity(createdBy, 'create_group', { group_id: group.id, name });
-
-        return group;
+        return localGroup;
     } catch (error) {
-        console.error('Error creating group:', error);
+        console.error('Error in local-first group creation:', error);
         throw error;
     }
 };

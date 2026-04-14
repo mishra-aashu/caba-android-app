@@ -11,8 +11,8 @@ export const filterNonExistentFields = (data, tableName) => {
 
   // Live DB columns (cross-referenced with Supabase public schema)
   const existingColumns = {
-    users: ['id', 'name', 'phone', 'email', 'avatar', 'about', 'is_online', 'last_seen', 'created_at', 'updated_at', 'password', 'is_admin', 'auth_provider', 'email_confirmed_at', 'auth_password', 'fcm_token_android', 'fcm_token_web', 'emoji_style'],
-    messages: ['id', 'chat_id', 'sender_id', 'receiver_id', 'content', 'message_type', 'media_url', 'media_path', 'media_type', 'reply_to', 'is_read', 'is_delivered', 'is_group_message', 'status', 'emoji_style', 'created_at', 'updated_at', 'vanish_at', 'is_vanished', 'vanish_duration_seconds', 'seen_at', 'is_viewed', 'duration', 'unlock_at', 'is_anonymous', 'anon_name', 'anon_avatar_url'],
+    users: ['id', 'name', 'phone', 'email', 'avatar', 'about', 'is_online', 'last_seen', 'created_at', 'updated_at', 'password', 'is_admin', 'auth_provider', 'email_confirmed_at', 'auth_password', 'fcm_token_android', 'fcm_token_web', 'emoji_style', 'preferred_emojis', 'profile_photo_visibility', 'phone_visibility', 'last_seen_visibility', 'two_factor_enabled', 'language', 'is_banned', 'ota_version'],
+    messages: ['id', 'chat_id', 'sender_id', 'receiver_id', 'content', 'message_type', 'media_url', 'media_path', 'media_type', 'reply_to', 'is_read', 'is_delivered', 'is_group_message', 'status', 'emoji_style', 'created_at', 'updated_at', 'vanish_at', 'is_vanished', 'vanish_duration_seconds', 'seen_at', 'is_viewed', 'duration', 'unlock_at', 'is_anonymous', 'anon_name', 'anon_avatar_url', 'metadata', 'client_id', 'is_deleted'],
     chats: ['id', 'user1_id', 'user2_id', 'last_message', 'last_message_time', 'unread_count', 'created_at', 'updated_at'],
     call_history: ['id', 'caller_id', 'receiver_id', 'call_id', 'call_type', 'call_status', 'call_duration', 'started_at', 'answered_at', 'ended_at', 'created_at', 'updated_at'],
     reminders: ['id', 'sender_id', 'receiver_id', 'title', 'description', 'reminder_time', 'location', 'category', 'priority', 'status', 'accepted_at', 'completed_at', 'sound_enabled', 'vibration_enabled', 'is_recurring', 'recurring_type', 'requires_acceptance', 'snooze_until', 'snooze_count', 'created_at', 'updated_at'],
@@ -22,7 +22,7 @@ export const filterNonExistentFields = (data, tableName) => {
     support_messages: ['id', 'user_id', 'message', 'message_type', 'is_read', 'admin_response', 'responded_by', 'responded_at', 'created_at', 'updated_at'],
     admin_logs: ['id', 'admin_id', 'target_user_id', 'action', 'details', 'ip_address', 'user_agent', 'created_at'],
     message_reads: ['id', 'message_id', 'user_id', 'read_at', 'created_at'],
-    groups: ['id', 'name', 'description', 'avatar', 'avatar_url', 'created_by', 'created_at', 'updated_at', 'last_message', 'last_message_time', 'admins_only_edit_info', 'admins_only_add_members', 'admins_only_messages', 'is_anonymous_mode', 'anon_session_id'],
+    groups: ['id', 'name', 'description', 'created_by', 'created_at', 'updated_at', 'avatar_url', 'last_message', 'last_message_time', 'admins_only_edit_info', 'admins_only_add_members', 'admins_only_messages', 'is_anonymous_mode', 'anon_session_id'],
     group_members: ['id', 'group_id', 'user_id', 'role', 'joined_at'],
     game_invitations: ['id', 'chat_id', 'sender_id', 'receiver_id', 'game_type', 'invitation_message', 'invitation_data', 'status', 'created_at', 'updated_at'],
     temporary_chat_settings: ['id', 'chat_id', 'user_id', 'is_enabled', 'vanish_duration', 'vanish_duration_seconds', 'custom_duration', 'auto_delete_media', 'created_at', 'updated_at'],

@@ -15,17 +15,25 @@ export const coerceDataTypes = (data, tableName) => {
 
   switch (tableName) {
     case 'messages':
+      // Ensure specific numeric fields are numbers
+      if (coerced.duration !== undefined) {
+        coerced.duration = parseInt(coerced.duration) || null;
+      }
+      break;
+
+    case 'chats':
       // Ensure unread_count is always a number
       if (coerced.unread_count !== undefined) {
         coerced.unread_count = parseInt(coerced.unread_count) || 0;
       }
+      break;
+
+    case 'call_history':
       // Ensure call_duration is a number
       if (coerced.call_duration !== undefined) {
         coerced.call_duration = parseInt(coerced.call_duration) || null;
       }
       break;
-
-    case 'call_history':
       // Ensure call_duration is a number
       if (coerced.call_duration !== undefined) {
         coerced.call_duration = parseInt(coerced.call_duration) || null;

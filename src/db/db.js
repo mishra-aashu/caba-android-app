@@ -72,9 +72,21 @@ export const manualRetrySyncItem = async (tempId) => {
         });
     }
 
-    // 3. Reset message status in Dexie
+    // 3. Reset statuses in Dexie tables for UI feedback
+    // Reset messages
     await db.messages
         .where('tempId')
+        .equals(tempId)
+        .modify({ status: 'pending' });
+
+    // [FIX #11] New: Reset groups and chats_list
+    await db.groups
+        .where('id')
+        .equals(tempId)
+        .modify({ status: 'pending' });
+
+    await db.chats_list
+        .where('id')
         .equals(tempId)
         .modify({ status: 'pending' });
 };

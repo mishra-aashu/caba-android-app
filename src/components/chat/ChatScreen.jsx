@@ -23,6 +23,7 @@ import { useGroupDetails } from '../../hooks/useGroupDetails';
 import styles from '../../styles/chat.module.css';
 import { getStableMessageId, extractMessageContent } from '../../utils/messageHelpers';
 import { resolveAvatarUrl } from '../../utils/avatarHelpers';
+import { mapMessage as dbToFrontend } from '../../services/dataGateway';
 
 const MediaViewer = lazy(() => import('../media/MediaViewer'));
 const ImageViewer = lazy(() => import('./ImageViewer'));
@@ -33,26 +34,6 @@ const EmojiPicker = lazy(() => import('../common/EmojiPicker'));
 
 // [FIX #9] Removed unused lazy imports: GroupInfoDrawer, GameLobby
 // They were imported but never rendered in JSX
-
-const dbToFrontend = (msg) => {
-    if (!msg) return msg;
-    return {
-        ...msg,
-        id: msg.id,
-        chatId: msg.chat_id ?? msg.chatId,
-        senderId: msg.sender_id ?? msg.senderId,
-        receiverId: msg.receiver_id ?? msg.receiverId,
-        content: msg.content,
-        mediaPath: msg.media_path ?? msg.mediaPath,
-        mediaType: msg.media_type ?? msg.mediaType,
-        messageType: msg.message_type ?? msg.messageType ?? 'text',
-        createdAt: msg.created_at ?? msg.createdAt,
-        updatedAt: msg.updated_at ?? msg.updatedAt,
-        replyTo: msg.reply_to ?? msg.replyTo,
-        vanishAt: msg.vanish_at ?? msg.vanishAt,
-        seen_at: msg.seen_at,
-    };
-};
 
 const ChatScreen = () => {
     const navigate = useNavigate();

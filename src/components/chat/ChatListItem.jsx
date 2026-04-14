@@ -1,11 +1,13 @@
 import React, { memo } from "react";
 import { motion } from "framer-motion";
-import { Timer, Users, User, Trash2 } from "lucide-react";
+import { Timer, Users, User, Trash2, Clock, AlertCircle, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchMessagesPage } from "../../hooks/useMessages";
 import { formatLastSeen, formatTime } from "../../utils/dateFormatter";
 import { useResolveName } from "../../hooks/useResolveName";
 import { useResolveAvatar } from "../../hooks/useResolveAvatar";
+import { manualRetrySyncItem } from "../../db/db";
+import toast from "react-hot-toast";
 import EmojiRenderer from "../common/EmojiRenderer";
 import CachedImage from "../common/CachedImage";
 import styles from "../../styles/ChatListItem.module.css";
@@ -80,9 +82,26 @@ const ChatListItem = ({
     </span>
   ) : null;
 
+  const handleRetry = async (e) => {
+    e.stopPropagation();
+    try {
+      await manualRetrySyncItem(chat.id);
+      toast.success("Retrying sync...");
+      if (navigator.onLine) {
+        window.dispatchEvent(new Event("online"));
+      }
+    } catch (err) {
+      console.error("Retry failed:", err);
+      toast.error("Failed to retry");
+    }
+  };
+
+  const isSyncing = chat.status === "pending" || (String(chat.id).startsWith("tmp_") && !chat.status);
+  const isFailed = chat.status === "failed";
+
   return (
     <div
-      className={`${styles["chat-item"]} ${isActive ? styles.active : ""} ${isGroup ? styles["group-item"] : ""} ${is_vanish_enabled ? styles["vanish-mode"] : ""} ${isSelected ? styles.selected : ""} ${selectionMode ? styles["selection-mode"] : ""} native-touch`}
+      className={`${styles["chat-item"]} ${isActive ? styles.active : ""} ${isGroup ? styles["group-item"] : ""} ${is_vanish_enabled ? styles["vanish-mode"] : ""} ${isSelected ? styles.selected : ""} ${selectionMode ? styles["selection-mode"] : ""} ${isFailed ? styles.failed : ""} native-touch`}
       onClick={(e) => {
         if (selectionMode) {
           onSelect(chat.id);
@@ -141,6 +160,13 @@ const ChatListItem = ({
             {isGroup ? <Users size={24} /> : <User size={24} />}
           </div>
         )}
+
+        {/* Sync Status Overlay */}
+        {(isSyncing || isFailed) && (
+          <div className={styles["sync-status-overlay"]}>
+            {isSyncing ? <Clock size={16} className={styles["spin-slow"]} /> : <AlertCircle size={16} color="#ff4b4b" />}
+          </div>
+        )}
       </motion.div>
 
       <div className={styles["chat-info"]}>
@@ -163,6 +189,7 @@ const ChatListItem = ({
             {is_vanish_enabled && (
               <Timer size={14} className={styles["vanish-icon"]} />
             )}
+            {isFailed && <span className={styles["failed-label"]}> (Failed)</span>}
           </div>
           <span className={styles["chat-time"]}>{displayTime}</span>
         </div>
@@ -173,21 +200,29 @@ const ChatListItem = ({
             <EmojiRenderer text={lastMessage} />
           </p>
 
-          {unreadCount > 0 && !selectionMode && (
-            <span className={styles["unread-badge"]}>{unreadCount}</span>
-          )}
+          <div className={styles["chat-list-actions"]}>
+            {isFailed && (
+              <button className={styles["inline-retry-btn"]} onClick={handleRetry} title="Retry">
+                <RefreshCw size={14} />
+              </button>
+            )}
 
-          {!isMobile && !selectionMode && (
-            <button
-              className={styles["hover-delete-btn"]}
-              onClick={(e) => {
-                e.stopPropagation();
-                onContextMenu(e, chat); // Trigger context menu or direct delete modal
-              }}
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
+            {unreadCount > 0 && !selectionMode && (
+              <span className={styles["unread-badge"]}>{unreadCount}</span>
+            )}
+
+            {!isMobile && !selectionMode && (
+              <button
+                className={styles["hover-delete-btn"]}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContextMenu(e, chat); // Trigger context menu or direct delete modal
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -18,12 +18,14 @@ import {
   Trash2,
   X,
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  AlertCircle
 } from 'lucide-react';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useChatListRealtime } from '../hooks/useChatListRealtime';
+import { useSyncStatus } from '../hooks/useSyncStatus';
 import { useContacts } from '../hooks/useCommonQueries';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
@@ -424,6 +426,8 @@ const ChatListPanel = ({
     clearSelection();
   };
 
+  const { hasFailures } = useSyncStatus();
+
   return (
     <main className={styles['chat-list-panel-content']}>
       
@@ -508,7 +512,19 @@ const ChatListPanel = ({
                 <Search size={20} />
               </button>
 
-              <DropdownMenu items={dropdownItems} />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                {hasFailures && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    title="Sync Failures Detected"
+                    style={{ position: 'absolute', left: '-10px', top: '10px', zIndex: 101, color: '#ff4b4b', pointerEvents: 'none' }}
+                  >
+                    <AlertCircle size={14} />
+                  </motion.div>
+                )}
+                <DropdownMenu items={dropdownItems} />
+              </div>
             </>
           )}
         </div>

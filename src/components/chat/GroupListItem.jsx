@@ -4,14 +4,15 @@
  */
 
 import React from 'react';
-import { Users } from 'lucide-react';
+import { Users, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchMessagesPage } from '../../hooks/useMessages';
 import { getInitials } from '../../utils/stringUtils';
 import { isUserOnline } from '../../utils/dateFormatter';
 import { formatInboxTime } from '../../utils/dateFormatter';
+import { manualRetrySyncItem } from '../../db/db';
+import toast from 'react-hot-toast';
 import styles from '../../styles/ChatListItem.module.css';
-
 const GroupListItem = ({ group, onClick, isActive }) => {
   const queryClient = useQueryClient();
 
@@ -46,22 +47,27 @@ const GroupListItem = ({ group, onClick, isActive }) => {
     return `${count} ${count === 1 ? 'member' : 'members'}`;
   };
 
-  // Format time using dayjs via formatInboxTime
-  // Returns "h:mm A" for today, "Yesterday", or "DD/MM/YYYY" for older
-
-  // Get initials from group name
-  const getGroupInitials = () => {
-    if (!group.name) return 'G';
-    const words = group.name.split(' ');
-    if (words.length >= 2) {
-      return (words[0][0] + words[1][0]).toUpperCase();
+  const handleRetry = async (e) => {
+    e.stopPropagation();
+    try {
+      await manualRetrySyncItem(group.id);
+      toast.success('Retrying group creation...');
+      // Dispatch online event to trigger processing if needed
+      if (navigator.onLine) {
+        window.dispatchEvent(new Event('online'));
+      }
+    } catch (err) {
+      console.error('Retry failed:', err);
+      toast.error('Failed to retry');
     }
-    return group.name.substring(0, 2).toUpperCase();
   };
+
+  const isSyncing = group.status === 'pending' || (String(group.id).startsWith('tmp_') && !group.status);
+  const isFailed = group.status === 'failed';
 
   return (
     <div
-      className={`${styles['chat-item']} ${isActive ? styles.active : ''} ${styles['group-item']}`}
+      className={`${styles['chat-item']} ${isActive ? styles.active : ''} ${styles['group-item']} ${isFailed ? styles.failed : ''}`}
       onClick={onClick}
       onMouseEnter={handlePrefetch}
       onPointerDown={handlePrefetch}
@@ -94,7 +100,14 @@ const GroupListItem = ({ group, onClick, isActive }) => {
           <Users size={20} color="white" />
         </div>
 
-        {/* Unread Badge on Avatar (Legacy position, but let's keep it functional) */}
+        {/* Sync Status Overlay */}
+        {(isSyncing || isFailed) && (
+          <div className={styles['sync-status-overlay']}>
+            {isSyncing ? <Clock size={16} className={styles['spin-slow']} /> : <AlertCircle size={16} color="#ff4b4b" />}
+          </div>
+        )}
+
+        {/* Unread Badge on Avatar */}
         {group.unreadCount > 0 && (
           <span className={styles['unread-badge']} style={{ position: 'absolute', bottom: '-2px', right: '-2px', marginLeft: 0 }}>
             {group.unreadCount}
@@ -105,7 +118,10 @@ const GroupListItem = ({ group, onClick, isActive }) => {
       {/* Chat Info */}
       <div className={styles['chat-info']}>
         <div className={styles['chat-header-row']}>
-          <span className={styles['chat-name']}>{group.name || 'Unnamed Group'}</span>
+          <span className={styles['chat-name']}>
+            {group.name || 'Unnamed Group'}
+            {isFailed && <span className={styles['failed-label']}> (Failed)</span>}
+          </span>
           <span className={styles['chat-time']}>
             {formatInboxTime(group.last_message_time)}
           </span>
@@ -122,6 +138,12 @@ const GroupListItem = ({ group, onClick, isActive }) => {
               {getMemberPreview()}
             </span>
           </div>
+
+          {isFailed && (
+            <button className={styles['inline-retry-btn']} onClick={handleRetry} title="Retry Creation">
+              <RefreshCw size={14} />
+            </button>
+          )}
         </div>
       </div>
     </div>

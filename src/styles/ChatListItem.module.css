@@ -955,3 +955,73 @@
     height: 40px;
   }
 }
+
+/* =============================================
+   11. SYNC STATUS & ERROR UI
+   ============================================= */
+
+.sync-status-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  backdrop-filter: blur(1px);
+}
+
+.spin-slow {
+  animation: spin-slow 2s linear infinite;
+  color: white;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.chat-item.failed {
+  border-left: 3px solid #ff4b4b;
+}
+
+.failed-label {
+  color: #ff4b4b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.chat-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-retry-btn {
+  background: rgba(0, 168, 132, 0.1);
+  border: none;
+  color: var(--brand-primary);
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.inline-retry-btn:hover {
+  background-color: var(--brand-primary);
+  color: white;
+  transform: rotate(30deg);
+}
+
+.inline-retry-btn:active {
+  transform: scale(0.9) rotate(0deg);
+}
+
