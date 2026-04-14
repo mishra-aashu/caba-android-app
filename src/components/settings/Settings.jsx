@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+
 import AppName from '../common/AppName';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -81,6 +83,7 @@ const expandVariants = {
 };
 
 const Settings = ({ isSidebar = false }) => {
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const { supabase } = useSupabase();
     const { theme, toggleTheme, textSize, setTextSize } = useTheme();
@@ -267,6 +270,10 @@ const Settings = ({ isSidebar = false }) => {
         }
         setSettings(prev => ({ ...prev, [key]: value }));
         localStorage.setItem(key, value.toString());
+
+        if (key === 'language') {
+            i18n.changeLanguage(value);
+        }
 
         // Update DB if it's a privacy/profile field
         const dbFields = ['profilePhotoVisibility', 'phoneVisibility', 'language'];
@@ -502,7 +509,7 @@ const Settings = ({ isSidebar = false }) => {
                     >
                         <ArrowLeft size={22} />
                     </button>
-                    <h1>Settings</h1>
+                    <h1>{t('settings.title')}</h1>
                 </div>
                 <span className="version-badge">v{APP_VERSION}</span>
             </header>
@@ -516,13 +523,13 @@ const Settings = ({ isSidebar = false }) => {
 
                     <SettingItem
                         icon={User}
-                        label="Profile"
+                        label={t('settings.profile') || 'Profile'}
                         onClick={() => navigate('/profile')}
                     />
 
                     <SettingItem
                         icon={Lock}
-                        label="Privacy"
+                        label={t('settings.privacy') || 'Privacy'}
                         onClick={() => toggleSection('privacy')}
                         chevron={false}
                     />
@@ -589,7 +596,7 @@ const Settings = ({ isSidebar = false }) => {
 
                     <SettingItem
                         icon={Shield}
-                        label="Security"
+                        label={t('settings.security')}
                         onClick={() => navigate('/settings/security')}
                     />
 
@@ -705,7 +712,7 @@ const Settings = ({ isSidebar = false }) => {
                     <div className="settings-item dropdown-item">
                         <div className="item-left">
                             <div className="item-icon"><Languages size={18} /></div>
-                            <span className="item-label">App Language</span>
+                            <span className="item-label">{t('settings.language')}</span>
                         </div>
                         <select 
                             value={settings.language}

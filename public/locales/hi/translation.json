@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "title": "सेटिंग्स",
+    "language": "भाषा",
+    "security": "सुरक्षा",
+    "help": "सहायता केंद्र",
+    "logout": "लॉगआउट",
+    "profile_visibility": "प्रोफ़ाइल फोटो प्राइवेसी",
+    "phone_visibility": "फ़ोन नंबर प्राइवेसी",
+    "everyone": "सबके लिए",
+    "contacts": "सिर्फ कॉन्टैक्ट्स",
+    "nobody": "किसी के लिए नहीं",
+    "updated_success": "सेटिंग्स अपडेट हो गईं",
+    "updated_error": "सेटिंग्स अपडेट करने में विफल"
+  }
+}

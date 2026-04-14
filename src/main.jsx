@@ -8,6 +8,7 @@ import { HashRouter } from 'react-router-dom';
 // meaning no offline cache, no update detection, nothing.
 // ═══════════════════════════════════════════════════════════
 import './pwa';
+import './i18n';
 
 // ── CSS imports (order matters for cascade) ──
 import './styles/tokens.css';

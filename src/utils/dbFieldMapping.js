@@ -26,7 +26,7 @@ export const DB_TO_FRONTEND_MAP = {
   'phone_visibility': 'phoneVisibility',
   'last_seen_visibility': 'lastSeenVisibility',
   'two_factor_enabled': 'twoFactorEnabled',
-  'language_preference': 'language',
+  'language': 'language',
 
   // Message fields
   'sender_id': 'senderId',
