@@ -167,14 +167,15 @@ const ChatListPanel = ({
       try {
         const { data, error } = await supabase
           .from('users')
-          .select('id, name, phone, avatar')
+          .select('id, name, phone, avatar, is_online, last_seen')
           .eq('phone', query)
           .neq('id', user.id)
           .limit(1);
 
         if (error) throw error;
 
-        setSearchSuggestions(data || []);
+        const { safeDbConversion } = await import('../utils/dbFieldMapping');
+        setSearchSuggestions(safeDbConversion(data || []));
         setShowSuggestions(true);
       } catch (error) {
         console.error('Error searching users:', error);
@@ -610,7 +611,7 @@ const ChatListPanel = ({
                       : (user.avatar || "https://ionicframework.com/docs/img/demos/avatar.svg")}
                     alt={user.name}
                   />
-                  <span className={`${styles['online-status']} ${isUserOnline(Boolean(user.is_online), user.last_seen) ? styles.online : ''}`}></span>
+                  <span className={`${styles['online-status']} ${isUserOnline(Boolean(user.isOnline), user.lastSeen) ? styles.online : ''}`}></span>
                 </div>
                 <div className={styles['suggestion-info']}>
                   <div className={styles['suggestion-name']}>{user.name}</div>

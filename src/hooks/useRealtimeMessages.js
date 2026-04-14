@@ -96,9 +96,8 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             };
 
             const finalMsg = {
-                ...newRecord, // Store in db with DB casing
+                ...enrichedMsg,
                 tempId: newRecord.client_id || undefined,
-                needsEnrichment: enrichedMsg.needsEnrichment,
             };
 
             try {
@@ -106,14 +105,8 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                     if (newRecord.client_id) {
                         await db.messages.delete(`temp_${newRecord.client_id}`).catch(() => {});
                     }
-                    // [FIX] Always store enriched message in Dexie via put() (upsert by primary key).
-                    // This is idempotent: overlapping real-time + background sync won't create duplicates.
-                    // The sender object is stored inline to ensure useLiveQuery sees it immediately.
-                    await db.messages.put({
-                        ...finalMsg,
-                        sender: enrichedMsg.sender,
-                        receiver: enrichedMsg.receiver,
-                    });
+                    // Store normalized message
+                    await db.messages.put(finalMsg);
                 });
             } catch (err) {
                 console.error('Failed to save realtime msg to Dexie', err);
@@ -124,7 +117,8 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             }
         } else if (eventType === 'UPDATE' && newRecord) {
             try {
-                await db.messages.update(newRecord.id, newRecord);
+                const normalized = safeDbConversion(newRecord);
+                await db.messages.update(newRecord.id, normalized);
             } catch (err) {
                 console.error('Failed to update realtime msg in Dexie', err);
             }
@@ -160,10 +154,10 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
         // ── 1. Recovery: If lastMessageRef is null, try to load from Dexie ──
         if (!lastMessageRef.current) {
             const latestInDexie = await db.messages
-                .where('chat_id')
+                .where('chatId')
                 .equals(currentChatId)
                 .reverse()
-                .sortBy('created_at')
+                .sortBy('createdAt')
                 .then(msgs => msgs[0]);
             
             if (latestInDexie) {
@@ -212,7 +206,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                 
                 // Persist to chats_list
                 await db.chats_list.update(currentChatId, { 
-                    last_message_at: latestFromData.created_at 
+                    lastMessageAt: latestFromData.created_at 
                 }).catch(() => {});
             }
 
@@ -237,7 +231,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                 }));
 
                 try {
-                    await db.messages.bulkPut(data);
+                    await db.messages.bulkPut(enriched);
                 } catch (err) {
                     console.error('Failed to catch up messages in Dexie', err);
                 }

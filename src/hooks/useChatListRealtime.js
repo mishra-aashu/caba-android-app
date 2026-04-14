@@ -103,9 +103,9 @@ export const useChatListRealtime = (currentUserId) => {
 
         setLoadingMore(true);
         try {
-            const currentChats = await db.chats_list.orderBy('timestamp').reverse().toArray();
+            const currentChats = await db.chats_list.orderBy('lastMessageAt').reverse().toArray();
             const lastChat = currentChats[currentChats.length - 1];
-            const lastTimestamp = lastChat?.timestamp;
+            const lastTimestamp = lastChat?.lastMessageAt;
 
             let query = supabase
                 .from('unified_chat_list')

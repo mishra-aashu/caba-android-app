@@ -21,7 +21,7 @@ export const useGroupMessages = (groupId, currentUserId) => {
 
   // Dexie live query
   const rawMessages = useLiveQuery(
-    () => db.messages.where('chat_id').equals(groupId).sortBy('created_at'),
+    () => db.messages.where('chatId').equals(groupId).sortBy('createdAt'),
     [groupId]
   ) || [];
 
@@ -92,7 +92,8 @@ export const useGroupMessages = (groupId, currentUserId) => {
   const refreshMessages = useCallback(async () => {
     const freshMsgs = await fetchGroupMessages(groupId, 50);
     if(freshMsgs && freshMsgs.length > 0) {
-       await db.messages.bulkPut(freshMsgs);
+       const { safeDbConversion } = await import('../utils/dbFieldMapping');
+       await db.messages.bulkPut(safeDbConversion(freshMsgs));
     }
   }, [groupId]);
 

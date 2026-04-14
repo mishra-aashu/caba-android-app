@@ -21,7 +21,7 @@ export const normalizeChat = (rawChat, currentUserId = null) => {
   // Maintain backward compatibility for properties expected by some components
   return {
     ...mapped,
-    timestamp: mapped.lastMessageTime,
+    timestamp: mapped.lastMessageAt,
     isChat: !mapped.isGroup,
     metadata: {
         ...mapped.metadata,
@@ -38,7 +38,7 @@ export const formatChatForList = (chat, contactName = null) => {
     name: contactName || chat.name,
     avatar: chat.avatar,
     lastMessage: chat.lastMessage,
-    time: formatTime(chat.timestamp || chat.lastMessageTime),
+    time: formatTime(chat.lastMessageAt),
     unreadCount: chat.unreadCount,
     is_online: chat.isOnline,
     last_seen: chat.lastSeen,

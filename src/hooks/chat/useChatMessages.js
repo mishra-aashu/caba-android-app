@@ -25,7 +25,7 @@ export function useChatMessages({
     // ─── DEXIE LIVE QUERY ───
     const limit = 50;
     const rawMessages = useLiveQuery(
-        () => db.messages.where('chat_id').equals(chatId).sortBy('created_at'),
+        () => db.messages.where('chatId').equals(chatId).sortBy('createdAt'),
         [chatId]
     ) || [];
 
@@ -62,7 +62,7 @@ export function useChatMessages({
             const firstMsg = rawMessages[0];
             const result = await fetchMessagesPage({
                 chatId,
-                beforeTimestamp: firstMsg.created_at,
+                beforeTimestamp: firstMsg.createdAt,
                 limit,
             });
             lastFetchCountRef.current = result.count;
@@ -128,10 +128,10 @@ export function useChatMessages({
     const clearChat = useCallback(async () => {
         if (isNewChat) return;
 
-        const backup = await db.messages.where('chat_id').equals(chatId).toArray();
+        const backup = await db.messages.where('chatId').equals(chatId).toArray();
 
         try {
-            await db.messages.where('chat_id').equals(chatId).delete();
+            await db.messages.where('chatId').equals(chatId).delete();
 
             const { error } = await supabase
                 .from('messages')

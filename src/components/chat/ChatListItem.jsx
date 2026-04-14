@@ -35,12 +35,12 @@ const ChatListItem = ({
     lastMessage,
     timestamp,
     unreadCount,
-    is_online,
-    last_seen,
+    isOnline,
+    lastSeen,
     isGroup,
-    member_count,
-    member_preview,
-    is_vanish_enabled,
+    memberCount,
+    memberPreview,
+    isVanishEnabled,
   } = chat;
 
   const queryClient = useQueryClient();
@@ -101,7 +101,7 @@ const ChatListItem = ({
 
   return (
     <div
-      className={`${styles["chat-item"]} ${isActive ? styles.active : ""} ${isGroup ? styles["group-item"] : ""} ${is_vanish_enabled ? styles["vanish-mode"] : ""} ${isSelected ? styles.selected : ""} ${selectionMode ? styles["selection-mode"] : ""} ${isFailed ? styles.failed : ""} native-touch`}
+      className={`${styles["chat-item"]} ${isActive ? styles.active : ""} ${isGroup ? styles["group-item"] : ""} ${isVanishEnabled ? styles["vanish-mode"] : ""} ${isSelected ? styles.selected : ""} ${selectionMode ? styles["selection-mode"] : ""} ${isFailed ? styles.failed : ""} native-touch`}
       onClick={(e) => {
         if (selectionMode) {
           onSelect(chat.id);
@@ -186,7 +186,7 @@ const ChatListItem = ({
               </span>
             )}
             {resolvedName}
-            {is_vanish_enabled && (
+            {isVanishEnabled && (
               <Timer size={14} className={styles["vanish-icon"]} />
             )}
             {isFailed && <span className={styles["failed-label"]}> (Failed)</span>}
@@ -240,7 +240,7 @@ export default memo(ChatListItem, (prevProps, nextProps) => {
     prevProps.chat.lastMessage === nextProps.chat.lastMessage &&
     prevProps.chat.timestamp === nextProps.chat.timestamp &&
     prevProps.chat.unreadCount === nextProps.chat.unreadCount &&
-    prevProps.chat.is_online === nextProps.chat.is_online &&
+    prevProps.chat.isOnline === nextProps.chat.isOnline &&
     prevProps.chat.name === nextProps.chat.name &&
     prevProps.chat.avatar === nextProps.chat.avatar
   );

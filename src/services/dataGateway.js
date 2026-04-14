@@ -21,16 +21,17 @@ export const mapMessage = (msg) => {
     receiverId: msg.receiver_id ?? msg.receiverId,
     content: msg.content,
     mediaPath: msg.media_path ?? msg.mediaPath,
+    mediaUrl: msg.media_url ?? msg.mediaUrl,
     mediaType: msg.media_type ?? msg.mediaType,
     messageType: msg.message_type ?? msg.messageType ?? 'text',
     createdAt: msg.created_at ?? msg.createdAt,
     updatedAt: msg.updated_at ?? msg.updatedAt,
     replyTo: msg.reply_to ?? msg.replyTo,
     vanishAt: msg.vanish_at ?? msg.vanishAt,
-    seen_at: msg.seen_at,
+    seenAt: msg.seen_at ?? msg.seenAt,
     status: msg.status || 'read', // pending, sending, failed, read
     metadata: msg.metadata || {},
-    is_deleted: msg.is_deleted || false
+    isDeleted: msg.is_deleted ?? msg.isDeleted ?? false
   };
 };
 
@@ -92,13 +93,13 @@ export const mapChat = (raw, currentUserId = null) => {
     name: finalName,
     avatar: avatar,
     lastMessage: raw.last_message || raw.last_message_content || (isGroup ? "No messages yet" : ""),
-    lastMessageTime: raw.last_message_time || raw.last_message_at || raw.created_at,
+    lastMessageAt: raw.last_message_at || raw.last_message_time || raw.created_at || raw.lastMessageAt,
     unreadCount,
     isOnline,
     lastSeen: raw.other_user_last_seen || raw.last_seen || raw.other_user?.last_seen,
     status: raw.status, // pending, failed, synced
-    is_vanish_enabled: raw.is_vanish_enabled || false,
-    member_count: raw.member_count || 0,
+    isVanishEnabled: raw.is_vanish_enabled || raw.isVanishEnabled || false,
+    memberCount: raw.member_count || raw.memberCount || 0,
     otherUserId: raw.other_user_id || raw.other_user?.id || null
   };
 };
@@ -114,12 +115,13 @@ export const mapUser = (user) => {
     name: user.name || user.full_name || user.display_name,
     avatar: user.avatar || user.avatar_url || user.profile_image,
     about: user.about || user.status_message,
-    isOnline: Boolean(user.is_online),
-    lastSeen: user.last_seen,
-    createdAt: user.created_at,
-    updatedAt: user.updated_at
+    isOnline: Boolean(user.is_online ?? user.isOnline),
+    lastSeen: user.last_seen ?? user.lastSeen,
+    createdAt: user.created_at ?? user.createdAt,
+    updatedAt: user.updated_at ?? user.updatedAt
   };
 };
+
 
 const dataGateway = {
   mapMessage,

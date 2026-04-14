@@ -48,34 +48,22 @@ export const fetchMessagesPage = async ({ chatId, beforeTimestamp = null, limit 
     }
 
     const rawMessages = data || [];
-
-    // Patch up sender/receiver but keep everything else snake_case
-    const validMessages = rawMessages.map((msg) => ({
-        ...msg,
-        sender: msg.sender || {
-            id: msg.sender_id,
-            name: 'Unknown',
-            avatar: null,
-        },
-        receiver: msg.receiver || (
-            msg.receiver_id
-                ? { id: msg.receiver_id, name: 'Unknown', avatar: null }
-                : null
-        ),
-    }));
+    const { safeDbConversion } = await import('../utils/dbFieldMapping');
+    const converted = safeDbConversion(rawMessages);
 
     // Save fetched messages directly into Dexie
-    if (validMessages.length > 0) {
-        await db.messages.bulkPut(validMessages);
+    if (converted.length > 0) {
+        await db.messages.bulkPut(converted);
     }
 
     return {
-        count: validMessages.length,
-        lastFetchedTimestamp: validMessages.length > 0
-            ? validMessages[validMessages.length - 1].created_at
+        count: converted.length,
+        lastFetchedTimestamp: converted.length > 0
+            ? converted[converted.length - 1].createdAt
             : null,
     };
 };
+
 
 /**
  * Utility to load initial messages for a chat if Dexie is empty
@@ -86,10 +74,10 @@ export const loadInitialMessagesIfNeeded = async (chatId) => {
     
     // 1. Check what we have in Dexie
     const latestMsg = await db.messages
-        .where('chat_id')
+        .where('chatId')
         .equals(chatId)
         .reverse()
-        .sortBy('created_at')
+        .sortBy('createdAt')
         .then(msgs => msgs[0]);
 
     if (!latestMsg) {
@@ -122,7 +110,7 @@ export const loadInitialMessagesIfNeeded = async (chatId) => {
                     )
                 `)
                 .eq('chat_id', chatId)
-                .gt('created_at', latestMsg.created_at)
+                .gt('created_at', latestMsg.createdAt)
                 .order('created_at', { ascending: true });
 
             if (!error && data?.length > 0) {
@@ -131,9 +119,9 @@ export const loadInitialMessagesIfNeeded = async (chatId) => {
                 const converted = safeDbConversion(data);
                 
                 await db.messages.bulkPut(converted);
-                // Also update the chat list last_message_at
+                // Also update the chat list lastMessageAt
                 await db.chats_list.update(chatId, { 
-                    last_message_at: converted[converted.length - 1].created_at 
+                    lastMessageAt: converted[converted.length - 1].createdAt 
                 });
             }
         } catch (err) {
@@ -149,7 +137,7 @@ export const enrichStaleMessages = async (chatId) => {
 
     try {
         const staleMessages = await db.messages
-            .where('chat_id')
+            .where('chatId')
             .equals(chatId)
             .filter(m => m.needsEnrichment === true)
             .toArray();

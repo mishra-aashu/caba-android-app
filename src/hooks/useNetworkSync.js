@@ -41,13 +41,13 @@ const useNetworkSync = () => {
                 await db.sync_queue
                     .where('status').equals('failed')
                     .and(item =>
-                        item.failed_at &&
-                        item.failed_at > twentyFourHoursAgo &&
+                        item.failedAt &&
+                        item.failedAt > twentyFourHoursAgo &&
                         (item.total_resets || 0) < 3
                     )
                     .modify(item => {
                         item.status = 'pending';
-                        item.retry_count = 0;
+                        item.retryCount = 0;
                         item.total_resets = (item.total_resets || 0) + 1;
                     });
 
@@ -114,6 +114,9 @@ const useNetworkSync = () => {
                                     .single();
 
                                 if (!msgError && msgData) {
+                                    const { safeDbConversion } = await import('../utils/dbFieldMapping');
+                                    const normalizedMsg = safeDbConversion(msgData);
+
                                     // Atomic swap in Dexie: delete temp, insert final
                                     await db.transaction('rw', [db.messages, db.sync_queue], async () => {
                                         if (tempId) {
@@ -125,12 +128,12 @@ const useNetworkSync = () => {
                                                 await db.messages.delete(recordByTempId.id);
                                             }
                                         }
-                                        await db.messages.put(msgData);
+                                        await db.messages.put(normalizedMsg);
 
                                         // Mark sync item as completed ATOMICALLY
                                         await db.sync_queue.update(item.id, {
                                             status: 'completed',
-                                            synced_at: new Date().toISOString(),
+                                            syncedAt: new Date().toISOString(),
                                         });
                                     });
 
@@ -197,7 +200,8 @@ const useNetworkSync = () => {
                                         const localGroup = await db.groups.where('id').equals(tempId).first();
                                         if (localGroup) {
                                             await db.groups.delete(tempId);
-                                            await db.groups.put({ ...groupData, is_syncing: false });
+                                            const { safeDbConversion } = await import('../utils/dbFieldMapping');
+                                            await db.groups.put({ ...safeDbConversion(groupData), is_syncing: false });
                                         }
 
                                         // Update chats_list ID
@@ -214,7 +218,7 @@ const useNetworkSync = () => {
 
                                     await db.sync_queue.update(item.id, {
                                         status: 'completed',
-                                        synced_at: new Date().toISOString(),
+                                        syncedAt: new Date().toISOString(),
                                     });
                                 });
 
@@ -242,7 +246,7 @@ const useNetworkSync = () => {
                             if (currentItem && currentItem.status === 'pending') {
                                 await db.sync_queue.update(item.id, {
                                     status: 'completed',
-                                    synced_at: new Date().toISOString(),
+                                    syncedAt: new Date().toISOString(),
                                 });
                             }
                         } else {
@@ -260,14 +264,14 @@ const useNetworkSync = () => {
                             }
 
                             // Increment retry count or mark as permanently failed
-                            const currentRetryCount = (item.retry_count || 0) + 1;
+                            const currentRetryCount = (item.retryCount || 0) + 1;
                             if (currentRetryCount >= 3) {
                                 console.warn(`Item ${item.id} failed after 3 attempts. Marking as failed.`);
                                 await db.sync_queue.update(item.id, {
                                     status: 'failed',
-                                    retry_count: currentRetryCount,
-                                    failed_at: new Date().toISOString(),
-                                    last_error: errorMsg || 'Unknown error',
+                                    retryCount: currentRetryCount,
+                                    failedAt: new Date().toISOString(),
+                                    lastError: errorMsg || 'Unknown error',
                                 });
 
                                 // Update local message status for UI
@@ -293,8 +297,8 @@ const useNetworkSync = () => {
                                 }
                             } else {
                                 await db.sync_queue.update(item.id, {
-                                    retry_count: currentRetryCount,
-                                    last_error: errorMsg || 'Unknown error',
+                                    retryCount: currentRetryCount,
+                                    lastError: errorMsg || 'Unknown error',
                                 });
                             }
                         }
@@ -302,8 +306,8 @@ const useNetworkSync = () => {
                         console.error(`Error processing sync item ${item.id}:`, err);
                         await db.sync_queue.update(item.id, {
                             status: 'failed',
-                            failed_at: new Date().toISOString(),
-                            last_error: err.message || 'Unexpected exception',
+                            failedAt: new Date().toISOString(),
+                            lastError: err.message || 'Unexpected exception',
                         }).catch(() => {});
                     }
                 }

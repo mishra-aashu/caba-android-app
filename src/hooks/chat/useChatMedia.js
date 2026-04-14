@@ -72,13 +72,16 @@ export function useChatMedia({
         hapticsManager.impact();
 
         try {
+            const { safeDbConversion } = await import('../../utils/dbFieldMapping');
+            const normalizedDbData = safeDbConversion(dbData);
+
             // Optimistic update in Dexie
             await db.messages.put({
-                ...dbData,
+                ...normalizedDbData,
                 id: `temp_${tempId}`,
                 tempId: tempId,
                 // objectUrl for immediate display — NOT sent to Supabase
-                media_url: objectUrl || (mediaPath
+                mediaUrl: objectUrl || (mediaPath
                     ? (mediaPath.startsWith('http') ? mediaPath : getPublicMediaUrl(mediaPath))
                     : null
                 ),
@@ -95,9 +98,11 @@ export function useChatMedia({
                 if (error) throw error;
                 if (!data) throw new Error('Blocked by RLS');
 
+                const normalizedData = safeDbConversion(data);
+
                 await db.transaction('rw', db.messages, async () => {
                     await db.messages.delete(`temp_${tempId}`).catch(() => {});
-                    await db.messages.put(data);
+                    await db.messages.put(normalizedData);
                 });
 
                 if (isNewChat && data.chat_id) {

@@ -12,11 +12,39 @@ db.version(1).stores({
     sync_queue: '++id, status, type, created_at'
 });
 
-db.version(4).stores({
-    sync_queue: '++id, status, type, created_at, retry_count, failed_at',
-    call_history: 'id, started_at, caller_id, receiver_id',
+db.version(6).stores({
+    chats_list: 'id, lastMessageAt',
+    messages: 'id, chatId, createdAt, senderId, tempId',
+    contacts: 'id, contactName',
+    user_profiles: 'id, name',
     groups: 'id, name',
-    reminders: 'id, reminder_time, sender_id, receiver_id'
+    sync_queue: '++id, status, type, createdAt, retryCount, failedAt',
+    blocked_users: '++id, userId, blockedUserId',
+    reports: '++id, reporterId, reportedId',
+    call_history: 'id, startedAt, callerId, receiverId',
+    reminders: 'id, reminderTime, senderId, receiverId'
+}).upgrade(async tx => {
+    // Migration: Convert snake_case to camelCase for existing data
+    const { safeDbConversion } = await import('../utils/dbFieldMapping');
+
+    await tx.chats_list.toCollection().modify(chat => {
+        if (chat.last_message_at) {
+            chat.lastMessageAt = chat.last_message_at;
+            delete chat.last_message_at;
+        }
+    });
+
+    await tx.messages.toCollection().modify(msg => {
+        const converted = safeDbConversion(msg);
+        Object.keys(msg).forEach(key => delete msg[key]);
+        Object.assign(msg, converted);
+    });
+
+    await tx.sync_queue.toCollection().modify(item => {
+        if (item.created_at) { item.createdAt = item.created_at; delete item.created_at; }
+        if (item.retry_count !== undefined) { item.retryCount = item.retry_count; delete item.retry_count; }
+        if (item.failed_at) { item.failedAt = item.failed_at; delete item.failed_at; }
+    });
 });
 
 /**
@@ -27,8 +55,8 @@ export const addToSyncQueue = async (type, payload) => {
         type,
         payload,
         status: 'pending',
-        created_at: new Date().toISOString(),
-        retry_count: 0,
+        createdAt: new Date().toISOString(),
+        retryCount: 0,
         total_resets: 0,
     });
 };
@@ -67,8 +95,8 @@ export const manualRetrySyncItem = async (tempId) => {
     for (const item of failedItems) {
         await db.sync_queue.update(item.id, {
             status: 'pending',
-            retry_count: 0,
-            failed_at: null,
+            retryCount: 0,
+            failedAt: null,
         });
     }
 

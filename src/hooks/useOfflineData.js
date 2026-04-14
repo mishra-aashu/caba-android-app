@@ -31,7 +31,8 @@ const useOfflineData = (tableName, supabaseTable, queryBuilder = null) => {
                 if (error) throw error;
 
                 if (remoteData) {
-                    await db[tableName].bulkPut(remoteData);
+                    const { safeDbConversion } = await import('../utils/dbFieldMapping');
+                    await db[tableName].bulkPut(safeDbConversion(remoteData));
                 }
                 return { lastSync: new Date().toISOString() };
             } catch (err) {
@@ -53,7 +54,7 @@ const useOfflineData = (tableName, supabaseTable, queryBuilder = null) => {
  */
 export const useOfflineMessages = (chatId) => {
     const messages = useLiveQuery(
-        () => db.messages.where('chat_id').equals(chatId).sortBy('created_at'),
+        () => db.messages.where('chatId').equals(chatId).sortBy('createdAt'),
         [chatId]
     );
 
@@ -70,7 +71,8 @@ export const useOfflineMessages = (chatId) => {
 
             if (error) throw error;
             if (remoteMessages) {
-                await db.messages.bulkPut(remoteMessages);
+                const { safeDbConversion } = await import('../utils/dbFieldMapping');
+                await db.messages.bulkPut(safeDbConversion(remoteMessages));
             }
             return { lastSync: new Date().toISOString() };
         },
@@ -87,7 +89,7 @@ export const useOfflineMessages = (chatId) => {
  */
 export const useOfflineChats = (userId) => {
     const chats = useLiveQuery(
-        () => db.chats_list.orderBy('last_message_at').reverse().toArray(),
+        () => db.chats_list.orderBy('lastMessageAt').reverse().toArray(),
         []
     );
 
@@ -103,7 +105,8 @@ export const useOfflineChats = (userId) => {
 
             if (error) throw error;
             if (remoteChats) {
-                await db.chats_list.bulkPut(remoteChats);
+                const { safeDbConversion } = await import('../utils/dbFieldMapping');
+                await db.chats_list.bulkPut(safeDbConversion(remoteChats));
             }
             return { lastSync: new Date().toISOString() };
         },

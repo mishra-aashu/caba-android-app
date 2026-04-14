@@ -6,15 +6,13 @@
 // Database column to frontend field mapping
 export const DB_TO_FRONTEND_MAP = {
   // User fields
-  'is_admin': 'isAdmin',
   'is_online': 'isOnline',
   'last_seen': 'lastSeen',
   'created_at': 'createdAt',
   'updated_at': 'updatedAt',
   'phone': 'phone',
-  'phone_number': 'phone',
-  'phoneNumber': 'phone',
-  'profile_image': 'profileImage',
+  'avatar': 'profileImage',
+  'about': 'about',
   'emoji_style': 'emojiStyle',
   'preferred_emojis': 'preferredEmojis',
   'auth_provider': 'authProvider',
@@ -27,6 +25,8 @@ export const DB_TO_FRONTEND_MAP = {
   'last_seen_visibility': 'lastSeenVisibility',
   'two_factor_enabled': 'twoFactorEnabled',
   'language': 'language',
+  'is_admin': 'isAdmin',
+  'is_banned': 'isBanned',
 
   // Message fields
   'sender_id': 'senderId',
@@ -37,12 +37,12 @@ export const DB_TO_FRONTEND_MAP = {
   'media_type': 'mediaType',
   'reply_to': 'replyTo',
   'is_read': 'isRead',
-  'avatar_url': 'avatarUrl',
   'is_group_message': 'isGroupMessage',
   'status': 'status',
   'is_edited': 'isEdited',
   'vanish_at': 'vanishAt',
   'client_id': 'clientId',
+  'message_type': 'messageType',
 
   // Call fields
   'caller_id': 'callerId',
@@ -67,14 +67,16 @@ export const DB_TO_FRONTEND_MAP = {
   'user1_id': 'user1Id',
   'user2_id': 'user2Id',
   'last_message': 'lastMessage',
-  'last_message_time': 'lastMessageTime',
+  'last_message_at': 'lastMessageAt',
   'unread_count': 'unreadCount',
 
   // Group fields
   'created_by': 'createdBy',
-  'group_id': 'groupId',
   'avatar_url': 'avatarUrl',
-  'member_count': 'memberCount',
+  'member_count': 'memberCount', // Note: Needs DB column addition
+  'admins_only_edit_info': 'adminsOnlyEditInfo',
+  'admins_only_add_members': 'adminsOnlyAddMembers',
+  'admins_only_messages': 'adminsOnlyMessages',
 
   // Contact fields
   'contact_user_id': 'contactUserId',
@@ -84,7 +86,7 @@ export const DB_TO_FRONTEND_MAP = {
 
   // Reminder fields
   'reminder_time': 'reminderTime',
-  'is_completed': 'isCompleted',
+  'completed_at': 'completedAt',
   'accepted_at': 'acceptedAt',
   'snooze_until': 'snoozeUntil',
   'snooze_count': 'snoozeCount',
@@ -94,13 +96,13 @@ export const DB_TO_FRONTEND_MAP = {
   'category': 'category',
   'location': 'location',
   'description': 'description',
+  'requires_acceptance': 'requiresAcceptance',
 
-  // Support Message fields (DB: admin_response)
+  // Community / Support
   'message_type': 'messageType',
   'responded_by': 'respondedBy',
   'responded_at': 'respondedAt',
   'admin_response': 'adminResponse',
-
   'report_type': 'reportType',
   'reporter_id': 'reporterId',
   'reported_id': 'reportedId',
@@ -137,25 +139,22 @@ export const DB_TO_FRONTEND_MAP = {
   'is_processed': 'isProcessed',
   'uploaded_at': 'uploadedAt',
   'expires_at': 'expiresAt',
-  'created_by': 'createdBy',
 
   // WebRTC Signals fields
   'from_user_id': 'fromUserId',
   'to_user_id': 'toUserId',
   'signal_type': 'signalType',
   'signal_data': 'signalData',
-  'is_processed': 'isProcessed',
   'broadcast_type': 'broadcastType',
 
   // Game Invitations fields
   'invitation_data': 'invitationData',
   'game_type': 'gameType',
 
-  // Custom Admin fields
-  'message_count': 'messageCount',
-
   // Common fields
-  'user_id': 'userId'
+  'user_id': 'userId',
+  'id': 'id'
+
 };
 
 // Frontend field to database column mapping (reverse of above)
