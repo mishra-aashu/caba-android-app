@@ -9,15 +9,31 @@
 
 .reaction-picker-container {
     display: flex;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
     border-radius: 30px;
-    padding: 8px 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     z-index: 1001;
-    gap: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    animation: reaction-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    animation: reaction-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-width: 90vw;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reaction-picker-container.expanded {
+    border-radius: 20px;
+    padding: 0;
+}
+
+.reactions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 2px 8px;
+    justify-content: center;
 }
 
 .picker-fixed {
@@ -45,6 +61,27 @@
 
 .reaction-option-btn:active {
     transform: scale(0.9);
+}
+
+.more-btn {
+    color: #666;
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.full-picker-wrapper {
+    width: 350px;
+    max-width: calc(100vw - 20px);
+    height: 400px;
+    max-height: 60vh;
+}
+
+:global(.emoji-picker-popup.inline) {
+    position: static !important;
+    width: 100% !important;
+    height: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
 }
 
 @keyframes reaction-pop {

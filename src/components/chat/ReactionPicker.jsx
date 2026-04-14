@@ -1,12 +1,15 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { useEmojiStyle } from '../../contexts/EmojiStyleContext';
 import EmojiRenderer from '../common/EmojiRenderer';
+import EmojiPicker from '../common/EmojiPicker';
 import styles from './ReactionPicker.module.css';
 
 const ReactionPicker = ({ onSelect, onClose, position = { x: 0, y: 0 } }) => {
     const { preferredEmojis, emojiStyle } = useEmojiStyle();
     const pickerRef = useRef(null);
     const [adjustedPos, setAdjustedPos] = useState({ x: position.x, y: position.y });
+    const [showFullPicker, setShowFullPicker] = useState(false);
 
     useLayoutEffect(() => {
         if (pickerRef.current) {
@@ -41,38 +44,65 @@ const ReactionPicker = ({ onSelect, onClose, position = { x: 0, y: 0 } }) => {
 
     // Fallback if preferredEmojis not available
     const emojisToDisplay = preferredEmojis && preferredEmojis.length > 0
-        ? preferredEmojis
-        : ['❤️', '👍', '🔥', '😂', '😮', '😢', '🙏'];
+        ? (showFullPicker ? preferredEmojis : preferredEmojis.slice(0, 8))
+        : ['❤️', '👍', '😂', '🔥', '😍', '😢', '🙏', '👏'];
 
     return (
         <>
             <div className={styles['reaction-picker-overlay']} onClick={onClose} />
             <div
                 ref={pickerRef}
-                className={`${styles['reaction-picker-container']} ${styles['picker-fixed']}`}
+                className={`${styles['reaction-picker-container']} ${styles['picker-fixed']} ${showFullPicker ? styles['expanded'] : ''}`}
                 style={{
                     left: `${adjustedPos.x}px`,
                     top: `${adjustedPos.y}px`,
                     transform: 'translate(-50%, -100%)',
                 }}
             >
-                {emojisToDisplay.map((emoji) => (
-                    <button
-                        key={emoji}
-                        className={styles['reaction-option-btn']}
-                        onClick={() => {
-                            onSelect(emoji);
-                            onClose();
-                        }}
-                        title={`React with ${emoji}`}
-                    >
-                        <EmojiRenderer
-                            text={emoji}
-                            styleOverride={emojiStyle}
-                            className={emojiStyle === 'native' ? 'native-emoji' : 'custom-emoji-img'}
+                <div className={styles['reactions-row']}>
+                    {emojisToDisplay.map((emoji) => (
+                        <button
+                            key={emoji}
+                            className={styles['reaction-option-btn']}
+                            onClick={() => {
+                                onSelect(emoji);
+                                onClose();
+                            }}
+                            title={`React with ${emoji}`}
+                        >
+                            <EmojiRenderer
+                                text={emoji}
+                                styleOverride={emojiStyle}
+                                className={emojiStyle === 'native' ? 'native-emoji' : 'custom-emoji-img'}
+                            />
+                        </button>
+                    ))}
+                    
+                    {!showFullPicker && (
+                        <button
+                            className={`${styles['reaction-option-btn']} ${styles['more-btn']}`}
+                            onClick={() => setShowFullPicker(true)}
+                            title="More reactions"
+                        >
+                            <Plus size={20} />
+                        </button>
+                    )}
+                </div>
+
+                {showFullPicker && (
+                    <div className={styles['full-picker-wrapper']}>
+                        <EmojiPicker
+                            isOpen={true}
+                            onEmojiSelect={(emoji) => {
+                                onSelect(emoji);
+                                onClose();
+                            }}
+                            onClose={onClose}
+                            showTrigger={false}
+                            isInline={true}
                         />
-                    </button>
-                ))}
+                    </div>
+                )}
             </div>
         </>
     );

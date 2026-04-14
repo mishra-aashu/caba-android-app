@@ -7,7 +7,7 @@ import { EmojiStyleContext } from './EmojiStyleContext';
 export const EmojiStyleProvider = ({ children }) => {
   // Default emoji style is 'apple' as requested
   const [emojiStyle, setEmojiStyle] = useState('apple');
-  const [preferredEmojis, setPreferredEmojis] = useState(['❤️', '👍', '🔥', '😂', '😮', '😢', '🙏']);
+  const [preferredEmojis, setPreferredEmojis] = useState(['❤️', '👍', '😂', '🔥', '😍', '😢', '🙏', '👏', '✔️', '😱', '🙄', '😡', '😭', '🎉', '🤩', '🤔', '💯', '🤝', '🎂', '⚡', '🌈', '✨', '🎈', '🥇', '⚽', '🍕', '🚗', '💡', '📍', '🔒', '✅', '❌', '❓', '❗', '💤', '👋', '🙌', '💪', '😎', '😜']);
   const [loading, setLoading] = useState(true);
   const [emojiMap, setEmojiMap] = useState(null);
   const [mapLoading, setMapLoading] = useState(true);
