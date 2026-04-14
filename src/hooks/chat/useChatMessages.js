@@ -173,7 +173,7 @@ export function useChatMessages({
                 createdAt: new Date().toISOString(),
                 vanishAt: vanishConfig?.vanishAt || null,
                 status: navigator.onLine ? 'sending' : 'pending',
-                clientId: tempId,
+                tempId: tempId,
             });
 
             setReplyingTo(null);
@@ -290,7 +290,7 @@ export function useChatMessages({
                 replyTo: null,
                 createdAt: new Date().toISOString(),
                 status: navigator.onLine ? 'sending' : 'pending',
-                clientId: tempId,
+                tempId: tempId,
             });
 
             try {

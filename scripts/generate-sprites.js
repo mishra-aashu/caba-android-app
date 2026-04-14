@@ -1,89 +1,44 @@
-import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const EMOJI_DIR = 'public/assets/emojis';
 const OUTPUT_DIR = 'public/assets/emojis/spritesheets';
-const MAP_FILE = 'public/assets/emojis/emoji-map.json';
 const VENDORS = ['apple', 'google', 'twitter', 'facebook'];
-const GRID_SIZE = 16; // 16x16 = 256 emojis per sheet
-const TILE_SIZE = 32; // 32x32px emojis
 
 /**
- * Node.js script to generate emoji sprite sheets using ImageMagick 'montage'.
+ * Node.js script to extract pre-compiled emoji sprite sheets and data
+ * from the iamcal/emoji-data Github packages installed in node_modules.
  */
-function generateSprites() {
-  const emojiMap = {};
-
+function copyEmojiAssets() {
   if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  for (const vendor of VENDORS) {
-    const vendorDir = path.join(EMOJI_DIR, vendor);
-    if (!fs.existsSync(vendorDir)) {
-      console.warn(`Vendor dir ${vendorDir} not found, skipping.`);
-      continue;
-    }
-
-    const files = fs.readdirSync(vendorDir)
-      .filter(f => f.endsWith('.webp'))
-      .sort();
-
-    console.log(`Processing ${files.length} emojis for ${vendor}...`);
-
-    const batchSize = GRID_SIZE * GRID_SIZE;
-    const numBatches = Math.ceil(files.length / batchSize);
-    const vendorMap = {};
-
-    for (let i = 0; i < numBatches; i++) {
-      const start = i * batchSize;
-      const end = Math.min((i + 1) * batchSize, files.length);
-      const batchFiles = files.slice(start, end);
-
-      const spriteName = `${vendor}-${i}.webp`;
-      const spritePath = path.join(OUTPUT_DIR, spriteName);
-
-      // Create full paths for montage
-      const fullPaths = batchFiles.map(f => path.join(vendorDir, f));
-
-      // Run montage: montage -background transparent -tile 16x16 -geometry 32x32+0+0 batch/*.webp output.webp
-      const cmd = [
-        'montage',
-        '-background transparent',
-        `-tile ${GRID_SIZE}x${GRID_SIZE}`,
-        `-geometry ${TILE_SIZE}x${TILE_SIZE}+0+0`,
-        ...fullPaths,
-        spritePath
-      ].join(' ');
-
-      console.log(`  Generating sprite sheet ${i + 1}/${numBatches}: ${spriteName}`);
-      try {
-        execSync(cmd, { stdio: 'inherit' });
-      } catch (err) {
-        console.error(`Error generating sprite sheet ${spriteName}:`, err.message);
-        process.exit(1);
-      }
-
-      // Update map
-      batchFiles.forEach((filename, idx) => {
-        const hexCode = filename.replace('.webp', '');
-        const row = Math.floor(idx / GRID_SIZE);
-        const col = idx % GRID_SIZE;
-
-        vendorMap[hexCode] = {
-          sheet: spriteName,
-          x: col * TILE_SIZE,
-          y: row * TILE_SIZE
-        };
-      });
-    }
-
-    emojiMap[vendor] = vendorMap;
+  // 1. Copy the core JSON data mapping (we can just use the apple one as the base structure is the same)
+  const jsonSrc = 'node_modules/emoji-datasource-apple/emoji.json';
+  const jsonDest = path.join(EMOJI_DIR, 'emoji-data.json');
+  
+  if (fs.existsSync(jsonSrc)) {
+    console.log(`Copying emoji data mapping to ${jsonDest}`);
+    fs.copyFileSync(jsonSrc, jsonDest);
+  } else {
+    console.error('❌ Could not find emoji.json in node_modules/emoji-datasource-apple. Have you run npm install?');
   }
 
-  fs.writeFileSync(MAP_FILE, JSON.stringify(emojiMap, null, 2));
-  console.log(`Successfully generated map in ${MAP_FILE}`);
+  // 2. Copy the spritesheets for each vendor
+  for (const vendor of VENDORS) {
+    const sheetSrc = `node_modules/emoji-datasource-${vendor}/img/${vendor}/sheets/64.png`;
+    const sheetDest = path.join(OUTPUT_DIR, `sheet_${vendor}_64.png`);
+    
+    if (fs.existsSync(sheetSrc)) {
+      console.log(`Copying 64px spritesheet for ${vendor}...`);
+      fs.copyFileSync(sheetSrc, sheetDest);
+    } else {
+      console.warn(`⚠️ Could not find spritesheet for ${vendor} at ${sheetSrc}`);
+    }
+  }
+
+  console.log('✅ Successfully extracted all emoji assets from node_modules!');
 }
 
-generateSprites();
+copyEmojiAssets();
