@@ -119,6 +119,24 @@ const MainLayout = () => {
                 
                 {!isChatViewActive && <BottomNavigation />}
 
+                <AnimatePresence>
+                    {isSubPage && (
+                        <motion.div 
+                            key="subpage-backdrop"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            style={{
+                                position: 'absolute',
+                                inset: 0,
+                                zIndex: 5,
+                                background: 'var(--bg-color)'
+                            }}
+                        />
+                    )}
+                </AnimatePresence>
+
                 <AnimatePresence mode="wait">
                     {isSubPage && (
                         <PageTransition key={location.pathname} className="chat-view">
