@@ -7,7 +7,7 @@ import { useAuth } from './hooks/useAuth';
 import { GroupCallProvider } from './contexts/GroupCallProvider';
 import { isNativeWithPlugins } from './utils/platformCheck';
 import { Capacitor } from '@capacitor/core';
-import { Toaster } from 'react-hot-toast';
+
 import PhoneAuthModal from './components/auth/PhoneAuthModal';
 import { supabase } from './config/supabase';
 import { dbToFrontend } from './utils/dbFieldMapping';

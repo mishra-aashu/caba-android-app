@@ -142,7 +142,21 @@ const PublicApp = () => {
         handleDismiss={handleDismiss}
       />
 
-      <Toaster position="bottom-center" toastOptions={{ duration: 3500 }} />
+      <Toaster 
+        position="bottom-center" 
+        toastOptions={{ 
+          duration: 3500,
+          className: 'premium-toast',
+          success: {
+            className: 'premium-toast premium-toast-success',
+            iconTheme: { primary: '#00a884', secondary: '#fff' }
+          },
+          error: {
+            className: 'premium-toast premium-toast-error',
+            iconTheme: { primary: '#e53935', secondary: '#fff' }
+          }
+        }} 
+      />
     </>
   );
 };

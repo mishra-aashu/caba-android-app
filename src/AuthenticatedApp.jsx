@@ -15,7 +15,7 @@ import { CallProvider } from './contexts/CallProvider';
 import { GroupCallProvider } from './contexts/GroupCallProvider';
 import { GameLobbyProvider } from './contexts/GameLobbyProvider';
 import { DialogProvider } from './contexts/DialogProvider';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
 import { supabase } from './config/supabase';
 import { dbToFrontend } from './utils/dbFieldMapping';
@@ -261,7 +261,7 @@ const AppWithCallProvider = ({ dbUser, authLoading }) => {
             <OfflineIndicator>
               <AppContent />
             </OfflineIndicator>
-            <Toaster position="top-center" />
+
             <SafeSuspense><CallStatusIndicator /></SafeSuspense>
             <SafeSuspense><IncomingCallModal /></SafeSuspense>
             <SafeSuspense><GroupIncomingCallNotification /></SafeSuspense>

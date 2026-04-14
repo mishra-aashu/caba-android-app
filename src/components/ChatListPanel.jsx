@@ -45,7 +45,7 @@ import { useChatDeletion } from '../hooks/useChatDeletion';
 import ChatSelectionHeader from './chat/ChatSelectionHeader';
 import DeleteConfirmation from './chat/DeleteConfirmation';
 import ChatContextMenu from './chat/ChatContextMenu';
-import { Toaster, toast } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import messageReadsService from '../services/messageReadsService';
 
 const CreateGroupModal = lazy(() => import('./groups/CreateGroupModal'));
