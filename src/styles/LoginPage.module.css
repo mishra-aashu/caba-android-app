@@ -14,7 +14,6 @@
 }
 
 /* --- Theme Overrides --- */
-
 [data-theme='light'] .art-login-container {
   --login-bg: #f5f5f5;
   --login-text: #1a1a1a;
@@ -51,7 +50,7 @@
 
 /* --- 2. Main Container with MAXIMUM GPU ACCELERATION --- */
 .art-login-container {
-  height: var(--app-height);
+  height: var(--app-height, 100vh);
   width: 100%;
   background-color: var(--login-bg, #050a0e);
   display: flex;
@@ -71,7 +70,7 @@
 }
 
 /* --- 3. Ambient Background - GPU Optimized --- */
-.art-login-container .ambient-glow {
+.ambient-glow {
   position: absolute;
   border-radius: 50%;
   z-index: 0;
@@ -81,12 +80,9 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   will-change: transform, opacity;
-
-  /* Replace expensive blur with opacity-based glow */
-  /* Note: blur(80px) is CPU intensive, using box-shadow glow instead */
 }
 
-.art-login-container .glow-1 {
+.glow-1 {
   width: 500px;
   height: 500px;
   background: var(--login-glow-1);
@@ -97,11 +93,10 @@
   /* Replace blur with GPU-friendly box-shadow glow */
   box-shadow: 0 0 150px 50px rgba(0, 92, 75, 0.4);
   filter: none;
-  /* Remove blur for performance */
   will-change: transform;
 }
 
-.art-login-container .glow-2 {
+.glow-2 {
   width: 400px;
   height: 400px;
   background: var(--login-glow-2);
@@ -112,12 +107,11 @@
   /* Replace blur with GPU-friendly box-shadow glow */
   box-shadow: 0 0 120px 40px rgba(11, 61, 54, 0.5);
   filter: none;
-  /* Remove blur for performance */
   will-change: transform;
 }
 
 /* Noise Texture - Use CSS gradient pattern instead of image for performance */
-.art-login-container .noise-overlay {
+.noise-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -134,7 +128,7 @@
 }
 
 /* --- 4. Main Content Layout --- */
-.art-login-container .art-content {
+.art-content {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -146,33 +140,32 @@
   /* GPU acceleration for content */
   transform: translateZ(0);
   opacity: 0;
-  transform: translateY(30px) translateZ(0);
   animation: fadeInUp 1s ease-out forwards;
   will-change: transform, opacity;
 }
 
 /* --- 5. Left Side: Typography Art --- */
-.art-login-container .art-hero-section {
+.art-hero-section {
   flex: 1;
   opacity: 0;
-  transform: translateY(20px) translateZ(0);
   animation: fadeInUp 1s ease-out 0.2s forwards;
   will-change: transform, opacity;
 
   /* GPU layer promotion */
   transform-style: preserve-3d;
+  transform: translateZ(0);
 }
 
-.art-login-container .brand-badge {
+.brand-badge {
   display: inline-block;
   padding: 8px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--login-badge-border, rgba(255, 255, 255, 0.2));
   border-radius: 50px;
   font-size: 14px;
   letter-spacing: 1px;
   text-transform: uppercase;
   margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--login-badge-bg, rgba(255, 255, 255, 0.03));
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 
@@ -180,23 +173,19 @@
   transform: translateZ(0);
 }
 
-.art-login-container .art-hero-headline {
+.art-hero-headline {
   font-family: 'Playfair Display', serif;
   font-size: 4.5rem;
   line-height: 1.1;
   margin-bottom: 20px;
-  color: #e2e8f0;
-  background: none;
-  -webkit-background-clip: unset;
-  background-clip: unset;
-  -webkit-text-fill-color: initial;
+  color: var(--login-text, #e2e8f0);
 
   /* GPU acceleration */
   transform: translateZ(0);
   will-change: transform;
 }
 
-.art-login-container .italic-text {
+.italic-text {
   font-style: italic;
   color: #00a884;
   font-weight: 400;
@@ -205,9 +194,9 @@
   transform: translateZ(0);
 }
 
-.art-login-container .art-desc {
+.art-desc {
   font-size: 1.1rem;
-  color: #94a3b8;
+  color: var(--login-desc, #94a3b8);
   max-width: 450px;
   line-height: 1.6;
   margin-bottom: 30px;
@@ -216,7 +205,7 @@
   transform: translateZ(0);
 }
 
-.art-login-container .art-features {
+.art-features {
   display: flex;
   gap: 20px;
   color: #cbd5e1;
@@ -226,7 +215,7 @@
   transform: translateZ(0);
 }
 
-.art-login-container .feat-item {
+.feat-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -236,7 +225,7 @@
 }
 
 /* --- 6. Right Side: The Paper Card --- */
-.art-login-container .login-wrapper {
+.login-wrapper {
   flex: 1;
   display: flex;
   justify-content: flex-end;
@@ -245,7 +234,7 @@
   transform: translateZ(0);
 }
 
-.art-login-container .paper-card {
+.paper-card {
   width: 100%;
   max-width: 400px;
   background: var(--login-card-bg);
@@ -255,15 +244,15 @@
   border-radius: 24px;
   position: relative;
   opacity: 0;
-  transform: translateY(20px) translateZ(0);
   animation: fadeInUp 1s ease-out 0.4s forwards;
   will-change: transform, opacity;
   transform-style: preserve-3d;
   backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 /* Paper grain texture - use CSS gradient instead of image */
-.art-login-container .paper-card::before {
+.paper-card::before {
   content: "";
   position: absolute;
   top: 0;
@@ -279,18 +268,18 @@
   transform: translateZ(0);
 }
 
-.art-login-container .card-header h2 {
+.card-header h2 {
   font-family: 'Playfair Display', serif;
   font-size: 2rem;
   margin: 0 0 8px 0;
-  color: #fff;
+  color: var(--login-text, #fff);
 
   /* GPU optimization */
   transform: translateZ(0);
 }
 
-.art-login-container .card-header p {
-  color: #94a3b8;
+.card-header p {
+  color: var(--login-desc, #94a3b8);
   font-size: 0.95rem;
   margin-bottom: 30px;
 
@@ -299,10 +288,10 @@
 }
 
 /* Artistic Button - GPU Optimized */
-.art-login-container .google-art-btn {
+.google-art-btn {
   width: 100%;
   padding: 16px;
-  background: #e2e8f0;
+  background: var(--login-btn-bg, #e2e8f0);
   color: #0f172a;
   border: none;
   border-radius: 12px;
@@ -325,17 +314,22 @@
   will-change: transform;
 }
 
-.art-login-container .google-art-btn:hover {
-  background: #fff;
+.google-art-btn:hover {
+  background: var(--login-btn-hover, #fff);
   transform: translateY(-2px) translateZ(0);
   box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
 }
 
-.art-login-container .google-art-btn:active {
+.google-art-btn:active {
   transform: translateY(0) translateZ(0);
 }
 
-.art-login-container .card-footer {
+.google-art-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.card-footer {
   margin-top: 25px;
   font-size: 13px;
   color: #64748b;
@@ -345,15 +339,15 @@
   transform: translateZ(0);
 }
 
-.art-login-container .link {
-  color: #00a884;
+.link {
+  color: var(--login-link, #00a884);
   cursor: pointer;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
-.art-login-container .checkbox-container {
+.checkbox-container {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -363,18 +357,18 @@
   transform: translateZ(0);
 }
 
-.art-login-container .checkbox-container .link {
+.checkbox-container .link {
   margin: 0 4px;
 }
 
-.art-login-container .checkbox-container input {
+.checkbox-container input {
   display: none;
 }
 
-.art-login-container .checkbox-container .checkmark {
+.checkmark {
   width: 16px;
   height: 16px;
-  border: 1px solid #64748b;
+  border: 1px solid var(--login-checkbox-border, #64748b);
   border-radius: 4px;
   margin-right: 10px;
   position: relative;
@@ -383,12 +377,12 @@
   transform: translateZ(0);
 }
 
-.art-login-container .checkbox-container input:checked+.checkmark {
+.checkbox-container input:checked + .checkmark {
   background-color: #00a884;
   border-color: #00a884;
 }
 
-.art-login-container .checkbox-container input:checked+.checkmark::after {
+.checkbox-container input:checked + .checkmark::after {
   content: "";
   position: absolute;
   left: 5px;
@@ -400,7 +394,7 @@
   transform: rotate(45deg) translateZ(0);
 }
 
-.art-login-container .error-message {
+.error-message {
   background-color: rgba(211, 47, 47, 0.1);
   color: #D32F2F;
   padding: 10px 15px;
@@ -415,7 +409,14 @@
   will-change: opacity;
 }
 
-.art-login-container .spinner {
+.server-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
   width: 18px;
   height: 18px;
   border: 2px solid currentColor;
@@ -429,12 +430,9 @@
 
 /* --- Optimized Animations - GPU Only --- */
 @keyframes float {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: translate(0, 0) translateZ(0);
   }
-
   50% {
     transform: translate(20px, 20px) translateZ(0);
   }
@@ -445,7 +443,6 @@
     opacity: 0;
     transform: translateY(30px) translateZ(0);
   }
-
   to {
     opacity: 1;
     transform: translateY(0) translateZ(0);
@@ -455,132 +452,6 @@
 @keyframes spin {
   to {
     transform: rotate(360deg) translateZ(0);
-  }
-}
-
-/* --- Mobile Fixes --- */
-@media (max-width: 900px) {
-  .art-login-container .art-content {
-    flex-direction: column;
-    text-align: center;
-    padding-top: var(--sat);
-    padding-bottom: var(--sab);
-    gap: 40px;
-  }
-
-  .art-login-container .art-hero-section {
-    margin-bottom: 40px;
-  }
-
-  .art-login-container .brand-badge {
-    font-size: 16px;
-    padding: var(--spacing-md) var(--spacing-xl);
-  }
-
-  .art-login-container .art-hero-headline {
-    font-size: 3rem;
-    line-height: 1.1;
-  }
-
-  .art-login-container .art-desc {
-    font-size: 1rem;
-    max-width: 100%;
-    padding: 0 20px;
-  }
-
-  .art-login-container .art-features {
-    justify-content: center;
-  }
-
-  .art-login-container .login-wrapper {
-    justify-content: center;
-    width: 100%;
-  }
-
-  /* Reduce glow size on mobile for better performance */
-  .art-login-container .glow-1 {
-    width: 300px;
-    height: 300px;
-    box-shadow: 0 0 80px 30px rgba(0, 92, 75, 0.3);
-  }
-
-  .art-login-container .glow-2 {
-    width: 250px;
-    height: 250px;
-    box-shadow: 0 0 60px 20px rgba(11, 61, 54, 0.3);
-  }
-}
-
-/* Tablet Fixes */
-@media (max-width: 1024px) {
-  .art-login-container .art-hero-headline {
-    font-size: 2.5rem;
-  }
-
-  .art-login-container .brand-badge {
-    font-size: 15px;
-    padding: 9px 18px;
-  }
-
-  .art-login-container .art-desc {
-    font-size: 0.95rem;
-    padding: 0 15px;
-  }
-
-  .art-login-container .paper-card {
-    padding: 35px 25px;
-    max-width: 90%;
-  }
-}
-
-/* Small Mobile Fixes */
-@media (max-width: 480px) {
-  .art-login-container .art-hero-headline {
-    font-size: 2rem;
-    line-height: 1.2;
-  }
-
-  .art-login-container .brand-badge {
-    font-size: 14px;
-    padding: 8px 16px;
-  }
-
-  .art-login-container .art-desc {
-    font-size: 0.9rem;
-    padding: 0 10px;
-    line-height: 1.5;
-  }
-
-  .art-login-container .paper-card {
-    padding: 30px 20px;
-    max-width: 95%;
-  }
-
-  .art-login-container .google-art-btn {
-    padding: 14px;
-    font-size: 15px;
-  }
-}
-
-/* Extra Small Mobile Fixes */
-@media (max-width: 360px) {
-  .art-login-container .art-hero-headline {
-    font-size: 1.75rem;
-    line-height: 1.3;
-  }
-
-  .art-login-container .brand-badge {
-    font-size: 12px;
-    padding: 6px 12px;
-  }
-
-  .art-login-container .art-desc {
-    font-size: 0.85rem;
-    padding: 0 8px;
-  }
-
-  .art-login-container .paper-card {
-    padding: 25px 15px;
   }
 }
 
@@ -605,16 +476,17 @@
   font-size: 1.2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+  transform: translateZ(0);
 }
 
 .back-btn-top-left:hover {
-  transform: scale(1.05);
+  transform: scale(1.05) translateZ(0);
   background: rgba(255, 255, 255, 0.15);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .back-btn-top-left:active {
-  transform: scale(0.95);
+  transform: scale(0.95) translateZ(0);
 }
 
 /* --- About Button - Top Right --- */
@@ -623,7 +495,7 @@
   top: 20px;
   right: 20px;
   z-index: 100;
-  background: var(--brand-gradient, linear-gradient(135deg, #128c7e, #075e54));
+  background: linear-gradient(135deg, #128c7e, #075e54);
   border: none;
   border-radius: 50%;
   width: 44px;
@@ -636,19 +508,19 @@
   font-size: 1.2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+  transform: translateZ(0);
 }
 
 .about-btn-top-right:hover {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-lg);
+  transform: scale(1.05) translateZ(0);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .about-btn-top-right:active {
-  transform: scale(0.95);
+  transform: scale(0.95) translateZ(0);
 }
 
 /* --- FORCED GPU LAYER PROMOTION CLASS --- */
-/* Add this class to any element that needs maximum GPU acceleration */
 .gpu-max {
   transform: translateZ(0) translate3d(0, 0, 0);
   backface-visibility: hidden;
@@ -658,4 +530,130 @@
   -webkit-transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   -webkit-perspective: 1000px;
+}
+
+/* --- Mobile Fixes --- */
+@media (max-width: 900px) {
+  .art-content {
+    flex-direction: column;
+    text-align: center;
+    padding-top: var(--sat, 0px);
+    padding-bottom: var(--sab, 0px);
+    gap: 40px;
+  }
+
+  .art-hero-section {
+    margin-bottom: 40px;
+  }
+
+  .brand-badge {
+    font-size: 16px;
+    padding: 10px 20px;
+  }
+
+  .art-hero-headline {
+    font-size: 3rem;
+    line-height: 1.1;
+  }
+
+  .art-desc {
+    font-size: 1rem;
+    max-width: 100%;
+    padding: 0 20px;
+  }
+
+  .art-features {
+    justify-content: center;
+  }
+
+  .login-wrapper {
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* Reduce glow size on mobile for better performance */
+  .glow-1 {
+    width: 300px;
+    height: 300px;
+    box-shadow: 0 0 80px 30px rgba(0, 92, 75, 0.3);
+  }
+
+  .glow-2 {
+    width: 250px;
+    height: 250px;
+    box-shadow: 0 0 60px 20px rgba(11, 61, 54, 0.3);
+  }
+}
+
+/* Tablet Fixes */
+@media (max-width: 1024px) {
+  .art-hero-headline {
+    font-size: 2.5rem;
+  }
+
+  .brand-badge {
+    font-size: 15px;
+    padding: 9px 18px;
+  }
+
+  .art-desc {
+    font-size: 0.95rem;
+    padding: 0 15px;
+  }
+
+  .paper-card {
+    padding: 35px 25px;
+    max-width: 90%;
+  }
+}
+
+/* Small Mobile Fixes */
+@media (max-width: 480px) {
+  .art-hero-headline {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  .brand-badge {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+
+  .art-desc {
+    font-size: 0.9rem;
+    padding: 0 10px;
+    line-height: 1.5;
+  }
+
+  .paper-card {
+    padding: 30px 20px;
+    max-width: 95%;
+  }
+
+  .google-art-btn {
+    padding: 14px;
+    font-size: 15px;
+  }
+}
+
+/* Extra Small Mobile Fixes */
+@media (max-width: 360px) {
+  .art-hero-headline {
+    font-size: 1.75rem;
+    line-height: 1.3;
+  }
+
+  .brand-badge {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .art-desc {
+    font-size: 0.85rem;
+    padding: 0 8px;
+  }
+
+  .paper-card {
+    padding: 25px 15px;
+  }
 }

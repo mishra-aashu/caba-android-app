@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import useAuthStore from '../../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { isNativeWithPlugins } from '../../utils/platformCheck';
 import ArrowLeft from 'lucide-react/dist/esm/icons/arrow-left';
 import CheckCircle from 'lucide-react/dist/esm/icons/check-circle';
 import Info from 'lucide-react/dist/esm/icons/info';
+import styles from '../../styles/LoginPage.module.css';
+import AppName from '../common/AppName';
 
 const GoogleIcon = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
@@ -14,15 +16,13 @@ const GoogleIcon = ({ className }) => (
     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
   </svg>
 );
-import styles from '../../styles/LoginPage.module.css'; // Correctly import the dedicated CSS module
-import AppName from '../common/AppName';
 
 const Login = () => {
   const { signInWithGoogle, isServerUnreachable, clearServerError } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [agreed, setAgreed] = useState(true); // Default to checked as in UI
+  const [agreed, setAgreed] = useState(true);
 
   const handleGoogleLogin = async () => {
     if (!agreed) {
@@ -69,13 +69,21 @@ const Login = () => {
 
       {/* Back Button - Top Left (Web Only) */}
       {!isNativeWithPlugins() && (
-        <button className={styles['back-btn-top-left']} onClick={handleBackToLanding} title="Back to Home">
+        <button 
+          className={styles['back-btn-top-left']} 
+          onClick={handleBackToLanding} 
+          title="Back to Home"
+        >
           <ArrowLeft size={24} />
         </button>
       )}
 
       {/* About Button - Top Right */}
-      <button className={styles['about-btn-top-right']} onClick={handleAboutClick} title="About">
+      <button 
+        className={styles['about-btn-top-right']} 
+        onClick={handleAboutClick} 
+        title="About"
+      >
         <Info size={24} />
       </button>
 
@@ -99,15 +107,18 @@ const Login = () => {
           </p>
 
           <div className={`${styles['art-features']} ${styles['gpu-accelerated']}`}>
-            <div className={`${styles['feat-item']} ${styles['gpu-accelerated']}`}><CheckCircle size={18} /> Private by default</div>
-            <div className={`${styles['feat-item']} ${styles['gpu-accelerated']}`}><CheckCircle size={18} /> Infinite history</div>
+            <div className={`${styles['feat-item']} ${styles['gpu-accelerated']}`}>
+              <CheckCircle size={18} /> Private by default
+            </div>
+            <div className={`${styles['feat-item']} ${styles['gpu-accelerated']}`}>
+              <CheckCircle size={18} /> Infinite history
+            </div>
           </div>
         </div>
 
         {/* --- RIGHT SIDE: The Login Paper --- */}
         <div className={`${styles['login-wrapper']} ${styles['gpu-accelerated']}`}>
           <div className={`${styles['paper-card']} ${styles['gpu-accelerated']}`}>
-            <div className={styles['card-texture']}></div> {/* Paper Grain */}
 
             <div className={styles['card-header']}>
               <h2>Welcome Back</h2>
@@ -116,18 +127,22 @@ const Login = () => {
 
             {isServerUnreachable && (
               <div className={`${styles['error-message']} ${styles['server-error-banner']}`}>
-                <Info size={16} /> facing some issue with the server, try after sometime!!!
+                <Info size={16} /> Facing some issue with the server, try after sometime!!!
               </div>
             )}
 
             {error && <div className={styles['error-message']}>{error}</div>}
 
-            <button className={`${styles['google-art-btn']} ${styles['gpu-accelerated']}`} onClick={handleGoogleLogin} disabled={loading || !agreed}>
+            <button 
+              className={`${styles['google-art-btn']} ${styles['gpu-accelerated']}`} 
+              onClick={handleGoogleLogin} 
+              disabled={loading || !agreed}
+            >
               {loading ? (
-                <div className={styles.spinner}></div>
+                <div className={styles['spinner']}></div>
               ) : (
                 <>
-                  <GoogleIcon className="icon" />
+                  <GoogleIcon />
                   <span>Sign in with Google</span>
                 </>
               )}
@@ -135,9 +150,20 @@ const Login = () => {
 
             <div className={styles['card-footer']}>
               <label className={styles['checkbox-container']}>
-                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-                <span className={styles.checkmark}></span>
-                I accept the <a href="/terms" onClick={handleTermsClick} className={styles.link}>Terms</a> & <a href="/privacy" onClick={handlePrivacyClick} className={styles.link}>Privacy</a>
+                <input 
+                  type="checkbox" 
+                  checked={agreed} 
+                  onChange={(e) => setAgreed(e.target.checked)} 
+                />
+                <span className={styles['checkmark']}></span>
+                I accept the{' '}
+                <a href="/terms" onClick={handleTermsClick} className={styles['link']}>
+                  Terms
+                </a>
+                {' '}&{' '}
+                <a href="/privacy" onClick={handlePrivacyClick} className={styles['link']}>
+                  Privacy
+                </a>
               </label>
             </div>
           </div>

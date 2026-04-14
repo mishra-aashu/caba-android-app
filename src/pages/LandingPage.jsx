@@ -423,27 +423,32 @@ const StatCard = memo(({ value, suffix, label, inView }) => {
 // ═══════════════════════════════════════════════════════
 
 const CursorGlow = memo(({ isMobile }) => {
-    const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
+    const glowRef = useRef(null);
 
     useEffect(() => {
         if (isMobile) return;
+
+        let ticking = false;
+        
         const handleMouseMove = (e) => {
-            setMousePos({ x: e.clientX, y: e.clientY });
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    if (glowRef.current) {
+                        glowRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
+                    }
+                    ticking = false;
+                });
+                ticking = true;
+            }
         };
+
         window.addEventListener('mousemove', handleMouseMove, { passive: true });
         return () => window.removeEventListener('mousemove', handleMouseMove);
     }, [isMobile]);
 
     if (isMobile) return null;
 
-    return (
-        <div 
-            className={styles['cursor-glow']} 
-            style={{ 
-                transform: `translate3d(${mousePos.x}px, ${mousePos.y}px, 0) translate(-50%, -50%)`
-            }} 
-        />
-    );
+    return <div ref={glowRef} className={styles['cursor-glow']} />;
 });
 
 
