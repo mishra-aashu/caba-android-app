@@ -153,7 +153,7 @@ export default defineConfig(({ mode }) => {
             '**/native-integrity.json',
           ],
 
-          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB
+          maximumFileSizeToCacheInBytes: 30 * 1024 * 1024, // 30MB
 
           // SW lifecycle:
           // skipWaiting: true  → New SW immediately activates (no waiting)
