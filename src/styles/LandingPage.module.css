@@ -729,6 +729,44 @@
   font-size: 16px;
 }
 
+.btn-hero-login {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--lp-text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 14px;
+  margin-top: 4px;
+}
+
+[data-theme='light'] .btn-hero-login {
+  color: var(--lp-text-dim);
+}
+
+.btn-hero-login:hover {
+  color: var(--lp-accent);
+  background: var(--lp-bg-card-hover);
+  border-color: var(--lp-border);
+  transform: translateY(-2px);
+}
+
+.btn-hero-login svg {
+  transition: transform 0.3s ease;
+  opacity: 0.7;
+}
+
+.btn-hero-login:hover svg {
+  transform: translateX(4px);
+  opacity: 1;
+}
+
 /* Hero Badges */
 .hero-badges {
   display: flex;

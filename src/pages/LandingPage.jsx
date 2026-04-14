@@ -603,9 +603,14 @@ const LandingPage = () => {
                             </button>
                         )}
                         {isMobile && (
-                            <button className={`${styles['btn-hero']} ${styles.secondary}`} onClick={handleDownloadAPK}>
-                                <Download size={18} /><span>Download APK</span>
-                            </button>
+                            <>
+                                <button className={`${styles['btn-hero']} ${styles.secondary}`} onClick={handleDownloadAPK}>
+                                    <Download size={18} /><span>Download APK</span>
+                                </button>
+                                <button className={styles['btn-hero-login']} onClick={handleLogin}>
+                                    <span>Login here</span><ChevronRight size={16} />
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>

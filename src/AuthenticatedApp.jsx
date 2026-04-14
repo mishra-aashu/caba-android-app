@@ -6,16 +6,16 @@
  * They only load AFTER the user is confirmed to be authenticated.
  */
 import { Suspense, lazy, useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import { useLocation, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ChatThemeProvider } from './contexts/ChatThemeProvider';
 import { EmojiStyleProvider } from './contexts/EmojiStyleProvider';
 import { CallProvider } from './contexts/CallProvider';
 import { GroupCallProvider } from './contexts/GroupCallProvider';
 import { GameLobbyProvider } from './contexts/GameLobbyProvider';
 import { DialogProvider } from './contexts/DialogProvider';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
 import { supabase } from './config/supabase';
 import { dbToFrontend } from './utils/dbFieldMapping';
@@ -26,12 +26,6 @@ import useNetworkSync from './hooks/useNetworkSync';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { isNativeWithPlugins } from './utils/platformCheck';
-import { Capacitor } from '@capacitor/core';
-import { initializePushNotifications } from './utils/PushNotifications';
-import { requestPersistentStorage } from './db/db';
-import { FileCache } from './utils/FileCache';
-import { SafeAreaDetector } from './utils/safeAreaDetector';
-import { KeyboardHandler } from './utils/keyboardHandler';
 import useSessionManager from './hooks/useSessionManager';
 import './styles/loaders.css';
 
@@ -77,7 +71,6 @@ import PageTransition from './components/common/PageTransition';
 
 // Core shell components (small, needed immediately for layout)
 import ChatPlaceholder from './components/common/ChatPlaceholder';
-import Modal from './components/common/Modal';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import SyncIndicator from './components/common/SyncIndicator';
 import SafeAreaDebugger from './components/common/SafeAreaDebugger';
@@ -93,7 +86,6 @@ const SafeSuspense = ({ children, fallback = null }) => (
 
 const ProtectedLayout = ({ children }) => {
   const { isAuthenticated, dbUser } = useAuth();
-  const navigate = useNavigate();
   const isDesktop = useIsDesktop();
 
   const [showPhoneAuth, setShowPhoneAuth] = useState(() => !isAuthenticated);
@@ -121,10 +113,12 @@ const ProtectedLayout = ({ children }) => {
         .select()
         .single();
       if (error) throw error;
-      useAuthStore.setState({ dbUser: dbToFrontend(updatedUser) });
+      useAuthStore.getState().updateDbUser(dbToFrontend(updatedUser));
       setShowPhoneCollect(false);
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating user:', error);
+      toast.error('Failed to update profile. Please try again.');
     }
   };
 
@@ -137,7 +131,9 @@ const ProtectedLayout = ({ children }) => {
           </SafeSuspense>
         )}
         <main className="app-content">
-          {children}
+          <SafeSuspense>
+            {children || <Outlet />}
+          </SafeSuspense>
         </main>
       </div>
       <SafeSuspense>
@@ -164,7 +160,6 @@ const AppContent = () => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
   const isDesktop = useIsDesktop();
-  const [splashFinished, setSplashFinished] = useState(false);
   useOnlineStatus();
 
   if (loading) return null;
@@ -186,37 +181,46 @@ const AppContent = () => {
             <Route path="/terms" element={<PageTransition><div className="legal-page-wrapper"><Terms /></div></PageTransition>} />
             <Route path="/privacy" element={<PageTransition><div className="legal-page-wrapper"><Privacy /></div></PageTransition>} />
             <Route path="/about" element={<PageTransition><About /></PageTransition>} />
-            <Route path="/chat/:chatId/:otherUserId/arena" element={<PageTransition><ProtectedLayout><ArenaPage /></ProtectedLayout></PageTransition>} />
-            <Route path="/chat/:chatId/arena" element={<PageTransition><ProtectedLayout><ArenaPage /></ProtectedLayout></PageTransition>} />
-            <Route path="/" element={<ProtectedLayout><MainLayout /></ProtectedLayout>}>
-              <Route index element={<ChatPlaceholder />} />
-              <Route path="chat/:chatId/group" element={<GroupChat key={location.pathname} />} />
-              <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
-              <Route path="chat/:chatId/:otherUserId" element={<Chat key={location.pathname} />} />
-              <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
-              <Route path="user-details/:id" element={<UserDetails />} />
-              <Route path="groups" element={<GroupsPage />} />
-              <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
-              <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
-              <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="settings/security" element={<SecuritySettings />} />
-              <Route path="settings/devices" element={<Devices />} />
-              <Route path="settings/help" element={<HelpCenter />} />
-              <Route path="emoji-settings" element={<EmojiSettings />} />
-              <Route path="history" element={<History />} />
-              <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
-              <Route path="support" element={<SupportChat />} />
-              <Route path="games" element={<GamesPanel />} />
-            </Route>
-            <Route path="/reminders" element={<PageTransition><ProtectedLayout><Reminders /></ProtectedLayout></PageTransition>} />
-            <Route path="/create-reminder" element={<PageTransition><ProtectedLayout><CreateReminder /></ProtectedLayout></PageTransition>} />
-            <Route path="/calls" element={<PageTransition><ProtectedLayout><Calls /></ProtectedLayout></PageTransition>} />
-            <Route path="/qr" element={<PageTransition><ProtectedLayout><QRPage /></ProtectedLayout></PageTransition>} />
-            <Route path="/admin" element={<PageTransition><ProtectedLayout><Admin /></ProtectedLayout></PageTransition>} />
             <Route path="/admin-about" element={<PageTransition><AdminAbout /></PageTransition>} />
-            <Route path="/call/:callId" element={<PageTransition><ProtectedLayout><CallScreen /></ProtectedLayout></PageTransition>} />
             <Route path="/room/:roomId" element={<RoomRedirect />} />
+            
+            {/* Protected Routes directly under Shared Layout */}
+            <Route element={<ProtectedLayout />}>
+              <Route path="/chat/:chatId/:otherUserId/arena" element={<PageTransition><ArenaPage /></PageTransition>} />
+              <Route path="/chat/:chatId/arena" element={<PageTransition><ArenaPage /></PageTransition>} />
+              
+              {/* Main App Layout */}
+              <Route path="/" element={<MainLayout />}>
+                <Route index element={<ChatPlaceholder />} />
+                <Route path="chat/:chatId/group" element={<GroupChat />} />
+                <Route path="chat/:chatId/group/media" element={<SharedMediaGallery />} />
+                <Route path="chat/:chatId/:otherUserId" element={<Chat />} />
+                <Route path="chat/:chatId/:otherUserId/media" element={<SharedMediaGallery />} />
+                <Route path="user-details/:id" element={<UserDetails />} />
+                <Route path="groups" element={<GroupsPage />} />
+                <Route path="chat/:chatId/group/info" element={<GroupInfoPage />} />
+                <Route path="contacts" element={<ContactsPage isDesktop={isDesktop} />} />
+                <Route path="profile" element={<Profile isSidebar={isDesktop} />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="settings/security" element={<SecuritySettings />} />
+                <Route path="settings/devices" element={<Devices />} />
+                <Route path="settings/help" element={<HelpCenter />} />
+                <Route path="emoji-settings" element={<EmojiSettings />} />
+                <Route path="history" element={<History />} />
+                <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
+                <Route path="support" element={<SupportChat />} />
+                <Route path="games" element={<GamesPanel />} />
+              </Route>
+
+              {/* Standalone Protected Routes */}
+              <Route path="/reminders" element={<PageTransition><Reminders /></PageTransition>} />
+              <Route path="/create-reminder" element={<PageTransition><CreateReminder /></PageTransition>} />
+              <Route path="/calls" element={<PageTransition><Calls /></PageTransition>} />
+              <Route path="/qr" element={<PageTransition><QRPage /></PageTransition>} />
+              <Route path="/admin" element={<PageTransition><Admin /></PageTransition>} />
+              <Route path="/call/:callId" element={<PageTransition><CallScreen /></PageTransition>} />
+            </Route>
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AnimatePresence>
@@ -257,6 +261,7 @@ const AppWithCallProvider = ({ dbUser, authLoading }) => {
             <OfflineIndicator>
               <AppContent />
             </OfflineIndicator>
+            <Toaster position="top-center" />
             <SafeSuspense><CallStatusIndicator /></SafeSuspense>
             <SafeSuspense><IncomingCallModal /></SafeSuspense>
             <SafeSuspense><GroupIncomingCallNotification /></SafeSuspense>

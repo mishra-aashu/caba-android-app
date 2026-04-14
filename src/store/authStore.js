@@ -32,6 +32,8 @@ const useAuthStore = create((set, get) => ({
 
   clearServerError: () => set({ isServerUnreachable: false }),
 
+  updateDbUser: (user) => set({ dbUser: user }),
+
   initializeAuth: async () => {
     if (isAuthInitialized) return;
     isAuthInitialized = true;
