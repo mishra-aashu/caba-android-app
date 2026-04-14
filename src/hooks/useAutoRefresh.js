@@ -176,14 +176,25 @@ export const useAutoRefresh = () => {
         window.location.replace(immediateTargetUrl);
 
       } else {
-        // ══════════════════════════════════════
-        // ON VERCEL → Activate new SW or reload
-        // ══════════════════════════════════════
-        console.log('[AutoRefresh] Web update...');
+        // ══════════════════════════════════════════════════════════════
+        // ON VERCEL (PWA/web browser) → Activate new SW
+        //
+        // Since skipWaiting: true is set in Workbox, the new SW activates
+        // immediately when we call activateSWUpdate(). That sets
+        // _reloadOnController = true in pwa.js, so when the SW fires
+        // 'controllerchange', pwa.js reloads the page with fresh assets.
+        //
+        // DO NOT manually reload here — let pwa.js handle it to avoid
+        // double-reload race conditions.
+        // ══════════════════════════════════════════════════════════════
+        console.log('[AutoRefresh] Web update — activating new SW...');
 
         if (swUpdateReadyRef.current) {
+          // ✅ pwa.js controllerchange listener will reload the page
           activateSWUpdate();
         } else {
+          // No waiting SW — forcefully clear caches and hard reload
+          console.log('[AutoRefresh] No waiting SW — clearing caches and reloading');
           if ('serviceWorker' in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
             await Promise.all(regs.map(r => r.unregister()));

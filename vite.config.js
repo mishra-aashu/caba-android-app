@@ -100,8 +100,9 @@ export default defineConfig(({ mode }) => {
       // KEY SETTINGS:
       //   injectRegister: null  → We register SW manually in src/pwa.js
       //   registerType: prompt  → Don't auto-reload, show update banner
-      //   skipWaiting: false    → Wait for user to click "Update"
-      //   clientsClaim: true    → After activation, control all tabs
+      //   skipWaiting: true     → New SW immediately takes over
+      //                           pwa.js controllerchange listener handles reload
+      //   clientsClaim: true    → After activation, control all tabs immediately
       //   globIgnores           → version.json MUST NOT be precached
       // ══════════════════════════════════════════════════════════
       VitePWA({
@@ -142,7 +143,7 @@ export default defineConfig(({ mode }) => {
             ? '/caba-android-app/index.html'
             : 'index.html',
 
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,ogg,mp3}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,ogg,mp3,json}'],
 
           // ⚠️ CRITICAL: These files must NEVER be precached by Workbox.
           // version.json must always be fetched fresh from network
@@ -154,20 +155,28 @@ export default defineConfig(({ mode }) => {
 
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB
 
-          // SW lifecycle control
-          skipWaiting: false,   // Don't auto-activate — wait for user to click "Update"
-          clientsClaim: true,   // After activation, take control of all tabs immediately
+          // SW lifecycle:
+          // skipWaiting: true  → New SW immediately activates (no waiting)
+          //                       pwa.js controllerchange listener reloads page
+          // clientsClaim: true → After activation, control ALL open tabs immediately
+          skipWaiting: true,    // ✅ Immediately activate new SW
+          clientsClaim: true,   // ✅ Take control of all tabs immediately
 
           runtimeCaching: [
             {
-              // HTML entry point — always revalidate in background
-              urlPattern: ({ url }) =>
-                url.pathname === '/' || url.pathname.endsWith('index.html'),
-              handler: 'StaleWhileRevalidate',
+              // HTML navigation — NetworkFirst so user gets fresh shell when online
+              // Falls back to cache when offline (no "webpage not available")
+              urlPattern: ({ request }) => request.mode === 'navigate',
+              handler: 'NetworkFirst',
               options: {
-                cacheName: 'entry-point-cache',
+                cacheName: 'navigation-cache',
+                networkTimeoutSeconds: 5,
                 expiration: {
-                  maxEntries: 1,
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
                 },
               },
             },
