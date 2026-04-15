@@ -19,6 +19,8 @@ import Moon from 'lucide-react/dist/esm/icons/moon';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import Download from 'lucide-react/dist/esm/icons/download';
 import Shield from 'lucide-react/dist/esm/icons/shield';
+import Github from 'lucide-react/dist/esm/icons/github';
+import Zap from 'lucide-react/dist/esm/icons/zap';
 import { ThemeContext } from '../contexts/ThemeContext';
 import styles from '../styles/LandingPage.module.css';
 import AppName from '../components/common/AppName';
@@ -174,6 +176,24 @@ const TECH_STACK = [
     { name: 'Firebase', color: '#FFCA28', version: 'FCM', icon: <TechIcons.Firebase /> },
     { name: 'Capacitor', color: '#53B9FF', version: 'Mobile', icon: <TechIcons.Capacitor /> },
     { name: 'Vite', color: '#646CFF', version: 'Fast', icon: <TechIcons.Vite /> }
+];
+
+const STORY_VALUES = [
+    {
+        icon: <Lock size={20} />,
+        title: 'Absolute Privacy',
+        desc: 'No central servers. No middle-men. Your messages are yours alone.'
+    },
+    {
+        icon: <Shield size={20} />,
+        title: 'User Sovereignty',
+        desc: 'Reclaiming digital identity from centralized platforms.'
+    },
+    {
+        icon: <Zap size={20} />,
+        title: 'Direct Connection',
+        desc: 'Pure P2P bridges designed for the modern world.'
+    }
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -419,38 +439,6 @@ const StatCard = memo(({ value, suffix, label, inView }) => {
     );
 });
 
-// ═══════════════════════════════════════════════════════
-// CURSOR GLOW COMPONENT (Isolated to prevent full re-renders)
-// ═══════════════════════════════════════════════════════
-
-const CursorGlow = memo(({ isMobile }) => {
-    const glowRef = useRef(null);
-
-    useEffect(() => {
-        if (isMobile) return;
-
-        let ticking = false;
-        
-        const handleMouseMove = (e) => {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    if (glowRef.current) {
-                        glowRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
-                    }
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        };
-
-        window.addEventListener('mousemove', handleMouseMove, { passive: true });
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, [isMobile]);
-
-    if (isMobile) return null;
-
-    return <div ref={glowRef} className={styles['cursor-glow']} />;
-});
 
 
 // ═══════════════════════════════════════════════════════
@@ -556,7 +544,6 @@ const LandingPage = () => {
     return (
         <div className={styles.landing} data-theme={theme} ref={containerRef}>
             <div className={styles['noise-overlay']} />
-            <CursorGlow isMobile={isMobile} />
             <nav className={`${styles['landing-nav']} ${isScrolled ? styles.scrolled : ''}`}>
                 <div className={styles['nav-inner']}>
                     <div className={styles['nav-brand']} onClick={() => scrollTo('hero')}>
@@ -656,11 +643,27 @@ const LandingPage = () => {
                         <div className={styles['story-text']}>
                             <span className={styles['section-tag']}>Our Story</span>
                             <h2>Why "Elevengram"?</h2>
+                            <p className={styles['story-lead']}>
+                                Elevengram represents the <strong>11th Level</strong> of digital communication. 
+                                While standard apps operate on levels of convenience or profit, 
+                                we pushed the needle to Eleven—where privacy is absolute and servers are non-existent.
+                            </p>
                             <div className={styles['story-quote']}>
                                 <blockquote style={{ border: 'none', background: 'none', padding: 0 }}>
-                                    <strong>Elevengram</strong> represents the <strong>11th Level</strong>...
+                                    "Your data remains where it belongs—with you. No logs, no tracking, just pure communication."
                                 </blockquote>
                             </div>
+                        </div>
+                        <div className={styles['story-values']}>
+                            {STORY_VALUES.map((val, i) => (
+                                <div key={i} className={styles['value-card']}>
+                                    <div className={styles['value-icon']}>{val.icon}</div>
+                                    <div className={styles['value-info']}>
+                                        <h4>{val.title}</h4>
+                                        <p>{val.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -693,6 +696,20 @@ const LandingPage = () => {
                                 <span className={styles['tech-name']}>{t.name}</span>
                             </div>
                         ))}
+                    </div>
+                    <div className={`${styles['tech-footer']} ${techInView ? styles.animate : ''}`}>
+                        <div className={styles['tech-footer-content']}>
+                            <p>Built with passion and the most modern technologies. Our codebase is fully transparent and open for contributions.</p>
+                            <a 
+                                href="https://github.com/mishra-aashu/caba-android-app" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className={styles['github-link-btn']}
+                            >
+                                <Github size={20} />
+                                <span>View on GitHub</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </section>

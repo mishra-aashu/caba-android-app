@@ -47,7 +47,8 @@ import {
     Smartphone,
     Languages,
     Type,
-    Wallpaper
+    Wallpaper,
+    Heart
 } from 'lucide-react';
 import BottomNavigation from '../common/BottomNavigation';
 import toast from 'react-hot-toast';
@@ -886,7 +887,9 @@ const Settings = ({ isSidebar = false }) => {
                         <AppName size="small" />
                         <p>Messenger v{APP_VERSION}</p>
                     </div>
-                    <p>Made with ❤️</p>
+                    <p style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        Made with <Heart size={16} fill="#ff4b2b" style={{ color: '#ff4b2b' }} />
+                    </p>
                 </div>
             </div>
 
