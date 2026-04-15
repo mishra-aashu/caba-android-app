@@ -18,6 +18,7 @@ import Sun from 'lucide-react/dist/esm/icons/sun';
 import Moon from 'lucide-react/dist/esm/icons/moon';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import Download from 'lucide-react/dist/esm/icons/download';
+import Shield from 'lucide-react/dist/esm/icons/shield';
 import { ThemeContext } from '../contexts/ThemeContext';
 import styles from '../styles/LandingPage.module.css';
 import AppName from '../components/common/AppName';
@@ -571,6 +572,9 @@ const LandingPage = () => {
                             </button>
                             <ThemeGuide />
                         </div>
+                        <button className={styles['nav-admin-btn']} onClick={() => navigate('/admin-about')}>
+                            <Shield size={16} /> Admin
+                        </button>
                         {!isMobile && (
                             <button className={styles['nav-cta']} onClick={handleLogin}>
                                 Open Web App <ChevronRight size={16} />

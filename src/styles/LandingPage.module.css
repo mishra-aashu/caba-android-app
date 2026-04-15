@@ -243,12 +243,13 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-.theme-toggle-btn {
+.nav-links .theme-toggle-btn {
   background: transparent;
   border: none;
   color: var(--lp-text-dim);
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
+  padding: 0 !important;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -258,14 +259,43 @@
   margin-left: 4px;
 }
 
-.theme-toggle-btn:hover {
+.nav-links .theme-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: var(--lp-accent-light);
   transform: rotate(15deg);
 }
 
+[data-theme='light'] .nav-links .theme-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.nav-links .nav-admin-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--lp-text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 80px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.nav-links .nav-admin-btn:hover {
+  color: var(--lp-accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='light'] .nav-links .nav-admin-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 /* Nav CTA */
-.nav-cta {
+.nav-links .nav-cta {
   background: var(--lp-accent);
   border: 1px solid var(--lp-accent-light);
   color: #fff !important;
@@ -282,7 +312,7 @@
   margin-left: 8px;
 }
 
-.nav-cta:hover {
+.nav-links .nav-cta:hover {
   background: #00876a;
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(0, 168, 132, 0.5);
