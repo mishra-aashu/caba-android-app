@@ -142,12 +142,7 @@ VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret
 ### Supabase Setup
 
 1. Create a new project at [supabase.com](https://supabase.com)
-2. Run the SQL migrations in `supabase/migrations/`:
-   - `create_groups_table.sql`
-   - `add_groups_rls.sql`
-   - `add_game_invitations.sql`
-   - `add_rate_limiting.sql`
-   - And other migration files as needed
+2. Backend services are automatically configured on the linked project.
 3. Get your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from Settings → API
 
 ### Firebase Setup
@@ -231,7 +226,7 @@ caba-android-app/
 │   ├── utils/              # Client-side helpers
 │   ├── styles/             # Application styles
 │   └── main.jsx            # Entry point
-├── supabase/                 # Edge functions & SQL migrations
+├── supabase/                 # Backend configuration & Edge functions
 ├── .github/                  # CI/CD Workflows
 ├── package.json              # Config & dependencies
 └── vite.config.js            # Build configuration
