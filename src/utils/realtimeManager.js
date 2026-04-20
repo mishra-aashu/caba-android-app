@@ -151,8 +151,8 @@ class RealtimeManager {
         this._log('Creating new channel', { channel: channelName });
         const channel = supabase.channel(channelName);
 
-        // ── Register handlers from callbacks ──
-        this._registerHandlers(channel, callbacks);
+        // ── Register handlers using the new proxy architecture ──
+        this._registerHandlers(channel, channelName);
 
         // ── Subscribe with status tracking ──
         channel.subscribe((status, err) => {
@@ -223,37 +223,56 @@ class RealtimeManager {
    * Register postgres_changes, broadcast, and presence handlers on a channel.
    * Extracted for clarity and reuse.
    */
-  _registerHandlers(channel, callbacks) {
-    Object.entries(callbacks).forEach(([event, callback]) => {
-      if (!callback) return;
+  _registerHandlers(channel, channelName) {
+    // ────────────────────────────────────────────
+    // DYNAMIC PROXY HANDLERS
+    // ────────────────────────────────────────────
+    // Instead of passing the callback directly to Supabase (which makes it stale),
+    // we pass a wrapper that always looks up the LATEST callback from this.subscriptions.
+    
+    // 1. Presence Proxy
+    channel.on('presence', { event: 'sync' }, () => {
+      const entry = this.subscriptions.get(channelName);
+      const cb = entry?.callbacks?.presence;
+      if (typeof cb === 'function') cb();
+      else if (cb?.callback) cb.callback();
+    });
 
-      if (event === 'postgres_changes') {
-        const listeners = Array.isArray(callback) ? callback : [callback];
-        listeners.forEach((listenerConfig) => {
-          const { handler, ...supabaseConfig } = listenerConfig;
-          channel.on('postgres_changes', supabaseConfig, handler || (() => {}));
+    channel.on('presence', { event: 'join' }, (payload) => {
+      const entry = this.subscriptions.get(channelName);
+      const cb = entry?.callbacks?.presence_join || entry?.callbacks?.presence;
+      if (typeof cb === 'function' && entry?.callbacks?.presence_join) cb(payload);
+    });
+
+    channel.on('presence', { event: 'leave' }, (payload) => {
+      const entry = this.subscriptions.get(channelName);
+      const cb = entry?.callbacks?.presence_leave || entry?.callbacks?.presence;
+      if (typeof cb === 'function' && entry?.callbacks?.presence_leave) cb(payload);
+    });
+
+    // 2. Postgres Changes Proxy
+    const initialEntry = this.subscriptions.get(channelName);
+    const pgCallbacks = initialEntry?.callbacks?.postgres_changes;
+    if (pgCallbacks) {
+      const listeners = Array.isArray(pgCallbacks) ? pgCallbacks : [pgCallbacks];
+      listeners.forEach((listenerConfig, index) => {
+        const { handler, ...supabaseConfig } = listenerConfig;
+        channel.on('postgres_changes', supabaseConfig, (payload) => {
+          const latestEntry = this.subscriptions.get(channelName);
+          const latestCbs = latestEntry?.callbacks?.postgres_changes;
+          const latestListeners = Array.isArray(latestCbs) ? latestCbs : [latestCbs];
+          const latestHandler = latestListeners[index]?.handler;
+          if (latestHandler) latestHandler(payload);
         });
-      } else if (event === 'broadcast') {
-        const configs = Array.isArray(callback) ? callback : [callback];
-        configs.forEach((cfg) => {
-          const { event: eventName, callback: cb } =
-            typeof cfg === 'function' ? { event: '*', callback: cfg } : cfg;
-          channel.on('broadcast', { event: eventName || '*' }, cb);
-        });
-      } else if (event === 'presence') {
-        const configs = Array.isArray(callback) ? callback : [callback];
-        configs.forEach((cfg) => {
-          const { event: eventName, callback: cb } =
-            typeof cfg === 'function' ? { event: '*', callback: cfg } : cfg;
-          channel.on('presence', { event: eventName || 'sync' }, cb);
-        });
-      } else if (
-        ['onReconnect', 'onMaxRetriesReached', 'onStatusChange'].includes(event)
-      ) {
-        // Internal management callbacks — handled in subscribe() status listener
-      } else {
-        channel.on(event, callback);
-      }
+      });
+    }
+
+    // 3. Broadcast Proxy
+    channel.on('broadcast', { event: '*' }, (payload) => {
+      const entry = this.subscriptions.get(channelName);
+      const cb = entry?.callbacks?.broadcast;
+      if (typeof cb === 'function') cb(payload);
+      else if (cb?.callback) cb.callback(payload);
     });
   }
 

@@ -1,13 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useContext } from 'react';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
-import realtimeManager from '../../utils/realtimeManager';
+import { GameLobbyContext } from '../../contexts/GameLobbyContext';
 
 /**
- * useChatPresence
+ * useChatPresence (Refactored)
  * 
- * Handles:
- * - Supabase Presence (online/last seen) sharded by user
- * - Typing indicators
+ * Now consumes the global GameLobbyContext to determine online status.
+ * This ensures a single source of truth and reduces WebSocket overhead.
  */
 export function useChatPresence({
     chatId,
@@ -16,42 +15,28 @@ export function useChatPresence({
     currentUserId,
     onPresenceChange,
 }) {
+    // Typing indicators still use their own broadcast channel per chat
     const { typingUsers, sendTyping } = useRealtimeTyping(chatId, currentUserId);
-    const syncRef = useRef();
+    
+    // Consume global presence state
+    const lobbyContext = useContext(GameLobbyContext);
+    const onlineUsers = lobbyContext?.onlineUsers || [];
 
-    syncRef.current = () => {
-        if (isGroupChat || !otherUserId) return;
+    // Find the specific user in the global online list
+    const otherUserPresence = useMemo(() => {
+        if (isGroupChat || !otherUserId) return null;
+        return onlineUsers.find(u => String(u.id) === String(otherUserId));
+    }, [onlineUsers, otherUserId, isGroupChat]);
 
-        const channelName = `presence:${otherUserId}`;
-        const entry = realtimeManager.getChannel(channelName);
-        if (!entry || !entry.channel) return;
-
-        const state = entry.channel.presenceState();
-        let isOnline = false;
-        let lastSeen = null;
-
-        Object.values(state).forEach(presences => {
-            presences.forEach(p => {
-                if (p.user_id === otherUserId) {
-                    isOnline = true;
-                    lastSeen = p.online_at;
-                }
-            });
-        });
-
-        onPresenceChange?.({ is_online: isOnline, last_seen: lastSeen });
-    };
-
+    // Notify caller when presence changes
     useEffect(() => {
         if (isGroupChat || !otherUserId) return;
 
-        const channelName = `presence:${otherUserId}`;
-        realtimeManager.subscribe(channelName, {}, {
-            presence: { event: 'sync', callback: () => syncRef.current() }
+        onPresenceChange?.({
+            is_online: !!otherUserPresence,
+            last_seen: otherUserPresence?.onlineSince || null
         });
-
-        return () => realtimeManager.unsubscribe(channelName);
-    }, [otherUserId, isGroupChat]);
+    }, [otherUserPresence, onPresenceChange, otherUserId, isGroupChat]);
 
     return {
         typingUsers,

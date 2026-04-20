@@ -10,6 +10,7 @@ import { manualRetrySyncItem } from "../../db/db";
 import toast from "react-hot-toast";
 import EmojiRenderer from "../common/EmojiRenderer";
 import CachedImage from "../common/CachedImage";
+import OnlineStatusDot from "../common/OnlineStatusDot";
 import styles from "../../styles/ChatListItem.module.css";
 
 import hapticsManager from "../../utils/hapticsManager";
@@ -166,6 +167,11 @@ const ChatListItem = ({
           <div className={styles["sync-status-overlay"]}>
             {isSyncing ? <Clock size={16} className={styles["spin-slow"]} /> : <AlertCircle size={16} color="#ff4b4b" />}
           </div>
+        )}
+
+        {/* Real-time Online Indicator */}
+        {!isGroup && chat.id && !isSyncing && !isFailed && (
+          <OnlineStatusDot userId={chat.metadata?.otherUserId || chat.id} />
         )}
       </motion.div>
 

@@ -1,69 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
-import { realtimeManager } from '../utils/realtimeManager';
-import { useAuth } from './useAuth';
+import { useContext } from 'react';
+import { GameLobbyContext } from '../contexts/GameLobbyContext';
 
 /**
- * useOnlineStatus Hook
+ * useOnlineStatus Hook (Refactored)
  *
- * Maintains the per-user private channel for connection status tracking.
- *
- * NOTE: The shared 'game_lobby_presence' channel (for the Games Hub) is now
- * managed by <GameLobbyProvider> in AuthenticatedApp.jsx. This hook no longer
- * touches that channel to avoid the Supabase channel dedup issue where
- * supabase.channel(name) returns the same instance if called twice.
+ * Now acts as a proxy for the centralized GameLobbyContext.
+ * This avoids creating redundant presence channels while maintaining
+ * compatibility with existing components that rely on this hook.
  */
 export const useOnlineStatus = () => {
-  const { dbUser } = useAuth();
-  const [isConnected, setIsConnected] = useState(false);
-  const dbUserRef = useRef(dbUser);
-  const mountedRef = useRef(true);
-
-  // Keep ref in sync
-  useEffect(() => {
-    dbUserRef.current = dbUser;
-  }, [dbUser]);
-
-  useEffect(() => {
-    if (!dbUser?.id) return;
-
-    mountedRef.current = true;
-    const channelName = `presence:${dbUser.id}`;
-
-    const initPresence = async () => {
-      await realtimeManager.subscribe(
-        channelName,
-        {},
-        {
-          onStatusChange: (status) => {
-            if (mountedRef.current) {
-              setIsConnected(status === 'SUBSCRIBED');
-
-              if (status === 'SUBSCRIBED') {
-                const channel = realtimeManager.getChannel(channelName)?.channel;
-                if (channel) {
-                  channel.track({
-                    user_id: dbUserRef.current.id,
-                    online_at: new Date().toISOString(),
-                    name: dbUserRef.current.name,
-                  }).catch(err => console.error('[RT] Presence track failed:', err));
-                }
-              }
-            }
-          }
-        }
-      );
+  const context = useContext(GameLobbyContext);
+  
+  if (!context) {
+    // Fallback if used outside Provider
+    return {
+      isOnline: navigator.onLine,
+      lastSeen: new Date().toISOString()
     };
-
-    initPresence();
-
-    return () => {
-      mountedRef.current = false;
-      realtimeManager.unsubscribe(channelName);
-    };
-  }, [dbUser?.id]);
+  }
 
   return {
-    isOnline: isConnected,
+    isOnline: context.isConnected,
     lastSeen: new Date().toISOString()
   };
 };
