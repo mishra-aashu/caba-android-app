@@ -384,9 +384,37 @@ const App = () => {
 };
 
 // [FIX #2] RoomRedirect — useParams is now properly imported at the top
+// [FIX #2] RoomRedirect — now resolves otherUserId for a proper URL
 const RoomRedirect = () => {
     const { roomId } = useParams();
-    return <Navigate to={`/chat/${roomId}/arena`} replace />;
+    const { dbUser } = useAuth();
+    const [target, setTarget] = useState(null);
+
+    useEffect(() => {
+        const fetchChat = async () => {
+            if (!dbUser?.id || !roomId) return;
+            try {
+                const { data } = await supabase
+                    .from('chats')
+                    .select('user1_id, user2_id')
+                    .eq('id', roomId)
+                    .single();
+
+                if (data) {
+                    const otherId = data.user1_id === dbUser.id ? data.user2_id : data.user1_id;
+                    setTarget(`/chat/${roomId}/${otherId}/arena`);
+                } else {
+                    setTarget(`/chat/${roomId}/arena`);
+                }
+            } catch (err) {
+                setTarget(`/chat/${roomId}/arena`);
+            }
+        };
+        fetchChat();
+    }, [roomId, dbUser?.id]);
+
+    if (!target) return <div className="loading" />;
+    return <Navigate to={target} replace />;
 };
 
 export default App;

@@ -31,6 +31,8 @@ const PRE_BATTLE_STAGES = [
 
 // Grace period before auto-exit check fires (gives realtime time to populate)
 const GRACE_PERIOD_MS = 6000;
+const INVITE_EXPIRY_MS = 3600000; // 1 hour expiry for auto-join
+
 
 const TOAST_IDS = {
   CONNECTION: 'arena-connect',
@@ -97,6 +99,8 @@ const ArenaPage = () => {
   const [invitations, setInvitations] = useState([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, isProcessing: false });
+  const [resolvedOtherUserId, setResolvedOtherUserId] = useState(otherUserId);
+
   
   // Refs for tracking state to prevent stale closures
   const isLoadingRef = useRef(false);
@@ -176,6 +180,30 @@ const ArenaPage = () => {
     };
   }, [chatId, supabase, loadInvitations]);
 
+  // ─── Resolve Other User ID ───────────────────────────────
+  useEffect(() => {
+    if (resolvedOtherUserId || !chatId || !dbUser?.id) return;
+
+    const fetchOtherUser = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('chats')
+          .select('user1_id, user2_id')
+          .eq('id', chatId)
+          .single();
+
+        if (error) throw error;
+        const otherId = data.user1_id === dbUser.id ? data.user2_id : data.user1_id;
+        if (isMountedRef.current) setResolvedOtherUserId(otherId);
+      } catch (err) {
+        console.error('[Arena] Error resolving other user:', err);
+      }
+    };
+
+    fetchOtherUser();
+  }, [chatId, dbUser?.id, resolvedOtherUserId, supabase]);
+
+
   // ─── Connection Status Toasts ──────────────────────────────
   const peerCount = game.webrtc?.peers?.length || 0;
   const joinTimeoutRef = useRef(null);
@@ -228,8 +256,10 @@ const ArenaPage = () => {
 
     const acceptedInv = invitations.find(inv => 
       inv.status === 'accepted' && 
-      (inv.sender_id === dbUser.id || inv.receiver_id === dbUser.id)
+      (inv.sender_id === dbUser.id || inv.receiver_id === dbUser.id) &&
+      (Date.now() - new Date(inv.created_at).getTime() < INVITE_EXPIRY_MS)
     );
+
 
     if (acceptedInv) {
       console.log('🎮 Accepted game found, auto-joining battle...', acceptedInv.id);
@@ -378,7 +408,7 @@ const ArenaPage = () => {
     onPick: game.pickType,
     onSend: game.sendChallenge,
     onComplete: game.completeTurn,
-    onStart: () => game.startGame(otherUserId),
+    onStart: () => game.startGame(resolvedOtherUserId),
     onAccept: () => handleAcceptInvite(pendingInvitesForMe[0]),
     onReject: () => handleRejectInvite(pendingInvitesForMe[0]),
     onJoin: game.joinBattle,
@@ -485,7 +515,7 @@ const ArenaPage = () => {
             >
               <GameLobby 
                 chatId={chatId}
-                otherUserId={otherUserId}
+                otherUserId={resolvedOtherUserId}
                 invitations={invitations}
                 loading={loadingInvites}
                 onStartTruthDare={() => game.startGame(otherUserId)}
@@ -506,7 +536,7 @@ const ArenaPage = () => {
                 chatId={chatId}
                 userId={dbUser?.id}
                 userName={dbUser?.name}
-                gameProps={gameProps}
+                gameProps={{...gameProps, partnerId: resolvedOtherUserId}}
                 webrtcProps={game.webrtc}
               />
             </motion.div>
