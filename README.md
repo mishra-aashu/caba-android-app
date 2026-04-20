@@ -35,6 +35,7 @@
 | <img src="https://api.iconify.design/lucide:palette.svg?height=18&color=%233fcf8e" vertical-align="middle" /> **Theme Customization** | Multiple chat themes and wallpapers (Vibration, Custom Emojis) |
 | <img src="https://api.iconify.design/lucide:smartphone.svg?height=18&color=%233fcf8e" vertical-align="middle" /> **PWA Support** | App-like experience with standalone mode and safe area support |
 | <img src="https://api.iconify.design/lucide:bell.svg?height=18&color=%233fcf8e" vertical-align="middle" /> **Push Notifications** | Firebase Cloud Messaging with background sync |
+| <img src="https://api.iconify.design/lucide:zap.svg?height=18&color=%233fcf8e" vertical-align="middle" /> **Offline-First** | Seamless messaging with automatic background sync when connection returns |
 | <img src="https://api.iconify.design/lucide:monitor.svg?height=18&color=%233fcf8e" vertical-align="middle" /> **Desktop Support** | Full-featured desktop interface with modern styling |
 
 ---
@@ -60,6 +61,10 @@
 ### Development
 - **ESLint** - Code linting
 - **GitHub Actions** - CI/CD
+
+### Architecture
+- **Local-First Sync**: Powered by Dexie.js for instant UI and offline reliability
+- **Real-time Backend**: Supabase for secure data persistence and live updates
 
 ---
 
@@ -150,7 +155,7 @@ VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret
 1. Create a project at [firebase.google.com](https://firebase.google.com)
 2. Enable **Authentication** (Email/Password, Google)
 3. Enable **Cloud Messaging** (Web push certificates)
-4. Enable **Firestore Database**
+4. Enable **Firebase Authentication** (Google, Email/Password)
 5. Get your config from Project Settings → General
 
 ### TURN Server Configuration
