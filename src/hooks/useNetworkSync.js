@@ -3,6 +3,7 @@ import db from '../db/db';
 import { supabase } from '../config/supabase';
 import { uploadMedia, uploadVoiceMessage } from '../services/mediaService';
 import useChatStore from '../store/useChatStore';
+import { safeDbConversion } from '../utils/dbFieldMapping';
 
 /**
  * useNetworkSync monitors online/offline status and processes the sync_queue
@@ -114,7 +115,6 @@ const useNetworkSync = () => {
                                     .single();
 
                                 if (!msgError && msgData) {
-                                    const { safeDbConversion } = await import('../utils/dbFieldMapping');
                                     const normalizedMsg = safeDbConversion(msgData);
 
                                     // Atomic swap in Dexie: delete temp, insert final
@@ -200,7 +200,6 @@ const useNetworkSync = () => {
                                         const localGroup = await db.groups.where('id').equals(tempId).first();
                                         if (localGroup) {
                                             await db.groups.delete(tempId);
-                                            const { safeDbConversion } = await import('../utils/dbFieldMapping');
                                             await db.groups.put({ ...safeDbConversion(groupData), is_syncing: false });
                                         }
 

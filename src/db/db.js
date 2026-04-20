@@ -25,19 +25,37 @@ db.version(6).stores({
     reminders: 'id, reminderTime, senderId, receiverId'
 }).upgrade(async tx => {
     // Migration: Convert snake_case to camelCase for existing data
-    const { safeDbConversion } = await import('../utils/dbFieldMapping');
-
+    // IMPORTANT: Avoid dynamic imports or non-Dexie promises inside upgrade
+    
     await tx.chats_list.toCollection().modify(chat => {
         if (chat.last_message_at) {
             chat.lastMessageAt = chat.last_message_at;
             delete chat.last_message_at;
         }
+        if (chat.unread_count !== undefined) {
+            chat.unreadCount = chat.unread_count;
+            delete chat.unread_count;
+        }
     });
 
     await tx.messages.toCollection().modify(msg => {
-        const converted = safeDbConversion(msg);
-        Object.keys(msg).forEach(key => delete msg[key]);
-        Object.assign(msg, converted);
+        const mappings = {
+            'sender_id': 'senderId',
+            'receiver_id': 'receiverId',
+            'chat_id': 'chatId',
+            'media_path': 'mediaPath',
+            'media_url': 'mediaUrl',
+            'is_read': 'isRead',
+            'created_at': 'createdAt',
+            'client_id': 'tempId'
+        };
+        
+        for (const [oldKey, newKey] of Object.entries(mappings)) {
+            if (msg[oldKey] !== undefined) {
+                msg[newKey] = msg[oldKey];
+                delete msg[oldKey];
+            }
+        }
     });
 
     await tx.sync_queue.toCollection().modify(item => {
@@ -47,9 +65,7 @@ db.version(6).stores({
     });
 });
 
-/**
- * Helper to add an item to the sync queue
- */
+// Helper to add an item to the sync queue
 export const addToSyncQueue = async (type, payload) => {
     return await db.sync_queue.add({
         type,

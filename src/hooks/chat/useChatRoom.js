@@ -204,7 +204,7 @@ const useChatRoom = () => {
       if (!invitationId) return;
       try {
         await messagesApi.sendMessage('Battle Accepted! 🔥', { vanishAt: null });
-        navigate(`/arena/${chatId}/${otherUserId}`);
+        navigate(`/games`);
       } catch (error) {
         toast.error('Failed to accept battle');
       }
@@ -219,7 +219,7 @@ const useChatRoom = () => {
   );
 
   const handleJoinGame = useCallback(
-    () => navigate(`/arena/${chatId}/${otherUserId}`),
+    () => navigate(`/games`),
     [navigate, chatId, otherUserId]
   );
 

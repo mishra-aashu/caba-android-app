@@ -39,10 +39,7 @@ const SharedProfile = lazy(() => import('./components/shared-profile'));
 // AuthenticatedApp is the heavy one — only loaded when user is logged in
 const AuthenticatedApp = lazy(() => import('./AuthenticatedApp'));
 
-const RoomRedirect = () => {
-  const { roomId } = useParams();
-  return <Navigate to={`/chat/${roomId}/arena`} replace />;
-};
+
 
 const PublicApp = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -126,7 +123,7 @@ const PublicApp = () => {
                 <Route path="/about" element={<About />} />
                 <Route path="/admin-about" element={<AdminAbout />} />
                 <Route path="/shared-profile/:userId" element={<SharedProfile />} />
-                <Route path="/room/:roomId" element={<RoomRedirect />} />
+
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               <GlobalDialog />

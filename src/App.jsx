@@ -45,7 +45,6 @@ const AddMembersPage = lazy(() => import('./components/groups').then(m => ({ def
 const CreateGroupPage = lazy(() => import('./components/groups').then(m => ({ default: m.CreateGroupPage })));
 const GroupChat = lazy(() => import('./components/chat/ChatScreen'));
 const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
-const ArenaPage = lazy(() => import('./components/chat/ArenaPage'));
 const Profile = lazy(() => import('./components/profile/Profile'));
 const UserDetails = lazy(() => import('./components/UserDetails'));
 const Settings = lazy(() => import('./components/settings'));
@@ -133,9 +132,7 @@ const AppContent = () => {
                     <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
                     <Route path="/about" element={<About />} />
 
-                    {/* Arena — fullscreen, outside MainLayout */}
-                    <Route path="/chat/:chatId/:otherUserId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
-                    <Route path="/chat/:chatId/arena" element={<ProtectedRoute><ArenaPage /></ProtectedRoute>} />
+                    {/* Gaming Hub is now handled within MainLayout at /games */}
 
                     <Route path="/" element={isAuthenticated ? <ProtectedRoute><MainLayout /></ProtectedRoute> : <LandingPage />}>
                         <Route index element={<ChatPlaceholder />} />
@@ -162,7 +159,6 @@ const AppContent = () => {
                     <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                     <Route path="/admin-about" element={<AdminAbout />} />
                     <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
-                    <Route path="/room/:roomId" element={<RoomRedirect />} />
 
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
@@ -381,40 +377,6 @@ const App = () => {
             </ErrorBoundary>
         </Suspense>
     );
-};
-
-// [FIX #2] RoomRedirect — useParams is now properly imported at the top
-// [FIX #2] RoomRedirect — now resolves otherUserId for a proper URL
-const RoomRedirect = () => {
-    const { roomId } = useParams();
-    const { dbUser } = useAuth();
-    const [target, setTarget] = useState(null);
-
-    useEffect(() => {
-        const fetchChat = async () => {
-            if (!dbUser?.id || !roomId) return;
-            try {
-                const { data } = await supabase
-                    .from('chats')
-                    .select('user1_id, user2_id')
-                    .eq('id', roomId)
-                    .single();
-
-                if (data) {
-                    const otherId = data.user1_id === dbUser.id ? data.user2_id : data.user1_id;
-                    setTarget(`/chat/${roomId}/${otherId}/arena`);
-                } else {
-                    setTarget(`/chat/${roomId}/arena`);
-                }
-            } catch (err) {
-                setTarget(`/chat/${roomId}/arena`);
-            }
-        };
-        fetchChat();
-    }, [roomId, dbUser?.id]);
-
-    if (!target) return <div className="loading" />;
-    return <Navigate to={target} replace />;
 };
 
 export default App;

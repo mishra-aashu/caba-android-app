@@ -35,7 +35,6 @@ const GroupsPage = lazy(() => import('./components/groups').then(m => ({ default
 const GroupInfoPage = lazy(() => import('./components/groups').then(m => ({ default: m.GroupInfoPage })));
 const GroupChat = lazy(() => import('./components/chat/ChatScreen'));
 const ContactsPage = lazy(() => import('./components/contacts/ContactsPage'));
-const ArenaPage = lazy(() => import('./components/chat/ArenaPage'));
 const Profile = lazy(() => import('./components/profile/Profile'));
 const UserDetails = lazy(() => import('./components/UserDetails'));
 const Settings = lazy(() => import('./components/settings'));
@@ -148,10 +147,7 @@ const ProtectedLayout = ({ children }) => {
   );
 };
 
-const RoomRedirect = () => {
-  const { roomId } = useParams();
-  return <Navigate to={`/chat/${roomId}/arena`} replace />;
-};
+
 
 // ──────────────────────────────────────────────
 // AppContent: All routes, inside the authenticated shell
@@ -182,12 +178,9 @@ const AppContent = () => {
             <Route path="/privacy" element={<PageTransition><div className="legal-page-wrapper"><Privacy /></div></PageTransition>} />
             <Route path="/about" element={<PageTransition><About /></PageTransition>} />
             <Route path="/admin-about" element={<PageTransition><AdminAbout /></PageTransition>} />
-            <Route path="/room/:roomId" element={<RoomRedirect />} />
             
             {/* Protected Routes directly under Shared Layout */}
             <Route element={<ProtectedLayout />}>
-              <Route path="/chat/:chatId/:otherUserId/arena" element={<PageTransition><ArenaPage /></PageTransition>} />
-              <Route path="/chat/:chatId/arena" element={<PageTransition><ArenaPage /></PageTransition>} />
               
               {/* Main App Layout */}
               <Route path="/" element={<MainLayout />}>

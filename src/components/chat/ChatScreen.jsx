@@ -372,7 +372,7 @@ const ChatScreen = () => {
                             onViewContact={handleViewContact}
                             onSearchMessages={() => setShowSearchModal(true)}
                             onChangeTheme={() => setShowThemeModal(true)}
-                            onShowGame={() => navigate(`${location.pathname}/arena`)}
+                            onShowGame={() => navigate(`/games`)}
                             onShowGroupInfo={() => {
                                 if (isDesktop) showGroupInfo?.(chatId, otherUser);
                                 else navigate(`/chat/${chatId}/group/info`);
