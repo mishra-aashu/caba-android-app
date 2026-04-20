@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabase } from '../../contexts/SupabaseContext';
@@ -134,7 +135,7 @@ const GamesPanel = () => {
       hasAutoJoinedRef.current = true;
       const opponentId = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver_id : acceptedInv.sender_id;
       setBattleContext({ chatId: acceptedInv.chat_id, opponentId });
-      game.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id);
+      game.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, acceptedInv.status, opponentId);
     }
   }, [pendingInvites, game.isActive, dbUser?.id, loadingInvites, game.joinBattle]);
 
@@ -152,9 +153,12 @@ const GamesPanel = () => {
   // ── Handlers ──────────────────────────────────────────
   const handleInviteUser = useCallback(async (targetUser) => {
     if (!dbUser?.id || !targetUser?.id) return;
-    const loadingToast = toast.loading('Initializing battle...');
+    const loadingToast = toast.loading('Sending invitation...');
     try {
       const [user1_id, user2_id] = normalizeUserIds(dbUser.id, targetUser.id);
+      
+      // 1. Ensure chat exists
+      let chatId;
       const { data: existingChat } = await supabase
         .from('chats')
         .select('id')
@@ -163,26 +167,48 @@ const GamesPanel = () => {
         .maybeSingle();
 
       if (existingChat?.id) {
-        toast.dismiss(loadingToast);
-        setBattleContext({ chatId: existingChat.id, opponentId: targetUser.id });
-        return;
+        chatId = existingChat.id;
+      } else {
+        const { data: newChat, error: insertChatError } = await supabase
+          .from('chats')
+          .insert([{ user1_id, user2_id, updated_at: new Date().toISOString() }])
+          .select('id')
+          .single();
+        if (insertChatError) throw insertChatError;
+        chatId = newChat.id;
       }
 
-      const { data: newChat, error: insertError } = await supabase
-        .from('chats')
-        .insert([{ user1_id, user2_id, updated_at: new Date().toISOString() }])
-        .select('id')
+      // 2. Create the game invitation record
+      const { data: invite, error: inviteError } = await supabase
+        .from(DB_TABLES.GAME_INVITATIONS)
+        .insert({
+          chat_id: chatId,
+          sender_id: dbUser.id,
+          receiver_id: targetUser.id,
+          game_type: 'truth_or_dare',
+          status: 'pending',
+          created_at: new Date().toISOString()
+        })
+        .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (inviteError) throw inviteError;
+
       toast.dismiss(loadingToast);
-      setBattleContext({ chatId: newChat.id, opponentId: targetUser.id });
+      toast.success('Invitation sent!');
+      
+      // 3. Set context and join the battle in inviting state
+      setBattleContext({ chatId, opponentId: targetUser.id });
+      game.joinBattle(invite.id, true, invite.status, targetUser.id); // true = isHost
+      
+      // 4. Refresh invites list
+      loadInvites();
     } catch (err) {
       console.error('Error starting battle:', err);
       toast.dismiss(loadingToast);
-      toast.error('Could not start battle.');
+      toast.error('Could not send invitation.');
     }
-  }, [dbUser?.id, supabase]);
+  }, [dbUser?.id, supabase, game.joinBattle, loadInvites]);
 
   const handleAcceptInvite = useCallback(async (invite) => {
     if (!invite.chat_id) return;
@@ -218,7 +244,7 @@ const GamesPanel = () => {
   const handleResume = useCallback((invite) => {
     const opponentId = invite.sender_id === dbUser?.id ? invite.receiver_id : invite.sender_id;
     setBattleContext({ chatId: invite.chat_id, opponentId });
-    game.joinBattle(invite.id, invite.sender_id === dbUser?.id);
+    game.joinBattle(invite.id, invite.sender_id === dbUser?.id, invite.status, opponentId);
   }, [dbUser?.id, game.joinBattle]);
 
   const gameProps = useMemo(() => ({
@@ -229,6 +255,15 @@ const GamesPanel = () => {
     onSend: game.sendChallenge,
     onComplete: game.completeTurn,
     onStart: () => game.startGame(battleContext?.opponentId),
+    onAccept: () => {
+      // Find the invitation in pendingInvites that matches this chat
+      const invite = pendingInvites.find(inv => inv.chat_id === battleContext?.chatId && inv.status === 'pending');
+      if (invite) game.acceptGame(invite);
+    },
+    onReject: () => {
+      const invite = pendingInvites.find(inv => inv.chat_id === battleContext?.chatId && inv.status === 'pending');
+      if (invite) handleRejectInvite(invite);
+    },
     onJoin: game.joinBattle,
     onSkip: game.skipTurn,
     onSwitch: game.switchType,
@@ -236,7 +271,7 @@ const GamesPanel = () => {
     onExit: () => game.closeGame(),
     isHost: game.gameState?.isHost ?? false,
     isMyTurn: game.isMyTurn
-  }), [game, dbUser?.id, battleContext?.opponentId]);
+  }), [game, dbUser?.id, battleContext?.opponentId, pendingInvites, handleRejectInvite]);
 
   const pendingForMe = useMemo(() => 
     pendingInvites.filter(inv => inv.status === 'pending' && inv.receiver_id === dbUser?.id),
@@ -250,16 +285,18 @@ const GamesPanel = () => {
 
   // ─── Render View ────────────────────────────────────────
   if (battleContext && game.isActive) {
-    return (
-      <div className={styles.panel} style={{ padding: 0 }}>
+    return createPortal(
+      <div className={styles.fullScreenPanel}>
         <ArenaRoom 
           chatId={battleContext.chatId}
           userId={dbUser?.id}
           userName={dbUser?.name}
           gameProps={gameProps}
           webrtcProps={game.webrtc}
+          onExit={game.closeGame}
         />
-      </div>
+      </div>,
+      document.body
     );
   }
 
@@ -293,7 +330,27 @@ const GamesPanel = () => {
         <AnimatePresence mode="wait">
           {tab === 'online' ? (
             <motion.div key="online" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} className={styles.listWrap}>
-              {onlineUsers.length === 0 ? <EmptyState icon={<Users size={36} />} title="No one online" sub="Invite friends to play together!" /> : (
+              {onlineUsers.length === 0 ? (
+                <div className={styles.emptyContainer}>
+                  <div className={styles.myStatusCard}>
+                    <div className={styles.userCardLeft}>
+                      <div className={styles.avatarWrap}>
+                        <PlayerAvatar avatar={dbUser?.avatar} name={dbUser?.name} size={38} />
+                        <span className={styles.onlineDot} />
+                      </div>
+                      <div className={styles.userInfo}>
+                        <p className={styles.userName}>{dbUser?.name} (You)</p>
+                        <p className={styles.userSub}><Circle size={6} fill="currentColor" /> Online & Waiting</p>
+                      </div>
+                    </div>
+                  </div>
+                  <EmptyState 
+                    icon={<Users size={36} />} 
+                    title="No one else online" 
+                    sub="Share your profile or invite friends to start a battle!" 
+                  />
+                </div>
+              ) : (
                 <div className={styles.userList}>
                   {onlineUsers.map((user) => <OnlineUserCard key={user.id} user={user} onInvite={() => handleInviteUser(user)} />)}
                 </div>

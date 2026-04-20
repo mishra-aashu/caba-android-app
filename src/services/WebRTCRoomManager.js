@@ -68,14 +68,22 @@ export default class WebRTCRoomManager extends EventTarget {
 
     this._signalingChannel = this.supabase.channel(channelName, {
       config: { broadcast: { self: false } },
-    });
-
-    this._signalingChannel
+    })
       .on('broadcast', { event: 'signal' }, ({ payload }) => {
         if (this._destroyed) return;
-        // console.log(`[WebRTC] Received signal: ${payload.type} from ${payload.senderId}`);
         if (payload.targetId && payload.targetId !== this.userId) return;
         this._handleSignal(payload);
+      })
+      .on('broadcast', { event: 'game-fallback' }, ({ payload }) => {
+        if (this._destroyed) return;
+        if (payload.targetId && payload.targetId !== this.userId) return;
+        if (payload.senderId === this.userId) return;
+        
+        // Emit as a regular game event
+        this._emit('game-event', {
+          peerId: payload.senderId,
+          ...payload.event,
+        });
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -263,7 +271,14 @@ export default class WebRTCRoomManager extends EventTarget {
     };
 
     channel.onerror = (err) => {
-      if (this._destroyed) return; // Silence errors during destruction
+      if (this._destroyed) return;
+      
+      // Silence benign errors caused by manual closure
+      const errorStr = String(err?.error || err || '');
+      if (errorStr.includes('User-Initiated Abort') || errorStr.includes('Close called')) {
+        return;
+      }
+      
       console.error(`[WebRTC] Channel ${channel.label} error:`, err);
     };
 
@@ -362,13 +377,29 @@ export default class WebRTCRoomManager extends EventTarget {
   // PUBLIC API: Send Game Events
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  sendGameEvent(event) {
-    const payload = JSON.stringify({
+  async sendGameEvent(event) {
+    const payloadObj = {
       ...event,
       senderId: this.userId,
       timestamp: Date.now(),
-    });
-    this._broadcastOnChannel('game-events', payload);
+    };
+    const payloadStr = JSON.stringify(payloadObj);
+    
+    // 1) Try P2P first
+    const sentP2P = this._broadcastOnChannel('game-events', payloadStr);
+    
+    // 2) Fallback to Supabase Broadcast if P2P failed/no peers
+    if (!sentP2P && this._signalingChannel) {
+      // console.log('[WebRTC] P2P not ready, using Supabase Broadcast fallback');
+      await this._signalingChannel.send({
+        type: 'broadcast',
+        event: 'game-fallback',
+        payload: {
+          senderId: this.userId,
+          event: payloadObj
+        }
+      });
+    }
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

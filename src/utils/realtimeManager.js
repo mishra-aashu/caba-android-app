@@ -10,8 +10,9 @@ const STATES = {
 
 class RealtimeManager {
   constructor() {
-    // Map<string, { channel, status, config, callbacks }>
+    // Map<string, { channel, status, config, subscribers: Map<string, { callbacks, config }> }>
     this.subscriptions = new Map();
+    this.subIdCounter = 0;
     this.pendingSubscriptions = new Map();
     this.reconnectTimers = new Map();
     this.retryCount = new Map();
@@ -25,51 +26,48 @@ class RealtimeManager {
     this.POLL_WS_RETRY_INTERVAL = 120000;
 
     if (typeof window !== 'undefined') {
-      // FIX #4: Store subscription handle consistently
-      const { data } = supabase.auth.onAuthStateChange((event, _session) => {
-        this._log('Auth event', { event });
-
-        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-          this._resubscribeAll();
-        }
-
-        if (event === 'SIGNED_OUT') {
-          this.unsubscribeAll();
-        }
-      });
-
-      this._authSubscription = data?.subscription || null;
+      this._setupAuthListener();
     }
   }
 
-  // ────────────────────────────────────────────
-  // FIX #1: Handler Synchronization
-  //
-  // Allow updating callbacks on an existing SUBSCRIBED channel
-  // without tearing down the WebSocket connection.
-  // ────────────────────────────────────────────
-  updateCallbacks(channelName, newCallbacks) {
-    const entry = this.subscriptions.get(channelName);
-    if (!entry) {
-      this._log('updateCallbacks: channel not found, ignoring', { channel: channelName });
-      return false;
-    }
+  _setupAuthListener() {
+    // FIX #4: Store subscription handle consistently
+    const { data } = supabase.auth.onAuthStateChange((event, _session) => {
+      this._log('Auth event', { event });
 
-    // Merge new callbacks into existing entry
-    entry.callbacks = { ...entry.callbacks, ...newCallbacks };
-    this._log('Callbacks updated (no reconnect)', { channel: channelName });
-    return true;
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        this._resubscribeAll();
+      }
+
+      if (event === 'SIGNED_OUT') {
+        this.unsubscribeAll();
+      }
+    });
+
+    this._authSubscription = data?.subscription || null;
   }
 
   /**
-   * Re-establish all subscriptions (e.g., after token refresh)
+   * Allow the manager to be reused after kill()
    */
+  revive() {
+    this._killed = false;
+    this._log('Manager revived');
+    if (!this._authSubscription) {
+      this._setupAuthListener();
+    }
+  }
+
+
   async _resubscribeAll() {
     this._log('Re-establishing all subscriptions after auth change', {
       count: this.subscriptions.size,
     });
 
-    for (const [name, entry] of this.subscriptions.entries()) {
+    // FIX: Snapshot entries first to avoid mutation during iteration
+    const entries = Array.from(this.subscriptions.entries());
+
+    for (const [name, entry] of entries) {
       // FIX #2: Clean old channel before re-subscribing
       if (entry.channel) {
         try {
@@ -79,13 +77,17 @@ class RealtimeManager {
         }
       }
 
+      // Capture subscribers before deleting entry
+      const savedSubscribers = Array.from(entry.subscribers.values());
+
       // Remove from map so subscribe() doesn't see stale SUBSCRIBED status
       this.subscriptions.delete(name);
       this._clearReconnectTimer(name);
       this.retryCount.set(name, 0);
 
-      if (entry.config && entry.callbacks) {
-        await this.subscribe(name, entry.config, entry.callbacks);
+      // Re-subscribe each one
+      for (const sub of savedSubscribers) {
+        await this.subscribe(name, sub.config, sub.callbacks);
       }
     }
   }
@@ -104,30 +106,47 @@ class RealtimeManager {
       return null;
     }
 
-    // ── FIX #1: If already SUBSCRIBED, just sync callbacks ──
+    // ── FIX #1: If already exists, add new subscriber ──
     const existing = this.subscriptions.get(channelName);
-    if (existing?.status === 'SUBSCRIBED' && existing.channel) {
-      this._log('Channel already subscribed — syncing callbacks only', { channel: channelName });
-      existing.callbacks = callbacks;
-      existing.config = config;
-      return existing.channel;
+    const subId = `sub_${++this.subIdCounter}`;
+
+    if (existing?.channel) {
+      this._log('Adding subscriber to existing channel', { channel: channelName, subId });
+      
+      existing.subscribers.set(subId, { callbacks, config });
+      
+      // Register handlers for this specific subscriber on the existing channel
+      this._addHandlersForSubscriber(existing.channel, channelName, subId, callbacks);
+
+      // Override the channel's own unsubscribe for this specific "view"
+      const wrappedChannel = this._wrapChannel(existing.channel, channelName, subId);
+
+      if (existing.status === 'SUBSCRIBED') {
+        setTimeout(() => {
+          this._log('Firing late-join SUBSCRIBED status', { channel: channelName, subId });
+          if (callbacks.onStatusChange) callbacks.onStatusChange('SUBSCRIBED');
+          
+          // Also fire presence sync immediately so the new subscriber gets current state
+          const pCb = callbacks.presence;
+          if (pCb) {
+            if (typeof pCb === 'function') pCb();
+            else if (pCb.callback) pCb.callback();
+          }
+        }, 0);
+      }
+      return wrappedChannel;
     }
 
-    // ── FIX #3: If subscription is in-flight, wait then sync callbacks ──
+    // ── FIX #3: If subscription is in-flight, wait then try again ──
     if (this.pendingSubscriptions.has(channelName)) {
-      this._log('Subscription in-flight — waiting then syncing callbacks', { channel: channelName });
+      this._log('Subscription in-flight — waiting', { channel: channelName });
       try {
-        const channel = await this.pendingSubscriptions.get(channelName);
-        // After pending resolves, sync the latest callbacks
-        const entry = this.subscriptions.get(channelName);
-        if (entry) {
-          entry.callbacks = callbacks;
-          entry.config = config;
-        }
-        return channel;
+        await this.pendingSubscriptions.get(channelName);
+        // After pending resolves, the channel exists in this.subscriptions.
+        // Recurse to enter the existing?.channel branch cleanly.
+        return this.subscribe(channelName, config, callbacks);
       } catch (e) {
-        // Pending failed — fall through to create new subscription
-        this._log('Pending subscription failed, creating new one', { channel: channelName });
+        this._log('Pending subscription failed, will create new one', { channel: channelName });
       }
     }
 
@@ -148,8 +167,14 @@ class RealtimeManager {
           this.subscriptions.delete(channelName);
         }
 
-        this._log('Creating new channel', { channel: channelName });
-        const channel = supabase.channel(channelName);
+        this._log('Creating new channel', { channel: channelName, config });
+        const channel = supabase.channel(channelName, { config });
+
+        this.subscriptions.set(channelName, {
+          channel,
+          status: 'SUBSCRIBING',
+          subscribers: new Map([[subId, { callbacks, config }]]),
+        });
 
         // ── Register handlers using the new proxy architecture ──
         this._registerHandlers(channel, channelName);
@@ -165,15 +190,14 @@ class RealtimeManager {
             wsState: channel?.socket?.conn?.readyState ?? 'N/A',
           });
 
-          const entry = this.subscriptions.get(channelName);
-          if (entry) {
-            entry.status = status;
+          const sEntry = this.subscriptions.get(channelName);
+          if (sEntry) {
+            sEntry.status = status;
           }
 
-          // ── FIX #6: Use _transition for state, but DON'T double-fire onStatusChange ──
-          // _transition handles onStatusChange internally, so skip if using _transition
+          // ── FIX #6: Use _transition for state ──
           if (status === 'SUBSCRIBED') {
-            this._transition(channelName, STATES.CONNECTED, true /* skipCallbackFire */);
+            this._transition(channelName, STATES.CONNECTED);
 
             const wasReconnecting = (this.retryCount.get(channelName) || 0) > 0;
             this.retryCount.set(channelName, 0);
@@ -187,25 +211,16 @@ class RealtimeManager {
             status === 'TIMED_OUT' ||
             status === 'CLOSED'
           ) {
-            this._transition(channelName, STATES.DISCONNECTED, true /* skipCallbackFire */);
+            this._transition(channelName, STATES.DISCONNECTED);
             this._scheduleReconnect(channelName, config, callbacks);
           }
 
-          // Fire callback from the stored (latest) callbacks
-          const currentCallbacks = this.subscriptions.get(channelName)?.callbacks;
-          if (currentCallbacks?.onStatusChange) {
-            currentCallbacks.onStatusChange(status, err);
-          }
+          // Callbacks are now fired via _transition for state changes.
+          // Supabase specific events (SUBSCRIBED, CLOSED etc) that don't map to transition
+          // are handled by the channel.subscribe callback if needed, but for now _transition covers it.
         });
 
-        this.subscriptions.set(channelName, {
-          channel,
-          status: 'SUBSCRIBING',
-          config,
-          callbacks,
-        });
-
-        return channel;
+        return this._wrapChannel(channel, channelName, subId);
       } catch (error) {
         console.error(`[RealtimeManager] Error creating subscription ${channelName}:`, error);
         this._transition(channelName, STATES.DISCONNECTED);
@@ -224,42 +239,62 @@ class RealtimeManager {
    * Extracted for clarity and reuse.
    */
   _registerHandlers(channel, channelName) {
-    // ────────────────────────────────────────────
-    // DYNAMIC PROXY HANDLERS
-    // ────────────────────────────────────────────
-    // Instead of passing the callback directly to Supabase (which makes it stale),
-    // we pass a wrapper that always looks up the LATEST callback from this.subscriptions.
-    
-    // 1. Presence Proxy
+    // Register Presence
     channel.on('presence', { event: 'sync' }, () => {
       const entry = this.subscriptions.get(channelName);
-      const cb = entry?.callbacks?.presence;
-      if (typeof cb === 'function') cb();
-      else if (cb?.callback) cb.callback();
+      if (entry) {
+        entry.subscribers.forEach(sub => {
+          const cb = sub.callbacks?.presence;
+          if (typeof cb === 'function') cb();
+          else if (cb?.callback) cb.callback();
+        });
+      }
     });
 
     channel.on('presence', { event: 'join' }, (payload) => {
       const entry = this.subscriptions.get(channelName);
-      const cb = entry?.callbacks?.presence_join || entry?.callbacks?.presence;
-      if (typeof cb === 'function' && entry?.callbacks?.presence_join) cb(payload);
+      if (entry) {
+        entry.subscribers.forEach(sub => {
+          const cb = sub.callbacks?.presence_join || sub.callbacks?.presence;
+          if (typeof cb === 'function' && sub.callbacks?.presence_join) cb(payload);
+        });
+      }
     });
 
     channel.on('presence', { event: 'leave' }, (payload) => {
       const entry = this.subscriptions.get(channelName);
-      const cb = entry?.callbacks?.presence_leave || entry?.callbacks?.presence;
-      if (typeof cb === 'function' && entry?.callbacks?.presence_leave) cb(payload);
+      if (entry) {
+        entry.subscribers.forEach(sub => {
+          const cb = sub.callbacks?.presence_leave || sub.callbacks?.presence;
+          if (typeof cb === 'function' && sub.callbacks?.presence_leave) cb(payload);
+        });
+      }
     });
 
-    // 2. Postgres Changes Proxy
+    // Register handlers for the FIRST subscriber
     const initialEntry = this.subscriptions.get(channelName);
-    const pgCallbacks = initialEntry?.callbacks?.postgres_changes;
+    const subId = Array.from(initialEntry?.subscribers.keys() || [])[0];
+    const callbacks = initialEntry?.subscribers.get(subId)?.callbacks;
+    if (subId && callbacks) {
+      this._addHandlersForSubscriber(channel, channelName, subId, callbacks);
+    }
+  }
+
+  /**
+   * Register Postgres and Broadcast handlers for a specific subscriber.
+   * Can be called multiple times for the same channel.
+   */
+  _addHandlersForSubscriber(channel, channelName, subId, callbacks) {
+    // 1. Postgres Changes
+    const pgCallbacks = callbacks?.postgres_changes;
     if (pgCallbacks) {
       const listeners = Array.isArray(pgCallbacks) ? pgCallbacks : [pgCallbacks];
       listeners.forEach((listenerConfig, index) => {
         const { handler, ...supabaseConfig } = listenerConfig;
         channel.on('postgres_changes', supabaseConfig, (payload) => {
-          const latestEntry = this.subscriptions.get(channelName);
-          const latestCbs = latestEntry?.callbacks?.postgres_changes;
+          const entry = this.subscriptions.get(channelName);
+          const subscriber = entry?.subscribers.get(subId);
+          const latestCbs = subscriber?.callbacks?.postgres_changes;
           const latestListeners = Array.isArray(latestCbs) ? latestCbs : [latestCbs];
           const latestHandler = latestListeners[index]?.handler;
           if (latestHandler) latestHandler(payload);
@@ -267,12 +302,39 @@ class RealtimeManager {
       });
     }
 
-    // 3. Broadcast Proxy
-    channel.on('broadcast', { event: '*' }, (payload) => {
-      const entry = this.subscriptions.get(channelName);
-      const cb = entry?.callbacks?.broadcast;
-      if (typeof cb === 'function') cb(payload);
-      else if (cb?.callback) cb.callback(payload);
+    // 2. Broadcast
+    // FIX: Require specific event names for broadcast to avoid '*' issues
+    const bcConfig = callbacks?.broadcast;
+    if (bcConfig) {
+      const eventName = typeof bcConfig === 'object' ? bcConfig.event : '*';
+      if (eventName === '*') {
+        this._log('Warning: Broadcast wildcard "*" might not be supported by Supabase', { channel: channelName });
+      }
+      
+      channel.on('broadcast', { event: eventName }, (payload) => {
+        const entry = this.subscriptions.get(channelName);
+        const subscriber = entry?.subscribers.get(subId);
+        const cb = subscriber?.callbacks?.broadcast;
+        const finalCb = typeof cb === 'function' ? cb : cb?.callback;
+        if (finalCb) finalCb(payload);
+      });
+    }
+  }
+
+  /**
+   * Internal helper to wrap a channel with reference-counted unsubscribe
+   */
+  _wrapChannel(channel, channelName, subId) {
+    // Create a proxy-like object that delegates to the channel
+    // but has its own unsubscribe method
+    return new Proxy(channel, {
+      get: (target, prop) => {
+        if (prop === 'unsubscribe') {
+          return () => this.unsubscribe(channelName, subId);
+        }
+        const val = target[prop];
+        return typeof val === 'function' ? val.bind(target) : val;
+      }
     });
   }
 
@@ -328,10 +390,18 @@ class RealtimeManager {
       } catch (e) {
         // non-fatal
       }
-      this.subscriptions.delete(channelName);
     }
 
-    return this.subscribe(channelName, entry.config, entry.callbacks);
+    // FIX: Snapshot all subscribers before clearing
+    const savedSubscribers = Array.from(entry.subscribers.values());
+    this.subscriptions.delete(channelName);
+
+    // Restore ALL subscribers
+    const results = [];
+    for (const sub of savedSubscribers) {
+      results.push(await this.subscribe(channelName, sub.config, sub.callbacks));
+    }
+    return results[0];
   }
 
   _clearReconnectTimer(channelName) {
@@ -344,7 +414,29 @@ class RealtimeManager {
   /**
    * Remove a specific channel subscription
    */
-  async unsubscribe(channelName) {
+  async unsubscribe(channelName, subId = null) {
+    const entry = this.subscriptions.get(channelName);
+    if (!entry) return;
+
+    if (subId) {
+      this._log('Removing specific subscriber', { channel: channelName, subId });
+      entry.subscribers.delete(subId);
+    } else {
+      // Legacy behavior: remove the most recent subscriber
+      const lastId = Array.from(entry.subscribers.keys()).pop();
+      this._log('Removing most recent subscriber (legacy call)', { channel: channelName, subId: lastId });
+      if (lastId) entry.subscribers.delete(lastId);
+    }
+
+    if (entry.subscribers.size > 0) {
+      this._log('Remaining subscribers, keeping channel open', { 
+        channel: channelName, 
+        count: entry.subscribers.size 
+      });
+      return;
+    }
+
+    this._log('No more subscribers, removing channel', { channel: channelName });
     this._clearReconnectTimer(channelName);
     this._clearPollTimer(channelName);
     this.retryCount.delete(channelName);
@@ -360,26 +452,23 @@ class RealtimeManager {
       this.pendingSubscriptions.delete(channelName);
     }
 
-    const entry = this.subscriptions.get(channelName);
-    if (entry) {
-      if (entry.channel) {
-        try {
-          await supabase.removeChannel(entry.channel);
-        } catch (e) {
-          this._log('Channel removal failed during unsubscribe', {
-            channel: channelName,
-            error: e.message,
-          });
-        }
+    if (entry.channel) {
+      try {
+        await supabase.removeChannel(entry.channel);
+      } catch (e) {
+        this._log('Channel removal failed during unsubscribe', {
+          channel: channelName,
+          error: e.message,
+        });
       }
-      this.subscriptions.delete(channelName);
     }
+    this.subscriptions.delete(channelName);
   }
 
   /**
    * Remove and clean up all subscriptions
    */
-  unsubscribeAll() {
+  async unsubscribeAll() {
     this._log('Unsubscribing all channels', { count: this.subscriptions.size });
 
     this.reconnectTimers.forEach((timer) => clearTimeout(timer));
@@ -391,19 +480,22 @@ class RealtimeManager {
     this.retryCount.clear();
     this.states.clear();
 
-    const subs = Array.from(this.subscriptions.values());
-    subs.forEach((entry) => {
-      if (entry.channel) {
-        try {
-          supabase.removeChannel(entry.channel);
-        } catch (e) {
-          // non-fatal during cleanup
-        }
-      }
-    });
-
+    const entries = Array.from(this.subscriptions.values());
     this.subscriptions.clear();
     this.pendingSubscriptions.clear();
+
+    // FIX: Await all channel removals properly
+    await Promise.allSettled(
+      entries.map(async (entry) => {
+        if (entry.channel) {
+          try {
+            await supabase.removeChannel(entry.channel);
+          } catch (e) {
+            // non-fatal during cleanup
+          }
+        }
+      })
+    );
   }
 
   /**
@@ -440,10 +532,16 @@ class RealtimeManager {
       pollCount++;
       this._log('[POLL] Polling fallback tick', { channel: channelName, tick: pollCount });
 
-      // Fire the reconnect/catch-up callback for data polling
-      const currentCallbacks = this.subscriptions.get(channelName)?.callbacks || callbacks;
-      if (currentCallbacks.onReconnect) {
-        currentCallbacks.onReconnect(true);
+      // Fire the reconnect/catch-up callback for data polling for ALL subscribers
+      const entry = this.subscriptions.get(channelName);
+      if (entry) {
+        entry.subscribers.forEach(sub => {
+          if (sub.callbacks.onReconnect) {
+            sub.callbacks.onReconnect(true);
+          }
+        });
+      } else if (callbacks.onReconnect) {
+        callbacks.onReconnect(true);
       }
 
       // FIX #7: Every N ticks, try to re-establish WebSocket
@@ -451,11 +549,14 @@ class RealtimeManager {
       if (pollCount % 4 === 0) {
         this._log('[POLL] Attempting WebSocket recovery', { channel: channelName });
 
+        // FIX: Snapshot subscribers before cleanup
+        const currentEntry = this.subscriptions.get(channelName);
+        const savedSubscribers = currentEntry ? Array.from(currentEntry.subscribers.values()) : null;
+
         // Clean existing dead channel
-        const entry = this.subscriptions.get(channelName);
-        if (entry?.channel) {
+        if (currentEntry?.channel) {
           try {
-            await supabase.removeChannel(entry.channel);
+            await supabase.removeChannel(currentEntry.channel);
           } catch (e) {
             // non-fatal
           }
@@ -464,11 +565,14 @@ class RealtimeManager {
 
         this.retryCount.set(channelName, 0);
 
-        // Attempt fresh subscribe — if it succeeds, the SUBSCRIBED handler
-        // will call _clearPollTimer and stop this interval
-        const currentConfig = entry?.config || config;
-        const currentCbs = entry?.callbacks || callbacks;
-        await this.subscribe(channelName, currentConfig, currentCbs);
+        // Attempt fresh subscribe for all saved subscribers
+        if (savedSubscribers?.length > 0) {
+          for (const sub of savedSubscribers) {
+            await this.subscribe(channelName, sub.config, sub.callbacks);
+          }
+        } else {
+          await this.subscribe(channelName, config, callbacks);
+        }
       }
     }, 30000);
 
@@ -487,25 +591,27 @@ class RealtimeManager {
    * to prevent double-firing onStatusChange from both
    * _transition AND the subscribe() status handler
    */
-  _transition(channelName, newState, skipCallbackFire = false) {
+  _transition(channelName, newState) {
     const prev = this.states.get(channelName);
     if (prev === newState) return;
 
     this._log('State transition', { channel: channelName, from: prev || 'none', to: newState });
     this.states.set(channelName, newState);
 
-    if (!skipCallbackFire) {
-      const entry = this.subscriptions.get(channelName);
-      if (entry?.callbacks?.onStatusChange) {
-        entry.callbacks.onStatusChange(newState, prev);
-      }
+    const entry = this.subscriptions.get(channelName);
+    if (entry) {
+      entry.subscribers.forEach(sub => {
+        if (sub.callbacks?.onStatusChange) {
+          sub.callbacks.onStatusChange(newState, prev);
+        }
+      });
     }
   }
 
   /**
    * Kill switch for full cleanup
    */
-  kill() {
+  async kill() {
     this._log('Kill switch triggered');
     this._killed = true;
 
@@ -524,23 +630,27 @@ class RealtimeManager {
       this._clearPollTimer(name);
     }
 
-    // Remove all channels
-    for (const [, entry] of this.subscriptions.entries()) {
-      if (entry.channel) {
-        try {
-          supabase.removeChannel(entry.channel);
-        } catch (e) {
-          // non-fatal during kill
-        }
-      }
-    }
-
+    // Capture and clean
+    const entries = Array.from(this.subscriptions.values());
     this.subscriptions.clear();
     this.states.clear();
     this.retryCount.clear();
     this.reconnectTimers.clear();
     this.pollTimers.clear();
     this.pendingSubscriptions.clear();
+
+    // Remove all channels
+    await Promise.allSettled(
+      entries.map(async (entry) => {
+        if (entry.channel) {
+          try {
+            await supabase.removeChannel(entry.channel);
+          } catch (e) {
+            // non-fatal during kill
+          }
+        }
+      })
+    );
   }
 
   /**

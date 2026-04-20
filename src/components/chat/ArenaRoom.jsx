@@ -14,7 +14,8 @@ const ArenaRoom = ({
   userId, 
   userName,
   gameProps, // { gameState, isHost, ...handlers }
-  webrtcProps // { chatMessages, sendChat, sendMedia, mediaProgress, peers }
+  webrtcProps, // { chatMessages, sendChat, sendMedia, mediaProgress, peers }
+  onExit
 }) => {
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'game' (for mobile)
   const [inputText, setInputText] = useState('');
@@ -56,6 +57,12 @@ const ArenaRoom = ({
 
   return (
     <div className={styles.arenaContainer}>
+      {onExit && (
+        <button className={styles.exitArenaBtn} onClick={onExit} title="Leave Arena">
+          <X size={20} />
+          <span>LEAVE</span>
+        </button>
+      )}
       <AnimatePresence>
         {fullscreenMedia && (
           <motion.div 

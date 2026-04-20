@@ -39,7 +39,8 @@ const MainLayout = () => {
         location.pathname === '/blocked' ||
         location.pathname === '/support' ||
         location.pathname === '/emoji-settings' ||
-        location.pathname === '/history',
+        location.pathname === '/history' ||
+        location.pathname === '/games',
         [location.pathname]);
 
     const isSubPage = useMemo(() => location.pathname !== '/', [location.pathname]);

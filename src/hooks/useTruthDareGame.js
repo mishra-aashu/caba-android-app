@@ -336,7 +336,7 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
         
         case 'ACCEPT_GAME': {
           // Host transitions to first turn on acceptance
-          if (current.stage === GAME_STATES.INVITING || current.stage === GAME_STATES.IDLE) {
+          if (current.stage === GAME_STATES.INVITING || current.stage === GAME_STATES.IDLE || current.stage === GAME_STATES.JOINING) {
             hostTransition(GAME_STATES.TURN_ANNOUNCE, { round: 1 });
           } else {
             // Already in progress, just sync current state
@@ -585,21 +585,39 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
     clearTimer();
   }, [supabase, sendGameEvent, clearTimer]);
 
-  const joinBattle = useCallback((id, isHost = false) => {
+  const joinBattle = useCallback((id, isHost = false, initialStatus = 'pending', partnerId = null) => {
     if (!id) {
       toast.error('Invalid game ID');
       return;
     }
     
+    const stage = isHost 
+      ? (initialStatus === 'accepted' ? GAME_STATES.TURN_ANNOUNCE : GAME_STATES.INVITING)
+      : GAME_STATES.JOINING;
+
     dispatch({ 
       type: 'SYNC_STATE', 
       payload: { 
         gameId: id, 
         isHost, 
-        stage: isHost ? GAME_STATES.INVITING : GAME_STATES.JOINING 
+        stage,
+        partnerId,
+        round: stage === GAME_STATES.TURN_ANNOUNCE ? 1 : stateRef.current.round,
+        players: partnerId ? {
+          [userId]: { points: 0, streak: 0, lastType: null },
+          [partnerId]: { points: 0, streak: 0, lastType: null }
+        } : stateRef.current.players
       }
     });
-  }, []);
+
+    if (isHost && stage === GAME_STATES.TURN_ANNOUNCE) {
+       // Need to ensure partnerId is set for turn logic
+       // The host will eventually get this from the DB or sync
+       setTimeout(() => {
+         if (isMountedRef.current) broadcastState(stateRef.current);
+       }, 500);
+    }
+  }, [broadcastState]);
 
   // ─── Derived State ─────────────────────────────────────────
   const derived = useMemo(() => {
