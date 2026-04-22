@@ -1,6 +1,7 @@
 import { db } from '../db/db';
 import { supabase } from '../config/supabase';
 import { safeDbConversion } from '../utils/dbFieldMapping';
+import { EncryptionService } from './EncryptionService';
 
 /**
  * SyncService
@@ -52,6 +53,22 @@ class SyncService {
 
             if (data && data.length > 0) {
                 console.log(`[Sync] Found ${data.length} new messages globally`);
+
+                // Decrypt before saving
+                const allChats = await db.chats_list.toArray();
+                const chatMap = new Map(allChats.map(c => [c.id, c]));
+
+                data.forEach(msg => {
+                    if (msg.content) {
+                        const chat = chatMap.get(msg.chat_id);
+                        msg.content = EncryptionService.decrypt(
+                            msg.content, 
+                            msg.chat_id, 
+                            chat?.otherUserId
+                        );
+                    }
+                });
+
                 const converted = safeDbConversion(data);
                 
                 // 3. Save to Dexie (bulkPut handles updates/inserts automatically)
@@ -144,6 +161,16 @@ class SyncService {
             .limit(100);
 
         if (!error && data?.length > 0) {
+            const chat = await db.chats_list.get(chatId);
+            data.forEach(msg => {
+                if (msg.content) {
+                    msg.content = EncryptionService.decrypt(
+                        msg.content, 
+                        chatId, 
+                        chat?.otherUserId
+                    );
+                }
+            });
             await db.messages.bulkPut(safeDbConversion(data));
         }
     }

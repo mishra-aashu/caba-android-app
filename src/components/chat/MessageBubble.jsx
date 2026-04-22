@@ -3,6 +3,7 @@ import EmojiRenderer from '../common/EmojiRenderer';
 import { isOnlyEmoji } from '../../utils/emojiUtils';
 import { formatLastSeen } from '../../utils/dateFormatter';
 import { Clock, AlertCircle, RefreshCcw } from 'lucide-react';
+import { EncryptionService } from '../../services/EncryptionService';
 import styles from './MessageBubble.module.css';
 
 // Icon for deleted messages
@@ -57,6 +58,24 @@ const MessageBubble = memo(({
     return !!(edited || message?.is_edited || message?.isEdited);
   }, [edited, message?.is_edited, message?.isEdited]);
 
+  const displayedText = useMemo(() => {
+    if (isDeleted || isLocked) return text;
+    
+    // Safety Net: If text starts with the E2EE prefix, it means it reached 
+    // the UI still encrypted. We attempt to decrypt it here as a final fallback.
+    if (typeof text === 'string' && text.startsWith('🔒:')) {
+      const chatId = message?.chatId || message?.chat_id;
+      // For 1-on-1, we need the other participant's ID. 
+      // If we are the sender, other is receiver. If we are receiver, other is sender.
+      const otherId = isMine 
+        ? (message?.receiverId || message?.receiver_id) 
+        : (message?.senderId || message?.sender_id);
+      
+      return EncryptionService.decrypt(text, chatId, otherId);
+    }
+    return text;
+  }, [text, isDeleted, isLocked, message, isMine]);
+
   useEffect(() => {
     if (!isTimeCapsule) return;
     const updateCountdown = () => {
@@ -110,7 +129,7 @@ const MessageBubble = memo(({
           <div className={styles['message-content']}>
             <span className={`${styles.text} ${isDeleted ? styles['deleted-text'] : ''} ${isLocked ? styles.blurred : ''}`}>
               {isDeleted && <BlockIcon />}
-              <EmojiRenderer text={isLocked ? 'Time Capsule' : text} style={emojiStyle} />
+              <EmojiRenderer text={isLocked ? 'Time Capsule' : displayedText} style={emojiStyle} />
             </span>
 
             {message?.metadata && (
