@@ -8,26 +8,45 @@ import useAuthStore from '../store/authStore';
  */
 const E2EE_PREFIX = '🔒:';
 
+// In-memory cache for derived keys to make encryption/decryption near-instant
+const _keyCache = new Map();
+
 export const EncryptionService = {
     /**
      * Derives a deterministic encryption key for a chat.
-     * For 1-on-1: Sorted combination of Participant UIDs.
-     * For Groups: SHA-256 of the Group ID.
+     * Caches the result to avoid redundant SHA-256 calculations.
      */
     _deriveChatKey(chatId, otherUserId = null) {
         const myId = useAuthStore.getState().user?.id;
         if (!myId) return null;
 
-        // If otherUserId is provided, it's a 1-on-1 chat. 
-        // We sort the IDs so both users derive the exact same key.
-        if (otherUserId && String(otherUserId) !== 'null' && String(otherUserId) !== 'undefined') {
-            const participants = [String(myId), String(otherUserId)].sort();
-            return CryptoJS.SHA256(participants.join('_')).toString();
+        // Generate a cache key
+        const cacheKey = otherUserId 
+            ? `1v1_${[String(myId), String(otherUserId)].sort().join('_')}`
+            : `grp_${chatId}`;
+        
+        if (_keyCache.has(cacheKey)) {
+            return _keyCache.get(cacheKey);
         }
 
-        // For Groups or fallback, use the chatId (which is the Group UUID)
-        // In a production app, you'd distribute a shared group secret.
-        return CryptoJS.SHA256(String(chatId)).toString();
+        let derivedKey;
+        if (otherUserId && String(otherUserId) !== 'null' && String(otherUserId) !== 'undefined') {
+            const participants = [String(myId), String(otherUserId)].sort();
+            derivedKey = CryptoJS.SHA256(participants.join('_')).toString();
+        } else {
+            derivedKey = CryptoJS.SHA256(String(chatId)).toString();
+        }
+
+        // Store in cache before returning
+        _keyCache.set(cacheKey, derivedKey);
+        return derivedKey;
+    },
+
+    /**
+     * Clears the key cache (useful on logout)
+     */
+    clearCache() {
+        _keyCache.clear();
     },
 
     /**
