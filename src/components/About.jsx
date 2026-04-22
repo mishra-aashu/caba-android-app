@@ -102,31 +102,36 @@ const About = () => {
           <div className="section-icon">
             <Shield size={32} />
           </div>
-          <h3>How We Keep Your Chats & Calls Safe</h3>
+          <h3>The "Final Version 3" Security Suite</h3>
+          <p className="section-subtitle">
+            We've spent months perfecting our security architecture. With the release of <strong>Final Version 3</strong>, 
+            Elevengram now provides unmatched privacy that even we cannot bypass.
+          </p>
           <div className="security-grid">
             <div className="security-item">
               <Lock size={24} />
-              <h4>End-to-End Encryption</h4>
+              <h4>AES-256 Military Grade</h4>
               <p>
-                All your messages, calls, and media are encrypted from the moment they leave your device
-                until they reach the intended recipient. Only you and the person you're communicating with
-                can read or listen to them.
+                Every single message and media file is locked with a unique 256-bit key. 
+                This is the same standard used by governments to protect top-secret data. 
+                Encryption happens <strong>on your device</strong>, not on our servers.
               </p>
             </div>
             <div className="security-item">
               <Shield size={24} />
-              <h4>Secure Servers</h4>
+              <h4>SHA-256 Key Derivation</h4>
               <p>
-                Our servers use industry-standard security protocols and are regularly audited for vulnerabilities.
-                Your data is stored securely and never shared with third parties without your consent.
+                We use the SHA-256 hashing algorithm to derive unique, deterministic keys for every chat. 
+                This ensures that your keys are never stored, never transmitted, and can only be unlocked by the participants.
               </p>
             </div>
             <div className="security-item">
               <Eye size={24} />
-              <h4>Privacy First</h4>
+              <h4>Server-Blind Protection</h4>
               <p>
-                We don't track your location, read your messages, or analyze your behavior for advertising.
-                Your privacy is our top priority, and we only collect the minimum data necessary to provide our service.
+                Our Supabase servers are "blind" to your content. They only see encrypted strings (ciphertext). 
+                Even if someone gained access to our database, they would only find gibberish.
+                <strong> No one—not even the developers—can read your chats.</strong>
               </p>
             </div>
           </div>

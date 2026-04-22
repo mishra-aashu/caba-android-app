@@ -108,7 +108,7 @@ const Login = () => {
 
           <div className={`${styles['art-features']} ${styles['gpu-accelerated']}`}>
             <div className={`${styles['feat-item']} ${styles['gpu-accelerated']}`}>
-              <CheckCircle size={18} /> Private by default
+              <CheckCircle size={18} /> End-to-End Encrypted (AES-256)
             </div>
             <div className={`${styles['feat-item']} ${styles['gpu-accelerated']}`}>
               <CheckCircle size={18} /> Infinite history
