@@ -23,7 +23,13 @@ import { useChatCalls } from './useChatCalls';
 import { useChatSettings } from './useChatSettings';
 
 const useChatRoom = () => {
-  const { chatId, otherUserId: rawOtherUserId } = useParams();
+  const { chatId: paramChatId, otherUserId: paramOtherUserId } = useParams();
+  const activeChat = useChatStore(state => state.activeChat);
+  
+  // Use store if available, otherwise fallback to params
+  const chatId = activeChat ? activeChat.id : paramChatId;
+  const rawOtherUserId = activeChat ? activeChat.metadata?.otherUserId || (activeChat.isGroup ? 'group' : null) : paramOtherUserId;
+
   const navigate = useNavigate();
   const location = useLocation();
   const { user: currentUser, loading: authLoading, isAuthenticated } = useAuth();

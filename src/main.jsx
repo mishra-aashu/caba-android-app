@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 
 // ═══════════════════════════════════════════════════════════
 // Register Service Worker EARLY (before React renders)
@@ -67,7 +67,7 @@ const queryClient = new QueryClient({
 // ── Mount App ──
 createRoot(document.getElementById('root')).render(
   <AppErrorBoundary>
-    <HashRouter>
+    <MemoryRouter>
       <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{ persister }}
@@ -83,6 +83,6 @@ createRoot(document.getElementById('root')).render(
           </AuthProvider>
         </SupabaseProvider>
       </PersistQueryClientProvider>
-    </HashRouter>
+    </MemoryRouter>
   </AppErrorBoundary>
 );

@@ -8,6 +8,8 @@ import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
 import ParticleOverlay from './chat/ParticleOverlay';
 import PageTransition from './common/PageTransition';
+import useChatStore from '../store/useChatStore';
+import ChatScreen from './chat/ChatScreen';
 
 // Create context for user-details panel
 import { UserDetailsContext } from '../contexts/UserDetailsContext';
@@ -26,9 +28,14 @@ const MainLayout = () => {
     const location = useLocation();
     const isDesktop = useIsDesktop();
     
-    // Derived state directly from location to prevent 1-frame layout shifts during navigation
+    // State from store
+    const activeChat = useChatStore(state => state.activeChat);
+    const setActiveChat = useChatStore(state => state.setActiveChat);
+    const clearActiveChat = useChatStore(state => state.clearActiveChat);
+
+    // Derived state from store + location
     const isChatViewActive = useMemo(() =>
-        location.pathname.startsWith('/chat/') ||
+        activeChat !== null ||
         location.pathname.startsWith('/user-details/') ||
         location.pathname === '/groups' ||
         location.pathname === '/contacts' ||
@@ -41,46 +48,21 @@ const MainLayout = () => {
         location.pathname === '/emoji-settings' ||
         location.pathname === '/history' ||
         location.pathname === '/games',
-        [location.pathname]);
+        [location.pathname, activeChat]);
 
-    const isSubPage = useMemo(() => location.pathname !== '/', [location.pathname]);
+    const isSubPage = useMemo(() => activeChat !== null || location.pathname !== '/', [location.pathname, activeChat]);
 
     // State for side panel (user or group details)
     const [sidePanelType, setSidePanelType] = useState(null); 
     const [sidePanelTargetId, setSidePanelTargetId] = useState(null);
     const [sidePanelData, setSidePanelData] = useState(null);
 
-    const currentChatId = useMemo(() => 
-        location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null,
-    [location.pathname]);
+    const currentChatId = activeChat?.id;
 
     const handleChatClick = useCallback((chat) => {
         if (!chat) return;
-
-        // More robust group detection
-        const isGroup = chat.isGroup || 
-                       chat.chatType === 'group' || 
-                       chat.type === 'group' || 
-                       chat.group_id !== undefined;
-
-        if (isGroup) {
-            navigate(`/chat/${chat.id}/group`, {
-                state: {
-                    groupName: chat.name || 'Group Chat',
-                    groupAvatar: chat.avatar || null,
-                    memberCount: chat.member_count || 0,
-                }
-            });
-        } else {
-            // Regular 1-on-1 chat
-            const otherUserId = chat.metadata?.otherUserId;
-            if (otherUserId) {
-                navigate(`/chat/${chat.id}/${otherUserId}`);
-            } else {
-                console.error('Could not find other user ID for chat:', chat);
-            }
-        }
-    }, [navigate]);
+        setActiveChat(chat);
+    }, [setActiveChat]);
 
     // Simplified chatListPanelProps - only passing what's necessary for root control
     const chatListPanelProps = useMemo(() => ({
@@ -197,9 +179,9 @@ const MainLayout = () => {
 
                     <AnimatePresence mode="wait">
                         {isSubPage && (
-                            <PageTransition key={location.pathname} className="chat-view">
+                            <PageTransition key={activeChat?.id || location.pathname} className="chat-view">
                                 <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
-                                    {mobileUserDetails || <Outlet />}
+                                    {mobileUserDetails || (activeChat ? <ChatScreen /> : <Outlet />)}
                                 </Suspense>
                             </PageTransition>
                         )}
@@ -214,7 +196,7 @@ const MainLayout = () => {
     const chatComponent = (
         <UserDetailsContext.Provider value={userDetailsContextValue}>
             <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
-                {isDesktop && isOverlayRoute ? <ChatPlaceholder /> : <Outlet />}
+                {isDesktop && isOverlayRoute ? <ChatPlaceholder /> : (activeChat ? <ChatScreen /> : <Outlet />)}
             </Suspense>
         </UserDetailsContext.Provider>
     );

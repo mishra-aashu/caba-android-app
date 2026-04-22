@@ -13,8 +13,13 @@ const useChatStore = create((set, get) => ({
     isSyncing: false,
     isSelectionMode: false,
     selectedMessageIds: new Set(),
+    activeChat: null, // Holds the currently active chat object
 
     // ─── ACTIONS ──────────────────────────────────────────────────────────
+
+    setActiveChat: (chat) => set({ activeChat: chat }),
+
+    clearActiveChat: () => set({ activeChat: null }),
 
     enterSelectionMode: (firstMessageId) => {
         const ids = new Set();
