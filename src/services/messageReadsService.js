@@ -118,6 +118,10 @@ class MessageReadsService {
       const messageIds = unreadMessages.map((m) => m.id);
       await this.markAsRead(messageIds, userId);
 
+      // [FIX] Update local Dexie count immediately for instant UI feedback
+      const { db } = await import('../db/db');
+      await db.chats_list.update(chatId, { unreadCount: 0 }).catch(() => {});
+
       return true;
     } catch (error) {
       console.error('MessageReadsService.markAllAsRead error:', error);

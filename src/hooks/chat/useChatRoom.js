@@ -137,13 +137,10 @@ const useChatRoom = () => {
   useEffect(() => {
     if (!isNewChat || !otherUserId || allChats.length === 0) return;
 
-    // Look for a chat that was just created with this otherUserId
     const newActiveChat = allChats.find(c => 
-      !c.is_group && (
-        String(c.user1_id) === String(otherUserId) || 
-        String(c.user2_id) === String(otherUserId) ||
-        String(c.other_user_id) === String(otherUserId) ||
-        String(c.otherUser?.id) === String(otherUserId)
+      !c.isGroup && (
+        String(c.otherUserId) === String(otherUserId) || 
+        String(c.metadata?.otherUserId) === String(otherUserId)
       )
     );
 
@@ -152,6 +149,13 @@ const useChatRoom = () => {
       navigate(`/chat/${newActiveChat.id}/${otherUserId}`, { replace: true });
     }
   }, [isNewChat, otherUserId, allChats, navigate]);
+
+  // [FIX] Mark as read when entering the room or when room changes
+  useEffect(() => {
+    if (chatId && chatId !== 'new' && currentUser?.id) {
+      markMessagesAsRead();
+    }
+  }, [chatId, currentUser?.id, markMessagesAsRead]);
 
   useEffect(() => {
     if (authLoading || isDataLoading || isNewChat || !chatId || !currentUser) return;
@@ -166,8 +170,6 @@ const useChatRoom = () => {
 
       // 2. If not in list, check if it's a group the user belongs to
       if (isGroupChat) {
-        // useGroupDetails will naturally handle authorization if RLS is set up,
-        // but we double-check here for extra safety.
         const { data: group, error } = await supabase
           .from('groups')
           .select('id')
@@ -218,7 +220,6 @@ const useChatRoom = () => {
     [messagesApi, navigate, chatId, otherUserId]
   );
 
-  // FIX: Wrapped in useCallback to prevent unnecessary re-renders
   const handleShareAsForward = useCallback(
     (mediaUrl, message) => [{ ...message, id: `fwd_${Date.now()}` }],
     []
@@ -245,45 +246,71 @@ const useChatRoom = () => {
     currentUser,
     otherUser,
     setOtherUser,
-    isInitializing: false,
-    allChats,
-    authLoading,
-    isAuthenticated,
-    supabase,
-
+    isInitializing: authLoading || isDataLoading,
+    
     // Messages
-    ...messagesApi,
-    confirmSelectionDelete: messagesApi.deleteSelectedMessages,
+    messages: messagesApi.messages,
+    isFetchingNextPage: messagesApi.isFetchingNextPage,
+    hasNextPage: messagesApi.hasNextPage,
+    fetchNextPage: messagesApi.fetchNextPage,
+    deleteMessage: messagesApi.deleteMessage,
+    forwardMessages: messagesApi.forwardMessages,
+    handleReactionToggle: messagesApi.handleReactionToggle,
+    isMessagesLoading: messagesApi.isLoading,
+    
+    // Media & Sending
+    sendMessage: messagesApi.sendMessage,
+    handleSendMedia: mediaApi.handleSendMedia,
+    replyingTo: messagesApi.replyingTo,
+    handleReply: messagesApi.handleReply,
+    cancelReply: messagesApi.cancelReply,
+    handleMediaDownload: mediaApi.handleMediaDownload,
 
-    // Media
-    ...mediaApi,
-
-    // Presence
-    ...presenceApi,
-
+    // Presence & Typing
+    typingUsers: presenceApi.typingUsers,
+    sendTyping: presenceApi.sendTyping,
+    
+    // Status
+    connectionStatus: messagesApi.connectionStatus,
+    retryConnection: messagesApi.retryConnection,
+    isMuted: settingsApi.isMuted,
+    isTempChat: settingsApi.isTempChat,
+    setIsTempChat: settingsApi.setIsTempChat,
+    selectedVanishDuration: settingsApi.selectedVanishDuration,
+    handleMuteToggle: settingsApi.handleMuteToggle,
+    
     // Calls
-    ...callsApi,
-    activeGroupCall: callsApi.activeCallData,
-
-    // Settings
-    ...settingsApi,
-    setVanishPresets: () => {},
-
-    // UI Extras
+    activeGroupCall: callsApi.activeGroupCall,
+    showGroupCallScreen: callsApi.showGroupCallScreen,
+    setShowGroupCallScreen: callsApi.setShowGroupCallScreen,
+    handleVoiceCall: callsApi.handleVoiceCall,
+    handleVideoCall: callsApi.handleVideoCall,
+    handleEndGroupCall: callsApi.handleEndGroupCall,
+    handleStartGroupCall: callsApi.handleStartGroupCall,
+    
+    // Modals & Alerts
     showAlert,
+    confirmClearChat: settingsApi.confirmClearChat,
+    confirmBlockUser: settingsApi.confirmBlockUser,
+    confirmSelectionDelete: messagesApi.confirmSelectionDelete,
+    
+    // Games
+    handleAcceptGame,
+    handleRejectGame,
+    handleJoinGame,
+    
+    // Store & State
+    supabase,
     initialScrollPosition,
     saveScrollPosition,
-    handleShareAsForward,
-    handleAcceptGame,
-    handleJoinGame,
-    handleRejectGame,
-    handleReactionToggle: messagesApi.toggleReaction,
+    allChats,
     authError,
     markMessagesAsRead,
     unreadCount,
     setUnreadCount,
     isScrolledToBottom,
     setIsScrolledToBottom,
+    handleShareAsForward
   };
 };
 

@@ -32,22 +32,50 @@ const MainLayout = () => {
     
     // ─── GLOBAL SYNC & QUEUE PROCESSING ───
     React.useEffect(() => {
-        if (user?.id) {
-            // 1. Initial catch-up
-            syncService.performGlobalSync(user.id);
-            
-            // 2. Process any pending offline actions
-            processSyncQueue();
+        if (!user?.id) return;
 
-            // 3. Listen for reconnection to sync again
-            const handleOnline = () => {
+        // 1. Initial catch-up on mount
+        syncService.performGlobalSync(user.id);
+        processSyncQueue();
+
+        // 2. Network reconnection sync
+        const handleOnline = () => {
+            syncService.performGlobalSync(user.id);
+            processSyncQueue();
+        };
+        window.addEventListener('online', handleOnline);
+
+        // 3. Browser tab focus recovery (web / Android Chrome)
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
                 syncService.performGlobalSync(user.id);
                 processSyncQueue();
-            };
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
 
-            window.addEventListener('online', handleOnline);
-            return () => window.removeEventListener('online', handleOnline);
-        }
+        // 4. Capacitor native app foreground (Android/iOS home button / app switcher)
+        let capacitorAppListener = null;
+        const setupCapacitorSync = async () => {
+            try {
+                const { App } = await import('@capacitor/app');
+                capacitorAppListener = await App.addListener('appStateChange', ({ isActive }) => {
+                    if (isActive) {
+                        syncService.performGlobalSync(user.id);
+                        processSyncQueue();
+                    }
+                });
+            } catch {
+                // Not a Capacitor environment — ignore
+            }
+        };
+        setupCapacitorSync();
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            document.removeEventListener('visibilitychange', handleVisibility);
+            if (capacitorAppListener) capacitorAppListener.remove();
+        };
     }, [user?.id]);
 
     // State from store

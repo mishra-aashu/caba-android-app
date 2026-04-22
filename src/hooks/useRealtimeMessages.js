@@ -309,28 +309,56 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
 
         setupSubscription();
 
-        // Debounced visibility handling
-        const handleVisibility = () => {
-            if (document.visibilityState === 'visible') {
-                clearTimeout(catchUpTimerRef.current);
-                catchUpTimerRef.current = setTimeout(() => {
-                    if (!mountedRef.current) return;
-
-                    _log('Visibility catch-up triggered');
-                    const entry = realtimeManager.getChannel(channelName);
-                    if (!entry || entry.status !== 'SUBSCRIBED') {
-                        setupSubscription();
-                    }
-                    fetchMissedMessages();
-                }, 300);
-            }
+        // ── Focus Recovery: Browser Tab + Capacitor Mobile ──
+        // When user returns to the app (from another tab, another app on mobile,
+        // or after locking the screen), we must catch up on missed messages.
+        
+        const performFocusCatchup = () => {
+            clearTimeout(catchUpTimerRef.current);
+            catchUpTimerRef.current = setTimeout(() => {
+                if (!mountedRef.current) return;
+                _log('Focus catch-up triggered');
+                
+                // Check if subscription is still alive
+                const entry = realtimeManager.getChannel(channelName);
+                if (!entry || entry.status !== 'SUBSCRIBED') {
+                    _log('Subscription dead — re-subscribing');
+                    setupSubscription();
+                }
+                // Always fetch missed messages on focus return
+                fetchMissedMessages();
+            }, 300);
         };
 
+        // 1. Browser tab visibility (web + Android Chrome tab switching)
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                performFocusCatchup();
+            }
+        };
         document.addEventListener('visibilitychange', handleVisibility);
+
+        // 2. Capacitor native app state (Android/iOS app switching, home button)
+        let capacitorListener = null;
+        const setupCapacitorListener = async () => {
+            try {
+                const { App } = await import('@capacitor/app');
+                capacitorListener = await App.addListener('appStateChange', ({ isActive }) => {
+                    if (isActive && mountedRef.current) {
+                        _log('App came to foreground — catching up');
+                        performFocusCatchup();
+                    }
+                });
+            } catch {
+                // Not a Capacitor environment — ignore
+            }
+        };
+        setupCapacitorListener();
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibility);
             clearTimeout(catchUpTimerRef.current);
+            if (capacitorListener) capacitorListener.remove();
             realtimeManager.unsubscribe(channelName);
             processedIds.current.clear();
         };

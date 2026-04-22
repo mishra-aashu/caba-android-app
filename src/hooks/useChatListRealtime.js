@@ -5,6 +5,7 @@ import { initializeFileSystem, loadChatsFromDevice, saveChatsToDevice } from '..
 import { isUserOnline } from '../utils/dateFormatter';
 import { normalizeChat } from '../utils/chatHelpers';
 import { db } from '../db/db';
+import useChatStore from '../store/useChatStore';
 
 // Fetch chat list function for React Query - Unified (chats + groups)
 const fetchChatList = async ({ supabase, userId }) => {
@@ -49,6 +50,7 @@ const fetchChatList = async ({ supabase, userId }) => {
 
 export const useChatListRealtime = (currentUserId) => {
     const { supabase } = useSupabase();
+    const activeChat = useChatStore(state => state.activeChat);
     const [loading, setLoading] = useState(true);
     const [hasMoreChats, setHasMoreChats] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -83,26 +85,24 @@ export const useChatListRealtime = (currentUserId) => {
         const loadInitialData = async () => {
             if (!currentUserId) return;
             try {
-                // 1. Try to load from Dexie first (it should already be populated by SyncService or previous runs)
+                // 1. Check if Dexie already has data (from previous session / SyncService)
                 const localChatCount = await db.chats_list.count();
                 
-                // 2. If Dexie is empty, fallback to legacy filesystem or fetch
                 if (localChatCount === 0) {
+                    // 2. Dexie is empty — try filesystem fallback first
                     await initializeFileSystem();
                     const localChats = await loadChatsFromDevice();
                     if (localChats && localChats.length > 0) {
                         await db.transaction('rw', db.chats_list, async () => {
                             await db.chats_list.bulkPut(localChats);
                         });
-                        // Don't fetch if we got data from filesystem
-                        return;
                     }
-                    
-                    // 3. If still empty, trigger sync
+                    // 3. Still empty — do a full network fetch
                     loadAndSyncChats();
                 }
+                // If data exists, SyncService handles background catch-up — no network call needed here
             } catch (error) {
-                console.warn('Initial data load failed:', error);
+                console.warn('Initial data load failed, falling back to network:', error);
                 loadAndSyncChats();
             }
         };
@@ -162,19 +162,44 @@ export const useChatListRealtime = (currentUserId) => {
         currentUserIdRef.current = currentUserId;
     }, [currentUserId]);
 
-    const handlePayload = useCallback((payload) => {
-        if (!mountedRef.current) return;
+    const handlePayload = useCallback(async (payload) => {
+        if (!mountedRef.current || !currentUserId) return;
         
-        const now = Date.now();
-        if (now - lastSyncTimeRef.current < 2000) { // Increased throttle to 2s
-            _log('Throttling chat list update');
+        const { eventType, new: newRecord, table } = payload;
+        _log('Real-time event received', { event: eventType, table });
+
+        if (table === 'messages' && eventType === 'INSERT') {
+            const chatId = newRecord.chat_id;
+            const isMyMessage = newRecord.sender_id === currentUserId;
+
+            // Update Dexie atomically
+            await db.transaction('rw', db.chats_list, async () => {
+                const existingChat = await db.chats_list.get(chatId);
+                const isActive = activeChat?.id === chatId;
+
+                if (existingChat) {
+                    await db.chats_list.update(chatId, {
+                        lastMessage: newRecord.content,
+                        lastMessageAt: newRecord.created_at,
+                        timestamp: newRecord.created_at,
+                        // Increment only if NOT active and NOT my message
+                        unreadCount: (isActive || isMyMessage) ? 0 : (existingChat.unreadCount || 0) + 1,
+                        isMyMessage: isMyMessage
+                    });
+                } else {
+                    // Chat doesn't exist locally? Then it's a new chat, better refetch
+                    loadAndSyncChats(true);
+                }
+            });
             return;
         }
-        
+
+        // For other events (UPDATE/DELETE or other tables), do a silent refetch
+        const now = Date.now();
+        if (now - lastSyncTimeRef.current < 2000) return;
         lastSyncTimeRef.current = now;
-        _log('Chat list real-time update', { event: payload.eventType });
-        loadAndSyncChats(true); // Silent sync for real-time updates
-    }, [loadAndSyncChats]);
+        loadAndSyncChats(true);
+    }, [loadAndSyncChats, currentUserId, _log]);
 
 
     useEffect(() => {
