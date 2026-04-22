@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import { motion } from "framer-motion";
 import { Clock, AlertCircle, RefreshCw, Users, User, Trash2, Timer } from "lucide-react";
 import { fetchMessagesPage } from "../../hooks/useMessages";
-import { formatLastSeen, formatTime } from "../../utils/dateFormatter";
+import { formatLastSeen, formatInboxTime } from "../../utils/dateFormatter";
 import { useResolveName } from "../../hooks/useResolveName";
 import { useResolveAvatar } from "../../hooks/useResolveAvatar";
 import { manualRetrySyncItem } from "../../db/db";
@@ -65,7 +65,7 @@ const ChatListItem = ({
 
   // Format time using our helper or fallback
   // If user is online, show 'Online', otherwise show last seen if available, else message timestamp
-  const displayTime = formatTime(timestamp);
+  const displayTime = formatInboxTime(timestamp);
 
   // Determine message prefix (You: or Name:)
   const messagePrefix = chat.isMyMessage ? (

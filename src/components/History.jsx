@@ -6,7 +6,7 @@ import { dpOptions } from '../utils/dpOptions';
 import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Video, ArrowLeft, RefreshCw } from 'lucide-react';
 import { callService } from '../services/callService';
 import BottomNavigation from './common/BottomNavigation';
-import { isUserOnline } from '../utils/dateFormatter';
+import { isUserOnline, formatInboxTime } from '../utils/dateFormatter';
 import useAuthStore from '../store/authStore';
 import '../styles/calls.css';
 import '../styles/history.css';
@@ -141,28 +141,28 @@ const History = ({ isSidebar = false }) => {
     const grouped = {};
 
     calls.forEach(call => {
-      const otherUserId = call.other_user_id;
-      const groupKey = getWhatsAppGroupKey(call.started_at);
+      const otherUserId = call.otherUserId;
+      const groupKey = getWhatsAppGroupKey(call.startedAt);
       const compositeKey = `${otherUserId}_${groupKey}`;
 
       if (!grouped[compositeKey]) {
         grouped[compositeKey] = {
           ...call,
           callCount: 1,
-          groupLabel: formatWhatsAppGroup(call.started_at)
+          groupLabel: formatWhatsAppGroup(call.startedAt)
         };
       } else {
         grouped[compositeKey].callCount += 1;
-        if (new Date(call.started_at) > new Date(grouped[compositeKey].started_at)) {
-          grouped[compositeKey].started_at = call.started_at;
+        if (new Date(call.startedAt) > new Date(grouped[compositeKey].startedAt)) {
+          grouped[compositeKey].startedAt = call.startedAt;
           grouped[compositeKey].id = call.id;
         }
       }
     });
 
     return Object.values(grouped).sort((a, b) => {
-      const dateA = a.started_at ? new Date(a.started_at).getTime() : 0;
-      const dateB = b.started_at ? new Date(b.started_at).getTime() : 0;
+      const dateA = a.startedAt ? new Date(a.startedAt).getTime() : 0;
+      const dateB = b.startedAt ? new Date(b.startedAt).getTime() : 0;
       return dateB - dateA; // Newest first
     });
   };
@@ -191,18 +191,18 @@ const History = ({ isSidebar = false }) => {
 
         // Add existing entries
         prev.forEach(call => {
-          const groupKey = `${call.other_user_id}_${getWhatsAppGroupKey(call.started_at)}`;
+          const groupKey = `${call.otherUserId}_${getWhatsAppGroupKey(call.startedAt)}`;
           mergedMap.set(groupKey, call);
         });
 
         // Update or add new calls
         groupedNewCalls.forEach(newCall => {
-          const groupKey = `${newCall.other_user_id}_${getWhatsAppGroupKey(newCall.started_at)}`;
+          const groupKey = `${newCall.otherUserId}_${getWhatsAppGroupKey(newCall.startedAt)}`;
           if (mergedMap.has(groupKey)) {
             const existing = mergedMap.get(groupKey);
             existing.callCount += newCall.callCount;
-            if (new Date(newCall.started_at) > new Date(existing.started_at)) {
-              existing.started_at = newCall.started_at;
+            if (new Date(newCall.startedAt) > new Date(existing.startedAt)) {
+              existing.startedAt = newCall.startedAt;
               existing.id = newCall.id;
             }
           } else {
@@ -212,8 +212,8 @@ const History = ({ isSidebar = false }) => {
 
         const merged = Array.from(mergedMap.values());
         return merged.sort((a, b) => {
-          const dateA = a.started_at ? new Date(a.started_at).getTime() : 0;
-          const dateB = b.started_at ? new Date(b.started_at).getTime() : 0;
+          const dateA = a.startedAt ? new Date(a.startedAt).getTime() : 0;
+          const dateB = b.startedAt ? new Date(b.startedAt).getTime() : 0;
           return dateB - dateA; // Newest first
         });
       });
@@ -236,21 +236,8 @@ const History = ({ isSidebar = false }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatTime = (timestamp) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return date.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
+  const displayTime = (timestamp) => {
+    return formatInboxTime(timestamp);
   };
 
   const handleCall = async (otherUserId, callType) => {
@@ -266,8 +253,8 @@ const History = ({ isSidebar = false }) => {
   };
 
   const getCallIcon = (call) => {
-    const isOutgoing = call.caller_id === currentUser?.id;
-    const isMissed = call.call_status === 'missed';
+    const isOutgoing = call.callerId === currentUser?.id;
+    const isMissed = call.callStatus === 'missed';
 
     if (isMissed) {
       return <PhoneMissed className="w-5 h-5 text-red-500" />;
@@ -360,41 +347,41 @@ const History = ({ isSidebar = false }) => {
                 <div
                   key={call.id}
                   className="history-item"
-                  onClick={() => handleCall(call.other_user_id, call.call_type)}
+                  onClick={() => handleCall(call.otherUserId, call.callType)}
                 >
                   {/* Avatar */}
                   <div className="call-avatar">
-                    {call.other_user_avatar ? (
-                      parseInt(call.other_user_avatar) ? (
+                    {call.otherUserAvatar ? (
+                      parseInt(call.otherUserAvatar) ? (
                         <img
-                          src={dpOptions.find(dp => dp.id === parseInt(call.other_user_avatar))?.path || call.other_user_avatar}
-                          alt={call.other_user_name}
+                          src={dpOptions.find(dp => dp.id === parseInt(call.otherUserAvatar))?.path || call.otherUserAvatar}
+                          alt={call.otherUserName}
                         />
                       ) : (
                         <img
-                          src={call.other_user_avatar}
-                          alt={call.other_user_name}
+                          src={call.otherUserAvatar}
+                          alt={call.otherUserName}
                         />
                       )
                     ) : (
-                      getInitials(call.other_user_name)
+                      getInitials(call.otherUserName)
                     )}
                   </div>
 
                   {/* Info */}
                   <div className="history-details">
                     <h3 className="history-name">
-                      {call.other_user_name || 'Unknown'}
+                      {call.otherUserName || 'Unknown'}
                       {call.callCount > 1 && (
                         <span className="call-count"> ({call.callCount})</span>
                       )}
                     </h3>
                     <div className="history-status-row">
                       {getCallIcon(call)}
-                      <span className="time-text">{formatTime(call.started_at)}</span>
-                      {call.call_duration > 0 && (
+                      <span className="time-text">{displayTime(call.startedAt)}</span>
+                      {call.callDuration > 0 && (
                         <span className="duration-text">
-                          {formatDuration(call.call_duration)}
+                          {formatDuration(call.callDuration)}
                         </span>
                       )}
                     </div>
@@ -405,11 +392,11 @@ const History = ({ isSidebar = false }) => {
                     className="call-action-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleCall(call.other_user_id, call.call_type);
+                      handleCall(call.otherUserId, call.callType);
                     }}
                     disabled={callState !== 'idle'}
                   >
-                    {call.call_type === 'video' ? (
+                    {call.callType === 'video' ? (
                       <Video size={22} />
                     ) : (
                       <Phone size={22} />

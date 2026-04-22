@@ -95,8 +95,15 @@ export const formatBubbleTime = (timestamp) => {
  * @returns {string} Formatted time string (e.g., "10:45 AM")
  */
 export const formatTime = (timestamp) => {
-  const date = parseTimestamp(timestamp);
-  return date.format('h:mm A');
+  if (!timestamp) return '';
+  try {
+    const date = parseTimestamp(timestamp);
+    if (!date || !date.isValid()) return '';
+    return date.format('h:mm A');
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return '';
+  }
 };
 
 /**
@@ -111,20 +118,30 @@ export const formatTime = (timestamp) => {
  * @returns {string} Formatted time string for inbox display
  */
 export const formatInboxTime = (timestamp) => {
-  const date = parseTimestamp(timestamp);
+  if (!timestamp) return '';
+  
+  try {
+    const date = parseTimestamp(timestamp);
+    if (!date || !date.isValid()) return '';
 
-  // If from today, show time
-  if (date.isToday()) {
-    return date.format('h:mm A');
+    const now = dayjs();
+    
+    // If from today, show time
+    if (date.isSame(now, 'day')) {
+      return date.format('h:mm A');
+    }
+
+    // If from yesterday, show "Yesterday"
+    if (date.isSame(now.subtract(1, 'day'), 'day')) {
+      return 'Yesterday';
+    }
+
+    // If older than yesterday, show date in DD/MM/YYYY format
+    return date.format('DD/MM/YYYY');
+  } catch (error) {
+    console.error('Error formatting inbox time:', error);
+    return '';
   }
-
-  // If from yesterday, show "Yesterday"
-  if (date.isYesterday()) {
-    return 'Yesterday';
-  }
-
-  // If older than yesterday, show date in DD/MM/YYYY format
-  return date.format('DD/MM/YYYY');
 };
 
 /**

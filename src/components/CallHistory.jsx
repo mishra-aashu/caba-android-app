@@ -3,6 +3,7 @@ import { useCallHistory } from '../hooks/useCallHistory';
 import { useCall } from '../contexts/CallContext';
 import { dpOptions } from '../utils/dpOptions';
 import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Video } from 'lucide-react';
+import { formatInboxTime } from '../utils/dateFormatter';
 
 // [FIX #5] Extracted shared avatar renderer — was duplicated 2x
 const CallAvatar = ({ avatar, name, size = 48 }) => {
@@ -30,22 +31,9 @@ export function CallHistory({ userId, userAvatar, userName }) {
     // [FIX #2] REMOVED: formatDuration — was defined but never used anywhere
     // If needed in the future, it can be added back when call duration is displayed
 
-    const formatTime = useCallback((timestamp) => {
-        if (!timestamp) return '';
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } else if (diffDays === 1) {
-            return 'Yesterday';
-        } else if (diffDays < 7) {
-            return date.toLocaleDateString([], { weekday: 'short' });
-        } else {
-            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-        }
-    }, []);
+    const displayTime = (timestamp) => {
+        return formatInboxTime(timestamp);
+    };
 
     // [FIX #1 + #3] REMOVED: getCallIcon function
     // Was defined but NEVER called — icon logic was duplicated inline in JSX
@@ -174,7 +162,7 @@ export function CallHistory({ userId, userAvatar, userName }) {
                                             ) : (
                                                 <PhoneIncoming size={14} className="status-icon incoming" />
                                             )}
-                                            <span className="call-time-text">{formatTime(startedAt)}</span>
+                                            <span className="call-time-text">{displayTime(startedAt)}</span>
                                         </div>
                                     </div>
 
