@@ -148,7 +148,7 @@ const ArenaRoom = ({
             <Gamepad2 size={16} />
             <span>GAME</span>
             {gameProps.gameState?.stage && gameProps.gameState.stage !== 'idle' && (
-              <div className={styles.statusDot} style={{ background: '#ec4899', marginLeft: '-5px', marginTop: '-10px' }} />
+              <div className={styles.statusDot} style={{ background: '#00a884', marginLeft: '-5px', marginTop: '-10px' }} />
             )}
           </button>
         </div>

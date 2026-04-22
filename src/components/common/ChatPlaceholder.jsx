@@ -69,44 +69,45 @@ const ChatPlaceholder = () => {
           <AppName size="large" />
         </h2>
 
-        <p style={{ 
-          marginTop: '0.5rem', 
-          maxWidth: '380px', 
-          lineHeight: '1.6',
-          fontSize: '1rem',
-          color: 'var(--text-secondary)',
-          opacity: 0.9
+        <div style={{ 
+          marginTop: '1.5rem', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: '1.25rem' 
         }}>
-          Your messages and media are secured with <br/>
-          <span style={{ color: 'var(--brand-primary)', fontWeight: '600' }}>End-to-End Encryption</span>. 
-          <br/>
-          Select a chat to start a private conversation.
-        </p>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.85rem',
+            padding: '10px 22px',
+            background: 'rgba(0, 168, 132, 0.08)',
+            border: '1px solid rgba(0, 168, 132, 0.15)',
+            borderRadius: '30px',
+            color: 'var(--text-secondary)',
+            fontWeight: '500',
+            letterSpacing: '0.02em',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <ShieldCheck size={18} color="var(--brand-primary)" />
+            <span>End-to-end encrypted system active</span>
+          </div>
+
+          <p style={{ 
+            maxWidth: '380px', 
+            lineHeight: '1.6',
+            fontSize: '1rem',
+            color: 'var(--text-secondary)',
+            opacity: 0.7,
+            margin: 0
+          }}>
+            Select a chat to start a private conversation.
+          </p>
+        </div>
       </motion.div>
       
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8, duration: 1 }}
-        style={{
-          marginTop: 'auto',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '0.75rem',
-          padding: '10px 20px',
-          background: 'rgba(0, 168, 132, 0.05)',
-          border: '1px solid rgba(0, 168, 132, 0.1)',
-          borderRadius: '30px',
-          color: 'var(--text-secondary)',
-          fontWeight: '500',
-          letterSpacing: '0.02em',
-          backdropFilter: 'blur(10px)'
-        }}
-      >
-        <ShieldCheck size={16} color="var(--brand-primary)" />
-        <span>End-to-end encrypted system active</span>
-      </motion.div>
+
     </div>
   );
 };

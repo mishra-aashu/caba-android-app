@@ -81,7 +81,7 @@
 }
 
 .td-textarea:focus {
-  border-color: #ec4899;
+  border-color: #00a884;
   background: rgba(0, 0, 0, 0.3);
 }
 
@@ -138,8 +138,8 @@
 }
 
 .setup-btn.active {
-  background: rgba(236, 72, 153, 0.1);
-  border-color: #ec4899;
+  background: rgba(0, 168, 132, 0.1);
+  border-color: #00a884;
   color: white;
 }
 
@@ -149,7 +149,7 @@
   padding: 2.5rem 1.5rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-left: 4px solid #ec4899;
+  border-left: 4px solid #00a884;
   border-radius: 1.5rem;
   margin-bottom: 2rem;
 }
@@ -210,7 +210,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 168, 132, 0.4);
 }
 
 .arena-invitation-actions {
@@ -225,7 +225,7 @@
 .accept-btn {
   flex: 2;
   height: 44px;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  background: linear-gradient(135deg, #00a884, #00876a);
   border-radius: 0.75rem;
   color: white;
   font-weight: 900;

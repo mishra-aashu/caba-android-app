@@ -49,7 +49,7 @@
   height: 120px;
   background: linear-gradient(
     180deg,
-    rgba(168, 85, 247, 0.06) 0%,
+    rgba(0, 168, 132, 0.06) 0%,
     transparent 100%
   );
   pointer-events: none;
@@ -59,7 +59,7 @@
 [data-theme="dark"] .panel::before {
   background: linear-gradient(
     180deg,
-    rgba(168, 85, 247, 0.12) 0%,
+    rgba(0, 168, 132, 0.12) 0%,
     transparent 100%
   );
 }
@@ -85,12 +85,12 @@
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #00a884 0%, #00876a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.4);
   flex-shrink: 0;
 }
 
@@ -124,8 +124,8 @@
 }
 
 .refreshBtn:hover {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: rgba(0, 168, 132, 0.15);
+  color: #00a884;
   transform: rotate(90deg);
 }
 
@@ -158,14 +158,14 @@
 }
 
 .tab:hover {
-  background: rgba(168, 85, 247, 0.1);
-  color: #a855f7;
+  background: rgba(0, 168, 132, 0.1);
+  color: #00a884;
 }
 
 .tabActive {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%);
-  color: #a855f7;
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: linear-gradient(135deg, rgba(0, 168, 132, 0.2) 0%, rgba(0, 135, 106, 0.2) 100%);
+  color: #00a884;
+  border: 1px solid rgba(0, 168, 132, 0.3);
 }
 
 .tabBadge {
@@ -176,15 +176,15 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: rgba(168, 85, 247, 0.25);
-  color: #a855f7;
+  background: rgba(0, 168, 132, 0.25);
+  color: #00a884;
   font-size: 10px;
   font-weight: 800;
 }
 
 .tabBadgeAlert {
-  background: rgba(236, 72, 153, 0.25);
-  color: #ec4899;
+  background: rgba(0, 168, 132, 0.25);
+  color: #00a884;
   animation: pulse 2s infinite;
 }
 
@@ -205,7 +205,7 @@
   overflow-y: auto;
   padding: 4px 12px 24px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(168, 85, 247, 0.3) transparent;
+  scrollbar-color: rgba(0, 168, 132, 0.3) transparent;
 }
 
 .listWrap::-webkit-scrollbar {
@@ -215,7 +215,7 @@
 .listWrap::-webkit-scrollbar-track { background: transparent; }
 
 .listWrap::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.3);
+  background: rgba(0, 168, 132, 0.3);
   border-radius: 4px;
 }
 
@@ -242,7 +242,7 @@
 
 .userCard:hover {
   background: var(--input-bg-hover, rgba(128, 128, 128, 0.1));
-  border-color: rgba(168, 85, 247, 0.3);
+  border-color: rgba(0, 168, 132, 0.3);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -252,8 +252,8 @@
   align-items: center;
   padding: 12px;
   border-radius: 14px;
-  background: rgba(168, 85, 247, 0.08);
-  border: 1px solid rgba(168, 85, 247, 0.2);
+  background: rgba(0, 168, 132, 0.08);
+  border: 1px solid rgba(0, 168, 132, 0.2);
   margin-bottom: 20px;
 }
 
@@ -327,7 +327,7 @@
   padding: 7px 14px;
   border: none;
   border-radius: 9px;
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #00a884 0%, #00876a 100%);
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -335,14 +335,14 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   flex-shrink: 0;
-  box-shadow: 0 4px 10px rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 10px rgba(0, 168, 132, 0.3);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
 .inviteBtn:hover {
   transform: scale(1.04);
-  box-shadow: 0 6px 15px rgba(168, 85, 247, 0.45);
+  box-shadow: 0 6px 15px rgba(0, 168, 132, 0.45);
   filter: brightness(1.1);
 }
 
@@ -366,9 +366,9 @@
 }
 
 .inviteCardPending {
-  background: rgba(236, 72, 153, 0.06);
-  border-color: rgba(236, 72, 153, 0.25);
-  box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.12);
+  background: rgba(0, 168, 132, 0.06);
+  border-color: rgba(0, 168, 132, 0.25);
+  box-shadow: 0 0 0 1px rgba(0, 168, 132, 0.12);
 }
 
 .inviteTop {
@@ -383,8 +383,8 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #a855f7;
-  background: rgba(168, 85, 247, 0.12);
+  color: #00a884;
+  background: rgba(0, 168, 132, 0.12);
   padding: 3px 8px;
   border-radius: 6px;
 }
@@ -475,18 +475,18 @@
   padding: 6px 12px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+  background: linear-gradient(135deg, #00a884 0%, #00876a 100%);
   color: white;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 168, 132, 0.35);
 }
 
 .acceptBtn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.5);
+  box-shadow: 0 4px 14px rgba(0, 168, 132, 0.5);
 }
 
 .rejectBtn {
@@ -512,10 +512,10 @@
   align-items: center;
   gap: 4px;
   padding: 5px 10px;
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  border: 1px solid rgba(0, 168, 132, 0.3);
   border-radius: 8px;
-  background: rgba(168, 85, 247, 0.08);
-  color: #a855f7;
+  background: rgba(0, 168, 132, 0.08);
+  color: #00a884;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -523,7 +523,7 @@
 }
 
 .resumeBtn:hover {
-  background: rgba(168, 85, 247, 0.18);
+  background: rgba(0, 168, 132, 0.18);
 }
 
 /* ── Empty State ─────────────────────────────────────────── */
@@ -570,8 +570,8 @@
 .spinner {
   width: 24px;
   height: 24px;
-  border: 2px solid rgba(168, 85, 247, 0.2);
-  border-top-color: #a855f7;
+  border: 2px solid rgba(0, 168, 132, 0.2);
+  border-top-color: #00a884;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

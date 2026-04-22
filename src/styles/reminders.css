@@ -31,19 +31,19 @@
   --info-light: #dbeafe;
   --info-dark: #1e40af;
   
-  --purple: #8b5cf6;
-  --purple-light: #f3e8ff;
-  --purple-dark: #6b21a8;
+  --purple: #00a884;
+  --purple-light: rgba(0, 168, 132, 0.1);
+  --purple-dark: #00876a;
 
   /* Priority Colors */
   --priority-low: #10b981;
   --priority-medium: #f59e0b;
   --priority-high: #ef4444;
-  --priority-urgent: #8b5cf6;
+  --priority-urgent: #e53935;
 
   /* Category Colors */
-  --category-medicine: #ec4899;
-  --category-medicine-bg: #fdf2f8;
+  --category-medicine: #e53935;
+  --category-medicine-bg: rgba(229, 57, 53, 0.1);
   --category-meeting: #6366f1;
   --category-meeting-bg: #eef2ff;
   --category-appointment: #14b8a6;
@@ -1930,6 +1930,13 @@
   width: 48px;
   height: 28px;
   flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
 }
 
 .toggle-slider {

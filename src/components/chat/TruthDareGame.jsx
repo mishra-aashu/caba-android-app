@@ -73,7 +73,7 @@ const TruthDareGame = ({
                     </>
                 ) : (
                     <>
-                        <Sparkles size={64} style={{ color: '#ec4899', marginBottom: '24px' }} />
+                        <Sparkles size={64} style={{ color: '#00a884', marginBottom: '24px' }} />
                         <h2 className={styles['td-title']}>BATTLE INVITATION!</h2>
                         <p className={styles['td-subtitle']}>Join for a session of truth and dares.</p>
                         <div className={styles['arena-invitation-actions']}>
@@ -103,7 +103,7 @@ const TruthDareGame = ({
                     transition={{ repeat: Infinity, duration: 1.5 }}
                     className={styles['pulse-icon']}
                 >
-                    <Swords size={64} style={{ color: '#ec4899' }} />
+                    <Swords size={64} style={{ color: '#00a884' }} />
                 </motion.div>
                 <h2 className={styles['td-title']}>ENTERING ARENA...</h2>
                 <p className={styles['td-subtitle']}>Synchronizing battle state with opponent.</p>
@@ -142,7 +142,7 @@ const TruthDareGame = ({
     const renderAnnounce = () => (
         <div className={styles['td-container']}>
             <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} style={{ textAlign: 'center' }}>
-                <h3 style={{ color: '#ec4899', fontWeight: '900', fontSize: '13px', textTransform: 'uppercase', marginBottom: '8px' }}>
+                <h3 style={{ color: '#00a884', fontWeight: '900', fontSize: '13px', textTransform: 'uppercase', marginBottom: '8px' }}>
                     Round {round} of {maxRounds}
                 </h3>
                 <h2 style={{ color: 'white', fontWeight: '900', fontSize: '36px', textTransform: 'uppercase', marginBottom: '24px', fontStyle: 'italic' }}>

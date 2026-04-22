@@ -82,11 +82,11 @@ const DesktopNavbar = () => {
           </li>
           <li className="desktop-nav-item" style={{ position: 'relative' }}>
             <Link to="/games" className={`desktop-nav-link${location.pathname === '/games' ? ' active' : ''}`} data-tooltip="Game Hub">
-              <Gamepad2 className="desktop-nav-icon" style={{ color: location.pathname === '/games' ? '#a855f7' : undefined }} />
+              <Gamepad2 className="desktop-nav-icon" style={{ color: location.pathname === '/games' ? '#00a884' : undefined }} />
               {gameInviteCount > 0 && (
                 <span style={{
                   position: 'absolute', top: '4px', right: '4px',
-                  background: '#ec4899', color: 'white',
+                  background: '#00a884', color: 'white',
                   borderRadius: '50%', width: '16px', height: '16px',
                   fontSize: '9px', fontWeight: '800',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',

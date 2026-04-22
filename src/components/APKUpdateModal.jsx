@@ -53,7 +53,7 @@ const APKUpdateModal = () => {
         borderRadius: '24px 24px 0 0',
         border: '1px solid #2a2a4e',
         padding: '28px 24px 40px',
-        boxShadow: '0 -8px 60px rgba(124,58,237,0.25)',
+        boxShadow: '0 -8px 60px rgba(0, 168, 132, 0.25)',
         animation: 'slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1)',
       }}>
 
@@ -67,19 +67,19 @@ const APKUpdateModal = () => {
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <div style={{
             width: '68px', height: '68px', margin: '0 auto 14px',
-            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            background: 'linear-gradient(135deg, #00a884, #00876a)',
             borderRadius: '20px', display: 'flex',
             alignItems: 'center', justifyContent: 'center', fontSize: '34px',
-            boxShadow: '0 8px 32px rgba(124,58,237,0.45)'
+            boxShadow: '0 8px 32px rgba(0, 168, 132, 0.45)'
           }}>📱</div>
 
           <span style={{
             display: 'inline-block',
             padding: '3px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
             letterSpacing: '0.5px', textTransform: 'uppercase',
-            background: needsForceUpdate ? '#3a0a0a' : '#1a1a3e',
-            border: `1.5px solid ${needsForceUpdate ? '#ff4444' : '#7c8cf8'}`,
-            color: needsForceUpdate ? '#ff6b6b' : '#7c8cf8',
+            background: needsForceUpdate ? '#3a0a0a' : '#0a2a1a',
+            border: `1.5px solid ${needsForceUpdate ? '#ff4444' : '#00a884'}`,
+            color: needsForceUpdate ? '#ff6b6b' : '#00a884',
           }}>
             {needsForceUpdate ? '🚨 Critical Update Required' : '✨ New Version Available'}
           </span>
@@ -120,8 +120,8 @@ const APKUpdateModal = () => {
         {/* Release notes */}
         {release_notes && (
           <div style={{
-            padding: '12px 14px', background: '#0d0d1a',
-            borderRadius: '10px', border: '1px solid #2a2a4e',
+            padding: '12px 14px', background: '#0d1a14',
+            borderRadius: '10px', border: '1px solid #1a2a1e',
             marginBottom: '20px'
           }}>
             <p style={{ color: '#666', fontSize: '11px', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>What&apos;s New</p>
@@ -137,11 +137,11 @@ const APKUpdateModal = () => {
             style={{
               padding: '15px', borderRadius: '12px', border: 'none',
               background: apk_download_url
-                ? 'linear-gradient(135deg, #4f46e5, #7c3aed)'
-                : '#2a2a3e',
+                ? 'linear-gradient(135deg, #00a884, #00876a)'
+                : '#1a2a1e',
               color: apk_download_url ? '#fff' : '#666',
               fontWeight: 700, fontSize: '15px', cursor: apk_download_url ? 'pointer' : 'not-allowed',
-              boxShadow: apk_download_url ? '0 4px 20px rgba(124,58,237,0.4)' : 'none',
+              boxShadow: apk_download_url ? '0 4px 20px rgba(0, 168, 132, 0.4)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
             }}
           >

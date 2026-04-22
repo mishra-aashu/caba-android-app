@@ -144,7 +144,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 30% 30%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
+  background: radial-gradient(circle at 30% 30%, rgba(0, 168, 132, 0.05) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -203,9 +203,9 @@
 }
 
 .tabBtnActive {
-  color: #ec4899;
-  background: rgba(236, 72, 153, 0.05);
-  border-bottom-color: #ec4899;
+  color: #00a884;
+  background: rgba(0, 168, 132, 0.05);
+  border-bottom-color: #00a884;
 }
 
 .mobileChatArea {
@@ -250,7 +250,7 @@
 }
 
 .me .messageBubble {
-  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #00a884 0%, #00876a 100%);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -320,7 +320,7 @@
 .waveAnimating {
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #ec4899, #8b5cf6);
+  background: linear-gradient(90deg, #00a884, #00876a);
   mask-image: repeating-linear-gradient(90deg, black, black 2px, transparent 2px, transparent 4px);
   animation: waveMove 1s linear infinite;
 }
@@ -367,10 +367,10 @@
   transition: color 0.2s;
 }
 
-.iconBtn:hover { color: #ec4899; }
+.iconBtn:hover { color: #00a884; }
 
 .sendBtn {
-  background: #ec4899;
+  background: #00a884;
   color: #fff;
   border: none;
   width: 36px;
@@ -434,7 +434,7 @@
 
 .progressFill {
   height: 100%;
-  background: #ec4899;
+  background: #00a884;
 }
 
 /* Desktop Media Queries at the bottom to ensure correct override */

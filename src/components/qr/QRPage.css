@@ -63,13 +63,13 @@
 .qr-option-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-1, 0 10px 25px rgba(0,0,0,0.35));
-  border-color: var(--primary-0, #7c3aed);
+  border-color: var(--primary-0, #00a884);
 }
 
 .qr-option-icon {
   width: 60px;
   height: 60px;
-  background: var(--primary-0, #7c3aed);
+  background: var(--primary-0, #00a884);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -118,7 +118,7 @@
 
 .info-item i {
   font-size: 32px;
-  color: var(--primary-0, #7c3aed);
+  color: var(--primary-0, #00a884);
   margin-bottom: 12px;
   display: block;
 }
