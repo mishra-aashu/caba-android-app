@@ -48,8 +48,13 @@ import {
     Languages,
     Type,
     Wallpaper,
-    Heart
+    Heart,
+    Upload,
+    CloudUpload,
+    CloudDownload,
+    ShieldCheck
 } from 'lucide-react';
+import { BackupRestoreService } from '../../services/BackupRestoreService';
 import BottomNavigation from '../common/BottomNavigation';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
@@ -126,6 +131,7 @@ const Settings = ({ isSidebar = false }) => {
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [clearingCache, setClearingCache] = useState(false);
     const [checkingUpdate, setCheckingUpdate] = useState(false);
+    const fileInputRef = useRef(null);
 
     // Audio state
     const currentAudioRef = useRef(null);
@@ -407,6 +413,48 @@ const Settings = ({ isSidebar = false }) => {
             setDeletingAccount(false);
         }
     }, [supabase, showConfirm, navigate]);
+
+    const handleBackup = async () => {
+        await BackupRestoreService.createBackup();
+    };
+
+    const handleCloudBackup = async () => {
+        const confirmed = await showConfirm(
+            'This will upload an ENCRYPTED copy of your chats to our secure cloud. Only YOU can decrypt it. Proceed?'
+        );
+        if (confirmed) {
+            await BackupRestoreService.backupToCloud();
+        }
+    };
+
+    const handleCloudRestore = async () => {
+        const confirmed = await showConfirm(
+            'This will replace your current local chats with the backup from the cloud. Continue?'
+        );
+        if (confirmed) {
+            await BackupRestoreService.restoreFromCloud();
+        }
+    };
+
+    const handleRestoreClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const confirmed = await showConfirm(
+            'Restoring will replace all your current local chats with the ones from the backup file. Are you sure you want to proceed?'
+        );
+
+        if (confirmed) {
+            await BackupRestoreService.restoreBackup(file);
+        }
+        
+        // Reset input
+        e.target.value = '';
+    };
 
     const checkForUpdates = useCallback(async () => {
         setCheckingUpdate(true);
@@ -813,6 +861,58 @@ const Settings = ({ isSidebar = false }) => {
                         label="Auto-download (Wi-Fi)"
                         checked={settings.autoDownloadWifi}
                         onChange={() => handleSettingToggle('autoDownloadWifi')}
+                    />
+                </section>
+
+                {/* Backup & Restore */}
+                <section className="settings-section">
+                    <SectionHeader title="Chat Backup" />
+                    <p className="section-description" style={{ padding: '0 16px 12px', fontSize: '13px', color: 'var(--text-secondary)', opacity: 0.8 }}>
+                        Back up your chats locally or share them to your cloud storage. Restoring will replace current local chats.
+                    </p>
+
+                    <SettingItem
+                        icon={Download}
+                        label="Backup to File (Encrypted)"
+                        onClick={handleBackup}
+                        chevron={false}
+                    />
+
+                    <SettingItem
+                        icon={Upload}
+                        label="Restore from File"
+                        onClick={handleRestoreClick}
+                        chevron={false}
+                    />
+
+                    <div style={{ margin: '12px 16px', padding: '12px', background: 'rgba(0,168,132,0.05)', borderRadius: '12px', border: '1px dashed var(--primary-1)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--primary-1)' }}>
+                            <ShieldCheck size={16} />
+                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>End-to-End Encrypted Cloud Sync</span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                                onClick={handleCloudBackup}
+                                style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'var(--brand-gradient)', color: 'white', border: 'none', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                            >
+                                <CloudUpload size={14} /> Backup to Cloud
+                            </button>
+                            <button 
+                                onClick={handleCloudRestore}
+                                style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'var(--bg-1)', color: 'var(--text-0)', border: '1px solid var(--glass-stroke)', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                            >
+                                <CloudDownload size={14} /> Restore from Cloud
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        accept=".json"
+                        onChange={handleFileChange}
                     />
                 </section>
 
