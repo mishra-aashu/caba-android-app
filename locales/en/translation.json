@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "security": "Security",
+    "help": "Help Center",
+    "logout": "Logout",
+    "profile_visibility": "Profile Photo Visibility",
+    "phone_visibility": "Phone Number Visibility",
+    "everyone": "Everyone",
+    "contacts": "Contacts Only",
+    "nobody": "Nobody",
+    "updated_success": "Settings updated successfully",
+    "updated_error": "Failed to update settings"
+  }
+}

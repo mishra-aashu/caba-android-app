@@ -1,1 +1,0 @@
-import{d as e}from"./dpOptions-DvZtT8om.js";const a=r=>{if(!r)return"?";const t=r.trim().split(/\s+/);return t.length===1?t[0].charAt(0).toUpperCase():(t[0].charAt(0)+t[t.length-1].charAt(0)).toUpperCase()},p=r=>{if(!r)return null;const t=parseInt(r);if(!isNaN(t)&&t.toString().length<5){const n=e.find(s=>s.id===t);return n?n.path:null}return r};export{p as a,a as g};
