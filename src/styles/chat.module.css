@@ -3492,3 +3492,57 @@ body.light-mode .no-messages-content {
   overflow-y: auto;
   height: 100%;
 }
+
+/* ─────────────────────────────────────────────
+   ENCRYPTION NOTICE
+───────────────────────────────────────────── */
+
+.encryption-notice-container {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 1rem 0.5rem;
+  width: 100%;
+}
+
+.encryption-notice-pill {
+  background: var(--bg-active, rgba(0, 168, 132, 0.05));
+  border: 1px solid var(--border-subtle, rgba(0, 168, 132, 0.15));
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  padding: 10px 16px;
+  border-radius: 14px;
+  max-width: 85%;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.encryption-notice-pill:hover {
+  background: var(--hover-color, rgba(0, 168, 132, 0.1));
+  border-color: var(--brand-primary);
+  transform: translateY(-1px);
+}
+
+.encryption-notice-icon {
+  background: var(--brand-primary);
+  color: #fff;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+[data-theme='dark'] .encryption-notice-pill {
+  background: rgba(0, 168, 132, 0.1);
+  border-color: rgba(0, 168, 132, 0.2);
+  color: #8696a0;
+}

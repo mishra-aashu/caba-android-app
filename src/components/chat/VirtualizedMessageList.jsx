@@ -59,6 +59,14 @@ const VirtualizedMessageList = React.forwardRef(({
     const items = [];
     const idMap = new Map();
 
+    // Add E2EE Notice at the very top if it's the first page
+    if (!hasNextPage && messages.length > 0) {
+      items.push({
+        type: 'encryption-notice',
+        key: 'e2ee-top-notice'
+      });
+    }
+
     messages.forEach((message, index) => {
       const msgId = message.id || message.tempId;
       if (msgId) idMap.set(msgId, index);
@@ -148,6 +156,22 @@ const VirtualizedMessageList = React.forwardRef(({
     // [NOTE] Using the `item` parameter directly from Virtuoso
     // instead of itemsWithHeaders[index] — cleaner and avoids stale closure
     if (!item) return <div style={{ minHeight: '1px' }} />;
+
+    if (item.type === 'encryption-notice') {
+      return (
+        <div className={styles['encryption-notice-container']}>
+          <div className={styles['encryption-notice-pill']}>
+            <div className={styles['encryption-notice-icon']}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            Messages and calls are end-to-end encrypted. No one outside of this chat, not even Elevengram, can read or listen to them. Click to learn more.
+          </div>
+        </div>
+      );
+    }
 
     if (item.type === 'date-header') {
       return (

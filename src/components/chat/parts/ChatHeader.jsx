@@ -16,7 +16,7 @@ import {
     Phone, Video, User, Bell, BellOff, Search, Plus,
     Image as ImageIcon, Palette, Clock, Settings as SettingsIcon,
     Trash2, ArrowLeft, Gamepad2, Crown, MousePointer,
-    Copy, ArrowRight, X
+    Copy, ArrowRight, X, Lock
 } from 'lucide-react';
 import DropdownMenu from '../../common/DropdownMenu';
 import { formatLastSeen, isUserOnline } from '../../../utils/dateFormatter';
@@ -320,6 +320,7 @@ const ChatHeader = memo(({
                         {isGroupChat
                             ? (otherUser?.name || 'Group Chat')
                             : resolvedName}
+                        <Lock size={12} style={{ marginLeft: '6px', opacity: 0.6, color: 'var(--brand-primary)' }} />
                     </h3>
                     <p className={styles['user-status']}>{statusText}</p>
                 </div>

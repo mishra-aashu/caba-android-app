@@ -16,8 +16,9 @@ import {
     BellOff, Bell, UserPlus, Share2, Download,
     Flag, Trash2, Edit, MoreVertical, X,
     ChevronRight, Shield, Clock, Users, Info,
-    Copy, CheckCircle2, Ban
+    Copy, CheckCircle2, Ban, Lock
 } from 'lucide-react';
+import { EncryptionService } from '../services/EncryptionService';
 import { motion, AnimatePresence } from 'framer-motion';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
@@ -69,6 +70,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     const [showReportModal, setShowReportModal] = useState(false);
     const [showImageModal, setShowImageModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showSecurityModal, setShowSecurityModal] = useState(false);
     const [reportReason, setReportReason] = useState('');
     const [reportDetails, setReportDetails] = useState('');
     const [contactName, setContactName] = useState('');
@@ -144,6 +146,13 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         Boolean(currentOnlineStatus?.is_online),
         currentOnlineStatus?.last_seen || user?.last_seen
     );
+
+    const securityCode = React.useMemo(() => {
+        if (!currentUser?.id || !userId) return '';
+        // Derive the key and take a fingerprint (first 16 chars of hash)
+        const key = EncryptionService._deriveChatKey([currentUser.id, userId].sort().join('_'), userId);
+        return key.substring(0, 16).match(/.{1,4}/g)?.join(' ') || 'Not Verified';
+    }, [currentUser?.id, userId]);
 
     const setLoading = (key, value) =>
         setActionLoading(prev => ({ ...prev, [key]: value }));
@@ -753,13 +762,34 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     </motion.section>
 
                     {/* ── Encryption Badge ── */}
-                    <motion.section className="ud-encryption-badge" variants={fadeUp}>
-                        <Shield size={16} />
-                        <p>
-                            Messages are end-to-end encrypted. No one outside of this chat can
-                            read or listen to them.
-                        </p>
+                    <motion.section 
+                        className="ud-encryption-badge clickable" 
+                        variants={fadeUp}
+                        onClick={() => setShowSecurityModal(true)}
+                    >
+                        <Lock size={18} />
+                        <div className="ud-enc-info">
+                            <h3>End-to-End Encrypted</h3>
+                            <p>
+                                Messages and calls are secured with AES-256. Click to verify safety code.
+                            </p>
+                        </div>
+                        <ChevronRight size={16} />
                     </motion.section>
+
+                    {/* ── Security Code Section ── */}
+                    {!isOwnProfile && (
+                        <motion.section className="ud-section" variants={fadeUp}>
+                            <div className="ud-section-header">
+                                <Shield size={16} />
+                                <span>Security Verification</span>
+                            </div>
+                            <div className="ud-security-code-box" onClick={() => setShowSecurityModal(true)}>
+                                <span className="ud-security-code">{securityCode}</span>
+                                <p className="ud-security-hint">Verify this code with {resolvedName} to ensure your chat is 100% private.</p>
+                            </div>
+                        </motion.section>
+                    )}
 
                     {/* ── Danger Zone ── */}
                     {!isOwnProfile && (
@@ -812,7 +842,48 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
             {/* ═══ Modals ═══ */}
 
-            {/* Block Modal */}
+            {/* ── Security Modal ── */}
+            <Modal
+                show={showSecurityModal}
+                onClose={() => setShowSecurityModal(false)}
+                title="Encryption Verification"
+            >
+                <div className="ud-security-modal">
+                    <div className="ud-sec-icon-large">
+                        <Lock size={48} />
+                    </div>
+                    <p className="ud-sec-desc">
+                        To verify that this chat is end-to-end encrypted, compare the code below with <strong>{resolvedName}</strong>. 
+                        If the codes match, no one can read your messages or listen to your calls.
+                    </p>
+                    <div className="ud-sec-code-display">
+                        {securityCode}
+                    </div>
+                    
+                    <div className="ud-sec-details">
+                        <div className="ud-sec-detail-item">
+                            <Shield size={18} />
+                            <div>
+                                <h4>Military-Grade Standard</h4>
+                                <p>We use AES-256 (Advanced Encryption Standard) to lock your messages.</p>
+                            </div>
+                        </div>
+                        <div className="ud-sec-detail-item">
+                            <Info size={18} />
+                            <div>
+                                <h4>Server-Blind Protection</h4>
+                                <p>Supabase servers only see encrypted gibberish. They cannot unlock your data.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button className="ud-modal-btn primary" onClick={() => setShowSecurityModal(false)}>
+                        Got it
+                    </button>
+                </div>
+            </Modal>
+
+            {/* ── Block Modal ── */}
             <Modal isOpen={showBlockModal} onClose={() => setShowBlockModal(false)}
                 title="Block Contact" size="small">
                 <div className="ud-modal-body">

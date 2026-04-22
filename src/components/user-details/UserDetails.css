@@ -1096,3 +1096,154 @@ input:checked ~ .ud-toggle-track .ud-toggle-thumb {
         min-width: 90px;
     }
 }
+
+/* ── Encryption Info & Verification ── */
+.ud-encryption-badge.clickable {
+    cursor: pointer;
+    transition: all 0.2s;
+    align-items: center;
+}
+
+.ud-encryption-badge.clickable:hover {
+    background: rgba(0, 168, 132, 0.08);
+    border-color: rgba(0, 168, 132, 0.2);
+}
+
+.ud-enc-info {
+    flex: 1;
+}
+
+.ud-enc-info h3 {
+    margin: 0 0 2px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ud-brand);
+}
+
+.ud-security-code-box {
+    background: var(--ud-bg);
+    border: 1px dashed var(--ud-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 0.5rem 1.25rem 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ud-security-code-box:hover {
+    border-color: var(--ud-brand);
+    background: var(--ud-surface);
+}
+
+.ud-security-code {
+    display: block;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--ud-text);
+    margin-bottom: 8px;
+    word-spacing: 0.2em;
+}
+
+.ud-security-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--ud-text-secondary);
+    opacity: 0.8;
+    line-height: 1.4;
+}
+
+/* ── Security Modal ── */
+.ud-security-modal {
+    padding: 1rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.ud-sec-icon-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(0, 168, 132, 0.1);
+    color: var(--ud-brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ud-sec-desc {
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--ud-text-secondary);
+    margin: 0;
+}
+
+.ud-sec-code-display {
+    background: var(--ud-bg);
+    padding: 1.25rem;
+    border-radius: 16px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: var(--ud-brand);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+    text-align: center;
+    width: 100%;
+}
+
+.ud-sec-details {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ud-sec-detail-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--ud-surface);
+    border: 1px solid var(--ud-border);
+    border-radius: 12px;
+}
+
+.ud-sec-detail-item svg {
+    color: var(--ud-brand);
+    flex-shrink: 0;
+}
+
+.ud-sec-detail-item h4 {
+    margin: 0 0 4px;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.ud-sec-detail-item p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--ud-text-secondary);
+    line-height: 1.4;
+}
+
+.ud-modal-btn {
+    width: 100%;
+    height: 48px;
+    border-radius: 12px;
+    border: none;
+    background: var(--ud-brand);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ud-modal-btn:hover {
+    background: var(--ud-brand-dark);
+}
