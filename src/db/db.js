@@ -23,7 +23,20 @@ db.version(6).stores({
     reports: '++id, reporterId, reportedId',
     call_history: 'id, startedAt, callerId, receiverId',
     reminders: 'id, reminderTime, senderId, receiverId'
+});
+
+db.version(7).stores({
+    sync_queue: '++id, status, table, action, createdAt, failedAt'
 }).upgrade(async tx => {
+    // Migration: Map old fields to new fields if necessary
+    await tx.sync_queue.toCollection().modify(item => {
+        if (item.type) { item.action = item.type; delete item.type; }
+        if (item.payload) { item.data = item.payload; delete item.payload; }
+        if (item.retryCount !== undefined) { item.retries = item.retryCount; delete item.retryCount; }
+    });
+});
+
+db.version(6).upgrade(async tx => {
     // Migration: Convert snake_case to camelCase for existing data
     // IMPORTANT: Avoid dynamic imports or non-Dexie promises inside upgrade
     

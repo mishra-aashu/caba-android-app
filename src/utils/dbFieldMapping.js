@@ -11,7 +11,7 @@ export const DB_TO_FRONTEND_MAP = {
   'created_at': 'createdAt',
   'updated_at': 'updatedAt',
   'phone': 'phone',
-  'avatar': 'profileImage',
+  'avatar': 'avatar',
   'about': 'about',
   'emoji_style': 'emojiStyle',
   'preferred_emojis': 'preferredEmojis',

@@ -6,6 +6,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 import { createClient } from '@supabase/supabase-js';
+import { setSentryUser, addAuthBreadcrumb } from '../config/sentry';
 
 // Direct Supabase URL for bypassing proxy during OAuth redirects
 const DIRECT_SUPABASE_URL = import.meta.env.VITE_SUPABASE_DIRECT_URL;
@@ -606,6 +607,10 @@ const useAuthStore = create((set, get) => ({
         isDbUserLoaded: true,
       });
 
+      // Update Sentry user context
+      setSentryUser(dbUser);
+      addAuthBreadcrumb('session_loaded', { userId: dbUser.id });
+
     } catch (error) {
       console.error('[Auth] ❌ Session handling failed:', error);
 
@@ -772,6 +777,10 @@ const useAuthStore = create((set, get) => ({
 
     // Clear auth state
     await supabase.auth.signOut();
+
+    // Clear Sentry user context
+    setSentryUser(null);
+    addAuthBreadcrumb('signed_out');
 
     set({
       user: null,

@@ -4,7 +4,8 @@ import { fetchMessagesPage, loadInitialMessagesIfNeeded } from '../../hooks/useM
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { useDeleteMessage } from '../../hooks/useDeleteMessage';
 import { frontendToDb, dbToFrontend } from '../../utils/dbFieldMapping';
-import { db, addToSyncQueue } from '../../db/db';
+import { db } from '../../db/db';
+import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
 import { useLiveQuery } from 'dexie-react-hooks';
 import toast from 'react-hot-toast';
 import hapticsManager from '../../utils/hapticsManager';
@@ -187,7 +188,7 @@ export function useChatMessages({
                 });
 
                 if (!navigator.onLine) {
-                    await addToSyncQueue('send_message', { ...dbData, tempId });
+                    await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', { ...dbData, tempId });
                     return null;
                 }
 
@@ -213,9 +214,9 @@ export function useChatMessages({
 
                 return data;
             } catch (error) {
-                console.error('Send failed:', error);
+                console.error('Send failed, falling back to queue:', error);
+                await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', { ...dbData, tempId });
                 hapticsManager.error();
-                toast.error('Failed to send message');
                 return null;
             }
         },

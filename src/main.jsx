@@ -9,6 +9,12 @@ import { HashRouter } from 'react-router-dom';
 // ═══════════════════════════════════════════════════════════
 import './pwa';
 import './i18n';
+import { initSentry } from './config/sentry';
+
+// Initialize Sentry before React renders
+if (import.meta.env.PROD) {
+  initSentry();
+}
 
 // ── CSS imports (order matters for cascade) ──
 import './styles/tokens.css';

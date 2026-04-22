@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import ServerFallback from './ServerFallback';
 
 class AppErrorBoundary extends React.Component {
@@ -74,4 +75,9 @@ class AppErrorBoundary extends React.Component {
     }
 }
 
-export default AppErrorBoundary;
+export default Sentry.withErrorBoundary(AppErrorBoundary, {
+    fallback: ({ error, resetError }) => (
+        <ServerFallback error={error} reset={resetError} />
+    ),
+    showDialog: false,
+});

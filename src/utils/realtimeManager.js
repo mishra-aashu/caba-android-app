@@ -1,4 +1,5 @@
 import { supabase, supabaseRealtime } from '../config/supabase';
+import { addRealtimeBreadcrumb } from '../config/sentry';
 
 const STATES = {
   CONNECTING: 'connecting',
@@ -870,6 +871,12 @@ class RealtimeManager {
 
     this._log('State transition', { channel: channelName, from: prev || 'none', to: newState });
     this.states.set(channelName, newState);
+
+    // Add Sentry breadcrumb
+    addRealtimeBreadcrumb(channelName, 'state_change', {
+      from: prev,
+      to: newState,
+    });
 
     const entry = this.subscriptions.get(channelName);
     if (entry) {
