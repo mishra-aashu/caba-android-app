@@ -134,11 +134,11 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
                 handlersRef.current.onUpdateMessage(newRecord);
             }
         } else if (eventType === 'DELETE' && oldRecord) {
-            try {
-                await db.messages.delete(oldRecord.id);
-            } catch (err) {
-                console.error('Failed to delete realtime msg from Dexie', err);
-            }
+            // [PRIVACY FIX] Do NOT delete from Dexie when the server deletes the message.
+            // Our server now auto-deletes messages after they are read for privacy.
+            // If we delete here, the message disappears from the phone too!
+            // Local deletion should only happen via manual user action or 'is_deleted' flag updates.
+            _log('Server deleted message row (Privacy Cleanup) - keeping local copy');
 
             if (mountedRef.current && handlersRef.current.onDeleteMessage) {
                 handlersRef.current.onDeleteMessage(oldRecord.id);

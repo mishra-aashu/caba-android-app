@@ -33,9 +33,16 @@ export function useDeleteMessage(chatId) {
         }
 
         try {
+            // [SIGNAL DELETE] Instead of Hard-Delete, we mark it as deleted.
+            // This signals the other user to delete it from their Dexie too.
             const { error } = await supabase
                 .from('messages')
-                .delete()
+                .update({ 
+                    is_deleted: true,
+                    content: '🚫 This message was deleted',
+                    media_path: null,
+                    media_url: null 
+                })
                 .eq('id', messageId);
 
             if (error) {
