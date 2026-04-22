@@ -4,6 +4,7 @@ import { supabase } from '../config/supabase';
 import useUserStore from '../store/userStore';
 import { safeDbConversion } from '../utils/dbFieldMapping';
 import { db } from '../db/db';
+import { EncryptionService } from '../services/EncryptionService';
 
 function enrichSender(senderId) {
     const cached = useUserStore.getState().getUser(senderId);
@@ -11,13 +12,14 @@ function enrichSender(senderId) {
     return { id: senderId, name: 'Unknown', avatar: null };
 }
 
-export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
+export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherUserId = null) => {
     const [status, setStatus] = useState('connecting');
 
     const processedIds = useRef(new Set());
     const handlersRef = useRef(handlers);
     const currentUserIdRef = useRef(currentUserId);
     const chatIdRef = useRef(chatId);
+    const otherUserIdRef = useRef(otherUserId);
     const lastMessageRef = useRef(null);
     const catchUpTimerRef = useRef(null);
     const mountedRef = useRef(true);
@@ -27,9 +29,10 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
         handlersRef.current = handlers;
         currentUserIdRef.current = currentUserId;
         chatIdRef.current = chatId;
+        otherUserIdRef.current = otherUserId;
         mountedRef.current = true;
         return () => { mountedRef.current = false; };
-    }, [handlers, currentUserId, chatId]);
+    }, [handlers, currentUserId, chatId, otherUserId]);
 
     const _log = useCallback((message, detail = {}) => {
         console.log(`[RT] ${message}`, { chat: chatIdRef.current, ...detail });
@@ -73,6 +76,16 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             }
 
             _log('Realtime INSERT', { id });
+            
+            // Decrypt message content if encrypted
+            if (newRecord.content) {
+                newRecord.content = EncryptionService.decrypt(
+                    newRecord.content, 
+                    chatIdRef.current, 
+                    otherUserIdRef.current
+                );
+            }
+
             const frontendMsg = safeDbConversion(newRecord);
 
             const senderId = frontendMsg.senderId || frontendMsg.sender_id;
@@ -124,6 +137,14 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             }
         } else if (eventType === 'UPDATE' && newRecord) {
             try {
+                // Decrypt updated message content
+                if (newRecord.content) {
+                    newRecord.content = EncryptionService.decrypt(
+                        newRecord.content, 
+                        chatIdRef.current, 
+                        otherUserIdRef.current
+                    );
+                }
                 const normalized = safeDbConversion(newRecord);
                 await db.messages.update(newRecord.id, normalized);
             } catch (err) {
@@ -218,6 +239,17 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             }
 
             if (handlersRef.current.onCatchup) {
+                // Decrypt all caught up messages
+                data.forEach(msg => {
+                    if (msg.content) {
+                        msg.content = EncryptionService.decrypt(
+                            msg.content, 
+                            currentChatId, 
+                            otherUserIdRef.current
+                        );
+                    }
+                });
+                
                 const converted = safeDbConversion(data);
                 const frontendMsgs = Array.isArray(converted) ? converted : [converted];
 

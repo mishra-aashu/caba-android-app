@@ -10,6 +10,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import toast from 'react-hot-toast';
 import hapticsManager from '../../utils/hapticsManager';
 import { useNavigate } from 'react-router-dom';
+import { EncryptionService } from '../../services/EncryptionService';
 
 export function useChatMessages({
     chatId,
@@ -81,7 +82,8 @@ export function useChatMessages({
             onConnectionError: () =>
                 toast.error('Check your internet connection', { id: 'realtime-error' }),
         },
-        currentUser?.id
+        currentUser?.id,
+        otherUserId
     );
 
     // ─── DELETION ───
@@ -214,8 +216,15 @@ export function useChatMessages({
                     return null;
                 }
 
-                // 2. Prepare for Supabase (Convert to snake_case)
+                // 2. Prepare for Supabase (Convert to snake_case and ENCRYPT)
                 const dbData = frontendToDb(frontendMsg);
+                
+                // End-to-End Encryption before sending to server
+                dbData.content = EncryptionService.encrypt(
+                    dbData.content, 
+                    chatId, 
+                    isGroupChat ? null : otherUserId
+                );
 
                 // Online path: Perform Supabase insert
                 const { data, error } = await supabase
@@ -231,6 +240,15 @@ export function useChatMessages({
                 }
 
                 const normalizedData = dbToFrontend(data);
+                
+                // Decrypt the server response (which is encrypted) before saving locally
+                if (normalizedData.content) {
+                    normalizedData.content = EncryptionService.decrypt(
+                        normalizedData.content, 
+                        chatId, 
+                        isGroupChat ? null : otherUserId
+                    );
+                }
 
                 // 3. Swap temp message with real server data
                 await db.transaction('rw', [db.messages, db.chats_list], async () => {
@@ -333,8 +351,14 @@ export function useChatMessages({
                 if (!navigator.onLine) {
                     await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
                 } else {
-                    // Convert to snake_case only for Supabase
+                    // Convert to snake_case and ENCRYPT only for server
                     const dbData = frontendToDb(frontendMsg);
+                    dbData.content = EncryptionService.encrypt(
+                        dbData.content, 
+                        targetChat.id, 
+                        isTargetGroup ? null : (targetChat.otherUser?.id || targetChat.receiver_id)
+                    );
+
                     const { data, error } = await supabase
                         .from('messages')
                         .insert(dbData)

@@ -6,6 +6,7 @@ import { isUserOnline } from '../utils/dateFormatter';
 import { normalizeChat } from '../utils/chatHelpers';
 import { db } from '../db/db';
 import useChatStore from '../store/useChatStore';
+import { EncryptionService } from '../services/EncryptionService';
 
 // Fetch chat list function for React Query - Unified (chats + groups)
 const fetchChatList = async ({ supabase, userId }) => {
@@ -18,7 +19,13 @@ const fetchChatList = async ({ supabase, userId }) => {
 
         if (!rpcError && rpcData) {
             // Use normalizeChat helper to create unified data structure
-            const formattedChats = rpcData.map(rawItem => normalizeChat(rawItem, userId));
+            const formattedChats = rpcData.map(rawItem => {
+                const chat = normalizeChat(rawItem, userId);
+                if (chat?.lastMessage) {
+                    chat.lastMessage = EncryptionService.decrypt(chat.lastMessage, chat.id, chat.otherUserId);
+                }
+                return chat;
+            });
 
             // Save to device for offline access
             await saveChatsToDevice(formattedChats);
@@ -37,7 +44,13 @@ const fetchChatList = async ({ supabase, userId }) => {
             .limit(20);
 
         if (!viewError && viewData) {
-            const formattedChats = viewData.map(rawItem => normalizeChat(rawItem, userId));
+            const formattedChats = viewData.map(rawItem => {
+                const chat = normalizeChat(rawItem, userId);
+                if (chat?.lastMessage) {
+                    chat.lastMessage = EncryptionService.decrypt(chat.lastMessage, chat.id, chat.otherUserId);
+                }
+                return chat;
+            });
             await saveChatsToDevice(formattedChats);
             return formattedChats;
         }
@@ -132,7 +145,13 @@ export const useChatListRealtime = (currentUserId) => {
             if (error) throw error;
 
             if (data && data.length > 0) {
-                const formattedChats = data.map(rawItem => normalizeChat(rawItem, currentUserId));
+                const formattedChats = data.map(rawItem => {
+                    const chat = normalizeChat(rawItem, currentUserId);
+                    if (chat?.lastMessage) {
+                        chat.lastMessage = EncryptionService.decrypt(chat.lastMessage, chat.id, chat.otherUserId);
+                    }
+                    return chat;
+                });
                 
                 await db.transaction('rw', db.chats_list, async () => {
                     await db.chats_list.bulkPut(formattedChats);
@@ -178,8 +197,15 @@ export const useChatListRealtime = (currentUserId) => {
             const isActive = activeChat?.id === chatId;
 
             if (existingChat) {
+                // Decrypt content before preview
+                const decryptedContent = EncryptionService.decrypt(
+                    newRecord.content, 
+                    chatId, 
+                    existingChat.otherUserId
+                );
+
                 db.chats_list.update(chatId, {
-                    lastMessage: newRecord.content,
+                    lastMessage: decryptedContent,
                     lastMessageAt: msgTime,
                     timestamp: msgTime, // Sort key
                     unreadCount: (isActive || isMyMessage) ? 0 : (existingChat.unreadCount || 0) + 1,

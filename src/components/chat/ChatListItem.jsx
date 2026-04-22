@@ -11,6 +11,7 @@ import EmojiRenderer from "../common/EmojiRenderer";
 import CachedImage from "../common/CachedImage";
 import OnlineStatusDot from "../common/OnlineStatusDot";
 import styles from "../../styles/ChatListItem.module.css";
+import { EncryptionService } from "../../services/EncryptionService";
 
 import hapticsManager from "../../utils/hapticsManager";
 
@@ -47,6 +48,17 @@ const ChatListItem = ({
   // Use passed data instead of re-calculating (Resolving in parent is MUCH faster for lists)
   const resolvedName = name || "Unknown";
   const resolvedAvatar = avatar;
+
+  // FALLBACK: On-the-fly decryption for chat list preview
+  // This handles cases where encrypted text might have reached the DB
+  const displayMessage = React.useMemo(() => {
+    if (!lastMessage) return "";
+    return EncryptionService.decrypt(
+        lastMessage, 
+        chat.id, 
+        chat.otherUserId || chat.metadata?.otherUserId
+    );
+  }, [lastMessage, chat.id, chat.otherUserId, chat.metadata]);
 
   const [imgError, setImgError] = React.useState(false);
 
@@ -184,7 +196,7 @@ const ChatListItem = ({
         <div className={styles["chat-footer-row"]}>
           <p className={styles["chat-last-message"]}>
             {messagePrefix}
-            <EmojiRenderer text={lastMessage} />
+            <EmojiRenderer text={displayMessage} />
           </p>
 
           <div className={styles["chat-list-actions"]}>

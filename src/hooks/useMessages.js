@@ -1,5 +1,7 @@
-import { db } from '../db/db';
 import { supabase } from '../config/supabase';
+import { EncryptionService } from '../services/EncryptionService';
+import { db } from '../db/db';
+import { dbToFrontend } from '../utils/dbFieldMapping';
 
 /**
  * Fetch messages for a specific chat with pagination
@@ -48,6 +50,19 @@ export const fetchMessagesPage = async ({ chatId, beforeTimestamp = null, limit 
     }
 
     const rawMessages = data || [];
+    
+    // Decrypt messages if they are from a 1-on-1 chat
+    // For groups, we'd need to know if it's a group or 1-on-1 here.
+    // fetchMessagesPage doesn't have otherUserId, so we'll try to find it from chats_list
+    const chat = await db.chats_list.get(chatId);
+    const otherUserId = chat?.otherUserId;
+
+    rawMessages.forEach(msg => {
+        if (msg.content) {
+            msg.content = EncryptionService.decrypt(msg.content, chatId, otherUserId);
+        }
+    });
+
     const { safeDbConversion } = await import('../utils/dbFieldMapping');
     const converted = safeDbConversion(rawMessages);
 
