@@ -17,39 +17,33 @@ export function useDeleteMessage(chatId) {
             previousMessage = await db.messages.get(messageId);
             await db.messages.delete(messageId);
             await db.messages.delete(`temp_${messageId}`);
+
+            // Update chat list preview after deletion
+            const allMessages = await db.messages.where('chatId').equals(chatId).reverse().sortBy('createdAt');
+            const latestMsg = allMessages[0];
+            if (latestMsg) {
+                await db.chats_list.update(chatId, {
+                    lastMessage: latestMsg.content || '📎 Media',
+                    lastMessageAt: latestMsg.createdAt,
+                    timestamp: latestMsg.createdAt,
+                }).catch(() => {});
+            }
         } catch (dbErr) {
             console.warn('[useDeleteMessage] Optimistic local DB delete failed:', dbErr);
         }
 
         try {
-            // ── Step 1: Call Supabase with verification (Hard Delete) ──
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('messages')
                 .delete()
-                .eq('id', messageId)
-                .select('id');
+                .eq('id', messageId);
 
             if (error) {
                 console.error('[useDeleteMessage] Supabase error:', error);
                 throw error;
             }
 
-            // ── Step 2: RLS silent block detection ──
-            if (!data || data.length === 0) {
-                // Double-check: is the row actually still there?
-                const { data: check } = await supabase
-                    .from('messages')
-                    .select('id')
-                    .eq('id', messageId)
-                    .maybeSingle();
-
-                if (check) {
-                    console.error('[useDeleteMessage] Row still exists — RLS blocked delete');
-                    throw new Error('Permission denied: cannot delete this message');
-                }
-                console.log('[useDeleteMessage] Row already gone (deleted by someone else)');
-            }
-
+            // Note: Empty response is fine — row may have been deleted by the other user already
             console.log('[useDeleteMessage] Successfully deleted:', messageId);
             return messageId;
 

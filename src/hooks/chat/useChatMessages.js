@@ -35,21 +35,22 @@ export function useChatMessages({
         return rawMessages.map(msg => dbToFrontend(msg));
     }, [rawMessages]);
 
-    // ─── LOADING STATE ───
-    const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+    // ─── OFFLINE-FIRST INITIALIZATION ───
+    const [isSyncing, setIsSyncing] = useState(false);
 
     useEffect(() => {
-        setHasInitiallyLoaded(false);
-        loadInitialMessagesIfNeeded(chatId).then(() => {
-            setHasInitiallyLoaded(true);
-        }).catch(() => {
-            setHasInitiallyLoaded(true);
-        });
+        // [PROFESSIONAL] Instead of blocking UI, we show cached messages immediately.
+        // We trigger a "Quiet Sync" in the background only if online.
+        if (navigator.onLine && chatId && chatId !== 'new') {
+            setIsSyncing(true);
+            import('../../services/syncService').then(({ syncService }) => {
+                syncService.syncChat(chatId).finally(() => setIsSyncing(false));
+            });
+        }
     }, [chatId]);
 
-    // [UX] Only consider "loading" if we have zero messages and haven't finished the initial sync check.
-    // If we have cached messages, we show them immediately.
-    const isMessagesLoading = !hasInitiallyLoaded && messages.length === 0;
+    // [UX] messages.length > 0 means we have cache, so it's not "loading"
+    const isMessagesLoading = messages.length === 0 && isSyncing;
 
     // ─── PAGINATION ───
     const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
@@ -90,30 +91,43 @@ export function useChatMessages({
         async (selectedIds, callback) => {
             if (!selectedIds?.length) return;
 
+            // 1. Optimistic local delete
             let previousMessages = [];
             try {
                 previousMessages = await db.messages.where('id').anyOf(selectedIds).toArray();
                 await db.messages.where('id').anyOf(selectedIds).delete();
+                
+                // Update chat list preview after deletion
+                const remaining = await db.messages
+                    .where('chatId').equals(chatId)
+                    .reverse().sortBy('createdAt');
+                const latestMsg = remaining[0];
+                if (latestMsg) {
+                    await db.chats_list.update(chatId, {
+                        lastMessage: latestMsg.content || '📎 Media',
+                        lastMessageAt: latestMsg.createdAt,
+                        timestamp: latestMsg.createdAt,
+                    }).catch(() => {});
+                }
             } catch (e) {
                 console.error('Optimistic local delete failed', e);
             }
 
             try {
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from('messages')
                     .delete()
-                    .in('id', selectedIds)
-                    .select('id');
+                    .in('id', selectedIds);
 
+                // Note: Supabase delete returns empty data even on success (RLS may filter rows)
+                // We do NOT throw on empty response — the optimistic delete already handled the UI
                 if (error) throw error;
-                if (!data || data.length === 0) {
-                    throw new Error('Deletion failed — likely RLS block');
-                }
 
                 if (callback) callback();
                 toast.success('Messages deleted');
             } catch (error) {
                 console.error('Error deleting messages:', error);
+                // Rollback optimistic delete on true network/server error
                 if (previousMessages.length > 0) {
                     try {
                         await db.messages.bulkPut(previousMessages);
@@ -160,12 +174,9 @@ export function useChatMessages({
             if (!content?.trim() || !currentUser) return null;
 
             const tempId = String(Date.now());
-            const dbData = frontendToDb({
+            const frontendMsg = {
                 chatId,
                 senderId: currentUser.id,
-                // [FIX #2] Group messages: use sender as receiver placeholder
-                // Previously only fixed in useNetworkSync (offline path).
-                // Online path was sending receiver_id: null → RLS/schema violation.
                 receiverId: isGroupChat ? currentUser.id : otherUserId,
                 content: content.trim(),
                 isGroupMessage: Boolean(isGroupChat),
@@ -175,22 +186,36 @@ export function useChatMessages({
                 vanishAt: vanishConfig?.vanishAt || null,
                 status: navigator.onLine ? 'sending' : 'pending',
                 tempId: tempId,
-            });
+            };
 
             setReplyingTo(null);
             hapticsManager.impact();
 
             try {
-                await db.messages.put({
-                    ...dbData,
-                    id: `temp_${tempId}`,
-                    tempId,
+                // 1. Optimistic Save to Dexie (Always use camelCase 'chatId')
+                await db.transaction('rw', [db.messages, db.chats_list], async () => {
+                    await db.messages.put({
+                        ...frontendMsg,
+                        id: `temp_${tempId}`,
+                        tempId,
+                    });
+                    
+                    // Update chat list head
+                    await db.chats_list.update(chatId, {
+                        lastMessageAt: frontendMsg.createdAt,
+                        timestamp: frontendMsg.createdAt,
+                        lastMessage: frontendMsg.content,
+                        status: 'sending'
+                    }).catch(() => {});
                 });
 
                 if (!navigator.onLine) {
-                    await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', { ...dbData, tempId });
+                    await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
                     return null;
                 }
+
+                // 2. Prepare for Supabase (Convert to snake_case)
+                const dbData = frontendToDb(frontendMsg);
 
                 // Online path: Perform Supabase insert
                 const { data, error } = await supabase
@@ -200,22 +225,32 @@ export function useChatMessages({
                     .single();
 
                 if (error) {
-                    // Update Dexie status to failed so user can retry
                     await db.messages.update(`temp_${tempId}`, { status: 'failed' });
+                    await db.chats_list.update(chatId, { status: 'failed' }).catch(() => {});
                     throw error;
                 }
 
                 const normalizedData = dbToFrontend(data);
 
-                await db.transaction('rw', db.messages, async () => {
+                // 3. Swap temp message with real server data
+                await db.transaction('rw', [db.messages, db.chats_list], async () => {
                     await db.messages.delete(`temp_${tempId}`).catch(() => {});
-                    if (normalizedData) await db.messages.put(normalizedData);
+                    if (normalizedData) {
+                        await db.messages.put(normalizedData);
+                        
+                        await db.chats_list.update(chatId, {
+                            lastMessageAt: normalizedData.createdAt,
+                            timestamp: normalizedData.createdAt,
+                            lastMessage: normalizedData.content,
+                            status: 'delivered'
+                        }).catch(() => {});
+                    }
                 });
 
                 return data;
             } catch (error) {
                 console.error('Send failed, falling back to queue:', error);
-                await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', { ...dbData, tempId });
+                await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
                 hapticsManager.error();
                 return null;
             }
@@ -268,20 +303,14 @@ export function useChatMessages({
         const isTargetGroup = targetChat.isGroup || targetChat.is_group || false;
 
         for (const msg of msgs) {
-            // [FIX #3] tempId collision fix
-            // Previously: String(Date.now() + Math.random()) — number addition, loses precision
-            // Date.now() = 1719000000000, Math.random() = 0.123 → "1719000000000.123"
-            // Two messages forwarded in same millisecond could collide.
-            // Now: concatenation with underscore ensures uniqueness
+            // Unique tempId per message to avoid collisions
             const tempId = `${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 
-            const dbData = frontendToDb({
+            const frontendMsg = {
                 chatId: targetChat.id,
                 senderId: currentUser.id,
-                // [FIX #2] Group receiver_id fix — same as sendMessage
-                // Online inserts also need a valid receiver_id for groups
                 receiverId: isTargetGroup
-                    ? currentUser.id  // Sender placeholder for groups
+                    ? currentUser.id
                     : (targetChat.otherUser?.id || targetChat.receiver_id),
                 content: msg.content,
                 mediaPath: msg.mediaPath || msg.media_path,
@@ -291,19 +320,21 @@ export function useChatMessages({
                 replyTo: null,
                 createdAt: new Date().toISOString(),
                 status: navigator.onLine ? 'sending' : 'pending',
-                tempId: tempId,
-            });
+                tempId,
+            };
 
             try {
+                // Optimistic save to Dexie (camelCase)
                 await db.messages.put({
-                    ...dbData,
+                    ...frontendMsg,
                     id: `temp_${tempId}`,
-                    tempId,
                 });
 
                 if (!navigator.onLine) {
-                    await addToSyncQueue('send_message', { ...dbData, tempId });
+                    await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
                 } else {
+                    // Convert to snake_case only for Supabase
+                    const dbData = frontendToDb(frontendMsg);
                     const { data, error } = await supabase
                         .from('messages')
                         .insert(dbData)
@@ -312,8 +343,8 @@ export function useChatMessages({
 
                     if (error) throw error;
 
+                    // Swap temp with real server record
                     const normalizedData = dbToFrontend(data);
-
                     await db.transaction('rw', db.messages, async () => {
                         await db.messages.delete(`temp_${tempId}`).catch(() => {});
                         if (normalizedData) await db.messages.put(normalizedData);

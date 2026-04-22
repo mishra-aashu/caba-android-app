@@ -101,12 +101,19 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId) => {
             };
 
             try {
-                await db.transaction('rw', db.messages, async () => {
+                await db.transaction('rw', [db.messages, db.chats_list], async () => {
                     if (newRecord.client_id) {
                         await db.messages.delete(`temp_${newRecord.client_id}`).catch(() => {});
                     }
                     // Store normalized message
                     await db.messages.put(finalMsg);
+
+                    // Update chat list head
+                    await db.chats_list.update(finalMsg.chatId, {
+                        lastMessageAt: finalMsg.createdAt,
+                        timestamp: finalMsg.createdAt,
+                        lastMessage: finalMsg.content
+                    }).catch(() => {});
                 });
             } catch (err) {
                 console.error('Failed to save realtime msg to Dexie', err);

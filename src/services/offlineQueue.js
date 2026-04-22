@@ -81,9 +81,9 @@ export const processSyncQueue = async () => {
       });
 
       processed++;
-      addDbBreadcrumb('sync_queue', 'processed', { 
-        action: item.action, 
-        id: item.id 
+      addDbBreadcrumb('sync_queue', 'processed', {
+        action: item.action,
+        id: item.id
       });
 
     } catch (error) {
@@ -128,8 +128,8 @@ const executeQueueAction = async (item) => {
       if (fileData && fileName) {
         const { uploadMedia, uploadVoiceMessage } = await import('./mediaService');
         const reconstructedFile = new File([fileData], fileName, { type: fileType });
-        
-        const mediaPath = supabasePayload.media_type === 'voice' 
+
+        const mediaPath = supabasePayload.media_type === 'voice'
           ? await uploadVoiceMessage(reconstructedFile, supabasePayload.sender_id)
           : await uploadMedia(reconstructedFile, supabasePayload.sender_id);
 
@@ -143,7 +143,7 @@ const executeQueueAction = async (item) => {
       // Atomic swap in Dexie
       const { safeDbConversion } = await import('../utils/dbFieldMapping');
       const normalizedMsg = safeDbConversion(msgData);
-      
+
       await db.transaction('rw', [db.messages], async () => {
         if (tempId) {
           await db.messages.where('tempId').equals(tempId).delete();
@@ -192,7 +192,7 @@ const executeQueueAction = async (item) => {
         if (tempId) {
           await db.groups.delete(tempId);
           await db.groups.put({ ...safeDbConversion(groupData), is_syncing: false });
-          
+
           const localChat = await db.chats_list.where('id').equals(tempId).first();
           if (localChat) {
             await db.chats_list.delete(tempId);

@@ -1,7 +1,6 @@
 import React, { memo } from "react";
 import { motion } from "framer-motion";
-import { Timer, Users, User, Trash2, Clock, AlertCircle, RefreshCw } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { Clock, AlertCircle, RefreshCw, Users, User, Trash2, Timer } from "lucide-react";
 import { fetchMessagesPage } from "../../hooks/useMessages";
 import { formatLastSeen, formatTime } from "../../utils/dateFormatter";
 import { useResolveName } from "../../hooks/useResolveName";
@@ -44,7 +43,6 @@ const ChatListItem = ({
     isVanishEnabled,
   } = chat;
 
-  const queryClient = useQueryClient();
 
   // Use passed data instead of re-calculating (Resolving in parent is MUCH faster for lists)
   const resolvedName = name || "Unknown";
@@ -52,21 +50,6 @@ const ChatListItem = ({
 
   const [imgError, setImgError] = React.useState(false);
 
-  // ─── AGGRESSIVE PRE-FETCH ──────────────────────────────────────────────────
-  // Pre-loading data on 'hover' or 'touch start' (pointer down) ensures that
-  // by the time the click is complete and navigation finishes, the data
-  // is already in the cache. This is the 'Full Proof' secret to instant feel.
-  const handlePrefetch = () => {
-    if (chat.id) {
-      queryClient.prefetchInfiniteQuery({
-        queryKey: ["messages", chat.id],
-        queryFn: ({ pageParam }) =>
-          fetchMessagesPage({ chatId: chat.id, pageParam }),
-        initialPageParam: null,
-        staleTime: 1000 * 60 * 5,
-      });
-    }
-  };
 
   // Format time using our helper or fallback
   // If user is online, show 'Online', otherwise show last seen if available, else message timestamp
@@ -97,7 +80,7 @@ const ChatListItem = ({
     }
   };
 
-  const isSyncing = chat.status === "pending" || (String(chat.id).startsWith("tmp_") && !chat.status);
+  const isSyncing = chat.status === "pending" || chat.status === "sending" || (String(chat.id).startsWith("tmp_") && !chat.status);
   const isFailed = chat.status === "failed";
 
   return (
@@ -119,8 +102,6 @@ const ChatListItem = ({
       }}
       onTouchEnd={() => isMobile && onLongPressEnd && onLongPressEnd()}
       onTouchMove={() => isMobile && onLongPressMove && onLongPressMove()}
-      onMouseEnter={handlePrefetch}
-      onPointerDown={handlePrefetch}
     >
       {selectionMode && (
         <div className={styles["selection-checkbox"]}>

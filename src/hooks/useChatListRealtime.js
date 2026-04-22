@@ -83,17 +83,28 @@ export const useChatListRealtime = (currentUserId) => {
         const loadInitialData = async () => {
             if (!currentUserId) return;
             try {
-                await initializeFileSystem();
-                const localChats = await loadChatsFromDevice();
-                if (localChats && localChats.length > 0) {
-                    await db.transaction('rw', db.chats_list, async () => {
-                        // Surgical update for initial load too
-                        await db.chats_list.bulkPut(localChats);
-                    });
+                // 1. Try to load from Dexie first (it should already be populated by SyncService or previous runs)
+                const localChatCount = await db.chats_list.count();
+                
+                // 2. If Dexie is empty, fallback to legacy filesystem or fetch
+                if (localChatCount === 0) {
+                    await initializeFileSystem();
+                    const localChats = await loadChatsFromDevice();
+                    if (localChats && localChats.length > 0) {
+                        await db.transaction('rw', db.chats_list, async () => {
+                            await db.chats_list.bulkPut(localChats);
+                        });
+                        // Don't fetch if we got data from filesystem
+                        return;
+                    }
+                    
+                    // 3. If still empty, trigger sync
+                    loadAndSyncChats();
                 }
-            } catch (error) {}
-            // Then fetch from remote
-            loadAndSyncChats();
+            } catch (error) {
+                console.warn('Initial data load failed:', error);
+                loadAndSyncChats();
+            }
         };
         loadInitialData();
     }, [currentUserId, loadAndSyncChats]);

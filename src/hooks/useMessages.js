@@ -72,7 +72,7 @@ export const fetchMessagesPage = async ({ chatId, beforeTimestamp = null, limit 
 export const loadInitialMessagesIfNeeded = async (chatId) => {
     if (!chatId || chatId === 'new') return;
     
-    // 1. Check what we have in Dexie
+    // 1. Check if we have anything in Dexie
     const latestMsg = await db.messages
         .where('chatId')
         .equals(chatId)
@@ -80,53 +80,17 @@ export const loadInitialMessagesIfNeeded = async (chatId) => {
         .sortBy('createdAt')
         .then(msgs => msgs[0]);
 
-    if (!latestMsg) {
+    // 2. If empty, do a quick sync
+    if (!latestMsg && navigator.onLine) {
         await fetchMessagesPage({ chatId });
         return;
     }
 
-    // ── Background catch-up & enrichment retry ──
+    // 3. Otherwise, let SyncService handle background catch-up
     if (navigator.onLine) {
-        // 1. Retry stale profile enrichments
-        enrichStaleMessages(chatId).catch(() => {});
-        try {
-            const { data, error } = await supabase
-                .from('messages')
-                .select(`
-                    *,
-                    sender:sender_id (
-                        id,
-                        name,
-                        avatar,
-                        is_online,
-                        last_seen
-                    ),
-                    receiver:receiver_id (
-                        id,
-                        name,
-                        avatar,
-                        is_online,
-                        last_seen
-                    )
-                `)
-                .eq('chat_id', chatId)
-                .gt('created_at', latestMsg.createdAt)
-                .order('created_at', { ascending: true });
-
-            if (!error && data?.length > 0) {
-                // [FIX] Use safeDbConversion to match the frontend expectations
-                const { safeDbConversion } = await import('../utils/dbFieldMapping');
-                const converted = safeDbConversion(data);
-                
-                await db.messages.bulkPut(converted);
-                // Also update the chat list lastMessageAt
-                await db.chats_list.update(chatId, { 
-                    lastMessageAt: converted[converted.length - 1].createdAt 
-                });
-            }
-        } catch (err) {
-            console.warn('[Sync] Background catch-up failed:', err);
-        }
+        import('../services/syncService').then(({ syncService }) => {
+            syncService.syncChat(chatId).catch(() => {});
+        });
     }
 };
 /**

@@ -2,6 +2,8 @@ import React, { useState, useCallback, useMemo, Suspense, lazy } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
+import { syncService } from '../services/syncService';
+import { processSyncQueue } from '../services/offlineQueue';
 import useIsDesktop from '../hooks/useIsDesktop';
 
 import BottomNavigation from './common/BottomNavigation';
@@ -28,6 +30,26 @@ const MainLayout = () => {
     const location = useLocation();
     const isDesktop = useIsDesktop();
     
+    // ─── GLOBAL SYNC & QUEUE PROCESSING ───
+    React.useEffect(() => {
+        if (user?.id) {
+            // 1. Initial catch-up
+            syncService.performGlobalSync(user.id);
+            
+            // 2. Process any pending offline actions
+            processSyncQueue();
+
+            // 3. Listen for reconnection to sync again
+            const handleOnline = () => {
+                syncService.performGlobalSync(user.id);
+                processSyncQueue();
+            };
+
+            window.addEventListener('online', handleOnline);
+            return () => window.removeEventListener('online', handleOnline);
+        }
+    }, [user?.id]);
+
     // State from store
     const activeChat = useChatStore(state => state.activeChat);
     const setActiveChat = useChatStore(state => state.setActiveChat);
