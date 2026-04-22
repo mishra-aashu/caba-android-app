@@ -171,26 +171,24 @@ export const useChatListRealtime = (currentUserId) => {
         if (table === 'messages' && eventType === 'INSERT') {
             const chatId = newRecord.chat_id;
             const isMyMessage = newRecord.sender_id === currentUserId;
+            const msgTime = newRecord.created_at;
 
-            // Update Dexie atomically
-            await db.transaction('rw', db.chats_list, async () => {
-                const existingChat = await db.chats_list.get(chatId);
-                const isActive = activeChat?.id === chatId;
+            // Direct update is faster than a transaction for single records
+            const existingChat = await db.chats_list.get(chatId);
+            const isActive = activeChat?.id === chatId;
 
-                if (existingChat) {
-                    await db.chats_list.update(chatId, {
-                        lastMessage: newRecord.content,
-                        lastMessageAt: newRecord.created_at,
-                        timestamp: newRecord.created_at,
-                        // Increment only if NOT active and NOT my message
-                        unreadCount: (isActive || isMyMessage) ? 0 : (existingChat.unreadCount || 0) + 1,
-                        isMyMessage: isMyMessage
-                    });
-                } else {
-                    // Chat doesn't exist locally? Then it's a new chat, better refetch
-                    loadAndSyncChats(true);
-                }
-            });
+            if (existingChat) {
+                db.chats_list.update(chatId, {
+                    lastMessage: newRecord.content,
+                    lastMessageAt: msgTime,
+                    timestamp: msgTime, // Sort key
+                    unreadCount: (isActive || isMyMessage) ? 0 : (existingChat.unreadCount || 0) + 1,
+                    isMyMessage: isMyMessage
+                }).catch(err => console.warn('[RT] Fast update failed:', err));
+            } else {
+                // Chat doesn't exist locally? Then it's a new chat, better refetch
+                loadAndSyncChats(true);
+            }
             return;
         }
 

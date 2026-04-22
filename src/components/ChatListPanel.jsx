@@ -66,8 +66,11 @@ const ChatListPanel = ({
   const { user, dbUser } = useAuth();
   const { useUserGroups } = useGroupActions();
 
-  // Local Data Management
-  const chats = useLiveQuery(() => db.chats_list.toArray(), []) || [];
+  // Local Data Management - Sorted by timestamp at the DB level for maximum speed
+  const chats = useLiveQuery(() => 
+    db.chats_list.orderBy('timestamp').reverse().toArray(), 
+  []) || [];
+  
   const savedContacts = useLiveQuery(() => db.contacts.toArray(), []) || [];
   
   const { 
@@ -235,20 +238,14 @@ const ChatListPanel = ({
     }
   };
 
-  // Filter and sort chats locally
+  // Filter chats locally (sorting is already handled by Dexie)
   const filteredChats = useMemo(() => {
-    let result = chats;
-    if (searchTerm.trim()) {
-      result = chats.filter(chat =>
-        chat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        chat.metadata?.otherUserPhone?.includes(searchTerm)
-      );
-    }
-    return [...result].sort((a, b) => {
-      const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-      const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-      return timeB - timeA;
-    });
+    if (!searchTerm.trim()) return chats;
+    
+    return chats.filter(chat =>
+      chat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      chat.metadata?.otherUserPhone?.includes(searchTerm)
+    );
   }, [chats, searchTerm]);
 
   const [contextMenu, setContextMenu] = useState(null);
