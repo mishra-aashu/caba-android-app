@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { supabaseRealtime } from '../config/supabase';
 import { realtimeManager } from '../utils/realtimeManager';
 import { useAuth } from '../hooks/useAuth';
 import { GameLobbyContext } from './GameLobbyContext';
-import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Swords } from 'lucide-react';
 import styles from '../components/games/GameInviteNotification.module.css';
@@ -11,7 +11,8 @@ import styles from '../components/games/GameInviteNotification.module.css';
  * GameLobbyProvider
  *
  * THE SINGLE SOURCE OF TRUTH for online presence.
- * Manages the global 'game_lobby_presence' channel.
+ * Uses Supabase Realtime directly (bypasses realtimeManager) for presence
+ * to avoid state string translation bugs.
  */
 
 const PRESENCE_CHANNEL = 'game_lobby_presence';
@@ -20,11 +21,12 @@ export const GameLobbyProvider = ({ children }) => {
     const { dbUser } = useAuth();
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [isConnected, setIsConnected] = useState(false);
-    
+
     const dbUserRef = useRef(dbUser);
     const mountedRef = useRef(true);
+    const channelRef = useRef(null);
 
-    // Keep ref in sync
+    // Keep ref in sync with latest dbUser
     useEffect(() => {
         dbUserRef.current = dbUser;
     }, [dbUser]);
@@ -33,128 +35,141 @@ export const GameLobbyProvider = ({ children }) => {
         if (!mountedRef.current || !channel) return;
         try {
             const state = channel.presenceState();
-            // console.log('[GameLobby] Raw Presence State:', state);
-            
+            console.log('[GameLobby] Raw presence state:', JSON.stringify(state));
+
             const uniqueUsersMap = new Map();
-            
+
             Object.values(state).flat().forEach(u => {
-                // Support both user_id and id fields
                 const uid = u.user_id || u.id;
                 if (!uid) return;
-                
-                const existing = uniqueUsersMap.get(String(uid));
-                // Prefer the presence with the most recent online_at
+
+                const uidStr = String(uid);
+                const existing = uniqueUsersMap.get(uidStr);
                 if (!existing || new Date(u.online_at) > new Date(existing.onlineSince)) {
-                    uniqueUsersMap.set(String(uid), {
-                        id: String(uid),
+                    uniqueUsersMap.set(uidStr, {
+                        id: uidStr,
                         name: u.name || 'Unknown',
-                        avatar: u.avatar,
+                        avatar: u.avatar || null,
                         onlineSince: u.online_at || new Date().toISOString(),
                     });
                 }
             });
-            
-            // Normalize current user ID for comparison
+
             const myId = dbUserRef.current?.id ? String(dbUserRef.current.id) : null;
-            
-            const others = Array.from(uniqueUsersMap.values())
-                .filter(u => String(u.id) !== myId);
-            
-            console.log(`[GameLobby] Online: ${uniqueUsersMap.size} total, ${others.length} others`);
+            // Exclude self from "others online" list
+            if (myId) uniqueUsersMap.delete(myId);
+
+            const others = Array.from(uniqueUsersMap.values());
+            console.log(`[GameLobby] Others online: ${others.length}`, others.map(u => u.name));
             setOnlineUsers(others);
-            window.__onlineUsersMap = uniqueUsersMap;
         } catch (err) {
             console.error('[GameLobbyProvider] Sync error:', err);
         }
     }, []);
 
+    // ── Presence channel (direct Supabase, no realtimeManager wrapper) ──
     useEffect(() => {
         if (!dbUser?.id) return;
 
         mountedRef.current = true;
-        console.log('[GameLobby] Initializing for user:', dbUser.id);
+        console.log('[GameLobby] Setting up presence for:', dbUser.id, dbUser.name);
 
-        const initPresence = async () => {
-            try {
-                await realtimeManager.subscribe(
-                    PRESENCE_CHANNEL,
-                    { presence: { key: dbUser.id } },
-                    {
-                        presence: () => {
-                            const entry = realtimeManager.getChannel(PRESENCE_CHANNEL);
-                            if (entry?.channel) syncPresenceState(entry.channel);
-                        },
-                        onStatusChange: (status) => {
-                            if (!mountedRef.current) return;
-                            console.log(`[GameLobby] Channel status: ${status}`);
-                            
-                            const active = status === 'SUBSCRIBED' || status === 'CONNECTED';
-                            setIsConnected(active);
-                            
-                            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                                console.error('[GameLobby] Presence channel error:', status);
-                                // Optional: toast.error('Presence connection issues');
-                            }
-                            
-                            if (active) {
-                                const entry = realtimeManager.getChannel(PRESENCE_CHANNEL);
-                                if (entry?.channel) {
-                                    console.log('[GameLobby] Tracking user:', dbUserRef.current.id);
-                                    entry.channel.track({
-                                        user_id: dbUserRef.current.id,
-                                        name: dbUserRef.current.name,
-                                        avatar: dbUserRef.current.avatar,
-                                        online_at: new Date().toISOString(),
-                                    }).then(() => {
-                                        syncPresenceState(entry.channel);
-                                    }).catch(err => {
-                                        console.error('[GameLobby] Track failed:', err);
-                                    });
-                                }
-                            }
-                        }
+        // Clean up any existing channel first
+        if (channelRef.current) {
+            supabaseRealtime.removeChannel(channelRef.current).catch(() => {});
+            channelRef.current = null;
+        }
+
+        const channel = supabaseRealtime.channel(PRESENCE_CHANNEL, {
+            config: { presence: { key: String(dbUser.id) } },
+        });
+
+        channelRef.current = channel;
+
+        channel
+            .on('presence', { event: 'sync' }, () => {
+                console.log('[GameLobby] presence sync fired');
+                syncPresenceState(channel);
+            })
+            .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+                console.log('[GameLobby] presence join:', key, newPresences);
+                syncPresenceState(channel);
+            })
+            .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+                console.log('[GameLobby] presence leave:', key, leftPresences);
+                syncPresenceState(channel);
+            })
+            .subscribe(async (status) => {
+                console.log('[GameLobby] Channel status:', status);
+
+                if (status === 'SUBSCRIBED') {
+                    setIsConnected(true);
+
+                    const user = dbUserRef.current;
+                    if (!user?.id) return;
+
+                    try {
+                        const trackResult = await channel.track({
+                            user_id: String(user.id),
+                            id: String(user.id),
+                            name: user.name || 'Unknown',
+                            avatar: user.avatar || null,
+                            online_at: new Date().toISOString(),
+                        });
+                        console.log('[GameLobby] track() result:', trackResult);
+                        syncPresenceState(channel);
+                    } catch (err) {
+                        console.error('[GameLobby] track() failed:', err);
                     }
-                );
-            } catch (err) {
-                console.error('[GameLobby] Subscription failed:', err);
-            }
-        };
-
-        initPresence();
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible' && mountedRef.current) {
-                console.log('[GameLobby] App visible, re-tracking...');
-                const entry = realtimeManager.getChannel(PRESENCE_CHANNEL);
-                if (entry?.channel && (entry.status === 'SUBSCRIBED' || entry.status === 'CONNECTED')) {
-                    entry.channel.track({
-                        user_id: dbUserRef.current.id,
-                        name: dbUserRef.current.name,
-                        avatar: dbUserRef.current.avatar,
-                        online_at: new Date().toISOString(),
-                    }).catch(() => {});
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                    console.error('[GameLobby] Channel error:', status);
+                    setIsConnected(false);
                 }
+            });
+
+        // Periodic fallback sync
+        const syncInterval = setInterval(() => {
+            if (channelRef.current && mountedRef.current) {
+                syncPresenceState(channelRef.current);
+            }
+        }, 10000);
+
+        // Re-track when tab becomes visible again
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && mountedRef.current && channelRef.current) {
+                const user = dbUserRef.current;
+                if (!user?.id) return;
+                channelRef.current.track({
+                    user_id: String(user.id),
+                    id: String(user.id),
+                    name: user.name || 'Unknown',
+                    avatar: user.avatar || null,
+                    online_at: new Date().toISOString(),
+                }).then(() => syncPresenceState(channelRef.current)).catch(() => {});
             }
         };
-
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             mountedRef.current = false;
-            console.log('[GameLobby] Cleaning up channel');
+            clearInterval(syncInterval);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            realtimeManager.unsubscribe(PRESENCE_CHANNEL);
+            console.log('[GameLobby] Cleaning up presence channel');
+            if (channelRef.current) {
+                supabaseRealtime.removeChannel(channelRef.current).catch(() => {});
+                channelRef.current = null;
+            }
             setOnlineUsers([]);
             setIsConnected(false);
-            delete window.__onlineUsersMap;
         };
     }, [dbUser?.id, syncPresenceState]);
 
+    // ── Game invitations channel (keep using realtimeManager — this is fine) ──
     useEffect(() => {
         if (!dbUser?.id) return;
 
         const INVITES_CHANNEL = `global_invites_${dbUser.id}`;
-        
+
         realtimeManager.subscribe(
             INVITES_CHANNEL,
             {},
@@ -169,7 +184,6 @@ export const GameLobbyProvider = ({ children }) => {
                             console.log('[GameLobby] New invitation received:', payload.new);
                             if (payload.new.status !== 'pending') return;
 
-                            // Show global toast
                             toast.custom((t) => (
                                 <div className={`${styles.inviteToast} ${t.visible ? styles.animateIn : styles.animateOut}`}>
                                     <div className={styles.inviteIcon}>
@@ -179,7 +193,7 @@ export const GameLobbyProvider = ({ children }) => {
                                         <p className={styles.inviteName}>New Battle Challenge!</p>
                                         <p className={styles.inviteText}>Someone wants to play Truth or Dare.</p>
                                         <div className={styles.inviteActions}>
-                                            <button 
+                                            <button
                                                 className={styles.acceptBtn}
                                                 onClick={() => {
                                                     toast.dismiss(t.id);
@@ -188,7 +202,7 @@ export const GameLobbyProvider = ({ children }) => {
                                             >
                                                 VIEW INVITE
                                             </button>
-                                            <button 
+                                            <button
                                                 className={styles.declineBtn}
                                                 onClick={() => toast.dismiss(t.id)}
                                             >

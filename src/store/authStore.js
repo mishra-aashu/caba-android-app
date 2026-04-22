@@ -10,15 +10,116 @@ import { createClient } from '@supabase/supabase-js';
 // Direct Supabase URL for bypassing proxy during OAuth redirects
 const DIRECT_SUPABASE_URL = import.meta.env.VITE_SUPABASE_DIRECT_URL;
 
-// ✅ Track refresh timing OUTSIDE store to prevent loops
+// ══════════════════════════════════════════════════════════════
+// State Guards & Throttling
+// ══════════════════════════════════════════════════════════════
 let lastRefreshTime = 0;
-const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum
-const MIN_DB_UPDATE_INTERVAL = 5 * 60 * 1000; // ✅ 5 minutes between online pings
-let lastDbUpdateTime = 0; // ✅ Track last user update
-let isHandlingSession = false; // Prevent duplicate handleUserSession calls
-let isRefreshing = false; // ✅ Prevent concurrent refreshSession calls
-let isGoogleAuthInitialized = false; // ✅ Optimized one-time init
-let isAuthInitialized = false; // ✅ Prevent redundant initializeAuth calls
+const MIN_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const MIN_DB_UPDATE_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let lastDbUpdateTime = 0;
+let isHandlingSession = false;
+let isRefreshing = false;
+let isGoogleAuthInitialized = false;
+let isAuthInitialized = false;
+let authCleanup = null; // Store cleanup function
+
+// ══════════════════════════════════════════════════════════════
+// Session Migration Helpers
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * NEW: Safely extract OAuth tokens from URL hash
+ * Prevents injection attacks and validates token format
+ */
+const extractSessionFromUrl = () => {
+  try {
+    const hash = window.location.hash;
+    if (!hash || hash.length < 10) return null;
+
+    // Remove leading #
+    const params = new URLSearchParams(hash.substring(1));
+    
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const tokenType = params.get('token_type');
+
+    // Validate token presence and format
+    if (!accessToken || !refreshToken) return null;
+    
+    // Basic JWT format validation (header.payload.signature)
+    const jwtPattern = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+    if (!jwtPattern.test(accessToken)) {
+      console.warn('[Auth] Invalid access token format');
+      return null;
+    }
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      token_type: tokenType || 'bearer',
+    };
+  } catch (e) {
+    console.error('[Auth] Failed to extract session from URL:', e.message);
+    return null;
+  }
+};
+
+/**
+ * NEW: Clear URL hash without triggering navigation
+ */
+const clearUrlHash = () => {
+  try {
+    // Use replaceState to avoid adding to browser history
+    const cleanUrl = window.location.pathname + window.location.search;
+    window.history.replaceState(null, '', cleanUrl);
+  } catch (e) {
+    console.warn('[Auth] Failed to clear URL hash:', e.message);
+  }
+};
+
+/**
+ * NEW: Migrate session from Capacitor Preferences (OTA updates)
+ */
+const migrateSessionFromPreferences = async () => {
+  try {
+    const sessionJson = await safePluginCall(
+      async () => {
+        const { Preferences } = await import('@capacitor/preferences');
+        const { value } = await Preferences.get({ key: 'ota-migrated-session' });
+        return value;
+      },
+      null
+    );
+
+    if (!sessionJson) return null;
+
+    const session = JSON.parse(sessionJson);
+    
+    // Validate session structure
+    if (!session?.access_token || !session?.refresh_token) {
+      console.warn('[Auth] Invalid migrated session format');
+      return null;
+    }
+
+    // Clean up after successful read
+    await safePluginCall(async () => {
+      const { Preferences } = await import('@capacitor/preferences');
+      await Preferences.remove({ key: 'ota-migrated-session' });
+    });
+
+    return {
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    };
+  } catch (e) {
+    console.error('[Auth] Preferences migration failed:', e.message);
+    return null;
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+// Store Definition
+// ══════════════════════════════════════════════════════════════
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -34,184 +135,267 @@ const useAuthStore = create((set, get) => ({
 
   updateDbUser: (user) => set({ dbUser: user }),
 
+  // ══════════════════════════════════════════════════════════════
+  // Authentication Initialization
+  // ══════════════════════════════════════════════════════════════
+
   initializeAuth: async () => {
-    if (isAuthInitialized) return;
+    // Prevent duplicate initialization
+    if (isAuthInitialized) {
+      console.warn('[Auth] Already initialized, skipping');
+      return authCleanup;
+    }
+    
     isAuthInitialized = true;
+    console.log('[Auth] 🚀 Initializing authentication system');
+
     try {
-      // ── Session Migration Check (for OTA domain switches) ──
+      // ────────────────────────────────────────────────────────
+      // PHASE 1: Session Migration (URL → Preferences → Storage)
+      // ────────────────────────────────────────────────────────
 
-      // 1. Check URL Fragment (Most reliable for cross-origin redirect)
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token=') && hash.includes('refresh_token=')) {
-        try {
-          const params = new URLSearchParams(hash.substring(1));
-          const access_token = params.get('access_token');
-          const refresh_token = params.get('refresh_token');
+      let migratedSession = null;
 
-          if (access_token && refresh_token) {
-            console.log('[Auth] 🔑 URL session detected, migrating...');
-            await supabase.auth.setSession({ access_token, refresh_token });
-            
-            // Clear hash to prevent leakage in history/refresh
-            window.history.replaceState(null, null, window.location.pathname + window.location.search);
-          }
-        } catch (e) {
-          console.warn('[Auth] URL session migration failed:', e.message);
+      // 1A. Check URL Fragment (OAuth redirect)
+      const urlSession = extractSessionFromUrl();
+      if (urlSession) {
+        console.log('[Auth] 🔑 URL session detected, migrating...');
+        migratedSession = urlSession;
+        clearUrlHash(); // Immediate cleanup
+      }
+
+      // 1B. Check Capacitor Preferences (OTA update scenario)
+      if (!migratedSession) {
+        const prefsSession = await migrateSessionFromPreferences();
+        if (prefsSession) {
+          console.log('[Auth] 📦 Preferences session detected, migrating...');
+          migratedSession = prefsSession;
         }
       }
 
-      // 2. Check Capacitor Preferences (Backup/Legacy)
-      const migratedSessionJson = await safePluginCall(
-        async () => {
-          const { Preferences } = await import('@capacitor/preferences');
-          const { value } = await Preferences.get({ key: 'ota-migrated-session' });
-          return value;
-        },
-        null
-      );
-
-      if (migratedSessionJson) {
+      // 1C. Apply migrated session if found
+      if (migratedSession) {
         try {
-          const migratedSession = JSON.parse(migratedSessionJson);
           await supabase.auth.setSession({
             access_token: migratedSession.access_token,
-            refresh_token: migratedSession.refresh_token
+            refresh_token: migratedSession.refresh_token,
           });
-
-          await safePluginCall(async () => {
-             const { Preferences } = await import('@capacitor/preferences');
-             await Preferences.remove({ key: 'ota-migrated-session' });
-          });
-          console.log('[Auth] ✅ Successfully picked up migrated Preferences session');
-        } catch (e) {
-          console.warn('[Auth] Preferences session migration failed:', e.message);
+          console.log('[Auth] ✅ Session migration successful');
+        } catch (migrationError) {
+          // Don't treat migration failures as fatal
+          console.warn('[Auth] ⚠️ Session migration failed:', migrationError.message);
+          
+          // Clear invalid session data
+          clearUrlHash();
         }
       }
 
-      // Supabase handles session persistence automatically.
-      // We rely on onAuthStateChange to populate the store.
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // ────────────────────────────────────────────────────────
+      // PHASE 2: Load Existing Session
+      // ────────────────────────────────────────────────────────
 
-      if (sessionError) {
-        const isAbortError = sessionError.name === 'AbortError' || sessionError.message?.toLowerCase().includes('aborted');
-        if (!isAbortError) {
-          console.warn('⚠️ Supabase getSession warning (likely offline):', sessionError.message);
+      let currentSession = null;
+      
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          // Filter out expected errors
+          const isExpectedError = 
+            error.name === 'AbortError' ||
+            error.message?.toLowerCase().includes('aborted') ||
+            error.message?.toLowerCase().includes('offline');
+
+          if (!isExpectedError) {
+            console.error('[Auth] ❌ getSession error:', error.message);
+          }
+        } else {
+          currentSession = data?.session;
         }
+      } catch (sessionError) {
+        // Gracefully handle session retrieval failures
+        console.warn('[Auth] Session retrieval failed:', sessionError.message);
       }
 
-      if (session?.user) {
+      // ────────────────────────────────────────────────────────
+      // PHASE 3: Initialize Store State
+      // ────────────────────────────────────────────────────────
+
+      if (currentSession?.user) {
+        console.log('[Auth] 👤 Existing session found for:', currentSession.user.email);
+        
         set({
-          user: session.user,
-          session: session,
+          user: currentSession.user,
+          session: currentSession,
           isAuthenticated: true,
+          loading: false,
         });
-        await get().handleUserSession(session.user);
-        set({ loading: false });
+
+        // Load user profile (non-blocking)
+        get().handleUserSession(currentSession.user).catch((err) => {
+          console.error('[Auth] Profile load failed:', err.message);
+        });
       } else {
+        console.log('[Auth] 🔓 No active session found');
         set({ loading: false });
       }
 
+      // ────────────────────────────────────────────────────────
+      // PHASE 4: Setup Auth State Listener
+      // ────────────────────────────────────────────────────────
 
-      // ✅ CLEAN auth state listener — no unnecessary side effects
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      const { data: authData } = supabase.auth.onAuthStateChange(
         async (event, session) => {
+          console.log(`[Auth] 🔔 Auth event: ${event}`);
 
           switch (event) {
             case 'INITIAL_SESSION':
-              // ✅ Already handled above — skip
+              // Already handled in PHASE 2 - skip to avoid duplicate processing
               break;
 
-            case 'SIGNED_IN':
-              if (session?.user) {
-                const currentUser = get().user;
+            case 'SIGNED_IN': {
+              if (!session?.user) break;
 
-                // ✅ Only handle if this is a NEW sign in
-                // Not a sign-in triggered by token refresh
-                if (!currentUser || currentUser.id !== session.user.id) {
-                  set({
-                    user: session.user,
-                    session,
-                    isAuthenticated: true
-                  });
-                  await get().handleUserSession(session.user);
-                } else {
-                  // ✅ Just update session, don't re-handle
-                  set({ session });
-                }
-              }
-              break;
+              const currentUser = get().user;
+              const isNewSignIn = !currentUser || currentUser.id !== session.user.id;
 
-            case 'TOKEN_REFRESHED':
-              if (session) {
-                // ✅ Only update session and realtime token
+              if (isNewSignIn) {
+                console.log('[Auth] 🎉 New sign-in detected:', session.user.email);
+                
+                set({
+                  user: session.user,
+                  session,
+                  isAuthenticated: true,
+                });
+
+                // Load profile in background
+                get().handleUserSession(session.user).catch((err) => {
+                  console.error('[Auth] Profile load failed on sign-in:', err.message);
+                });
+              } else {
+                // Session update for same user (e.g., token refresh)
                 set({ session });
-                supabase.realtime.setAuth(session.access_token);
-                lastRefreshTime = Date.now();
               }
-              // ❌ DO NOT call handleUserSession here
-              // ❌ DO NOT trigger any DB calls
               break;
+            }
 
-            case 'SIGNED_OUT':
+            case 'TOKEN_REFRESHED': {
+              if (!session) break;
+
+              console.log('[Auth] 🔄 Token refreshed');
+              
+              // Update session and realtime auth
+              set({ session });
+              supabase.realtime.setAuth(session.access_token);
+              lastRefreshTime = Date.now();
+              
+              // DO NOT call handleUserSession here - avoid unnecessary DB calls
+              break;
+            }
+
+            case 'SIGNED_OUT': {
+              console.log('[Auth] 👋 User signed out');
+              
               set({
                 user: null,
                 session: null,
                 dbUser: null,
                 isAuthenticated: false,
-                isDbUserLoaded: false
+                isDbUserLoaded: false,
               });
               break;
+            }
+
+            case 'USER_UPDATED': {
+              if (session?.user) {
+                console.log('[Auth] 👤 User metadata updated');
+                set({ user: session.user, session });
+              }
+              break;
+            }
 
             default:
+              console.log('[Auth] Unhandled event:', event);
               break;
           }
         }
       );
 
-      // ✅ SMART refresh — only when needed
+      const authSubscription = authData?.subscription;
+
+      // ────────────────────────────────────────────────────────
+      // PHASE 5: Setup Smart Token Refresh
+      // ────────────────────────────────────────────────────────
+
       const smartRefresh = async (eventName) => {
         const now = Date.now();
         const timeSinceLastRefresh = now - lastRefreshTime;
 
-        // ✅ CHECK 1: Don't refresh if refreshed recently
+        // Guard 1: Don't refresh too frequently
         if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
+          console.log(`[Auth] Skipping refresh (${eventName}) - too soon`);
           return;
         }
 
-        // ✅ CHECK 2: Only refresh if token is expiring soon
+        // Guard 2: Check if token is actually expiring
         const currentSession = get().session;
         if (currentSession?.expires_at) {
           const expiresAt = currentSession.expires_at * 1000;
           const timeUntilExpiry = expiresAt - now;
 
           if (timeUntilExpiry > 10 * 60 * 1000) {
-            // Token valid for 10+ minutes — no refresh needed
+            console.log(`[Auth] Skipping refresh (${eventName}) - token valid for ${Math.floor(timeUntilExpiry / 60000)}m`);
             return;
           }
         }
 
-        // ✅ Token expiring soon — refresh it
-        if (isRefreshing) return;
+        // Guard 3: Prevent concurrent refreshes
+        if (isRefreshing) {
+          console.log(`[Auth] Refresh already in progress`);
+          return;
+        }
 
+        // Perform refresh
         isRefreshing = true;
         lastRefreshTime = now;
 
         try {
+          console.log(`[Auth] 🔄 Refreshing session (${eventName})...`);
           const { error } = await supabase.auth.refreshSession();
+
           if (error) {
-            console.error(`❌ Refresh failed (${eventName}):`, error);
-            const fatalErrors = ['refresh_token_not_found', 'invalid_grant', 'expired_token'];
-            if (fatalErrors.some(errMsg => error.message?.toLowerCase().includes(errMsg))) {
-              console.warn('🔒 Fatal refresh error — signing out');
-              get().signOut();
+            console.error(`[Auth] ❌ Refresh failed:`, error.message);
+
+            // Detect fatal errors that require re-authentication
+            const fatalErrors = [
+              'refresh_token_not_found',
+              'invalid_grant',
+              'expired_token',
+              'invalid_refresh_token',
+            ];
+
+            const isFatal = fatalErrors.some((errMsg) =>
+              error.message?.toLowerCase().includes(errMsg)
+            );
+
+            if (isFatal) {
+              console.warn('[Auth] 🔒 Fatal refresh error - signing out');
+              await get().signOut();
             }
+          } else {
+            console.log('[Auth] ✅ Session refreshed successfully');
           }
+        } catch (err) {
+          console.error('[Auth] Refresh exception:', err.message);
         } finally {
           isRefreshing = false;
         }
       };
 
-      // ✅ PROPER event listeners with real cleanup
+      // ────────────────────────────────────────────────────────
+      // PHASE 6: Setup Lifecycle Event Listeners
+      // ────────────────────────────────────────────────────────
+
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
           smartRefresh('visibilitychange');
@@ -219,109 +403,144 @@ const useAuthStore = create((set, get) => ({
       };
 
       const handleOnline = () => {
+        console.log('[Auth] 🌐 Network online - checking session');
+        set({ isServerUnreachable: false }); // Clear error banner
         smartRefresh('online');
+      };
+
+      const handleOffline = () => {
+        console.log('[Auth] 📴 Network offline');
       };
 
       document.addEventListener('visibilitychange', handleVisibilityChange);
       window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
 
-      // Native platform listener
+      // Native app state listener
       let appListener = null;
-
       if (isNativeWithPlugins()) {
-        const setupAppListener = async () => {
-          try {
-            const { App } = await import('@capacitor/app');
-            appListener = await App.addListener('appStateChange', (state) => {
-              if (state.isActive) {
-                smartRefresh('appStateChange');
-              }
-            });
-          } catch (e) {
-            console.warn('[Auth] App listener init failed:', e.message);
-          }
-        };
-        setupAppListener();
+        safePluginCall(async () => {
+          const { App } = await import('@capacitor/app');
+          appListener = await App.addListener('appStateChange', (state) => {
+            if (state.isActive) {
+              smartRefresh('appStateChange');
+            }
+          });
+        });
       }
 
-      // ✅ CIRCUIT BREAKER: Listen for terminal connectivity failures
+      // ────────────────────────────────────────────────────────
+      // PHASE 7: Setup Connection Error Monitoring
+      // ────────────────────────────────────────────────────────
+
       const unsubConnectionError = onConnectionError(() => {
+        console.error('[Auth] 🚨 Connection error detected');
         set({ isServerUnreachable: true });
       });
 
-      // ✅ REAL cleanup — removes actual listeners
-      return () => {
-        subscription?.unsubscribe();
-        unsubConnectionError(); // ✅ Stop listening for connection errors
-        document.removeEventListener(
-          'visibilitychange',
-          handleVisibilityChange
-        );
+      // ────────────────────────────────────────────────────────
+      // PHASE 8: Return Cleanup Function
+      // ────────────────────────────────────────────────────────
+
+      authCleanup = () => {
+        console.log('[Auth] 🧹 Cleaning up auth listeners');
+
+        authSubscription?.unsubscribe();
+        unsubConnectionError();
+        
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+
         if (appListener) {
-          try {
+          safePluginCall(async () => {
             if (typeof appListener.remove === 'function') {
-              appListener.remove();
+              await appListener.remove();
             }
-          } catch (e) {
-            console.warn('[Auth] App listener cleanup failed:', e.message);
-          }
+          });
         }
+
+        isAuthInitialized = false;
+        authCleanup = null;
       };
 
+      return authCleanup;
+
     } catch (error) {
-      console.error('Auth store initialization error:', error);
+      console.error('[Auth] ❌ Initialization failed:', error);
       set({ loading: false });
+      
+      // Return no-op cleanup
+      return () => {};
     }
   },
 
+  // ══════════════════════════════════════════════════════════════
+  // User Session Handler
+  // ══════════════════════════════════════════════════════════════
+
   handleUserSession: async (authUser) => {
-    // ✅ Prevent duplicate calls
+    // Prevent concurrent execution
     if (isHandlingSession) {
+      console.log('[Auth] Session handling already in progress, skipping');
       return;
     }
+
     isHandlingSession = true;
 
     try {
-      console.log("🔍 Handling session for:", authUser.email);
+      console.log('[Auth] 🔍 Loading profile for:', authUser.email);
 
-      // Step 1: Users table me profile dhundho
+      // ────────────────────────────────────────────────────────
+      // Step 1: Fetch user profile from database
+      // ────────────────────────────────────────────────────────
+
       const { data: existingUser, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
-        .maybeSingle(); // ← IMPORTANT: .single() mat use karo! (406 fix)
+        .maybeSingle(); // Use maybeSingle to avoid 406 errors
 
       if (fetchError) {
-        console.error("⚠️ Fetch error:", fetchError);
+        console.error('[Auth] ⚠️ Profile fetch error:', fetchError.message);
       }
 
-      // Metadata mapping for Google Login
-      const metaName = authUser.user_metadata?.full_name
-        || authUser.user_metadata?.name
-        || authUser.email?.split('@')[0]
-        || "User";
+      // ────────────────────────────────────────────────────────
+      // Step 2: Extract metadata for new users
+      // ────────────────────────────────────────────────────────
 
-      const metaAvatar = authUser.user_metadata?.avatar_url
-        || authUser.user_metadata?.picture
-        || null;
+      const metaName =
+        authUser.user_metadata?.full_name ||
+        authUser.user_metadata?.name ||
+        authUser.email?.split('@')[0] ||
+        'User';
+
+      const metaAvatar =
+        authUser.user_metadata?.avatar_url ||
+        authUser.user_metadata?.picture ||
+        null;
 
       let dbUser;
 
-      // Step 2: Agar profile NAHI mila → pehli baar login hai → CREATE karo
-      if (!existingUser) {
-        console.log("✨ First time Google login - creating profile for:", authUser.email);
+      // ────────────────────────────────────────────────────────
+      // Step 3: Create profile if first-time user
+      // ────────────────────────────────────────────────────────
 
+      if (!existingUser) {
+        console.log('[Auth] ✨ First-time user - creating profile');
+
+        const buildTime = document.querySelector('meta[name="build-time"]')?.content;
+        
         const profileData = {
           id: authUser.id,
           email: authUser.email,
           name: metaName,
-          avatar: metaAvatar, // Correct DB column name is 'avatar'
+          avatar: metaAvatar,
           is_online: true,
           last_seen: new Date().toISOString(),
           created_at: new Date().toISOString(),
-          ota_version: document.querySelector('meta[name="build-time"]')?.content || null,
-          ota_updated_at: document.querySelector('meta[name="build-time"]')?.content ? new Date().toISOString() : null,
+          ota_version: buildTime || null,
+          ota_updated_at: buildTime ? new Date().toISOString() : null,
         };
 
         const { data: newUser, error: insertError } = await supabase
@@ -331,146 +550,191 @@ const useAuthStore = create((set, get) => ({
           .maybeSingle();
 
         if (insertError) {
-          console.error("❌ Profile create error:", insertError);
-          // ✅ Crash mat karo - session se basic data use karo
+          console.error('[Auth] ❌ Profile creation failed:', insertError.message);
+          
+          // Fallback to metadata
           dbUser = {
             id: authUser.id,
             email: authUser.email,
             name: metaName,
             avatar: metaAvatar,
-            is_online: true
+            is_online: true,
+            _isFallback: true,
           };
         } else {
-          console.log("✅ Profile created successfully!");
+          console.log('[Auth] ✅ Profile created successfully');
           dbUser = newUser;
         }
       } else {
-        dbUser = existingUser; // ✅ RESTORED MISSING ASSIGNMENT
+        dbUser = existingUser;
 
-        // ✅ OPTIMIZED: Only update if last update was > 5 minutes ago
+        // ────────────────────────────────────────────────────────
+        // Step 4: Update online status (throttled)
+        // ────────────────────────────────────────────────────────
+
         const now = Date.now();
-        const shouldUpdate = !existingUser.is_online || (now - lastDbUpdateTime > MIN_DB_UPDATE_INTERVAL);
+        const shouldUpdate =
+          !existingUser.is_online ||
+          now - lastDbUpdateTime > MIN_DB_UPDATE_INTERVAL;
 
         if (shouldUpdate) {
           lastDbUpdateTime = now;
-          // 🔥 NON-BLOCKING: Fire and forget to speed up boot
+
+          const buildTime = document.querySelector('meta[name="build-time"]')?.content;
+
+          // Fire-and-forget update (non-blocking)
           supabase
             .from('users')
             .update({
               is_online: true,
               last_seen: new Date().toISOString(),
-              ota_version: document.querySelector('meta[name="build-time"]')?.content || null,
-              ota_updated_at: document.querySelector('meta[name="build-time"]')?.content ? new Date().toISOString() : null,
+              ota_version: buildTime || null,
+              ota_updated_at: buildTime ? new Date().toISOString() : null,
             })
             .eq('id', authUser.id)
-            .then(() => console.log("🟢 Online status & version updated"))
-            .catch((err) => console.warn("⚠️ Online update failed:", err));
+            .then(() => console.log('[Auth] 🟢 Online status updated'))
+            .catch((err) => console.warn('[Auth] ⚠️ Online update failed:', err.message));
         }
       }
-      
-      set({ 
+
+      // ────────────────────────────────────────────────────────
+      // Step 5: Update store
+      // ────────────────────────────────────────────────────────
+
+      set({
         dbUser: dbToFrontend(dbUser),
-        isDbUserLoaded: true 
+        isDbUserLoaded: true,
       });
+
     } catch (error) {
-      console.error("❌ handleUserSession crashed:", error);
-      // ✅ KABHI BHI "Login to View" mat dikhao agar session valid hai
+      console.error('[Auth] ❌ Session handling failed:', error);
+
+      // Provide fallback user data to prevent "Login to View" screen
       set({
         dbUser: dbToFrontend({
           id: authUser.id,
           email: authUser.email,
-          name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || "User",
-          avatar: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
-          _isFallback: true
+          name:
+            authUser.user_metadata?.full_name ||
+            authUser.user_metadata?.name ||
+            'User',
+          avatar:
+            authUser.user_metadata?.avatar_url ||
+            authUser.user_metadata?.picture ||
+            null,
+          _isFallback: true,
         }),
-        isDbUserLoaded: false // Reset or keep false if fallback
+        isDbUserLoaded: false,
       });
     } finally {
       isHandlingSession = false;
     }
   },
 
+  // ══════════════════════════════════════════════════════════════
+  // Google Sign-In
+  // ══════════════════════════════════════════════════════════════
+
   signInWithGoogle: async () => {
-    set({ isServerUnreachable: false }); 
+    set({ isServerUnreachable: false });
     const isPlatformNative = Capacitor.isNativePlatform();
-    console.log('[Auth] signInWithGoogle initialized, nativePlatform:', isPlatformNative);
+    
+    console.log('[Auth] 🔐 Google sign-in initiated (native:', isPlatformNative, ')');
 
     try {
+      // ────────────────────────────────────────────────────────
+      // Native Platform: Use GoogleAuth plugin
+      // ────────────────────────────────────────────────────────
+      
       if (isPlatformNative) {
-        // ── NATIVE LOGIN ──
-        // Note: Using native plugins on Vercel origin can be unstable if the bridge is failing.
-        // We use safePluginCall for everything.
-        
-        const nativeResult = await safePluginCall(async () => {
-          if (!isGoogleAuthInitialized) {
-            try {
-              await GoogleAuth.initialize({
-                clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
-                scopes: ['profile', 'email'],
-                grantOfflineAccess: true,
-              });
-              isGoogleAuthInitialized = true;
-            } catch (initError) {
-              console.warn('[Auth] GoogleAuth init failed or already done:', initError);
-              isGoogleAuthInitialized = true; 
+        const nativeResult = await safePluginCall(
+          async () => {
+            // Initialize GoogleAuth (one-time)
+            if (!isGoogleAuthInitialized) {
+              try {
+                await GoogleAuth.initialize({
+                  clientId:
+                    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+                    '335571630396-g270djndvqsj8p00kfgoq98995p1l3bm.apps.googleusercontent.com',
+                  scopes: ['profile', 'email'],
+                  grantOfflineAccess: true,
+                });
+                isGoogleAuthInitialized = true;
+                console.log('[Auth] GoogleAuth initialized');
+              } catch (initError) {
+                console.warn('[Auth] GoogleAuth init warning:', initError.message);
+                isGoogleAuthInitialized = true; // Assume already initialized
+              }
             }
-          }
 
-          console.log('[Auth] Triggering native GoogleAuth.signIn()...');
-          const googleUser = await GoogleAuth.signIn();
-          
-          if (!googleUser?.authentication?.idToken) {
-            throw new Error('Google Sign-In failed: No ID Token returned');
-          }
+            // Trigger native sign-in
+            console.log('[Auth] Triggering native GoogleAuth.signIn()...');
+            const googleUser = await GoogleAuth.signIn();
 
-          const { error } = await supabase.auth.signInWithIdToken({
-            provider: 'google',
-            token: googleUser.authentication.idToken,
-          });
+            if (!googleUser?.authentication?.idToken) {
+              throw new Error('No ID Token returned from Google Sign-In');
+            }
 
-          if (error) throw error;
-          console.log('[Auth] Native Google login successful');
-          return { success: true };
-        }, { success: false, isBridgeError: true });
+            // Exchange ID token with Supabase
+            const { error } = await supabase.auth.signInWithIdToken({
+              provider: 'google',
+              token: googleUser.authentication.idToken,
+            });
 
-        // If native attempt failed specifically due to bridge issues, 
-        // fall through to the Web flow below.
+            if (error) throw error;
+
+            console.log('[Auth] ✅ Native Google login successful');
+            return { success: true };
+          },
+          { success: false, isBridgeError: true }
+        );
+
+        // If native failed due to bridge issues, fall through to web flow
         if (nativeResult && !nativeResult.success && nativeResult.isBridgeError) {
-          console.log('[Auth] Bridge unavailable, falling back to Web Flow...');
+          console.log('[Auth] ⚠️ Native bridge unavailable, falling back to Web OAuth');
         } else {
           return nativeResult;
         }
       }
-      
-      // ── WEB LOGIN (Fallback or default for web) ──
+
+      // ────────────────────────────────────────────────────────
+      // Web Platform: Use OAuth redirect flow
+      // ────────────────────────────────────────────────────────
+
       const redirectUrl = getRedirectUrl();
-        console.log('[Auth] Using Web OAuth flow with direct bypass redirect...');
+      console.log('[Auth] Using Web OAuth flow with redirect:', redirectUrl);
 
-        // Create a temporary client pointing DIRECTLY to Supabase to avoid proxy CSP blocks
-        const directClient = createClient(DIRECT_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+      // Use direct Supabase client to bypass proxy CSP restrictions
+      const directClient = createClient(
+        DIRECT_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
 
-        const { error } = await directClient.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: redirectUrl,
-            flowType: 'pkce',
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'select_account',
-            }
-          }
-        });
-        if (error) throw error;
-        return { success: true };
+      const { error } = await directClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      console.log('[Auth] ✅ OAuth redirect initiated');
+      return { success: true };
+
     } catch (error) {
-      console.error("Google Sign In Error:", error);
+      console.error('[Auth] ❌ Google Sign-In failed:', error);
 
-      // ✅ Trigger banner only on active failure
+      // Classify error type
       const isConnectionError =
         error.message?.toLowerCase().includes('fetch') ||
         error.message?.toLowerCase().includes('network') ||
         error.message?.toLowerCase().includes('timeout') ||
-        error.name === 'TypeError'; // fetch usually throws TypeError on network failure
+        error.name === 'TypeError';
 
       if (isConnectionError) {
         set({ isServerUnreachable: true });
@@ -480,29 +744,33 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  // signInWithPhone (Legacy) was removed for security.
-  // Phone linking is handled in handleUserSession and separate onboarding UI.
+  // ══════════════════════════════════════════════════════════════
+  // Sign Out
+  // ══════════════════════════════════════════════════════════════
 
-
-  // ✅ Set offline before signing out
   signOut: async () => {
     try {
       const currentUser = get().dbUser;
 
-      // ✅ Set user offline in database before logout
+      // Set user offline before sign-out
       if (currentUser?.id) {
+        console.log('[Auth] 🔴 Setting user offline...');
+        
         await supabase
           .from('users')
           .update({
             is_online: false,
-            last_seen: new Date().toISOString()
+            last_seen: new Date().toISOString(),
           })
-          .eq('id', currentUser.id);
+          .eq('id', currentUser.id)
+          .then(() => console.log('[Auth] User set offline'))
+          .catch((err) => console.warn('[Auth] Offline update failed:', err.message));
       }
     } catch (error) {
-      console.error('Error setting offline:', error);
+      console.error('[Auth] Error setting offline:', error);
     }
 
+    // Clear auth state
     await supabase.auth.signOut();
 
     set({
@@ -511,8 +779,10 @@ const useAuthStore = create((set, get) => ({
       dbUser: null,
       isAuthenticated: false,
       isPhoneAuth: false,
-      isDbUserLoaded: false
+      isDbUserLoaded: false,
     });
+
+    console.log('[Auth] 👋 User signed out');
   },
 }));
 
