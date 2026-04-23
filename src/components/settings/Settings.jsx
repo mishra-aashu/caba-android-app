@@ -965,6 +965,7 @@ const Settings = ({ isSidebar = false }) => {
                         }}
                         loading={isApplyingWebUpdate}
                         chevron={!webUpdateAvailable}
+                        value={webUpdateAvailable ? "Update Ready" : null}
                     />
                 </section>
 

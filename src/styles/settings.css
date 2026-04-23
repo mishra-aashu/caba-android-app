@@ -10,6 +10,32 @@
     overflow: hidden;
     background: var(--bg-1);
     color: var(--text-0);
+    position: relative;
+}
+
+/* Premium Gradient Overlay — matching Chat List */
+.settings-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 180px;
+    background: linear-gradient(
+        180deg,
+        rgba(0, 168, 132, 0.08) 0%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+[data-theme='dark'] .settings-screen::before {
+    background: linear-gradient(
+        180deg,
+        rgba(0, 168, 132, 0.15) 0%,
+        transparent 100%
+    );
 }
 
 .settings-screen.is-sidebar {
@@ -22,13 +48,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
-    padding-top: calc(1rem + env(safe-area-inset-top, 0px));
-    background: var(--bg-1);
-    border-bottom: 1px solid var(--glass-stroke);
+    padding: 0.75rem 1rem;
+    padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+    background: transparent;
+    border-bottom: none;
     position: sticky;
     top: 0;
     z-index: 20;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .is-sidebar .settings-header {
@@ -67,7 +95,7 @@
 
 .settings-header h1 {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     font-weight: 800;
     color: var(--text-0);
     letter-spacing: -0.025em;
@@ -90,9 +118,11 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem;
     padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     scroll-behavior: smooth;
+    position: relative;
+    z-index: 1;
 }
 
 .is-sidebar .settings-content {
@@ -232,9 +262,12 @@
 
 .item-value {
     font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-1);
-    opacity: 0.7;
+    font-weight: 700;
+    color: var(--primary-1);
+    background: rgba(0, 168, 132, 0.1);
+    padding: 2px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 168, 132, 0.1);
 }
 
 .chevron {
