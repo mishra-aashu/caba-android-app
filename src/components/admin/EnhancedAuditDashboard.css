@@ -473,3 +473,95 @@
   overflow-y: auto;
   padding-right: 5px;
 }
+
+/* Self-Healing Capabilities UI */
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.capability-card {
+  background: #262626;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.capability-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--admin-primary);
+  background: #2d2d2d;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.capability-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.capability-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--admin-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.capability-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.priority-dot.high { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+.priority-dot.medium { background: #f59e0b; }
+.priority-dot.low { background: #10b981; }
+
+.capability-badges {
+  display: flex;
+  gap: 6px;
+}
+
+.mini-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+}
+
+.mini-badge.risk {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.05);
+}
+
+.pulse-loader {
+  width: 40px;
+  height: 40px;
+  background: var(--admin-primary);
+  border-radius: 50%;
+  opacity: 0.5;
+  animation: pulse-engine 2s infinite ease-in-out;
+}
+
+@keyframes pulse-engine {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0.2; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
