@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import toast from 'react-hot-toast';
+import { useVanishPresets } from './useVanishPresets';
 import { useNavigate } from 'react-router-dom';
+
 
 /**
  * useChatSettings
@@ -23,7 +25,7 @@ export function useChatSettings({
     const [isMuted, setIsMuted] = useState(false);
     const [isTempChat, setIsTempChat] = useState(false);
     const [selectedVanishDuration, setSelectedVanishDuration] = useState(86400);
-    const [vanishPresets, setVanishPresets] = useState([]);
+
 
     // Load initial settings
     useEffect(() => {
@@ -62,17 +64,9 @@ export function useChatSettings({
         fetchSettings();
     }, [chatId, currentUser, supabase]);
 
-    // Fetch presets (cached at module level if possible, but fine here for now)
-    useEffect(() => {
-        const fetchPresets = async () => {
-            const { data } = await supabase
-                .from('vanish_duration_presets')
-                .select('*')
-                .order('duration_seconds', { ascending: true });
-            if (data) setVanishPresets(data);
-        };
-        fetchPresets();
-    }, [supabase]);
+    const { presets: vanishPresets, isLoading: isVanishLoading } = useVanishPresets();
+
+
 
     const handleMuteToggle = useCallback(() => {
         const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
@@ -132,7 +126,9 @@ export function useChatSettings({
         selectedVanishDuration,
         setSelectedVanishDuration,
         vanishPresets,
+        isVanishLoading,
         handleMuteToggle,
+
         confirmBlockUser,
         updateVanishDuration,
     };

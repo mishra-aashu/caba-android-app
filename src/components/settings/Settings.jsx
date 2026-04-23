@@ -25,7 +25,9 @@ import {
     Sun,
     Bell,
     Music,
+    Clock,
     Keyboard,
+
     Smile,
     HardDrive,
     Trash2,
@@ -59,6 +61,8 @@ import BottomNavigation from '../common/BottomNavigation';
 import toast from 'react-hot-toast';
 import { useDialog } from '../../contexts/DialogContext';
 import SyncRetryModal from './SyncRetryModal';
+import { useVanishPresets } from '../../hooks/chat/useVanishPresets';
+import VanishSettingsModal from '../chat/VanishSettingsModal';
 import '../../styles/settings.css';
 
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined'
@@ -121,7 +125,8 @@ const Settings = ({ isSidebar = false }) => {
         language: 'en',
         textSize: 16,
         storageUsage: { app: 0, media: 0, total: 0 },
-        callRingtone: 'fm-freemusic-give-me-a-smile(chosic.com).ogg'
+        callRingtone: 'fm-freemusic-give-me-a-smile(chosic.com).ogg',
+        defaultVanishDuration: parseInt(localStorage.getItem('defaultVanishDuration')) || 86400
     });
 
     const [sessions, setSessions] = useState([]);
@@ -131,7 +136,10 @@ const Settings = ({ isSidebar = false }) => {
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [clearingCache, setClearingCache] = useState(false);
     const [checkingUpdate, setCheckingUpdate] = useState(false);
+    const [showVanishModal, setShowVanishModal] = useState(false);
+    const { presets: vanishPresets, isLoading: isVanishLoading } = useVanishPresets();
     const fileInputRef = useRef(null);
+
 
     // Audio state
     const currentAudioRef = useRef(null);
@@ -771,6 +779,16 @@ const Settings = ({ isSidebar = false }) => {
                             <option value="hi">Hindi (हिंदी)</option>
                         </select>
                     </div>
+
+                    <SettingItem
+                        icon={Clock}
+                        label="Vanishing Messages"
+                        value={
+                            vanishPresets.find(p => p.duration_seconds === settings.defaultVanishDuration)?.display_name
+                            || '24 Hours'
+                        }
+                        onClick={() => setShowVanishModal(true)}
+                    />
                 </section>
 
                 {/* Storage */}
@@ -1080,6 +1098,22 @@ const Settings = ({ isSidebar = false }) => {
                 isOpen={showSyncModal}
                 onClose={() => setShowSyncModal(false)}
             />
+            
+            <Suspense fallback={null}>
+                {showVanishModal && (
+                    <VanishSettingsModal
+                        isOpen={true}
+                        onClose={() => setShowVanishModal(false)}
+                        presets={vanishPresets}
+                        isLoading={isVanishLoading}
+                        selectedDuration={settings.defaultVanishDuration}
+                        onSelectDuration={(duration) => {
+                            handleValueChange('defaultVanishDuration', duration);
+                        }}
+                    />
+
+                )}
+            </Suspense>
 
             <BottomNavigation />
         </div>

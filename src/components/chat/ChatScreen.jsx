@@ -49,7 +49,8 @@ const ChatScreen = () => {
         messages, isFetchingNextPage, hasNextPage, fetchNextPage,
         typingUsers, sendTyping,
         isMuted, isTempChat, setIsTempChat,
-        selectedVanishDuration, updateVanishDuration, vanishPresets,
+        selectedVanishDuration, updateVanishDuration, vanishPresets, isVanishLoading,
+
         sendMessage, handleSendMedia, replyingTo, handleReply, cancelReply, deleteMessage, forwardMessages,
 
         activeGroupCall, showGroupCallScreen, setShowGroupCallScreen,
@@ -585,6 +586,7 @@ const ChatScreen = () => {
                             isOpen={true}
                             onClose={() => setShowVanishSettingsModal(false)}
                             presets={vanishPresets}
+                            isLoading={isVanishLoading}
                             selectedDuration={selectedVanishDuration}
                             onSelectDuration={(duration) => {
                                 updateVanishDuration(duration);

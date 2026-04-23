@@ -188,26 +188,28 @@ const ChatHeader = memo(({
             });
         }
 
-        // DM-specific settings
+        // Vanish Mode settings
         if (!isGroupChat) {
             items.push({
                 icon: <Clock size={16} />,
-                label: isTempChat ? 'Disable Temporary Chat' : 'Enable Temporary Chat',
+                label: isTempChat ? 'Disable Vanish Mode' : 'Enable Vanish Mode',
                 onClick: onTempChatToggle,
             });
-            if (isTempChat) {
-                items.push({
-                    icon: <SettingsIcon size={16} />,
-                    label: 'Temp Chat Settings',
-                    onClick: onTempChatSettings,
-                });
-            }
+            
+            // Vanish Settings are now ALWAYS visible in DMs
+            items.push({
+                icon: <SettingsIcon size={16} />,
+                label: 'Vanish Settings',
+                onClick: onTempChatSettings,
+            });
+
             items.push({
                 icon: <Trash2 size={16} />,
                 label: 'Clear Chat',
                 onClick: onClearChat,
             });
         }
+
 
         // Selection mode
         items.push({
