@@ -25,7 +25,7 @@ import AuditReportGenerator from './admin/AuditReportGenerator';
 import EnhancedAuditDashboard from './admin/EnhancedAuditDashboard';
 import './admin/Admin.css';
 
-const BanEmoji = ({ size = 18 }) => <span style={{ fontSize: `${size}px` }}>🚫</span>;
+
 
 // ─── Helper: Avatar URL ─────────────────────────────────────────
 const getAvatarUrl = (avatar) => {
@@ -58,7 +58,7 @@ const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
-  { id: 'blocked', label: 'Blocked Users', icon: BanEmoji },
+  { id: 'blocked', label: 'Blocked Users', icon: Ban },
   { id: 'groups', label: 'Groups', icon: Users },
   { id: 'reminders', label: 'Reminders', icon: Calendar },
   { id: 'statuses', label: 'Statuses', icon: Activity },
