@@ -67,100 +67,87 @@ export const GameLobbyProvider = ({ children }) => {
         }
     }, []);
 
-    // ── Presence channel (direct Supabase, no realtimeManager wrapper) ──
+    // ── Presence channel (Lazy Activation) ──
     useEffect(() => {
         if (!dbUser?.id) return;
 
-        mountedRef.current = true;
-        console.log('[GameLobby] Setting up presence for:', dbUser.id, dbUser.name);
+        let syncInterval = null;
+        let channel = null;
 
-        // Clean up any existing channel first
-        if (channelRef.current) {
-            supabaseRealtime.removeChannel(channelRef.current).catch(() => {});
-            channelRef.current = null;
-        }
-
-        const channel = supabaseRealtime.channel(PRESENCE_CHANNEL, {
-            config: { presence: { key: String(dbUser.id) } },
-        });
-
-        channelRef.current = channel;
-
-        channel
-            .on('presence', { event: 'sync' }, () => {
-                console.log('[GameLobby] presence sync fired');
-                syncPresenceState(channel);
-            })
-            .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-                console.log('[GameLobby] presence join:', key, newPresences);
-                syncPresenceState(channel);
-            })
-            .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-                console.log('[GameLobby] presence leave:', key, leftPresences);
-                syncPresenceState(channel);
-            })
-            .subscribe(async (status) => {
-                console.log('[GameLobby] Channel status:', status);
-
-                if (status === 'SUBSCRIBED') {
-                    setIsConnected(true);
-
-                    const user = dbUserRef.current;
-                    if (!user?.id) return;
-
-                    try {
-                        const trackResult = await channel.track({
-                            user_id: String(user.id),
-                            id: String(user.id),
-                            name: user.name || 'Unknown',
-                            avatar: user.avatar || null,
-                            online_at: new Date().toISOString(),
-                        });
-                        console.log('[GameLobby] track() result:', trackResult);
-                        syncPresenceState(channel);
-                    } catch (err) {
-                        console.error('[GameLobby] track() failed:', err);
-                    }
-                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-                    console.error('[GameLobby] Channel error:', status);
-                    setIsConnected(false);
-                }
-            });
-
-        // Periodic fallback sync
-        const syncInterval = setInterval(() => {
-            if (channelRef.current && mountedRef.current) {
-                syncPresenceState(channelRef.current);
+        const setupPresence = async () => {
+            // [OPTIMIZATION] Only join presence if on games page
+            const isGamesPage = window.location.hash.includes('games') || window.location.pathname.includes('games');
+            
+            if (!isGamesPage) {
+                console.log('[GameLobby] Not on games page, skipping presence join.');
+                setOnlineUsers([]);
+                setIsConnected(false);
+                return;
             }
-        }, 10000);
 
-        // Re-track when tab becomes visible again
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible' && mountedRef.current && channelRef.current) {
-                const user = dbUserRef.current;
-                if (!user?.id) return;
-                channelRef.current.track({
-                    user_id: String(user.id),
-                    id: String(user.id),
-                    name: user.name || 'Unknown',
-                    avatar: user.avatar || null,
-                    online_at: new Date().toISOString(),
-                }).then(() => syncPresenceState(channelRef.current)).catch(() => {});
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        return () => {
-            mountedRef.current = false;
-            clearInterval(syncInterval);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            console.log('[GameLobby] Cleaning up presence channel');
+            console.log('[GameLobby] Setting up presence for:', dbUser.id);
+            
             if (channelRef.current) {
                 supabaseRealtime.removeChannel(channelRef.current).catch(() => {});
+            }
+
+            channel = supabaseRealtime.channel(PRESENCE_CHANNEL, {
+                config: { presence: { key: String(dbUser.id) } },
+            });
+
+            channelRef.current = channel;
+
+            channel
+                .on('presence', { event: 'sync' }, () => syncPresenceState(channel))
+                .on('presence', { event: 'join' }, () => syncPresenceState(channel))
+                .on('presence', { event: 'leave' }, () => syncPresenceState(channel))
+                .subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        setIsConnected(true);
+                        const user = dbUserRef.current;
+                        if (!user?.id) return;
+                        try {
+                            await channel.track({
+                                user_id: String(user.id),
+                                id: String(user.id),
+                                name: user.name || 'Unknown',
+                                avatar: user.avatar || null,
+                                online_at: new Date().toISOString(),
+                            });
+                            syncPresenceState(channel);
+                        } catch (err) {
+                            console.error('[GameLobby] track failed:', err);
+                        }
+                    } else {
+                        setIsConnected(false);
+                    }
+                });
+
+            syncInterval = setInterval(() => {
+                if (channelRef.current && mountedRef.current) {
+                    syncPresenceState(channelRef.current);
+                }
+            }, 15000);
+        };
+
+        setupPresence();
+
+        // Listen for route changes to wake up/hibernate
+        const handleRouteChange = () => {
+            setupPresence();
+        };
+
+        window.addEventListener('hashchange', handleRouteChange);
+        window.addEventListener('popstate', handleRouteChange);
+
+        return () => {
+            window.removeEventListener('hashchange', handleRouteChange);
+            window.removeEventListener('popstate', handleRouteChange);
+            if (syncInterval) clearInterval(syncInterval);
+            if (channel) {
+                supabaseRealtime.removeChannel(channel).catch(() => {});
                 channelRef.current = null;
             }
-            setOnlineUsers([]);
-            setIsConnected(false);
         };
     }, [dbUser?.id, syncPresenceState]);
 

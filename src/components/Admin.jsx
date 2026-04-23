@@ -16,9 +16,13 @@ import {
   Database, Trash2, Edit, Eye, CheckCircle, XCircle,
   Search, Download, RefreshCw, AlertTriangle, Ban,
   Calendar, Phone, FileText, Image,
-  Video, Music, Archive, Upload, X, Clock, Mail, MapPin, Send
+  Video, Music, Archive, Upload, X, Clock, Mail, MapPin, Send,
+  TestTube, FileText as FileReportIcon, Brain
 } from 'lucide-react';
 import NetworkVisualization from './admin/NetworkVisualization';
+import AdminAuditSystem from './admin/AdminAuditSystem';
+import AuditReportGenerator from './admin/AuditReportGenerator';
+import EnhancedAuditDashboard from './admin/EnhancedAuditDashboard';
 import './admin/Admin.css';
 
 const BanEmoji = ({ size = 18 }) => <span style={{ fontSize: `${size}px` }}>🚫</span>;
@@ -65,7 +69,10 @@ const TABS = [
   { id: 'support', label: 'Support', icon: MessageCircle },
   { id: 'network', label: 'Network', icon: Users },
   { id: 'system', label: 'System Settings', icon: Settings },
-  { id: 'maintenance', label: 'Maintenance', icon: Database }
+  { id: 'maintenance', label: 'Maintenance', icon: Database },
+  { id: 'audit', label: 'System Audit', icon: TestTube },
+  { id: 'audit-reports', label: 'Audit Reports', icon: FileReportIcon },
+  { id: 'enhanced-audit', label: 'Enhanced Audit', icon: Brain }
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -3026,6 +3033,40 @@ const Admin = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* SYSTEM AUDIT TAB                                       */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {activeTab === 'audit' && (
+        <AdminAuditSystem />
+      )}
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* AUDIT REPORTS TAB                                      */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {activeTab === 'audit-reports' && (
+        <AuditReportGenerator 
+          auditData={{
+            results: {},
+            metrics: {
+              totalTests: 0,
+              passedTests: 0,
+              failedTests: 0,
+              warningTests: 0,
+              overallScore: 0,
+              totalDuration: 0
+            },
+            timestamp: new Date().toISOString()
+          }}
+        />
+      )}
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* ENHANCED AUDIT DASHBOARD                                */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {activeTab === 'enhanced-audit' && (
+        <EnhancedAuditDashboard />
       )}
     </div>
   );

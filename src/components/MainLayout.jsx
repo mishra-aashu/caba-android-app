@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useCallback, useMemo, Suspense, lazy, memo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
@@ -13,60 +13,100 @@ import PageTransition from './common/PageTransition';
 import useChatStore from '../store/useChatStore';
 import ChatScreen from './chat/ChatScreen';
 
-// Create context for user-details panel
 import { UserDetailsContext } from '../contexts/UserDetailsContext';
 
-// Lazy load UserDetails and GroupInfoDrawer for desktop side panel
+// Lazy loads
 const UserDetails = lazy(() => import('./UserDetails'));
 const GroupInfoDrawer = lazy(() => import('./groups/GroupInfoDrawer'));
 const Sidebar = lazy(() => import('./layout/Sidebar'));
 const ChatListPanel = lazy(() => import('./ChatListPanel'));
 const DesktopLayout = lazy(() => import('./DesktopLayout'));
-const ContactsPage = lazy(() => import('./contacts/ContactsPage'));
+
+// ══════════════════════════════════════════════════════════════
+// Memoized Components
+// ══════════════════════════════════════════════════════════════
+
+const LoadingFallback = memo(() => (
+    <div className="loading">
+        <div className="loading-spinner"></div>
+    </div>
+));
+LoadingFallback.displayName = 'LoadingFallback';
+
+// ══════════════════════════════════════════════════════════════
+// Main Layout Component
+// ══════════════════════════════════════════════════════════════
 
 const MainLayout = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const isDesktop = useIsDesktop();
-    
-    // ─── GLOBAL SYNC & QUEUE PROCESSING ───
+
+    // ──────────────────────────────────────────────────────────
+    // Global Sync & Queue Processing (OPTIMIZED)
+    // ──────────────────────────────────────────────────────────
+
+    const lastSyncRef = React.useRef(0);
+    const syncTimeoutRef = React.useRef(null);
+
     React.useEffect(() => {
         if (!user?.id) return;
 
-        // 1. Initial catch-up on mount
-        syncService.performGlobalSync(user.id);
-        processSyncQueue();
+        const SYNC_THROTTLE = 180000; // 3 minutes
 
-        // 2. Network reconnection sync
-        const handleOnline = () => {
-            syncService.performGlobalSync(user.id);
-            processSyncQueue();
-        };
-        window.addEventListener('online', handleOnline);
+        const runSync = (reason = 'unknown', force = false) => {
+            const now = Date.now();
 
-        // 3. Browser tab focus recovery (web / Android Chrome)
-        const handleVisibility = () => {
-            if (document.visibilityState === 'visible') {
+            // Throttle check
+            if (!force && now - lastSyncRef.current < SYNC_THROTTLE) {
+                console.log(`[MainLayout] Sync skipped (${reason}) - too soon`);
+                return;
+            }
+
+            console.log(`[MainLayout] Scheduling sync (${reason})`);
+
+            // Debounce: clear previous timeout
+            if (syncTimeoutRef.current) {
+                clearTimeout(syncTimeoutRef.current);
+            }
+
+            // Delay sync to avoid blocking navigation
+            syncTimeoutRef.current = setTimeout(() => {
+                if (!user?.id) return;
+
+                console.log(`[MainLayout] Executing sync (${reason})`);
                 syncService.performGlobalSync(user.id);
                 processSyncQueue();
+                lastSyncRef.current = Date.now();
+            }, 500);
+        };
+
+        // 1. Initial catch-up on mount ONLY
+        runSync('mount', true);
+
+        // 2. Network reconnection sync
+        const handleOnline = () => runSync('online', true);
+        window.addEventListener('online', handleOnline);
+
+        // 3. Browser tab focus recovery
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                runSync('visibility');
             }
         };
         document.addEventListener('visibilitychange', handleVisibility);
 
-        // 4. Capacitor native app foreground (Android/iOS home button / app switcher)
+        // 4. Capacitor native app foreground
         let capacitorAppListener = null;
         const setupCapacitorSync = async () => {
             try {
                 const { App } = await import('@capacitor/app');
                 capacitorAppListener = await App.addListener('appStateChange', ({ isActive }) => {
-                    if (isActive) {
-                        syncService.performGlobalSync(user.id);
-                        processSyncQueue();
-                    }
+                    if (isActive) runSync('appState');
                 });
             } catch {
-                // Not a Capacitor environment — ignore
+                /* Not Capacitor */
             }
         };
         setupCapacitorSync();
@@ -75,74 +115,127 @@ const MainLayout = () => {
             window.removeEventListener('online', handleOnline);
             document.removeEventListener('visibilitychange', handleVisibility);
             if (capacitorAppListener) capacitorAppListener.remove();
+            if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
         };
-    }, [user?.id]);
+    }, [user?.id]); // ✅ Removed location.pathname dependency
 
-    // State from store
+    // ──────────────────────────────────────────────────────────
+    // Store State
+    // ──────────────────────────────────────────────────────────
+
     const activeChat = useChatStore(state => state.activeChat);
     const setActiveChat = useChatStore(state => state.setActiveChat);
-    const clearActiveChat = useChatStore(state => state.clearActiveChat);
 
-    // Derived state from store + location
-    const isChatViewActive = useMemo(() =>
-        activeChat !== null ||
-        location.pathname.startsWith('/user-details/') ||
-        location.pathname === '/groups' ||
-        location.pathname === '/contacts' ||
-        location.pathname.startsWith('/settings/') ||
-        location.pathname === '/profile' ||
-        location.pathname === '/terms' ||
-        location.pathname === '/privacy' ||
-        location.pathname === '/blocked' ||
-        location.pathname === '/support' ||
-        location.pathname === '/emoji-settings' ||
-        location.pathname === '/history' ||
-        location.pathname === '/games',
-        [location.pathname, activeChat]);
+    // ──────────────────────────────────────────────────────────
+    // Side Panel State
+    // ──────────────────────────────────────────────────────────
 
-    const isSubPage = useMemo(() => activeChat !== null || location.pathname !== '/', [location.pathname, activeChat]);
-
-    // State for side panel (user or group details)
-    const [sidePanelType, setSidePanelType] = useState(null); 
+    const [sidePanelType, setSidePanelType] = useState(null);
     const [sidePanelTargetId, setSidePanelTargetId] = useState(null);
     const [sidePanelData, setSidePanelData] = useState(null);
 
+    // ──────────────────────────────────────────────────────────
+    // Derived State (OPTIMIZED with useMemo)
+    // ──────────────────────────────────────────────────────────
+
     const currentChatId = activeChat?.id;
 
-    const handleChatClick = useCallback((chat) => {
-        if (!chat) return;
-        setActiveChat(chat);
-    }, [setActiveChat]);
+    // Check if we're on a "sub-page" (not root)
+    const isSubPage = useMemo(() => {
+        return activeChat !== null || location.pathname !== '/';
+    }, [location.pathname, activeChat]);
 
-    // Simplified chatListPanelProps - only passing what's necessary for root control
-    const chatListPanelProps = useMemo(() => ({
-        handleChatClick,
-        isDesktop,
-        currentChatId,
-        user
-    }), [handleChatClick, isDesktop, currentChatId, user]);
+    // Check if chat view is active (for mobile layout)
+    const isChatViewActive = useMemo(() => {
+        if (activeChat) return true;
 
-    // Callback functions to show side panel - keeps Chat mounted!
-    const handleShowUserDetails = useCallback((userId) => {
-        if (isDesktop) {
-            setSidePanelType('user');
-            setSidePanelTargetId(userId);
-        } else {
-            // Mobile: navigate to full page
-            navigate(`/user-details/${userId}`);
-        }
-    }, [isDesktop, navigate]);
+        const activePaths = new Set([
+            '/user-details/',
+            '/groups',
+            '/contacts',
+            '/settings/',
+            '/profile',
+            '/terms',
+            '/privacy',
+            '/blocked',
+            '/support',
+            '/emoji-settings',
+            '/history',
+        ]);
 
-    const handleShowGroupInfo = useCallback((groupId, groupData = null) => {
-        if (isDesktop) {
-            setSidePanelType('group');
-            setSidePanelTargetId(groupId);
-            setSidePanelData(groupData);
-        } else {
-            // Mobile: navigate to full page
-            navigate(`/chat/${groupId}/group/info`);
-        }
-    }, [isDesktop, navigate]);
+        return Array.from(activePaths).some(path => location.pathname.startsWith(path));
+    }, [location.pathname, activeChat]);
+
+    // Check if we're on an overlay route (desktop sidebar content)
+    const overlayRoutes = useMemo(
+        () =>
+            new Set([
+                '/contacts',
+                '/profile',
+                '/settings',
+                '/settings/security',
+                '/settings/devices',
+                '/settings/help',
+                '/terms',
+                '/privacy',
+                '/blocked',
+                '/support',
+                '/emoji-settings',
+                '/history',
+                '/games',
+            ]),
+        []
+    );
+
+    const isOverlayRoute = useMemo(
+        () =>
+            overlayRoutes.has(location.pathname) ||
+            location.pathname.startsWith('/settings/'),
+        [location.pathname, overlayRoutes]
+    );
+
+    // Check for user-details route (mobile)
+    const isUserDetailsRoute = location.pathname.startsWith('/user-details/');
+    const userDetailsUserId = isUserDetailsRoute
+        ? location.pathname.split('/user-details/')[1]
+        : null;
+
+    // ──────────────────────────────────────────────────────────
+    // Callbacks (STABLE)
+    // ──────────────────────────────────────────────────────────
+
+    const handleChatClick = useCallback(
+        (chat) => {
+            if (!chat) return;
+            setActiveChat(chat);
+        },
+        [setActiveChat]
+    );
+
+    const handleShowUserDetails = useCallback(
+        (userId) => {
+            if (isDesktop) {
+                setSidePanelType('user');
+                setSidePanelTargetId(userId);
+            } else {
+                navigate(`/user-details/${userId}`);
+            }
+        },
+        [isDesktop, navigate]
+    );
+
+    const handleShowGroupInfo = useCallback(
+        (groupId, groupData = null) => {
+            if (isDesktop) {
+                setSidePanelType('group');
+                setSidePanelTargetId(groupId);
+                setSidePanelData(groupData);
+            } else {
+                navigate(`/chat/${groupId}/group/info`);
+            }
+        },
+        [isDesktop, navigate]
+    );
 
     const handleCloseSidePanel = useCallback(() => {
         setSidePanelType(null);
@@ -150,68 +243,92 @@ const MainLayout = () => {
         setSidePanelData(null);
     }, []);
 
-    // Check if user-details route is active (for mobile)
-    const isUserDetailsRoute = location.pathname.startsWith('/user-details/');
-    const userDetailsUserId = isUserDetailsRoute ? location.pathname.split('/user-details/')[1] : null;
+    // ──────────────────────────────────────────────────────────
+    // Props Objects (STABLE)
+    // ──────────────────────────────────────────────────────────
 
-    // Desktop side panel content
-    const sidePanel = isDesktop && sidePanelType && sidePanelTargetId ? (
-        <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
-            {sidePanelType === 'user' ? (
-                <UserDetails userId={sidePanelTargetId} isPanel={true} onClose={handleCloseSidePanel} />
-            ) : (
-                <GroupInfoDrawer
-                    isOpen={true}
-                    onClose={handleCloseSidePanel}
-                    group={sidePanelData || { id: sidePanelTargetId }}
-                />
-            )}
-        </Suspense>
-    ) : null;
+    const chatListPanelProps = useMemo(
+        () => ({
+            handleChatClick,
+            isDesktop,
+            currentChatId,
+            user,
+        }),
+        [handleChatClick, isDesktop, currentChatId, user]
+    );
 
-    // For mobile, render UserDetails in Outlet when on user-details route
-    const mobileUserDetails = !isDesktop && isUserDetailsRoute && userDetailsUserId ? (
-        <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
-            <UserDetails userId={userDetailsUserId} />
-        </Suspense>
-    ) : null;
+    // ✅ STABLE context value (no function recreation)
+    const userDetailsContextValue = useMemo(
+        () => ({
+            showUserDetails: handleShowUserDetails,
+            showGroupInfo: handleShowGroupInfo,
+        }),
+        [handleShowUserDetails, handleShowGroupInfo]
+    );
 
-    // Route checks - Desktop doesn't show specific pages in the main area (it's in the sidebar)
-    const overlayRoutes = useMemo(() => new Set([
-        '/contacts', '/profile', '/settings', '/settings/security', 
-        '/settings/devices', '/settings/help', '/terms', '/privacy', 
-        '/blocked', '/support', '/emoji-settings', '/history', '/games'
-    ]), []);
+    // ──────────────────────────────────────────────────────────
+    // Desktop Side Panel Content
+    // ──────────────────────────────────────────────────────────
 
-    const isOverlayRoute = useMemo(() => 
-        overlayRoutes.has(location.pathname) || 
-        location.pathname.startsWith('/settings/'), 
-    [location.pathname, overlayRoutes]);
+    const sidePanel = useMemo(() => {
+        if (!isDesktop || !sidePanelType || !sidePanelTargetId) return null;
 
-    const userDetailsContextValue = useMemo(() => ({
-        showUserDetails: handleShowUserDetails,
-        showGroupInfo: handleShowGroupInfo
-    }), [handleShowUserDetails, handleShowGroupInfo]);
+        return (
+            <Suspense fallback={<LoadingFallback />}>
+                {sidePanelType === 'user' ? (
+                    <UserDetails
+                        userId={sidePanelTargetId}
+                        isPanel={true}
+                        onClose={handleCloseSidePanel}
+                    />
+                ) : (
+                    <GroupInfoDrawer
+                        isOpen={true}
+                        onClose={handleCloseSidePanel}
+                        group={sidePanelData || { id: sidePanelTargetId }}
+                    />
+                )}
+            </Suspense>
+        );
+    }, [isDesktop, sidePanelType, sidePanelTargetId, sidePanelData, handleCloseSidePanel]);
+
+    // ──────────────────────────────────────────────────────────
+    // Mobile User Details
+    // ──────────────────────────────────────────────────────────
+
+    const mobileUserDetails = useMemo(() => {
+        if (isDesktop || !isUserDetailsRoute || !userDetailsUserId) return null;
+
+        return (
+            <Suspense fallback={<LoadingFallback />}>
+                <UserDetails userId={userDetailsUserId} />
+            </Suspense>
+        );
+    }, [isDesktop, isUserDetailsRoute, userDetailsUserId]);
+
+    // ──────────────────────────────────────────────────────────
+    // MOBILE LAYOUT
+    // ──────────────────────────────────────────────────────────
 
     if (!isDesktop) {
         return (
             <UserDetailsContext.Provider value={userDetailsContextValue}>
                 <div className="mobile-layout">
-                    <motion.div 
+                    <motion.div
                         className="list-view"
-                        animate={{ 
-                            filter: isChatViewActive ? 'brightness(0.9)' : 'brightness(1)',
+                        animate={{
+                            opacity: isChatViewActive ? 0.8 : 1,
                         }}
                         transition={{ duration: 0.3 }}
                     >
                         <ChatListPanel {...chatListPanelProps} />
                     </motion.div>
-                    
+
                     {!isChatViewActive && <BottomNavigation />}
 
                     <AnimatePresence>
                         {isSubPage && (
-                            <motion.div 
+                            <motion.div
                                 key="subpage-backdrop"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -221,7 +338,7 @@ const MainLayout = () => {
                                     position: 'absolute',
                                     inset: 0,
                                     zIndex: 5,
-                                    background: 'var(--bg-color)'
+                                    background: 'var(--bg-color)',
                                 }}
                             />
                         )}
@@ -229,46 +346,72 @@ const MainLayout = () => {
 
                     <AnimatePresence mode="wait">
                         {isSubPage && (
-                            <PageTransition key={activeChat?.id || (location.pathname === '/' ? 'root' : location.pathname)} className="chat-view">
-                                <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
-                                    {mobileUserDetails || (activeChat ? <ChatScreen /> : <Outlet />)}
+                            <PageTransition
+                                key={
+                                    activeChat?.id ||
+                                    (location.pathname === '/' ? 'root' : location.pathname)
+                                }
+                                className={`chat-view ${
+                                    location.pathname === '/games' ? 'with-nav' : ''
+                                }`}
+                            >
+                                <Suspense fallback={<LoadingFallback />}>
+                                    {mobileUserDetails ||
+                                        (activeChat ? <ChatScreen /> : <Outlet />)}
                                 </Suspense>
                             </PageTransition>
                         )}
                     </AnimatePresence>
                 </div>
             </UserDetailsContext.Provider>
-        )
+        );
     }
 
-    // Always render Outlet - Chat component stays mounted on desktop!
-    // On mobile, Outlet renders Chat or UserDetails based on route
-    const chatComponent = (
-        <UserDetailsContext.Provider value={userDetailsContextValue}>
-            <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
-                {isDesktop && isOverlayRoute ? <ChatPlaceholder /> : (activeChat ? <ChatScreen /> : <Outlet />)}
-            </Suspense>
-        </UserDetailsContext.Provider>
+    // ──────────────────────────────────────────────────────────
+    // DESKTOP LAYOUT
+    // ──────────────────────────────────────────────────────────
+
+    const chatComponent = useMemo(
+        () => (
+            <UserDetailsContext.Provider value={userDetailsContextValue}>
+                <Suspense fallback={<LoadingFallback />}>
+                    {isDesktop && isOverlayRoute ? (
+                        <ChatPlaceholder />
+                    ) : activeChat ? (
+                        <ChatScreen />
+                    ) : (
+                        <Outlet />
+                    )}
+                </Suspense>
+            </UserDetailsContext.Provider>
+        ),
+        [userDetailsContextValue, isDesktop, isOverlayRoute, activeChat]
     );
 
-    const sidebarPanel = (
-        <Sidebar
-            isDesktop={isDesktop}
-            isContactsRoute={location.pathname === '/contacts'}
-            isProfileRoute={location.pathname === '/profile'}
-            isSettingsRoute={location.pathname === '/settings' || location.pathname.startsWith('/settings/')}
-            isSecuritySettingsRoute={location.pathname === '/settings/security'}
-            isHelpCenterRoute={location.pathname === '/settings/help'}
-            isTermsRoute={location.pathname === '/terms'}
-            isPrivacyRoute={location.pathname === '/privacy'}
-            isBlockedRoute={location.pathname === '/blocked'}
-            isSupportRoute={location.pathname === '/support'}
-            isEmojiSettingsRoute={location.pathname === '/emoji-settings'}
-            isHistoryRoute={location.pathname === '/history'}
-            isGamesRoute={location.pathname === '/games'}
-            chatListPanelProps={chatListPanelProps}
-            onCloseSidebar={() => navigate('/')}
-        />
+    const sidebarPanel = useMemo(
+        () => (
+            <Sidebar
+                isDesktop={isDesktop}
+                isContactsRoute={location.pathname === '/contacts'}
+                isProfileRoute={location.pathname === '/profile'}
+                isSettingsRoute={
+                    location.pathname === '/settings' ||
+                    location.pathname.startsWith('/settings/')
+                }
+                isSecuritySettingsRoute={location.pathname === '/settings/security'}
+                isHelpCenterRoute={location.pathname === '/settings/help'}
+                isTermsRoute={location.pathname === '/terms'}
+                isPrivacyRoute={location.pathname === '/privacy'}
+                isBlockedRoute={location.pathname === '/blocked'}
+                isSupportRoute={location.pathname === '/support'}
+                isEmojiSettingsRoute={location.pathname === '/emoji-settings'}
+                isHistoryRoute={location.pathname === '/history'}
+                isGamesRoute={location.pathname === '/games'}
+                chatListPanelProps={chatListPanelProps}
+                onCloseSidebar={() => navigate('/')}
+            />
+        ),
+        [isDesktop, location.pathname, chatListPanelProps, navigate]
     );
 
     return (

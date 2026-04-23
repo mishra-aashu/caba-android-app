@@ -302,13 +302,10 @@ const ChatHeader = memo(({
                 onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Back button clicked');
-                    clearActiveChat(); // IMPORTANT: Clear store state so MainLayout returns to list
-                    if (window.history.length > 1) {
-                        navigate(-1);
-                    } else {
-                        window.location.href = '/';
-                    }
+                    console.log('[ChatHeader] Back button clicked - navigating back to list');
+                    clearActiveChat(); 
+                    // [FIX] Always use React Router navigate to prevent full page reload
+                    navigate('/');
                 }}
                 style={{ 
                     zIndex: 99999, 

@@ -420,6 +420,15 @@ body {
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     background-color: var(--surface-color);
     overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .chat-view.with-nav {
+    bottom: calc(var(--bottom-nav-height, 60px) + var(--sab, 0px));
   }
 
   .mobile-layout.show-chat .list-view {

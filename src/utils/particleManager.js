@@ -142,9 +142,8 @@ class ParticleManager {
 
         // Area-based spawning for disintegration
         if (width > 0 && height > 0) {
-            const count = 120; // Much denser smoke
+            const count = 120;
             let spawned = 0;
-            // Adjust color to be more "smoky" (lighter/greyer)
             const smokeColor = color === '#555555' ? '#aaaaaa' : color;
 
             for (let i = 0; i < this.particles.length && spawned < count; i++) {
@@ -165,13 +164,24 @@ class ParticleManager {
                 }
             }
         }
+
+        // [OPTIMIZATION] Wake up the loop if it's dormant
+        if (!this.animationId) {
+            this.start();
+        }
     }
 
     start() {
         if (this.animationId) return;
         const animate = () => {
-            this.update();
+            const hasActive = this.update();
             this.draw();
+
+            if (!hasActive) {
+                console.log('[Particles] Loop hibernating - all particles dead.');
+                this.stop();
+                return;
+            }
             this.animationId = requestAnimationFrame(animate);
         };
         this.animationId = requestAnimationFrame(animate);
@@ -182,19 +192,30 @@ class ParticleManager {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        // Final clear when stopping
+        if (this.ctx && this.canvas) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
     }
 
     update() {
+        let anyActive = false;
         for (const p of this.particles) {
-            p.update();
+            if (p.active) {
+                p.update();
+                anyActive = true;
+            }
         }
+        return anyActive;
     }
 
     draw() {
         if (!this.ctx || !this.canvas) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         for (const p of this.particles) {
-            p.draw(this.ctx);
+            if (p.active) {
+                p.draw(this.ctx);
+            }
         }
     }
 }
