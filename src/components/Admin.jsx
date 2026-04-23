@@ -2726,6 +2726,41 @@ const Admin = () => {
               </div>
             </div>
           )}
+
+          {/* ═══════════════════════════════════════════════════════ */}
+          {/* SYSTEM AUDIT TAB                                       */}
+          {/* ═══════════════════════════════════════════════════════ */}
+          {activeTab === 'audit' && (
+            <AdminAuditSystem />
+          )}
+
+          {/* ═══════════════════════════════════════════════════════ */}
+          {/* AUDIT REPORTS TAB                                      */}
+          {/* ═══════════════════════════════════════════════════════ */}
+          {activeTab === 'audit-reports' && (
+            <AuditReportGenerator 
+              auditData={{
+                results: {},
+                metrics: {
+                  totalTests: 0,
+                  passedTests: 0,
+                  failedTests: 0,
+                  warningTests: 0,
+                  overallScore: 0,
+                  totalDuration: 0
+                },
+                timestamp: new Date().toISOString()
+              }}
+            />
+          )}
+
+          {/* ═══════════════════════════════════════════════════════ */}
+          {/* ENHANCED AUDIT DASHBOARD                                */}
+          {/* ═══════════════════════════════════════════════════════ */}
+          {activeTab === 'enhanced-audit' && (
+            <EnhancedAuditDashboard />
+          )}
+
         </div>
       </div>
 
@@ -3035,39 +3070,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* SYSTEM AUDIT TAB                                       */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      {activeTab === 'audit' && (
-        <AdminAuditSystem />
-      )}
 
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* AUDIT REPORTS TAB                                      */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      {activeTab === 'audit-reports' && (
-        <AuditReportGenerator 
-          auditData={{
-            results: {},
-            metrics: {
-              totalTests: 0,
-              passedTests: 0,
-              failedTests: 0,
-              warningTests: 0,
-              overallScore: 0,
-              totalDuration: 0
-            },
-            timestamp: new Date().toISOString()
-          }}
-        />
-      )}
-
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* ENHANCED AUDIT DASHBOARD                                */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      {activeTab === 'enhanced-audit' && (
-        <EnhancedAuditDashboard />
-      )}
     </div>
   );
 };

@@ -1,8 +1,3 @@
-/**
- * Enhanced Audit Dashboard with Advanced Features
- * Integrates RCA, Self-Healing, Predictive Analysis, and Dependency Mapping
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -31,14 +26,14 @@ import RootCauseAnalyzer from '../../utils/RootCauseAnalyzer';
 import SelfHealingSystem from '../../utils/SelfHealingSystem';
 import PredictiveAnalyzer from '../../utils/PredictiveAnalyzer';
 import DependencyMapper from '../../utils/DependencyMapper';
-import './tailwind-shim.css';
+import './EnhancedAuditDashboard.css';
 
 const COLORS = {
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#3b82f6',
-  primary: '#6366f1',
+  primary: '#2563eb',
   critical: '#dc2626',
   high: '#ea580c',
   medium: '#d97706',
@@ -66,7 +61,6 @@ const EnhancedAuditDashboard = () => {
   const [healingHistory, setHealingHistory] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [selectedComponent, setSelectedComponent] = useState(null);
-  const [expandedSections, setExpandedSections] = useState(new Set(['overview', 'critical']));
 
   // Initialize systems
   useEffect(() => {
@@ -75,19 +69,15 @@ const EnhancedAuditDashboard = () => {
 
   const initializeDashboard = async () => {
     try {
-      // Get system health
       const health = dependencyMapper.getSystemHealth();
       setSystemHealth(health);
 
-      // Get healing history
       const history = selfHealing.getHealingHistory();
       setHealingHistory(history);
 
-      // Run predictive analysis
       const predictiveData = await predictiveAnalyzer.runPredictiveAnalysis();
       setPredictions(predictiveData);
 
-      // Get current alerts
       const currentAlerts = predictiveAnalyzer.getAlerts();
       setAlerts(currentAlerts);
 
@@ -101,11 +91,9 @@ const EnhancedAuditDashboard = () => {
   const runComprehensiveAudit = async () => {
     setIsRunning(true);
     try {
-      // Step 1: Run basic audit
       const auditData = await auditEngine.runCompleteAudit();
       setAuditResults(auditData);
 
-      // Step 2: Analyze failures with RCA
       const failedTests = Object.values(auditData.results)
         .filter(result => result.summary.fail > 0)
         .flatMap(result => result.tests.filter(test => test.status === 'fail'));
@@ -119,7 +107,6 @@ const EnhancedAuditDashboard = () => {
         setRcaAnalysis(rcaResults);
       }
 
-      // Step 3: Attempt self-healing for fixable issues
       for (const failedTest of failedTests) {
         const issueType = failedTest.testName.toLowerCase().replace(/\s+/g, '_');
         if (selfHealing.isFixable(issueType)) {
@@ -135,11 +122,9 @@ const EnhancedAuditDashboard = () => {
         }
       }
 
-      // Step 4: Update predictions
       const predictiveData = await predictiveAnalyzer.runPredictiveAnalysis();
       setPredictions(predictiveData);
 
-      // Step 5: Update system health
       const health = dependencyMapper.getSystemHealth();
       setSystemHealth(health);
 
@@ -153,10 +138,8 @@ const EnhancedAuditDashboard = () => {
     }
   };
 
-  // Get system metrics for charts
   const getSystemMetrics = () => {
     if (!systemHealth) return [];
-
     return Object.entries(systemHealth.systems).map(([name, data]) => ({
       name: name.charAt(0).toUpperCase() + name.slice(1),
       health: data.health,
@@ -165,7 +148,6 @@ const EnhancedAuditDashboard = () => {
     }));
   };
 
-  // Get predictive data for charts
   const getPredictiveChartData = () => {
     return predictions.map(pred => ({
       metric: pred.metric.replace(/_/g, ' ').toUpperCase(),
@@ -176,7 +158,6 @@ const EnhancedAuditDashboard = () => {
     }));
   };
 
-  // Get healing statistics
   const getHealingStats = () => {
     const stats = selfHealing.getHealingStats();
     return [
@@ -190,79 +171,71 @@ const EnhancedAuditDashboard = () => {
   const renderOverview = () => (
     <div className="space-y-6">
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-600 text-sm font-medium">System Health</p>
-              <p className="text-2xl font-bold text-green-900">{systemHealth?.overallHealth || 0}%</p>
-              <p className="text-green-700 text-xs">{systemHealth?.overall || 'UNKNOWN'}</p>
-            </div>
-            <Heart className="w-8 h-8 text-green-600" />
+      <div className="metrics-grid">
+        <div className="metric-card health">
+          <div className="metric-info">
+            <h4>System Health</h4>
+            <div className="metric-value">{systemHealth?.overallHealth || 0}%</div>
+            <div className="metric-status">{systemHealth?.overall || 'UNKNOWN'}</div>
           </div>
+          <Heart size={40} opacity={0.6} />
         </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-600 text-sm font-medium">Active Issues</p>
-              <p className="text-2xl font-bold text-blue-900">{alerts.length}</p>
-              <p className="text-blue-700 text-xs">Need attention</p>
-            </div>
-            <AlertTriangle className="w-8 h-8 text-blue-600" />
+        <div className="metric-card issues">
+          <div className="metric-info">
+            <h4>Active Issues</h4>
+            <div className="metric-value">{alerts.length}</div>
+            <div className="metric-status">Need attention</div>
           </div>
+          <AlertTriangle size={40} opacity={0.6} />
         </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-600 text-sm font-medium">Predictions</p>
-              <p className="text-2xl font-bold text-purple-900">{predictions.length}</p>
-              <p className="text-purple-700 text-xs">Future risks</p>
-            </div>
-            <Brain className="w-8 h-8 text-purple-600" />
+        <div className="metric-card predictions">
+          <div className="metric-info">
+            <h4>Predictions</h4>
+            <div className="metric-value">{predictions.length}</div>
+            <div className="metric-status">Future risks</div>
           </div>
+          <Brain size={40} opacity={0.6} />
         </div>
 
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-600 text-sm font-medium">Auto-Healed</p>
-              <p className="text-2xl font-bold text-orange-900">{healingHistory.filter(h => h.status === 'SUCCESS').length}</p>
-              <p className="text-orange-700 text-xs">Issues resolved</p>
-            </div>
-            <Zap className="w-8 h-8 text-orange-600" />
+        <div className="metric-card healing">
+          <div className="metric-info">
+            <h4>Auto-Healed</h4>
+            <div className="metric-value">{healingHistory.filter(h => h.status === 'SUCCESS').length}</div>
+            <div className="metric-status">Issues resolved</div>
           </div>
+          <Zap size={40} opacity={0.6} />
         </div>
       </div>
 
-      {/* System Health Chart */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health Overview</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={getSystemMetrics()}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="health" fill={COLORS.primary} name="Health %" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <div className="grid-2">
+        <div className="data-container">
+          <h3 className="mb-6">System Health Overview</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={getSystemMetrics()}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} />
+              <Tooltip cursor={{fill: '#f5f5f5'}} />
+              <Bar dataKey="health" fill={COLORS.primary} radius={[4, 4, 0, 0]} name="Health %" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
 
-      {/* Predictive Analysis */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Predictive Analysis</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <RadarChart data={getPredictiveChartData()}>
-            <PolarGrid />
-            <PolarAngleAxis dataKey="metric" />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} />
-            <Radar name="Current" dataKey="current" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.6} />
-            <Radar name="Confidence" dataKey="confidence" stroke={COLORS.success} fill={COLORS.success} fillOpacity={0.6} />
-            <Legend />
-          </RadarChart>
-        </ResponsiveContainer>
+        <div className="data-container">
+          <h3 className="mb-6">Predictive Analysis</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <RadarChart data={getPredictiveChartData()}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="metric" />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} />
+              <Radar name="Current" dataKey="current" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.6} />
+              <Radar name="Confidence" dataKey="confidence" stroke={COLORS.success} fill={COLORS.success} fillOpacity={0.6} />
+              <Legend />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );
@@ -272,105 +245,71 @@ const EnhancedAuditDashboard = () => {
     <div className="space-y-6">
       {rcaAnalysis && rcaAnalysis.length > 0 ? (
         rcaAnalysis.map((analysis, index) => (
-          <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-            <div className="flex items-start justify-between mb-4">
+          <div key={index} className="rca-item">
+            <div className="container-header">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {analysis.testResult?.testName || 'Unknown Test'}
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">{analysis.rootCause}</p>
+                <h3>{analysis.testResult?.testName || 'Unknown Test'}</h3>
+                <p style={{ marginTop: '4px', opacity: 0.7 }}>{analysis.rootCause}</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                  analysis.autoFixable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {analysis.autoFixable ? 'Auto-Fixable' : 'Manual Fix Required'}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <span className={`status-badge ${analysis.autoFixable ? 'success' : 'error'}`}>
+                  {analysis.autoFixable ? 'Auto-Fixable' : 'Manual Fix'}
                 </span>
-                <span className="text-sm text-gray-500">{analysis.estimatedFixTime}</span>
+                <span style={{ fontSize: '12px', opacity: 0.5 }}>{analysis.estimatedFixTime}</span>
               </div>
             </div>
 
-            {/* Investigation Chain */}
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Investigation Chain</h4>
+            <div className="mb-6">
+              <h4 style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.6 }}>Investigation Chain</h4>
               <div className="space-y-2">
                 {analysis.investigation.map((step, stepIndex) => (
-                  <div key={stepIndex} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className={`w-2 h-2 rounded-full ${
-                      step.status === 'failed' ? 'bg-red-500' : 
-                      step.status === 'passed' ? 'bg-green-500' : 'bg-yellow-500'
-                    }`} />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{step.check}</p>
-                      <p className="text-xs text-gray-600">{step.issue || 'Check passed'}</p>
+                  <div key={stepIndex} className="investigation-step">
+                    <div style={{ 
+                      width: '10px', height: '10px', borderRadius: '50%',
+                      background: step.status === 'failed' ? COLORS.error : step.status === 'passed' ? COLORS.success : COLORS.warning
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{step.check}</div>
+                      <div style={{ fontSize: '12px', opacity: 0.6 }}>{step.issue || 'Check passed'}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Affected Features */}
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Affected Features</h4>
-              <div className="flex flex-wrap gap-2">
-                {analysis.affectedFeatures.map((feature, featureIndex) => (
-                  <span key={featureIndex} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                    {feature}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* User Impact */}
-            {analysis.userImpact && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">User Impact</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-600">Affected Users</p>
-                    <p className="text-lg font-semibold text-gray-900">{analysis.userImpact.affectedUsers.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600">Business Impact</p>
-                    <p className="text-lg font-semibold text-gray-900">{analysis.userImpact.businessImpact}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600">Urgency</p>
-                    <p className="text-lg font-semibold text-gray-900">{analysis.userImpact.urgency}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600">Experience</p>
-                    <p className="text-lg font-semibold text-gray-900">{analysis.userImpact.userExperience}</p>
-                  </div>
+            <div className="grid-2">
+              <div>
+                <h4 style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.6 }}>Affected Features</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {analysis.affectedFeatures.map((feature, idx) => (
+                    <span key={idx} className="status-badge" style={{ background: '#eff6ff', color: '#1e40af' }}>{feature}</span>
+                  ))}
                 </div>
               </div>
-            )}
-
-            {/* Suggested Fixes */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Suggested Fixes</h4>
-              <div className="space-y-2">
-                {analysis.suggestedFixes.map((fix, fixIndex) => (
-                  <div key={fixIndex} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+              
+              {analysis.userImpact && (
+                <div>
+                  <h4 style={{ fontSize: '14px', marginBottom: '12px', opacity: 0.6 }}>User Impact</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div>
-                      <p className="text-sm font-medium text-green-900">{fix.action}</p>
-                      <p className="text-xs text-green-700">{fix.condition}</p>
+                      <div style={{ fontSize: '10px', textTransform: 'uppercase', opacity: 0.5 }}>Affected Users</div>
+                      <div style={{ fontWeight: 700 }}>{analysis.userImpact.affectedUsers.toLocaleString()}</div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-green-600">{fix.estimatedTime}</p>
-                      <p className="text-xs text-green-600">{fix.autoFixable ? 'Auto-fixable' : 'Manual'}</p>
+                    <div>
+                      <div style={{ fontSize: '10px', textTransform: 'uppercase', opacity: 0.5 }}>Experience</div>
+                      <div style={{ fontWeight: 700 }}>{analysis.userImpact.userExperience}</div>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         ))
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
-          <Brain className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No root cause analysis available</p>
-          <p className="text-sm text-gray-500 mt-2">Run an audit to generate RCA reports</p>
+        <div className="data-container" style={{ textAlign: 'center', padding: '80px' }}>
+          <Brain size={48} style={{ opacity: 0.2, marginBottom: '20px' }} />
+          <p style={{ opacity: 0.6 }}>No root cause analysis available</p>
+          <p style={{ fontSize: '13px', opacity: 0.4 }}>Run an audit to generate RCA reports</p>
         </div>
       )}
     </div>
@@ -379,376 +318,244 @@ const EnhancedAuditDashboard = () => {
   // Render Self-Healing section
   const renderSelfHealing = () => (
     <div className="space-y-6">
-      {/* Healing Statistics */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Self-Healing Statistics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+      <div className="grid-2">
+        <div className="data-container">
+          <h3>Self-Healing Statistics</h3>
+          <div className="grid-2" style={{ marginTop: '24px' }}>
             <ResponsiveContainer width="100%" height={200}>
               <RePieChart>
-                <Pie
-                  data={getHealingStats()}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {getHealingStats().map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                <Pie data={getHealingStats()} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                  {getHealingStats().map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip />
               </RePieChart>
             </ResponsiveContainer>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <span className="text-green-700">Success Rate</span>
-              <span className="font-semibold text-green-900">
-                {selfHealing.getHealingStats().successRate}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-              <span className="text-blue-700">Total Attempts</span>
-              <span className="font-semibold text-blue-900">
-                {selfHealing.getHealingStats().total}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-              <span className="text-purple-700">Currently Healing</span>
-              <span className="font-semibold text-purple-900">
-                {selfHealing.getHealingStats().currentlyHealing ? 'Yes' : 'No'}
-              </span>
+            <div className="space-y-3">
+              <div className="investigation-step" style={{ background: '#f0fdf4', color: '#166534' }}>
+                <span style={{ flex: 1 }}>Success Rate</span>
+                <strong>{selfHealing.getHealingStats().successRate}%</strong>
+              </div>
+              <div className="investigation-step" style={{ background: '#eff6ff', color: '#1e40af' }}>
+                <span style={{ flex: 1 }}>Total Attempts</span>
+                <strong>{selfHealing.getHealingStats().total}</strong>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Healing History */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Healing History</h3>
-        <div className="space-y-3">
-          {healingHistory.length > 0 ? (
-            healingHistory.map((healing, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">{healing.issueName}</p>
-                  <p className="text-sm text-gray-600">{healing.timestamp}</p>
+        <div className="data-container">
+          <h3>Healing History</h3>
+          <div className="space-y-2" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            {healingHistory.map((healing, index) => (
+              <div key={index} className="investigation-step">
+                <div style={{ flex: 1 }}>
+                  <strong>{healing.issueName}</strong>
+                  <div style={{ fontSize: '11px', opacity: 0.5 }}>{healing.timestamp}</div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    healing.status === 'SUCCESS' ? 'bg-green-100 text-green-800' :
-                    healing.status === 'FAILED' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {healing.status}
-                  </span>
-                  {healing.executionTime && (
-                    <span className="text-sm text-gray-500">{healing.executionTime}ms</span>
-                  )}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-gray-500 py-8">No healing history available</p>
-          )}
-        </div>
-      </div>
-
-      {/* Available Fixes */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Auto-Fixes</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {selfHealing.getAvailableFixes().map((fix, index) => (
-            <div key={index} className="p-4 border border-gray-200 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-900">{fix.name}</h4>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  fix.autoFix ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-                }`}>
-                  {fix.autoFix ? 'Auto' : 'Manual'}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Time:</span> {fix.estimatedTime}
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Risk:</span> {fix.risk}
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Priority:</span> {fix.priority}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  // Render Predictive Analysis section
-  const renderPredictive = () => (
-    <div className="space-y-6">
-      {/* Current Alerts */}
-      {alerts.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Immediate Alerts</h3>
-          <div className="space-y-3">
-            {alerts.map((alert, index) => (
-              <div key={index} className="flex items-start space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-medium text-red-900">{alert.message}</p>
-                  <p className="text-sm text-red-700 mt-1">
-                    Metric: {alert.metric} | Current: {alert.current} | 
-                    Predicted: {alert.predictedValue} in {alert.daysFromNow} days
-                  </p>
-                  <div className="mt-2">
-                    <p className="text-xs text-red-600 font-medium">Recommended Actions:</p>
-                    <ul className="text-xs text-red-700 mt-1 list-disc list-inside">
-                      {alert.actions.map((action, actionIndex) => (
-                        <li key={actionIndex}>{action.action} ({action.estimatedTime})</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+                <span className={`status-badge ${healing.status === 'SUCCESS' ? 'success' : 'error'}`}>{healing.status}</span>
               </div>
             ))}
           </div>
         </div>
-      )}
-
-      {/* Predictions Chart */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">7-Day Predictions</h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={predictions.flatMap(pred => 
-            pred.predictions.map(prediction => ({
-              metric: pred.metric,
-              date: `Day ${prediction.daysFromNow}`,
-              value: prediction.predictedValue,
-              confidence: prediction.confidence
-            }))
-          )}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="value" stroke={COLORS.primary} name="Predicted Value" />
-            <Line type="monotone" dataKey="confidence" stroke={COLORS.success} name="Confidence %" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Health Forecast */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health Forecast</h3>
-        {(() => {
-          const forecast = predictiveAnalyzer.getHealthForecast();
-          return (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <span className="font-medium text-gray-900">Overall Health Forecast</span>
-                <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                  forecast.overall === 'HEALTHY' ? 'bg-green-100 text-green-800' :
-                  forecast.overall === 'WARNING' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {forecast.overall}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Next 24 Hours</p>
-                  <div className="space-y-1">
-                    {forecast.next24Hours.map((warning, index) => (
-                      <div key={index} className="text-sm text-gray-600">
-                        • {warning.message}
-                      </div>
-                    ))}
-                    {forecast.next24Hours.length === 0 && (
-                      <p className="text-sm text-green-600">No issues predicted</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Next 7 Days</p>
-                  <div className="space-y-1">
-                    {forecast.next7Days.slice(0, 3).map((warning, index) => (
-                      <div key={index} className="text-sm text-gray-600">
-                        • {warning.message}
-                      </div>
-                    ))}
-                    {forecast.next7Days.length > 3 && (
-                      <p className="text-sm text-gray-500">...and {forecast.next7Days.length - 3} more</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
       </div>
     </div>
   );
 
-  // Render Dependency Map section
-  const renderDependencies = () => (
+  const renderPredictive = () => (
     <div className="space-y-6">
-      {/* System Dependencies */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Dependencies</h3>
-        <div className="space-y-4">
-          {Object.entries(dependencyMapper.dependencyGraph).map(([systemName, system]) => (
-            <div key={systemName} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-900">{system.name}</h4>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  system.type === 'infrastructure' ? 'bg-purple-100 text-purple-800' :
-                  system.type === 'system' ? 'bg-blue-100 text-blue-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {system.type}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.entries(system.components || {}).map(([compName, component]) => (
-                  <div key={compName} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-900">{component.name}</span>
-                      <div className={`w-2 h-2 rounded-full ${
-                        component.health >= 90 ? 'bg-green-500' :
-                        component.health >= 70 ? 'bg-yellow-500' :
-                        'bg-red-500'
-                      }`} />
-                    </div>
-                    <p className="text-xs text-gray-600 mb-1">Health: {component.health}%</p>
-                    <p className="text-xs text-gray-600">Criticality: {component.criticality}</p>
-                    {component.dependencies && component.dependencies.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Depends on: {component.dependencies.join(', ')}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Critical Paths */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Critical Paths</h3>
-        <div className="space-y-3">
-          {dependencyMapper.criticalPaths.map((path, index) => (
-            <div key={index} className="p-4 border border-gray-200 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-900">{path.name}</h4>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  path.criticality === 'CRITICAL' ? 'bg-red-100 text-red-800' :
-                  path.criticality === 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {path.criticality}
-                </span>
-              </div>
-              <div className="flex items-center space-x-2 mb-2">
-                {path.path.map((step, stepIndex) => (
-                  <React.Fragment key={step}>
-                    <span className="text-sm text-gray-600">{step}</span>
-                    {stepIndex < path.path.length - 1 && (
-                      <ArrowRight className="w-4 h-4 text-gray-400" />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500">
-                Impact Score: {path.impact_score} | 
-                Single Points of Failure: {path.single_point_of_failure.join(', ')}
+      {/* Risk Alert Banner */}
+      {alerts.length > 0 && (
+        <div className="predictive-alert-banner">
+          <div className="alert-content">
+            <Brain size={32} className="alert-icon-pulse" />
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>AI Predicted System Vulnerabilities</h3>
+              <p style={{ margin: '4px 0 0 0', opacity: 0.8, fontSize: '14px' }}>
+                Our predictive engine has identified {alerts.length} critical trends that require immediate intervention.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid: Forecast & Matrix */}
+      <div className="grid-2">
+        <div className="data-container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h3 style={{ margin: 0 }}>Infrastructure Load Forecast</h3>
+            <span className="status-badge" style={{ background: '#eff6ff', color: '#1e40af' }}>7-Day Projection</span>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={predictions.flatMap(pred => pred.predictions.map(p => ({ 
+              metric: pred.metric.replace(/_/g, ' ').toUpperCase(), 
+              day: `Day ${p.daysFromNow}`, 
+              value: Math.round(p.predictedValue),
+              confidence: Math.round(p.confidence * 100)
+            })))}>
+              <defs>
+                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+              <XAxis dataKey="day" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+              />
+              <Area type="monotone" dataKey="value" stroke={COLORS.primary} fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="data-container">
+          <h3 style={{ marginBottom: '24px' }}>Risk Assessment Matrix</h3>
+          <div className="risk-matrix">
+            <div className="matrix-y-label">PROBABILITY</div>
+            <div className="matrix-content">
+              {predictions.slice(0, 4).map((pred, idx) => (
+                <div key={idx} className={`risk-node ${pred.urgency.toLowerCase()}`}>
+                  <div className="risk-dot" style={{ 
+                    transform: `translate(${pred.confidence * 100}px, ${-(pred.trend.percentage / 2)}px)` 
+                  }}>
+                    <div className="dot-ripple"></div>
+                    <div className="dot-core"></div>
+                    <div className="dot-tooltip">{pred.metric.replace(/_/g, ' ')}</div>
+                  </div>
+                </div>
+              ))}
+              <div className="matrix-background">
+                <div className="quadrant q1">CRITICAL</div>
+                <div className="quadrant q2">HIGH</div>
+                <div className="quadrant q3">MEDIUM</div>
+                <div className="quadrant q4">LOW</div>
+              </div>
+            </div>
+            <div className="matrix-x-label">IMPACT / SEVERITY</div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Insights & Recommendations */}
+      <div className="data-container">
+        <h3 style={{ marginBottom: '20px' }}>AI-Generated Preventive Strategy</h3>
+        <div className="grid-2">
+          <div className="ai-insight-box">
+            <div className="insight-header">
+              <Microscope size={20} color={COLORS.primary} />
+              <span>Anomaly Detection Analysis</span>
+            </div>
+            <p style={{ fontSize: '14px', lineHeight: 1.6, opacity: 0.8 }}>
+              Based on recent trends in <strong>{predictions[0]?.metric || 'system'}</strong> performance, we observe a 
+              {predictions[0]?.trend.direction} trajectory. The system's behavior suggests a 
+              potential bottleneck forming within the next {predictions[0]?.warnings[0]?.daysFromNow || 'X'} days.
+            </p>
+          </div>
+          
+          <div className="recommendations-scroll">
+            {predictions.flatMap(p => p.recommendedActions).slice(0, 4).map((action, idx) => (
+              <div key={idx} className="predictive-action-card">
+                <div className="action-main">
+                  <Zap size={18} color={COLORS.warning} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '14px' }}>{action.action}</div>
+                    <div style={{ fontSize: '12px', opacity: 0.6 }}>IMPACT: {action.impact}</div>
+                  </div>
+                </div>
+                <span className={`priority-tag ${action.priority.toLowerCase()}`}>{action.priority}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDependencies = () => (
+    <div className="space-y-6">
+      <div className="data-container">
+        <h3>Infrastructure Dependency Graph</h3>
+        <div className="grid-2" style={{ marginTop: '24px' }}>
+          {Object.entries(dependencyMapper.dependencyGraph).map(([name, system]) => (
+            <div key={name} className="rca-item">
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <strong>{system.name}</strong>
+                <span className="status-badge" style={{ background: '#f3e8ff', color: '#6b21a8' }}>{system.type}</span>
+              </div>
+              <div className="space-y-2">
+                {Object.entries(system.components || {}).map(([cName, comp]) => (
+                  <div key={cName} className="investigation-step">
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: comp.health >= 90 ? '#10b981' : '#f59e0b' }} />
+                    <span style={{ flex: 1, fontSize: '13px' }}>{comp.name}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700 }}>{comp.health}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
     </div>
   );
 
-  // Main render
   return (
-    <div className="enhanced-audit-dashboard p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <Shield className="w-8 h-8 text-blue-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Enhanced System Audit</h1>
-              <p className="text-gray-600">AI-powered diagnostics and self-healing</p>
-            </div>
+    <div className="audit-dashboard-root">
+      <header className="dashboard-header">
+        <div className="header-brand">
+          <div className="header-icon-box">
+            <Shield size={32} />
           </div>
-          
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={runComprehensiveAudit}
-              disabled={isRunning}
-              className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isRunning ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>Running Analysis...</span>
-                </>
-              ) : (
-                <>
-                  <Brain className="w-5 h-5" />
-                  <span>Run Comprehensive Audit</span>
-                </>
-              )}
-            </button>
+          <div className="header-text">
+            <h1>Enhanced System Audit</h1>
+            <p>AI-powered diagnostics and self-healing</p>
           </div>
         </div>
+        
+        <button onClick={runComprehensiveAudit} disabled={isRunning} className="btn-comprehensive">
+          {isRunning ? (
+            <>
+              <RefreshCw size={20} className="spin" />
+              <span>Running Analysis...</span>
+            </>
+          ) : (
+            <>
+              <Brain size={20} />
+              <span>Run Comprehensive Audit</span>
+            </>
+          )}
+        </button>
+      </header>
 
-        {/* View Navigation */}
-        <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
-          {[
-            { id: 'overview', label: 'Overview', icon: Activity },
-            { id: 'rca', label: 'Root Cause Analysis', icon: Search },
-            { id: 'healing', label: 'Self-Healing', icon: Zap },
-            { id: 'predictive', label: 'Predictive Analysis', icon: Brain },
-            { id: 'dependencies', label: 'Dependencies', icon: Network }
-          ].map(view => (
-            <button
-              key={view.id}
-              onClick={() => setActiveView(view.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-                activeView === view.id
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <view.icon className="w-4 h-4" />
-              <span>{view.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      <nav className="dashboard-nav">
+        {[
+          { id: 'overview', label: 'Overview', icon: Activity },
+          { id: 'rca', label: 'Root Cause Analysis', icon: Search },
+          { id: 'healing', label: 'Self-Healing', icon: Zap },
+          { id: 'predictive', label: 'Predictive Analysis', icon: Brain },
+          { id: 'dependencies', label: 'Dependencies', icon: Network }
+        ].map(view => (
+          <button
+            key={view.id}
+            onClick={() => setActiveView(view.id)}
+            className={`nav-tab ${activeView === view.id ? 'active' : ''}`}
+          >
+            <view.icon size={16} />
+            <span>{view.label}</span>
+          </button>
+        ))}
+      </nav>
 
-      {/* Content based on active view */}
-      {activeView === 'overview' && renderOverview()}
-      {activeView === 'rca' && renderRCA()}
-      {activeView === 'healing' && renderSelfHealing()}
-      {activeView === 'predictive' && renderPredictive()}
-      {activeView === 'dependencies' && renderDependencies()}
+      <main className="dashboard-content">
+        {activeView === 'overview' && renderOverview()}
+        {activeView === 'rca' && renderRCA()}
+        {activeView === 'healing' && renderSelfHealing()}
+        {activeView === 'predictive' && renderPredictive()}
+        {activeView === 'dependencies' && renderDependencies()}
+      </main>
     </div>
   );
 };
 
 export default EnhancedAuditDashboard;
+

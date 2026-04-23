@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, FileText, Share2, Calendar, Clock, TrendingUp, AlertTriangle, CheckCircle, XCircle, BarChart3, PieChart, Activity, Target, Layers, GitBranch, Package, Code, Database, Shield, Users, MessageSquare } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import './AuditReportGenerator.css';
 
 const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
   const [reportType, setReportType] = useState('detailed');
@@ -12,7 +13,7 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#3b82f6',
-    primary: '#6366f1'
+    primary: '#2563eb'
   };
 
   // Generate summary statistics
@@ -111,9 +112,7 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
   const exportToJSON = () => {
     const dataStr = JSON.stringify(auditData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
     const exportFileDefaultName = `audit-report-${new Date().toISOString().split('T')[0]}.json`;
-    
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
@@ -122,16 +121,13 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
 
   const exportToCSV = () => {
     let csv = 'Category,Test,Status,Message,Execution Time\n';
-    
     Object.entries(auditData.results).forEach(([key, result]) => {
       result.tests.forEach(test => {
         csv += `"${result.category}","${test.name}","${test.status}","${test.message}","${test.executionTime || 0}"\n`;
       });
     });
-    
     const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
     const exportFileDefaultName = `audit-report-${new Date().toISOString().split('T')[0]}.csv`;
-    
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
@@ -139,8 +135,6 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
   };
 
   const generatePDFReport = () => {
-    // This would require a PDF library like jsPDF
-    // For now, we'll create a printable HTML version
     const printWindow = window.open('', '_blank');
     const htmlContent = generatePrintableHTML();
     printWindow.document.write(htmlContent);
@@ -173,7 +167,6 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
           <p>Generated on: ${new Date().toLocaleString()}</p>
           <p>Overall Score: ${auditData.metrics?.overallScore || 0}%</p>
         </div>
-        
         <div class="section">
           <h2>Summary</h2>
           <div class="metric">Total Tests: ${auditData.metrics?.totalTests || 0}</div>
@@ -181,7 +174,6 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
           <div class="metric fail">Failed: ${auditData.metrics?.failedTests || 0}</div>
           <div class="metric warn">Warnings: ${auditData.metrics?.warningTests || 0}</div>
         </div>
-        
         <div class="section">
           <h2>Detailed Results</h2>
           <table>
@@ -211,23 +203,25 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
   };
 
   return (
-    <div className="audit-report-generator p-6 max-w-7xl mx-auto">
+    <div className="audit-report-root">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <FileText className="w-8 h-8 text-blue-600" />
+      <header className="report-header">
+        <div className="header-top">
+          <div className="title-section">
+            <div className="title-icon-box">
+              <FileText size={32} />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Audit Report Generator</h1>
-              <p className="text-gray-600">Comprehensive system analysis and reporting</p>
+              <h1>Audit Report Generator</h1>
+              <p>Comprehensive system analysis and reporting</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="header-actions">
             <select
               value={reportType}
               onChange={(e) => setReportType(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="report-select"
             >
               <option value="summary">Summary Report</option>
               <option value="detailed">Detailed Report</option>
@@ -235,117 +229,91 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
               <option value="technical">Technical Report</option>
             </select>
             
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={exportToJSON}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>JSON</span>
+            <div className="export-group">
+              <button onClick={exportToJSON} className="btn-export json">
+                <Download size={14} /> JSON
               </button>
-              
-              <button
-                onClick={exportToCSV}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>CSV</span>
+              <button onClick={exportToCSV} className="btn-export csv">
+                <Download size={14} /> CSV
               </button>
-              
-              <button
-                onClick={generatePDFReport}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                <span>PDF</span>
+              <button onClick={generatePDFReport} className="btn-export pdf">
+                <FileText size={14} /> PDF
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Target className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Overall Score</p>
-              <p className="text-2xl font-bold text-gray-900">{auditData.metrics?.overallScore || 0}%</p>
-            </div>
+      <div className="stats-grid">
+        <div className="stat-card-mini">
+          <div className="stat-icon blue">
+            <Target size={24} />
+          </div>
+          <div className="stat-info">
+            <span className="label">Overall Score</span>
+            <div className="value">{auditData.metrics?.overallScore || 0}%</div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Tests Passed</p>
-              <p className="text-2xl font-bold text-gray-900">{auditData.metrics?.passedTests || 0}</p>
-            </div>
+        <div className="stat-card-mini">
+          <div className="stat-icon green">
+            <CheckCircle size={24} />
+          </div>
+          <div className="stat-info">
+            <span className="label">Tests Passed</span>
+            <div className="value">{auditData.metrics?.passedTests || 0}</div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-red-100 rounded-lg">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Tests Failed</p>
-              <p className="text-2xl font-bold text-gray-900">{auditData.metrics?.failedTests || 0}</p>
-            </div>
+        <div className="stat-card-mini">
+          <div className="stat-icon red">
+            <XCircle size={24} />
+          </div>
+          <div className="stat-info">
+            <span className="label">Tests Failed</span>
+            <div className="value">{auditData.metrics?.failedTests || 0}</div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Duration</p>
-              <p className="text-2xl font-bold text-gray-900">{auditData.metrics?.totalDuration || 0}ms</p>
-            </div>
+        <div className="stat-card-mini">
+          <div className="stat-icon yellow">
+            <Clock size={24} />
+          </div>
+          <div className="stat-info">
+            <span className="label">Duration</span>
+            <div className="value">{auditData.metrics?.totalDuration || 0}ms</div>
           </div>
         </div>
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Performance by Category */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance by Category</h3>
+      <div className="charts-grid">
+        <div className="chart-box">
+          <h3>Performance by Category</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={summaryStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} />
+              <Tooltip cursor={{fill: 'rgba(0,0,0,0.02)'}} />
               <Legend />
-              <Bar dataKey="score" fill={COLORS.primary} name="Score %" />
-              <Bar dataKey="passed" fill={COLORS.success} name="Passed" />
+              <Bar dataKey="score" fill={COLORS.primary} radius={[4, 4, 0, 0]} name="Score %" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Status Distribution */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Distribution</h3>
+        <div className="chart-box">
+          <h3>Status Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <RePieChart>
               <Pie
                 data={statusDistribution}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                innerRadius={60}
                 outerRadius={80}
-                fill="#8884d8"
+                paddingAngle={5}
                 dataKey="value"
               >
                 {statusDistribution.map((entry, index) => (
@@ -353,13 +321,13 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
                 ))}
               </Pie>
               <Tooltip />
+              <Legend />
             </RePieChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Feature Coverage Radar */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Feature Coverage Analysis</h3>
+        <div className="chart-box">
+          <h3>Feature Coverage Analysis</h3>
           <ResponsiveContainer width="100%" height={300}>
             <RadarChart data={radarData}>
               <PolarGrid />
@@ -372,59 +340,49 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
           </ResponsiveContainer>
         </div>
 
-        {/* Response Time Trend */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Response Time Analysis</h3>
+        <div className="chart-box">
+          <h3>Response Time Analysis</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={performanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="category" />
-              <YAxis />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="category" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="avgResponseTime" stroke={COLORS.warning} name="Avg Response (ms)" />
-              <Line type="monotone" dataKey="successRate" stroke={COLORS.success} name="Success Rate %" />
+              <Line type="monotone" dataKey="avgResponseTime" stroke={COLORS.warning} strokeWidth={3} dot={{r: 4}} name="Avg Response (ms)" />
+              <Line type="monotone" dataKey="successRate" stroke={COLORS.success} strokeWidth={3} dot={{r: 4}} name="Success Rate %" />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Detailed Results Table */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Detailed Test Results</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-500">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+      <div className="results-table-container">
+        <h3>Detailed Test Results</h3>
+        <div className="table-wrapper">
+          <table className="results-table">
+            <thead>
               <tr>
-                <th className="px-6 py-3">Category</th>
-                <th className="px-6 py-3">Test Name</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Message</th>
-                <th className="px-6 py-3">Response Time</th>
-                <th className="px-6 py-3">Actions</th>
+                <th>Category</th>
+                <th>Test Name</th>
+                <th>Status</th>
+                <th>Message</th>
+                <th>Time</th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(auditData.results || {}).map(([key, result]) =>
                 result.tests.map((test, index) => (
-                  <tr key={`${key}-${index}`} className="bg-white border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{result.category}</td>
-                    <td className="px-6 py-4">{test.name}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        test.status === 'pass' ? 'bg-green-100 text-green-800' :
-                        test.status === 'fail' ? 'bg-red-100 text-red-800' :
-                        test.status === 'warn' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {test.status.toUpperCase()}
+                  <tr key={`${key}-${index}`}>
+                    <td><strong>{result.category}</strong></td>
+                    <td>{test.name}</td>
+                    <td>
+                      <span className={`status-tag ${test.status}`}>
+                        {test.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{test.message}</td>
-                    <td className="px-6 py-4">{test.executionTime || 0}ms</td>
-                    <td className="px-6 py-4">
-                      <button className="text-blue-600 hover:text-blue-800 text-sm">View Details</button>
-                    </td>
+                    <td>{test.message}</td>
+                    <td>{test.executionTime || 0}ms</td>
                   </tr>
                 ))
               )}
@@ -434,75 +392,53 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
       </div>
 
       {/* Critical Issues & Recommendations */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        {/* Critical Issues */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
+      <div className="insights-grid">
+        <div className="insight-card">
+          <h3>
+            <AlertTriangle color="#ef4444" size={20} />
             Critical Issues
           </h3>
-          <div className="space-y-3">
+          <div className="issues-list">
             {Object.entries(auditData.results || {}).map(([key, result]) =>
               result.tests
                 .filter(test => test.status === 'fail')
                 .map((test, index) => (
-                  <div key={`${key}-${index}`} className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start space-x-3">
-                      <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-red-900">{test.name}</h4>
-                        <p className="text-sm text-red-700 mt-1">{test.message}</p>
-                        <p className="text-xs text-red-600 mt-2">Category: {result.category}</p>
-                      </div>
-                    </div>
+                  <div key={`${key}-${index}`} className="issue-item">
+                    <strong>{test.name}</strong>
+                    <p style={{ margin: '4px 0', fontSize: '13px', opacity: 0.8 }}>{test.message}</p>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#ef4444' }}>CATEGORY: {result.category}</span>
                   </div>
                 ))
             )}
             {Object.values(auditData.results || {}).every(result => 
               result.tests.every(test => test.status !== 'fail')
             ) && (
-              <p className="text-green-600 text-center py-4">No critical issues found 🎉</p>
+              <p style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No critical issues found 🎉</p>
             )}
           </div>
         </div>
 
-        {/* Recommendations */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <TrendingUp className="w-5 h-5 text-blue-600 mr-2" />
+        <div className="insight-card">
+          <h3>
+            <TrendingUp color="#2563eb" size={20} />
             Recommendations
           </h3>
-          <div className="space-y-3">
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-blue-900">Optimize Database Queries</h4>
-                  <p className="text-sm text-blue-700 mt-1">Some queries are taking longer than expected</p>
-                  <p className="text-xs text-blue-600 mt-2">Priority: Medium | Est. Time: 2 hours</p>
-                </div>
+          <div className="recs-list">
+            <div className="rec-item">
+              <strong>Optimize Database Queries</strong>
+              <p style={{ margin: '4px 0', fontSize: '13px', opacity: 0.8 }}>Some queries are taking longer than expected</p>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '11px', fontWeight: 700 }}>
+                <span style={{ color: '#2563eb' }}>PRIORITY: MEDIUM</span>
+                <span style={{ color: '#666' }}>TIME: 2H</span>
               </div>
             </div>
             
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-yellow-900">Review RLS Policies</h4>
-                  <p className="text-sm text-yellow-700 mt-1">Some Row Level Security policies may need updates</p>
-                  <p className="text-xs text-yellow-600 mt-2">Priority: High | Est. Time: 4 hours</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-green-900">System Performance Good</h4>
-                  <p className="text-sm text-green-700 mt-1">Overall system performance is within acceptable limits</p>
-                  <p className="text-xs text-green-600 mt-2">Priority: Low | Est. Time: 1 hour</p>
-                </div>
+            <div className="rec-item" style={{ borderLeftColor: '#f59e0b' }}>
+              <strong>Review RLS Policies</strong>
+              <p style={{ margin: '4px 0', fontSize: '13px', opacity: 0.8 }}>Some Row Level Security policies may need updates</p>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '11px', fontWeight: 700 }}>
+                <span style={{ color: '#f59e0b' }}>PRIORITY: HIGH</span>
+                <span style={{ color: '#666' }}>TIME: 4H</span>
               </div>
             </div>
           </div>
@@ -513,3 +449,4 @@ const AuditReportGenerator = ({ auditData, onExport, onShare }) => {
 };
 
 export default AuditReportGenerator;
+
