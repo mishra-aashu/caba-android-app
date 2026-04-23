@@ -27,7 +27,10 @@ export function useChatMessages({
     // ─── DEXIE LIVE QUERY ───
     const limit = 50;
     const rawMessages = useLiveQuery(
-        () => db.messages.where('chatId').equals(chatId).sortBy('createdAt'),
+        () => {
+            if (!chatId) return [];
+            return db.messages.where('chatId').equals(chatId).sortBy('createdAt');
+        },
         [chatId]
     ) || [];
 

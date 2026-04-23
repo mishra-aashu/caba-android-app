@@ -57,6 +57,7 @@ const ChatHeader = memo(({
     const isSelectionMode = useChatStore(state => state.isSelectionMode);
     const selectedCount = useChatStore(state => state.selectedMessageIds.size);
     const clearSelection = useChatStore(state => state.clearSelection);
+    const clearActiveChat = useChatStore(state => state.clearActiveChat);
     const setSelectionMode = useChatStore(state => state.setSelectionMode);
 
     const navigate = useNavigate();
@@ -251,8 +252,18 @@ const ChatHeader = memo(({
     if (isSelectionMode) {
         return (
             <header className={`${styles['chat-header']} ${styles['selectionModeHeader']}`}>
-                <button className={styles['back-btn']} onClick={clearSelection} title="Cancel selection">
-                    <ArrowLeft size={20} />
+                <button 
+                    type="button"
+                    className={styles['back-btn']} 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        clearSelection();
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title="Cancel selection"
+                    style={{ zIndex: 99999, position: 'relative', pointerEvents: 'auto' }}
+                >
+                    <ArrowLeft size={24} />
                 </button>
                 <div className={styles['selectionHeaderInfo']}>
                     <h3>{selectedCount} Selected</h3>
@@ -282,8 +293,32 @@ const ChatHeader = memo(({
     // ─── NORMAL HEADER ───
     return (
         <header className={styles['chat-header']}>
-            <button className={styles['back-btn']} onClick={() => resolvedNavigate('/')}>
-                <ArrowLeft size={20} />
+            <button 
+                type="button"
+                className={styles['back-btn']} 
+                onPointerDown={(e) => {
+                    e.stopPropagation();
+                }}
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Back button clicked');
+                    clearActiveChat(); // IMPORTANT: Clear store state so MainLayout returns to list
+                    if (window.history.length > 1) {
+                        navigate(-1);
+                    } else {
+                        window.location.href = '/';
+                    }
+                }}
+                style={{ 
+                    zIndex: 99999, 
+                    position: 'relative', 
+                    pointerEvents: 'auto',
+                    cursor: 'pointer',
+                    WebkitTapHighlightColor: 'transparent'
+                }}
+            >
+                <ArrowLeft size={24} />
             </button>
 
             <div

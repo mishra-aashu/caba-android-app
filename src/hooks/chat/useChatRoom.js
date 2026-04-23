@@ -276,6 +276,7 @@ const useChatRoom = () => {
     isMuted: settingsApi.isMuted,
     isTempChat: settingsApi.isTempChat,
     setIsTempChat: settingsApi.setIsTempChat,
+    toggleVanishMode: settingsApi.toggleVanishMode,
     selectedVanishDuration: settingsApi.selectedVanishDuration,
     updateVanishDuration: settingsApi.updateVanishDuration,
     isVanishLoading: settingsApi.isVanishLoading,

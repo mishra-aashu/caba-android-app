@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy, useContext } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -48,7 +49,7 @@ const ChatScreen = () => {
         otherUser, setOtherUser, isInitializing,
         messages, isFetchingNextPage, hasNextPage, fetchNextPage,
         typingUsers, sendTyping,
-        isMuted, isTempChat, setIsTempChat,
+        isMuted, isTempChat, setIsTempChat, toggleVanishMode,
         selectedVanishDuration, updateVanishDuration, vanishPresets, isVanishLoading,
 
         sendMessage, handleSendMedia, replyingTo, handleReply, cancelReply, deleteMessage, forwardMessages,
@@ -365,8 +366,8 @@ const ChatScreen = () => {
         <div className={styles['chat-screen']}>
             <div className={styles['chat-main-area']}>
                 <ChatBackground
-                    active={true}
-                    showPattern={Boolean(currentPattern) || Boolean(chatThemes[chatTheme]?.is_pattern)}
+                    showPattern={!isTempChat && (Boolean(currentPattern) || Boolean(chatThemes[chatTheme]?.is_pattern))}
+                    isVanishMode={isTempChat}
                 >
                     <div className={styles['chat-main-area-content']}>
                         <ChatHeader
@@ -396,12 +397,10 @@ const ChatScreen = () => {
                                 setShowVanishSettingsModal(true);
                             }}
                             onDeleteSelected={onSelectionDelete}
-
                             onCopySelected={handleSelectionCopy}
                             onForwardSelected={handleSelectionForward}
                             onAddMember={() => navigate(`/chat/${chatId}/group/add-members`)}
                             isAdmin={isGroupChat ? (otherUser?.my_role === 'admin' || otherUser?.my_role === 'owner') : false}
-
                         />
 
                         <div className={`${styles['nested-chat-content']} gpu-layer`}>
@@ -448,6 +447,8 @@ const ChatScreen = () => {
                                     onAcceptGame={handleAcceptGame}
                                     onRejectGame={handleRejectGame}
                                     onJoinGame={handleJoinGame}
+                                    isVanishMode={isTempChat}
+                                    onToggleVanish={toggleVanishMode}
                                     isLoading={isMessagesLoading}
                                     isFetchingNextPage={isFetchingNextPage}
                                     fetchNextPage={fetchNextPage}
@@ -487,15 +488,16 @@ const ChatScreen = () => {
                                 onToggleEmoji={handleToggleEmoji}
                                 isTempChat={isTempChat}
                                 selectedVanishDuration={selectedVanishDuration}
+                                onOpenVanishSettings={() => setShowVanishSettingsModal(true)}
+                                onToggleVanish={toggleVanishMode}
                                 disabled={
-
                                     isGroupChat &&
                                     otherUser?.admins_only_messages &&
                                     otherUser?.my_role !== 'admin' &&
                                     otherUser?.my_role !== 'creator'
                                 }
                             />
-                            
+
                             <Suspense fallback={null}>
                                 {showEmojiPicker && (
                                     <EmojiPicker

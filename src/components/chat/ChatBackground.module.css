@@ -63,3 +63,21 @@
 .content-layer > * {
     background-color: transparent;
 }
+
+/* ── Vanish Mode Overrides ────────────────────────── */
+.vanish-active {
+    background-color: #0b141a !important;
+    transition: background-color 0.4s ease;
+}
+
+.vanish-active .gradient-layer,
+.vanish-active .pattern-layer {
+    opacity: 0 !important;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+    pointer-events: none;
+}
+
+.vanish-active .content-layer {
+    background-color: transparent !important;
+}

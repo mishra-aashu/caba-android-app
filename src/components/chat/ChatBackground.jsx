@@ -14,9 +14,9 @@ import styles from './ChatBackground.module.css';
  * This component has zero inline styles — everything comes through CSS vars
  * so there is no clash between CSS Modules and inline props.
  */
-const ChatBackground = ({ children, showPattern }) => {
+const ChatBackground = ({ children, showPattern, isVanishMode }) => {
     return (
-        <div className={styles['chat-background-container']}>
+        <div className={`${styles['chat-background-container']} ${isVanishMode ? styles['vanish-active'] : ''}`}>
             {/* Layer 1: gradient / wallpaper */}
             <div className={styles['gradient-layer']} aria-hidden="true" />
 

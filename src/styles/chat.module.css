@@ -509,14 +509,21 @@ body.light-mode .messages-container {
   border: none;
   color: var(--text-secondary, #aebac1);
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 12px;
+  margin: -8px;
+  margin-right: 8px;
   border-radius: 50%;
   transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: auto !important;
 }
 
 .back-btn:hover,
 .icon-btn:hover {
-  background: var(--hover-color, rgba(0, 168, 132, 0.08));
+  background: var(--hover-color, rgba(0, 168, 132, 0.12));
 }
 
 .chat-user-info {
@@ -3319,6 +3326,41 @@ body.light-mode .no-messages-content {
   }
 }
 
+.virtuoso-container {
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════
+   VANISH MODE UI — Clean Consolidated Styles
+   ═══════════════════════════════════════════ */
+
+/* 
+  .vanish-section gives a full-bleed dark background.
+  We use a large width and negative margin to cover the entire viewport width
+  regardless of parent padding.
+*/
+.vanish-section {
+  background: #0b141a;
+  width: 100%;
+  min-height: 1px;
+}
+
+
+.vanish-empty-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  min-height: 200px;
+  text-align: center;
+}
+
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -3550,7 +3592,7 @@ body.light-mode .no-messages-content {
 .vanish-indicator-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 8px;
   background: rgba(0, 168, 132, 0.08);
   padding: 4px 12px;
@@ -3564,4 +3606,168 @@ body.light-mode .no-messages-content {
 
 .vanish-indicator-bar span {
   font-weight: 600;
+}
+
+.vanish-indicator-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vanish-settings-btn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.8;
+}
+
+.vanish-settings-btn:hover {
+  background: rgba(0, 168, 132, 0.1);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.vanish-indicator-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vanish-close-btn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.8;
+}
+
+.vanish-close-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.swipe-vanish-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 20px;
+  pointer-events: none;
+  z-index: 100;
+  transition: opacity 0.1s ease-out;
+}
+
+.swipe-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  color: white;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.swipe-vanish-indicator span {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+
+/* ═══════════════════════════════════════════
+   VANISH MODE UI — Clean Consolidated Styles
+   ═══════════════════════════════════════════ */
+
+/* 
+  .vanish-section gives a full-bleed dark background.
+  box-shadow spread trick: NOT clipped by overflow:hidden on Virtuoso parents.
+*/
+.vanish-section {
+  background: #0b141a;
+  box-shadow: -9999px 0 0 9999px #0b141a, 9999px 0 0 9999px #0b141a;
+  width: 100%;
+}
+
+
+.vanish-empty-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  min-height: 200px;
+  text-align: center;
+}
+
+.vanish-empty-icon {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.vanish-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: vanishPulse 3s infinite;
+}
+
+.vanish-lock-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+
+
+@keyframes vanishPulse {
+  0% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.3); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 0.4; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 0.5; }
 }

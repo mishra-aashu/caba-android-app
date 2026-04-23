@@ -73,7 +73,7 @@ const MessageItem = ({
       clearTimeout(longPressTimer.current);
     }
     if (isLongPress.current) {
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       e.stopPropagation();
     }
   };
@@ -207,13 +207,6 @@ const MessageItem = ({
     <div
       ref={messageRef}
       id={`message-${msgId}`}
-      onContextMenu={handleContextMenu}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      // [FIX #8] Separate mouse handlers to prevent double-firing on touch devices
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onClick={handleMessageTap}
       className={`${styles['message-item']} ${isSent ? styles.sent : styles.received} ${isSelected ? styles.selected : ''} ${isSelectionMode ? styles['selection-active'] : ''}`}
       style={{ contain: 'layout' }}
     >
@@ -227,7 +220,15 @@ const MessageItem = ({
       )}
 
       <div className={styles['message-content-wrapper']}>
-        <div className={styles['message-bubble-wrapper']}>
+        <div 
+          className={styles['message-bubble-wrapper']}
+          onContextMenu={handleContextMenu}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onClick={handleMessageTap}
+        >
           {renderContent()}
         </div>
       </div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense, laz
 import debounce from 'lodash/debounce';
 import AttachmentMenu from './AttachmentMenu';
 import EmojiRenderer from '../common/EmojiRenderer';
-import { Send, LoaderCircle, Mic, Pause, Smile, Clock } from 'lucide-react';
+import { Send, LoaderCircle, Mic, Pause, Smile, Clock, Settings as SettingsIcon, X } from 'lucide-react';
 
 import { uploadMedia, uploadVoiceMessage } from '../../services/mediaService';
 import { compressImage, handleVideo } from '../../utils/mediaCompressor';
@@ -29,6 +29,8 @@ const MessageInput = ({
   isTempChat = false,
   selectedVanishDuration = 86400,
   disabled: externalDisabled = false,
+  onOpenVanishSettings,
+  onToggleVanish,
 
   disabledPlaceholder = "Only admins can send messages"
 }) => {
@@ -226,8 +228,26 @@ const MessageInput = ({
 
       {isTempChat && (
         <div className={styles['vanish-indicator-bar']}>
-          <Clock size={12} />
-          <span>Vanish Mode active ({formatTime(Number(selectedVanishDuration))})</span>
+          <div className={styles['vanish-indicator-left']}>
+            <Clock size={12} />
+            <span>Vanish Mode active ({formatTime(Number(selectedVanishDuration))})</span>
+          </div>
+          <div className={styles['vanish-indicator-right']}>
+            <button 
+              className={styles['vanish-settings-btn']} 
+              onClick={onOpenVanishSettings}
+              title="Vanish Settings"
+            >
+              <SettingsIcon size={14} />
+            </button>
+            <button 
+              className={styles['vanish-close-btn']} 
+              onClick={onToggleVanish}
+              title="Turn Off Vanish Mode"
+            >
+              <X size={14} />
+            </button>
+          </div>
         </div>
       )}
 

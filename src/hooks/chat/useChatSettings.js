@@ -12,8 +12,24 @@ import { useNavigate } from 'react-router-dom';
  * - Room mute toggle
  * - Temporary (vanish) chat settings
  * - Duration presets
+ * - Duration presets
  * - Blocking users
  */
+
+const parseDuration = (val) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+        // Handle HH:MM:SS
+        const parts = val.split(':');
+        if (parts.length === 3) {
+            return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+        }
+        // Handle "1 day", "2 hours" etc if needed (simple version)
+        if (val.includes('day')) return parseInt(val) * 86400;
+        return parseInt(val) || 86400;
+    }
+    return 86400;
+};
 export function useChatSettings({
     chatId,
     otherUserId,
@@ -30,6 +46,10 @@ export function useChatSettings({
     // Load initial settings
     useEffect(() => {
         if (!chatId || !currentUser?.id) return;
+
+        // Reset states while loading new chat settings
+        setIsTempChat(false);
+        setIsMuted(false);
 
         // Local mute
         const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
@@ -48,13 +68,10 @@ export function useChatSettings({
 
                 if (data) {
                     setIsTempChat(data.is_enabled);
-                    if (data.vanish_duration_seconds) {
-                        setSelectedVanishDuration(data.vanish_duration_seconds);
-                    } else if (data.vanish_duration) {
-                        // Fallback if seconds not set
-                        setSelectedVanishDuration(data.vanish_duration);
+                    const dur = data.vanish_duration_seconds || data.vanish_duration;
+                    if (dur) {
+                        setSelectedVanishDuration(parseDuration(dur));
                     }
-
                 }
             } catch (err) {
                 console.warn('Fallback to local temp chat state');
@@ -106,7 +123,7 @@ export function useChatSettings({
                     chat_id: chatId,
                     user_id: currentUser.id,
                     is_enabled: true, // Auto-enable if setting duration
-                    vanish_duration_seconds: durationSeconds,
+                    vanish_duration_seconds: parseInt(durationSeconds) || 86400,
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'chat_id,user_id' });
 
@@ -119,10 +136,35 @@ export function useChatSettings({
         }
     }, [chatId, currentUser, supabase]);
 
+    const toggleVanishMode = useCallback(async () => {
+        if (!chatId || !currentUser?.id) return;
+        const nextState = !isTempChat;
+        try {
+            setIsTempChat(nextState);
+            const { error } = await supabase
+                .from('temporary_chat_settings')
+                .upsert({
+                    chat_id: chatId,
+                    user_id: currentUser.id,
+                    is_enabled: nextState,
+                    vanish_duration_seconds: parseInt(selectedVanishDuration) || 86400,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'chat_id,user_id' });
+
+            if (error) throw error;
+            toast.success(nextState ? 'Vanish Mode turned on' : 'Vanish Mode turned off');
+        } catch (error) {
+            console.error('Failed to toggle vanish mode:', error);
+            setIsTempChat(!nextState); // Rollback
+            toast.error('Failed to toggle vanish mode');
+        }
+    }, [chatId, currentUser, isTempChat, selectedVanishDuration, supabase]);
+
     return {
         isMuted,
         isTempChat,
         setIsTempChat,
+        toggleVanishMode,
         selectedVanishDuration,
         setSelectedVanishDuration,
         vanishPresets,
