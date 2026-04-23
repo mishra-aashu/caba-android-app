@@ -35,7 +35,7 @@ import PullToRefresh from './common/PullToRefresh';
 import DropdownMenu from './common/DropdownMenu';
 import ChatListItem from './chat/ChatListItem';
 import { getPublicMediaUrl } from '../services/mediaService';
-import { getDpPath } from '../utils/dpOptions';
+import { dpOptions, getDpPath } from '../utils/dpOptions';
 import { getChatAvatar } from '../utils/avatarHelpers';
 import { getInitials } from '../utils/stringUtils';
 import { isUserOnline, formatTime } from '../utils/dateFormatter';

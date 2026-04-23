@@ -21,6 +21,31 @@
   position: relative;
 }
 
+/* Subtle gradient overlay at top — matching GamesPanel aesthetic */
+.chat-list-panel-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 168, 132, 0.08) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme="dark"] .chat-list-panel-content::before {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 168, 132, 0.15) 0%,
+    transparent 100%
+  );
+}
+
 .hidden {
   display: none !important;
 }
@@ -363,16 +388,16 @@
    ============================================= */
 
 .sidebar-groups-section {
-  padding: 1rem;
+  padding: 0.75rem 1rem 1rem 1rem; /* Slightly more bottom padding */
   border-bottom: 1px solid var(--border-subtle);
-  background-color: var(--bg-surface);
+  background-color: transparent;
 }
 
 .sidebar-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem; /* Increased margin for better separation from content */
 }
 
 .sidebar-section-header h3 {
@@ -617,17 +642,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
-  padding-top: calc(1rem + var(--safe-top));
-  padding-left: calc(1.25rem + var(--safe-left));
-  padding-right: calc(1.25rem + var(--safe-right));
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.75rem 1rem;
+  padding-top: calc(0.75rem + var(--safe-top));
+  padding-left: calc(1rem + var(--safe-left));
+  padding-right: calc(1rem + var(--safe-right));
+  border-bottom: none; /* Removed border for a smoother flow with gradient */
   flex-shrink: 0;
-  background-color: var(--bg-surface);
+  background-color: transparent;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 /* iOS specific extra breathing room */
@@ -637,8 +663,8 @@
 
 .header-left h1,
 .chats-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   letter-spacing: -0.5px;
   color: var(--text-primary);
   margin: 0;
@@ -687,7 +713,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  margin: 0 0.75rem 0.75rem 0.75rem;
+  margin: 0 1rem 0.75rem 1rem;
   background-color: var(--bg-color, #0b141a);
   border-radius: 24px;
   /* ✅ Pill shape */
@@ -733,11 +759,12 @@
 .filter-bar {
   display: flex;
   gap: 0.65rem;
-  padding: 0.25rem 1.25rem 1rem 1.25rem;
+  padding: 0.5rem 1rem;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  background-color: var(--bg-surface);
+  background-color: transparent;
+  border-bottom: 1px solid var(--border-subtle); /* Moved border here for better separation */
 }
 
 .filter-bar::-webkit-scrollbar {
@@ -765,10 +792,11 @@
 }
 
 .filter-pill.active {
-  background-color: var(--brand-primary);
+  background: linear-gradient(135deg, #00a884 0%, #00876a 100%);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.35);
   font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 :global(body.light-mode) .filter-pill {

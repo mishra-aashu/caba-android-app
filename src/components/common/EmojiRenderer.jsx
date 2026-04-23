@@ -90,7 +90,7 @@ const EmojiRenderer = ({ text, className = '', style = {}, styleOverride = null 
 
     // 1. Native Fallback Shortcut
     if (activeStyle === 'native') {
-      return text;
+      return <span className="native-emoji-fallback">{text}</span>;
     }
 
     try {
@@ -133,7 +133,7 @@ const EmojiRenderer = ({ text, className = '', style = {}, styleOverride = null 
   }, [text, activeStyle, className, style]);
 
   return (
-    <span className={`emoji-renderer-root ${className}`} style={{ display: 'inline' }}>
+    <span className={`emoji-renderer-root ${className}`} style={{ display: 'inline-block', ...style }}>
       {elements}
     </span>
   );

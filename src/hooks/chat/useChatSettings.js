@@ -38,14 +38,21 @@ export function useChatSettings({
             try {
                 const { data } = await supabase
                     .from('temporary_chat_settings')
-                    .select('is_enabled, vanish_duration')
+                    .select('is_enabled, vanish_duration, vanish_duration_seconds')
                     .eq('chat_id', chatId)
                     .eq('user_id', currentUser.id)
                     .maybeSingle();
 
+
                 if (data) {
                     setIsTempChat(data.is_enabled);
-                    if (data.vanish_duration) setSelectedVanishDuration(data.vanish_duration);
+                    if (data.vanish_duration_seconds) {
+                        setSelectedVanishDuration(data.vanish_duration_seconds);
+                    } else if (data.vanish_duration) {
+                        // Fallback if seconds not set
+                        setSelectedVanishDuration(data.vanish_duration);
+                    }
+
                 }
             } catch (err) {
                 console.warn('Fallback to local temp chat state');
@@ -95,6 +102,29 @@ export function useChatSettings({
         }
     }, [otherUserId, currentUser, supabase, navigate]);
 
+    const updateVanishDuration = useCallback(async (durationSeconds) => {
+        if (!chatId || !currentUser?.id) return;
+        try {
+            setSelectedVanishDuration(durationSeconds);
+            const { error } = await supabase
+                .from('temporary_chat_settings')
+                .upsert({
+                    chat_id: chatId,
+                    user_id: currentUser.id,
+                    is_enabled: true, // Auto-enable if setting duration
+                    vanish_duration_seconds: durationSeconds,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'chat_id,user_id' });
+
+            if (error) throw error;
+            setIsTempChat(true);
+            toast.success(`Vanish duration set to ${durationSeconds}s`);
+        } catch (error) {
+            console.error('Failed to update vanish duration:', error);
+            toast.error('Failed to update duration');
+        }
+    }, [chatId, currentUser, supabase]);
+
     return {
         isMuted,
         isTempChat,
@@ -104,5 +134,7 @@ export function useChatSettings({
         vanishPresets,
         handleMuteToggle,
         confirmBlockUser,
+        updateVanishDuration,
     };
 }
+

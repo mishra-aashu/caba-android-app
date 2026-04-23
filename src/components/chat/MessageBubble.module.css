@@ -441,8 +441,8 @@
 .message-container.jumbo-emoji :global(.emoji-renderer-root) :global(.custom-emoji-sprite),
 .message-container .jumbo-emoji-bubble :global(.custom-emoji-img),
 .message-container .jumbo-emoji-bubble :global(.custom-emoji-sprite) {
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
   margin: 0;
   object-fit: contain;
   image-rendering: -webkit-optimize-contrast;
@@ -457,21 +457,22 @@
 
 /* Native emoji fallback */
 .message-container.jumbo-emoji :global(.native-emoji-fallback) {
-  font-size: 48px;
+  font-size: 80px;
   line-height: 1;
+  display: inline-block;
 }
 
 @media (max-width: 480px) {
-
   .message-container.jumbo-emoji .text img,
   .message-container.jumbo-emoji .emoji-renderer-root img,
-  .message-container .jumbo-emoji-bubble .custom-emoji-img {
-    width: 4rem;
-    height: 4rem;
+  .message-container .jumbo-emoji-bubble .custom-emoji-img,
+  .message-container.jumbo-emoji :global(.emoji-renderer-root) {
+    width: 6rem;
+    height: 6rem;
   }
 
-  .message-container.jumbo-emoji .native-emoji-fallback {
-    font-size: 3rem;
+  .message-container.jumbo-emoji :global(.native-emoji-fallback) {
+    font-size: 5rem;
   }
 }
 
@@ -722,4 +723,43 @@
   background: var(--brand-secondary, #00876a);
   transform: scale(1.05);
   box-shadow: 0 6px 14px rgba(0, 168, 132, 0.4);
+}
+/* =============================================
+   14. VANISHING MESSAGE STYLES
+   ============================================= */
+
+.vanish-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--sent-message-meta, rgba(255, 255, 255, 0.9));
+  background: rgba(0, 0, 0, 0.15);
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-right: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: vanish-pulse 2s infinite;
+}
+
+.bubble-received .vanish-countdown {
+  color: var(--brand-primary, #00a884);
+  background: rgba(0, 168, 132, 0.08);
+}
+
+@keyframes vanish-pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.vanish-icon {
+  animation: rotate-vanish 4s linear infinite;
+}
+
+@keyframes rotate-vanish {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

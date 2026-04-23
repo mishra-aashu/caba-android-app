@@ -1,0 +1,123 @@
+.vanish-settings-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: var(--surface-color, #0b141a);
+    color: var(--text-primary, #e9edef);
+}
+
+.vanish-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+}
+
+.vanish-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: rgba(0, 168, 132, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-primary, #00a884);
+}
+
+.main-icon {
+    animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+.vanish-description {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary, #8696a0);
+    max-width: 280px;
+}
+
+.presets-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.preset-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+}
+
+.preset-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.preset-card.active {
+    background: rgba(0, 168, 132, 0.1);
+    border-color: var(--brand-primary, #00a884);
+    box-shadow: 0 4px 12px rgba(0, 168, 132, 0.2);
+}
+
+.preset-icon {
+    color: var(--text-secondary, #8696a0);
+    transition: color 0.2s;
+}
+
+.active .preset-icon {
+    color: var(--brand-primary, #00a884);
+}
+
+.preset-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.vanish-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.done-btn {
+    background: var(--brand-primary, #00a884);
+    color: white;
+    border: none;
+    padding: 12px 48px;
+    border-radius: 24px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
+}
+
+.done-btn:hover {
+    background: var(--brand-secondary, #00876a);
+    transform: scale(1.02);
+}
+
+.done-btn:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 480px) {
+    .presets-grid {
+        grid-template-columns: 1fr;
+    }
+}

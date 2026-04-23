@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense, laz
 import debounce from 'lodash/debounce';
 import AttachmentMenu from './AttachmentMenu';
 import EmojiRenderer from '../common/EmojiRenderer';
-import { Send, LoaderCircle, Mic, Pause, Smile } from 'lucide-react';
+import { Send, LoaderCircle, Mic, Pause, Smile, Clock } from 'lucide-react';
+
 import { uploadMedia, uploadVoiceMessage } from '../../services/mediaService';
 import { compressImage, handleVideo } from '../../utils/mediaCompressor';
 import { useDialog } from '../../contexts/DialogContext';
@@ -25,7 +26,10 @@ const MessageInput = ({
   onCancelReply,
   currentUser,
   chatId,
+  isTempChat = false,
+  selectedVanishDuration = 86400,
   disabled: externalDisabled = false,
+
   disabledPlaceholder = "Only admins can send messages"
 }) => {
   const { setDraft, getDraft, clearDraft } = useDraftStore();
@@ -115,10 +119,12 @@ const MessageInput = ({
   };
 
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
   };
+
 
   const handleSend = async (blobOverride = null) => {
     const finalVoiceBlob = blobOverride || voiceBlob;
@@ -130,28 +136,31 @@ const MessageInput = ({
     setIsUploading(true);
 
     try {
-      if (finalVoiceBlob) {
-        onSendMedia(finalVoiceBlob, 'voice');
-      } else if (filePreview) {
-        const { file } = filePreview;
-        const fileType = file.type.startsWith('image/') ? 'image' : 'video';
-        let processedFile;
+        const vanishAt = isTempChat ? new Date(Date.now() + Number(selectedVanishDuration) * 1000).toISOString() : null;
 
-        if (fileType === 'image') {
-          processedFile = await compressImage(file, 'standard');
-        } else {
-          processedFile = await handleVideo(file);
+        if (finalVoiceBlob) {
+          onSendMedia(finalVoiceBlob, 'voice', vanishAt);
+        } else if (filePreview) {
+          const { file } = filePreview;
+          const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+          let processedFile;
+
+          if (fileType === 'image') {
+            processedFile = await compressImage(file, 'standard');
+          } else {
+            processedFile = await handleVideo(file);
+          }
+
+          if (!processedFile) {
+            showAlert('Processing failed', 'Could not process your media file.');
+            return;
+          }
+
+          onSendMedia(processedFile, fileType, vanishAt);
+        } else if (trimmedMessage) {
+          onSendMessage(trimmedMessage, { vanishAt });
         }
 
-        if (!processedFile) {
-          showAlert('Processing failed', 'Could not process your media file.');
-          return;
-        }
-
-        onSendMedia(processedFile, fileType);
-      } else if (trimmedMessage) {
-        onSendMessage(trimmedMessage);
-      }
     } catch (error) {
       console.error('Error sending message:', error);
       showAlert('Send failed', 'Could not send your message. Please try again.');
@@ -214,6 +223,14 @@ const MessageInput = ({
           <button className={styles['close-reply-btn']} onClick={onCancelReply}>✕</button>
         </div>
       )}
+
+      {isTempChat && (
+        <div className={styles['vanish-indicator-bar']}>
+          <Clock size={12} />
+          <span>Vanish Mode active ({formatTime(Number(selectedVanishDuration))})</span>
+        </div>
+      )}
+
 
       <div className={styles['input-row']}>
         <VoiceRecorder

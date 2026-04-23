@@ -24,12 +24,16 @@ import styles from '../../styles/chat.module.css';
 import { getStableMessageId, extractMessageContent } from '../../utils/messageHelpers';
 import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 import { mapMessage as dbToFrontend } from '../../services/dataGateway';
+import { useVanishCleanup } from '../../hooks/chat/useVanishCleanup';
+
 
 const MediaViewer = lazy(() => import('../media/MediaViewer'));
 const ImageViewer = lazy(() => import('./ImageViewer'));
 const ForwardModal = lazy(() => import('./ForwardModal'));
 const GroupCallScreen = lazy(() => import('../group/GroupCallScreen'));
 const EmojiPicker = lazy(() => import('../common/EmojiPicker'));
+const VanishSettingsModal = lazy(() => import('./VanishSettingsModal'));
+
 // [FIX #9] Removed unused lazy imports: GroupInfoDrawer, GameLobby, AddMembersModal
 
 // [FIX #9] Removed unused lazy imports: GroupInfoDrawer, GameLobby
@@ -45,8 +49,9 @@ const ChatScreen = () => {
         messages, isFetchingNextPage, hasNextPage, fetchNextPage,
         typingUsers, sendTyping,
         isMuted, isTempChat, setIsTempChat,
-        selectedVanishDuration,
+        selectedVanishDuration, updateVanishDuration, vanishPresets,
         sendMessage, handleSendMedia, replyingTo, handleReply, cancelReply, deleteMessage, forwardMessages,
+
         activeGroupCall, showGroupCallScreen, setShowGroupCallScreen,
         handleVoiceCall, handleVideoCall, handleEndGroupCall, handleStartGroupCall,
         handleMuteToggle, confirmClearChat, confirmBlockUser, confirmSelectionDelete,
@@ -58,6 +63,9 @@ const ChatScreen = () => {
         authError, currentUser,
         markMessagesAsRead, unreadCount, setUnreadCount, isScrolledToBottom, setIsScrolledToBottom
     } = useChatRoom();
+
+    useVanishCleanup(chatId);
+
 
     useEffect(() => {
         if (handleReactionToggle) {
@@ -128,7 +136,9 @@ const ChatScreen = () => {
     const [showScrollButton, setShowScrollButton] = useState(false);
 
     const [showForwardModal, setShowForwardModal] = useState(false);
+    const [showVanishSettingsModal, setShowVanishSettingsModal] = useState(false);
     const messagesContainerRef = useRef(null);
+
 
     const handleEmojiSelect = useCallback((emoji) => {
         if (emoji.startsWith('http')) {
@@ -382,9 +392,10 @@ const ChatScreen = () => {
                             onCreateReminder={() => navigate(`/create-reminder?userId=${otherUserId}`)}
                             onTempChatToggle={handleTempChatToggle}
                             onTempChatSettings={() => {
-                                showAlert('Vanish settings coming soon');
+                                setShowVanishSettingsModal(true);
                             }}
                             onDeleteSelected={onSelectionDelete}
+
                             onCopySelected={handleSelectionCopy}
                             onForwardSelected={handleSelectionForward}
                             onAddMember={() => navigate(`/chat/${chatId}/group/add-members`)}
@@ -473,7 +484,10 @@ const ChatScreen = () => {
                                 currentUser={currentUser}
                                 showEmojiPicker={showEmojiPicker}
                                 onToggleEmoji={handleToggleEmoji}
+                                isTempChat={isTempChat}
+                                selectedVanishDuration={selectedVanishDuration}
                                 disabled={
+
                                     isGroupChat &&
                                     otherUser?.admins_only_messages &&
                                     otherUser?.my_role !== 'admin' &&
@@ -565,7 +579,20 @@ const ChatScreen = () => {
                     {mediaViewerOpen && (
                         <MediaViewer isOpen={true} onClose={() => { setMediaViewerOpen(false); setCurrentMediaInfo(null); }} mediaId={currentMediaInfo?.messageId} fileInfo={currentMediaInfo?.fileInfo} onShare={handleShareAsForward} />
                     )}
+
+                    {showVanishSettingsModal && (
+                        <VanishSettingsModal
+                            isOpen={true}
+                            onClose={() => setShowVanishSettingsModal(false)}
+                            presets={vanishPresets}
+                            selectedDuration={selectedVanishDuration}
+                            onSelectDuration={(duration) => {
+                                updateVanishDuration(duration);
+                            }}
+                        />
+                    )}
                 </Suspense>
+
             </div>
         </div>
     );

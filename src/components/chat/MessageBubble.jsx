@@ -47,6 +47,8 @@ const MessageBubble = memo(({
   onRetry,
 }) => {
   const [unlockCountdown, setUnlockCountdown] = useState('');
+  const [vanishCountdown, setVanishCountdown] = useState('');
+
 
   const isAnonymous = message?.isAnonymous || message?.is_anonymous;
   const unlockAt = message?.unlockAt || message?.unlock_at;
@@ -100,9 +102,39 @@ const MessageBubble = memo(({
     return () => clearInterval(interval);
   }, [isTimeCapsule, message?.unlockAt, message?.unlock_at]);
 
+  const vanishAt = message?.vanishAt || message?.vanish_at;
+  const isVanishing = !!vanishAt;
+
+  useEffect(() => {
+    if (!isVanishing) return;
+    const updateCountdown = () => {
+      const now = new Date();
+      const vanishTime = new Date(vanishAt);
+      const diff = vanishTime - now;
+      if (diff <= 0) {
+        setVanishCountdown('Vanish');
+        return;
+      }
+      const seconds = Math.floor(diff / 1000);
+      if (seconds < 60) {
+        setVanishCountdown(`${seconds}s`);
+      } else if (seconds < 3600) {
+        setVanishCountdown(`${Math.floor(seconds / 60)}m`);
+      } else if (seconds < 86400) {
+        setVanishCountdown(`${Math.floor(seconds / 3600)}h`);
+      } else {
+        setVanishCountdown(`${Math.floor(seconds / 86400)}d`);
+      }
+    };
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [isVanishing, vanishAt]);
+
+
   const senderName = isAnonymous ? 'Anonymous' : (sender?.id === currentUserId ? 'You' : (sender?.name || 'Unknown'));
 
-  const emojiStyle = isJumboEmoji ? { width: '64px', height: '64px' } : {};
+  const emojiStyle = isJumboEmoji ? { width: '96px', height: '96px', fontSize: '96px', lineHeight: '1' } : {};
 
   return (
     <div 
@@ -143,8 +175,15 @@ const MessageBubble = memo(({
             )}
 
             <span className={styles.timestamp}>
+              {isVanishing && vanishCountdown && (
+                <span className={styles['vanish-countdown']}>
+                  <Clock size={8} className={styles['vanish-icon']} />
+                  {vanishCountdown}
+                </span>
+              )}
               {time}
               {isEdited && <span className={styles['edited-indicator']}> (ed)</span>}
+
               
               {isMine && (
                 <span className={styles['status-indicator']}>

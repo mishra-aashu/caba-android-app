@@ -122,6 +122,12 @@ db.version(8).stores({
     });
 });
 
+// Version 9: Add vanishAt index to messages for fast cleanup
+db.version(9).stores({
+    messages: 'id, chatId, createdAt, senderId, tempId, vanishAt',
+});
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
