@@ -24,14 +24,32 @@ export function useChatMessages({
     const navigate = useNavigate();
     const [replyingTo, setReplyingTo] = useState(null);
 
-    // ─── DEXIE LIVE QUERY ───
-    const limit = 50;
+    // ─── DEXIE LIVE QUERY (PAGINATED) ───
+    const PAGE_SIZE = 50;
+    const [page, setPage] = useState(1);
+    const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+    const [hasNextPage, setHasNextPage] = useState(true);
+
     const rawMessages = useLiveQuery(
-        () => {
-            if (!chatId) return [];
-            return db.messages.where('chatId').equals(chatId).sortBy('createdAt');
+        async () => {
+            if (!chatId || chatId === 'new') return [];
+            
+            // [PERF] Limit query to avoid main-thread freeze with large histories
+            // We load (page * PAGE_SIZE) messages
+            const count = await db.messages.where('chatId').equals(chatId).count();
+            const currentLimit = page * PAGE_SIZE;
+            
+            setHasNextPage(count > currentLimit);
+
+            // Fetch last N messages and sort by time
+            return db.messages
+                .where('chatId')
+                .equals(chatId)
+                .reverse() // Index optimization: newest first
+                .limit(currentLimit)
+                .sortBy('createdAt');
         },
-        [chatId]
+        [chatId, page]
     ) || [];
 
     const messages = useMemo(() => {
@@ -56,26 +74,16 @@ export function useChatMessages({
     // [UX] messages.length > 0 means we have cache, so it's not "loading"
     const isMessagesLoading = messages.length === 0 && isSyncing;
 
-    // ─── PAGINATION ───
-    const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
-    const lastFetchCountRef = useRef(limit);
-    const hasNextPage = lastFetchCountRef.current === limit && rawMessages.length > 0;
-
-    const fetchNextPage = useCallback(async () => {
+    const fetchNextPage = useCallback(() => {
         if (!hasNextPage || isFetchingNextPage) return;
+        
         setIsFetchingNextPage(true);
-        try {
-            const firstMsg = rawMessages[0];
-            const result = await fetchMessagesPage({
-                chatId,
-                beforeTimestamp: firstMsg.createdAt,
-                limit,
-            });
-            lastFetchCountRef.current = result.count;
-        } finally {
+        // Small delay to prevent scroll jump and show spinner
+        setTimeout(() => {
+            setPage(prev => prev + 1);
             setIsFetchingNextPage(false);
-        }
-    }, [chatId, hasNextPage, isFetchingNextPage, rawMessages]);
+        }, 150);
+    }, [hasNextPage, isFetchingNextPage]);
 
     // ─── REALTIME ───
     const { status: connectionStatus, retry: retryConnection } = useRealtimeMessages(

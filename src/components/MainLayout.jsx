@@ -229,7 +229,7 @@ const MainLayout = () => {
 
                     <AnimatePresence mode="wait">
                         {isSubPage && (
-                            <PageTransition key={activeChat?.id || location.pathname} className="chat-view">
+                            <PageTransition key={activeChat?.id || (location.pathname === '/' ? 'root' : location.pathname)} className="chat-view">
                                 <Suspense fallback={<div className="loading"><div className="loading-spinner"></div></div>}>
                                     {mobileUserDetails || (activeChat ? <ChatScreen /> : <Outlet />)}
                                 </Suspense>

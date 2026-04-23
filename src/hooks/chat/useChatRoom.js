@@ -3,7 +3,7 @@
  *
  * Orchestrator hook that composes specialized sub-hooks.
  */
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDialog } from '../../contexts/DialogContext';
@@ -249,7 +249,15 @@ const useChatRoom = () => {
     toast.success('Battle declined');
   }, []);
 
-  return {
+  // [PERF] Memoize sub-hook APIs to stabilize downstream components
+  const memoizedMessagesApi = useMemo(() => messagesApi, [messagesApi]);
+  const memoizedMediaApi = useMemo(() => mediaApi, [mediaApi]);
+  const memoizedPresenceApi = useMemo(() => presenceApi, [presenceApi]);
+  const memoizedCallsApi = useMemo(() => callsApi, [callsApi]);
+  const memoizedSettingsApi = useMemo(() => settingsApi, [settingsApi]);
+
+  // [PERF] The master API object that ChatScreen consumes
+  return useMemo(() => ({
     // Identity
     chatId,
     validChatId: chatId,
@@ -264,55 +272,54 @@ const useChatRoom = () => {
     isInitializing: authLoading || isDataLoading,
     
     // Messages
-    messages: messagesApi.messages,
-    isFetchingNextPage: messagesApi.isFetchingNextPage,
-    hasNextPage: messagesApi.hasNextPage,
-    fetchNextPage: messagesApi.fetchNextPage,
-    deleteMessage: messagesApi.deleteMessage,
-    forwardMessages: messagesApi.forwardMessages,
-    handleReactionToggle: messagesApi.handleReactionToggle,
-    isMessagesLoading: messagesApi.isLoading,
+    messages: memoizedMessagesApi.messages,
+    isFetchingNextPage: memoizedMessagesApi.isFetchingNextPage,
+    hasNextPage: memoizedMessagesApi.hasNextPage,
+    fetchNextPage: memoizedMessagesApi.fetchNextPage,
+    deleteMessage: memoizedMessagesApi.deleteMessage,
+    forwardMessages: memoizedMessagesApi.forwardMessages,
+    handleReactionToggle: memoizedMessagesApi.handleReactionToggle,
+    isMessagesLoading: memoizedMessagesApi.isLoading,
     
     // Media & Sending
-    sendMessage: messagesApi.sendMessage,
-    handleSendMedia: mediaApi.handleSendMedia,
-    replyingTo: messagesApi.replyingTo,
-    handleReply: messagesApi.handleReply,
-    cancelReply: messagesApi.cancelReply,
-    handleMediaDownload: mediaApi.handleMediaDownload,
+    sendMessage: memoizedMessagesApi.sendMessage,
+    handleSendMedia: memoizedMediaApi.handleSendMedia,
+    replyingTo: memoizedMessagesApi.replyingTo,
+    handleReply: memoizedMessagesApi.handleReply,
+    cancelReply: memoizedMessagesApi.cancelReply,
+    handleMediaDownload: memoizedMediaApi.handleMediaDownload,
 
     // Presence & Typing
-    typingUsers: presenceApi.typingUsers,
-    sendTyping: presenceApi.sendTyping,
+    typingUsers: memoizedPresenceApi.typingUsers,
+    sendTyping: memoizedPresenceApi.sendTyping,
     
     // Status
-    connectionStatus: messagesApi.connectionStatus,
-    retryConnection: messagesApi.retryConnection,
-    isMuted: settingsApi.isMuted,
-    isTempChat: settingsApi.isTempChat,
-    setIsTempChat: settingsApi.setIsTempChat,
-    toggleVanishMode: settingsApi.toggleVanishMode,
-    selectedVanishDuration: settingsApi.selectedVanishDuration,
-    updateVanishDuration: settingsApi.updateVanishDuration,
-    isVanishLoading: settingsApi.isVanishLoading,
-    vanishPresets: settingsApi.vanishPresets,
-    handleMuteToggle: settingsApi.handleMuteToggle,
+    connectionStatus: memoizedMessagesApi.connectionStatus,
+    retryConnection: memoizedMessagesApi.retryConnection,
+    isMuted: memoizedSettingsApi.isMuted,
+    isTempChat: memoizedSettingsApi.isTempChat,
+    setIsTempChat: memoizedSettingsApi.setIsTempChat,
+    toggleVanishMode: memoizedSettingsApi.toggleVanishMode,
+    selectedVanishDuration: memoizedSettingsApi.selectedVanishDuration,
+    updateVanishDuration: memoizedSettingsApi.updateVanishDuration,
+    isVanishLoading: memoizedSettingsApi.isVanishLoading,
+    vanishPresets: memoizedSettingsApi.vanishPresets,
+    handleMuteToggle: memoizedSettingsApi.handleMuteToggle,
 
-    
     // Calls
-    activeGroupCall: callsApi.activeGroupCall,
-    showGroupCallScreen: callsApi.showGroupCallScreen,
-    setShowGroupCallScreen: callsApi.setShowGroupCallScreen,
-    handleVoiceCall: callsApi.handleVoiceCall,
-    handleVideoCall: callsApi.handleVideoCall,
-    handleEndGroupCall: callsApi.handleEndGroupCall,
-    handleStartGroupCall: callsApi.handleStartGroupCall,
+    activeGroupCall: memoizedCallsApi.activeGroupCall,
+    showGroupCallScreen: memoizedCallsApi.showGroupCallScreen,
+    setShowGroupCallScreen: memoizedCallsApi.setShowGroupCallScreen,
+    handleVoiceCall: memoizedCallsApi.handleVoiceCall,
+    handleVideoCall: memoizedCallsApi.handleVideoCall,
+    handleEndGroupCall: memoizedCallsApi.handleEndGroupCall,
+    handleStartGroupCall: memoizedCallsApi.handleStartGroupCall,
     
     // Modals & Alerts
     showAlert,
-    confirmClearChat: settingsApi.confirmClearChat,
-    confirmBlockUser: settingsApi.confirmBlockUser,
-    confirmSelectionDelete: messagesApi.confirmSelectionDelete,
+    confirmClearChat: memoizedSettingsApi.confirmClearChat,
+    confirmBlockUser: memoizedSettingsApi.confirmBlockUser,
+    confirmSelectionDelete: memoizedMessagesApi.confirmSelectionDelete,
     
     // Games
     handleAcceptGame,
@@ -331,7 +338,15 @@ const useChatRoom = () => {
     isScrolledToBottom,
     setIsScrolledToBottom,
     handleShareAsForward
-  };
+  }), [
+    chatId, otherUserId, isGroupChat, isNewChat, navigate, location, 
+    currentUser, otherUser, setOtherUser, authLoading, isDataLoading,
+    memoizedMessagesApi, memoizedMediaApi, memoizedPresenceApi, 
+    memoizedCallsApi, memoizedSettingsApi, showAlert, handleAcceptGame, 
+    handleRejectGame, handleJoinGame, supabase, initialScrollPosition, 
+    saveScrollPosition, allChats, authError, markMessagesAsRead, 
+    unreadCount, isScrolledToBottom, handleShareAsForward
+  ]);
 };
 
 export default useChatRoom;

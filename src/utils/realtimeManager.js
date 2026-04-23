@@ -749,14 +749,11 @@ class RealtimeManager {
     this.retryCount.delete(channelName);
     this.states.delete(channelName);
 
-    // Wait for pending subscription
+    // [PERF] Handle pending subscription landing in background to avoid blocking main thread
     if (this.pendingSubscriptions.has(channelName)) {
-      try {
-        await this.pendingSubscriptions.get(channelName);
-      } catch (e) {
-        // Ignore
-      }
-      this.pendingSubscriptions.delete(channelName);
+      this.pendingSubscriptions.get(channelName).finally(() => {
+        this.pendingSubscriptions.delete(channelName);
+      }).catch(() => {});
     }
 
     if (entry.channel) {

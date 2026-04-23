@@ -23,6 +23,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
     const lastMessageRef = useRef(null);
     const catchUpTimerRef = useRef(null);
     const mountedRef = useRef(true);
+    const capacitorListenerRef = useRef(null);
 
     // Keep refs in sync to prevent stale closures
     useEffect(() => {
@@ -371,16 +372,22 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
         document.addEventListener('visibilitychange', handleVisibility);
 
         // 2. Capacitor native app state (Android/iOS app switching, home button)
-        let capacitorListener = null;
         const setupCapacitorListener = async () => {
             try {
                 const { App } = await import('@capacitor/app');
-                capacitorListener = await App.addListener('appStateChange', ({ isActive }) => {
+                const handle = await App.addListener('appStateChange', ({ isActive }) => {
                     if (isActive && mountedRef.current) {
                         _log('App came to foreground — catching up');
                         performFocusCatchup();
                     }
                 });
+                
+                // [FIX] If component unmounted while listener was being created, remove it immediately
+                if (!mountedRef.current) {
+                    handle.remove();
+                } else {
+                    capacitorListenerRef.current = handle;
+                }
             } catch {
                 // Not a Capacitor environment — ignore
             }
@@ -388,9 +395,15 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
         setupCapacitorListener();
 
         return () => {
+            mountedRef.current = false;
             document.removeEventListener('visibilitychange', handleVisibility);
             clearTimeout(catchUpTimerRef.current);
-            if (capacitorListener) capacitorListener.remove();
+            
+            if (capacitorListenerRef.current) {
+                capacitorListenerRef.current.remove();
+                capacitorListenerRef.current = null;
+            }
+            
             realtimeManager.unsubscribe(channelName);
             processedIds.current.clear();
         };
