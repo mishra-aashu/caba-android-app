@@ -17,41 +17,63 @@ class MessageReadsService {
     if (!messageIds?.length || !userId) return [];
 
     try {
-      // DEBUG: Check if we actually have a session - prevents 403 if auth state is lost
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session && !localStorage.getItem('phoneAuthToken')) {
-        console.warn('MessageReadsService.markAsRead: No active session found.');
-      }
-
-      if (session && session.user.id !== userId) {
-        console.warn('MessageReadsService.markAsRead: Session user ID mismatch.', {
-          sessionUserId: session.user.id,
-          providedUserId: userId
-        });
-      }
-
+      // 1. Prepare read receipt rows
       const rows = messageIds.map((messageId) => ({
         message_id: messageId,
         user_id: userId,
         read_at: new Date().toISOString(),
       }));
 
+      // 2. Insert read receipts into Supabase
       const { data, error } = await supabase
         .from('message_reads')
         .upsert(rows, { onConflict: 'message_id,user_id', ignoreDuplicates: true })
         .select();
 
-      if (error) {
-        // Specifically log 403 which often indicates RLS or Auth issues
-        if (error.code === '42501' || error.status === 403) {
-          console.error('MessageReadsService: RLS/Auth Error (403) - Verify message_reads policies or user session.', error);
-        }
-        throw error;
-      }
+      if (error) throw error;
 
-      // NOTE: We no longer manually update the 'messages' table here.
-      // A database trigger 'on_message_read_inserted' now handles this automatically
-      // with SECURITY DEFINER privileges to bypass RLS restrictions on the messages table.
+      // ─── VANISH MODE: VIEW ONCE LOGIC ───
+      // We check if these messages belong to a chat with vanish mode enabled
+      // and update their vanish_at timestamp to "now + 10s"
+      
+      const now = new Date();
+      const vanishAt = new Date(now.getTime() + 10000).toISOString(); // 10 seconds from now
+
+      // Get unique chat IDs for these messages to check settings
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('id, chat_id')
+        .in('id', messageIds);
+
+      if (messages?.length) {
+        const chatIds = [...new Set(messages.map(m => m.chat_id))];
+        
+        // Check which of these chats have vanish mode enabled
+        const { data: settings } = await supabase
+          .from('temporary_chat_settings')
+          .select('chat_id')
+          .in('chat_id', chatIds)
+          .eq('is_enabled', true);
+
+        if (settings?.length) {
+          const vanishChatIds = settings.map(s => s.chat_id);
+          const vanishMsgIds = messages
+            .filter(m => vanishChatIds.includes(m.chat_id))
+            .map(m => m.id);
+
+          if (vanishMsgIds.length > 0) {
+            // Update Supabase: Set vanish_at for these messages
+            await supabase
+              .from('messages')
+              .update({ vanish_at: vanishAt })
+              .in('id', vanishMsgIds);
+
+            // Update local Dexie: Ensure local cleanup hook picks it up immediately
+            const { db } = await import('../db/db');
+            await db.messages.where('id').anyOf(vanishMsgIds).modify({ vanishAt });
+          }
+        }
+      }
 
       return data || [];
     } catch (error) {
