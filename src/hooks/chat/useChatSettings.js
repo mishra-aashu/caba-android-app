@@ -43,7 +43,7 @@ export function useChatSettings({
     const [selectedVanishDuration, setSelectedVanishDuration] = useState(86400);
 
 
-    // Load initial settings
+    // Load initial settings and subscribe to realtime updates for SYNC
     useEffect(() => {
         if (!chatId || !currentUser?.id) return;
 
@@ -55,16 +55,18 @@ export function useChatSettings({
         const mutedChats = JSON.parse(localStorage.getItem('mutedChats') || '{}');
         setIsMuted(!!mutedChats[chatId]);
 
-        // Remote temp chat settings
+        // Remote temp chat settings (SYNCED)
         const fetchSettings = async () => {
             try {
+                // [SYNC FIX] Fetch settings for this chat (from anyone, but typically it will be from the active user or their partner)
+                // We want to know if ANYONE has enabled vanish mode for this chat.
                 const { data } = await supabase
                     .from('temporary_chat_settings')
                     .select('is_enabled, vanish_duration, vanish_duration_seconds')
                     .eq('chat_id', chatId)
-                    .eq('user_id', currentUser.id)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
                     .maybeSingle();
-
 
                 if (data) {
                     setIsTempChat(data.is_enabled);
@@ -79,7 +81,37 @@ export function useChatSettings({
         };
 
         fetchSettings();
-    }, [chatId, currentUser, supabase]);
+
+        // [REALTIME SYNC] Subscribe to changes in vanish mode for this chat
+        const channel = supabase
+            .channel(`vanish_sync_${chatId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'temporary_chat_settings',
+                    filter: `chat_id=eq.${chatId}`
+                },
+                (payload) => {
+                    console.log('[Vanish Sync] Remote update received:', payload);
+                    if (payload.new) {
+                        const nextEnabled = payload.new.is_enabled;
+                        const nextDuration = payload.new.vanish_duration_seconds || payload.new.vanish_duration;
+                        
+                        setIsTempChat(nextEnabled);
+                        if (nextDuration) {
+                            setSelectedVanishDuration(parseDuration(nextDuration));
+                        }
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [chatId, currentUser?.id, supabase]);
 
     const { presets: vanishPresets, isLoading: isVanishLoading } = useVanishPresets();
 

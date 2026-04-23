@@ -3,7 +3,7 @@
  *
  * Orchestrator hook that composes specialized sub-hooks.
  */
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDialog } from '../../contexts/DialogContext';
@@ -81,17 +81,10 @@ const useChatRoom = () => {
     }
   }, [currentUser?.id, chatId]);
 
-  // ─── NEW MESSAGE HANDLER ───
+  // ─── NEW MESSAGE HANDLER (REF PATTERN TO AVOID TDZ) ───
+  const onNewMessageRef = useRef(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
-
-  const onNewMessage = useCallback((msg) => {
-    if (!isScrolledToBottom) {
-      setUnreadCount(prev => prev + 1);
-    } else {
-      markMessagesAsRead();
-    }
-  }, [isScrolledToBottom, markMessagesAsRead]);
 
   // ─── MESSAGES ───
   const messagesApi = useChatMessages({
@@ -100,7 +93,7 @@ const useChatRoom = () => {
     isGroupChat,
     isNewChat,
     currentUser,
-    onNewMessage,
+    onNewMessage: (msg) => onNewMessageRef.current?.(msg),
   });
 
   // ─── MEDIA ───
@@ -129,6 +122,28 @@ const useChatRoom = () => {
     otherUserId,
     currentUser,
   });
+
+  // Define the actual logic and update the ref
+  useEffect(() => {
+    onNewMessageRef.current = (msg) => {
+      // [AUTO VANISH SYNC]
+      if ((msg.vanishAt || msg.vanish_at) && !settingsApi.isTempChat) {
+        settingsApi.setIsTempChat(true);
+      }
+
+      if (!isScrolledToBottom) {
+        setUnreadCount(prev => prev + 1);
+      } else {
+        markMessagesAsRead();
+      }
+    };
+  }, [isScrolledToBottom, markMessagesAsRead, settingsApi]);
+
+  // [NOTE] Auto-Vanish on load was removed as it prevented manual turn-off.
+  // The system now correctly relies on:
+  // 1. Initial settings fetch in useChatSettings
+  // 2. Realtime sync in useChatSettings
+  // 3. onNewMessage trigger above
 
   // ─── AUTHORIZATION CHECK ───
   const [authError, setAuthError] = useState(null);
