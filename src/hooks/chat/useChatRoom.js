@@ -27,8 +27,8 @@ const useChatRoom = () => {
   const activeChat = useChatStore(state => state.activeChat);
   
   // Use store if available, otherwise fallback to params
-  const chatId = activeChat ? activeChat.id : paramChatId;
-  const rawOtherUserId = activeChat ? activeChat.metadata?.otherUserId || (activeChat.isGroup ? 'group' : null) : paramOtherUserId;
+  const chatId = paramChatId || activeChat?.id;
+  const rawOtherUserId = paramOtherUserId || activeChat?.metadata?.otherUserId || (activeChat?.isGroup ? 'group' : null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,6 +38,25 @@ const useChatRoom = () => {
   const allChats = rawChats || [];
   const isDataLoading = rawChats === undefined;
   const { supabase } = useSupabase();
+
+  const setActiveChat = useChatStore(state => state.setActiveChat);
+
+  // Sync activeChat with URL params if they differ
+  useEffect(() => {
+    if (paramChatId && (!activeChat || String(activeChat.id) !== String(paramChatId))) {
+      const chatInList = allChats.find(c => String(c.id) === String(paramChatId));
+      if (chatInList) {
+        setActiveChat(chatInList);
+      } else if (paramChatId !== 'new') {
+        // If not in list, create a minimal placeholder so the UI knows the current context
+        setActiveChat({ 
+          id: paramChatId, 
+          isGroup: paramOtherUserId === 'group' || location.pathname.endsWith('/group'),
+          metadata: { otherUserId: paramOtherUserId !== 'group' ? paramOtherUserId : null }
+        });
+      }
+    }
+  }, [paramChatId, paramOtherUserId, allChats, activeChat, setActiveChat, location.pathname]);
 
   // ─── ROUTING & IDENTITY ───
   const isGroupChat = rawOtherUserId === 'group' || location.pathname.endsWith('/group');

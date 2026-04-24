@@ -99,6 +99,11 @@ export function useChatParticipant({
       }));
     }
   }, [isGroupChat, groupDetails, currentUser?.id]);
+  
+  // Reset otherUser when chatId changes to prevent stale UI
+  useEffect(() => {
+    setOtherUser(null);
+  }, [chatId, isGroupChat]);
 
   // Resolve DM user details
   useEffect(() => {

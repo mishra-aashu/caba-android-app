@@ -8,11 +8,14 @@ import { useAuth } from '../../hooks/useAuth';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import { useAddMembers } from '../../hooks/useGroupActions';
-import { Search, Check, X, ArrowLeft, Users, UserPlus, LoaderCircle } from 'lucide-react';
+import { useContacts } from '../../hooks/useCommonQueries';
+import { useSupabase } from '../../contexts/SupabaseContext';
+import { Search, Check, X, ArrowLeft, Users, UserPlus, LoaderCircle, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 import { getInitials } from '../../utils/stringUtils';
 import { dpOptions } from '../../utils/dpOptions';
+import { safeDbConversion } from '../../utils/dbFieldMapping';
 import './AddMembers.css';
 
 const AddMembers = ({ 
@@ -28,12 +31,45 @@ const AddMembers = ({
     }, [groupId]);
 
     const { user } = useAuth();
+    const { supabase } = useSupabase();
+    const { data: supabaseContacts } = useContacts(user?.id);
     const cachedContacts = useLiveQuery(() => db.contacts.toArray()) || [];
     const addMembersMutation = useAddMembers();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedContacts, setSelectedContacts] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [globalResults, setGlobalResults] = useState([]);
+    const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+
+    // Sync contacts to Dexie in background
+    useEffect(() => {
+        if (supabaseContacts && supabaseContacts.length > 0) {
+            const syncToDexie = async () => {
+                try {
+                    const formatted = supabaseContacts.map((c) => {
+                        const userObj = c.contactUser || c.contact_user || c.otherUser || c.other_user;
+                        return {
+                            id: c.id,
+                            contactName: c.contactName || c.contact_name,
+                            otherUser: userObj,
+                            avatar: userObj?.avatar,
+                            contactUserId: c.contactUserId || c.contact_user_id,
+                            userId: c.userId || c.user_id,
+                            isFavorite: c.isFavorite || c.is_favorite,
+                        };
+                    });
+                    await db.transaction('rw', db.contacts, async () => {
+                        await db.contacts.clear();
+                        await db.contacts.bulkPut(formatted);
+                    });
+                } catch (err) {
+                    console.error('[AddMembers] Sync failed:', err);
+                }
+            };
+            syncToDexie();
+        }
+    }, [supabaseContacts]);
 
     // Derived contacts list from cache, filtering out existing members and current user
     const contacts = useMemo(() => {
@@ -84,6 +120,66 @@ const AddMembers = ({
             contact.phone?.toLowerCase().includes(query)
         );
     }, [contacts, searchQuery]);
+
+    // Global User Search Logic (Fallback for empty results)
+    useEffect(() => {
+        const query = searchQuery.trim();
+        // Only search globally if:
+        // 1. We have no local matches
+        // 2. Query looks like a phone number (at least 6 digits) OR a name (at least 3 chars)
+        // 3. We aren't already searching
+        if (filteredContacts.length > 0 || query.length < 3) {
+            setGlobalResults([]);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setIsSearchingGlobal(true);
+            try {
+                // Search users table
+                let dbQuery = supabase.from('users').select('id, name, phone, avatar, is_online');
+                
+                if (/^\d+$/.test(query)) {
+                    dbQuery = dbQuery.ilike('phone', `%${query}%`);
+                } else {
+                    dbQuery = dbQuery.ilike('name', `%${query}%`);
+                }
+
+                const { data, error } = await dbQuery.limit(5);
+
+                if (error) throw error;
+
+                if (data) {
+                    const formatted = data
+                        .filter(u => u.id !== user?.id && !existingMemberIds.includes(u.id))
+                        .map(u => ({
+                            id: u.id,
+                            name: u.name || 'Unknown',
+                            avatar: u.avatar,
+                            phone: u.phone || 'ELEVENGRAM User',
+                            is_online: u.is_online || false,
+                            isGlobal: true // Flag to show "Global result" badge
+                        }));
+                    setGlobalResults(formatted);
+                }
+            } catch (err) {
+                console.error('[AddMembers] Global search failed:', err);
+            } finally {
+                setIsSearchingGlobal(false);
+            }
+        }, 600); // Debounce
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, filteredContacts.length, supabase, user?.id, existingMemberIds]);
+
+    const displayResults = useMemo(() => {
+        // Combine local filtered contacts and global results
+        // Use a Set to avoid duplicates (though global results are filtered for non-contacts)
+        const localIds = new Set(filteredContacts.map(c => c.id));
+        const uniqueGlobal = globalResults.filter(g => !localIds.has(g.id));
+        
+        return [...filteredContacts, ...uniqueGlobal];
+    }, [filteredContacts, globalResults]);
 
     // Toggle contact selection
     const toggleContact = (contact) => {
@@ -249,50 +345,64 @@ const AddMembers = ({
 
             {/* Contacts List */}
             <div className="contacts-list scrollbar-hidden">
-                {contacts.length === 0 ? (
+                {displayResults.length === 0 && !isSearchingGlobal ? (
                     <div className="no-contacts">
-                        <UserPlus size={48} />
-                        <p>All contacts are already members of this group</p>
+                        {searchQuery ? (
+                            <>
+                                <Search size={48} />
+                                <p>No users found matching "{searchQuery}"</p>
+                            </>
+                        ) : (
+                            <>
+                                <UserPlus size={48} />
+                                <p>{contacts.length === 0 ? "You've added all your contacts to this group" : "No participants to show"}</p>
+                            </>
+                        )}
                     </div>
-                ) : filteredContacts.length > 0 ? (
-                    filteredContacts.map((contact, index) => {
-                        const isSelected = selectedContacts.some(c => c.id === contact.id);
-                        return (
-                            <div
-                                key={contact.id}
-                                className={`contact-item ${isSelected ? 'selected' : ''}`}
-                                onClick={() => !loading && toggleContact(contact)}
-                                style={{ animationDelay: `${index * 0.03}s` }}
-                            >
-                                <div className="contact-avatar">
-                                    {renderAvatar(contact)}
-                                    {isSelected && (
-                                        <div className="check-icon">
-                                            <Check size={12} />
+                ) : (
+                    <>
+                        {displayResults.map((contact, index) => {
+                            const isSelected = selectedContacts.some(c => c.id === contact.id);
+                            return (
+                                <div
+                                    key={contact.id}
+                                    className={`contact-item ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => !loading && toggleContact(contact)}
+                                    style={{ animationDelay: `${index * 0.03}s` }}
+                                >
+                                    <div className="contact-avatar">
+                                        {renderAvatar(contact)}
+                                        {isSelected && (
+                                            <div className="check-icon">
+                                                <Check size={12} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="contact-info">
+                                        <div className="contact-name">
+                                            {contact.name}
+                                            {contact.isGlobal && (
+                                                <span className="global-badge">
+                                                    <Globe size={10} />
+                                                    Global
+                                                </span>
+                                            )}
                                         </div>
+                                        <div className="contact-phone">{contact.phone}</div>
+                                    </div>
+                                    {contact.is_online && (
+                                        <div className="online-indicator" />
                                     )}
                                 </div>
-                                <div className="contact-info">
-                                    <div className="contact-name">{contact.name}</div>
-                                    <div className="contact-phone">{contact.phone}</div>
-                                </div>
-                                {contact.is_online && (
-                                    <div className="online-indicator" />
-                                )}
+                            );
+                        })}
+                        {isSearchingGlobal && (
+                            <div className="searching-global">
+                                <LoaderCircle className="animate-spin" size={16} />
+                                <span>Searching for more users...</span>
                             </div>
-                        );
-                    })
-                ) : (
-                    <div className="no-contacts">
-                        <Search size={48} />
-                        <p>No contacts found matching "{searchQuery}"</p>
-                        <button 
-                            className="clear-search-btn"
-                            onClick={() => setSearchQuery('')}
-                        >
-                            Clear search
-                        </button>
-                    </div>
+                        )}
+                    </>
                 )}
             </div>
 

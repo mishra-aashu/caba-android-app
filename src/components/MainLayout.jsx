@@ -399,7 +399,7 @@ const MainLayout = () => {
                 {isDesktop && isOverlayRoute ? (
                     <ChatPlaceholder />
                 ) : activeChat ? (
-                    <ChatScreen />
+                    <ChatScreen key={activeChat?.id} />
                 ) : (
                     <Outlet />
                 )}
@@ -482,7 +482,7 @@ const MainLayout = () => {
                             >
                                 <Suspense fallback={<LoadingFallback />}>
                                     {mobileSubPages ||
-                                        (activeChat ? <ChatScreen /> : <Outlet />)}
+                                        (activeChat ? <ChatScreen key={activeChat.id} /> : <Outlet />)}
                                 </Suspense>
                             </PageTransition>
                         )}

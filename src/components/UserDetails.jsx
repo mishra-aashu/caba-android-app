@@ -12,6 +12,7 @@ import { formatLastSeen, isUserOnline } from '../utils/dateFormatter';
 import { useChatThemeQuery } from '../hooks/useThemesData';
 import { chatThemes, useChatTheme } from '../contexts/ChatThemeContext';
 import { useResolveName } from '../hooks/useResolveName';
+import useChatStore from '../store/useChatStore';
 import {
     ArrowLeft, Phone, Video, MessageCircle,
     Image, Link as LinkIcon, FileText,
@@ -42,6 +43,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     const queryClient = useQueryClient();
     const currentUser = useAuthStore((state) => state.dbUser);
     const { showThemeSelector, showSharedMedia } = React.useContext(UserDetailsContext) || {};
+    const setActiveChat = useChatStore((state) => state.setActiveChat);
 
     // ─── Data ───
     const {
@@ -815,6 +817,13 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                             key={group.id}
                                             className="ud-group-item"
                                             onClick={() => {
+                                                // Update state immediately to avoid UI sticking on previous context
+                                                setActiveChat({
+                                                    id: group.id,
+                                                    name: group.name,
+                                                    avatar: group.avatar,
+                                                    isGroup: true
+                                                });
                                                 navigate(`/chat/${group.id}/group`, { 
                                                     state: { groupName: group.name, groupAvatar: group.avatar } 
                                                 });

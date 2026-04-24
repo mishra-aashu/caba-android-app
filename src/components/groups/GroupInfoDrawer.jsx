@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGroup, useGroupMembers, useIsAdmin, useLeaveGroup, useUpdateGroup } from '../../hooks/useGroupActions';
 import MemberItem from './MemberItem';
 import DpPicker from '../common/DpPicker';
+import AddMembersModal from './AddMembersModal';
 
 import { X, Edit, Users, Info, Phone, Video, Bell, BellOff, LogOut, Settings, Crown, Calendar, User as UserIcon, Camera, Shield, Lock, MessageSquare, ArrowLeft, LoaderCircle, Upload, Image, Check, UserPlus } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -26,6 +27,7 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
   const isDesktop = useIsDesktop();
 
   const [showDpPicker, setShowDpPicker] = useState(false);
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -497,35 +499,7 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
               {canAddMembers && groupId && (
                 <button
                   className="add-member-btn-link"
-                  onClick={() => {
-                    const targetId = group?.id || group?.group_id || chatId;
-                    const targetUrl = `/chat/${targetId}/group/add-members`;
-                    
-                    // Direct feedback alert
-                    window.alert(`Navigating to Add Members for ID: ${targetId}`);
-                    
-                    console.log(`[GroupInfoDrawer] Force Navigating to: ${targetUrl}`, { isDesktop });
-
-                    if (isDesktop) {
-                      onClose(); 
-                    }
-                    
-                    try {
-                        // Standard SPA navigate
-                        navigate(targetUrl);
-                        
-                        // Fallback: If still on same page after 500ms, use location.assign
-                        setTimeout(() => {
-                           if (window.location.pathname.includes('/group/info')) {
-                               console.warn('[GroupInfoDrawer] SPA navigate failed, using window.location.assign');
-                               window.location.assign(targetUrl);
-                           }
-                        }, 500);
-                    } catch (e) {
-                        console.error('[GroupInfoDrawer] Navigate error:', e);
-                        window.location.assign(targetUrl);
-                    }
-                  }}
+                  onClick={() => setShowAddMembersModal(true)}
                 >
                   <UserPlus size={14} />
                   Add
@@ -578,6 +552,18 @@ const GroupInfoDrawer = ({ isOpen, onClose, group, onCallStart }) => {
         onClose={() => setShowDpPicker(false)}
         onSelect={handleDpSelect}
         currentDp={selectedDp}
+      />
+
+      {/* Add Members Modal */}
+      <AddMembersModal
+        isOpen={showAddMembersModal}
+        onClose={() => setShowAddMembersModal(false)}
+        groupId={groupId}
+        existingMemberIds={members.map(m => m.user_id)}
+        onSuccess={() => {
+          refetchMembers();
+          setShowAddMembersModal(false);
+        }}
       />
     </>
   );

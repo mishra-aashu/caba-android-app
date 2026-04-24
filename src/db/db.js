@@ -155,14 +155,15 @@ db.version(11).stores({
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const addToSyncQueue = async (type, payload) => {
+export const addToSyncQueue = async (action, data, table = 'messages') => {
     return await db.sync_queue.add({
-        type,
-        payload,
+        action,
+        data,
+        table,
         status: 'pending',
-        createdAt: new Date().toISOString(),
-        retryCount: 0,
-        totalResets: 0,
+        createdAt: Date.now(),
+        retries: 0,
+        maxRetries: 3
     });
 };
 

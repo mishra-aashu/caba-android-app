@@ -43,6 +43,7 @@ const MessageBubble = memo(({
   edited,
   sender,
   message,
+  isGroupChat,
   isLastRead,
   isLast,
   onRetry,
@@ -150,6 +151,11 @@ const MessageBubble = memo(({
         className={`${styles['message-container']} ${isMine ? styles.mine : styles.theirs} ${isAnonymous ? styles.anonymous : ''} ${isLocked ? styles.locked : ''} ${isJumboEmoji ? styles['jumbo-emoji'] : ''}`}
       >
         <div className={`${styles.bubble} ${styles['caba-bubble']} ${isMine ? `${styles['bubble-sent']} ${styles['caba-bubble--sent']}` : `${styles['bubble-received']} ${styles['caba-bubble--received']}`} ${isJumboEmoji ? styles['jumbo-emoji-bubble'] : ''}`}>
+          {isGroupChat && !isMine && !isJumboEmoji && (
+            <div className={styles['sender-name']}>
+              {senderName}
+            </div>
+          )}
           {repliedMsg && !isLocked && repliedMsg.id && (
             <div className={styles['reply-quote-container']}>
               <div className={styles['reply-quote-content']}>

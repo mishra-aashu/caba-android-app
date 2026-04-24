@@ -238,14 +238,15 @@ export function useChatMessages({
                     }).catch(() => {});
                 });
 
+                // Convert to snake_case for Supabase/Queue
+                const dbData = frontendToDb(frontendMsg);
+
                 if (!navigator.onLine) {
-                    await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
+                    await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData);
                     return null;
                 }
 
-                // 2. Prepare for Supabase (Convert to snake_case and ENCRYPT)
-                const dbData = frontendToDb(frontendMsg);
-                
+                // 2. Prepare for Supabase (ENCRYPT)
                 // End-to-End Encryption before sending to server
                 dbData.content = EncryptionService.encrypt(
                     dbData.content, 

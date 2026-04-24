@@ -7,8 +7,9 @@ const AddMembersModal = ({ isOpen, onClose, groupId, existingMemberIds = [], onS
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Add Members"
-      size="medium"
+      title="Add Participants"
+      size="small"
+      bodyClassName="add-members-modal-body"
     >
       <AddMembers 
         groupId={groupId}

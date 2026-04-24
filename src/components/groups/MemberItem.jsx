@@ -128,18 +128,20 @@ const MemberItem = ({ member, groupId, currentUserId, isCurrentUserAdmin, creato
             )}
             {memberRole === 'admin' && (
               <span className="admin-badge" title="Admin">
-                <Crown size={12} />
+                <Crown size={14} />
               </span>
             )}
           </div>
         </div>
         <div className="member-status-row">
           <span className={`status-text ${isOnline ? 'online' : ''}`}>
-            {isOnline ? 'Online' : (member.users?.phone || 'Offline')}
+            {isCurrentUser 
+              ? (memberPhone || 'No phone') 
+              : (isOnline ? 'Online' : 'Offline')}
           </span>
-          {joinDate && (
+          {!isCurrentUser && joinDate && (
             <span className="join-date">
-              Joined {new Date(joinDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+              Joined {new Date(joinDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
             </span>
           )}
         </div>

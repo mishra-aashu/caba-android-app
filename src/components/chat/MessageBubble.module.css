@@ -105,6 +105,18 @@
   padding: 8px 12px 6px 12px;
 }
 
+.sender-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-primary, #00a884);
+  margin-bottom: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
 
 /* =============================================
    5. MESSAGE CONTENT — Text Layout
