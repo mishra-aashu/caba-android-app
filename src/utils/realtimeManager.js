@@ -814,37 +814,24 @@ class RealtimeManager {
       pollCount++;
       this._log('[POLL] Polling fallback tick', { channel: channelName, tick: pollCount });
 
-      // Fire reconnect callback for ALL subscribers
+      // Signal all subscribers that they should perform a health-check/sync
       const entry = this.subscriptions.get(channelName);
       if (entry) {
         entry.subscribers.forEach((sub) => {
           if (sub.callbacks.onReconnect) {
             this._safeExecute(() => sub.callbacks.onReconnect(true), 'onReconnect (poll)');
           }
+          // NEW: Also trigger onStatusChange to let hooks know we're in polling mode
+          if (sub.callbacks.onStatusChange) {
+            this._safeExecute(() => sub.callbacks.onStatusChange(STATES.POLLING), 'onStatusChange (poll)');
+          }
         });
       }
 
-      // Every 4 ticks (~2 minutes), try WebSocket recovery
-      if (pollCount % 4 === 0) {
+      // Every 3 ticks (~90s), try WebSocket recovery
+      if (pollCount % 3 === 0) {
         this._log('[POLL] Attempting WebSocket recovery', { channel: channelName });
-
-        const currentEntry = this.subscriptions.get(channelName);
-        const savedSubscribers = currentEntry
-          ? Array.from(currentEntry.subscribers.values())
-          : null;
-
-        if (currentEntry?.channel) {
-          await this._safeRemoveChannel(currentEntry.channel, channelName);
-          this.subscriptions.delete(channelName);
-        }
-
-        this.retryCount.set(channelName, 0);
-
-        if (savedSubscribers?.length > 0) {
-          for (const sub of savedSubscribers) {
-            await this.subscribe(channelName, sub.config, sub.callbacks);
-          }
-        }
+        this.refreshChannel(channelName);
       }
     }, 30000);
 

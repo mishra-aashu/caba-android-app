@@ -53,27 +53,28 @@ const MainLayout = () => {
     const syncTimeoutRef = React.useRef(null);
 
     React.useEffect(() => {
-        if (!user?.id) return;
+        if (!user?.id) {
+            syncService.stopPeriodicSync();
+            return;
+        }
 
-        const SYNC_THROTTLE = 180000; // 3 minutes
+        const SYNC_THROTTLE = 60000; // Reduced to 1 minute for better responsiveness
 
         const runSync = (reason = 'unknown', force = false) => {
             const now = Date.now();
 
             // Throttle check
             if (!force && now - lastSyncRef.current < SYNC_THROTTLE) {
-                console.log(`[MainLayout] Sync skipped (${reason}) - too soon`);
+                console.log(`[MainLayout] Sync skipped (${reason}) - throttled`);
                 return;
             }
-
-            console.log(`[MainLayout] Scheduling sync (${reason})`);
 
             // Debounce: clear previous timeout
             if (syncTimeoutRef.current) {
                 clearTimeout(syncTimeoutRef.current);
             }
 
-            // Delay sync to avoid blocking navigation
+            // Delay sync slightly to avoid blocking UI transitions
             syncTimeoutRef.current = setTimeout(() => {
                 if (!user?.id) return;
 
@@ -81,14 +82,18 @@ const MainLayout = () => {
                 syncService.performGlobalSync(user.id);
                 processSyncQueue();
                 lastSyncRef.current = Date.now();
-            }, 500);
+            }, 1000);
         };
 
-        // 1. Initial catch-up on mount ONLY
+        // 1. Initial catch-up and START PERIODIC SYNC
         runSync('mount', true);
+        syncService.startPeriodicSync(user.id);
 
         // 2. Network reconnection sync
-        const handleOnline = () => runSync('online', true);
+        const handleOnline = () => {
+            console.log('[MainLayout] Network back online - triggering sync');
+            runSync('online', true);
+        };
         window.addEventListener('online', handleOnline);
 
         // 3. Browser tab focus recovery
@@ -118,8 +123,9 @@ const MainLayout = () => {
             document.removeEventListener('visibilitychange', handleVisibility);
             if (capacitorAppListener) capacitorAppListener.remove();
             if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+            syncService.stopPeriodicSync();
         };
-    }, [user?.id]); // ✅ Removed location.pathname dependency
+    }, [user?.id]);
 
     // ──────────────────────────────────────────────────────────
     // Store State

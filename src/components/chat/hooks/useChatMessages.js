@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSupabase } from '../../../contexts/SupabaseContext';
 import { prepareDataForDB, handleDatabaseError } from '../../../utils/dbSchemaCompatibility';
 import { realtimeManager } from '../../../utils/realtimeManager';
+import { syncService } from '../../../services/syncService';
 
 const MESSAGES_PER_PAGE = 20;
 
@@ -40,7 +41,7 @@ export const useChatMessages = (chatId, currentUserId) => {
     if (!chatId || !currentUserId) return;
 
     try {
-      setLoading(true);
+      if (page === 0) setLoading(true);
       const from = page * MESSAGES_PER_PAGE;
       const to = from + MESSAGES_PER_PAGE - 1;
 
@@ -58,7 +59,16 @@ export const useChatMessages = (chatId, currentUserId) => {
       if (fetchError) throw fetchError;
       const processed = processMessages(data || []);
 
-      setMessages(prev => (page === 0 ? processed : [...processed, ...prev]));
+      if (!mountedRef.current) return;
+
+      setMessages(prev => {
+        if (page === 0) return processed;
+        // Merge without duplicates
+        const existingIds = new Set(prev.map(m => m.id));
+        const newOnes = processed.filter(m => !existingIds.has(m.id));
+        return [...newOnes, ...prev];
+      });
+      
       setHasMore((data?.length || 0) >= MESSAGES_PER_PAGE);
 
       if (page === 0 && processed.length > 0) {
@@ -74,7 +84,7 @@ export const useChatMessages = (chatId, currentUserId) => {
       setError(err?.message || 'Failed to load messages');
       return [];
     } finally {
-      setLoading(false);
+      if (page === 0) setLoading(false);
     }
   }, [chatId, currentUserId, supabase, processMessages]);
 
@@ -90,6 +100,42 @@ export const useChatMessages = (chatId, currentUserId) => {
     fetchMessages(0);
   }, [chatId, currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ──────────────────────────────────────────────────────────
+  // ROBUST SYNC FALLBACK (NEW)
+  // ──────────────────────────────────────────────────────────
+
+  const syncChatData = useCallback(async () => {
+    if (!chatId || !mountedRef.current) return;
+    
+    console.log(`[useChatMessages] Running fallback sync for chat: ${chatId}`);
+    const newMessages = await syncService.syncChat(chatId);
+    
+    if (newMessages?.length > 0 && mountedRef.current) {
+      const processed = processMessages(newMessages);
+      setMessages(prev => {
+        const existingIds = new Set(prev.map(m => m.id));
+        const toAdd = processed.filter(m => !existingIds.has(m.id));
+        if (toAdd.length === 0) return prev;
+        
+        console.log(`[useChatMessages] Fallback sync found ${toAdd.length} missed messages`);
+        // Append new messages (they are already ordered by syncService)
+        return [...prev, ...toAdd].sort((a, b) => a.timestamp - b.timestamp);
+      });
+    }
+  }, [chatId, processMessages]);
+
+  // Periodic safety sync while chat is open
+  useEffect(() => {
+    if (!chatId) return;
+    
+    const interval = setInterval(syncChatData, 30000); // Sync every 30s as a safety net
+    return () => clearInterval(interval);
+  }, [chatId, syncChatData]);
+
+  // ──────────────────────────────────────────────────────────
+  // REALTIME CHANNELS
+  // ──────────────────────────────────────────────────────────
+
   // Realtime channel for messages
   useEffect(() => {
     if (!chatId || !currentUserId) return;
@@ -99,6 +145,13 @@ export const useChatMessages = (chatId, currentUserId) => {
       channelName,
       {},
       {
+        onStatusChange: (status) => {
+          if (status === 'SUBSCRIBED') {
+            // Catch up whenever connection is established/re-established
+            syncChatData();
+          }
+        },
+        onReconnect: () => syncChatData(),
         postgres_changes: [{
           event: 'INSERT',
           schema: 'public',
@@ -118,7 +171,7 @@ export const useChatMessages = (chatId, currentUserId) => {
     );
 
     return () => realtimeManager.unsubscribe(channelName);
-  }, [chatId, currentUserId, processMessages]);
+  }, [chatId, currentUserId, processMessages, syncChatData]);
 
   // Realtime channel for other user's status updates
   useEffect(() => {
