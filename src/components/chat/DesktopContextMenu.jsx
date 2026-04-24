@@ -170,14 +170,6 @@ const DesktopContextMenu = ({
           </div>
         )}
 
-        {!isDeleted && <div className={styles['menu-divider']} />}
-
-        {/* ── Select — always available ── */}
-        <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onSelect)}>
-          <span className={styles.icon}><MousePointer size={16} /></span>
-          <span>Select</span>
-        </div>
-
         {!isDeleted && (
           <>
             {/* ── Reply ── */}
@@ -198,7 +190,7 @@ const DesktopContextMenu = ({
               <span>Forward</span>
             </div>
 
-            {/* [FIX #3] Edit — ONLY for sender's own messages */}
+            {/* Edit — ONLY for sender's own messages */}
             {isSent && onEdit && (
               <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onEdit)}>
                 <span className={styles.icon}><Edit size={16} /></span>
@@ -206,7 +198,15 @@ const DesktopContextMenu = ({
               </div>
             )}
 
-            {/* [FIX #6] Delete — different label for sent vs received */}
+            <div className={styles['menu-divider']} />
+
+            {/* ── Select ── */}
+            <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onSelect)}>
+              <span className={styles.icon}><MousePointer size={16} /></span>
+              <span>Select</span>
+            </div>
+
+            {/* Delete — different label for sent vs received */}
             {isSent ? (
               <div
                 className={`${styles['menu-item']} ${styles.delete}`}
@@ -214,7 +214,7 @@ const DesktopContextMenu = ({
                 onClick={safeCall(onDelete)}
               >
                 <span className={styles.icon}><Trash2 size={16} /></span>
-                <span>Delete</span>
+                <span>Delete for everyone</span>
               </div>
             ) : (
               <div

@@ -205,9 +205,6 @@ class CallService {
     return data?.length || 0;
   }
 
-  /**
-   * Get active call by call_id
-   */
   async getCallById(callId) {
     const { data, error } = await supabase
       .from('call_history')
@@ -216,6 +213,21 @@ class CallService {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  /**
+   * Get active incoming calls for user
+   */
+  async getIncomingCalls(userId) {
+    const { data, error } = await supabase
+      .from('call_history')
+      .select('*')
+      .eq('receiver_id', userId)
+      .eq('call_status', 'initiated')
+      .order('started_at', { ascending: false });
+
+    if (error) throw error;
     return data;
   }
 
@@ -336,7 +348,7 @@ class CallService {
    * Subscribe to call history changes
    */
   subscribeToCallHistory(userId, onCallUpdate) {
-    const channelName = `calls:${userId}`;
+    const channelName = `calls_history:${userId}`;
 
     realtimeManager.subscribe(
       channelName,
@@ -351,17 +363,7 @@ class CallService {
             table: 'call_history',
             filter: `receiver_id=eq.${userId}`,
             handler: (payload) => {
-              console.log('📞 Call update (receiver):', payload);
-              onCallUpdate(payload);
-            }
-          },
-          {
-            event: '*',
-            schema: 'public',
-            table: 'call_history',
-            filter: `caller_id=eq.${userId}`,
-            handler: (payload) => {
-              console.log('📞 Call update (caller):', payload);
+              console.log('📞 Call history update (receiver):', payload.eventType, payload.new?.call_status);
               onCallUpdate(payload);
             }
           }

@@ -163,6 +163,15 @@ const MessageItem = ({
     setShowActions(true);
   };
 
+  const handleDoubleClick = (e) => {
+    // Only for desktop/mouse
+    if (isTouchDevice.current || isSelectionMode) return;
+    
+    e.preventDefault();
+    setMenuPos({ x: e.clientX, y: e.clientY });
+    setShowActions(true);
+  };
+
   const handleSelectionTap = (e) => {
     e.preventDefault();
     toggleSelection(msgId);
@@ -280,6 +289,7 @@ const MessageItem = ({
         <div 
           className={styles['message-bubble-wrapper']}
           onContextMenu={handleContextMenu}
+          onDoubleClick={handleDoubleClick}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}

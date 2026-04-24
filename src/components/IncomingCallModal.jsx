@@ -35,8 +35,9 @@ export function IncomingCallModal() {
 
   // User interaction helps satisfy autoplay policy
   const handleUserInteraction = async (action) => {
-    // Attempt to play ringing sound (in case it was blocked)
-    playIncomingRing();
+    // Note: playIncomingRing() is no longer needed here as CallProvider 
+    // handles audio based on state. User interaction with any button 
+    // satisfies the browser policy for the next audio transition.
 
     if (action === answerCall) {
       // For answering calls, navigate to call screen after answering
