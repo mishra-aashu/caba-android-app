@@ -16,7 +16,8 @@ class SyncService {
         this.isSyncing = false;
         this.lastSyncTime = localStorage.getItem('last_global_sync_at') || null;
         this.periodicSyncTimer = null;
-        this.syncInterval = 90000; // 90 seconds
+        this.syncInterval = 30000; // 30 seconds — SyncHeartbeat covers fast gaps, this does full reconciliation
+
     }
 
     /**

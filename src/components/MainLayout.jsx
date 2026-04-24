@@ -6,6 +6,8 @@ import { syncService } from '../services/syncService';
 import { processSyncQueue } from '../services/offlineQueue';
 import useIsDesktop from '../hooks/useIsDesktop';
 import { realtimeOrchestrator } from '../services/RealtimeOrchestrator';
+import { syncHeartbeat } from '../services/SyncHeartbeat';
+
 
 import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
@@ -57,11 +59,15 @@ const MainLayout = () => {
         if (!user?.id) {
             syncService.stopPeriodicSync();
             realtimeOrchestrator.destroy();
+            syncHeartbeat.stop();
             return;
         }
 
         // Initialize Global Realtime Engine
         realtimeOrchestrator.initialize(user.id);
+
+        // Initialize Active Polling Heartbeat (catches WebSocket silent drops)
+        syncHeartbeat.start(user.id);
 
         const SYNC_THROTTLE = 60000; 
 
@@ -85,50 +91,23 @@ const MainLayout = () => {
         // Event Listener for Orchestrator/Background requests
         const handleSyncRequest = (e) => {
             const { reason } = e.detail;
-            runSync(reason, true); // Force sync on specific requests
+            runSync(reason, true);
         };
         window.addEventListener('app:sync-required', handleSyncRequest);
 
-        // 1. Initial catch-up
+        // Initial catch-up
         runSync('mount', true);
         syncService.startPeriodicSync(user.id);
 
-        // 2. Network reconnection sync
-        const handleOnline = () => {
-            runSync('online', true);
-        };
-        window.addEventListener('online', handleOnline);
-
-        // 3. Browser tab focus recovery
-        const handleVisibility = () => {
-            if (document.visibilityState === 'visible') {
-                runSync('visibility');
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibility);
-
-        // 4. Capacitor native app foreground
-        let capacitorAppListener = null;
-        const setupCapacitorSync = async () => {
-            try {
-                const { App } = await import('@capacitor/app');
-                capacitorAppListener = await App.addListener('appStateChange', ({ isActive }) => {
-                    if (isActive) runSync('appState');
-                });
-            } catch { /* Not Capacitor */ }
-        };
-        setupCapacitorSync();
-
         return () => {
-            window.removeEventListener('online', handleOnline);
             window.removeEventListener('app:sync-required', handleSyncRequest);
-            document.removeEventListener('visibilitychange', handleVisibility);
-            if (capacitorAppListener) capacitorAppListener.remove();
             if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
             syncService.stopPeriodicSync();
             realtimeOrchestrator.destroy();
+            syncHeartbeat.stop();
         };
     }, [user?.id]);
+
 
 
     // ──────────────────────────────────────────────────────────
@@ -137,6 +116,12 @@ const MainLayout = () => {
 
     const activeChat = useChatStore(state => state.activeChat);
     const setActiveChat = useChatStore(state => state.setActiveChat);
+
+    // Keep heartbeat in sync with whichever chat is open
+    React.useEffect(() => {
+        syncHeartbeat.setActiveChat(activeChat?.id || null);
+    }, [activeChat?.id]);
+
 
     // ──────────────────────────────────────────────────────────
     // Side Panel State
