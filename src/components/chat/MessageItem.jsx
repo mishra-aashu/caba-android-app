@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, memo, Suspense, lazy } from 'react';
+import React, { useState, useRef, useCallback, memo, Suspense, lazy, useMemo } from 'react';
 import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
 import { formatBubbleTime } from '../../utils/dateFormatter';
@@ -11,8 +11,36 @@ import toast from 'react-hot-toast';
 import hapticsManager from '../../utils/hapticsManager';
 import styles from '../../styles/chat.module.css';
 
+import { resolveAvatarUrl } from '../../utils/avatarHelpers';
+
 const DesktopContextMenu = lazy(() => import('./DesktopContextMenu'));
 const ReactionPicker = lazy(() => import('./ReactionPicker'));
+
+const MessageAvatar = memo(({ sender, senderId, onSenderClick }) => {
+  const [imgError, setImgError] = useState(false);
+  const avatarUrl = useMemo(() => resolveAvatarUrl(sender?.avatar), [sender?.avatar]);
+
+  return (
+    <div 
+      className={styles['group-sender-avatar']} 
+      onClick={() => onSenderClick?.(senderId)}
+      title={sender?.name || 'User'}
+    >
+      {avatarUrl && !imgError ? (
+        <img 
+          src={avatarUrl} 
+          alt="" // Keep alt empty to prevent browser from showing broken alt text
+          className={styles['group-sender-avatar-img']} 
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span className={styles['group-sender-avatar-initial']}>
+          {(sender?.name || 'U').charAt(0)}
+        </span>
+      )}
+    </div>
+  );
+});
 
 const MessageItem = ({
   message,
@@ -269,7 +297,7 @@ const MessageItem = ({
     <div
       ref={messageRef}
       id={`message-${msgId}`}
-      className={`${styles['message-item']} ${isSent ? styles.sent : styles.received} ${isSelected ? styles.selected : ''} ${isSelectionMode ? styles['selection-active'] : ''}`}
+      className={`${styles['message-item']} ${isSent ? styles.sent : styles.received} ${isSelected ? styles.selected : ''} ${isSelectionMode ? styles['selection-active'] : ''} ${isGroupChat && !isSent ? styles['group-message'] : ''}`}
       style={{ contain: 'layout' }}
     >
       {isSelectionMode && (
@@ -281,11 +309,19 @@ const MessageItem = ({
         </>
       )}
 
+      {isGroupChat && !isSent && (
+        <MessageAvatar 
+          sender={message.sender} 
+          senderId={message.sender_id || message.senderId}
+          onSenderClick={onSenderClick}
+        />
+      )}
+
       <div className={`${styles['swipe-indicator']} ${swipeX > 40 ? styles.active : ''}`} style={{ transform: `translateY(-50%) translateX(${Math.min(swipeX - 40, 0)}px)` }}>
         <Reply size={20} />
       </div>
 
-      <div className={styles['message-content-wrapper']}>
+      <div className={`${styles['message-content-wrapper']} ${isGroupChat && !isSent ? styles['with-avatar'] : ''}`}>
         <div 
           className={styles['message-bubble-wrapper']}
           onContextMenu={handleContextMenu}
