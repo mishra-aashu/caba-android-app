@@ -235,7 +235,10 @@
 }
 
 :global([data-theme='dark']) .external-status {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.9); /* Maximum legibility */
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  opacity: 1;
 }
 
 /* Status Icons */
