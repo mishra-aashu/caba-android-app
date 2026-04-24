@@ -31,7 +31,8 @@
    ============================================= */
 
 :root,
-[data-theme='light'] {
+[data-theme='light'],
+[data-chat-theme='emerald-default'][data-theme='light'] {
 
   /* ── Wallpaper / Background ── */
   --chat-bg-base: #e5ddd5;
@@ -157,7 +158,8 @@
    0b. DEFAULT DARK MODE FALLBACK
    ============================================= */
 
-[data-theme='dark'] {
+[data-theme='dark'],
+[data-chat-theme='emerald-default'][data-theme='dark'] {
 
   /* ── Wallpaper / Background ── */
   --chat-bg-base: #0b141a;
@@ -272,7 +274,6 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme="light"][data-chat-theme="spring-vibes"],
 [data-theme="light"][data-chat-theme="spring-vibes"] {
 
   --chat-bg-base: #eef5ec;
@@ -437,7 +438,6 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme="light"][data-chat-theme="winter-calm"],
 [data-theme="light"][data-chat-theme="winter-calm"] {
 
   --chat-bg-base: #e8f0f8;
@@ -590,7 +590,6 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme="light"][data-chat-theme="cherry-blossom"],
 [data-theme="light"][data-chat-theme="cherry-blossom"] {
 
   --chat-bg-base: #f5e0e4;
@@ -740,7 +739,6 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme="light"][data-chat-theme="desert-dunes"],
 [data-theme="light"][data-chat-theme="desert-dunes"] {
 
   --chat-bg-base: #f0e6d0;
@@ -890,7 +888,6 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme="light"][data-chat-theme="sunset-glow"],
 [data-theme="light"][data-chat-theme="sunset-glow"] {
 
   --chat-bg-base: #f5e0d0;
@@ -1042,7 +1039,6 @@
    ═══════════════════════════════════════════════ */
 
 /* ─── Light ─── */
-[data-theme="light"][data-chat-theme="ocean-depths"],
 [data-theme="light"][data-chat-theme="ocean-depths"] {
 
   --chat-bg-base: #d8edee;
@@ -2673,4 +2669,57 @@
   --reaction-pill-active-bg: rgba(252, 165, 165, 0.12);
   --reaction-pill-active-border: 1px solid rgba(252, 165, 165, 0.25);
   --reaction-count-color: #fca5a5;
+}
+/* ═══════════════════════════════════════════════
+   ███  THEME 17 — PATTERN OVERLAY ✨  ███
+   ═══════════════════════════════════════════════ */
+
+/* ─── Light ─── */
+[data-theme="light"][data-chat-theme="pattern-overlay"] {
+  --chat-bg-base: #f0f0f7;
+  --chat-bg-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --chat-pattern-opacity: 0.15;
+  --chat-pattern-blend: overlay;
+  
+  --sent-message-bg: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  
+  --received-message-bg: rgba(255, 255, 255, 0.9);
+  --received-message-text: #1e1b4b;
+  --received-message-border: 1px solid rgba(99, 102, 241, 0.1);
+
+  --chat-header-bg: #4f46e5;
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: #ffffff;
+  
+  --chat-input-bg: #ffffff;
+  --chat-input-text: #1e1b4b;
+  --chat-input-icon-color: #4f46e5;
+  
+  --chat-send-btn-bg: #6366f1;
+}
+
+/* ─── Dark ─── */
+[data-theme="dark"][data-chat-theme="pattern-overlay"] {
+  --chat-bg-base: #0f172a;
+  --chat-bg-gradient: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+  --chat-pattern-opacity: 0.2;
+  --chat-pattern-blend: screen;
+
+  --sent-message-bg: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --sent-message-text: #ffffff;
+  --sent-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  --received-message-bg: rgba(255, 255, 255, 0.12);
+  --received-message-text: #ffffff;
+  --received-message-border: 1px solid rgba(255, 255, 255, 0.1);
+
+  --chat-header-bg: #1e1b4b;
+  --chat-header-text: #ffffff;
+  --chat-header-icon-color: #ffffff;
+
+  --chat-input-bg: #1e293b;
+  --chat-input-text: #ffffff;
+  --chat-input-icon-color: #6366f1;
 }

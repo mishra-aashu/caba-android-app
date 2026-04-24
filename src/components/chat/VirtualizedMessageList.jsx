@@ -385,10 +385,15 @@ const VirtualizedMessageList = React.forwardRef(({
         rangeChanged={(range) => onRangeChanged?.(range.startIndex)}
         itemContent={renderItem}
         computeItemKey={(index, item) => item?.key || `item-${index}`}
-        overscan={50}
+        overscan={100}
+        increaseViewportBy={200}
         alignToBottom={true}
         startReached={() => {
           if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
+        components={{
+          // [FIX] Add a small footer to ensure the last message isn't cut off
+          Footer: () => <div style={{ height: '12px', width: '100%' }} />
         }}
         style={{ flex: 1, width: '100%', minHeight: 0, height: '100%' }}
       />

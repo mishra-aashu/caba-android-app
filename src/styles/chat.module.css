@@ -451,7 +451,7 @@ body.light-mode .load-more-indicator p {
 [data-theme='light'] .messages-container,
 body.light-mode .messages-container {
   background: transparent;
-  padding-bottom: 40px;
+  padding-bottom: 8px;
 }
 
 
@@ -2230,7 +2230,7 @@ body.light-mode .skeleton-message::after {
 ───────────────────────────────────────────── */
 
 .virtuoso-container {
-  contain: strict;
+  contain: content;
   height: 100%;
   width: 100%;
   min-height: 0;

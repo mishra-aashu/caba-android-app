@@ -37,54 +37,22 @@ function getAverageLuminance(cssColorString) {
 
 function applyThemeToDom({ themeKey, wallpaperUrl, patternId }) {
     const root = document.documentElement;
-    const theme = chatThemes[themeKey] || chatThemes.classic_purple;
+    const theme = chatThemes[themeKey] || chatThemes['classic-purple'];
+
+    // Set the theme ID attribute so CSS can react to it
+    root.setAttribute('data-chat-theme', themeKey);
 
     const setProp = (name, value) => {
         if (value != null && value !== '') root.style.setProperty(name, value);
         else root.style.removeProperty(name);
     };
 
-    // ── Base colour & gradient ──────────────────────────────────────────────
-    const isDarkMode = root.getAttribute('data-theme') === 'dark';
-    setProp('--chat-bg-base', theme.backgroundBase || (isDarkMode ? '#0b141a' : '#e5ddd5'));
-    setProp('--chat-bg-gradient', theme.background);
-
-    // Wallpaper photo — when set, clear the gradient so the photo shows cleanly
+    // ── Wallpaper photo ──────────────────────────────────────────────────
+    // When set, it sits on top of the CSS-defined gradient
     if (wallpaperUrl) {
         setProp('--chat-bg-image', `url("${wallpaperUrl}")`);
     } else {
         root.style.removeProperty('--chat-bg-image');
-    }
-
-    // ── Sent / received bubble colours ──────────────────────────────────────
-    const mapSubProps = (prefix, obj) => {
-        if (!obj) return;
-        setProp(`${prefix}-bg`, obj.background || obj.bg);
-        setProp(`${prefix}-text`, obj.text);
-        setProp(`${prefix}-border`, obj.border);
-        setProp(`${prefix}-shadow`, obj.shadow);
-    };
-    mapSubProps('--sent-message', theme.sentMessage);
-    mapSubProps('--received-message', theme.receivedMessage);
-
-    // ── Header ──────────────────────────────────────────────────────────────
-    if (theme.header) {
-        setProp('--chat-header-bg', theme.header.background);
-        setProp('--chat-header-text', theme.header.text);
-        setProp('--chat-header-icon-color', theme.header.iconColor);
-    } else {
-        ['--chat-header-bg', '--chat-header-text', '--chat-header-icon-color']
-            .forEach(p => root.style.removeProperty(p));
-    }
-
-    // ── Input bar ───────────────────────────────────────────────────────────
-    if (theme.input) {
-        setProp('--chat-input-bg', theme.input.background);
-        setProp('--chat-input-text', theme.input.text);
-        setProp('--chat-input-icon-color', theme.input.iconColor);
-    } else {
-        ['--chat-input-bg', '--chat-input-text', '--chat-input-icon-color']
-            .forEach(p => root.style.removeProperty(p));
     }
 
     // ── SVG pattern overlay ─────────────────────────────────────────────────
@@ -92,19 +60,17 @@ function applyThemeToDom({ themeKey, wallpaperUrl, patternId }) {
         // ── Pattern colour: contrast with gradient background ──────────────
         // We average the luminance of ALL colour stops in the gradient, not just
         // the first one. This correctly handles multi-stop gradients like:
-        //   spring_vibes  (#ecfdf5 → #fef3c7)  avg ≈ 0.93 → LIGHT → dark pattern ✅
-        //   classic_purple (#1e1b4b → #2e1065) avg ≈ 0.07 → DARK  → white pattern ✅
+        //   spring-vibes  (#ecfdf5 → #fef3c7)  avg ≈ 0.93 → LIGHT → dark pattern ✅
+        //   classic-purple (#1e1b4b → #2e1065) avg ≈ 0.07 → DARK  → white pattern ✅
         //   pattern_overlay (#6366f1 → #a855f7) avg ≈ 0.35 → DARK  → white pattern ✅
         const effectivelyDark = (() => {
-            // Explicit overrides first (no need to parse colours)
+            // 1. Explicit theme category override
             if (theme.category === 'Dark') return true;
-            if (isDarkMode) return true;
-            // Use backgroundBase (solid) if present, else fall back to the gradient
-            const colorSource = theme.backgroundBase || theme.background || '';
-            const avgLum = getAverageLuminance(colorSource);
-            // threshold 0.5: above = light background → use dark pattern
-            //                below = dark background  → use white pattern
-            return avgLum < 0.5;
+            // 2. Global system theme
+            const isSystemDark = root.getAttribute('data-theme') === 'dark';
+            if (isSystemDark) return true;
+            // 3. Fallback for professional/seasonal themes
+            return false;
         })();
 
         // Pattern colour: pure black (#000000) for light themes to ensure
@@ -123,7 +89,7 @@ function applyThemeToDom({ themeKey, wallpaperUrl, patternId }) {
         //   - Blend mode 'screen' to make the white "pop" and glow against dark.
         const opacity = effectivelyDark
             ? (wallpaperUrl ? '0.15' : '0.35')  // dark bg  → white pattern
-            : (wallpaperUrl ? '0.30' : '0.70'); // light bg → black pattern (max clear)
+            : (wallpaperUrl ? '0.10' : '0.15'); // light bg → black pattern (subtle & premium)
 
         const blendMode = effectivelyDark ? 'screen' : 'multiply';
 
@@ -179,7 +145,7 @@ function readCache(chatId, isDark) {
     const rawWallpaper = localStorage.getItem(LOCAL_WALLPAPER_KEY(chatId));
     const rawPattern  = localStorage.getItem(LOCAL_PATTERN_KEY(chatId));
 
-    const standardDefault = isDark ? 'cherry_blossom' : 'spring_vibes';
+    const standardDefault = isDark ? 'cherry-blossom' : 'spring-vibes';
     const themeKey = (rawTheme && chatThemes[rawTheme]) ? rawTheme : standardDefault;
 
     let wallpaperUrl = null;
@@ -212,7 +178,7 @@ export const ChatThemeProvider = ({ children }) => {
     const queryClient = useQueryClient();
     const { isDark } = useTheme();
     const standardDefault = useMemo(
-        () => (isDark ? 'cherry_blossom' : 'spring_vibes'),
+        () => (isDark ? 'cherry-blossom' : 'spring-vibes'),
         [isDark],
     );
 
@@ -451,7 +417,7 @@ export const ChatThemeProvider = ({ children }) => {
         setChatId,
         refreshTheme,
         setScrollPercentage,
-        currentThemeData: chatThemes[state.themeKey] || chatThemes.classic_purple,
+        currentThemeData: chatThemes[state.themeKey] || chatThemes['classic-purple'],
     };
 
     return (
