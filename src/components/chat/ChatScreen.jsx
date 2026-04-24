@@ -383,7 +383,7 @@ const ChatScreen = () => {
                             onViewContact={handleViewContact}
                             onSearchMessages={() => setShowSearchModal(true)}
                             onChangeTheme={showThemeSelector}
-                            onShowSharedMedia={() => showSharedMedia?.(isGroupChat ? chatId : otherUserId, isGroupChat)}
+                            onShowSharedMedia={() => { console.log('[ChatScreen] SharedMedia clicked'); showSharedMedia?.(isGroupChat ? chatId : otherUserId, isGroupChat); }}
                             onShowGame={() => navigate(`/games`)}
                             onShowGroupInfo={() => {
                                 if (isDesktop) showGroupInfo?.(chatId, otherUser);

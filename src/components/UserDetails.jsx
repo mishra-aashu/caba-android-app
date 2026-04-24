@@ -398,6 +398,12 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         }
     };
 
+    const handleSharedMediaClick = (tab) => {
+        if (showSharedMedia) {
+            showSharedMedia(userId, true);
+        }
+    };
+
     const handleBack = () => {
         if (isPanel && onClose) {
             onClose();
@@ -592,7 +598,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             <ChevronRight size={16} className="ud-section-chevron" />
                         </div>
                         <div className="ud-media-grid">
-                            <div className="ud-media-stat" onClick={() => showSharedMedia?.(userId)}>
+                            <div className="ud-media-stat" onClick={() => showSharedMedia?.(userId, false, true)}>
                                 <div className="ud-media-icon images">
                                     <Image size={18} />
                                 </div>
@@ -601,7 +607,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                     <span className="ud-media-label">Photos</span>
                                 </div>
                             </div>
-                            <div className="ud-media-stat" onClick={() => showSharedMedia?.(userId)}>
+                            <div className="ud-media-stat" onClick={() => showSharedMedia?.(userId, false, true)}>
                                 <div className="ud-media-icon links">
                                     <LinkIcon size={18} />
                                 </div>
@@ -610,7 +616,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                     <span className="ud-media-label">Links</span>
                                 </div>
                             </div>
-                            <div className="ud-media-stat" onClick={() => showSharedMedia?.(userId)}>
+                            <div className="ud-media-stat" onClick={() => showSharedMedia?.(userId, false, true)}>
                                 <div className="ud-media-icon docs">
                                     <FileText size={18} />
                                 </div>

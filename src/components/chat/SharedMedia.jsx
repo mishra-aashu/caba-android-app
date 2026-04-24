@@ -24,7 +24,9 @@ const SharedMedia = ({ userId, chatId: propChatId, onClose, isPanel = false }) =
     const [showSearch, setShowSearch] = useState(false);
 
     useEffect(() => {
+        console.log('[SharedMedia] Mounted');
         fetchSharedContent();
+        return () => console.log('[SharedMedia] Unmounting');
     }, [userId, propChatId]);
 
     const fetchSharedContent = async () => {

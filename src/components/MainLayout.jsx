@@ -132,9 +132,14 @@ const MainLayout = () => {
     // Side Panel State
     // ──────────────────────────────────────────────────────────
 
-    const [sidePanelType, setSidePanelType] = useState(null);
+    const [sidePanelType, _setSidePanelType] = useState(null);
     const [sidePanelTargetId, setSidePanelTargetId] = useState(null);
     const [sidePanelData, setSidePanelData] = useState(null);
+
+    const setSidePanelType = useCallback((type) => {
+        console.log(`[MainLayout] Setting sidePanelType: ${type}`);
+        _setSidePanelType(type);
+    }, []);
 
     // ──────────────────────────────────────────────────────────
     // Derived State (OPTIMIZED with useMemo)
@@ -251,15 +256,16 @@ const MainLayout = () => {
         }
     }, [isDesktop, navigate]);
 
-    const handleShowSharedMedia = useCallback((id, isGroup = false) => {
+    const handleShowSharedMedia = useCallback((id, isGroup = false, isFromUserDetails = false) => {
+        console.log(`[MainLayout] handleShowSharedMedia called: id=${id}, isGroup=${isGroup}, fromUD=${isFromUserDetails}`);
         if (isDesktop) {
             setSidePanelType('shared-media');
             setSidePanelTargetId(id);
-            setSidePanelData({ isGroup });
+            setSidePanelData({ isGroup, isFromUserDetails });
         } else {
             navigate(`/shared-media/${id}${isGroup ? '?isGroup=true' : ''}`);
         }
-    }, [isDesktop, navigate]);
+    }, [isDesktop, navigate, setSidePanelType]);
 
     const handleCloseSidePanel = useCallback(() => {
         setSidePanelType(null);
@@ -318,7 +324,14 @@ const MainLayout = () => {
                         userId={!sidePanelData?.isGroup ? sidePanelTargetId : null}
                         chatId={sidePanelData?.isGroup ? sidePanelTargetId : null}
                         isPanel={true}
-                        onClose={() => setSidePanelType('user')}
+                        onClose={() => {
+                            console.log('[MainLayout] SharedMedia onClose triggered');
+                            if (sidePanelData?.isFromUserDetails) {
+                                setSidePanelType('user');
+                            } else {
+                                handleCloseSidePanel();
+                            }
+                        }}
                     />
                 ) : (
                     <ThemeSelector 
@@ -456,10 +469,7 @@ const MainLayout = () => {
                     <AnimatePresence mode="wait">
                         {isSubPage && (
                             <PageTransition
-                                key={
-                                    activeChat?.id ||
-                                    (location.pathname === '/' ? 'root' : location.pathname)
-                                }
+                                key={location.pathname + (activeChat?.id || '')}
                                 className={`chat-view ${
                                     location.pathname === '/games' ? 'with-nav' : ''
                                 }`}
