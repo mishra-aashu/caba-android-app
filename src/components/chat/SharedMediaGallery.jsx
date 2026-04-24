@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSharedMedia } from '../../hooks/useSharedMedia';
 import { useSupabase } from '../../contexts/SupabaseContext';
@@ -7,8 +7,8 @@ import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
 import { getPublicMediaUrl } from '../../services/mediaService';
 import { ArrowLeft, Image as ImageIcon, Video, Download, Share2 } from 'lucide-react';
 import { formatChatDivider } from '../../utils/dateFormatter';
-const ImageViewer = React.lazy(() => import('./ImageViewer'));
-const MediaViewer = React.lazy(() => import('../media/MediaViewer'));
+const ImageViewer = lazy(() => import('./ImageViewer'));
+const MediaViewer = lazy(() => import('../media/MediaViewer'));
 import { motion } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
@@ -325,17 +325,20 @@ const SharedMediaGallery = () => {
             )}
 
             {/* Fullscreen Image Viewer */}
-            <ImageViewer
+            <Suspense fallback={null}>
+              <ImageViewer
                 isOpen={imageViewerOpen}
                 onClose={() => setImageViewerOpen(false)}
                 imageUrl={currentImageUrl}
                 message={currentImageMessage}
                 onDownload={handleDownload}
                 onShare={handleShareAsForward}
-            />
+              />
+            </Suspense>
 
             {/* Video/Media Viewer */}
-            <MediaViewer
+            <Suspense fallback={null}>
+              <MediaViewer
                 isOpen={mediaViewerOpen}
                 onClose={() => setMediaViewerOpen(false)}
                 mediaId={currentMediaId}
@@ -347,7 +350,8 @@ const SharedMediaGallery = () => {
                         handleShareAsForward(message);
                     }
                 }}
-            />
+              />
+            </Suspense>
 
             {/* Forward Modal */}
             <ForwardModal
