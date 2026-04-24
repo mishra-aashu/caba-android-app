@@ -508,43 +508,48 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 <button
                     className="ud-header-btn"
                     onClick={handleBack}
+                    aria-label="Back"
                 >
                     {isPanel ? <X size={22} /> : <ArrowLeft size={22} />}
                 </button>
                 <h1 className="ud-header-title">
                     {isOwnProfile ? 'My Profile' : 'Contact Info'}
                 </h1>
-                {isContact && (
-                    <DropdownMenu
-                        trigger={
-                            <button className="ud-header-btn">
-                                <MoreVertical size={22} />
-                            </button>
-                        }
-                        items={[
-                            {
-                                icon: <Edit size={16} />,
-                                label: 'Edit Name',
-                                onClick: handleEditContact
-                            },
-                            {
-                                icon: <Share2 size={16} />,
-                                label: 'Share Contact',
-                                onClick: handleShareContact
+                <div className="ud-header-actions">
+                    {isContact && !isOwnProfile && (
+                        <DropdownMenu
+                            trigger={
+                                <button className="ud-header-btn">
+                                    <MoreVertical size={22} />
+                                </button>
                             }
-                        ]}
-                    />
-                )}
+                            items={[
+                                {
+                                    icon: <Edit size={16} />,
+                                    label: 'Edit Name',
+                                    onClick: handleEditContact
+                                },
+                                {
+                                    icon: <Share2 size={16} />,
+                                    label: 'Share Contact',
+                                    onClick: handleShareContact
+                                }
+                            ]}
+                        />
+                    )}
+                </div>
             </header>
 
             {/* ── Scrollable Content ── */}
             <div className="ud-scroll">
                 <motion.div variants={stagger} initial="initial" animate="animate">
 
-                    {/* ── Profile Card ── */}
+                    {/* ── Profile Hero ── */}
                     <motion.section className="ud-profile-card" variants={fadeUp}>
+                        <div className="ud-cover-strip" />
+                        
                         <div
-                            className={`ud-avatar ${avatarSrc ? 'clickable' : ''} ${isOnline ? 'online' : ''}`}
+                            className={`ud-avatar ${avatarSrc ? 'clickable' : ''}`}
                             onClick={() => avatarSrc && setShowImageModal(true)}
                         >
                             {avatarSrc ? (
@@ -554,7 +559,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                     {getInitials(user.name)}
                                 </div>
                             )}
-                            {isOnline && <div className="ud-online-dot" />}
+                            {isOnline && <div className="ud-online-dot">Online</div>}
                         </div>
 
                         <h2 className="ud-name">{resolvedName}</h2>
@@ -567,20 +572,47 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             {user.phone && <Copy size={14} className="ud-copy-icon" />}
                         </div>
 
-                        <p className={`ud-status ${isOnline ? 'online' : ''}`}>
-                            {isOnline ? (
-                                <>
-                                    <span className="ud-status-dot" />
-                                    Online
-                                </>
-                            ) : (
-                                <>
-                                    <Clock size={12} />
-                                    {formatLastSeen(currentOnlineStatus?.last_seen || user.last_seen)}
-                                </>
-                            )}
-                        </p>
+                        {!isOnline && (
+                            <p className="ud-status">
+                                <Clock size={12} />
+                                {formatLastSeen(currentOnlineStatus?.last_seen || user.last_seen)}
+                            </p>
+                        )}
+                        {isOnline && (
+                             <p className="ud-status online">
+                                <span className="ud-status-dot" />
+                                Online Now
+                             </p>
+                        )}
                     </motion.section>
+
+                    {/* ── Quick Actions ── */}
+                    {!isOwnProfile && (
+                        <motion.section className="ud-actions-grid" variants={fadeUp}>
+                            <button
+                                className="ud-action-btn"
+                                onClick={handleMessage}
+                                disabled={actionLoading.message}
+                            >
+                                <div className="ud-action-icon">
+                                    <MessageCircle size={22} />
+                                </div>
+                                <span>Message</span>
+                            </button>
+                            <button className="ud-action-btn" onClick={handleVoiceCall}>
+                                <div className="ud-action-icon">
+                                    <Phone size={22} />
+                                </div>
+                                <span>Audio</span>
+                            </button>
+                            <button className="ud-action-btn" onClick={handleVideoCall}>
+                                <div className="ud-action-icon">
+                                    <Video size={22} />
+                                </div>
+                                <span>Video</span>
+                            </button>
+                        </motion.section>
+                    )}
 
                     {/* ── About Section ── */}
                     {user.about && (
@@ -593,32 +625,6 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                         </motion.section>
                     )}
 
-                    {/* ── Quick Actions ── */}
-                    <motion.section className="ud-actions-grid" variants={fadeUp}>
-                        <button
-                            className="ud-action-btn"
-                            onClick={handleMessage}
-                            disabled={actionLoading.message}
-                        >
-                            <div className="ud-action-icon">
-                                <MessageCircle size={22} />
-                            </div>
-                            <span>Message</span>
-                        </button>
-                        <button className="ud-action-btn" onClick={handleVoiceCall}>
-                            <div className="ud-action-icon">
-                                <Phone size={22} />
-                            </div>
-                            <span>Audio</span>
-                        </button>
-                        <button className="ud-action-btn" onClick={handleVideoCall}>
-                            <div className="ud-action-icon">
-                                <Video size={22} />
-                            </div>
-                            <span>Video</span>
-                        </button>
-                    </motion.section>
-
                     {/* ── Media, Links, Docs ── */}
                     <motion.section className="ud-section" variants={fadeUp}>
                         <div className="ud-section-header">
@@ -627,7 +633,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             <ChevronRight size={16} className="ud-section-chevron" />
                         </div>
                         <div className="ud-media-grid">
-                            <div className="ud-media-stat">
+                            <div className="ud-media-stat" onClick={() => toast('Media viewer coming soon')}>
                                 <div className="ud-media-icon images">
                                     <Image size={18} />
                                 </div>
@@ -636,7 +642,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                     <span className="ud-media-label">Photos</span>
                                 </div>
                             </div>
-                            <div className="ud-media-stat">
+                            <div className="ud-media-stat" onClick={() => toast('Link viewer coming soon')}>
                                 <div className="ud-media-icon links">
                                     <LinkIcon size={18} />
                                 </div>
@@ -645,7 +651,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                     <span className="ud-media-label">Links</span>
                                 </div>
                             </div>
-                            <div className="ud-media-stat">
+                            <div className="ud-media-stat" onClick={() => toast('Doc viewer coming soon')}>
                                 <div className="ud-media-icon docs">
                                     <FileText size={18} />
                                 </div>
@@ -660,22 +666,24 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     {/* ── Settings Items ── */}
                     <motion.section className="ud-section" variants={fadeUp}>
                         {/* Mute */}
-                        <div className="ud-item" onClick={handleMuteToggle}>
-                            <div className="ud-item-left">
-                                <div className={`ud-item-icon ${isMuted ? 'muted' : ''}`}>
-                                    {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
+                        {!isOwnProfile && (
+                            <div className="ud-item" onClick={handleMuteToggle}>
+                                <div className="ud-item-left">
+                                    <div className={`ud-item-icon ${isMuted ? 'muted' : ''}`}>
+                                        {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
+                                    </div>
+                                    <span className="ud-item-label">
+                                        {isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
+                                    </span>
                                 </div>
-                                <span className="ud-item-label">
-                                    {isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
-                                </span>
+                                <label className="ud-toggle" onClick={(e) => e.stopPropagation()}>
+                                    <input type="checkbox" checked={isMuted} onChange={handleMuteToggle} />
+                                    <span className="ud-toggle-track">
+                                        <span className="ud-toggle-thumb" />
+                                    </span>
+                                </label>
                             </div>
-                            <label className="ud-toggle" onClick={(e) => e.stopPropagation()}>
-                                <input type="checkbox" checked={isMuted} onChange={handleMuteToggle} />
-                                <span className="ud-toggle-track">
-                                    <span className="ud-toggle-thumb" />
-                                </span>
-                            </label>
-                        </div>
+                        )}
 
                         {/* Add to Contacts */}
                         {!isContact && !isOwnProfile && (
@@ -708,85 +716,89 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                         </div>
 
                         {/* Export Chat */}
-                        <div
-                            className={`ud-item ${actionLoading.export ? 'loading' : ''}`}
-                            onClick={handleExportChat}
-                        >
-                            <div className="ud-item-left">
-                                <div className="ud-item-icon">
-                                    <Download size={18} />
-                                </div>
-                                <span className="ud-item-label">Export Chat</span>
-                            </div>
-                            {actionLoading.export
-                                ? <div className="ud-spinner-small" />
-                                : <ChevronRight size={16} className="ud-item-chevron" />
-                            }
-                        </div>
-                    </motion.section>
-
-                    {/* ── Common Groups ── */}
-                    <motion.section className="ud-section" variants={fadeUp}>
-                        <div className="ud-section-header">
-                            <Users size={16} />
-                            <span>Groups in Common</span>
-                            <span className="ud-section-badge">{commonGroups.length}</span>
-                        </div>
-
-                        {commonGroups.length > 0 ? (
-                            <div className="ud-groups-list">
-                                {commonGroups.map(group => (
-                                    <div
-                                        key={group.id}
-                                        className="ud-group-item"
-                                        onClick={() => navigate(
-                                            `/chat/${group.id}/group`,
-                                            { state: { groupName: group.name, groupAvatar: group.avatar } }
-                                        )}
-                                    >
-                                        <div className="ud-group-avatar">
-                                            {group.avatar ? (
-                                                <img src={group.avatar} alt={group.name} />
-                                            ) : (
-                                                <span>{getInitials(group.name)}</span>
-                                            )}
-                                        </div>
-                                        <span className="ud-group-name">{group.name}</span>
-                                        <ChevronRight size={16} className="ud-item-chevron" />
+                        {!isOwnProfile && (
+                            <div
+                                className={`ud-item ${actionLoading.export ? 'loading' : ''}`}
+                                onClick={handleExportChat}
+                            >
+                                <div className="ud-item-left">
+                                    <div className="ud-item-icon">
+                                        <Download size={18} />
                                     </div>
-                                ))}
+                                    <span className="ud-item-label">Export Chat</span>
+                                </div>
+                                {actionLoading.export
+                                    ? <div className="ud-spinner-small" />
+                                    : <ChevronRight size={16} className="ud-item-chevron" />
+                                }
                             </div>
-                        ) : (
-                            <p className="ud-empty-text">No groups in common</p>
                         )}
                     </motion.section>
 
-                    {/* ── Encryption Badge ── */}
-                    <motion.section 
-                        className="ud-encryption-badge clickable" 
-                        variants={fadeUp}
-                        onClick={() => setShowSecurityModal(true)}
-                    >
-                        <Lock size={18} />
-                        <div className="ud-enc-info">
-                            <h3>End-to-End Encrypted</h3>
-                            <p>
-                                Messages and calls are secured with AES-256. Click to verify safety code.
-                            </p>
-                        </div>
-                        <ChevronRight size={16} />
-                    </motion.section>
-
-                    {/* ── Security Code Section ── */}
+                    {/* ── Common Groups ── */}
                     {!isOwnProfile && (
                         <motion.section className="ud-section" variants={fadeUp}>
                             <div className="ud-section-header">
-                                <Shield size={16} />
-                                <span>Security Verification</span>
+                                <Users size={16} />
+                                <span>Groups in Common</span>
+                                <span className="ud-section-badge">{commonGroups.length}</span>
                             </div>
-                            <div className="ud-security-code-box" onClick={() => setShowSecurityModal(true)}>
-                                <span className="ud-security-code">{securityCode}</span>
-                                <p className="ud-security-hint">Verify this code with {resolvedName} to ensure your chat is 100% private.</p>
+
+                            {commonGroups.length > 0 ? (
+                                <div className="ud-groups-list">
+                                    {commonGroups.map(group => (
+                                        <div
+                                            key={group.id}
+                                            className="ud-group-item"
+                                            onClick={() => navigate(
+                                                `/chat/${group.id}/group`,
+                                                { state: { groupName: group.name, groupAvatar: group.avatar } }
+                                            )}
+                                        >
+                                            <div className="ud-group-avatar">
+                                                {group.avatar ? (
+                                                    <img src={group.avatar} alt={group.name} />
+                                                ) : (
+                                                    <span>{getInitials(group.name)}</span>
+                                                )}
+                                            </div>
+                                            <span className="ud-group-name">{group.name}</span>
+                                            <ChevronRight size={16} className="ud-item-chevron" />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="ud-empty-text">No groups in common</p>
+                            )}
+                        </motion.section>
+                    )}
+
+                    {/* ── Encryption & Security ── */}
+                    {!isOwnProfile && (
+                        <motion.section variants={fadeUp}>
+                            <div 
+                                className="ud-encryption-badge clickable" 
+                                onClick={() => setShowSecurityModal(true)}
+                            >
+                                <Lock size={18} />
+                                <div className="ud-enc-info">
+                                    <h3>End-to-End Encrypted</h3>
+                                    <p>
+                                        Messages and calls are secured with AES-256. Click to verify safety code.
+                                    </p>
+                                </div>
+                                <ChevronRight size={16} />
+                            </div>
+
+                            <div className="ud-section">
+                                <div className="ud-section-header">
+                                    <Shield size={16} />
+                                    <span>Security Verification</span>
+                                </div>
+                                <div className="ud-security-code-box" onClick={() => setShowSecurityModal(true)}>
+                                    <span className="ud-security-code">{securityCode}</span>
+                                    <p className="ud-security-hint">Verify this code with {resolvedName} to ensure your chat is 100% private.</p>
+                                </div>
                             </div>
                         </motion.section>
                     )}
@@ -800,214 +812,229 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             >
                                 <div className="ud-item-left">
                                     <div className="ud-item-icon danger">
-                                        <span style={{ fontSize: '18px' }}>🚫</span>
+                                        <Ban size={18} />
                                     </div>
-                                    <span className="ud-item-label">
-                                        {isBlocked ? 'Unblock Contact' : 'Block Contact'}
-                                    </span>
+                                    <span className="ud-item-label">{isBlocked ? 'Unblock Contact' : 'Block Contact'}</span>
                                 </div>
-                                {actionLoading.block && <div className="ud-spinner-small danger" />}
+                                {actionLoading.block
+                                    ? <div className="ud-spinner-small danger" />
+                                    : <ChevronRight size={16} className="ud-item-chevron" />
+                                }
                             </div>
-
-                            <div
-                                className="ud-item danger"
-                                onClick={() => setShowReportModal(true)}
-                            >
+                            <div className="ud-item danger" onClick={() => setShowReportModal(true)}>
                                 <div className="ud-item-left">
                                     <div className="ud-item-icon danger">
                                         <Flag size={18} />
                                     </div>
-                                    <span className="ud-item-label">Report Contact</span>
+                                    <span className="ud-item-label">Report User</span>
                                 </div>
+                                <ChevronRight size={16} className="ud-item-chevron" />
                             </div>
-
-                            <div
-                                className="ud-item danger"
-                                onClick={() => setShowDeleteModal(true)}
-                            >
+                            <div className="ud-item danger" onClick={() => setShowDeleteModal(true)}>
                                 <div className="ud-item-left">
                                     <div className="ud-item-icon danger">
                                         <Trash2 size={18} />
                                     </div>
-                                    <span className="ud-item-label">Delete Chat & Contact</span>
+                                    <span className="ud-item-label">Delete Chat History</span>
                                 </div>
+                                <ChevronRight size={16} className="ud-item-chevron" />
                             </div>
                         </motion.section>
                     )}
-                </motion.div>
 
-                {/* Spacer for bottom */}
-                <div className="ud-bottom-spacer" />
+                    <div className="ud-bottom-spacer" />
+                </motion.div>
             </div>
 
-            {/* ═══ Modals ═══ */}
-
-            {/* ── Security Modal ── */}
-            <Modal
-                show={showSecurityModal}
-                onClose={() => setShowSecurityModal(false)}
-                title="Encryption Verification"
-            >
-                <div className="ud-security-modal">
-                    <div className="ud-sec-icon-large">
-                        <Lock size={48} />
-                    </div>
-                    <p className="ud-sec-desc">
-                        To verify that this chat is end-to-end encrypted, compare the code below with <strong>{resolvedName}</strong>. 
-                        If the codes match, no one can read your messages or listen to your calls.
-                    </p>
-                    <div className="ud-sec-code-display">
-                        {securityCode}
-                    </div>
-                    
-                    <div className="ud-sec-details">
-                        <div className="ud-sec-detail-item">
-                            <Shield size={18} />
-                            <div>
-                                <h4>Military-Grade Standard</h4>
-                                <p>We use AES-256 (Advanced Encryption Standard) to lock your messages.</p>
-                            </div>
+            {/* ── Modals ── */}
+            <AnimatePresence>
+                {showBlockModal && (
+                    <Modal
+                        isOpen={showBlockModal}
+                        onClose={() => setShowBlockModal(false)}
+                        title={isBlocked ? "Unblock User?" : "Block User?"}
+                    >
+                        <div className="ud-modal-body">
+                            <p>
+                                {isBlocked 
+                                    ? `Are you sure you want to unblock ${resolvedName}? They will be able to message you again.` 
+                                    : `Are you sure you want to block ${resolvedName}? They won't be able to message or call you.`
+                                }
+                            </p>
+                            {!isBlocked && (
+                                <div className="ud-modal-warning">
+                                    <Info size={14} />
+                                    <span>Blocked users cannot see your status or last seen.</span>
+                                </div>
+                            )}
                         </div>
-                        <div className="ud-sec-detail-item">
-                            <Info size={18} />
-                            <div>
-                                <h4>Server-Blind Protection</h4>
-                                <p>Supabase servers only see encrypted gibberish. They cannot unlock your data.</p>
-                            </div>
+                        <div className="ud-modal-actions">
+                            <button className="ud-btn secondary" onClick={() => setShowBlockModal(false)}>Cancel</button>
+                            <button 
+                                className={`ud-btn ${isBlocked ? 'primary' : 'danger'}`} 
+                                onClick={confirmBlock}
+                                disabled={actionLoading.block}
+                            >
+                                {actionLoading.block ? <div className="ud-spinner-small" /> : (isBlocked ? 'Unblock' : 'Block')}
+                            </button>
                         </div>
-                    </div>
+                    </Modal>
+                )}
 
-                    <button className="ud-modal-btn primary" onClick={() => setShowSecurityModal(false)}>
-                        Got it
-                    </button>
-                </div>
-            </Modal>
-
-            {/* ── Block Modal ── */}
-            <Modal isOpen={showBlockModal} onClose={() => setShowBlockModal(false)}
-                title="Block Contact" size="small">
-                <div className="ud-modal-body">
-                    <p>Block <strong>{user.name}</strong>?</p>
-                    <p className="ud-modal-warning">
-                        <Ban size={14} />
-                        They won't be able to message or call you.
-                    </p>
-                    <div className="ud-modal-actions">
-                        <button className="ud-btn secondary" onClick={() => setShowBlockModal(false)}>
-                            Cancel
-                        </button>
-                        <button className="ud-btn danger" onClick={confirmBlock}
-                            disabled={actionLoading.block}>
-                            {actionLoading.block ? 'Blocking...' : 'Block'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
-
-            {/* Edit Contact Modal */}
-            <Modal isOpen={showEditContactModal} onClose={() => setShowEditContactModal(false)}
-                title="Edit Contact" size="small">
-                <div className="ud-modal-body">
-                    <div className="ud-form-group">
-                        <label>
-                            <Edit size={14} />
-                            Display Name
-                        </label>
-                        <input
-                            type="text"
-                            value={contactName}
-                            onChange={(e) => setContactName(e.target.value)}
-                            placeholder="Contact name"
-                            autoFocus
-                            onKeyDown={(e) => e.key === 'Enter' && saveContactEdit()}
-                        />
-                    </div>
-                    <div className="ud-modal-actions">
-                        <button className="ud-btn secondary" onClick={() => setShowEditContactModal(false)}>
-                            Cancel
-                        </button>
-                        <button className="ud-btn primary" onClick={saveContactEdit}
-                            disabled={actionLoading.editContact}>
-                            {actionLoading.editContact ? 'Saving...' : 'Save'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
-
-            {/* Report Modal */}
-            <Modal isOpen={showReportModal} onClose={() => setShowReportModal(false)}
-                title="Report Contact" size="small">
-                <div className="ud-modal-body">
-                    <p className="ud-modal-subtitle">Why are you reporting?</p>
-                    <div className="ud-report-options">
-                        {['spam', 'harassment', 'inappropriate', 'other'].map(reason => (
-                            <label key={reason} className={`ud-report-option ${reportReason === reason ? 'selected' : ''}`}>
+                {showEditContactModal && (
+                    <Modal
+                        isOpen={showEditContactModal}
+                        onClose={() => setShowEditContactModal(false)}
+                        title="Edit Contact"
+                    >
+                        <div className="ud-modal-body">
+                            <div className="ud-form-group">
+                                <label>Contact Name</label>
                                 <input
-                                    type="radio"
-                                    name="report"
-                                    value={reason}
-                                    checked={reportReason === reason}
-                                    onChange={(e) => setReportReason(e.target.value)}
+                                    type="text"
+                                    value={contactName}
+                                    onChange={(e) => setContactName(e.target.value)}
+                                    placeholder="Enter name..."
+                                    autoFocus
                                 />
-                                <span className="ud-radio-custom">
-                                    {reportReason === reason && <CheckCircle2 size={16} />}
-                                </span>
-                                <span className="ud-report-label">
-                                    {reason.charAt(0).toUpperCase() + reason.slice(1)}
-                                </span>
-                            </label>
-                        ))}
-                    </div>
-                    <div className="ud-modal-actions">
-                        <button className="ud-btn secondary" onClick={() => setShowReportModal(false)}>
-                            Cancel
-                        </button>
-                        <button className="ud-btn danger" onClick={submitReport}
-                            disabled={actionLoading.report || !reportReason}>
-                            {actionLoading.report ? 'Submitting...' : 'Report'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+                            </div>
+                            <p className="ud-modal-subtitle">This name will be used throughout your chats.</p>
+                        </div>
+                        <div className="ud-modal-actions">
+                            <button className="ud-btn secondary" onClick={() => setShowEditContactModal(false)}>Cancel</button>
+                            <button 
+                                className="ud-btn primary" 
+                                onClick={saveContactEdit}
+                                disabled={actionLoading.editContact}
+                            >
+                                {actionLoading.editContact ? <div className="ud-spinner-small" /> : 'Save Changes'}
+                            </button>
+                        </div>
+                    </Modal>
+                )}
 
-            {/* Delete Modal */}
-            <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}
-                title="Delete Everything" size="small">
-                <div className="ud-modal-body">
-                    <p>Delete chat and contact with <strong>{user.name}</strong>?</p>
-                    <p className="ud-modal-warning">
-                        <Trash2 size={14} />
-                        This will remove the contact and delete your messages. Cannot be undone.
-                    </p>
-                    <div className="ud-modal-actions">
-                        <button className="ud-btn secondary" onClick={() => setShowDeleteModal(false)}>
-                            Cancel
-                        </button>
-                        <button className="ud-btn danger" onClick={confirmDelete}
-                            disabled={actionLoading.delete}>
-                            {actionLoading.delete ? 'Deleting...' : 'Delete Everything'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+                {showReportModal && (
+                    <Modal
+                        isOpen={showReportModal}
+                        onClose={() => setShowReportModal(false)}
+                        title="Report User"
+                    >
+                        <div className="ud-modal-body">
+                            <p>Why are you reporting this user?</p>
+                            <div className="ud-report-options">
+                                {['Spam', 'Abuse', 'Inappropriate content', 'Other'].map(option => (
+                                    <div 
+                                        key={option} 
+                                        className={`ud-report-option ${reportReason === option ? 'selected' : ''}`}
+                                        onClick={() => setReportReason(option)}
+                                    >
+                                        <div className="ud-radio-custom" />
+                                        <span className="ud-report-label">{option}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            {reportReason === 'Other' && (
+                                <div className="ud-form-group">
+                                    <input
+                                        type="text"
+                                        placeholder="Please specify..."
+                                        value={reportDetails}
+                                        onChange={(e) => setReportDetails(e.target.value)}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <div className="ud-modal-actions">
+                            <button className="ud-btn secondary" onClick={() => setShowReportModal(false)}>Cancel</button>
+                            <button 
+                                className="ud-btn danger" 
+                                onClick={submitReport}
+                                disabled={actionLoading.report || !reportReason}
+                            >
+                                {actionLoading.report ? <div className="ud-spinner-small" /> : 'Submit Report'}
+                            </button>
+                        </div>
+                    </Modal>
+                )}
 
-            {/* Image Preview Modal */}
-            <Modal isOpen={showImageModal} onClose={() => setShowImageModal(false)}
-                title="" size="large" bodyClassName="ud-image-modal-body">
-                <div className="ud-image-modal">
-                    {avatarSrc && (
-                        <motion.img
-                            initial={{ opacity: 0, scale: 0.85 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3 }}
-                            src={avatarSrc}
-                            alt={user.name}
-                            className="ud-full-image"
-                            onClick={() => setShowImageModal(false)}
-                        />
-                    )}
-                </div>
-            </Modal>
+                {showDeleteModal && (
+                    <Modal
+                        isOpen={showDeleteModal}
+                        onClose={() => setShowDeleteModal(false)}
+                        title="Delete Chat History?"
+                    >
+                        <div className="ud-modal-body">
+                            <p>This will permanently delete all messages in your chat with <strong>{resolvedName}</strong>.</p>
+                            <div className="ud-modal-warning">
+                                <Trash2 size={14} />
+                                <span>This action cannot be undone.</span>
+                            </div>
+                        </div>
+                        <div className="ud-modal-actions">
+                            <button className="ud-btn secondary" onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                            <button 
+                                className="ud-btn danger" 
+                                onClick={confirmDelete}
+                                disabled={actionLoading.delete}
+                            >
+                                {actionLoading.delete ? <div className="ud-spinner-small" /> : 'Delete Everything'}
+                            </button>
+                        </div>
+                    </Modal>
+                )}
+
+                {showSecurityModal && (
+                    <Modal
+                        isOpen={showSecurityModal}
+                        onClose={() => setShowSecurityModal(false)}
+                        title="Security Verification"
+                    >
+                        <div className="ud-security-modal">
+                            <div className="ud-sec-icon-large">
+                                <Lock size={42} />
+                            </div>
+                            <p className="ud-sec-desc">
+                                To verify that your chat with {resolvedName} is end-to-end encrypted, compare the code below with their device.
+                            </p>
+                            <div className="ud-sec-code-display">
+                                {securityCode}
+                            </div>
+                            <div className="ud-sec-details">
+                                <div className="ud-sec-detail-item">
+                                    <CheckCircle2 size={20} />
+                                    <div>
+                                        <h4>Fully Encrypted</h4>
+                                        <p>All data is secured using AES-256 GCM.</p>
+                                    </div>
+                                </div>
+                                <div className="ud-sec-detail-item">
+                                    <Shield size={20} />
+                                    <div>
+                                        <h4>Private Connection</h4>
+                                        <p>Only you and {resolvedName} can read messages.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button className="ud-modal-btn" onClick={() => setShowSecurityModal(false)}>
+                                Done
+                            </button>
+                        </div>
+                    </Modal>
+                )}
+
+                {showImageModal && avatarSrc && (
+                    <Modal
+                        isOpen={showImageModal}
+                        onClose={() => setShowImageModal(false)}
+                        title={resolvedName}
+                        variant="full"
+                    >
+                        <div className="ud-image-modal">
+                            <CachedImage src={avatarSrc} alt={user.name} className="ud-full-image" />
+                        </div>
+                    </Modal>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 };
