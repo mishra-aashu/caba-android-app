@@ -11,6 +11,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useChatStore, { selectRoomScrollPosition } from '../../store/useChatStore';
+
 import toast from 'react-hot-toast';
 import { messageReadsService } from '../../services/messageReadsService';
 
@@ -34,21 +35,21 @@ const useChatRoom = () => {
   const location = useLocation();
   const { user: currentUser, loading: authLoading, isAuthenticated } = useAuth();
   const { showAlert } = useDialog();
+  const { supabase } = useSupabase();
+  const setActiveChat = useChatStore(state => state.setActiveChat);
+  
+  // Restore live query but keep it minimal
   const rawChats = useLiveQuery(() => db.chats_list.toArray());
   const allChats = rawChats || [];
   const isDataLoading = rawChats === undefined;
-  const { supabase } = useSupabase();
 
-  const setActiveChat = useChatStore(state => state.setActiveChat);
-
-  // Sync activeChat with URL params if they differ
+  // Sync activeChat with URL params if they differ — without scanning entire DB
   useEffect(() => {
     if (paramChatId && (!activeChat || String(activeChat.id) !== String(paramChatId))) {
       const chatInList = allChats.find(c => String(c.id) === String(paramChatId));
       if (chatInList) {
         setActiveChat(chatInList);
-      } else if (paramChatId !== 'new') {
-        // If not in list, create a minimal placeholder so the UI knows the current context
+      } else {
         setActiveChat({ 
           id: paramChatId, 
           isGroup: paramOtherUserId === 'group' || location.pathname.endsWith('/group'),
@@ -56,7 +57,10 @@ const useChatRoom = () => {
         });
       }
     }
-  }, [paramChatId, paramOtherUserId, allChats, activeChat, setActiveChat, location.pathname]);
+  }, [paramChatId, paramOtherUserId, allChats.length, activeChat === null, setActiveChat, location.pathname]);
+
+
+
 
   // ─── ROUTING & IDENTITY ───
   const isGroupChat = rawOtherUserId === 'group' || location.pathname.endsWith('/group');

@@ -84,11 +84,13 @@ class SyncHeartbeat {
 
     /**
      * Tell the heartbeat which chat is currently open.
-     * This is used to prioritize sync for that chat.
+     * Just registers the ID — does NOT trigger an immediate beat.
+     * The next scheduled tick will prioritize this chat.
      */
     setActiveChat(chatId) {
         this.activeChatId = chatId || null;
     }
+
 
     // ─────────────────────────────────────────────────────────
     // Polling Logic

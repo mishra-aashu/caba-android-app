@@ -77,15 +77,19 @@ export function useChatMessages({
     const [isSyncing, setIsSyncing] = useState(false);
 
     useEffect(() => {
-        // [PROFESSIONAL] Instead of blocking UI, we show cached messages immediately.
-        // We trigger a "Quiet Sync" in the background only if online.
+        // [PROFESSIONAL] Show cached messages immediately. Delay sync so it doesn't
+        // race with useLiveQuery + useRealtimeMessages at mount time (all compete for IndexedDB).
         if (navigator.onLine && chatId && chatId !== 'new') {
-            setIsSyncing(true);
-            import('../../services/syncService').then(({ syncService }) => {
-                syncService.syncChat(chatId).finally(() => setIsSyncing(false));
-            });
+            const timer = setTimeout(() => {
+                setIsSyncing(true);
+                import('../../services/syncService').then(({ syncService }) => {
+                    syncService.syncChat(chatId).finally(() => setIsSyncing(false));
+                });
+            }, 500); // 500ms grace period — UI renders first, then we sync
+            return () => clearTimeout(timer);
         }
     }, [chatId]);
+
 
     // [UX] messages.length > 0 means we have cache, so it's not "loading"
     const isMessagesLoading = messages.length === 0 && isSyncing;
