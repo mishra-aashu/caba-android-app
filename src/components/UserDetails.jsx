@@ -274,6 +274,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
             if (chat) {
                 navigate(`/chat/${chat.id}/${user.id}`);
+                if (isPanel && onClose) onClose();
             } else {
                 const { data, error } = await supabase
                     .from('chats')
@@ -286,7 +287,10 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     }])
                     .select();
                 if (error) throw error;
-                if (data?.[0]) navigate(`/chat/${data[0].id}/${user.id}`);
+                if (data?.[0]) {
+                    navigate(`/chat/${data[0].id}/${user.id}`);
+                    if (isPanel && onClose) onClose();
+                }
             }
         } catch (err) {
             console.error('Chat error:', err);
@@ -811,10 +815,12 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                         <div
                                             key={group.id}
                                             className="ud-group-item"
-                                            onClick={() => navigate(
-                                                `/chat/${group.id}/group`,
-                                                { state: { groupName: group.name, groupAvatar: group.avatar } }
-                                            )}
+                                            onClick={() => {
+                                                navigate(`/chat/${group.id}/group`, { 
+                                                    state: { groupName: group.name, groupAvatar: group.avatar } 
+                                                });
+                                                if (isPanel && onClose) onClose();
+                                            }}
                                         >
                                             <div className="ud-group-avatar">
                                                 {group.avatar ? (
@@ -1088,7 +1094,8 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                         isOpen={showImageModal}
                         onClose={() => setShowImageModal(false)}
                         title={resolvedName}
-                        variant="full"
+                        size="small"
+                        className="ud-avatar-modal"
                     >
                         <div className="ud-image-modal">
                             <CachedImage src={avatarSrc} alt={user.name} className="ud-full-image" />

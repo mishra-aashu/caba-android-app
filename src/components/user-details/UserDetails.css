@@ -1282,24 +1282,27 @@ input:checked ~ .ud-toggle-track .ud-toggle-thumb {
 }
 
 /* ── Image Modal ── */
-.ud-image-modal-body {
-    padding: 0 !important;
-    background: #000 !important;
+.ud-avatar-modal {
+    max-width: 360px !important;
+    width: 90% !important;
 }
 
 .ud-image-modal {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 300px;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+    border-radius: 12px;
 }
 
 .ud-full-image {
-    max-width: 100%;
-    max-height: 80vh;
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
     object-fit: contain;
-    cursor: zoom-in;
-    border-radius: 6px;
+    display: block;
 }
 
 /* ══════════════════════════════════
