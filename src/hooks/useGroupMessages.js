@@ -21,7 +21,10 @@ export const useGroupMessages = (groupId, currentUserId) => {
 
   // Dexie live query
   const rawMessages = useLiveQuery(
-    () => db.messages.where('chatId').equals(groupId).sortBy('createdAt'),
+    () => db.messages
+      .where('[chatId+createdAt]')
+      .between([groupId, db.constructor.minKey], [groupId, db.constructor.maxKey])
+      .toArray(),
     [groupId]
   ) || [];
 

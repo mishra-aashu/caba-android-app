@@ -127,6 +127,12 @@ db.version(9).stores({
     messages: 'id, chatId, createdAt, senderId, tempId, vanishAt',
 });
 
+// Version 10: [ROOT FIX] Add compound index [chatId+createdAt] for reliable time-based message queries.
+// This is essential for correct pagination and real-time visibility.
+db.version(10).stores({
+    messages: 'id, chatId, createdAt, senderId, tempId, vanishAt, [chatId+createdAt]',
+});
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS

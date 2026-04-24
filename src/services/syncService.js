@@ -145,11 +145,10 @@ class SyncService {
         if (!navigator.onLine || !chatId) return;
 
         const latestMsg = await db.messages
-            .where('chatId')
-            .equals(chatId)
+            .where('[chatId+createdAt]')
+            .between([chatId, db.constructor.minKey], [chatId, db.constructor.maxKey])
             .reverse()
-            .sortBy('createdAt')
-            .then(msgs => msgs[0]);
+            .first();
 
         const lastSync = latestMsg ? latestMsg.createdAt : new Date(0).toISOString();
 

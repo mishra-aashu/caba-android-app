@@ -89,11 +89,10 @@ export const loadInitialMessagesIfNeeded = async (chatId) => {
     
     // 1. Check if we have anything in Dexie
     const latestMsg = await db.messages
-        .where('chatId')
-        .equals(chatId)
+        .where('[chatId+createdAt]')
+        .between([chatId, db.constructor.minKey], [chatId, db.constructor.maxKey])
         .reverse()
-        .sortBy('createdAt')
-        .then(msgs => msgs[0]);
+        .first();
 
     // 2. If empty, do a quick sync
     if (!latestMsg && navigator.onLine) {

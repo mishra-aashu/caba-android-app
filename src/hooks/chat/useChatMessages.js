@@ -34,20 +34,23 @@ export function useChatMessages({
         async () => {
             if (!chatId || chatId === 'new') return [];
             
-            // [PERF] Limit query to avoid main-thread freeze with large histories
-            // We load (page * PAGE_SIZE) messages
-            const count = await db.messages.where('chatId').equals(chatId).count();
+            // [ROOT FIX] Use compound index [chatId+createdAt] for reliable latest-message selection.
+            // Old way (.reverse().limit()) was selecting by primary key (UUID), which is random.
+            const collection = db.messages.where('[chatId+createdAt]')
+                .between([chatId, db.constructor.minKey], [chatId, db.constructor.maxKey]);
+            
+            const count = await collection.count();
             const currentLimit = page * PAGE_SIZE;
             
             setHasNextPage(count > currentLimit);
 
-            // Fetch last N messages and sort by time
-            return db.messages
-                .where('chatId')
-                .equals(chatId)
-                .reverse() // Index optimization: newest first
+            // Fetch truly latest messages and return them sorted ascending for the UI
+            const latest = await collection
+                .reverse()
                 .limit(currentLimit)
-                .sortBy('createdAt');
+                .toArray();
+            
+            return latest.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         },
         [chatId, page]
     ) || [];

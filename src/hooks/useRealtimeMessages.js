@@ -183,11 +183,10 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
         // ── 1. Recovery: If lastMessageRef is null, try to load from Dexie ──
         if (!lastMessageRef.current) {
             const latestInDexie = await db.messages
-                .where('chatId')
-                .equals(currentChatId)
+                .where('[chatId+createdAt]')
+                .between([currentChatId, db.constructor.minKey], [currentChatId, db.constructor.maxKey])
                 .reverse()
-                .sortBy('createdAt')
-                .then(msgs => msgs[0]);
+                .first();
             
             if (latestInDexie) {
                 lastMessageRef.current = { id: latestInDexie.id, createdAt: latestInDexie.createdAt };
