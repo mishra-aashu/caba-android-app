@@ -1,6 +1,6 @@
 import React, { memo, useState, useEffect, useMemo } from 'react';
 import EmojiRenderer from '../common/EmojiRenderer';
-import { isOnlyEmoji } from '../../utils/emojiUtils';
+import { isOnlyEmoji, getEmojiCount } from '../../utils/emojiUtils';
 import { formatLastSeen } from '../../utils/dateFormatter';
 import { Clock, AlertCircle, RefreshCcw } from 'lucide-react';
 import { EncryptionService } from '../../services/EncryptionService';
@@ -55,7 +55,11 @@ const MessageBubble = memo(({
   const unlockAt = message?.unlockAt || message?.unlock_at;
   const isTimeCapsule = !!unlockAt;
   const isLocked = isTimeCapsule && new Date(unlockAt) > new Date();
-  const isJumboEmoji = !isDeleted && !isLocked && isOnlyEmoji(text);
+
+  // [FIX #9] Jumbo emoji should ONLY trigger for a single emoji. 
+  // Two or more emojis should be normal sized.
+  const emojiCount = useMemo(() => isOnlyEmoji(text) ? getEmojiCount(text) : 0, [text]);
+  const isJumboEmoji = !isDeleted && !isLocked && emojiCount === 1;
 
   const isEdited = useMemo(() => {
     return !!(edited || message?.is_edited || message?.isEdited);
