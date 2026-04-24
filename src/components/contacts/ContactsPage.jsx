@@ -155,7 +155,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                     .eq('id', editingContact.id);
 
                 if (error) throw error;
-                toast.success('Contact updated!');
+                toast.success('Added to Your Circle!');
             } else {
                 const { error } = await supabase
                     .from('contacts')
@@ -166,7 +166,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                     }]);
 
                 if (error) throw error;
-                toast.success('Contact saved!');
+                toast.success('Added to Your Circle!');
             }
 
             queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
@@ -211,7 +211,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                 .delete()
                 .eq('id', id);
             if (error) throw error;
-            toast.success('Contact deleted');
+            toast.success('Removed from Circle');
             queryClient.invalidateQueries({ queryKey: ['contacts', user.id] });
         } catch (error) {
             console.error('Error deleting contact:', error);
@@ -321,7 +321,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <h2>Contacts</h2>
+                    <h2>Your Circle</h2>
                     <span className="contact-count">{baseContacts.length}</span>
                 </div>
 
@@ -329,7 +329,7 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                     <button
                         className="icon-btn add-btn"
                         onClick={() => setShowContactForm(true)}
-                        title="Add Contact"
+                        title="Add to Circle"
                     >
                         <UserPlus size={20} />
                     </button>
@@ -532,12 +532,12 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                                 <h3>
                                     {searchQuery
                                         ? 'No results found'
-                                        : 'No contacts yet'}
+                                        : 'Your Circle is empty'}
                                 </h3>
                                 <p>
                                     {searchQuery
-                                        ? `No contacts match "${searchQuery}"`
-                                        : 'Tap + to add your first contact'}
+                                        ? `No one in your Circle matches "${searchQuery}"`
+                                        : 'Tap + to add people to your Circle'}
                                 </p>
                             </motion.div>
                         )}
@@ -591,8 +591,8 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                             <div className="form-header">
                                 <h3>
                                     {editingContact
-                                        ? 'Edit Contact'
-                                        : 'New Contact'}
+                                        ? 'Edit Circle Name'
+                                        : 'Add to Circle'}
                                 </h3>
                                 <button
                                     className="form-close-btn"
@@ -657,10 +657,10 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                                     disabled={saving}
                                 >
                                     {saving
-                                        ? 'Saving...'
+                                        ? 'Adding...'
                                         : editingContact
                                         ? 'Update'
-                                        : 'Save Contact'}
+                                        : 'Add to Circle'}
                                 </button>
                             </div>
                         </motion.div>

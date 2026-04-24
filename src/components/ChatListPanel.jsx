@@ -643,7 +643,7 @@ const ChatListPanel = ({
               <button
                 className={styles['icon-btn']}
                 onClick={() => setShowNewContactModal(true)}
-                title="Contacts"
+                title="Your Circle"
               >
                 <User size={20} />
               </button>

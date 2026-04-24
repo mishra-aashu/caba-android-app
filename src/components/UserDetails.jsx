@@ -85,7 +85,6 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         delete: false,
         report: false,
         addContact: false,
-        export: false,
         editContact: false
     });
 
@@ -242,7 +241,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 .eq('contact_user_id', user.id)
                 .maybeSingle();
 
-            if (existing) { toast.error('Already in contacts'); return; }
+            if (existing) { toast.error('Already in Your Circle'); return; }
 
             const { error } = await supabase.from('contacts').insert([{
                 user_id: currentUser.id,
@@ -252,9 +251,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             if (error) throw error;
 
             invalidateProfile();
-            toast.success('Contact added');
+            toast.success('Added to Your Circle');
         } catch (err) {
-            toast.error('Failed to add contact');
+            toast.error('Failed to add to Circle');
         } finally {
             setLoading('addContact', false);
         }
@@ -276,52 +275,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         }
     };
 
-    const handleExportChat = async () => {
-        if (!currentUser || !user) return;
-        setLoading('export', true);
-        try {
-            const { data: chat } = await supabase
-                .from('chats')
-                .select('id')
-                .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${user.id}),and(user1_id.eq.${user.id},user2_id.eq.${currentUser.id})`)
-                .single();
-
-            if (!chat) { toast.error('No chat found'); return; }
-
-            const { data: messages } = await supabase
-                .from('messages')
-                .select('*')
-                .eq('chat_id', chat.id)
-                .order('created_at', { ascending: true });
-
-            if (!messages?.length) { toast.error('No messages'); return; }
-
-            const csv = [
-                ['Timestamp', 'Sender', 'Message'],
-                ...messages.map(m => [
-                    new Date(m.created_at).toLocaleString(),
-                    m.sender_id === currentUser.id ? 'You' : user.name,
-                    m.content || '[Media]'
-                ])
-            ].map(r => r.map(f => `"${f}"`).join(',')).join('\n');
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `chat_${user.name}_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            toast.success('Chat exported');
-        } catch (err) {
-            toast.error('Export failed');
-        } finally {
-            setLoading('export', false);
-        }
-    };
 
     const handleEditContact = () => {
-        if (!isContact) { toast.error('Add to contacts first'); return; }
+        if (!isContact) { toast.error('Add to Your Circle first'); return; }
         setContactName(profileData?.contact_info?.contact_name || user.name);
         setShowEditContactModal(true);
     };
@@ -516,7 +472,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                     {isPanel ? <X size={22} /> : <ArrowLeft size={22} />}
                 </button>
                 <h1 className="ud-header-title">
-                    {isOwnProfile ? 'My Profile' : 'Contact Info'}
+                    {isOwnProfile ? 'My Profile' : 'Circle Info'}
                 </h1>
                 <div className="ud-header-actions">
                     {isContact && !isOwnProfile && (
@@ -529,12 +485,12 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             items={[
                                 {
                                     icon: <Edit size={16} />,
-                                    label: 'Edit Name',
+                                    label: 'Edit Circle Name',
                                     onClick: handleEditContact
                                 },
                                 {
                                     icon: <Share2 size={16} />,
-                                    label: 'Share Contact',
+                                    label: 'Share Circle Info',
                                     onClick: handleShareContact
                                 }
                             ]}
@@ -696,9 +652,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             >
                                 <div className="ud-item-left">
                                     <div className="ud-item-icon accent">
-                                        <UserPlus size={18} />
+                                        <Users size={18} />
                                     </div>
-                                    <span className="ud-item-label">Add to Contacts</span>
+                                    <span className="ud-item-label">Add to Circle</span>
                                 </div>
                                 {actionLoading.addContact
                                     ? <div className="ud-spinner-small" />
@@ -707,35 +663,17 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                             </div>
                         )}
 
-                        {/* Share Contact */}
+                        {/* Share Circle */}
                         <div className="ud-item" onClick={handleShareContact}>
                             <div className="ud-item-left">
                                 <div className="ud-item-icon">
                                     <Share2 size={18} />
                                 </div>
-                                <span className="ud-item-label">Share Contact</span>
+                                <span className="ud-item-label">Share Circle Info</span>
                             </div>
                             <ChevronRight size={16} className="ud-item-chevron" />
                         </div>
 
-                        {/* Export Chat */}
-                        {!isOwnProfile && (
-                            <div
-                                className={`ud-item ${actionLoading.export ? 'loading' : ''}`}
-                                onClick={handleExportChat}
-                            >
-                                <div className="ud-item-left">
-                                    <div className="ud-item-icon">
-                                        <Download size={18} />
-                                    </div>
-                                    <span className="ud-item-label">Export Chat</span>
-                                </div>
-                                {actionLoading.export
-                                    ? <div className="ud-spinner-small" />
-                                    : <ChevronRight size={16} className="ud-item-chevron" />
-                                }
-                            </div>
-                        )}
 
                         {/* Chat Theme */}
                         {!isOwnProfile && (
