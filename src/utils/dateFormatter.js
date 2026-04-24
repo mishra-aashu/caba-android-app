@@ -183,14 +183,20 @@ export const formatChatDivider = (timestamp) => {
  * @returns {boolean} True if the user is considered online
  */
 export const isUserOnline = (isOnline, lastSeen) => {
-  if (!isOnline) return false;
-  if (!lastSeen) return true;
+  if (!lastSeen) return Boolean(isOnline);
 
   const date = parseTimestamp(lastSeen);
   const now = dayjs();
   const diffMinutes = now.diff(date, 'minute');
 
-  return diffMinutes <= 5;
+  // If DB says online, but last_seen is more than 5 minutes ago, treat as offline
+  // This handles "ghost" online status where a user didn't sign out properly.
+  if (isOnline) {
+    return diffMinutes <= 5;
+  }
+
+  // If DB says offline, but last_seen is within 2 minutes, might be a brief disconnect
+  return diffMinutes <= 2;
 };
 
 /**

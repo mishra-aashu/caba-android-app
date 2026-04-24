@@ -67,17 +67,17 @@ const MessageBubble = memo(({
 
   const displayedText = useMemo(() => {
     if (isDeleted || isLocked) return text;
-    
+
     // Safety Net: If text starts with the E2EE prefix, it means it reached 
     // the UI still encrypted. We attempt to decrypt it here as a final fallback.
     if (typeof text === 'string' && text.startsWith('🔒:')) {
       const chatId = message?.chatId || message?.chat_id;
       // For 1-on-1, we need the other participant's ID. 
       // If we are the sender, other is receiver. If we are receiver, other is sender.
-      const otherId = isMine 
-        ? (message?.receiverId || message?.receiver_id) 
+      const otherId = isMine
+        ? (message?.receiverId || message?.receiver_id)
         : (message?.senderId || message?.sender_id);
-      
+
       return EncryptionService.decrypt(text, chatId, otherId);
     }
     return text;
@@ -142,7 +142,7 @@ const MessageBubble = memo(({
   const emojiStyle = isJumboEmoji ? { width: '96px', height: '96px', fontSize: '96px', lineHeight: '1' } : {};
 
   return (
-    <div 
+    <div
       className={`${styles['message-outer-container']} ${isMine ? styles['outer-mine'] : ''}`}
       style={{ contain: 'layout' }}
     >
@@ -189,10 +189,10 @@ const MessageBubble = memo(({
               {time}
               {isEdited && <span className={styles['edited-indicator']}> (ed)</span>}
 
-              
+
               {isMine && (
                 <span className={styles['status-indicator']}>
-                   {(status === 'pending' || status === 'sending') && <Clock size={10} className={styles['status-icon']} />}
+                  {(status === 'pending' || status === 'sending') && <Clock size={10} className={styles['status-icon']} />}
                   {status === 'failed' && <AlertCircle size={10} className={styles['status-icon-failed']} />}
                 </span>
               )}
@@ -200,8 +200,8 @@ const MessageBubble = memo(({
           </div>
 
           {isMine && status === 'failed' && (
-            <button 
-              className={styles['retry-button']} 
+            <button
+              className={styles['retry-button']}
               onClick={(e) => { e.stopPropagation(); onRetry?.(); }}
             >
               <RefreshCcw size={10} />
@@ -210,7 +210,7 @@ const MessageBubble = memo(({
           )}
         </div>
       </div>
-      
+
       {isMine && (isLastRead || isLast) && status !== 'pending' && status !== 'sending' && status !== 'failed' && (
         <div className={styles['external-status']}>
           {status === 'read' || message.isRead || message.is_read ? 'Seen' : 'Sent'} {formatLastSeen((status === 'read' || message.isRead || message.is_read) && (message.seenAt || message.seen_at) ? (message.seenAt || message.seen_at) : (message.createdAt || message.created_at))}
@@ -219,11 +219,11 @@ const MessageBubble = memo(({
     </div>
   );
 }, (prev, next) => {
-  return prev.text === next.text && 
-         prev.time === next.time && 
-         prev.isLastRead === next.isLastRead && 
-         prev.status === next.status &&
-         prev.message?.metadata === next.message?.metadata;
+  return prev.text === next.text &&
+    prev.time === next.time &&
+    prev.isLastRead === next.isLastRead &&
+    prev.status === next.status &&
+    prev.message?.metadata === next.message?.metadata;
 });
 
 MessageBubble.displayName = 'MessageBubble';

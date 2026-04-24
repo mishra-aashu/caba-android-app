@@ -75,16 +75,6 @@ export const GameLobbyProvider = ({ children }) => {
         let channel = null;
 
         const setupPresence = async () => {
-            // [OPTIMIZATION] Only join presence if on games page
-            const isGamesPage = window.location.hash.includes('games') || window.location.pathname.includes('games');
-            
-            if (!isGamesPage) {
-                console.log('[GameLobby] Not on games page, skipping presence join.');
-                setOnlineUsers([]);
-                setIsConnected(false);
-                return;
-            }
-
             console.log('[GameLobby] Setting up presence for:', dbUser.id);
             
             if (channelRef.current) {

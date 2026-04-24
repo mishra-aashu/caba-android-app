@@ -91,8 +91,8 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
           </div>
 
           {isSender && status === 'failed' && (
-            <button 
-              className={styles['retry-button']} 
+            <button
+              className={styles['retry-button']}
               onClick={(e) => { e.stopPropagation(); onRetry?.(); }}
             >
               <RefreshCcw size={10} />

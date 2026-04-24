@@ -105,10 +105,11 @@ const ChatHeader = memo(({
         const typingKeys = Object.keys(typingUsers || {});
         if (typingKeys.length > 0) return 'typing...';
 
-        if (isUserOnline(Boolean(otherUser.is_online), otherUser.last_seen)) {
+        if (isUserOnline(Boolean(otherUser.is_online || otherUser.isOnline), otherUser.last_seen || otherUser.lastSeen)) {
             return 'Online';
         }
-        return otherUser.last_seen ? `Last seen ${formatLastSeen(otherUser.last_seen)}` : '';
+        const lastSeen = otherUser.last_seen || otherUser.lastSeen;
+        return lastSeen ? `Last seen ${formatLastSeen(lastSeen)}` : '';
     }, [isGroupChat, otherUser, typingUsers]);
 
     // [FIX #2] Build menu items without double dividers

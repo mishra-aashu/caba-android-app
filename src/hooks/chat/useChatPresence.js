@@ -32,10 +32,12 @@ export function useChatPresence({
     useEffect(() => {
         if (isGroupChat || !otherUserId) return;
 
-        onPresenceChange?.({
-            is_online: !!otherUserPresence,
-            last_seen: otherUserPresence?.onlineSince || null
-        });
+        const status = { isOnline: !!otherUserPresence };
+        if (otherUserPresence?.onlineSince) {
+            status.lastSeen = otherUserPresence.onlineSince;
+        }
+
+        onPresenceChange?.(status);
     }, [otherUserPresence, onPresenceChange, otherUserId, isGroupChat]);
 
     return {
