@@ -157,6 +157,7 @@ body.dark-mode .ud-screen {
 .ud-scroll {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal jitter */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     background: var(--ud-bg);
@@ -194,12 +195,12 @@ body.dark-mode .ud-screen {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 3.5rem 1.5rem 4rem; /* Increased top padding for better avatar placement */
+    padding: 3.5rem 1.5rem 4rem;
     background: transparent;
     position: relative;
     margin-top: -320px;
     z-index: 2;
-    overflow: visible;
+    overflow-x: hidden; /* Clip wide cover strips */
 }
 
 .ud-hero-merge {
@@ -429,25 +430,24 @@ body.dark-mode .ud-screen {
     align-items: center;
     gap: 6px;
     font-size: 0.8rem;
-    color: var(--ud-theme-text, var(--ud-text-muted));
+    color: #ffffff; /* Explicitly bright for dark mode/tinted themes */
     margin: 0;
-    padding: 5px 14px;
-    background: var(--ud-theme-pill-bg, rgba(0, 0, 0, 0.25));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    padding: 6px 16px;
+    background: rgba(0, 0, 0, 0.3); /* Slightly darker for better text pop */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    font-style: italic;
-    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    font-style: normal;
+    font-weight: 600;
 }
 
 .ud-status.online {
-    color: var(--ud-emerald);
-    font-style: normal;
+    color: #fff;
+    background: var(--ud-emerald);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     font-weight: 700;
-    background: rgba(16, 185, 129, 0.08);
-    border-color: rgba(16, 185, 129, 0.2);
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
 }
 
 .ud-status-dot {
@@ -472,7 +472,7 @@ body.dark-mode .ud-screen {
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     padding: 1.5rem 1.25rem 1rem;
-    background: var(--ud-surface);
+    background: var(--ud-theme-color, var(--ud-surface));
     margin-top: -30px;
     border-top-left-radius: 30px;
     border-top-right-radius: 30px;
@@ -559,7 +559,7 @@ body.dark-mode .ud-screen {
    SECTIONS
 ══════════════════════════════════ */
 .ud-section {
-    background: var(--ud-surface);
+    background: var(--ud-theme-color, var(--ud-surface));
     margin-bottom: 10px;
     overflow: hidden;
     position: relative;

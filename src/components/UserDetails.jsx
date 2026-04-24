@@ -599,12 +599,11 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
                     {/* ── Profile Hero ── */}
                     <div className="ud-hero-container">
-                        {/* Sticky Background Layer — Light Tint version */}
+                        {/* Sticky Background Layer — Now Neutral Surface */}
                         <motion.div 
                             className="ud-sticky-bg" 
                             style={{ 
-                                background: coverStyle.background,
-                                opacity: 0.2, // Light tinted version as requested
+                                background: 'var(--ud-surface)',
                                 y: backgroundY,
                                 scale: heroScale
                             }} 
