@@ -184,7 +184,7 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
       {/* Seen Status - same logic as MessageBubble */}
       {isSender && (isLastRead || isLast) && status !== 'pending' && status !== 'sending' && status !== 'failed' && (
         <div className={styles['external-status']}>
-          Sent {formatLastSeen(message.createdAt || message.created_at)}
+          {status === 'read' || message.isRead || message.is_read ? 'Seen' : 'Sent'} {formatLastSeen((status === 'read' || message.isRead || message.is_read) && (message.seenAt || message.seen_at) ? (message.seenAt || message.seen_at) : (message.createdAt || message.created_at))}
         </div>
       )}
     </div>

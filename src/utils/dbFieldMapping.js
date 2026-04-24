@@ -119,6 +119,7 @@ export const DB_TO_FRONTEND_MAP = {
   // Message Read fields
   'message_id': 'messageId',
   'read_at': 'readAt',
+  'seen_at': 'seenAt',
 
   // Group Call Participants fields
   'joined_at': 'joinedAt',
