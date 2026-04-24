@@ -171,8 +171,16 @@ export const useMixedChatList = (currentUserId, dmChats, setDmChats, dmLoading) 
         return () => { mountedRef.current = false; };
     }, [currentUserId]);
 
+    // Real-time: when we are added to a new group, refresh the group list
+    const handleGroupMemberChange = useCallback((payload) => {
+        if (!mountedRef.current) return;
+        console.log('[useMixedChatList] group_members change detected, refreshing group list');
+        queryClient.invalidateQueries({ queryKey: ['groupList', currentUserIdRef.current] });
+    }, [queryClient]);
+
     const handleGroupMemberChangeRef = useRef(handleGroupMemberChange);
     handleGroupMemberChangeRef.current = handleGroupMemberChange;
+
 
     useEffect(() => {
         if (!currentUserId) return;
@@ -205,7 +213,8 @@ export const useMixedChatList = (currentUserId, dmChats, setDmChats, dmLoading) 
             console.log(`[useMixedChatList] Unsubscribing: ${currentUserId}`);
             realtimeManager.unsubscribe(channelName);
         };
-    }, [currentUserId, handleGroupMemberChange]);
+    }, [currentUserId]);
+
 
     return {
         mixedList,

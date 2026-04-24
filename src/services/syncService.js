@@ -55,7 +55,10 @@ class SyncService {
         try {
             console.log('[Sync] Starting global catch-up...');
 
-            // 1. Find the latest message timestamp across ALL chats locally
+            // 1. Fetch Chat List (Profiles/Settings)
+            await this.syncChatList(userId);
+
+            // 2. Find the latest message timestamp across ALL chats locally
             const latestMsg = await db.messages
                 .orderBy('createdAt')
                 .reverse()
@@ -63,7 +66,7 @@ class SyncService {
             
             const lastSyncTimestamp = latestMsg ? latestMsg.createdAt : new Date(0).toISOString();
 
-            // 2. Fetch all messages since then from Supabase
+            // 3. Fetch all messages since then from Supabase
             const { data, error } = await supabase
                 .from('messages')
                 .select(`
@@ -107,12 +110,6 @@ class SyncService {
 
             this.lastSyncTime = new Date().toISOString();
             localStorage.setItem('last_global_sync_at', this.lastSyncTime);
-            
-            // Ensure chat list is populated
-            const localChatCount = await db.chats_list.count();
-            if (localChatCount === 0) {
-                await this.syncChatList(userId);
-            }
 
         } catch (error) {
             console.error('[Sync] Global sync failed:', error);

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabase } from '../../contexts/SupabaseContext';
-import { useGameLobby } from '../../contexts/GameLobbyContext';
+
 import {
   Gamepad2, Sword, Users, Clock, ChevronRight,
   Zap, Trophy, Circle, RefreshCw
@@ -15,6 +15,8 @@ import { useTruthDareGame } from '../../hooks/useTruthDareGame';
 import ArenaRoom from '../chat/ArenaRoom';
 import { DB_TABLES } from '../../constants/gameData';
 import styles from './GamesPanel.module.css';
+import usePresenceStore from '../../store/usePresenceStore';
+
 
 // ─── Constants ────────────────────────────────────────
 const INVITES_CHANNEL_PREFIX = 'games_panel_invites';
@@ -53,9 +55,17 @@ const GamesPanel = () => {
   const { dbUser } = useAuth();
   const { supabase } = useSupabase();
   const navigate = useNavigate();
-  const { onlineUsers } = useGameLobby();
+
+
+  const onlineUsersMap = usePresenceStore(state => state.onlineUsers);
+  const onlineUsers = useMemo(() => {
+    return Object.values(onlineUsersMap || {})
+      .filter(u => u.isOnline && String(u.id) !== String(dbUser?.id))
+      .sort((a, b) => new Date(b.onlineAt) - new Date(a.onlineAt));
+  }, [onlineUsersMap, dbUser?.id]);
 
   const [pendingInvites, setPendingInvites] = useState([]);
+
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [processingInviteId, setProcessingInviteId] = useState(null);
   const [tab, setTab] = useState('online'); 

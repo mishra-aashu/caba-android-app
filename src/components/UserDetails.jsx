@@ -13,6 +13,8 @@ import { useChatThemeQuery } from '../hooks/useThemesData';
 import { chatThemes, useChatTheme } from '../contexts/ChatThemeContext';
 import { useResolveName } from '../hooks/useResolveName';
 import useChatStore from '../store/useChatStore';
+import usePresenceStore from '../store/usePresenceStore';
+
 import {
     ArrowLeft, Phone, Video, MessageCircle,
     Image, Link as LinkIcon, FileText,
@@ -183,10 +185,14 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         return () => clearInterval(timer);
     }, []);
 
-    const isOnline = isUserOnline(
+    // Check live presence store first (same pattern as ChatHeader)
+    const isOnlineLive = usePresenceStore(state => state.isUserOnline(userId));
+
+    const isOnline = isOnlineLive || isUserOnline(
         Boolean(currentOnlineStatus?.is_online ?? user?.is_online),
         currentOnlineStatus?.last_seen || user?.last_seen
     );
+
 
     const coverStyle = React.useMemo(() => {
         // 1. If we're in an active chat with this user, use the active theme from context

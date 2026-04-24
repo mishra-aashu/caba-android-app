@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useContext } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRealtimeTyping } from '../../hooks/useRealtimeTyping';
-import { GameLobbyContext } from '../../contexts/GameLobbyContext';
+import usePresenceStore from '../../store/usePresenceStore';
 
 /**
- * useChatPresence (Refactored)
- * 
- * Now consumes the global GameLobbyContext to determine online status.
- * This ensures a single source of truth and reduces WebSocket overhead.
+ * useChatPresence
+ *
+ * Consumes the global usePresenceStore (Zustand) to determine online status.
+ * This is the single source of truth — GameLobbyProvider populates the store,
+ * components observe it here without needing the context at all.
  */
 export function useChatPresence({
     chatId,
@@ -17,24 +18,24 @@ export function useChatPresence({
 }) {
     // Typing indicators still use their own broadcast channel per chat
     const { typingUsers, sendTyping } = useRealtimeTyping(chatId, currentUserId);
-    
-    // Consume global presence state
-    const lobbyContext = useContext(GameLobbyContext);
-    const onlineUsers = lobbyContext?.onlineUsers || [];
 
-    // Find the specific user in the global online list
+    // Consume global Zustand presence store (selector to avoid re-renders for unrelated users)
+    const isOnlineLive = usePresenceStore(state => state.isUserOnline(otherUserId));
+    const userPresenceData = usePresenceStore(state => state.onlineUsers[String(otherUserId)]);
+
+    // Determine presence object for the specific other user
     const otherUserPresence = useMemo(() => {
         if (isGroupChat || !otherUserId) return null;
-        return onlineUsers.find(u => String(u.id) === String(otherUserId));
-    }, [onlineUsers, otherUserId, isGroupChat]);
+        return isOnlineLive ? userPresenceData : null;
+    }, [isGroupChat, otherUserId, isOnlineLive, userPresenceData]);
 
     // Notify caller when presence changes
     useEffect(() => {
         if (isGroupChat || !otherUserId) return;
 
         const status = { isOnline: !!otherUserPresence };
-        if (otherUserPresence?.onlineSince) {
-            status.lastSeen = otherUserPresence.onlineSince;
+        if (otherUserPresence?.onlineAt) {
+            status.lastSeen = otherUserPresence.onlineAt;
         }
 
         onPresenceChange?.(status);

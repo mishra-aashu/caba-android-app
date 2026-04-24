@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { syncService } from '../services/syncService';
 import { processSyncQueue } from '../services/offlineQueue';
 import useIsDesktop from '../hooks/useIsDesktop';
+import { realtimeOrchestrator } from '../services/RealtimeOrchestrator';
 
 import BottomNavigation from './common/BottomNavigation';
 import ChatPlaceholder from './common/ChatPlaceholder';
@@ -46,7 +47,7 @@ const MainLayout = () => {
     const isDesktop = useIsDesktop();
 
     // ──────────────────────────────────────────────────────────
-    // Global Sync & Queue Processing (OPTIMIZED)
+    // Global Sync & Realtime Orchestration (UPGRADED)
     // ──────────────────────────────────────────────────────────
 
     const lastSyncRef = React.useRef(0);
@@ -55,29 +56,25 @@ const MainLayout = () => {
     React.useEffect(() => {
         if (!user?.id) {
             syncService.stopPeriodicSync();
+            realtimeOrchestrator.destroy();
             return;
         }
 
-        const SYNC_THROTTLE = 60000; // Reduced to 1 minute for better responsiveness
+        // Initialize Global Realtime Engine
+        realtimeOrchestrator.initialize(user.id);
+
+        const SYNC_THROTTLE = 60000; 
 
         const runSync = (reason = 'unknown', force = false) => {
             const now = Date.now();
-
-            // Throttle check
             if (!force && now - lastSyncRef.current < SYNC_THROTTLE) {
-                console.log(`[MainLayout] Sync skipped (${reason}) - throttled`);
                 return;
             }
-
-            // Debounce: clear previous timeout
             if (syncTimeoutRef.current) {
                 clearTimeout(syncTimeoutRef.current);
             }
-
-            // Delay sync slightly to avoid blocking UI transitions
             syncTimeoutRef.current = setTimeout(() => {
                 if (!user?.id) return;
-
                 console.log(`[MainLayout] Executing sync (${reason})`);
                 syncService.performGlobalSync(user.id);
                 processSyncQueue();
@@ -85,13 +82,19 @@ const MainLayout = () => {
             }, 1000);
         };
 
-        // 1. Initial catch-up and START PERIODIC SYNC
+        // Event Listener for Orchestrator/Background requests
+        const handleSyncRequest = (e) => {
+            const { reason } = e.detail;
+            runSync(reason, true); // Force sync on specific requests
+        };
+        window.addEventListener('app:sync-required', handleSyncRequest);
+
+        // 1. Initial catch-up
         runSync('mount', true);
         syncService.startPeriodicSync(user.id);
 
         // 2. Network reconnection sync
         const handleOnline = () => {
-            console.log('[MainLayout] Network back online - triggering sync');
             runSync('online', true);
         };
         window.addEventListener('online', handleOnline);
@@ -112,20 +115,21 @@ const MainLayout = () => {
                 capacitorAppListener = await App.addListener('appStateChange', ({ isActive }) => {
                     if (isActive) runSync('appState');
                 });
-            } catch {
-                /* Not Capacitor */
-            }
+            } catch { /* Not Capacitor */ }
         };
         setupCapacitorSync();
 
         return () => {
             window.removeEventListener('online', handleOnline);
+            window.removeEventListener('app:sync-required', handleSyncRequest);
             document.removeEventListener('visibilitychange', handleVisibility);
             if (capacitorAppListener) capacitorAppListener.remove();
             if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
             syncService.stopPeriodicSync();
+            realtimeOrchestrator.destroy();
         };
     }, [user?.id]);
+
 
     // ──────────────────────────────────────────────────────────
     // Store State

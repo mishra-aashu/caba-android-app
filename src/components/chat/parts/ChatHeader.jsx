@@ -24,6 +24,7 @@ import { useResolveName } from '../../../hooks/useResolveName';
 import { useResolveAvatar } from '../../../hooks/useResolveAvatar';
 import styles from '../../../styles/chat.module.css';
 import useChatStore from '../../../store/useChatStore';
+import usePresenceStore from '../../../store/usePresenceStore';
 
 const ChatHeader = memo(({
     chatId,
@@ -90,6 +91,8 @@ const ChatHeader = memo(({
     // Previously: avatarSrc was computed with dpOptions lookup but NEVER used in JSX
     // resolvedAvatar (from useResolveAvatar hook) is what's actually rendered
 
+    const isUserOnlineLive = usePresenceStore(state => state.isUserOnline(otherUser?.id));
+
     // [FIX #4] Group typing shows WHO is typing
     const statusText = useMemo(() => {
         if (isGroupChat) {
@@ -112,12 +115,19 @@ const ChatHeader = memo(({
         const typingKeys = Object.keys(typingUsers || {});
         if (typingKeys.length > 0) return 'typing...';
 
+        // Check Live Presence Store first
+        if (isUserOnlineLive) {
+            return 'Online';
+        }
+
+        // Fallback to DB state
         if (isUserOnline(Boolean(otherUser.is_online || otherUser.isOnline), otherUser.last_seen || otherUser.lastSeen)) {
             return 'Online';
         }
         const lastSeen = otherUser.last_seen || otherUser.lastSeen;
         return lastSeen ? `Last seen ${formatLastSeen(lastSeen)}` : '';
-    }, [isGroupChat, otherUser, typingUsers, tick]);
+    }, [isGroupChat, otherUser, typingUsers, isUserOnlineLive, tick]);
+
 
     // [FIX #2] Build menu items without double dividers
     const menuItems = useMemo(() => {
