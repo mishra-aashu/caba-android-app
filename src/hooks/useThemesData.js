@@ -27,15 +27,20 @@ export const useUserTheme = (userId) => {
     });
 };
 
-export const useChatThemeQuery = (chatId) => {
+export const useChatThemeQuery = (chatId, userId = null) => {
     return useQuery({
-        queryKey: ['chat_themes', chatId],
+        queryKey: ['chat_themes', chatId, userId],
         queryFn: async () => {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('chat_themes')
                 .select('theme_name')
-                .eq('chat_id', chatId)
-                .maybeSingle();
+                .eq('chat_id', chatId);
+            
+            if (userId) {
+                query = query.eq('set_by', userId);
+            }
+
+            const { data, error } = await query.maybeSingle();
 
             if (error) throw error;
             return data?.theme_name || null;

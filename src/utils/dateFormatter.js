@@ -32,7 +32,7 @@ dayjs.extend(relativeTime);
 const parseTimestamp = (timestamp) => {
   // Handle null/undefined
   if (timestamp === null || timestamp === undefined) {
-    return dayjs();
+    return null;
   }
 
   // Handle Date objects
@@ -186,6 +186,8 @@ export const isUserOnline = (isOnline, lastSeen) => {
   if (!lastSeen) return Boolean(isOnline);
 
   const date = parseTimestamp(lastSeen);
+  if (!date) return Boolean(isOnline);
+
   const now = dayjs();
   const diffMinutes = now.diff(date, 'minute');
 

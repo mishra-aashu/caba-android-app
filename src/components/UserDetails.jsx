@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSupabase } from '../contexts/SupabaseContext';
@@ -10,7 +10,7 @@ import useAuthStore from '../store/authStore';
 import { dpOptions } from '../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../utils/dateFormatter';
 import { useChatThemeQuery } from '../hooks/useThemesData';
-import { chatThemes } from '../contexts/ChatThemeContext';
+import { chatThemes, useChatTheme } from '../contexts/ChatThemeContext';
 import { useResolveName } from '../hooks/useResolveName';
 import {
     ArrowLeft, Phone, Video, MessageCircle,
@@ -21,12 +21,13 @@ import {
     Copy, CheckCircle2, Ban, Lock
 } from 'lucide-react';
 import { EncryptionService } from '../services/EncryptionService';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import toast from 'react-hot-toast';
 import CachedImage from './common/CachedImage';
 import { realtimeManager } from '../utils/realtimeManager';
+import { useTheme } from '../contexts/ThemeContext';
 import { UserDetailsContext } from '../contexts/UserDetailsContext';
 import { Palette } from 'lucide-react';
 import './user-details/UserDetails.css';
@@ -155,7 +156,23 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         return user.avatar;
     };
 
-    const { data: chatThemeName } = useChatThemeQuery(profileData?.chat_id);
+    // ─── Parallax Effect ───
+    const scrollRef = useRef(null);
+    const { scrollY } = useScroll({ 
+        container: scrollRef 
+    });
+    
+    // Background moves slower (0.3x speed)
+    const backgroundY = useTransform(scrollY, [0, 400], [0, 120]);
+    // Hero scales and fades as it sticks
+    const heroScale = useTransform(scrollY, [0, 300], [1, 0.96]);
+    const heroOpacity = useTransform(scrollY, [0, 300], [1, 0.85]);
+    // Subtle scale for the avatar
+    const avatarScale = useTransform(scrollY, [0, 300], [1, 0.8]);
+
+    const { chatTheme: activeChatTheme, currentChatId: activeChatId } = useChatTheme();
+    const { data: rawThemeName } = useChatThemeQuery(profileData?.chat_id, currentUser?.id);
+    const { isDark } = useTheme();
 
     // ─── Tick for Relative Time ───
     const [tick, setTick] = useState(0);
@@ -165,20 +182,56 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     }, []);
 
     const isOnline = isUserOnline(
-        Boolean(currentOnlineStatus?.is_online),
+        Boolean(currentOnlineStatus?.is_online ?? user?.is_online),
         currentOnlineStatus?.last_seen || user?.last_seen
     );
 
     const coverStyle = React.useMemo(() => {
-        if (!chatThemeName) return {};
-        const theme = chatThemes[chatThemeName];
-        if (!theme) return {};
+        // 1. If we're in an active chat with this user, use the active theme from context
+        const isCurrentChatPartner = activeChatId && profileData?.chat_id === activeChatId;
+        
+        // 2. Normalize theme name (handling underscores vs hyphens)
+        const themeKey = (isCurrentChatPartner ? activeChatTheme : rawThemeName)?.replace(/_/g, '-') 
+            || (isDark ? 'midnight-amoled' : 'emerald-default');
+
+        const theme = chatThemes[themeKey] || chatThemes[isDark ? 'midnight-amoled' : 'emerald-default'];
+        
+        // Extract a solid primary color for elements that don't support gradients
+        const primaryColor = theme.background.includes('gradient') 
+            ? (theme.background.match(/#[a-fA-F0-9]{3,6}|rgba?\([^)]+\)/)?.[0] || '#00a884')
+            : theme.background;
+
+        // Function to determine if a color is light or dark for contrast
+        const isColorLight = (color) => {
+            if (!color) return false;
+            let r, g, b;
+            if (color.startsWith('#')) {
+                const hex = color.replace('#', '');
+                r = parseInt(hex.length === 3 ? hex[0] + hex[0] : hex.substring(0, 2), 16);
+                g = parseInt(hex.length === 3 ? hex[1] + hex[1] : hex.substring(2, 4), 16);
+                b = parseInt(hex.length === 3 ? hex[2] + hex[2] : hex.substring(4, 6), 16);
+            } else if (color.startsWith('rgb')) {
+                const match = color.match(/\d+/g);
+                if (match) [r, g, b] = match.map(Number);
+            }
+            if (r === undefined) return false;
+            // HSP (Highly Sensitive Poo) color model brightness formula
+            const brightness = Math.sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
+            return brightness > 180; // 180 is a good threshold for "light"
+        };
+
+        const themeIsLight = isColorLight(primaryColor);
+        
         return {
             '--ud-theme-color': theme.background,
+            '--ud-theme-primary': primaryColor,
+            '--ud-theme-text': themeIsLight ? '#0f172a' : '#ffffff',
+            '--ud-theme-text-muted': themeIsLight ? 'rgba(15, 23, 42, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+            '--ud-theme-pill-bg': themeIsLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 0, 0, 0.25)',
             background: theme.background,
             backgroundImage: theme.background
         };
-    }, [chatThemeName]);
+    }, [rawThemeName, isDark, activeChatTheme, activeChatId, profileData?.chat_id]);
 
     const securityCode = React.useMemo(() => {
         if (!currentUser?.id || !userId) return '';
@@ -537,16 +590,32 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
             </header>
 
             {/* ── Scrollable Content ── */}
-            <div className="ud-scroll">
+            <div className="ud-scroll" ref={scrollRef}>
                 <motion.div variants={stagger} initial="initial" animate="animate">
 
                     {/* ── Profile Hero ── */}
-                    <motion.section className="ud-profile-card" style={coverStyle} variants={fadeUp}>
-                        <div className="ud-cover-strip" />
-                        
-                        <div
+                    <div className="ud-hero-container">
+                        {/* Sticky Background Layer — Light Tint version */}
+                        <motion.div 
+                            className="ud-sticky-bg" 
+                            style={{ 
+                                background: coverStyle.background,
+                                opacity: 0.2, // Light tinted version as requested
+                                y: backgroundY,
+                                scale: heroScale
+                            }} 
+                        />
+
+                        <motion.section 
+                            className="ud-profile-card" 
+                            variants={fadeUp}
+                        >
+                            <div className="ud-cover-strip" />
+                            
+                            <motion.div
                             className={`ud-avatar ${avatarSrc ? 'clickable' : ''}`}
                             onClick={() => avatarSrc && setShowImageModal(true)}
+                            style={{ scale: avatarScale }}
                         >
                             {avatarSrc ? (
                                 <CachedImage src={avatarSrc} alt={user.name} className="ud-avatar-img" />
@@ -555,8 +624,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                     {getInitials(user.name)}
                                 </div>
                             )}
-                            {isOnline && <div className="ud-online-dot">Online</div>}
-                        </div>
+                        </motion.div>
 
                         <h2 className="ud-name">{resolvedName}</h2>
                         {resolvedName !== user.name && (
@@ -580,7 +648,9 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                 Online Now
                              </p>
                         )}
+                        <div className="ud-hero-merge" />
                     </motion.section>
+                </div>
 
                     {/* ── Quick Actions ── */}
                     {!isOwnProfile && (

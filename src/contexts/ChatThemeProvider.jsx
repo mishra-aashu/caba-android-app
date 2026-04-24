@@ -146,7 +146,8 @@ function readCache(chatId, isDark) {
     const rawPattern  = localStorage.getItem(LOCAL_PATTERN_KEY(chatId));
 
     const standardDefault = isDark ? 'cherry-blossom' : 'spring-vibes';
-    const themeKey = (rawTheme && chatThemes[rawTheme]) ? rawTheme : standardDefault;
+    const normalizedRawTheme = rawTheme?.replace(/_/g, '-');
+    const themeKey = (normalizedRawTheme && chatThemes[normalizedRawTheme]) ? normalizedRawTheme : standardDefault;
 
     let wallpaperUrl = null;
     let patternId    = null; // null = no pattern; string = show pattern
@@ -272,8 +273,9 @@ export const ChatThemeProvider = ({ children }) => {
                 // Guard: ignore if user navigated away
                 if (prevState.chatId !== chatId) return prevState;
 
-                const freshTheme = (themeData && chatThemes[themeData])
-                    ? themeData
+                const normalizedTheme = themeData?.replace(/_/g, '-');
+                const freshTheme = (normalizedTheme && chatThemes[normalizedTheme])
+                    ? normalizedTheme
                     : prevState.themeKey;
 
                 let freshWallpaper = prevState.wallpaperUrl;
