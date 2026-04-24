@@ -114,7 +114,7 @@ const ChatScreen = () => {
     } = useChatTheme();
 
     const isDesktop = useIsDesktop();
-    const { showUserDetails, showGroupInfo, showThemeSelector } = useContext(UserDetailsContext) || {};
+    const { showUserDetails, showGroupInfo, showThemeSelector, showSharedMedia } = useContext(UserDetailsContext) || {};
 
     useEffect(() => {
         if (chatId) setChatId(chatId);
@@ -383,6 +383,7 @@ const ChatScreen = () => {
                             onViewContact={handleViewContact}
                             onSearchMessages={() => setShowSearchModal(true)}
                             onChangeTheme={showThemeSelector}
+                            onShowSharedMedia={() => showSharedMedia?.(isGroupChat ? chatId : otherUserId, isGroupChat)}
                             onShowGame={() => navigate(`/games`)}
                             onShowGroupInfo={() => {
                                 if (isDesktop) showGroupInfo?.(chatId, otherUser);
@@ -537,8 +538,6 @@ const ChatScreen = () => {
                                 </div>
                             </div>
                         </Modal>
-                    )}
-
                     )}
 
                     {showForwardModal && (

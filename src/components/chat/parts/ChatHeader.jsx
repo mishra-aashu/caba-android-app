@@ -40,6 +40,7 @@ const ChatHeader = memo(({
     onViewContact,
     onSearchMessages,
     onChangeTheme,
+    onShowSharedMedia,
     onShowGame,
     onShowGroupInfo,
     onBlockUser,
@@ -169,7 +170,7 @@ const ChatHeader = memo(({
         items.push({
             icon: <ImageIcon size={16} />,
             label: 'Shared Media',
-            onClick: () => resolvedNavigate(`${location.pathname}/media`),
+            onClick: onShowSharedMedia,
         });
         items.push({
             icon: <Gamepad2 size={16} />,

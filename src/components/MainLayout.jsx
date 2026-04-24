@@ -22,6 +22,7 @@ const Sidebar = lazy(() => import('./layout/Sidebar'));
 const ChatListPanel = lazy(() => import('./ChatListPanel'));
 const DesktopLayout = lazy(() => import('./DesktopLayout'));
 const ThemeSelector = lazy(() => import('./chat/ThemeSelector'));
+const SharedMedia = lazy(() => import('./chat/SharedMedia'));
 
 // ══════════════════════════════════════════════════════════════
 // Memoized Components
@@ -163,6 +164,7 @@ const MainLayout = () => {
             '/emoji-settings',
             '/history',
             '/theme',
+            '/shared-media/',
         ]);
 
         return Array.from(activePaths).some(path => location.pathname.startsWith(path));
@@ -249,6 +251,16 @@ const MainLayout = () => {
         }
     }, [isDesktop, navigate]);
 
+    const handleShowSharedMedia = useCallback((id, isGroup = false) => {
+        if (isDesktop) {
+            setSidePanelType('shared-media');
+            setSidePanelTargetId(id);
+            setSidePanelData({ isGroup });
+        } else {
+            navigate(`/shared-media/${id}${isGroup ? '?isGroup=true' : ''}`);
+        }
+    }, [isDesktop, navigate]);
+
     const handleCloseSidePanel = useCallback(() => {
         setSidePanelType(null);
         setSidePanelTargetId(null);
@@ -275,8 +287,9 @@ const MainLayout = () => {
             showUserDetails: handleShowUserDetails,
             showGroupInfo: handleShowGroupInfo,
             showThemeSelector: handleShowThemeSelector,
+            showSharedMedia: handleShowSharedMedia,
         }),
-        [handleShowUserDetails, handleShowGroupInfo, handleShowThemeSelector]
+        [handleShowUserDetails, handleShowGroupInfo, handleShowThemeSelector, handleShowSharedMedia]
     );
 
     // ──────────────────────────────────────────────────────────
@@ -299,6 +312,13 @@ const MainLayout = () => {
                         isOpen={true}
                         onClose={handleCloseSidePanel}
                         group={sidePanelData || { id: sidePanelTargetId }}
+                    />
+                ) : sidePanelType === 'shared-media' ? (
+                    <SharedMedia
+                        userId={!sidePanelData?.isGroup ? sidePanelTargetId : null}
+                        chatId={sidePanelData?.isGroup ? sidePanelTargetId : null}
+                        isPanel={true}
+                        onClose={() => setSidePanelType('user')}
                     />
                 ) : (
                     <ThemeSelector 
@@ -332,9 +352,68 @@ const MainLayout = () => {
                 </Suspense>
             );
         }
+
+        if (location.pathname.startsWith('/shared-media/')) {
+            const id = location.pathname.split('/shared-media/')[1];
+            const isGroup = new URLSearchParams(location.search).get('isGroup') === 'true';
+            return (
+                <Suspense fallback={<LoadingFallback />}>
+                    <SharedMedia 
+                        userId={!isGroup ? id : null} 
+                        chatId={isGroup ? id : null} 
+                        onClose={() => navigate(-1)} 
+                    />
+                </Suspense>
+            );
+        }
         
         return null;
     }, [isDesktop, isUserDetailsRoute, userDetailsUserId, location.pathname, navigate]);
+
+    // ──────────────────────────────────────────────────────────
+    // DESKTOP LAYOUT COMPONENTS (Defined before early return for hook safety)
+    // ──────────────────────────────────────────────────────────
+
+    const chatComponent = useMemo(
+        () => (
+            <Suspense fallback={<LoadingFallback />}>
+                {isDesktop && isOverlayRoute ? (
+                    <ChatPlaceholder />
+                ) : activeChat ? (
+                    <ChatScreen />
+                ) : (
+                    <Outlet />
+                )}
+            </Suspense>
+        ),
+        [isDesktop, isOverlayRoute, activeChat]
+    );
+
+    const sidebarPanel = useMemo(
+        () => (
+            <Sidebar
+                isDesktop={isDesktop}
+                isContactsRoute={location.pathname === '/contacts'}
+                isProfileRoute={location.pathname === '/profile'}
+                isSettingsRoute={
+                    location.pathname === '/settings' ||
+                    location.pathname.startsWith('/settings/')
+                }
+                isSecuritySettingsRoute={location.pathname === '/settings/security'}
+                isHelpCenterRoute={location.pathname === '/settings/help'}
+                isTermsRoute={location.pathname === '/terms'}
+                isPrivacyRoute={location.pathname === '/privacy'}
+                isBlockedRoute={location.pathname === '/blocked'}
+                isSupportRoute={location.pathname === '/support'}
+                isEmojiSettingsRoute={location.pathname === '/emoji-settings'}
+                isHistoryRoute={location.pathname === '/history'}
+                isGamesRoute={location.pathname === '/games'}
+                chatListPanelProps={chatListPanelProps}
+                onCloseSidebar={() => navigate('/')}
+            />
+        ),
+        [isDesktop, location.pathname, chatListPanelProps, navigate]
+    );
 
     // ──────────────────────────────────────────────────────────
     // MOBILE LAYOUT
@@ -396,51 +475,6 @@ const MainLayout = () => {
             </UserDetailsContext.Provider>
         );
     }
-
-    // ──────────────────────────────────────────────────────────
-    // DESKTOP LAYOUT
-    // ──────────────────────────────────────────────────────────
-
-    const chatComponent = useMemo(
-        () => (
-            <Suspense fallback={<LoadingFallback />}>
-                {isDesktop && isOverlayRoute ? (
-                    <ChatPlaceholder />
-                ) : activeChat ? (
-                    <ChatScreen />
-                ) : (
-                    <Outlet />
-                )}
-            </Suspense>
-        ),
-        [isDesktop, isOverlayRoute, activeChat]
-    );
-
-    const sidebarPanel = useMemo(
-        () => (
-            <Sidebar
-                isDesktop={isDesktop}
-                isContactsRoute={location.pathname === '/contacts'}
-                isProfileRoute={location.pathname === '/profile'}
-                isSettingsRoute={
-                    location.pathname === '/settings' ||
-                    location.pathname.startsWith('/settings/')
-                }
-                isSecuritySettingsRoute={location.pathname === '/settings/security'}
-                isHelpCenterRoute={location.pathname === '/settings/help'}
-                isTermsRoute={location.pathname === '/terms'}
-                isPrivacyRoute={location.pathname === '/privacy'}
-                isBlockedRoute={location.pathname === '/blocked'}
-                isSupportRoute={location.pathname === '/support'}
-                isEmojiSettingsRoute={location.pathname === '/emoji-settings'}
-                isHistoryRoute={location.pathname === '/history'}
-                isGamesRoute={location.pathname === '/games'}
-                chatListPanelProps={chatListPanelProps}
-                onCloseSidebar={() => navigate('/')}
-            />
-        ),
-        [isDesktop, location.pathname, chatListPanelProps, navigate]
-    );
 
     return (
         <UserDetailsContext.Provider value={userDetailsContextValue}>
