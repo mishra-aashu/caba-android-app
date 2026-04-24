@@ -114,7 +114,7 @@ const ChatScreen = () => {
     } = useChatTheme();
 
     const isDesktop = useIsDesktop();
-    const { showUserDetails, showGroupInfo } = useContext(UserDetailsContext) || {};
+    const { showUserDetails, showGroupInfo, showThemeSelector } = useContext(UserDetailsContext) || {};
 
     useEffect(() => {
         if (chatId) setChatId(chatId);
@@ -126,7 +126,6 @@ const ChatScreen = () => {
     const [isSearching, setIsSearching] = useState(false);
 
     const { data: groupDetails } = useGroupDetails(isGroupChat ? chatId : null);
-    const [showThemeModal, setShowThemeModal] = useState(false);
 
     const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
     const [currentMediaInfo, setCurrentMediaInfo] = useState(null);
@@ -383,7 +382,7 @@ const ChatScreen = () => {
                             onMuteToggle={handleMuteToggle}
                             onViewContact={handleViewContact}
                             onSearchMessages={() => setShowSearchModal(true)}
-                            onChangeTheme={() => setShowThemeModal(true)}
+                            onChangeTheme={showThemeSelector}
                             onShowGame={() => navigate(`/games`)}
                             onShowGroupInfo={() => {
                                 if (isDesktop) showGroupInfo?.(chatId, otherUser);
@@ -540,22 +539,6 @@ const ChatScreen = () => {
                         </Modal>
                     )}
 
-                    {showThemeModal && (
-                        <Modal isOpen={true} onClose={() => setShowThemeModal(false)} title="Choose Chat Theme" size="large">
-                            <div className={styles['theme-selector']}>
-                                <div className={styles['theme-grid']}>
-                                    {Object.entries(chatThemes).map(([key, theme]) => (
-                                        <div key={key} className={`${styles['theme-capsule']} ${chatTheme === key ? styles.active : ''}`} onClick={() => selectTheme(key)}>
-                                            <div className={styles['theme-capsule-preview']} style={{ background: theme.background }} />
-                                            <div className={styles['theme-capsule-info']}>
-                                                <span className={styles['theme-capsule-name']}>{theme.name}</span>
-                                                <span className={styles['theme-capsule-category']}>{theme.category}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </Modal>
                     )}
 
                     {showForwardModal && (

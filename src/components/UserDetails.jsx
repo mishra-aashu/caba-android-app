@@ -24,6 +24,8 @@ import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import toast from 'react-hot-toast';
 import CachedImage from './common/CachedImage';
+import { UserDetailsContext } from '../contexts/UserDetailsContext';
+import { Palette } from 'lucide-react';
 import './user-details/UserDetails.css';
 
 const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onClose }) => {
@@ -35,6 +37,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
     const { startCall } = useCall();
     const queryClient = useQueryClient();
     const currentUser = useAuthStore((state) => state.dbUser);
+    const { showThemeSelector } = React.useContext(UserDetailsContext) || {};
 
     // ─── Data ───
     const {
@@ -731,6 +734,19 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                                     ? <div className="ud-spinner-small" />
                                     : <ChevronRight size={16} className="ud-item-chevron" />
                                 }
+                            </div>
+                        )}
+
+                        {/* Chat Theme */}
+                        {!isOwnProfile && (
+                            <div className="ud-item" onClick={showThemeSelector}>
+                                <div className="ud-item-left">
+                                    <div className="ud-item-icon accent">
+                                        <Palette size={18} />
+                                    </div>
+                                    <span className="ud-item-label">Chat Theme</span>
+                                </div>
+                                <ChevronRight size={16} className="ud-item-chevron" />
                             </div>
                         )}
                     </motion.section>

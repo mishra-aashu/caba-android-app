@@ -21,6 +21,7 @@ const GroupInfoDrawer = lazy(() => import('./groups/GroupInfoDrawer'));
 const Sidebar = lazy(() => import('./layout/Sidebar'));
 const ChatListPanel = lazy(() => import('./ChatListPanel'));
 const DesktopLayout = lazy(() => import('./DesktopLayout'));
+const ThemeSelector = lazy(() => import('./chat/ThemeSelector'));
 
 // ══════════════════════════════════════════════════════════════
 // Memoized Components
@@ -161,6 +162,7 @@ const MainLayout = () => {
             '/support',
             '/emoji-settings',
             '/history',
+            '/theme',
         ]);
 
         return Array.from(activePaths).some(path => location.pathname.startsWith(path));
@@ -190,7 +192,8 @@ const MainLayout = () => {
     const isOverlayRoute = useMemo(
         () =>
             overlayRoutes.has(location.pathname) ||
-            location.pathname.startsWith('/settings/'),
+            location.pathname.startsWith('/settings/') ||
+            location.pathname === '/theme',
         [location.pathname, overlayRoutes]
     );
 
@@ -236,6 +239,15 @@ const MainLayout = () => {
         },
         [isDesktop, navigate]
     );
+    
+    const handleShowThemeSelector = useCallback(() => {
+        if (isDesktop) {
+            setSidePanelType('theme');
+            setSidePanelTargetId('current'); // Placeholder ID
+        } else {
+            navigate('/theme');
+        }
+    }, [isDesktop, navigate]);
 
     const handleCloseSidePanel = useCallback(() => {
         setSidePanelType(null);
@@ -262,8 +274,9 @@ const MainLayout = () => {
         () => ({
             showUserDetails: handleShowUserDetails,
             showGroupInfo: handleShowGroupInfo,
+            showThemeSelector: handleShowThemeSelector,
         }),
-        [handleShowUserDetails, handleShowGroupInfo]
+        [handleShowUserDetails, handleShowGroupInfo, handleShowThemeSelector]
     );
 
     // ──────────────────────────────────────────────────────────
@@ -281,11 +294,16 @@ const MainLayout = () => {
                         isPanel={true}
                         onClose={handleCloseSidePanel}
                     />
-                ) : (
+                ) : sidePanelType === 'group' ? (
                     <GroupInfoDrawer
                         isOpen={true}
                         onClose={handleCloseSidePanel}
                         group={sidePanelData || { id: sidePanelTargetId }}
+                    />
+                ) : (
+                    <ThemeSelector 
+                        isPanel={true} 
+                        onClose={handleCloseSidePanel} 
                     />
                 )}
             </Suspense>
@@ -296,15 +314,27 @@ const MainLayout = () => {
     // Mobile User Details
     // ──────────────────────────────────────────────────────────
 
-    const mobileUserDetails = useMemo(() => {
-        if (isDesktop || !isUserDetailsRoute || !userDetailsUserId) return null;
-
-        return (
-            <Suspense fallback={<LoadingFallback />}>
-                <UserDetails userId={userDetailsUserId} />
-            </Suspense>
-        );
-    }, [isDesktop, isUserDetailsRoute, userDetailsUserId]);
+    const mobileSubPages = useMemo(() => {
+        if (isDesktop) return null;
+        
+        if (isUserDetailsRoute && userDetailsUserId) {
+            return (
+                <Suspense fallback={<LoadingFallback />}>
+                    <UserDetails userId={userDetailsUserId} />
+                </Suspense>
+            );
+        }
+        
+        if (location.pathname === '/theme') {
+            return (
+                <Suspense fallback={<LoadingFallback />}>
+                    <ThemeSelector onClose={() => navigate(-1)} />
+                </Suspense>
+            );
+        }
+        
+        return null;
+    }, [isDesktop, isUserDetailsRoute, userDetailsUserId, location.pathname, navigate]);
 
     // ──────────────────────────────────────────────────────────
     // MOBILE LAYOUT
@@ -356,7 +386,7 @@ const MainLayout = () => {
                                 }`}
                             >
                                 <Suspense fallback={<LoadingFallback />}>
-                                    {mobileUserDetails ||
+                                    {mobileSubPages ||
                                         (activeChat ? <ChatScreen /> : <Outlet />)}
                                 </Suspense>
                             </PageTransition>
@@ -373,19 +403,17 @@ const MainLayout = () => {
 
     const chatComponent = useMemo(
         () => (
-            <UserDetailsContext.Provider value={userDetailsContextValue}>
-                <Suspense fallback={<LoadingFallback />}>
-                    {isDesktop && isOverlayRoute ? (
-                        <ChatPlaceholder />
-                    ) : activeChat ? (
-                        <ChatScreen />
-                    ) : (
-                        <Outlet />
-                    )}
-                </Suspense>
-            </UserDetailsContext.Provider>
+            <Suspense fallback={<LoadingFallback />}>
+                {isDesktop && isOverlayRoute ? (
+                    <ChatPlaceholder />
+                ) : activeChat ? (
+                    <ChatScreen />
+                ) : (
+                    <Outlet />
+                )}
+            </Suspense>
         ),
-        [userDetailsContextValue, isDesktop, isOverlayRoute, activeChat]
+        [isDesktop, isOverlayRoute, activeChat]
     );
 
     const sidebarPanel = useMemo(
@@ -415,12 +443,14 @@ const MainLayout = () => {
     );
 
     return (
-        <DesktopLayout
-            chatListPanel={sidebarPanel}
-            chatComponent={chatComponent}
-            userDetailsPanel={sidePanel}
-            particleOverlay={<ParticleOverlay />}
-        />
+        <UserDetailsContext.Provider value={userDetailsContextValue}>
+            <DesktopLayout
+                chatListPanel={sidebarPanel}
+                chatComponent={chatComponent}
+                userDetailsPanel={sidePanel}
+                particleOverlay={<ParticleOverlay />}
+            />
+        </UserDetailsContext.Provider>
     );
 };
 
