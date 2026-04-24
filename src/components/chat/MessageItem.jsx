@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, memo, Suspense, lazy } from 'reac
 import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
 import { formatBubbleTime } from '../../utils/dateFormatter';
-import { Check } from 'lucide-react';
+import { Check, Reply } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import useChatStore from '../../store/useChatStore';
 import { manualRetrySyncItem } from '../../db/db';
@@ -27,11 +27,16 @@ const MessageItem = ({
   isGroupChat,
   onSenderClick,
   isLastRead,
+  isLast,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
   const messageRef = useRef(null);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const swipeTriggered = useRef(false);
 
   const isSelectionMode = useChatStore(state => state.isSelectionMode);
   const msgId = message.id || message.tempId;
@@ -56,6 +61,10 @@ const MessageItem = ({
   const handleTouchStart = (e) => {
     isTouchDevice.current = true;
     isLongPress.current = false;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    swipeTriggered.current = false;
+
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
       if (isSelectionMode) {
@@ -68,10 +77,51 @@ const MessageItem = ({
     }, 500);
   };
 
+  const handleTouchMove = (e) => {
+    if (!touchStartX.current || isLongPress.current || isSelectionMode) return;
+
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+
+    // Prevent vertical scrolling from triggering swipe
+    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+    // Resistance logic: Swipe right for both sent/received
+    if (deltaX > 0) {
+      // Clear long press if swiping
+      if (deltaX > 10 && longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+
+      const resistance = 0.5;
+      const x = Math.min(deltaX * resistance, 80); // Cap at 80px
+      setSwipeX(x);
+
+      // Trigger threshold feedback
+      if (x >= 60 && !swipeTriggered.current) {
+        swipeTriggered.current = true;
+        hapticsManager.impact('light');
+      } else if (x < 60) {
+        swipeTriggered.current = false;
+      }
+    }
+  };
+
   const handleTouchEnd = (e) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
+
+    if (swipeTriggered.current) {
+      onReply(message);
+      hapticsManager.impact('medium');
+    }
+
+    setSwipeX(0);
+    touchStartX.current = null;
+    touchStartY.current = null;
+    swipeTriggered.current = false;
+
     if (isLongPress.current) {
       if (e.cancelable) e.preventDefault();
       e.stopPropagation();
@@ -164,6 +214,7 @@ const MessageItem = ({
           status={messageStatus}
           onMediaClick={(url, msg) => isSelectionMode ? toggleSelection(msgId) : onMediaView?.(url, mediaType, msg)}
           isLastRead={isLastRead}
+          isLast={isLast}
           // [FIX #4] Was: not passed at all — retry button never worked
           onRetry={handleRetry}
         />
@@ -181,6 +232,7 @@ const MessageItem = ({
           // [FIX #4] Same fix as MediaMessage
           status={messageStatus}
           isLastRead={isLastRead}
+          isLast={isLast}
           // [FIX #4] Same fix — retry now works for voice messages
           onRetry={handleRetry}
         />
@@ -198,6 +250,7 @@ const MessageItem = ({
         status={messageStatus}
         message={message}
         isLastRead={isLastRead}
+        isLast={isLast}
         onRetry={handleRetry}
       />
     );
@@ -219,15 +272,24 @@ const MessageItem = ({
         </>
       )}
 
+      <div className={`${styles['swipe-indicator']} ${swipeX > 40 ? styles.active : ''}`} style={{ transform: `translateY(-50%) translateX(${Math.min(swipeX - 40, 0)}px)` }}>
+        <Reply size={20} />
+      </div>
+
       <div className={styles['message-content-wrapper']}>
         <div 
           className={styles['message-bubble-wrapper']}
           onContextMenu={handleContextMenu}
           onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onClick={handleMessageTap}
+          style={{ 
+            transform: `translateX(${swipeX}px)`,
+            transition: swipeX === 0 ? 'transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)' : 'none'
+          }}
         >
           {renderContent()}
         </div>

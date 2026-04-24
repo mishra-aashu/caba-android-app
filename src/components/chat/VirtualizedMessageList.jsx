@@ -184,6 +184,7 @@ const VirtualizedMessageList = React.forwardRef(({
         isGroupChat={isGroupChat}
         onSenderClick={onSenderClick}
         isLastRead={message.id === lastReadMessageId}
+        isLast={messageIndex === messages.length - 1}
       />
     );
   }, [

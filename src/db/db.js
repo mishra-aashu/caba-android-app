@@ -127,10 +127,27 @@ db.version(9).stores({
     messages: 'id, chatId, createdAt, senderId, tempId, vanishAt',
 });
 
-// Version 10: [ROOT FIX] Add compound index [chatId+createdAt] for reliable time-based message queries.
-// This is essential for correct pagination and real-time visibility.
-db.version(10).stores({
+// Version 11: [ROOT FIX] Comprehensive migration to ensure all messages have camelCase fields
+// and valid timestamps for the [chatId+createdAt] compound index.
+db.version(11).stores({
     messages: 'id, chatId, createdAt, senderId, tempId, vanishAt, [chatId+createdAt]',
+}).upgrade(async (tx) => {
+    // Migration: Ensure all messages have camelCase chatId and createdAt
+    // so they are correctly indexed by the new compound index.
+    await tx.messages.toCollection().modify(m => {
+        // Map snake_case to camelCase if missing
+        if (m.chat_id && !m.chatId) m.chatId = m.chat_id;
+        if (m.created_at && !m.createdAt) m.createdAt = m.created_at;
+        if (m.sender_id && !m.senderId) m.senderId = m.sender_id;
+        if (m.client_id && !m.tempId) m.tempId = m.client_id;
+        
+        // Ensure chatId is always present if possible (fallback to sender_id + receiver_id logic if needed, but usually chatId exists)
+        
+        // CRITICAL: If createdAt is still missing, use a safe default to ensure it's indexed
+        if (!m.createdAt) {
+            m.createdAt = new Date(0).toISOString();
+        }
+    });
 });
 
 

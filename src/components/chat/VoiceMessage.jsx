@@ -6,7 +6,7 @@ import { Play, Pause, LoaderCircle, AlertTriangle, Clock, AlertCircle, RefreshCc
 import { formatLastSeen } from '../../utils/dateFormatter';
 import styles from './VoiceMessage.module.css';
 
-const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, isLastRead, onRetry }) => {
+const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, isLastRead, isLast, onRetry }) => {
   const { audioUrl, isLoading, error: hookError } = useAudioBlob(message.mediaPath || message.media_path);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -182,9 +182,9 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
         </div>
       </div>
       {/* Seen Status - same logic as MessageBubble */}
-      {isSender && status === 'read' && isLastRead && message?.seen_at && (
+      {isSender && (isLastRead || isLast) && status !== 'pending' && status !== 'sending' && status !== 'failed' && (
         <div className={styles['external-status']}>
-          Seen {formatLastSeen(message.seen_at)}
+          Sent {formatLastSeen(message.createdAt || message.created_at)}
         </div>
       )}
     </div>

@@ -44,6 +44,7 @@ const MessageBubble = memo(({
   sender,
   message,
   isLastRead,
+  isLast,
   onRetry,
 }) => {
   const [unlockCountdown, setUnlockCountdown] = useState('');
@@ -187,7 +188,7 @@ const MessageBubble = memo(({
               
               {isMine && (
                 <span className={styles['status-indicator']}>
-                  {(status === 'pending' || status === 'sending') && <Clock size={10} className={styles['status-icon']} />}
+                   {(status === 'pending' || status === 'sending') && <Clock size={10} className={styles['status-icon']} />}
                   {status === 'failed' && <AlertCircle size={10} className={styles['status-icon-failed']} />}
                 </span>
               )}
@@ -206,9 +207,9 @@ const MessageBubble = memo(({
         </div>
       </div>
       
-      {isMine && status === 'read' && isLastRead && message?.seen_at && (
+      {isMine && (isLastRead || isLast) && status !== 'pending' && status !== 'sending' && status !== 'failed' && (
         <div className={styles['external-status']}>
-          Seen {formatLastSeen(message.seen_at)}
+          Sent {formatLastSeen(message.createdAt || message.created_at)}
         </div>
       )}
     </div>

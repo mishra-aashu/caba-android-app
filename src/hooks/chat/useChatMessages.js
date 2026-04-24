@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import Dexie from 'dexie';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { fetchMessagesPage, loadInitialMessagesIfNeeded } from '../../hooks/useMessages';
 import { useRealtimeMessages } from '../../hooks/useRealtimeMessages';
@@ -37,7 +38,7 @@ export function useChatMessages({
             // [ROOT FIX] Use compound index [chatId+createdAt] for reliable latest-message selection.
             // Old way (.reverse().limit()) was selecting by primary key (UUID), which is random.
             const collection = db.messages.where('[chatId+createdAt]')
-                .between([chatId, db.constructor.minKey], [chatId, db.constructor.maxKey]);
+                .between([chatId, Dexie.minKey], [chatId, Dexie.maxKey]);
             
             const count = await collection.count();
             const currentLimit = page * PAGE_SIZE;
@@ -45,12 +46,24 @@ export function useChatMessages({
             setHasNextPage(count > currentLimit);
 
             // Fetch truly latest messages and return them sorted ascending for the UI
-            const latest = await collection
+            let latest = await collection
                 .reverse()
                 .limit(currentLimit)
                 .toArray();
             
-            return latest.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            // [FAIL-SAFE] If compound index is empty but messages exist for this chat, 
+            // fallback to a simpler query to avoid blank screens while index is rebuilding.
+            if (latest.length === 0) {
+                const fallbackMessages = await db.messages.where('chatId').equals(chatId).toArray();
+                if (fallbackMessages.length > 0) {
+                    console.warn(`[Index Fix] Fallback triggered for chat ${chatId}. Found ${fallbackMessages.length} messages.`);
+                    latest = fallbackMessages
+                        .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
+                        .slice(0, currentLimit);
+                }
+            }
+            
+            return latest.sort((a, b) => new Date(a.createdAt || a.created_at) - new Date(b.createdAt || b.created_at));
         },
         [chatId, page]
     ) || [];
@@ -241,6 +254,9 @@ export function useChatMessages({
                 );
 
                 // Online path: Perform Supabase insert
+                // Ensure status is 'sent' for the server record to avoid stuck clock icon
+                dbData.status = 'sent';
+
                 const { data, error } = await supabase
                     .from('messages')
                     .insert(dbData)

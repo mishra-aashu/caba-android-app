@@ -613,6 +613,42 @@ body.light-mode .messages-container {
   min-height: 24px;
 }
 
+/* SWIPE TO REPLY STYLES */
+.swipe-indicator {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%) translateX(-100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(var(--brand-primary-rgb), 0.15);
+  color: var(--brand-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.swipe-indicator.active {
+  opacity: 1;
+}
+
+.message-bubble-wrapper {
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  will-change: transform;
+  z-index: 1;
+  max-width: 85%;
+}
+
+.message-item.sent .message-bubble-wrapper {
+  max-width: 85%;
+}
+
 
 .message-item.highlighted {
   background-color: rgba(0, 168, 132, 0.08);

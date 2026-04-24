@@ -114,6 +114,11 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
                 tempId: newRecord.client_id || undefined,
             };
 
+            // [STATUS FIX] If the message from server is still 'sending' or missing status, fix it to 'sent'
+            if (!finalMsg.status || finalMsg.status === 'sending') {
+                finalMsg.status = 'sent';
+            }
+
             try {
                 await db.transaction('rw', [db.messages, db.chats_list], async () => {
                     if (newRecord.client_id) {

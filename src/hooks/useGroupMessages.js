@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import Dexie from 'dexie';
 import { supabase } from '../config/supabase';
 import { fetchGroupMessages, sendGroupMessage, reportScreenshot } from '../services/groupService';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -21,10 +22,25 @@ export const useGroupMessages = (groupId, currentUserId) => {
 
   // Dexie live query
   const rawMessages = useLiveQuery(
-    () => db.messages
-      .where('[chatId+createdAt]')
-      .between([groupId, db.constructor.minKey], [groupId, db.constructor.maxKey])
-      .toArray(),
+    async () => {
+      if (!groupId) return [];
+      
+      const collection = db.messages
+        .where('[chatId+createdAt]')
+        .between([groupId, Dexie.minKey], [groupId, Dexie.maxKey]);
+        
+      let latest = await collection.toArray();
+      
+      // [FAIL-SAFE] Fallback for group messages if index is rebuilding
+      if (latest.length === 0) {
+        const fallback = await db.messages.where('chatId').equals(groupId).toArray();
+        if (fallback.length > 0) {
+          latest = fallback;
+        }
+      }
+      
+      return latest.sort((a, b) => new Date(a.createdAt || a.created_at) - new Date(b.createdAt || b.created_at));
+    },
     [groupId]
   ) || [];
 

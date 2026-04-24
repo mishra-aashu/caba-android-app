@@ -6,7 +6,7 @@ import { formatLastSeen } from '../../utils/dateFormatter';
 import { Clock, AlertCircle, RefreshCcw } from 'lucide-react';
 import styles from './MediaMessage.module.css';
 
-const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, onMediaClick, isLastRead, onRetry }) => {
+const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, onMediaClick, isLastRead, isLast, onRetry }) => {
   const [mediaUrl, setMediaUrl] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -126,9 +126,9 @@ const MediaMessage = ({ message, repliedMsg, isSender, time, status, currentUser
         </div>
       </div>
       {/* Seen Status - same logic as MessageBubble */}
-      {isSender && status === 'read' && isLastRead && message?.seen_at && (
+      {isSender && (isLastRead || isLast) && status !== 'pending' && status !== 'sending' && status !== 'failed' && (
         <div className={styles['external-status']}>
-          Seen {formatLastSeen(message.seen_at)}
+          Sent {formatLastSeen(message.createdAt || message.created_at)}
         </div>
       )}
     </div>
