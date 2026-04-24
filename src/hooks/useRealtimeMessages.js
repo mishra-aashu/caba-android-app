@@ -127,8 +127,8 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
                     // Store normalized message
                     await db.messages.put(finalMsg);
 
-                    // Update chat list head
-                    await db.chats_list.update(finalMsg.chatId, {
+                    // Update chat list head (Ensure String ID for Dexie)
+                    await db.chats_list.update(String(finalMsg.chatId), {
                         lastMessageAt: finalMsg.createdAt,
                         timestamp: finalMsg.createdAt,
                         lastMessage: finalMsg.content
@@ -237,8 +237,8 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
                     createdAt: latestFromData.created_at,
                 };
                 
-                // Persist to chats_list
-                await db.chats_list.update(currentChatId, { 
+                // Persist to chats_list (Ensure String ID for Dexie)
+                await db.chats_list.update(String(currentChatId), { 
                     lastMessageAt: latestFromData.created_at 
                 }).catch(() => {});
             }

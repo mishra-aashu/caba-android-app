@@ -120,10 +120,10 @@ export const useChatListRealtime = (currentUserId) => {
             // Batch decrypt (non-blocking)
             const decryptedChats = await decryptChatsBatched(freshChats);
             
-            // Add online status
+            // Add online status (Ensure camelCase field name for UI)
             const updatedChats = decryptedChats.map(chat => ({
                 ...chat,
-                is_online: isUserOnline(Boolean(chat.is_online), chat.last_seen),
+                isOnline: isUserOnline(Boolean(chat.is_online || chat.isOnline), chat.lastSeen || chat.last_seen),
             }));
 
             // Atomic DB write
@@ -249,7 +249,7 @@ export const useChatListRealtime = (currentUserId) => {
         const { eventType, new: newRecord, old: oldRecord, table } = payload;
 
         console.log(`[ChatList RT] ${table}.${eventType}`, { 
-            chatId: newRecord?.chat_id || oldRecord?.id 
+            chatId: String(newRecord?.chat_id || newRecord?.id || oldRecord?.chat_id || oldRecord?.id) 
         });
 
         // ────────────────────────────────────────────────────
@@ -257,7 +257,7 @@ export const useChatListRealtime = (currentUserId) => {
         // ────────────────────────────────────────────────────
 
         if (table === 'messages' && eventType === 'INSERT') {
-            const chatId = newRecord.chat_id;
+            const chatId = String(newRecord.chat_id);
             const isMyMessage = newRecord.sender_id === currentUserId;
             const msgTime = newRecord.created_at;
 
@@ -283,14 +283,14 @@ export const useChatListRealtime = (currentUserId) => {
                     decryptedContent = '[Encrypted]';
                 }
 
-                // Atomic update
-                db.chats_list.update(chatId, {
+                // Atomic update (Ensure chatId is String)
+                db.chats_list.update(String(chatId), {
                     lastMessage: decryptedContent,
                     lastMessageAt: msgTime,
                     timestamp: msgTime,
                     unreadCount: (isActiveChatOpen || isMyMessage)
                         ? 0
-                        : (existingChat.unreadCount || 0) + 1,
+                        : (Number(existingChat.unreadCount) || 0) + 1,
                     isMyMessage: isMyMessage,
                 }).catch(err => console.warn('[ChatList RT] Update failed:', err));
             });

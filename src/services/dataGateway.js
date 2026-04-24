@@ -16,7 +16,7 @@ export const mapMessage = (msg) => {
   return {
     ...msg,
     id: msg.id,
-    chatId: msg.chat_id ?? msg.chatId,
+    chatId: String(msg.chat_id ?? msg.chatId ?? ''),
     senderId: msg.sender_id ?? msg.senderId,
     receiverId: msg.receiver_id ?? msg.receiverId,
     content: msg.content,

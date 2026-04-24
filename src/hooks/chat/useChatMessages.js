@@ -126,13 +126,13 @@ export function useChatMessages({
                 previousMessages = await db.messages.where('id').anyOf(selectedIds).toArray();
                 await db.messages.where('id').anyOf(selectedIds).delete();
                 
-                // Update chat list preview after deletion
+                // Update chat list preview after deletion (Ensure String ID for Dexie)
                 const remaining = await db.messages
-                    .where('chatId').equals(chatId)
+                    .where('chatId').equals(String(chatId))
                     .reverse().sortBy('createdAt');
                 const latestMsg = remaining[0];
                 if (latestMsg) {
-                    await db.chats_list.update(chatId, {
+                    await db.chats_list.update(String(chatId), {
                         lastMessage: latestMsg.content || '📎 Media',
                         lastMessageAt: latestMsg.createdAt,
                         timestamp: latestMsg.createdAt,
@@ -229,8 +229,8 @@ export function useChatMessages({
                         tempId,
                     });
                     
-                    // Update chat list head
-                    await db.chats_list.update(chatId, {
+                    // Update chat list head (Ensure String ID for Dexie)
+                    await db.chats_list.update(String(chatId), {
                         lastMessageAt: frontendMsg.createdAt,
                         timestamp: frontendMsg.createdAt,
                         lastMessage: frontendMsg.content,
@@ -265,7 +265,7 @@ export function useChatMessages({
 
                 if (error) {
                     await db.messages.update(`temp_${tempId}`, { status: 'failed' });
-                    await db.chats_list.update(chatId, { status: 'failed' }).catch(() => {});
+                    await db.chats_list.update(String(chatId), { status: 'failed' }).catch(() => {});
                     throw error;
                 }
 
@@ -286,7 +286,7 @@ export function useChatMessages({
                     if (normalizedData) {
                         await db.messages.put(normalizedData);
                         
-                        await db.chats_list.update(chatId, {
+                        await db.chats_list.update(String(chatId), {
                             lastMessageAt: normalizedData.createdAt,
                             timestamp: normalizedData.createdAt,
                             lastMessage: normalizedData.content,
