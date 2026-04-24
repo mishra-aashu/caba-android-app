@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCall } from '../contexts/CallContext';
-import { Phone, PhoneOff, Video } from 'lucide-react';
+import { Phone, PhoneOff, Video, ShieldCheck } from 'lucide-react';
 import { dpOptions } from '../utils/dpOptions';
 import '../styles/incoming-call-modal.css';
 
@@ -92,6 +92,10 @@ export function IncomingCallModal() {
           <p className="incoming-call-phone">
             {callerInfo?.phone || 'Incoming call...'}
           </p>
+          <div className="incoming-call-security">
+            <ShieldCheck size={16} className="security-tag-icon" />
+            <span className="security-tag-text">Secure & Encrypted</span>
+          </div>
         </div>
 
         {/* Action Buttons */}

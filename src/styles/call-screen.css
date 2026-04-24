@@ -634,3 +634,45 @@ body.light-mode .control-button:hover {
   display: flex;
   justify-content: flex-end;
 }
+
+/* --- Security Branding --- */
+.security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 8px auto 0;
+  transition: all 0.3s ease;
+}
+
+.security-badge:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.security-text {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.security-icon {
+  color: #22c55e;
+  opacity: 0.9;
+}
+
+@keyframes pulse-soft {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.security-badge.pulsing .security-icon {
+  animation: pulse-soft 2s infinite ease-in-out;
+}

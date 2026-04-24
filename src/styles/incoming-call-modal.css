@@ -217,3 +217,28 @@
     height: 1.5rem;
   }
 }
+
+/* --- Security Branding --- */
+.incoming-call-security {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 12px;
+  margin: 0 1.5rem 1rem;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.security-tag-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.security-tag-icon {
+  color: #10b981;
+}

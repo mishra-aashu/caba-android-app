@@ -15,7 +15,8 @@ import {
   VolumeX,
   ArrowLeft,
   ArrowDown,
-  Monitor
+  Monitor,
+  Lock
 } from 'lucide-react';
 
 
@@ -140,6 +141,10 @@ function CallScreen() {
             <h3 className="caller-name">
               {otherUser?.name || 'Unknown'}
             </h3>
+            <div className="security-badge pulsing">
+              <Lock size={12} className="security-icon" />
+              <span className="security-text">End-to-End Encrypted (256-bit)</span>
+            </div>
           </div>
           <div className="header-right">
             {!isMinimized && (

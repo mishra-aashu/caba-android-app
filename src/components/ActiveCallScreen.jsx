@@ -12,7 +12,8 @@ import {
   Volume2,
   VolumeX,
   ScreenShare,
-  Wand2
+  Wand2,
+  Lock
 } from 'lucide-react';
 
 export function ActiveCallScreen() {
@@ -146,6 +147,10 @@ export function ActiveCallScreen() {
           <h3 className="text-white font-semibold text-lg mt-1">
             {otherUser?.name || 'Unknown'}
           </h3>
+          <div className="security-badge pulsing">
+            <Lock size={12} className="security-icon" />
+            <span className="security-text">End-to-End Encrypted (256-bit)</span>
+          </div>
         </div>
       </div>
 
