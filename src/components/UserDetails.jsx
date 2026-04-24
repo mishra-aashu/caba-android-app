@@ -9,6 +9,8 @@ import { useCall } from '../contexts/CallContext';
 import useAuthStore from '../store/authStore';
 import { dpOptions } from '../utils/dpOptions';
 import { formatLastSeen, isUserOnline } from '../utils/dateFormatter';
+import { useChatThemeQuery } from '../hooks/useThemesData';
+import { chatThemes } from '../contexts/ChatThemeContext';
 import { useResolveName } from '../hooks/useResolveName';
 import {
     ArrowLeft, Phone, Video, MessageCircle,
@@ -24,6 +26,7 @@ import DropdownMenu from './common/DropdownMenu';
 import Modal from './common/Modal';
 import toast from 'react-hot-toast';
 import CachedImage from './common/CachedImage';
+import { realtimeManager } from '../utils/realtimeManager';
 import { UserDetailsContext } from '../contexts/UserDetailsContext';
 import { Palette } from 'lucide-react';
 import './user-details/UserDetails.css';
@@ -108,28 +111,36 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
 
     useEffect(() => {
         if (!userId) return;
-        const subscription = supabase
-            .channel(`user_status_${userId}`)
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'users',
-                filter: `id=eq.${userId}`
-            }, (payload) => {
-                const updated = payload.new;
-                setCurrentOnlineStatus({
-                    is_online: updated.is_online,
-                    last_seen: updated.last_seen
-                });
-                queryClient.setQueryData(
-                    ['userFullProfile', userId, currentUser?.id],
-                    (old) => old ? { ...old, ...updated } : old
-                );
-            })
-            .subscribe();
 
-        return () => supabase.removeChannel(subscription);
-    }, [userId, supabase, queryClient, currentUser?.id]);
+        const channelName = `user_status_${userId}`;
+        realtimeManager.subscribe(
+            channelName,
+            {},
+            {
+                postgres_changes: [{
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'users',
+                    filter: `id=eq.${userId}`,
+                    handler: (payload) => {
+                        if (!mountedRef.current || !payload?.new) return;
+                        const updated = payload.new;
+                        console.log('[UserDetails] User status updated via manager:', updated);
+                        setCurrentOnlineStatus({
+                            is_online: updated.is_online,
+                            last_seen: updated.last_seen
+                        });
+                        queryClient.setQueryData(
+                            ['userFullProfile', userId, currentUser?.id],
+                            (old) => old ? { ...old, ...updated } : old
+                        );
+                    }
+                }]
+            }
+        );
+
+        return () => realtimeManager.unsubscribe(channelName);
+    }, [userId, queryClient, currentUser?.id]);
 
     // ─── Helpers ───
     const getInitials = (name) =>
@@ -144,10 +155,30 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
         return user.avatar;
     };
 
+    const { data: chatThemeName } = useChatThemeQuery(profileData?.chat_id);
+
+    // ─── Tick for Relative Time ───
+    const [tick, setTick] = useState(0);
+    useEffect(() => {
+        const timer = setInterval(() => setTick(t => t + 1), 60000);
+        return () => clearInterval(timer);
+    }, []);
+
     const isOnline = isUserOnline(
         Boolean(currentOnlineStatus?.is_online),
         currentOnlineStatus?.last_seen || user?.last_seen
     );
+
+    const coverStyle = React.useMemo(() => {
+        if (!chatThemeName) return {};
+        const theme = chatThemes[chatThemeName];
+        if (!theme) return {};
+        return {
+            '--ud-theme-color': theme.background,
+            background: theme.background,
+            backgroundImage: theme.background
+        };
+    }, [chatThemeName]);
 
     const securityCode = React.useMemo(() => {
         if (!currentUser?.id || !userId) return '';
@@ -510,7 +541,7 @@ const UserDetails = ({ isModal = false, userId: propUserId, isPanel = false, onC
                 <motion.div variants={stagger} initial="initial" animate="animate">
 
                     {/* ── Profile Hero ── */}
-                    <motion.section className="ud-profile-card" variants={fadeUp}>
+                    <motion.section className="ud-profile-card" style={coverStyle} variants={fadeUp}>
                         <div className="ud-cover-strip" />
                         
                         <div

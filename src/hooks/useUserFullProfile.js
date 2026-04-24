@@ -22,7 +22,7 @@ export const useUserFullProfile = (targetUserId, currentUserId) => {
                 userResult,
                 blockResult,
                 groupsResult,
-                mediaCountResult
+                mediaResult
             ] = await Promise.all([
                 // Fetch target user profile
                 supabase
@@ -42,8 +42,8 @@ export const useUserFullProfile = (targetUserId, currentUserId) => {
                 // Fetch common groups
                 fetchCommonGroups(currentUserId, targetUserId),
 
-                // Fetch media counts
-                fetchMediaCounts(currentUserId, targetUserId)
+                // Fetch media and chat info
+                fetchMediaAndChat(currentUserId, targetUserId)
             ]);
 
             if (userResult.error) throw userResult.error;
@@ -53,7 +53,8 @@ export const useUserFullProfile = (targetUserId, currentUserId) => {
                 contact_info: existingContact || null,
                 is_blocked: !!blockResult.data,
                 common_groups: groupsResult || [],
-                media_counts: mediaCountResult || { images: 0, links: 0, docs: 0 }
+                media_counts: mediaResult.counts,
+                chat_id: mediaResult.chatId
             };
         },
         enabled: !!targetUserId && !!currentUserId,
@@ -97,9 +98,9 @@ async function fetchCommonGroups(user1Id, user2Id) {
 }
 
 /**
- * Helper to fetch media counts from shared chat
+ * Helper to fetch media counts and chat ID from shared chat
  */
-async function fetchMediaCounts(user1Id, user2Id) {
+async function fetchMediaAndChat(user1Id, user2Id) {
     try {
         // Find the chat first
         const { data: chat } = await supabase
@@ -108,7 +109,7 @@ async function fetchMediaCounts(user1Id, user2Id) {
             .or(`and(user1_id.eq.${user1Id},user2_id.eq.${user2Id}),and(user1_id.eq.${user2Id},user2_id.eq.${user1Id})`)
             .maybeSingle();
 
-        if (!chat) return { images: 0, links: 0, docs: 0 };
+        if (!chat) return { counts: { images: 0, links: 0, docs: 0 }, chatId: null };
 
         // Query messages for media types
         const { data: messages } = await supabase
@@ -116,7 +117,7 @@ async function fetchMediaCounts(user1Id, user2Id) {
             .select('message_type, content')
             .eq('chat_id', chat.id);
 
-        if (!messages) return { images: 0, links: 0, docs: 0 };
+        if (!messages) return { counts: { images: 0, links: 0, docs: 0 }, chatId: chat.id };
 
         let images = 0, links = 0, docs = 0;
         messages.forEach(msg => {
@@ -125,9 +126,12 @@ async function fetchMediaCounts(user1Id, user2Id) {
             else if (msg.content && (msg.content.includes('http://') || msg.content.includes('https://'))) links++;
         });
 
-        return { images, links, docs };
+        return { 
+            counts: { images, links, docs }, 
+            chatId: chat.id 
+        };
     } catch (err) {
         console.error('Error fetching media counts:', err);
-        return { images: 0, links: 0, docs: 0 };
+        return { counts: { images: 0, links: 0, docs: 0 }, chatId: null };
     }
 }

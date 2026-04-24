@@ -90,7 +90,7 @@ export const useChatMessages = (chatId, currentUserId) => {
     fetchMessages(0);
   }, [chatId, currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Single realtime channel via realtimeManager; strict cleanup
+  // Realtime channel for messages
   useEffect(() => {
     if (!chatId || !currentUserId) return;
 
@@ -119,6 +119,35 @@ export const useChatMessages = (chatId, currentUserId) => {
 
     return () => realtimeManager.unsubscribe(channelName);
   }, [chatId, currentUserId, processMessages]);
+
+  // Realtime channel for other user's status updates
+  useEffect(() => {
+    if (!otherUser?.id) return;
+
+    const channelName = `user_status_${otherUser.id}`;
+    realtimeManager.subscribe(
+      channelName,
+      {},
+      {
+        postgres_changes: [{
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${otherUser.id}`,
+          handler: (payload) => {
+            if (!mountedRef.current || !payload?.new) return;
+            console.log('[useChatMessages] Other user status updated via manager:', payload.new);
+            setOtherUser(prev => ({
+              ...prev,
+              ...payload.new
+            }));
+          }
+        }]
+      }
+    );
+
+    return () => realtimeManager.unsubscribe(channelName);
+  }, [otherUser?.id]);
 
   const loadMoreMessages = useCallback(() => {
     const nextPage = Math.ceil(messages.length / MESSAGES_PER_PAGE);

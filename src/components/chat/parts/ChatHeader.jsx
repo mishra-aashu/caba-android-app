@@ -68,6 +68,13 @@ const ChatHeader = memo(({
 
     const [imgError, setImgError] = React.useState(false);
 
+    // ─── Tick for Relative Time ───
+    const [tick, setTick] = React.useState(0);
+    React.useEffect(() => {
+        const timer = setInterval(() => setTick(t => t + 1), 60000);
+        return () => clearInterval(timer);
+    }, []);
+
     const resolvedNavigate = onNavigate || navigate;
 
     const handleAvatarClick = () => {
@@ -110,7 +117,7 @@ const ChatHeader = memo(({
         }
         const lastSeen = otherUser.last_seen || otherUser.lastSeen;
         return lastSeen ? `Last seen ${formatLastSeen(lastSeen)}` : '';
-    }, [isGroupChat, otherUser, typingUsers]);
+    }, [isGroupChat, otherUser, typingUsers, tick]);
 
     // [FIX #2] Build menu items without double dividers
     const menuItems = useMemo(() => {
