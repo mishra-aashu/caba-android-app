@@ -12,6 +12,7 @@ import PhoneAuthModal from './components/auth/PhoneAuthModal';
 import { supabase } from './config/supabase';
 import { dbToFrontend } from './utils/dbFieldMapping';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import SafeSuspense from './components/common/SafeSuspense';
 import useIsDesktop from './hooks/useIsDesktop';
 import { SafeAreaDetector } from './utils/safeAreaDetector';
 import { KeyboardHandler } from './utils/keyboardHandler';
@@ -281,13 +282,7 @@ const ProtectedRoute = ({ children }) => {
 // ──────────────────────────────────────────────
 // SafeSuspense
 // ──────────────────────────────────────────────
-const SafeSuspense = ({ children, fallback = null }) => (
-    <Suspense fallback={fallback}>
-        <ErrorBoundary fallback={null}>
-            {children}
-        </ErrorBoundary>
-    </Suspense>
-);
+
 
 
 // ──────────────────────────────────────────────

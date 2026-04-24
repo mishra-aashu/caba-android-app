@@ -3,7 +3,7 @@
  * Select multiple contacts -> Name Group -> Upload Avatar -> Create
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -418,14 +418,14 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess, savedContacts: propConta
   );
 
   const DpPickerModal = (
-    <React.Suspense fallback={null}>
+    <Suspense fallback={null}>
       <DpPicker
         isOpen={showDpPicker}
         onClose={() => setShowDpPicker(false)}
         onSelect={handleDpSelect}
         currentDp={selectedDp}
       />
-    </React.Suspense>
+    </Suspense>
   );
 
   if (inline) {

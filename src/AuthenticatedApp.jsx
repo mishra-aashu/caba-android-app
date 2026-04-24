@@ -27,6 +27,7 @@ import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { isNativeWithPlugins } from './utils/platformCheck';
 import useSessionManager from './hooks/useSessionManager';
+import SafeSuspense from './components/common/SafeSuspense';
 import './styles/loaders.css';
 
 // Lazy-load non-critical components
@@ -75,13 +76,7 @@ import SyncIndicator from './components/common/SyncIndicator';
 import SafeAreaDebugger from './components/common/SafeAreaDebugger';
 import GlobalDialog from './components/common/GlobalDialog';
 
-const SafeSuspense = ({ children, fallback = null }) => (
-  <Suspense fallback={fallback}>
-    <ErrorBoundary fallback={null}>
-      {children}
-    </ErrorBoundary>
-  </Suspense>
-);
+
 
 const ProtectedLayout = ({ children }) => {
   const { isAuthenticated, dbUser } = useAuth();
