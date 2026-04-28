@@ -183,7 +183,6 @@ const GroupsPage = ({ onClose, onGroupClick, isDrawer = true }) => {
           group={selectedGroup}
         />
       )}
-      {!isDrawer && <BottomNavigation />}
     </>
   );
 };

@@ -1114,8 +1114,6 @@ const Settings = ({ isSidebar = false }) => {
 
                 )}
             </Suspense>
-
-            <BottomNavigation />
         </div>
     );
 };

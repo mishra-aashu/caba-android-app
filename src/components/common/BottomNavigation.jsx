@@ -90,30 +90,17 @@ const BottomNavigation = () => {
         };
 
         loadCount();
+        // Listen for global game invite updates
+        const handleUpdate = () => {
+            console.log('[BottomNavigation] Game invite update detected, reloading count...');
+            loadCount();
+        };
 
-        // Subscribe to realtime inserts/updates for this user's invites
-        const channelName = `bottom_nav_game_invites_${dbUser.id}`;
-        const channel = supabase.channel(channelName);
-        
-        channel
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'game_invitations',
-                filter: `receiver_id=eq.${dbUser.id}`,
-            }, () => { 
-                console.log('Game invite update detected, reloading count...');
-                loadCount(); 
-            })
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log('Successfully subscribed to game invites');
-                }
-            });
+        window.addEventListener('app:game-invites-update', handleUpdate);
 
         return () => {
             cancelled = true;
-            supabase.removeChannel(channel);
+            window.removeEventListener('app:game-invites-update', handleUpdate);
         };
     }, [dbUser?.id]);
 

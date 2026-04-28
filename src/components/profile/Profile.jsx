@@ -652,7 +652,6 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
           </div>
         </div>
       )}
-      <BottomNavigation />
     </div>
   );
 };

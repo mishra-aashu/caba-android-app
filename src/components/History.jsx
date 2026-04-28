@@ -431,9 +431,6 @@ const History = ({ isSidebar = false }) => {
           )}
         </div>
       </div>
-
-      {/* Bottom Navigation for mobile */}
-      {!isSidebar && <BottomNavigation />}
     </>
   );
 };

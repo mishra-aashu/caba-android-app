@@ -154,19 +154,13 @@ const MainLayout = () => {
 
         const activePaths = new Set([
             '/user-details/',
-            '/groups',
-            '/contacts',
-            '/settings/',
-            '/profile',
             '/terms',
             '/privacy',
             '/blocked',
             '/support',
             '/emoji-settings',
-            '/history',
             '/theme',
             '/shared-media/',
-            '/listen-together',
         ]);
 
         return Array.from(activePaths).some(path => location.pathname.startsWith(path));

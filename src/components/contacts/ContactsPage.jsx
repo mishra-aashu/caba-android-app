@@ -667,7 +667,6 @@ const ContactsPage = ({ onClose, isDesktop = false }) => {
                     </motion.div>
                 )}
             </AnimatePresence>
-            {!isDesktop && <BottomNavigation />}
         </div>
     );
 };

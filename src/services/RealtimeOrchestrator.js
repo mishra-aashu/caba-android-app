@@ -82,6 +82,16 @@ class RealtimeOrchestrator {
                         schema: 'public', 
                         table: 'profiles', 
                         handler: (p) => this._handleProfileEvent(p) 
+                    },
+                    // 5. Game Invitations
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'game_invitations',
+                        filter: `receiver_id=eq.${this.userId}`,
+                        handler: () => {
+                            window.dispatchEvent(new CustomEvent('app:game-invites-update'));
+                        }
                     }
                 ],
                 onReconnect: () => {
