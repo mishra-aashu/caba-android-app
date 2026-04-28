@@ -325,6 +325,11 @@ const App = () => {
         initializePushNotifications();
         requestPersistentStorage();
         FileCache.init();
+        
+        // Initialize OTA Background Service
+        import('./services/otaService').then(({ otaService }) => {
+            otaService.init();
+        }).catch(err => console.error("Failed to load OTA service", err));
 
         return () => {
             window.removeEventListener('resize', updateAppHeight);

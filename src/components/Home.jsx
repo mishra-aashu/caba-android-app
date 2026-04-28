@@ -36,6 +36,12 @@ export default function Home() {
           </div>
         </header>
 
+        {/* --- OTA Update Testing UI --- */}
+        <div style={{ padding: '1rem', background: 'rgba(0,255,0,0.1)', borderBottom: '1px solid lime', textAlign: 'center' }}>
+          <h1 style={{ margin: 0, fontSize: '1.2rem', color: 'lime' }}>OTA Update v1 Successful! 🚀</h1>
+        </div>
+        {/* ----------------------------- */}
+
         <aside className="sidebar glass">
           <div className="search">
             <input placeholder="Search chats, people, or messages..." />
