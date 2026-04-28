@@ -56,6 +56,13 @@ export const useAutoRefresh = () => {
         return;
       }
       console.log('[AutoRefresh] SW detected new content');
+      
+      // ✅ WEB/VERCEL: Auto-refresh on SW update too
+      if (!isLocalNativeRef.current) {
+        handleRefresh();
+        return;
+      }
+
       setNeedsRefresh(true);
     });
 
