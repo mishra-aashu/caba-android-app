@@ -92,15 +92,24 @@ const BottomNavigation = () => {
         loadCount();
 
         // Subscribe to realtime inserts/updates for this user's invites
-        const channel = supabase
-            .channel(`bottom_nav_game_invites_${dbUser.id}`)
+        const channelName = `bottom_nav_game_invites_${dbUser.id}`;
+        const channel = supabase.channel(channelName);
+        
+        channel
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
                 table: 'game_invitations',
                 filter: `receiver_id=eq.${dbUser.id}`,
-            }, () => { loadCount(); })
-            .subscribe();
+            }, () => { 
+                console.log('Game invite update detected, reloading count...');
+                loadCount(); 
+            })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('Successfully subscribed to game invites');
+                }
+            });
 
         return () => {
             cancelled = true;
