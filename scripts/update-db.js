@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
     global: {
         headers: {
-            'Origin': 'https://caba-android-app.github.io',
-            'Referer': 'https://caba-android-app.github.io/'
+            'Origin': 'https://mishra-aashu.github.io',
+            'Referer': 'https://mishra-aashu.github.io/'
         }
     }
 });
