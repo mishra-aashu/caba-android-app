@@ -76,7 +76,7 @@ export default defineConfig(({ mode }) => {
       // ══════════════════════════════════════════════════════════
       VitePWA({
         injectRegister: null,     // Manual registration in src/pwa.js
-        registerType: 'prompt',   // Don't auto-reload, let user decide
+        registerType: 'autoUpdate', // ✅ Turant update karne ke liye
 
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
 
@@ -108,6 +108,7 @@ export default defineConfig(({ mode }) => {
         },
 
         workbox: {
+          cleanupOutdatedCaches: true, // ✅ Purana cache turant delete karein
           navigateFallback: isGitHubPages
             ? '/caba-android-app/index.html'
             : 'index.html',
