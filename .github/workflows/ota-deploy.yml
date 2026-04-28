@@ -52,3 +52,8 @@ jobs:
           
           # 5. Update Supabase Database
           node scripts/update-db.js $VERSION $TIMESTAMP $DOWNLOAD_URL
+
+          # 6. Cleanup: Keep only the latest 5 OTA releases to save space
+          echo "🧹 Cleaning up old OTA releases..."
+          # List releases with 'ota-' prefix, sort them, skip the 5 newest, and delete the rest
+          gh release list --limit 100 | grep 'ota-' | awk '{print $1}' | tail -n +6 | xargs -I {} gh release delete {} --yes --cleanup-tag || true
