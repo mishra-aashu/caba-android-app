@@ -1,7 +1,7 @@
 import fs from 'fs';
 import archiver from 'archiver';
 import { createClient } from '@supabase/supabase-js';
-import packageJson from '../package.json' assert { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 
 // You can use a local .env file during manual testing, but in GitHub Actions, these come from Secrets.
 import dotenv from 'dotenv';
