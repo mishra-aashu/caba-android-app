@@ -92,6 +92,14 @@ export const useAutoRefresh = () => {
         `  Remote: ${remoteBuildTime}\n` +
         `  Local:  ${currentBuildTimeRef.current}`
       );
+
+      // ✅ WEB/VERCEL: Automatically refresh without showing the banner
+      if (!isLocalNativeRef.current) {
+        console.log('[AutoRefresh] Web detected update — triggering auto-refresh');
+        handleRefresh();
+        return;
+      }
+
       setNeedsRefresh(true);
 
     } catch (error) {
