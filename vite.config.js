@@ -4,11 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { createHtmlPlugin } from 'vite-plugin-html';
 import fs from 'fs';
 import path from 'path';
-import { generateNativeHash } from './scripts/native-integrity.js';
-
 export default defineConfig(({ mode }) => {
-  // Single shared buildTime — used in BOTH version.json AND HTML meta tag
-  // This ensures they always match for correct comparison
   const buildTime = Date.now();
   const isGitHubPages = process.env.GITHUB_PAGES === 'true';
 
@@ -24,12 +20,6 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
 
-       // ══════════════════════════════════════════════════════════
-      // PLUGIN 1: Generate version.json
-      //
-      // Creates { buildTime: 1749811200000 } in both public/ and dist/
-      // useAutoRefresh fetches this from Vercel to detect new deploys
-      // ══════════════════════════════════════════════════════════
       {
         name: 'generate-version-json',
         buildStart() {
@@ -54,27 +44,6 @@ export default defineConfig(({ mode }) => {
               JSON.stringify(versionData, null, 2)
             );
             console.log('[VersionGen] dist/version.json → confirmed');
-          }
-        },
-      },
-
-      // ══════════════════════════════════════════════════════════
-      // PLUGIN 2: Generate native-integrity.json (existing — untouched)
-      // ══════════════════════════════════════════════════════════
-      {
-        name: 'generate-native-integrity',
-        buildStart() {
-          try {
-            const integrity = generateNativeHash();
-            const publicDir = path.resolve(__dirname, 'public');
-            if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-            fs.writeFileSync(
-              path.join(publicDir, 'native-integrity.json'),
-              JSON.stringify({ ...integrity, generatedAt: Date.now() }, null, 2)
-            );
-            console.log('[NativeIntegrity] Generated — hash:', integrity.hash.slice(0, 12) + '...');
-          } catch (e) {
-            console.warn('[NativeIntegrity] Could not generate:', e.message);
           }
         },
       },
