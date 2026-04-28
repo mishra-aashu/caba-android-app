@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+    global: {
+        headers: {
+            'Origin': 'https://caba-android-app.github.io',
+            'Referer': 'https://caba-android-app.github.io/'
+        }
+    }
+});
 
 // GitHub workflow se arguments lena
 const [version, timestamp, downloadUrl] = process.argv.slice(2);
