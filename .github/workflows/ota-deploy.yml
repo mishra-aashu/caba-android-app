@@ -54,13 +54,24 @@ jobs:
           node scripts/update-db.js $VERSION $TIMESTAMP $DOWNLOAD_URL
 
           # 6. Cleanup: Keep only the latest 5 OTA releases to save space
-          echo "🧹 Cleaning up old OTA releases..."
-          RELEASE_TAGS=$(gh release list --limit 100 | grep "^ota-" | awk '{print $1}')
+          echo "🧹 Checking for old OTA releases..."
+          # Fetch all tags, filter for 'ota-', and get just the first column
+          ALL_RELEASES=$(gh release list --limit 100)
+          echo "Full Release List:"
+          echo "$ALL_RELEASES"
+          
+          OTA_TAGS=$(echo "$ALL_RELEASES" | grep "ota-" | awk '{print $1}')
+          
+          echo "🔍 Found OTA Tags:"
+          echo "$OTA_TAGS"
+          
           COUNT=0
-          for TAG in $RELEASE_TAGS; do
+          for TAG in $OTA_TAGS; do
             COUNT=$((COUNT+1))
             if [ $COUNT -gt 5 ]; then
               echo "🗑️ Deleting old release: $TAG"
-              gh release delete "$TAG" --yes --cleanup-tag
+              gh release delete "$TAG" --yes --cleanup-tag || echo "⚠️ Could not delete $TAG"
+            else
+              echo "✅ Keeping recent release: $TAG"
             fi
           done
