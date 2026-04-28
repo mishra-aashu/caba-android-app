@@ -165,6 +165,7 @@ const MainLayout = () => {
             '/history',
             '/theme',
             '/shared-media/',
+            '/listen-together',
         ]);
 
         return Array.from(activePaths).some(path => location.pathname.startsWith(path));
@@ -187,6 +188,7 @@ const MainLayout = () => {
                 '/emoji-settings',
                 '/history',
                 '/games',
+                '/listen-together',
             ]),
         []
     );
@@ -195,6 +197,8 @@ const MainLayout = () => {
         () =>
             overlayRoutes.has(location.pathname) ||
             location.pathname.startsWith('/settings/') ||
+            location.pathname === '/games' ||
+            location.pathname === '/support' ||
             location.pathname === '/theme',
         [location.pathname, overlayRoutes]
     );
@@ -416,6 +420,7 @@ const MainLayout = () => {
                 isEmojiSettingsRoute={location.pathname === '/emoji-settings'}
                 isHistoryRoute={location.pathname === '/history'}
                 isGamesRoute={location.pathname === '/games'}
+                isListenTogetherRoute={location.pathname === '/listen-together'}
                 chatListPanelProps={chatListPanelProps}
                 onCloseSidebar={() => navigate('/')}
             />
@@ -471,7 +476,7 @@ const MainLayout = () => {
                             >
                                 <Suspense fallback={<LoadingFallback />}>
                                     {mobileSubPages ||
-                                        (activeChat ? <ChatScreen key={activeChat.id} /> : <Outlet />)}
+                                        ((activeChat && location.pathname === '/') ? <ChatScreen key={activeChat.id} /> : <Outlet />)}
                                 </Suspense>
                             </PageTransition>
                         )}

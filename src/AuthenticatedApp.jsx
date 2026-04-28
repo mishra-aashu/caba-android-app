@@ -67,6 +67,7 @@ const DesktopNavbar = lazy(() => import('./components/common/DesktopNavbar'));
 const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
 const GamesPanel = lazy(() => import('./components/games/GamesPanel'));
+const ListenTogether = lazy(() => import('./pages/ListenTogether/ListenTogether'));
 import PageTransition from './components/common/PageTransition';
 
 // Core shell components (small, needed immediately for layout)
@@ -198,6 +199,7 @@ const AppContent = () => {
                 <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
                 <Route path="support" element={<SupportChat />} />
                 <Route path="games" element={<GamesPanel />} />
+                <Route path="listen-together" element={<ListenTogether />} />
               </Route>
 
               {/* Standalone Protected Routes */}

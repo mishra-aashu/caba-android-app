@@ -15,6 +15,7 @@ const Privacy = lazy(() => import('../legal/Privacy'));
 const Blocked = lazy(() => import('../blocked/Blocked'));
 const SupportChat = lazy(() => import('../SupportChat'));
 const GamesPanel = lazy(() => import('../games/GamesPanel'));
+const ListenTogether = lazy(() => import('../../pages/ListenTogether/ListenTogether'));
 
 const Sidebar = ({
     isDesktop,
@@ -30,6 +31,7 @@ const Sidebar = ({
     isEmojiSettingsRoute,
     isHistoryRoute,
     isGamesRoute,
+    isListenTogetherRoute,
     chatListPanelProps,
     onCloseSidebar
 }) => {
@@ -63,6 +65,26 @@ const Sidebar = ({
                             }}
                         >
                             <GamesPanel />
+                        </motion.div>
+                    ) : isDesktop && isListenTogetherRoute ? (
+                        <motion.div
+                            key="listen-together"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                zIndex: 10,
+                                backgroundColor: 'var(--bg-primary)',
+                                willChange: 'transform, opacity'
+                            }}
+                        >
+                            <ListenTogether />
                         </motion.div>
                     ) : isDesktop && isContactsRoute ? (
                         <motion.div

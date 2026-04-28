@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MessageCircle, Phone, Gamepad2, Settings } from 'lucide-react';
+import { MessageCircle, Phone, Gamepad2, Settings, Music } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import hapticsManager from '../../utils/hapticsManager';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
     { path: '/', icon: MessageCircle, label: 'Chats', matchPaths: ['/', '/chat'] },
     { path: '/calls', icon: Phone, label: 'Calls', matchPaths: ['/calls'] },
     { path: '/games', icon: Gamepad2, label: 'Games', matchPaths: ['/games'] },
+    { path: '/listen-together', icon: Music, label: 'Listen', matchPaths: ['/listen-together'] },
     { path: '/settings', icon: Settings, label: 'Settings', matchPaths: ['/settings', '/profile'] },
 ];
 

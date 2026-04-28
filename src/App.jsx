@@ -21,6 +21,7 @@ import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useNetworkSync from './hooks/useNetworkSync';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
+import ListenTogether from './pages/ListenTogether/ListenTogether';
 import { requestPersistentStorage } from './db/db';
 import { DialogProvider } from './contexts/DialogProvider';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
@@ -151,6 +152,7 @@ const AppContent = () => {
                         <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
                         <Route path="support" element={<SupportChat />} />
                         <Route path="games" element={<GamesPanel />} />
+                        <Route path="listen-together" element={<ListenTogether />} />
                     </Route>
 
                     <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
@@ -160,7 +162,7 @@ const AppContent = () => {
                     <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                     <Route path="/admin-about" element={<AdminAbout />} />
                     <Route path="/call/:callId" element={<ProtectedRoute><CallScreen /></ProtectedRoute>} />
-
+                    
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

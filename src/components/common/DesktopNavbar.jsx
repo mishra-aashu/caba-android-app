@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, User, History, Settings, Bell, Users, Gamepad2 } from 'lucide-react';
+import { Home, User, History, Settings, Bell, Users, Gamepad2, Music } from 'lucide-react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useContacts } from '../../hooks/useCommonQueries';
@@ -95,6 +95,11 @@ const DesktopNavbar = () => {
                   {gameInviteCount > 9 ? '9+' : gameInviteCount}
                 </span>
               )}
+            </Link>
+          </li>
+          <li className="desktop-nav-item">
+            <Link to="/listen-together" className={`desktop-nav-link${location.pathname === '/listen-together' ? ' active' : ''}`} data-tooltip="Listen Together">
+              <Music className="desktop-nav-icon music-icon" style={{ color: location.pathname === '/listen-together' ? '#00a884' : undefined }} />
             </Link>
           </li>
           <li className="desktop-nav-item">
