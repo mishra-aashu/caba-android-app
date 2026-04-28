@@ -1,0 +1,159 @@
+.v-update-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    pointer-events: none;
+}
+
+.v-update-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    pointer-events: auto;
+}
+
+.v-update-modal {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    background: rgba(26, 26, 46, 0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 28px;
+    padding: 32px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    overflow: hidden;
+}
+
+.v-update-modal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 150px;
+    background: radial-gradient(circle at 50% 0%, rgba(0, 168, 132, 0.15), transparent);
+    pointer-events: none;
+}
+
+.v-update-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.v-update-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.v-update-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.v-update-badge {
+    background: rgba(0, 168, 132, 0.1);
+    color: #00a884;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(0, 168, 132, 0.2);
+}
+
+.v-update-icon-wrap {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.v-update-icon {
+    color: #00a884;
+    filter: drop-shadow(0 0 10px rgba(0, 168, 132, 0.3));
+}
+
+.v-update-glow {
+    position: absolute;
+    inset: -20px;
+    background: radial-gradient(circle, rgba(0, 168, 132, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.v-update-content h2 {
+    font-size: 24px;
+    margin: 0 0 12px;
+    color: white;
+    font-weight: 700;
+}
+
+.v-update-content p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 24px;
+}
+
+.v-update-features {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.v-feat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.v-update-btn {
+    width: 100%;
+    padding: 16px;
+    background: #00a884;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 10px 20px -10px rgba(0, 168, 132, 0.5);
+}
+
+.v-update-btn:hover {
+    background: #00ca9d;
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px -10px rgba(0, 168, 132, 0.6);
+}
+
+.v-update-btn:active {
+    transform: translateY(0);
+}

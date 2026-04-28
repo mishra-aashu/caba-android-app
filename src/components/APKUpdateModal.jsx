@@ -16,20 +16,41 @@ import { useAppVersions } from '../hooks/useAppVersions';
 import { isOlderVersion } from '../utils/versionUtils';
 
 // The version baked into this APK build (set by package.json at build time)
-const CURRENT_APP_VERSION = __APP_VERSION__;   // injected by vite.config.js define
+const CURRENT_APP_VERSION = __APP_VERSION__;
 
 const APKUpdateModal = () => {
   const [dismissed, setDismissed] = useState(false);
+  const [localHash, setLocalHash] = useState(null);
   const { data: versionData } = useAppVersions();
+
+  // Fetch local native hash on mount
+  useEffect(() => {
+    if (!isNativeWithPlugins()) return;
+    
+    fetch(`/native-integrity.json?_cb=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => setLocalHash(data.hash))
+      .catch(err => console.error('[APKUpdateModal] Failed to fetch local hash:', err));
+  }, []);
 
   // Only active on native Android
   if (!isNativeWithPlugins() || dismissed) return null;
   if (!versionData) return null;
 
-  const { latest_version, min_required_version, apk_download_url, release_notes } = versionData;
+  const { latest_version, min_required_version, apk_download_url, release_notes, native_hash: serverHash } = versionData;
 
+  // 1. Critical Fallback: Version is below the minimum floor (APK MUST BE REPLACED)
   const needsForceUpdate = isOlderVersion(CURRENT_APP_VERSION, min_required_version);
-  const needsSoftUpdate  = !needsForceUpdate && isOlderVersion(CURRENT_APP_VERSION, latest_version);
+
+  // 2. Native Mismatch: Native files actually changed (hashes differ)
+  // We only care about this if the version is also older.
+  const hasNativeChange = localHash && serverHash && localHash !== serverHash;
+  const isOlder = isOlderVersion(CURRENT_APP_VERSION, latest_version);
+
+  // 3. Final Decision: 
+  // Show APK Modal if it's a critical floor violation OR if there's a real native code change.
+  // If only JS changed (hashes match), we stay silent and let OTA (AutoRefresh) handle it.
+  const needsSoftUpdate = !needsForceUpdate && isOlder && hasNativeChange;
 
   if (!needsForceUpdate && !needsSoftUpdate) return null;
 

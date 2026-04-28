@@ -15,6 +15,7 @@ import ParticleOverlay from './chat/ParticleOverlay';
 import PageTransition from './common/PageTransition';
 import useChatStore from '../store/useChatStore';
 import ChatScreen from './chat/ChatScreen';
+import VersionUpdateModal from './common/VersionUpdateModal';
 
 import { UserDetailsContext } from '../contexts/UserDetailsContext';
 
@@ -435,6 +436,7 @@ const MainLayout = () => {
     if (!isDesktop) {
         return (
             <UserDetailsContext.Provider value={userDetailsContextValue}>
+                <VersionUpdateModal />
                 <div className="mobile-layout">
                     <motion.div
                         className="list-view"
@@ -488,6 +490,7 @@ const MainLayout = () => {
 
     return (
         <UserDetailsContext.Provider value={userDetailsContextValue}>
+            <VersionUpdateModal />
             <DesktopLayout
                 chatListPanel={sidebarPanel}
                 chatComponent={chatComponent}

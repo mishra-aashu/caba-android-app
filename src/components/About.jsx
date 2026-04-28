@@ -84,12 +84,14 @@ const About = () => {
           <div className="section-icon">
             <Users size={32} />
           </div>
-          <h3>Meet the Creator</h3>
+          <h3>The Visionary Behind Elevengram</h3>
           <p>
-            Hi! I'm <strong>Aashutosh Mishra</strong>, an IIT Madras student and the creator of Elevengram. I'm a passionate 
-            developer dedicated to building tools that empower people through seamless and 
-            secure communication. Elevengram is a product of my commitment to privacy, quality, 
-            and user-centric design.
+            I'm <strong>Aashutosh Mishra</strong>, an innovator and engineer at <strong>IIT Madras</strong>. 
+            My journey began with a simple question: <em>How can we reclaim our digital sovereignty?</em> 
+            Elevengram is the answer—a culmination of rigorous engineering and a deep-seated 
+            belief that privacy is not a luxury, but a fundamental human right. 
+            By merging cutting-edge cryptography with intuitive design, I've built more than 
+            just a chat app—I've built a sanctuary for your conversations.
           </p>
           <div className="developer-badge">
             <Heart size={16} fill="#ff4b2b" color="#ff4b2b" />
@@ -102,10 +104,11 @@ const About = () => {
           <div className="section-icon">
             <Shield size={32} />
           </div>
-          <h3>The "Final Version 3" Security Suite</h3>
+          <h3>The "2E Integrated" Security Suite</h3>
           <p className="section-subtitle">
-            We've spent months perfecting our security architecture. With the release of <strong>Final Version 3</strong>, 
-            Elevengram now provides unmatched privacy that even we cannot bypass.
+            We've spent months perfecting our security architecture. With the release of <strong>Version 3.5</strong>, 
+            Elevengram now features official <strong>2E (End-to-End)</strong> integration, 
+            providing unmatched privacy that even we cannot bypass.
           </p>
           <div className="security-grid">
             <div className="security-item">
