@@ -1,6 +1,7 @@
 import fs from 'fs';
 import archiver from 'archiver';
 import { createClient } from '@supabase/supabase-js';
+import * as tus from 'tus-js-client';
 import packageJson from '../package.json' with { type: 'json' };
 
 // You can use a local .env file during manual testing, but in GitHub Actions, these come from Secrets.
@@ -36,17 +37,50 @@ async function deploy() {
         archive.finalize();
     });
 
-    console.log(`☁️ Uploading ${zipFileName} to Supabase storage...`);
-    const fileBuffer = fs.readFileSync(zipFileName);
+    console.log(`☁️ Uploading ${zipFileName} to Supabase storage via TUS (Chunked Upload)...`);
     
-    const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('ota-updates')
-        .upload(zipFileName, fileBuffer, { contentType: 'application/zip' });
+    await new Promise((resolve, reject) => {
+        const fileStream = fs.createReadStream(zipFileName);
+        const stats = fs.statSync(zipFileName);
+        
+        const upload = new tus.Upload(fileStream, {
+            endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
+            retryDelays: [0, 3000, 5000, 10000, 20000],
+            headers: {
+                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                'x-upsert': 'true',
+            },
+            uploadDataDuringCreation: true,
+            removeFingerprintOnSuccess: true,
+            metadata: {
+                bucketName: 'ota-updates',
+                objectName: zipFileName,
+                contentType: 'application/zip',
+                cacheControl: '3600',
+            },
+            chunkSize: 6 * 1024 * 1024, // 6MB chunks to bypass 50MB Cloudflare limit
+            uploadSize: stats.size,
+            onError: function (error) {
+                console.error('Failed to upload to storage:', error);
+                reject(error);
+            },
+            onProgress: function (bytesUploaded, bytesTotal) {
+                const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                console.log(`Upload Progress: ${percentage}%`);
+            },
+            onSuccess: function () {
+                console.log('Upload successful!');
+                resolve();
+            },
+        });
 
-    if (uploadErr) {
-        console.error("Failed to upload to storage:", uploadErr);
-        throw uploadErr;
-    }
+        upload.findPreviousUploads().then(function (previousUploads) {
+            if (previousUploads.length) {
+                upload.resumeFromPreviousUpload(previousUploads[0]);
+            }
+            upload.start();
+        });
+    });
 
     const { data: urlData } = supabase.storage.from('ota-updates').getPublicUrl(zipFileName);
     const publicUrl = urlData.publicUrl;
