@@ -55,5 +55,12 @@ jobs:
 
           # 6. Cleanup: Keep only the latest 5 OTA releases to save space
           echo "🧹 Cleaning up old OTA releases..."
-          # List releases with 'ota-' prefix, sort them, skip the 5 newest, and delete the rest
-          gh release list --limit 100 | grep 'ota-' | awk '{print $1}' | tail -n +6 | xargs -I {} gh release delete {} --yes --cleanup-tag || true
+          RELEASE_TAGS=$(gh release list --limit 100 | grep "^ota-" | awk '{print $1}')
+          COUNT=0
+          for TAG in $RELEASE_TAGS; do
+            COUNT=$((COUNT+1))
+            if [ $COUNT -gt 5 ]; then
+              echo "🗑️ Deleting old release: $TAG"
+              gh release delete "$TAG" --yes --cleanup-tag
+            fi
+          done
