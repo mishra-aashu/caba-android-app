@@ -3,11 +3,13 @@ name: Deploy OTA Update
 on:
   push:
     branches:
-      - main # Triggers when code is pushed to main
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -23,8 +25,27 @@ jobs:
       - name: Build the React App
         run: npm run build
 
-      - name: Run OTA Deployment Script
+      - name: Create Bundle and Upload to GitHub Release
+        id: create_release
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_DIRECT_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run build:ota
+        run: |
+          # 1. Extract Version and Timestamp
+          VERSION=$(node -p "require('./package.json').version")
+          TIMESTAMP=$(date +%s)
+          ZIP_NAME="ota-$VERSION-$TIMESTAMP.zip"
+          TAG_NAME="ota-$VERSION-$TIMESTAMP"
+
+          # 2. Create ZIP
+          cd dist && zip -r ../$ZIP_NAME . && cd ..
+
+          # 3. Create GitHub Release and Upload ZIP
+          gh release create $TAG_NAME $ZIP_NAME --title "OTA Update $VERSION" --notes "Automated OTA build"
+          
+          # 4. Construct Public Download URL
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/$TAG_NAME/$ZIP_NAME"
+          
+          # 5. Update Supabase Database
+          node scripts/update-db.js $VERSION $TIMESTAMP $DOWNLOAD_URL
