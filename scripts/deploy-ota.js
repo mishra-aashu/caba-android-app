@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { execSync } from 'child_process';
 import archiver from 'archiver';
 import { createClient } from '@supabase/supabase-js';
 import * as tus from 'tus-js-client';
@@ -102,6 +103,14 @@ async function deploy() {
     // Clean up the local zip file
     fs.unlinkSync(zipFileName);
     console.log(`🧹 Cleaned up local file ${zipFileName}.`);
+
+    // Automatically trigger cleanup
+    console.log("🧹 Triggering cleanup...");
+    try {
+        execSync('node scripts/cleanup-ota.js', { stdio: 'inherit' });
+    } catch (e) {
+        console.warn("⚠️ Cleanup script failed, but deployment was successful.");
+    }
 }
 
 deploy().catch(err => {

@@ -451,46 +451,104 @@ class RealtimeManager {
   }
 
   _addHandlersForSubscriber(channel, channelName, subId, callbacks) {
-    // Postgres Changes
+    const entry = this.subscriptions.get(channelName);
+    if (!entry) return;
+
+    if (!entry.multiplexers) {
+      entry.multiplexers = {
+        postgres: new Map(), // configKey -> Set<subId>
+        broadcast: new Map(), // eventName -> Set<subId>
+      };
+    }
+
+    // --- Postgres Changes Multiplexing ---
     const pgCallbacks = callbacks?.postgres_changes;
     if (pgCallbacks) {
       const listeners = Array.isArray(pgCallbacks) ? pgCallbacks : [pgCallbacks];
-      listeners.forEach((listenerConfig, index) => {
+      listeners.forEach((listenerConfig) => {
         const { handler, ...supabaseConfig } = listenerConfig;
-        channel.on('postgres_changes', supabaseConfig, (payload) => {
-          this._updateChannelMetric(channelName, 'lastActivity', Date.now());
-          const entry = this.subscriptions.get(channelName);
-          const subscriber = entry?.subscribers.get(subId);
-          const latestCbs = subscriber?.callbacks?.postgres_changes;
-          const latestListeners = Array.isArray(latestCbs) ? latestCbs : [latestCbs];
-          const latestHandler = latestListeners[index]?.handler;
-          if (latestHandler) {
-            this._safeExecute(() => latestHandler(payload), 'postgres_changes handler');
+        const configKey = `pg:${JSON.stringify(supabaseConfig)}`;
+        
+        let subSet = entry.multiplexers.postgres.get(configKey);
+        
+        if (!subSet) {
+          // New unique config for this channel
+          if (entry.status === 'SUBSCRIBED' || entry.status === 'JOINED') {
+            this._log('Warning: Late-joiner adding NEW postgres config to active channel. This is not supported by Supabase.', { channel: channelName, config: supabaseConfig });
+            return;
           }
-        });
+
+          subSet = new Set([subId]);
+          entry.multiplexers.postgres.set(configKey, subSet);
+
+          channel.on('postgres_changes', supabaseConfig, (payload) => {
+            this._updateChannelMetric(channelName, 'lastActivity', Date.now());
+            const currentEntry = this.subscriptions.get(channelName);
+            if (!currentEntry) return;
+
+            const currentSubSet = currentEntry.multiplexers.postgres.get(configKey);
+            if (currentSubSet) {
+              currentSubSet.forEach(id => {
+                const sub = currentEntry.subscribers.get(id);
+                const subCbs = sub?.callbacks?.postgres_changes;
+                const subListeners = Array.isArray(subCbs) ? subCbs : [subCbs];
+                
+                // Execute all matching handlers for this subscriber
+                subListeners.forEach(l => {
+                  const { handler: h, ...sConfig } = l;
+                  if (`pg:${JSON.stringify(sConfig)}` === configKey && h) {
+                    this._safeExecute(() => h(payload), 'postgres_changes multiplexed handler');
+                  }
+                });
+              });
+            }
+          });
+        } else {
+          // Reuse existing handler
+          subSet.add(subId);
+          this._log('Multiplexing postgres handler', { channel: channelName, configKey, subId });
+        }
       });
     }
 
-    // Broadcast
+    // --- Broadcast Multiplexing ---
     const bcConfig = callbacks?.broadcast;
     if (bcConfig) {
       const eventName = typeof bcConfig === 'object' ? bcConfig.event : '*';
-      if (eventName === '*') {
-        this._log('Warning: Broadcast wildcard "*" might not be supported by Supabase', {
-          channel: channelName,
-        });
-      }
+      const configKey = `bc:${eventName}`;
+      
+      let subSet = entry.multiplexers.broadcast.get(configKey);
 
-      channel.on('broadcast', { event: eventName }, (payload) => {
-        this._updateChannelMetric(channelName, 'lastActivity', Date.now());
-        const entry = this.subscriptions.get(channelName);
-        const subscriber = entry?.subscribers.get(subId);
-        const cb = subscriber?.callbacks?.broadcast;
-        const finalCb = typeof cb === 'function' ? cb : cb?.callback;
-        if (finalCb) {
-          this._safeExecute(() => finalCb(payload), 'broadcast handler');
+      if (!subSet) {
+        if (entry.status === 'SUBSCRIBED' || entry.status === 'JOINED') {
+            this._log('Warning: Late-joiner adding NEW broadcast event to active channel.', { channel: channelName, eventName });
+            // Broadcast might be more lenient than Postgres in some versions, but better safe.
         }
-      });
+
+        subSet = new Set([subId]);
+        entry.multiplexers.broadcast.set(configKey, subSet);
+
+        channel.on('broadcast', { event: eventName }, (payload) => {
+          this._updateChannelMetric(channelName, 'lastActivity', Date.now());
+          const currentEntry = this.subscriptions.get(channelName);
+          if (!currentEntry) return;
+
+          const currentSubSet = currentEntry.multiplexers.broadcast.get(configKey);
+          if (currentSubSet) {
+            currentSubSet.forEach(id => {
+              const sub = currentEntry.subscribers.get(id);
+              const cb = sub?.callbacks?.broadcast;
+              const finalCb = typeof cb === 'function' ? cb : cb?.callback;
+              if (finalCb) {
+                this._safeExecute(() => finalCb(payload), 'broadcast multiplexed handler');
+              }
+            });
+          }
+        });
+      } else {
+        subSet.add(subId);
+        this._log('Multiplexing broadcast handler', { channel: channelName, eventName, subId });
+      }
     }
   }
 
