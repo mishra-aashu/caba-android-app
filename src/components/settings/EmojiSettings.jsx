@@ -139,7 +139,7 @@ const EmojiSettings = ({ isSidebar = false }) => {
             <div className="note-content">
               <h4>Note:</h4>
               <p>
-                System Default uses your device's built-in emojis. Apple, Google, Twitter, and Facebook styles use high-quality, offline WebP assets for a consistent experience even without internet.
+                <b>System Default</b> uses your device's built-in emojis. <b>Apple</b> style is bundled for offline use. <b>Google, Twitter, and Facebook</b> styles are high-quality assets downloaded on-demand to keep the app size small.
               </p>
             </div>
           </div>

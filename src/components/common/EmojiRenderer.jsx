@@ -24,16 +24,16 @@ const getEmojiHex = (emoji) => {
  */
 const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
   const [hasError, setHasError] = useState(false);
-  const { emojiMap, mapLoading } = useEmojiStyle();
+  const { emojiMap, mapLoading, remoteAssets } = useEmojiStyle();
   
   if (mapLoading) return <span className={className} style={{ width: '1.2em', height: '1.2em', display: 'inline-block' }} />;
 
   // Get mapping for this hex code and vendor
   const mapping = emojiMap?.mapping?.[hex];
-  const sheetName = emojiMap?.sheets?.[vendor];
+  const sheetFileName = emojiMap?.sheets?.[vendor];
 
   // FALLBACK: If mapping not found, image fails, or vendor is native, show native unicode emoji
-  if (hasError || vendor === 'native' || !mapping || !sheetName) {
+  if (hasError || vendor === 'native' || !mapping || !sheetFileName) {
     return (
       <span
         className={`native-emoji-fallback ${className}`}
@@ -44,7 +44,13 @@ const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
     );
   }
 
-  const spriteUrl = `${baseUrl}assets/emojis/spritesheets/${sheetName}`;
+  // RESOLVE URL: 
+  // 1. Apple is local (bundled)
+  // 2. Others are remote (fetched from Supabase table)
+  let spriteUrl = `${baseUrl}assets/emojis/spritesheets/${sheetFileName}`;
+  if (vendor !== 'apple' && remoteAssets?.[vendor]) {
+    spriteUrl = remoteAssets[vendor];
+  }
   
   // iamcal sheets are standard grids. For v16, it's 62x62 (0 to 61).
   // Percentage formula: (index / (columns - 1)) * 100

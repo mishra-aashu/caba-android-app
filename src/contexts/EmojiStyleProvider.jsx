@@ -11,6 +11,7 @@ export const EmojiStyleProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [emojiMap, setEmojiMap] = useState(null);
   const [mapLoading, setMapLoading] = useState(true);
+  const [remoteAssets, setRemoteAssets] = useState({});
   const { supabase } = useSupabase();
 
   const baseUrl = import.meta.env.BASE_URL || '/';
@@ -78,6 +79,50 @@ export const EmojiStyleProvider = ({ children }) => {
     }
   };
 
+  // Load remote asset URLs from Supabase table with LocalStorage caching
+  const loadRemoteAssets = async () => {
+    const CACHE_KEY = 'emoji_assets_cache';
+    const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+
+    try {
+      // 1. Check local cache first
+      const cachedData = localStorage.getItem(CACHE_KEY);
+      if (cachedData) {
+        const { mapping, timestamp } = JSON.parse(cachedData);
+        if (Date.now() - timestamp < CACHE_EXPIRY) {
+          setRemoteAssets(mapping);
+          console.log('Emoji Service: Using cached asset mappings.');
+          return;
+        }
+      }
+
+      // 2. If no cache or expired, fetch from Supabase
+      console.log('Emoji Service: Fetching fresh asset mappings from Supabase...');
+      const { data, error } = await supabase
+        .from('emoji_assets')
+        .select('vendor, url');
+      
+      if (error) throw error;
+
+      if (data) {
+        const mapping = {};
+        data.forEach(item => {
+          mapping[item.vendor] = item.url;
+        });
+        
+        setRemoteAssets(mapping);
+        
+        // Save to cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          mapping,
+          timestamp: Date.now()
+        }));
+      }
+    } catch (error) {
+      console.error('Emoji Service: Failed to load remote emoji assets:', error);
+    }
+  };
+
   // Save emoji style to database
   const updateEmojiStyle = async (newStyle) => {
     try {
@@ -136,6 +181,7 @@ export const EmojiStyleProvider = ({ children }) => {
   useEffect(() => {
     loadEmojiStyle();
     loadEmojiMap();
+    loadRemoteAssets();
   }, []);
 
   // Context value
@@ -151,7 +197,8 @@ export const EmojiStyleProvider = ({ children }) => {
     isApple: emojiStyle === 'apple',
     isFacebook: emojiStyle === 'facebook',
     emojiMap,
-    mapLoading
+    mapLoading,
+    remoteAssets
   };
 
   return (

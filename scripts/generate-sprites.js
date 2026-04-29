@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const EMOJI_DIR = 'public/assets/emojis';
 const OUTPUT_DIR = 'public/assets/emojis/spritesheets';
-const VENDORS = ['apple', 'google', 'twitter', 'facebook'];
+const VENDORS = ['apple'];
 
 /**
  * Node.js script to extract pre-compiled emoji sprite sheets and data
