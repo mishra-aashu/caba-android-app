@@ -89,15 +89,27 @@ const EmojiPicker = ({
             groups[catName].emojis.push(transformEmoji(item, catName));
         });
 
-        // 2. Special sorting for "Smileys" to put actual faces first
-        // Most face smileys start with 1f6 or 1f9
+        // 2. Special sorting for "Smileys" to put actual human faces first
         if (groups['Smileys']) {
             groups['Smileys'].emojis.sort((a, b) => {
-                const isFaceA = a.hex.startsWith('1f6') || a.hex.startsWith('1f9aa') || (a.hex >= '1f600' && a.hex <= '1f64f');
-                const isFaceB = b.hex.startsWith('1f6') || b.hex.startsWith('1f9aa') || (b.hex >= '1f600' && b.hex <= '1f64f');
+                // Human Face Ranges in Unicode
+                // 1F600-1F64F: Emoticons (Classic Faces)
+                // 1F910-1F92F: Supplemental Symbols and Pictographs (Newer Faces)
+                // 1F970-1F97F: More Faces (Smiling with hearts, etc)
+                const isHumanFace = (hex) => {
+                    const code = parseInt(hex.split('-')[0], 16);
+                    return (code >= 0x1f600 && code <= 0x1f64f) || 
+                           (code >= 0x1f910 && code <= 0x1f92f) ||
+                           (code >= 0x1f970 && code <= 0x1f978) ||
+                           (code >= 0x1f92a && code <= 0x1f92f);
+                };
+
+                const isFaceA = isHumanFace(a.hex);
+                const isFaceB = isHumanFace(b.hex);
+
                 if (isFaceA && !isFaceB) return -1;
                 if (!isFaceA && isFaceB) return 1;
-                return 0; // Keep original order for same type
+                return 0;
             });
         }
         
@@ -141,8 +153,8 @@ const EmojiPicker = ({
     useEffect(() => {
         if (isOpen && renderLevel > 0 && renderLevel < categories.length) {
             const timer = setTimeout(() => {
-                setRenderLevel(prev => prev + 1);
-            }, 60);
+                setRenderLevel(prev => Math.min(prev + 2, categories.length));
+            }, 30);
             return () => clearTimeout(timer);
         }
     }, [isOpen, renderLevel, categories.length]);
