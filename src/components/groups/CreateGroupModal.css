@@ -1,4 +1,7 @@
 /* CreateGroupModal Styles - Professional Emerald Refresh */
+* {
+  box-sizing: border-box;
+}
 
 .create-group-modal {
   display: flex;
@@ -429,9 +432,23 @@
 
 .members-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap; /* Horizontal row */
+  gap: 12px;
   max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.members-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure chips don't shrink in the horizontal row */
+.member-chip {
+  flex-shrink: 0;
 }
 
 .member-chip {
@@ -620,8 +637,11 @@
   }
 
   .members-list {
-    max-height: 120px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    padding: 12px 0;
   }
 
   .avatar-buttons {

@@ -1,4 +1,7 @@
 /* GroupInfoDrawer Styles - Refined for Responsiveness & Premium feel */
+* {
+  box-sizing: border-box;
+}
 
 .group-info-drawer {
   width: 400px;
@@ -10,12 +13,17 @@
   border-left: 1px solid var(--border-color);
   position: relative;
   z-index: 100;
+  box-sizing: border-box; /* Crucial: border/padding shouldn't expand width */
 
   /* GPU Acceleration */
   transform: translate3d(100%, 0, 0);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, width;
+  overflow-y: auto;
+  overflow-x: hidden; /* Lock horizontal movement */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .group-info-drawer.open {
@@ -45,8 +53,9 @@
     top: 0;
     right: 0;
     width: 100%;
-    max-width: 100%;
+    max-width: 100vw; /* Hard limit to viewport */
     z-index: 2000;
+    border-left: none; /* Remove border to prevent 100% + 1px overflow */
   }
 
   .group-info-drawer.open {
@@ -101,10 +110,10 @@
 
 /* Scrollable area */
 .drawer-content {
-  flex: 1;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-color) transparent;
+  width: 100%;
+  display: block;
+  overflow-x: hidden; /* Prevent any child from causing side-scrolling */
+  overflow-y: visible; /* Parent handles vertical scroll */
 }
 
 .drawer-content::-webkit-scrollbar {
@@ -158,7 +167,7 @@
 
 .group-details {
   text-align: center;
-  width: 100%;
+  align-self: stretch;
 }
 
 .group-name {
@@ -196,7 +205,8 @@
   background: var(--border-color);
   padding: 16px;
   border-radius: 16px;
-  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 .creation-date,
@@ -244,7 +254,7 @@
   font-weight: 600;
   color: var(--text-primary);
   transition: all 0.2s ease;
-  width: 100%;
+  align-self: stretch;
 }
 
 .edit-group-btn:hover {
@@ -257,7 +267,7 @@
 
 /* Edit Form */
 .edit-form {
-  width: 100%;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -396,8 +406,11 @@
 }
 
 .members-list {
-  display: flex;
-  flex-direction: column;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 8px !important;
+  padding-bottom: 20px;
 }
 
 .loading {
@@ -406,18 +419,17 @@
   color: var(--text-secondary);
 }
 
-/* Leave Section */
 .leave-section {
   padding: 24px;
-  margin-top: auto;
+  margin-top: 20px;
   border-top: 1px solid var(--border-color);
   background: var(--surface-color);
-  position: sticky;
-  bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .leave-btn {
-  width: 100%;
+  align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -442,14 +454,14 @@
 
 /* Member Item Styles - Premium Refinement */
 .member-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(var(--border-color-rgb), 0.3);
-  margin: 0 -16px;
-  transition: all 0.2s ease;
-  border-radius: 12px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+  box-sizing: border-box;
 }
 
 .member-item:hover {
@@ -510,7 +522,7 @@
 .member-name-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
 }
 
@@ -530,26 +542,28 @@
 }
 
 .creator-badge {
-  background-color: #064e3b; /* Dark Teal */
-  color: #10b981; /* Bright Green */
+  background-color: rgba(var(--brand-primary-rgb), 0.1);
+  color: var(--brand-primary);
   font-size: 10px;
-  padding: 2px 10px;
-  border-radius: 6px;
-  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(var(--brand-primary-rgb), 0.2);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .admin-badge {
-  color: #fbbf24; /* Gold */
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(251, 191, 36, 0.1);
-  padding: 4px;
-  border-radius: 8px;
-  border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
 .member-status-row {
@@ -831,21 +845,30 @@ input:checked+.slider:before {
 
 /* Group Info Page - Mobile Specific */
 .group-info-page-wrapper {
-  width: 100%;
+  width: 100vw;
   height: 100dvh;
   position: fixed;
   top: 0;
   left: 0;
   background-color: var(--surface-color);
   z-index: 3000;
+  overflow-x: hidden !important;
+  overflow-y: hidden;
 }
 
 .group-info-page-wrapper .group-info-drawer {
   transform: none;
   width: 100%;
-  max-width: 100%;
+  height: 100%;
+  max-width: 100vw;
   border: none;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden !important;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .loading-page {
@@ -1097,162 +1120,8 @@ input:checked+.slider:before {
   background-color: #2a3942;
 }
 
-/* Premium Enhancements for GroupInfoDrawer */
+/* Cleaned up conflicting definitions */
 
-.group-info-drawer {
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-    background: var(--bg-color);
-}
-
-.drawer-header {
-    background: var(--surface-color);
-    border-bottom: 1px solid var(--border-color);
-    padding: 18px 20px;
-}
-
-.group-info-section {
-    padding: 24px 20px;
-    background: var(--surface-color);
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 12px;
-}
-
-.quick-actions {
-    display: flex;
-    gap: 10px;
-    padding: 16px 20px;
-    background: var(--surface-color);
-    border-bottom: 10px solid var(--bg-color);
-}
-
-.action-btn {
-    flex: 1;
-    flex-direction: column;
-    height: auto;
-    padding: 12px 8px;
-    border-radius: 12px;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    color: var(--brand-primary);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.action-btn:hover {
-    background: var(--brand-light);
-    transform: translateY(-2px);
-}
-
-.settings-section {
-    padding: 20px;
-    background: var(--surface-color);
-    border-bottom: 10px solid var(--bg-color);
-}
-
-.settings-section .section-header {
-    margin-bottom: 16px;
-}
-
-.setting-item {
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-}
-
-.setting-item:last-child {
-    border-bottom: none;
-}
-
-.members-section {
-    padding: 20px;
-    background: var(--surface-color);
-}
-
-.member-item {
-    padding: 12px;
-    margin: 0 -12px;
-    border-radius: 12px;
-    transition: all 0.2s ease;
-}
-
-.member-item:hover {
-    background: var(--hover-color);
-}
-
-.leave-section {
-    padding: 24px 20px;
-    background: var(--bg-color);
-}
-
-.leave-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    background: transparent;
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    font-weight: 700;
-    font-size: 15px;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-}
-
-.leave-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
-}
-
-/* Member Item Badges & Indicators */
-.member-avatar {
-    position: relative;
-}
-
-.online-dot {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 12px;
-    height: 12px;
-    background-color: var(--brand-primary);
-    border: 2px solid var(--surface-color);
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(0, 168, 132, 0.1);
-}
-
-.creator-badge, .admin-badge {
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.creator-badge {
-    background: var(--brand-light);
-    color: var(--brand-primary);
-    border: 1px solid var(--brand-primary);
-}
-
-.admin-badge {
-    background: #fff9c4;
-    color: #fbc02d;
-    border: 1px solid #fbc02d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 4px;
-}
-
-[data-theme='dark'] .admin-badge {
-    background: rgba(251, 192, 45, 0.1);
-    border-color: #fbc02d;
-}
-/* Link version of the Add button */
 .add-member-btn-link {
   display: inline-flex;
   align-items: center;

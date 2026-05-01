@@ -1,4 +1,7 @@
 /* AddMembers - Complete Styles */
+* {
+    box-sizing: border-box;
+}
 
 .add-members-container {
     display: flex;
@@ -124,20 +127,17 @@
 
 .selected-chips {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* WhatsApp style: single row */
     gap: 8px;
-    max-height: 120px;
-    overflow-y: auto;
-    scrollbar-width: thin;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0;
+    scrollbar-width: none; /* Hide scrollbar for native feel */
+    -webkit-overflow-scrolling: touch;
 }
 
 .selected-chips::-webkit-scrollbar {
-    width: 4px;
-}
-
-.selected-chips::-webkit-scrollbar-thumb {
-    background: var(--brand-primary);
-    border-radius: 10px;
+    display: none; /* Hide scrollbar for Chrome/Safari */
 }
 
 
@@ -154,6 +154,7 @@
     border: none;
     transition: all 0.2s ease;
     animation: chipIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    flex-shrink: 0; /* Prevent shrinking in horizontal list */
 }
 
 @keyframes chipIn {
@@ -607,6 +608,10 @@
     }
 }
 /* Modal Mode Overrides */
+* {
+    box-sizing: border-box;
+}
+
 .add-members-modal-body {
     padding: 0 !important;
     display: flex;
