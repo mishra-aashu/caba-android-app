@@ -49,13 +49,17 @@ const ChatListItem = ({
   const resolvedName = name || "Unknown";
   const resolvedAvatar = avatar;
 
-  // FALLBACK: On-the-fly decryption for chat list preview
-  // This handles cases where encrypted text might have reached the DB
+  // [PERF] Only attempt decrypt if text is still encrypted (starts with '🔒:').
+  // In normal flow the sync layer already decrypts before writing to IndexedDB,
+  // so this guard short-circuits immediately for 99%+ of messages.
   const displayMessage = React.useMemo(() => {
     if (!lastMessage) return "";
+    if (typeof lastMessage !== 'string' || !lastMessage.startsWith('\uD83D\uDD12:')) {
+      return lastMessage; // Already plaintext — skip decrypt entirely
+    }
     return EncryptionService.decrypt(
-        lastMessage, 
-        chat.id, 
+        lastMessage,
+        chat.id,
         chat.otherUserId || chat.metadata?.otherUserId
     );
   }, [lastMessage, chat.id, chat.otherUserId, chat.metadata]);

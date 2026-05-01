@@ -474,11 +474,12 @@ const ChatListPanel = ({
 
   const renderChatItem = useCallback(
     (chat) => {
-      const otherUserId =
+      const otherUserId = chat.isGroup ? null : (
         chat.metadata?.otherUserId ||
         chat.otherUserId ||
         chat.otherUser?.id ||
-        chat.id;
+        chat.id
+      );
 
       const contact = contactMap.get(otherUserId);
       const displayName = contact?.contactName || chat.name;

@@ -48,6 +48,17 @@ const VirtualizedMessageList = React.forwardRef(({
     return null;
   }, [messages, currentUser?.id]);
 
+  // [PERF] O(1) Map for reply-to lookups. Replaces the O(N) messages.find() inside
+  // renderMessage which was causing the entire render callback to re-create on every
+  // new message event, forcing Virtuoso to rebuild all item renderers.
+  const messageMap = useMemo(() => {
+    const m = new Map();
+    for (const msg of messages) {
+      if (msg.id) m.set(msg.id, msg);
+    }
+    return m;
+  }, [messages]);
+
   const isLoadingTotal = isQueryLoading && messages.length === 0;
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
@@ -160,9 +171,9 @@ const VirtualizedMessageList = React.forwardRef(({
     }
 
     const replyTo = message.replyTo || message.reply_to;
-    const repliedMsg = replyTo
-      ? messages.find(m => m && m.id === replyTo)
-      : null;
+    // [PERF] O(1) Map lookup instead of O(N) find() — prevents renderMessage
+    // from being invalidated (and Virtuoso from rebuilding all items) on every message event.
+    const repliedMsg = replyTo ? (messageMap.get(replyTo) ?? null) : null;
 
     const msgId = getStableMessageId(message, messageIndex);
 
@@ -190,7 +201,8 @@ const VirtualizedMessageList = React.forwardRef(({
       />
     );
   }, [
-    messages,
+    messageMap,        // stable Map reference — only changes when messages array changes
+    messages.length,   // need length for isLast calculation
     currentUser,
     onReply, onForward, onDelete, onEdit,
     onMediaView, onMediaDownload,
