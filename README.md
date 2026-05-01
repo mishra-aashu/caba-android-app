@@ -124,25 +124,7 @@ The app will be available at `http://localhost:5173`
 
 Create a `.env` file in the root directory with the following variables:
 
-```env
-# Supabase Configuration
-VITE_SUPABASE_URL=https://your-proxy.workers.dev
-VITE_SUPABASE_DIRECT_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-
-# Firebase Configuration
-VITE_FIREBASE_API_KEY=your-firebase-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
-VITE_FIREBASE_APP_ID=your-app-id
-VITE_FIREBASE_VAPID_KEY=your-firebase-vapid-key
-
-# Google OAuth (Optional)
-VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret
-```
+Refer to the `.env.example` file in the root directory for the required variables and their structure.
 
 ### Supabase Setup
 
@@ -288,17 +270,7 @@ useEffect(() => {
 
 ### Environment Variables for Vercel
 
-```
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_FIREBASE_API_KEY=your-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-domain
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-VITE_FIREBASE_APP_ID=your-app-id
-VITE_FIREBASE_VAPID_KEY=your-vapid-key
-```
+Refer to the `.env.example` file for the required keys.
 
 ### Android (Google Play)
 
