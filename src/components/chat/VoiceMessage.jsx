@@ -7,7 +7,7 @@ import { formatLastSeen } from '../../utils/dateFormatter';
 import styles from './VoiceMessage.module.css';
 
 const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUserId, isLastRead, isLast, onRetry }) => {
-  const { audioUrl, isLoading, error: hookError } = useAudioBlob(message.mediaPath || message.media_path);
+  const { audioUrl, waveform, isLoading, error: hookError } = useAudioBlob(message.mediaPath || message.media_path);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -61,14 +61,26 @@ const VoiceMessage = ({ message, repliedMsg, isSender, time, status, currentUser
     const bars = 40;
     const barElements = [];
     const progress = duration > 0 ? currentTime / duration : 0;
+    
+    // If waveform data is not yet available, show a flat line or loading state
+    const hasWaveform = waveform && waveform.length > 0;
+
     for (let i = 0; i < bars; i++) {
       const barProgress = i / bars;
       const isPlayed = barProgress < progress;
+      
+      // Calculate if this is the "active" bar being played right now
+      const barEndProgress = (i + 1) / bars;
+      const isActive = isPlaying && progress >= barProgress && progress < barEndProgress;
+      
+      // Use real data if available, otherwise use a small constant for "loading" look
+      const barHeight = hasWaveform ? (waveform[i] * 20 + 4) : 4;
+      
       barElements.push(
         <div
           key={i}
-          className={`${styles['waveform-bar']} ${isPlayed ? styles.played : styles.unplayed}`}
-          style={{ height: `${10 + Math.random() * 10}px` }}
+          className={`${styles['waveform-bar']} ${isPlayed ? styles.played : styles.unplayed} ${isActive ? styles.active : ''}`}
+          style={{ height: `${barHeight}px` }}
         />
       );
     }

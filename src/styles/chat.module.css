@@ -3978,3 +3978,180 @@ body.light-mode .no-messages-content {
     gap: 12px;
   }
 }
+
+/* ─────────────────────────────────────────────
+   PREMIUM VOICE RECORDER (Responsive & Modern)
+───────────────────────────────────────────── */
+
+.voice-recorder-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-1);
+  z-index: 100;
+  padding: 10px 14px;
+  padding-bottom: calc(10px + var(--safe-bottom));
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  border-top: 1px solid var(--border-medium);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 85px;
+  height: calc(85px + var(--safe-bottom));
+}
+
+.recorder-inner {
+  width: 100%;
+  max-width: 800px;
+  height: 100%;
+}
+
+.recording-active-ui, .preview-ui {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 100%;
+  width: 100%;
+}
+
+.recording-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 60px;
+}
+
+.recording-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #ff4d4f;
+  border-radius: 50%;
+}
+
+.recording-timer, .preview-time {
+  font-family: 'Inter', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recording-visualizer, .preview-visualizer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.recording-visualizer .waveform-bar, .preview-visualizer .waveform-bar {
+  width: 3px;
+  border-radius: 4px;
+  background-color: var(--text-muted);
+  min-height: 3px;
+  transition: height 0.1s ease;
+}
+
+.preview-visualizer .waveform-bar.played {
+  background-color: var(--brand-primary);
+}
+
+.recording-actions, .preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recording-main-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-hover);
+  padding: 4px;
+  border-radius: 30px;
+}
+
+.btn-icon-danger, .btn-icon-secondary, .btn-icon-primary, .btn-icon-success, .btn-send-final {
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 10px;
+}
+
+.btn-icon-danger { color: #ff4d4f; }
+.btn-icon-danger:hover { background: rgba(255, 77, 79, 0.1); }
+
+.btn-icon-secondary { color: var(--text-primary); }
+.btn-icon-secondary:hover { background: var(--bg-active); }
+
+.btn-icon-primary { 
+  background: var(--brand-primary); 
+  color: white; 
+  box-shadow: 0 4px 10px rgba(0, 168, 132, 0.3);
+}
+.btn-icon-primary:hover { transform: scale(1.05); }
+
+.btn-icon-success, .btn-send-final { 
+  color: var(--brand-primary);
+}
+.btn-icon-success:hover, .btn-send-final:hover { background: rgba(0, 168, 132, 0.1); }
+
+.btn-play-preview {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.btn-play-preview:hover { transform: scale(1.05); }
+
+@media (max-width: 480px) {
+  .voice-recorder-wrapper {
+    height: 100px;
+    height: calc(100px + var(--safe-bottom));
+  }
+  .recording-active-ui, .preview-ui {
+    gap: 8px;
+  }
+  .btn-icon-danger, .btn-icon-secondary, .btn-icon-primary, .btn-icon-success, .btn-send-final {
+    padding: 8px;
+  }
+  .recording-visualizer {
+    display: none; /* Hide visualizer on very small screens to save space */
+  }
+}
+
+/* Responsive Tweaks for Chat Input */
+@media (max-width: 360px) {
+  .chat-input-container {
+    padding: 6px 2px;
+  }
+  .input-row {
+    gap: 2px;
+  }
+  .btn-action {
+    width: 38px;
+    height: 38px;
+    padding: 6px;
+  }
+  .btn-action svg {
+    width: 20px;
+    height: 20px;
+  }
+}

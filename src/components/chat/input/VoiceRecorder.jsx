@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, Mic, Trash2, Lock, ChevronLeft, Send, Check } from 'lucide-react';
+import { Play, Pause, Mic, Trash2, Lock, ChevronLeft, Send, Square, RefreshCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import hapticsManager from '../../../utils/hapticsManager';
 import { useDialog } from '../../../contexts/DialogContext';
@@ -29,6 +29,23 @@ const VoiceRecorder = ({
   const animationFrameRef = useRef(null);
 
   const { showAlert } = useDialog();
+
+  const cleanup = useCallback(() => {
+    if (animationFrameRef.current) clearTimeout(animationFrameRef.current);
+    if (audioContextRef.current) audioContextRef.current.close();
+    if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+    clearInterval(timerIntervalRef.current);
+    setIsRecording(false);
+    setIsPaused(false);
+    setIsLocked(false);
+    setVoiceBlob(null);
+    setWaveformPoints([]);
+    chunksRef.current = [];
+    if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+    }
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -63,7 +80,12 @@ const VoiceRecorder = ({
       const dataArray = new Uint8Array(bufferLength);
 
       const capturePeak = () => {
-        if (!isRecording || isPaused) return;
+        if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
+        if (mediaRecorderRef.current.state === 'paused') {
+            animationFrameRef.current = setTimeout(capturePeak, 100);
+            return;
+        }
+
         analyser.getByteFrequencyData(dataArray);
         const average = dataArray.reduce((src, val) => src + val, 0) / bufferLength;
         const normalized = Math.min(100, Math.max(15, (average / 128) * 100));
@@ -73,39 +95,57 @@ const VoiceRecorder = ({
       capturePeak();
 
       timerIntervalRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        if (mediaRecorderRef.current?.state === 'recording') {
+            setRecordingTime(prev => prev + 1);
+        }
       }, 1000);
 
       hapticsManager.impact();
     } catch (err) {
       console.error('Error starting recording:', err);
       showAlert('Microphone access denied', 'Please allow microphone access to send voice messages.');
+      onCancel();
     }
   };
 
-  const stopRecordingAndSend = () => {
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+      hapticsManager.impact();
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current?.state === 'paused') {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+      hapticsManager.impact();
+    }
+  };
+
+  const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.onstop = () => {
-        const fullBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        onRecordingComplete(fullBlob);
-        cleanup();
-      };
       mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setIsLocked(false);
     }
     hapticsManager.medium();
   };
 
-  const cleanup = () => {
-    if (animationFrameRef.current) clearTimeout(animationFrameRef.current);
-    if (audioContextRef.current) audioContextRef.current.close();
-    if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
-    clearInterval(timerIntervalRef.current);
-    setIsRecording(false);
-    setIsPaused(false);
-    setIsLocked(false);
-    setVoiceBlob(null);
-    setWaveformPoints([]);
-    chunksRef.current = [];
+  const handleSend = () => {
+    if (voiceBlob) {
+      onRecordingComplete(voiceBlob);
+      cleanup();
+    } else if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        // Stop and send immediately
+        mediaRecorderRef.current.onstop = () => {
+            const fullBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+            onRecordingComplete(fullBlob);
+            cleanup();
+        };
+        mediaRecorderRef.current.stop();
+    }
   };
 
   const handleCancel = () => {
@@ -139,80 +179,96 @@ const VoiceRecorder = ({
   };
 
   useEffect(() => {
-    if (isExternalRecording && !isRecording) startRecording();
-    return () => cleanup();
-  }, [isExternalRecording]);
+    if (isExternalRecording && !isRecording && !voiceBlob) startRecording();
+    return () => {
+        if (!isExternalRecording) cleanup();
+    };
+  }, [isExternalRecording, cleanup]);
 
   if (!isRecording && !voiceBlob) return null;
 
   return (
     <motion.div 
-      className={isRecording ? styles['recording-ui'] : styles['voice-preview']}
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
+      className={`${styles['voice-recorder-wrapper']} ${voiceBlob ? styles['has-preview'] : ''}`}
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 20, opacity: 0 }}
     >
-      {isRecording ? (
-        <>
-          <motion.div 
-            className={styles['recording-dot']} 
-            animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }} 
-            transition={{ repeat: Infinity, duration: 1 }}
-          />
-          <div className={styles['recording-timer']}>{formatTime(recordingTime)}</div>
-          
-          <div className={styles['waveform-container']}>
-            {waveformPoints.map((point, i) => (
-              <div key={i} className={styles['waveform-bar']} style={{ height: `${point}%` }} />
-            ))}
-          </div>
-
-          {!isLocked ? (
-            <div className={styles['slide-to-cancel']}>
-              <ChevronLeft size={16} className={styles['chevron-left-animated']} />
-              <span>Slide to cancel</span>
+      <div className={styles['recorder-inner']}>
+        {isRecording ? (
+          <div className={styles['recording-active-ui']}>
+            <div className={styles['recording-info']}>
+              <motion.div 
+                className={styles['recording-dot']} 
+                animate={{ scale: isPaused ? 1 : [1, 1.2, 1], opacity: isPaused ? 0.5 : [1, 0.5, 1] }} 
+                transition={{ repeat: Infinity, duration: 1 }}
+              />
+              <span className={styles['recording-timer']}>{formatTime(recordingTime)}</span>
             </div>
-          ) : (
-             <div className={styles['recording-status']}>Locked</div>
-          )}
 
-          <div className={styles['recording-controls-inner']}>
-            {isLocked && (
-              <button className={styles['btn-delete-voice']} onClick={handleCancel}>
+            <div className={styles['recording-visualizer']}>
+              {waveformPoints.map((point, i) => (
+                <div key={i} className={styles['waveform-bar']} style={{ height: `${point}%` }} />
+              ))}
+            </div>
+
+            <div className={styles['recording-actions']}>
+              <button className={styles['btn-icon-danger']} onClick={handleCancel} title="Delete">
                 <Trash2 size={20} />
               </button>
-            )}
-            <button 
-                className={styles['btn-primary']} 
-                onClick={isLocked ? stopRecordingAndSend : () => setIsLocked(true)}
-                style={{ borderRadius: '50%', padding: '8px' }}
-            >
-                {isLocked ? <Send size={18} /> : <Lock size={18} />}
+              
+              <div className={styles['recording-main-controls']}>
+                <button 
+                  className={styles['btn-icon-secondary']} 
+                  onClick={isPaused ? resumeRecording : pauseRecording}
+                  title={isPaused ? "Resume" : "Pause"}
+                >
+                  {isPaused ? <Mic size={22} /> : <Pause size={22} />}
+                </button>
+                
+                <button 
+                  className={styles['btn-icon-primary']} 
+                  onClick={stopRecording}
+                  title="Stop"
+                >
+                  <Square size={20} />
+                </button>
+              </div>
+
+              <button className={styles['btn-icon-success']} onClick={handleSend} title="Send Now">
+                <Send size={22} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className={styles['preview-ui']}>
+            <button className={styles['btn-play-preview']} onClick={togglePreviewPlayback}>
+              {isPlayingPreview ? <Pause size={24} /> : <Play size={24} fill="currentColor" />}
             </button>
+
+            <div className={styles['preview-visualizer']}>
+              {waveformPoints.map((point, i) => (
+                <div 
+                  key={i} 
+                  className={`${styles['waveform-bar']} ${(i / waveformPoints.length) < previewProgress ? styles['played'] : ''}`} 
+                  style={{ height: `${point}%` }} 
+                />
+              ))}
+            </div>
+
+            <span className={styles['preview-time']}>{formatTime(recordingTime)}</span>
+
+            <div className={styles['preview-actions']}>
+              <button className={styles['btn-icon-danger']} onClick={handleCancel} title="Discard">
+                <Trash2 size={20} />
+              </button>
+              <button className={styles['btn-send-final']} onClick={handleSend} title="Send Voice Message">
+                <Send size={22} />
+              </button>
+            </div>
           </div>
-        </>
-      ) : (
-        <>
-          <button className={styles['btn-voice-control']} onClick={togglePreviewPlayback}>
-            {isPlayingPreview ? <Pause size={18} /> : <Play size={18} />}
-          </button>
-          <div className={styles['waveform-container']}>
-            {waveformPoints.map((point, i) => (
-              <div 
-                key={i} 
-                className={`${styles['waveform-bar']} ${(i/waveformPoints.length) < previewProgress ? styles['played'] : ''}`} 
-                style={{ height: `${point}%` }} 
-              />
-            ))}
-          </div>
-          <span className={styles['voice-duration']}>{formatTime(recordingTime)}</span>
-          <button className={styles['btn-delete-voice']} onClick={handleCancel}>
-            <Trash2 size={20} />
-          </button>
-          <button className={styles['btn-primary']} onClick={() => onRecordingComplete(voiceBlob)} style={{ borderRadius: '50%', padding: '8px' }}>
-             <Send size={18} />
-          </button>
-        </>
-      )}
+        )}
+      </div>
     </motion.div>
   );
 };

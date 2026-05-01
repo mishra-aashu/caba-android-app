@@ -191,23 +191,46 @@
 .waveform {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 2.5px;
   width: 100%;
   height: 100%;
+  padding: 0 4px;
 }
 
 .waveform-bar {
-  width: 2.5px;
-  border-radius: 1px;
-  transition: background 0.2s ease;
+  width: 3px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.15);
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+  min-height: 3px;
+}
+
+.voice-sent .waveform-bar {
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 .waveform-bar.played {
   background-color: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.voice-received .waveform-bar.played {
+  background-color: var(--primary-color, #6366f1);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
 }
 
 .waveform-bar.unplayed {
-  background-color: rgba(255, 255, 255, 0.5);
+  opacity: 0.8;
+}
+
+/* Pulse animation for the currently playing bar */
+.waveform-bar.active {
+  animation: bar-pulse 1s infinite ease-in-out;
+}
+
+@keyframes bar-pulse {
+  0%, 100% { transform: scaleY(1); opacity: 1; }
+  50% { transform: scaleY(1.3); opacity: 0.8; }
 }
 
 /* Progress Indicator Overlay */

@@ -1,32 +1,35 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
-import { db } from '../db/db';
+import { extractWaveformData } from '../utils/audioUtils';
 
 const audioBlobCache = new Map();
+const waveformCache = new Map();
 
 /**
  * Hook to download audio as a Blob ONCE and reuse the object URL.
- * Solves the issue of 206 Partial Content requests firing repeatedly for <audio> tags.
+ * Also extracts waveform data for visualization.
  */
 export const useAudioBlob = (mediaPath) => {
     const [audioUrl, setAudioUrl] = useState(null);
+    const [waveform, setWaveform] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         if (!mediaPath) {
             setAudioUrl(null);
+            setWaveform([]);
             return;
         }
 
         // 1. Check in-memory cache first
         if (audioBlobCache.has(mediaPath)) {
             setAudioUrl(audioBlobCache.get(mediaPath));
+            setWaveform(waveformCache.get(mediaPath) || []);
             return;
         }
 
         let isMounted = true;
-        let urlToRevoke = null;
 
         const fetchAudio = async () => {
             setIsLoading(true);
@@ -41,9 +44,16 @@ export const useAudioBlob = (mediaPath) => {
 
                 if (data && isMounted) {
                     const objectUrl = URL.createObjectURL(data);
-                    audioBlobCache.set(mediaPath, objectUrl);
-                    setAudioUrl(objectUrl);
-                    urlToRevoke = objectUrl;
+                    
+                    // Extract waveform before setting state
+                    const waveformData = await extractWaveformData(data, 40);
+                    
+                    if (isMounted) {
+                        audioBlobCache.set(mediaPath, objectUrl);
+                        waveformCache.set(mediaPath, waveformData);
+                        setAudioUrl(objectUrl);
+                        setWaveform(waveformData);
+                    }
                 }
             } catch (err) {
                 if (isMounted) {
@@ -62,11 +72,8 @@ export const useAudioBlob = (mediaPath) => {
 
         return () => {
             isMounted = false;
-            // Note: We deliberately DO NOT revoke the ObjectURL here because
-            // we are caching it in audioBlobCache for reuse across re-renders.
-            // Revoking it would break the audio in other message instances.
         };
     }, [mediaPath]);
 
-    return { audioUrl, isLoading, error };
+    return { audioUrl, waveform, isLoading, error };
 };

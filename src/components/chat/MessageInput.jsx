@@ -275,28 +275,30 @@ const MessageInput = ({
           onToggleAttachment={() => setShowAttachmentMenu(!showAttachmentMenu)}
         />
 
-        {canShowInputBar && !filePreview && !message.trim() ? (
-          <button
-            className={styles['btn-action']}
-            onClick={() => setIsRecordingUI(true)}
-            disabled={isUploading || externalDisabled}
-            title="Voice Message"
-          >
-            <Mic size={24} />
-          </button>
-        ) : (
-          <button
-            className={styles['btn-action']}
-            onClick={() => handleSend()}
-            disabled={isUploading || externalDisabled}
-            title="Send"
-          >
-            {isUploading ? (
-              <LoaderCircle size={24} className={styles['animate-spin']} />
-            ) : (
-              <Send size={24} />
-            )}
-          </button>
+        {!isRecordingUI && !voiceBlob && (
+          canShowInputBar && !filePreview && !message.trim() ? (
+            <button
+              className={styles['btn-action']}
+              onClick={() => setIsRecordingUI(true)}
+              disabled={isUploading || externalDisabled}
+              title="Voice Message"
+            >
+              <Mic size={24} />
+            </button>
+          ) : (
+            <button
+              className={styles['btn-action']}
+              onClick={() => handleSend()}
+              disabled={isUploading || externalDisabled}
+              title="Send"
+            >
+              {isUploading ? (
+                <LoaderCircle size={24} className={styles['animate-spin']} />
+              ) : (
+                <Send size={24} />
+              )}
+            </button>
+          )
         )}
       </div>
 
