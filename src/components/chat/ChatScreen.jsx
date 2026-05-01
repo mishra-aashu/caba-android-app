@@ -183,7 +183,6 @@ const ChatScreen = () => {
             if (keyboardSubscription) keyboardSubscription.remove();
         };
     }, [handleScrollToBottom]);
-
     const debouncedSaveScroll = useMemo(
         () => debounce((id, index) => saveScrollPosition(id, index), 500),
         [saveScrollPosition],
@@ -383,6 +382,7 @@ const ChatScreen = () => {
                             typingUsers={typingUsers}
                             isMuted={isMuted}
                             isTempChat={isTempChat}
+                            isInitializing={isInitializing}
                             onVoiceCall={handleVoiceCall}
                             onVideoCall={handleVideoCall}
                             onMuteToggle={handleMuteToggle}
@@ -455,8 +455,9 @@ const ChatScreen = () => {
                                     onJoinGame={handleJoinGame}
                                     isVanishMode={isTempChat}
                                     onToggleVanish={toggleVanishMode}
-                                    isLoading={isMessagesLoading}
+                                    isLoading={isMessagesLoading || isInitializing}
                                     isDexieLoading={isDexieLoading}
+                                    isInitializing={isInitializing}
                                     isFetchingNextPage={isFetchingNextPage}
                                     fetchNextPage={fetchNextPage}
                                     hasNextPage={hasNextPage}

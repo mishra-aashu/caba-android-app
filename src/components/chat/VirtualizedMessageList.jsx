@@ -35,6 +35,7 @@ const VirtualizedMessageList = React.forwardRef(({
   onToggleVanish,
   onManualRetry,
   isDexieLoading = false,
+  isInitializing = false,
 }, ref) => {
   const isSelectionMode = useChatStore(state => state.isSelectionMode);
 
@@ -60,7 +61,7 @@ const VirtualizedMessageList = React.forwardRef(({
     return m;
   }, [messages]);
 
-  const isLoadingTotal = (isQueryLoading || isDexieLoading) && messages.length === 0;
+  const isLoadingTotal = (isQueryLoading || isDexieLoading || isInitializing) && messages.length === 0;
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -480,6 +481,7 @@ export default memo(VirtualizedMessageList, (prevProps, nextProps) => {
   if (prevProps.hasNextPage !== nextProps.hasNextPage) return false;
   if (prevProps.isVanishMode !== nextProps.isVanishMode) return false;  // FIX: re-render on vanish toggle
   if (prevProps.isDexieLoading !== nextProps.isDexieLoading) return false;
+  if (prevProps.isInitializing !== nextProps.isInitializing) return false;
 
   const prevTyping = Object.keys(prevProps.typingUsers || {}).length;
   const nextTyping = Object.keys(nextProps.typingUsers || {}).length;

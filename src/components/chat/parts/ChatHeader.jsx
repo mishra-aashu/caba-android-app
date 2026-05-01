@@ -55,6 +55,7 @@ const ChatHeader = memo(({
     onNavigate,
     onAddMember,
     isAdmin,
+    isInitializing,
 }) => {
     const isSelectionMode = useChatStore(state => state.isSelectionMode);
     const selectedCount = useChatStore(state => state.selectedMessageIds.size);
@@ -110,7 +111,7 @@ const ChatHeader = memo(({
         }
 
         // DM chat
-        if (!otherUser) return 'Loading...';
+        if (isInitializing || !otherUser) return 'Loading...';
 
         const typingKeys = Object.keys(typingUsers || {});
         if (typingKeys.length > 0) return 'typing...';
@@ -370,9 +371,9 @@ const ChatHeader = memo(({
                 </div>
                 <div className={styles['user-details']}>
                     <h3 className={styles['user-name']}>
-                        {isGroupChat
+                        {isInitializing ? 'Loading...' : (isGroupChat
                             ? (otherUser?.name || 'Group Chat')
-                            : resolvedName}
+                            : resolvedName)}
                         <Lock size={12} style={{ marginLeft: '6px', opacity: 0.6, color: 'var(--brand-primary)' }} />
                     </h3>
                     <p className={styles['user-status']}>{statusText}</p>
