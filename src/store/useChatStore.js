@@ -1,26 +1,37 @@
 import { create } from 'zustand';
-
-/**
- * useChatStore - Zustand store for UI state only
- *
- * Following the new architecture, message data is managed by Dexie + useLiveQuery.
- * This store only holds volatile UI state like scroll positions.
- */
+import { shallow } from 'zustand/shallow';
 
 const useChatStore = create((set, get) => ({
-    // ─── STATE (UI ONLY) ───────────────────────────────────────────────────
+    // ─── STATE ───────────────────────────────────────────────────
     roomScrollPositions: {},
     isSyncing: false,
     isSelectionMode: false,
     selectedMessageIds: new Set(),
-    activeChat: null, // Holds the currently active chat object
+    activeChat: null,
+    activeChatId: null, // ✅ Add separate primitive value
 
-    // ─── ACTIONS ──────────────────────────────────────────────────────────
+    // ─── ACTIONS ─────────────────────────────────────────────────
 
-    setActiveChat: (chat) => set({ activeChat: chat }),
+    setActiveChat: (chat) => set((state) => {
+        const currentId = state.activeChatId;
+        const newId = chat?.id;
 
-    clearActiveChat: () => set({ activeChat: null }),
+        if (currentId === newId) {
+            return state;
+        }
 
+        return { 
+            activeChat: chat,
+            activeChatId: newId 
+        };
+    }),
+
+    clearActiveChat: () => set({ 
+        activeChat: null,
+        activeChatId: null 
+    }),
+
+    // ... rest of your actions (unchanged)
     enterSelectionMode: (firstMessageId) => {
         const ids = new Set();
         if (firstMessageId) ids.add(firstMessageId);
@@ -32,7 +43,6 @@ const useChatStore = create((set, get) => ({
     },
 
     toggleMessageSelection: (messageId) => {
-        console.log('toggleMessageSelection called with:', messageId);
         if (!messageId) return;
         const { selectedMessageIds } = get();
         const newSelected = new Set(selectedMessageIds);
@@ -40,13 +50,11 @@ const useChatStore = create((set, get) => ({
         if (newSelected.has(messageId)) {
             newSelected.delete(messageId);
             if (newSelected.size === 0) {
-                console.log('Auto-exiting selection mode');
                 set({ selectedMessageIds: new Set(), isSelectionMode: false });
                 return;
             }
         } else {
             newSelected.add(messageId);
-            console.log('Auto-entering selection mode');
             set({ isSelectionMode: true, selectedMessageIds: newSelected });
             return;
         }
@@ -77,10 +85,11 @@ const useChatStore = create((set, get) => ({
     setSyncing: (status) => set({ isSyncing: status }),
 }));
 
-// ─── SELECTORS ──────────────────────────────────────────────────────────
+// ─── OPTIMIZED SELECTORS ────────────────────────────────────────
 
+export const selectActiveChatId = (state) => state.activeChatId; // ✅ NEW
+export const selectActiveChat = (state) => state.activeChat;
 export const selectRoomScrollPosition = (chatId) => (state) => state.roomScrollPositions[chatId];
-
 export const selectIsSyncing = (state) => state.isSyncing;
 
 export default useChatStore;

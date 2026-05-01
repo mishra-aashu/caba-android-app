@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { db, addToSyncQueue } from '../../db/db';
 import { getPublicMediaUrl } from '../../services/mediaService';
@@ -168,8 +168,8 @@ export function useChatMedia({
         }
     }, []);
 
-    return {
+    return useMemo(() => ({
         handleSendMedia,
         handleMediaDownload,
-    };
+    }), [handleSendMedia, handleMediaDownload]);
 }

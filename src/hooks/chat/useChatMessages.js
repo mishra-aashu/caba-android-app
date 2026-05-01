@@ -35,8 +35,6 @@ export function useChatMessages({
         async () => {
             if (!chatId || chatId === 'new') return [];
             
-            // [ROOT FIX] Use compound index [chatId+createdAt] for reliable latest-message selection.
-            // Old way (.reverse().limit()) was selecting by primary key (UUID), which is random.
             const collection = db.messages.where('[chatId+createdAt]')
                 .between([chatId, Dexie.minKey], [chatId, Dexie.maxKey]);
             
@@ -45,18 +43,14 @@ export function useChatMessages({
             
             setHasNextPage(count > currentLimit);
 
-            // Fetch truly latest messages and return them sorted ascending for the UI
             let latest = await collection
                 .reverse()
                 .limit(currentLimit)
                 .toArray();
             
-            // [FAIL-SAFE] If compound index is empty but messages exist for this chat, 
-            // fallback to a simpler query to avoid blank screens while index is rebuilding.
             if (latest.length === 0) {
                 const fallbackMessages = await db.messages.where('chatId').equals(chatId).toArray();
                 if (fallbackMessages.length > 0) {
-                    console.warn(`[Index Fix] Fallback triggered for chat ${chatId}. Found ${fallbackMessages.length} messages.`);
                     latest = fallbackMessages
                         .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
                         .slice(0, currentLimit);
@@ -68,8 +62,15 @@ export function useChatMessages({
         [chatId, page]
     ) || [];
 
+    const rawMessagesRef = useRef(rawMessages);
     const messages = useMemo(() => {
-        // [PERF] Map only once per message; use memoized mapping
+        if (rawMessagesRef.current !== rawMessages) {
+            console.log('📦 rawMessages reference changed', {
+                count: rawMessages?.length,
+                sameData: JSON.stringify(rawMessagesRef.current) === JSON.stringify(rawMessages)
+            });
+            rawMessagesRef.current = rawMessages;
+        }
         return rawMessages.map(msg => dbToFrontend(msg));
     }, [rawMessages]);
 
@@ -77,294 +78,174 @@ export function useChatMessages({
     const [isSyncing, setIsSyncing] = useState(false);
 
     useEffect(() => {
-        // [PROFESSIONAL] Show cached messages immediately. Delay sync so it doesn't
-        // race with useLiveQuery + useRealtimeMessages at mount time (all compete for IndexedDB).
         if (navigator.onLine && chatId && chatId !== 'new') {
             const timer = setTimeout(() => {
                 setIsSyncing(true);
                 import('../../services/syncService').then(({ syncService }) => {
                     syncService.syncChat(chatId).finally(() => setIsSyncing(false));
                 });
-            }, 500); // 500ms grace period — UI renders first, then we sync
+            }, 500);
             return () => clearTimeout(timer);
         }
     }, [chatId]);
 
-
-    // [UX] messages.length > 0 means we have cache, so it's not "loading"
     const isMessagesLoading = messages.length === 0 && isSyncing;
 
     const fetchNextPage = useCallback(() => {
         if (!hasNextPage || isFetchingNextPage) return;
-        
         setIsFetchingNextPage(true);
-        // Small delay to prevent scroll jump and show spinner
         setTimeout(() => {
             setPage(prev => prev + 1);
             setIsFetchingNextPage(false);
         }, 150);
     }, [hasNextPage, isFetchingNextPage]);
 
-    // ─── REALTIME ───
     const { status: connectionStatus, retry: retryConnection } = useRealtimeMessages(
         chatId,
         {
             onNewMessage: (msg) => onNewMessage?.(msg),
-            onConnectionError: () =>
-                toast.error('Check your internet connection', { id: 'realtime-error' }),
+            onConnectionError: () => toast.error('Check your internet connection', { id: 'realtime-error' }),
         },
         currentUser?.id,
         otherUserId
     );
 
-    // ─── DELETION ───
     const { mutateAsync: deleteMessageMutation } = useDeleteMessage(chatId);
 
-    const deleteSelectedMessages = useCallback(
-        async (selectedIds, callback) => {
-            if (!selectedIds?.length) return;
-
-            // 1. Optimistic local delete
-            let previousMessages = [];
-            try {
-                previousMessages = await db.messages.where('id').anyOf(selectedIds).toArray();
-                await db.messages.where('id').anyOf(selectedIds).delete();
-                
-                // Update chat list preview after deletion (Ensure String ID for Dexie)
-                const remaining = await db.messages
-                    .where('chatId').equals(String(chatId))
-                    .reverse().sortBy('createdAt');
-                const latestMsg = remaining[0];
-                if (latestMsg) {
-                    await db.chats_list.update(String(chatId), {
-                        lastMessage: latestMsg.content || '📎 Media',
-                        lastMessageAt: latestMsg.createdAt,
-                        timestamp: latestMsg.createdAt,
-                    }).catch(() => {});
-                }
-            } catch (e) {
-                console.error('Optimistic local delete failed', e);
+    const deleteSelectedMessages = useCallback(async (selectedIds, callback) => {
+        if (!selectedIds?.length) return;
+        let previousMessages = [];
+        try {
+            previousMessages = await db.messages.where('id').anyOf(selectedIds).toArray();
+            await db.messages.where('id').anyOf(selectedIds).delete();
+            const remaining = await db.messages.where('chatId').equals(String(chatId)).reverse().sortBy('createdAt');
+            const latestMsg = remaining[0];
+            if (latestMsg) {
+                await db.chats_list.update(String(chatId), {
+                    lastMessage: latestMsg.content || '📎 Media',
+                    lastMessageAt: latestMsg.createdAt,
+                    timestamp: latestMsg.createdAt,
+                }).catch(() => {});
             }
-
-            try {
-                const { error } = await supabase
-                    .from('messages')
-                    .delete()
-                    .in('id', selectedIds);
-
-                // Note: Supabase delete returns empty data even on success (RLS may filter rows)
-                // We do NOT throw on empty response — the optimistic delete already handled the UI
-                if (error) throw error;
-
-                if (callback) callback();
-                toast.success('Messages deleted');
-            } catch (error) {
-                console.error('Error deleting messages:', error);
-                // Rollback optimistic delete on true network/server error
-                if (previousMessages.length > 0) {
-                    try {
-                        await db.messages.bulkPut(previousMessages);
-                    } catch (e) { /* ignore */ }
-                }
-                toast.error(error.message || 'Failed to delete messages');
-            }
-        },
-        [chatId, supabase]
-    );
-
-    // ─── CLEAR CHAT WITH ROLLBACK ───
-    const clearChat = useCallback(async () => {
-        if (isNewChat) return;
-
-        const backup = await db.messages.where('chatId').equals(chatId).toArray();
+        } catch (e) {}
 
         try {
+            const { error } = await supabase.from('messages').delete().in('id', selectedIds);
+            if (error) throw error;
+            if (callback) callback();
+            toast.success('Messages deleted');
+        } catch (error) {
+            if (previousMessages.length > 0) await db.messages.bulkPut(previousMessages);
+            toast.error(error.message || 'Failed to delete messages');
+        }
+    }, [chatId, supabase]);
+
+    const clearChat = useCallback(async () => {
+        if (isNewChat) return;
+        const backup = await db.messages.where('chatId').equals(chatId).toArray();
+        try {
             await db.messages.where('chatId').equals(chatId).delete();
-
-            const { error } = await supabase
-                .from('messages')
-                .delete()
-                .eq('chat_id', chatId);
-
+            const { error } = await supabase.from('messages').delete().eq('chat_id', chatId);
             if (error) throw error;
             toast.success('Chat cleared');
         } catch (error) {
-            console.error('Error clearing chat:', error);
-            if (backup.length > 0) {
-                try {
-                    await db.messages.bulkPut(backup);
-                } catch (e) {
-                    console.error('Rollback failed:', e);
-                }
-            }
+            if (backup.length > 0) await db.messages.bulkPut(backup);
             toast.error('Failed to clear chat');
         }
     }, [chatId, isNewChat, supabase]);
 
-    // ─── SENDING ───
-    const sendMessage = useCallback(
-        async (content, vanishConfig = null) => {
-            if (!content?.trim() || !currentUser) return null;
+    const sendMessage = useCallback(async (content, vanishConfig = null) => {
+        if (!content?.trim() || !currentUser) return null;
+        const tempId = String(Date.now());
+        const frontendMsg = {
+            chatId,
+            senderId: currentUser.id,
+            receiverId: isGroupChat ? currentUser.id : otherUserId,
+            content: content.trim(),
+            isGroupMessage: Boolean(isGroupChat),
+            replyTo: replyingTo?.id || null,
+            messageType: 'text',
+            createdAt: new Date().toISOString(),
+            vanishAt: vanishConfig?.vanishAt || null,
+            status: navigator.onLine ? 'sending' : 'pending',
+            tempId: tempId,
+        };
+        setReplyingTo(null);
+        hapticsManager.impact();
+        try {
+            await db.transaction('rw', [db.messages, db.chats_list], async () => {
+                await db.messages.put({ ...frontendMsg, id: `temp_${tempId}`, tempId });
+                await db.chats_list.update(String(chatId), {
+                    lastMessageAt: frontendMsg.createdAt,
+                    timestamp: frontendMsg.createdAt,
+                    lastMessage: frontendMsg.content,
+                    status: 'sending'
+                }).catch(() => {});
+            });
 
-            const tempId = String(Date.now());
-            const frontendMsg = {
-                chatId,
-                senderId: currentUser.id,
-                receiverId: isGroupChat ? currentUser.id : otherUserId,
-                content: content.trim(),
-                isGroupMessage: Boolean(isGroupChat),
-                replyTo: replyingTo?.id || null,
-                messageType: 'text',
-                createdAt: new Date().toISOString(),
-                vanishAt: vanishConfig?.vanishAt || null,
-                status: navigator.onLine ? 'sending' : 'pending',
-                tempId: tempId,
-            };
-
-            setReplyingTo(null);
-            hapticsManager.impact();
-
-            try {
-                // 1. Optimistic Save to Dexie (Always use camelCase 'chatId')
-                await db.transaction('rw', [db.messages, db.chats_list], async () => {
-                    await db.messages.put({
-                        ...frontendMsg,
-                        id: `temp_${tempId}`,
-                        tempId,
-                    });
-                    
-                    // Update chat list head (Ensure String ID for Dexie)
-                    await db.chats_list.update(String(chatId), {
-                        lastMessageAt: frontendMsg.createdAt,
-                        timestamp: frontendMsg.createdAt,
-                        lastMessage: frontendMsg.content,
-                        status: 'sending'
-                    }).catch(() => {});
-                });
-
-                // Convert to snake_case for Supabase/Queue
-                const dbData = frontendToDb(frontendMsg);
-
-                if (!navigator.onLine) {
-                    await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData);
-                    return null;
-                }
-
-                // 2. Prepare for Supabase (ENCRYPT)
-                // End-to-End Encryption before sending to server
-                dbData.content = EncryptionService.encrypt(
-                    dbData.content, 
-                    chatId, 
-                    isGroupChat ? null : otherUserId
-                );
-
-                // Online path: Perform Supabase insert
-                // Ensure status is 'sent' for the server record to avoid stuck clock icon
-                dbData.status = 'sent';
-
-                const { data, error } = await supabase
-                    .from('messages')
-                    .insert(dbData)
-                    .select()
-                    .single();
-
-                if (error) {
-                    await db.messages.update(`temp_${tempId}`, { status: 'failed' });
-                    await db.chats_list.update(String(chatId), { status: 'failed' }).catch(() => {});
-                    throw error;
-                }
-
-                const normalizedData = dbToFrontend(data);
-                
-                // Decrypt the server response (which is encrypted) before saving locally
-                if (normalizedData.content) {
-                    normalizedData.content = EncryptionService.decrypt(
-                        normalizedData.content, 
-                        chatId, 
-                        isGroupChat ? null : otherUserId
-                    );
-                }
-
-                // 3. Swap temp message with real server data
-                await db.transaction('rw', [db.messages, db.chats_list], async () => {
-                    await db.messages.delete(`temp_${tempId}`).catch(() => {});
-                    if (normalizedData) {
-                        await db.messages.put(normalizedData);
-                        
-                        await db.chats_list.update(String(chatId), {
-                            lastMessageAt: normalizedData.createdAt,
-                            timestamp: normalizedData.createdAt,
-                            lastMessage: normalizedData.content,
-                            status: 'delivered'
-                        }).catch(() => {});
-                    }
-                });
-
-                return data;
-            } catch (error) {
-                console.error('Send failed, falling back to queue:', error);
-                await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
-                hapticsManager.error();
+            const dbData = frontendToDb(frontendMsg);
+            if (!navigator.onLine) {
+                await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData);
                 return null;
             }
-        },
-        [
-            chatId, otherUserId, isGroupChat, isNewChat,
-            currentUser, replyingTo, supabase, navigate,
-        ]
-    );
+            dbData.content = EncryptionService.encrypt(dbData.content, chatId, isGroupChat ? null : otherUserId);
+            dbData.status = 'sent';
+            const { data, error } = await supabase.from('messages').insert(dbData).select().single();
+            if (error) {
+                await db.messages.update(`temp_${tempId}`, { status: 'failed' });
+                throw error;
+            }
+            const normalizedData = dbToFrontend(data);
+            if (normalizedData.content) {
+                normalizedData.content = EncryptionService.decrypt(normalizedData.content, chatId, isGroupChat ? null : otherUserId);
+            }
+            await db.transaction('rw', [db.messages, db.chats_list], async () => {
+                await db.messages.delete(`temp_${tempId}`).catch(() => {});
+                if (normalizedData) {
+                    await db.messages.put(normalizedData);
+                    await db.chats_list.update(String(chatId), {
+                        lastMessageAt: normalizedData.createdAt,
+                        timestamp: normalizedData.createdAt,
+                        lastMessage: normalizedData.content,
+                        status: 'delivered'
+                    }).catch(() => {});
+                }
+            });
+            return data;
+        } catch (error) {
+            await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
+            hapticsManager.error();
+            return null;
+        }
+    }, [chatId, otherUserId, isGroupChat, isNewChat, currentUser, replyingTo, supabase]);
 
     const toggleReaction = useCallback(async (messageId, emoji) => {
         if (!currentUser || !messageId) return;
-
         const message = messages.find(m => m.id === messageId);
         if (!message) return;
-
         const currentMetadata = message.metadata || {};
         const newMetadata = { ...currentMetadata };
-
-        if (newMetadata[currentUser.id] === emoji) {
-            delete newMetadata[currentUser.id];
-        } else {
-            newMetadata[currentUser.id] = emoji;
-        }
-
+        if (newMetadata[currentUser.id] === emoji) delete newMetadata[currentUser.id];
+        else newMetadata[currentUser.id] = emoji;
         try {
             await db.messages.update(messageId, { metadata: newMetadata });
-        } catch (e) { /* ignore */ }
-
-        try {
-            const { error } = await supabase
-                .from('messages')
-                .update({ metadata: newMetadata })
-                .eq('id', messageId);
-
+            const { error } = await supabase.from('messages').update({ metadata: newMetadata }).eq('id', messageId);
             if (error) throw error;
         } catch (error) {
-            console.error('Error toggling reaction:', error);
-            try {
-                await db.messages.update(messageId, { metadata: currentMetadata });
-            } catch (e) { /* ignore */ }
+            await db.messages.update(messageId, { metadata: currentMetadata });
             toast.error('Failed to update reaction');
         }
     }, [currentUser, messages, supabase]);
 
-    // ─── FORWARD MESSAGES ───
     const forwardMessages = useCallback(async (msgs, targetChat) => {
         if (!msgs?.length || !targetChat || !currentUser) return;
-
         const isTargetGroup = targetChat.isGroup || targetChat.is_group || false;
-
         for (const msg of msgs) {
-            // Unique tempId per message to avoid collisions
             const tempId = `${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-
             const frontendMsg = {
                 chatId: targetChat.id,
                 senderId: currentUser.id,
-                receiverId: isTargetGroup
-                    ? currentUser.id
-                    : (targetChat.otherUser?.id || targetChat.receiver_id),
+                receiverId: isTargetGroup ? currentUser.id : (targetChat.otherUser?.id || targetChat.receiver_id),
                 content: msg.content,
                 mediaPath: msg.mediaPath || msg.media_path,
                 mediaType: msg.mediaType || msg.media_type,
@@ -375,48 +256,27 @@ export function useChatMessages({
                 status: navigator.onLine ? 'sending' : 'pending',
                 tempId,
             };
-
             try {
-                // Optimistic save to Dexie (camelCase)
-                await db.messages.put({
-                    ...frontendMsg,
-                    id: `temp_${tempId}`,
-                });
-
+                await db.messages.put({ ...frontendMsg, id: `temp_${tempId}` });
                 if (!navigator.onLine) {
                     await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
                 } else {
-                    // Convert to snake_case and ENCRYPT only for server
                     const dbData = frontendToDb(frontendMsg);
-                    dbData.content = EncryptionService.encrypt(
-                        dbData.content, 
-                        targetChat.id, 
-                        isTargetGroup ? null : (targetChat.otherUser?.id || targetChat.receiver_id)
-                    );
-
-                    const { data, error } = await supabase
-                        .from('messages')
-                        .insert(dbData)
-                        .select()
-                        .single();
-
+                    dbData.content = EncryptionService.encrypt(dbData.content, targetChat.id, isTargetGroup ? null : (targetChat.otherUser?.id || targetChat.receiver_id));
+                    const { data, error } = await supabase.from('messages').insert(dbData).select().single();
                     if (error) throw error;
-
-                    // Swap temp with real server record
                     const normalizedData = dbToFrontend(data);
                     await db.transaction('rw', db.messages, async () => {
                         await db.messages.delete(`temp_${tempId}`).catch(() => {});
                         if (normalizedData) await db.messages.put(normalizedData);
                     });
                 }
-            } catch (err) {
-                console.error('[Forward] Failed for msg:', msg.id, err);
-            }
+            } catch (err) {}
         }
-        toast.success(`Forwarded ${msgs.length} message${msgs.length > 1 ? 's' : ''}`);
+        toast.success(`Forwarded ${msgs.length} messages`);
     }, [currentUser, supabase]);
 
-    return {
+    return useMemo(() => ({
         messages,
         isMessagesLoading,
         isFetchingNextPage,
@@ -431,14 +291,18 @@ export function useChatMessages({
         clearChat,
         replyingTo,
         setReplyingTo,
-        handleReply: useCallback((msg) => setReplyingTo(msg), []),
-        cancelReply: useCallback(() => setReplyingTo(null), []),
+        handleReply: (msg) => setReplyingTo(msg),
+        cancelReply: () => setReplyingTo(null),
         toggleReaction,
-        handleManualRetry: useCallback(async (tempId) => {
+        handleManualRetry: async (tempId) => {
             const { manualRetrySyncItem } = await import('../../db/db');
             await manualRetrySyncItem(tempId);
-            // Trigger a network sync check
             window.dispatchEvent(new Event('online'));
-        }, []),
-    };
+        },
+    }), [
+        messages, isMessagesLoading, isFetchingNextPage, hasNextPage, 
+        fetchNextPage, connectionStatus, retryConnection, sendMessage, 
+        forwardMessages, deleteMessageMutation, deleteSelectedMessages, 
+        clearChat, replyingTo, toggleReaction
+    ]);
 }

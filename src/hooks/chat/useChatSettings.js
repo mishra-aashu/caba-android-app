@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import toast from 'react-hot-toast';
 import { useVanishPresets } from './useVanishPresets';
@@ -192,7 +192,7 @@ export function useChatSettings({
         }
     }, [chatId, currentUser, isTempChat, selectedVanishDuration, supabase]);
 
-    return {
+    return useMemo(() => ({
         isMuted,
         isTempChat,
         setIsTempChat,
@@ -202,9 +202,12 @@ export function useChatSettings({
         vanishPresets,
         isVanishLoading,
         handleMuteToggle,
-
         confirmBlockUser,
         updateVanishDuration,
-    };
+    }), [
+        isMuted, isTempChat, toggleVanishMode, 
+        selectedVanishDuration, vanishPresets, 
+        isVanishLoading, handleMuteToggle, 
+        confirmBlockUser, updateVanishDuration
+    ]);
 }
-

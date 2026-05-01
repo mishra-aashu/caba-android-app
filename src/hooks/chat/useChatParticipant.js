@@ -17,7 +17,12 @@ export function useChatParticipant({
   currentUser,
 }) {
   const location = useLocation();
-  const allChats = useLiveQuery(() => db.chats_list.toArray()) || [];
+  // ✅ Only subscribe to the specific chat we need
+  const activeChat = useLiveQuery(() => {
+    if (!chatId || chatId === 'new') return null;
+    return db.chats_list.get(String(chatId));
+  }, [chatId]);
+  
   const { data: groupDetails } = useGroupDetails(isGroupChat ? chatId : null);
 
   const [otherUser, setOtherUser] = useState(() => {
@@ -36,21 +41,17 @@ export function useChatParticipant({
     }
 
     // 2. Try global chats list
-    if (allChats?.length > 0) {
-      // FIX: Use strict equality === instead of ==
-      const activeChat = allChats.find((c) => String(c.id) === String(chatId));
-      if (activeChat) {
-        const effectiveId = isGroupChat ? chatId : otherUserId;
-        return {
-          ...activeChat,
-          ...(activeChat.otherUser || {}),
-          id: effectiveId,
-          is_group: !!activeChat.isGroup,
-          isGroup: !!activeChat.isGroup,
-          member_count:
-            activeChat.member_count || activeChat.otherUser?.member_count || 0,
-        };
-      }
+    if (activeChat) {
+      const effectiveId = isGroupChat ? chatId : otherUserId;
+      return {
+        ...activeChat,
+        ...(activeChat.otherUser || {}),
+        id: effectiveId,
+        is_group: !!activeChat.isGroup,
+        isGroup: !!activeChat.isGroup,
+        member_count:
+          activeChat.member_count || activeChat.otherUser?.member_count || 0,
+      };
     }
 
     // 3. Fallback defaults
@@ -116,12 +117,9 @@ export function useChatParticipant({
         .then((user) => {
           if (isMounted && user) {
             setOtherUser((prev) => {
-              const chat = allChats?.find(
-                (c) => c.metadata?.otherUserId === otherUserId
-              );
-              const name = chat?.name || user.name || 'Unknown User';
+              const name = activeChat?.name || user.name || 'Unknown User';
               // FIX: Spread fresh user data AFTER prev so fresh fields win
-              return { ...prev, ...user, name, contact_name: chat?.name };
+              return { ...prev, ...user, name, contact_name: activeChat?.name };
             });
           }
         })
@@ -139,7 +137,7 @@ export function useChatParticipant({
     return () => {
       isMounted = false;
     };
-  }, [isGroupChat, otherUserId, allChats]);
+  }, [isGroupChat, otherUserId, activeChat]);
 
   return {
     otherUser,

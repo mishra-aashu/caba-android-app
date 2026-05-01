@@ -8,7 +8,7 @@ const waveformCache = new Map();
 const pendingRequests = new Map();
 
 // Cleanup old blob URLs to prevent memory leaks
-const MAX_CACHE_SIZE = 50;
+const MAX_CACHE_SIZE = 200;
 const cleanupOldestCache = (cache) => {
     if (cache.size > MAX_CACHE_SIZE) {
         const firstKey = cache.keys().next().value;

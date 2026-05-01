@@ -5,7 +5,6 @@ import { initializeFileSystem, loadChatsFromDevice, saveChatsToDevice } from '..
 import { isUserOnline } from '../utils/dateFormatter';
 import { normalizeChat } from '../utils/chatHelpers';
 import { db } from '../db/db';
-import useChatStore from '../store/useChatStore';
 import { EncryptionService } from '../services/EncryptionService';
 
 // ══════════════════════════════════════════════════════════════
@@ -49,6 +48,9 @@ const fetchChatList = async ({ supabase, userId }) => {
 // Batch Decryption Worker (Non-blocking)
 // ══════════════════════════════════════════════════════════════
 
+// [PERF FIX #2] Guard: skip AES decrypt if text is already plaintext.
+// The lastMessage stored in chats_list is already decrypted by useRealtimeMessages
+// before being written to IndexedDB. Running decrypt again wastes CPU on every sync.
 const decryptChatsBatched = async (chats) => {
     const BATCH_SIZE = 10;
     const decryptedChats = [];
@@ -56,9 +58,13 @@ const decryptChatsBatched = async (chats) => {
     for (let i = 0; i < chats.length; i += BATCH_SIZE) {
         const batch = chats.slice(i, i + BATCH_SIZE);
         
-        // Decrypt batch
         const decryptedBatch = batch.map(chat => {
             if (chat?.lastMessage) {
+                // Fast path: if not encrypted, skip the AES call entirely.
+                // In normal flow this is always true (sync layer decrypts before write).
+                if (typeof chat.lastMessage !== 'string' || !chat.lastMessage.startsWith('\uD83D\uDD12:')) {
+                    return chat; // Already plaintext — zero cost
+                }
                 try {
                     chat.lastMessage = EncryptionService.decrypt(
                         chat.lastMessage,
@@ -90,8 +96,7 @@ const decryptChatsBatched = async (chats) => {
 
 export const useChatListRealtime = (currentUserId) => {
     const { supabase } = useSupabase();
-    const activeChat = useChatStore(state => state.activeChat);
-    
+
     const [loading, setLoading] = useState(true);
     const [hasMoreChats, setHasMoreChats] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -99,12 +104,6 @@ export const useChatListRealtime = (currentUserId) => {
     // Refs for stable access in callbacks
     const mountedRef = useRef(true);
     const lastSyncTimeRef = useRef(0);
-    const activeChatIdRef = useRef(activeChat?.id);
-
-    // Update active chat ref when it changes
-    useEffect(() => {
-        activeChatIdRef.current = activeChat?.id;
-    }, [activeChat?.id]);
 
     // ──────────────────────────────────────────────────────────
     // Load & Sync Chats
@@ -126,10 +125,18 @@ export const useChatListRealtime = (currentUserId) => {
                 isOnline: isUserOnline(Boolean(chat.is_online || chat.isOnline), chat.lastSeen || chat.last_seen),
             }));
 
-            // Atomic DB write
+            // [PERF FIX #3] Use bulkPut instead of clear() + bulkAdd().
+            // clear() causes useLiveQuery to emit length=0, then bulkAdd emits length=N.
+            // This N→0→N flicker triggers 2 full ChatListPanel re-renders per sync cycle.
+            // bulkPut upserts in place — the observer fires only once with the final data.
             await db.transaction('rw', db.chats_list, async () => {
-                await db.chats_list.clear();
-                await db.chats_list.bulkAdd(updatedChats);
+                await db.chats_list.bulkPut(updatedChats);
+                // Remove any chats that no longer exist in the server response
+                const freshIds = new Set(updatedChats.map(c => c.id));
+                const staleIds = (await db.chats_list.toArray())
+                    .filter(c => !freshIds.has(c.id))
+                    .map(c => c.id);
+                if (staleIds.length > 0) await db.chats_list.bulkDelete(staleIds);
             });
 
             // Save to filesystem (background)

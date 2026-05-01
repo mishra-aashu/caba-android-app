@@ -410,9 +410,13 @@ body {
     bottom: calc(var(--bottom-nav-height, 60px) + var(--sab, 0px));
   }
 
+  /* Smooth chat list hide/show transition */
   .list-view {
     z-index: 2;
     transform-origin: center center;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateX(0);
+    opacity: 1;
   }
 
   .chat-view {
@@ -433,6 +437,13 @@ body {
 
   .mobile-layout.show-chat .list-view {
     filter: brightness(0.92);
+  }
+
+  /* CSS-only slide + fade when a chat is open — zero main-thread cost */
+  .list-view--behind {
+    transform: translateX(-10px);
+    opacity: 0;
+    pointer-events: none;
   }
 
   .mobile-layout.show-chat .chat-view {

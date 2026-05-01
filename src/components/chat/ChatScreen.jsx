@@ -35,11 +35,6 @@ const GroupCallScreen = lazy(() => import('../group/GroupCallScreen'));
 const EmojiPicker = lazy(() => import('../common/EmojiPicker'));
 const VanishSettingsModal = lazy(() => import('./VanishSettingsModal'));
 
-// [FIX #9] Removed unused lazy imports: GroupInfoDrawer, GameLobby, AddMembersModal
-
-// [FIX #9] Removed unused lazy imports: GroupInfoDrawer, GameLobby
-// They were imported but never rendered in JSX
-
 const ChatScreen = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -60,7 +55,7 @@ const ChatScreen = () => {
         handleShareAsForward, handleMediaDownload,
         handleAcceptGame, handleRejectGame, handleJoinGame, handleReactionToggle,
         supabase, showAlert, initialScrollPosition, saveScrollPosition,
-        isMessagesLoading, allChats,
+        isMessagesLoading,
         connectionStatus, retryConnection,
         authError, currentUser,
         markMessagesAsRead, unreadCount, setUnreadCount, isScrolledToBottom, setIsScrolledToBottom,
@@ -69,6 +64,12 @@ const ChatScreen = () => {
 
     useVanishCleanup(chatId);
 
+    // ✅ Track whether this is genuinely a new chat (not just a re-mount)
+    const previousChatIdRef = useRef(null);
+    const isNewChat = previousChatIdRef.current !== chatId;
+    useEffect(() => {
+        previousChatIdRef.current = chatId;
+    }, [chatId]);
 
     useEffect(() => {
         if (handleReactionToggle) {
@@ -84,18 +85,10 @@ const ChatScreen = () => {
         }
     }, [authError, navigate]);
 
-    // [FIX #4] Removed unused state variables:
-    // showGameLobby, selectedCallType, showGroupCallModal
-    // showClearConfirmModal, showBlockConfirmModal, showVanishSettingsModal, showDeleteConfirmModal
-    // These states were SET but their corresponding modals were NEVER rendered in JSX.
-
     const isSelectionMode = useChatStore(state => state.isSelectionMode);
     const selectedMessageIds = useChatStore(state => state.selectedMessageIds);
     const clearSelection = useChatStore(state => state.clearSelection);
 
-    // [FIX #1 + #5] Confirmation flows now use useChatRoom's dialog-based functions directly.
-    // Previously: onClearChat → setShowClearConfirmModal(true) → modal never rendered → nothing happened
-    // Now: onClearChat → confirmClearChat() → useDialog shows confirmation → action executes
     const onSelectionDelete = useCallback(() => {
         const ids = Array.from(selectedMessageIds);
         if (ids.length === 0) return;
@@ -118,8 +111,9 @@ const ChatScreen = () => {
     const { showUserDetails, showGroupInfo, showThemeSelector, showSharedMedia } = useContext(UserDetailsContext) || {};
 
     useEffect(() => {
+        if (!isNewChat) return; 
         if (chatId) setChatId(chatId);
-    }, [chatId, setChatId]);
+    }, [chatId, setChatId, isNewChat]);
 
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -140,7 +134,6 @@ const ChatScreen = () => {
     const [showForwardModal, setShowForwardModal] = useState(false);
     const [showVanishSettingsModal, setShowVanishSettingsModal] = useState(false);
     const messagesContainerRef = useRef(null);
-
 
     const handleEmojiSelect = useCallback((emoji) => {
         if (emoji.startsWith('http')) {
@@ -204,7 +197,9 @@ const ChatScreen = () => {
             }
         };
 
-        markMessagesAsRead();
+        if (isNewChat) {
+            markMessagesAsRead();
+        }
 
         window.addEventListener('focus', handleReadTrigger);
         document.addEventListener('visibilitychange', handleReadTrigger);
@@ -212,7 +207,7 @@ const ChatScreen = () => {
             window.removeEventListener('focus', handleReadTrigger);
             document.removeEventListener('visibilitychange', handleReadTrigger);
         };
-    }, [chatId, currentUser?.id, markMessagesAsRead]);
+    }, [chatId, currentUser?.id, markMessagesAsRead, isNewChat]);
 
 
     const handleScroll = useCallback((scrollLocation) => {
@@ -546,14 +541,11 @@ const ChatScreen = () => {
                         <ForwardModal
                             isOpen={true}
                             onClose={() => { setShowForwardModal(false); setMessagesToForward([]); }}
-                            chats={allChats}
                             messagesToForward={messagesToForward}
                             onForward={handleForwardMessages}
                             currentUser={currentUser}
                         />
                     )}
-
-
 
                     {showGroupCallScreen && (
                         <GroupCallScreen groupId={chatId} onEndCall={handleEndGroupCall} />

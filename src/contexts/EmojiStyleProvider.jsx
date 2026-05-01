@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from './SupabaseContext';
 import useUserStore from '../store/userStore';
+import useAuthStore from '../store/authStore';
 import { EmojiStyleContext } from './EmojiStyleContext';
 
 // Emoji Style Provider Component
@@ -19,7 +20,9 @@ export const EmojiStyleProvider = ({ children }) => {
   // Load emoji style from database
   const loadEmojiStyle = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // [FIX] Read from store instead of supabase.auth.getUser() to avoid
+      // NavigatorLockAcquireTimeoutError from Web Locks API contention at mount.
+      const user = useAuthStore.getState().user;
       if (!user) {
         setLoading(false);
         return;
@@ -126,9 +129,9 @@ export const EmojiStyleProvider = ({ children }) => {
   // Save emoji style to database
   const updateEmojiStyle = async (newStyle) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // [FIX] Use store user to avoid lock contention
+      const user = useAuthStore.getState().user;
       if (!user) {
-        // Fallback for local-only state if not logged in
         setEmojiStyle(newStyle);
         return true;
       }
@@ -153,7 +156,8 @@ export const EmojiStyleProvider = ({ children }) => {
 
   const updatePreferredEmojis = async (newEmojis) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // [FIX] Use store user to avoid lock contention
+      const user = useAuthStore.getState().user;
       if (!user) {
         setPreferredEmojis(newEmojis);
         return true;

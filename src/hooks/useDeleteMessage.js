@@ -11,6 +11,12 @@ export function useDeleteMessage(chatId) {
     const deleteMessage = async (messageId) => {
         console.log('[useDeleteMessage] Deleting:', messageId);
 
+        // [FIX] Temp messages (temp_... or numeric-only IDs) are local-only.
+        // Sending them to Supabase causes a 400: invalid UUID syntax.
+        const isLocalOnly = !messageId ||
+            String(messageId).startsWith('temp_') ||
+            /^\d+$/.test(String(messageId));
+
         // Optimistic delete from local DB
         let previousMessage = null;
         try {
@@ -30,6 +36,12 @@ export function useDeleteMessage(chatId) {
             }
         } catch (dbErr) {
             console.warn('[useDeleteMessage] Optimistic local DB delete failed:', dbErr);
+        }
+
+        // [FIX] Skip server call for local-only temp messages — they don't exist in Supabase
+        if (isLocalOnly) {
+            console.log('[useDeleteMessage] Temp message deleted locally only:', messageId);
+            return messageId;
         }
 
         try {

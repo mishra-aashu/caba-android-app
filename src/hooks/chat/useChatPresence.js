@@ -41,8 +41,8 @@ export function useChatPresence({
         onPresenceChange?.(status);
     }, [otherUserPresence, onPresenceChange, otherUserId, isGroupChat]);
 
-    return {
+    return useMemo(() => ({
         typingUsers,
         sendTyping,
-    };
+    }), [typingUsers, sendTyping]);
 }

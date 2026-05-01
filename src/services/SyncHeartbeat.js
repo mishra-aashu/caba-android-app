@@ -1,19 +1,18 @@
 /**
- * SyncHeartbeat.js
- *
- * A professional-grade active polling layer that runs ALONGSIDE the WebSocket.
- * Its only job: detect when the WebSocket missed something and fill the gap.
- *
- * Why this is needed:
- * - WebSocket (Supabase Realtime) can silently drop on mobile networks
- * - CHANNEL_ERROR doesn't always fire — the socket just goes quiet
- * - Between those silent gaps, messages are lost until the next periodic sync
- *
- * Strategy:
- * - Tier 1 (Active): Poll every 15s while app is in foreground + user is online
- * - Tier 2 (Background): Poll every 45s while app is backgrounded
- * - Tier 3 (Reconnect): Immediate poll on network online / app foreground
- * - On each tick: compare local DB latest timestamp vs server — patch any gap
+ * @fileoverview SyncHeartbeat - Production-grade active polling layer
+ * @version 2.0.0
+ * 
+ * Responsibilities:
+ * - Detect and patch WebSocket message gaps
+ * - Adaptive polling based on app state (foreground/background)
+ * - Network-aware synchronization
+ * - Graceful degradation and error recovery
+ * 
+ * Performance Optimizations:
+ * - Debounced beat execution
+ * - Abort controller for request cancellation
+ * - Single-transaction bulk updates
+ * - Adaptive polling intervals
  */
 
 import { db } from '../db/db';
@@ -21,264 +20,499 @@ import { supabase } from '../config/supabase';
 import { safeDbConversion } from '../utils/dbFieldMapping';
 import { EncryptionService } from './EncryptionService';
 
+// Configuration constants
+const CONFIG = {
+  FOREGROUND_INTERVAL: 15_000,  // 15s - Active monitoring
+  BACKGROUND_INTERVAL: 45_000,  // 45s - Battery-friendly
+  MIN_BEAT_GAP: 8_000,          // Rate limiting
+  MAX_MESSAGES_PER_FETCH: 50,   // Pagination limit
+  DEBOUNCE_DELAY: 1_000,        // Beat debounce
+  REQUEST_TIMEOUT: 30_000,      // Network timeout
+};
+
 class SyncHeartbeat {
-    constructor() {
-        this.userId = null;
-        this.activeChatId = null;
+  constructor() {
+    // User context
+    this.userId = null;
+    this.activeChatId = null;
 
-        // Timers
-        this._foregroundTimer = null;
-        this._backgroundTimer = null;
-        this._capacitorListener = null;
+    // Timers
+    this._foregroundTimer = null;
+    this._backgroundTimer = null;
 
-        // State
-        this._isRunning = false;
-        this._lastHeartbeatAt = 0;
-        this._isSyncing = false;
+    // State management
+    this._isRunning = false;
+    this._isSyncing = false;
+    this._lastHeartbeatAt = 0;
+    
+    // Request cancellation
+    this._abortController = null;
+    
+    // Debounce timer
+    this._debounceTimer = null;
 
-        // Intervals
-        this.FOREGROUND_INTERVAL = 15000;  // 15s — catches WebSocket gaps fast
-        this.BACKGROUND_INTERVAL = 45000;  // 45s — battery-friendly background poll
-        this.MIN_BEAT_GAP = 8000;          // Never poll more than once per 8s
-    }
-
-    /**
-     * Start the heartbeat for a given user.
-     * Called from MainLayout after auth.
-     */
-    start(userId) {
-        if (!userId || this._isRunning) return;
-        this.userId = userId;
-        this._isRunning = true;
-
-        console.log('[SyncHeartbeat] Starting for user:', userId);
-
-        this._startForegroundPolling();
-        this._setupVisibilityListener();
-        this._setupOnlineListener();
-        this._setupCapacitorListener();
-    }
-
-    /**
-     * Stop all polling — called on logout or unmount.
-     */
-    stop() {
-        this._isRunning = false;
-        this.userId = null;
-
-        clearInterval(this._foregroundTimer);
-        clearInterval(this._backgroundTimer);
-        this._foregroundTimer = null;
-        this._backgroundTimer = null;
-
-        document.removeEventListener('visibilitychange', this._onVisibilityChange);
-        window.removeEventListener('online', this._onOnline);
-
-        if (this._capacitorListener) {
-            this._capacitorListener.remove?.();
-            this._capacitorListener = null;
-        }
-
-        console.log('[SyncHeartbeat] Stopped.');
-    }
-
-    /**
-     * Tell the heartbeat which chat is currently open.
-     * Just registers the ID — does NOT trigger an immediate beat.
-     * The next scheduled tick will prioritize this chat.
-     */
-    setActiveChat(chatId) {
-        this.activeChatId = chatId || null;
-    }
-
-
-    // ─────────────────────────────────────────────────────────
-    // Polling Logic
-    // ─────────────────────────────────────────────────────────
-
-    _startForegroundPolling() {
-        clearInterval(this._foregroundTimer);
-        this._foregroundTimer = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                this._beat('foreground-tick');
-            }
-        }, this.FOREGROUND_INTERVAL);
-    }
-
-    _startBackgroundPolling() {
-        clearInterval(this._backgroundTimer);
-        this._backgroundTimer = setInterval(() => {
-            if (document.visibilityState !== 'visible') {
-                this._beat('background-tick');
-            }
-        }, this.BACKGROUND_INTERVAL);
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // Event Listeners
-    // ─────────────────────────────────────────────────────────
-
-    _onVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-            console.log('[SyncHeartbeat] App visible — immediate beat');
-            this._beat('visibility-shown', true);
-        }
+    // Event listeners (stored for cleanup)
+    this._listeners = {
+      visibility: null,
+      online: null,
+      capacitor: null,
     };
 
-    _onOnline = () => {
-        console.log('[SyncHeartbeat] Network online — immediate beat');
-        this._beat('network-online', true);
+    // Performance monitoring
+    this._stats = {
+      totalBeats: 0,
+      successfulBeats: 0,
+      failedBeats: 0,
+      lastError: null,
     };
+  }
 
-    _setupVisibilityListener() {
-        document.addEventListener('visibilitychange', this._onVisibilityChange);
+  // ═══════════════════════════════════════════════════════════
+  // Public API
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Initialize and start heartbeat monitoring
+   * @param {string} userId - Current user ID
+   */
+  start(userId) {
+    if (!userId || this._isRunning) {
+      console.warn('[SyncHeartbeat] Already running or invalid userId');
+      return;
     }
 
-    _setupOnlineListener() {
-        window.addEventListener('online', this._onOnline);
+    this.userId = userId;
+    this._isRunning = true;
+
+    console.log('[SyncHeartbeat] Starting for user:', userId);
+
+    this._initializePolling();
+    this._attachEventListeners();
+  }
+
+  /**
+   * Stop all polling and cleanup resources
+   */
+  stop() {
+    if (!this._isRunning) return;
+
+    console.log('[SyncHeartbeat] Stopping...');
+
+    this._isRunning = false;
+    this.userId = null;
+    this.activeChatId = null;
+
+    // Cancel in-flight requests
+    this._cancelPendingRequests();
+
+    // Clear all timers
+    this._clearAllTimers();
+
+    // Remove event listeners
+    this._detachEventListeners();
+
+    // Reset stats
+    this._resetStats();
+
+    console.log('[SyncHeartbeat] Stopped successfully');
+  }
+
+  /**
+   * Set the currently active chat for prioritized sync
+   * @param {string|null} chatId - Chat ID or null
+   */
+  setActiveChat(chatId) {
+    if (this.activeChatId !== chatId) {
+      this.activeChatId = chatId || null;
+      console.log('[SyncHeartbeat] Active chat set to:', chatId);
+    }
+  }
+
+  /**
+   * Get current sync statistics (for debugging/monitoring)
+   */
+  getStats() {
+    return { ...this._stats };
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Initialization
+  // ═══════════════════════════════════════════════════════════
+
+  _initializePolling() {
+    // Start foreground polling immediately
+    this._startForegroundPolling();
+
+    // Trigger initial beat after short delay
+    setTimeout(() => {
+      if (this._isRunning) {
+        this._scheduleBeat('initial-sync', true);
+      }
+    }, 1_000);
+  }
+
+  _startForegroundPolling() {
+    this._clearTimer('foreground');
+    
+    this._foregroundTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        this._scheduleBeat('foreground-tick');
+      }
+    }, CONFIG.FOREGROUND_INTERVAL);
+  }
+
+  _startBackgroundPolling() {
+    this._clearTimer('background');
+    
+    this._backgroundTimer = setInterval(() => {
+      if (document.visibilityState === 'hidden') {
+        this._scheduleBeat('background-tick');
+      }
+    }, CONFIG.BACKGROUND_INTERVAL);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Event Listeners
+  // ═══════════════════════════════════════════════════════════
+
+  _attachEventListeners() {
+    // Visibility change
+    this._listeners.visibility = this._onVisibilityChange.bind(this);
+    document.addEventListener('visibilitychange', this._listeners.visibility);
+
+    // Network status
+    this._listeners.online = this._onNetworkOnline.bind(this);
+    window.addEventListener('online', this._listeners.online);
+
+    // Capacitor app state (if available)
+    this._attachCapacitorListener();
+  }
+
+  _detachEventListeners() {
+    if (this._listeners.visibility) {
+      document.removeEventListener('visibilitychange', this._listeners.visibility);
+      this._listeners.visibility = null;
     }
 
-    async _setupCapacitorListener() {
-        try {
-            const { App } = await import('@capacitor/app');
-            this._capacitorListener = await App.addListener('appStateChange', ({ isActive }) => {
-                if (isActive) {
-                    console.log('[SyncHeartbeat] Capacitor foreground — immediate beat');
-                    this._beat('capacitor-foreground', true);
-                }
-            });
-        } catch {
-            // Not a Capacitor environment
+    if (this._listeners.online) {
+      window.removeEventListener('online', this._listeners.online);
+      this._listeners.online = null;
+    }
+
+    if (this._listeners.capacitor) {
+      this._listeners.capacitor.remove?.();
+      this._listeners.capacitor = null;
+    }
+  }
+
+  async _attachCapacitorListener() {
+    try {
+      const { App } = await import('@capacitor/app');
+      
+      this._listeners.capacitor = await App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive && this._isRunning) {
+          console.log('[SyncHeartbeat] App resumed - scheduling beat');
+          this._scheduleBeat('capacitor-resume', true);
         }
+      });
+    } catch (err) {
+      // Not a Capacitor environment - silent fail
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Event Handlers
+  // ═══════════════════════════════════════════════════════════
+
+  _onVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+      console.log('[SyncHeartbeat] App visible - scheduling immediate beat');
+      this._scheduleBeat('visibility-shown', true);
+      this._startForegroundPolling();
+    } else {
+      console.log('[SyncHeartbeat] App hidden - switching to background mode');
+      this._startBackgroundPolling();
+    }
+  }
+
+  _onNetworkOnline() {
+    console.log('[SyncHeartbeat] Network reconnected - scheduling beat');
+    this._scheduleBeat('network-online', true);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Core Beat Logic
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Schedule a beat with debouncing and rate limiting
+   * @param {string} reason - Trigger reason for logging
+   * @param {boolean} force - Skip rate limiting
+   */
+  _scheduleBeat(reason = 'tick', force = false) {
+    // Clear existing debounce timer
+    if (this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
     }
 
-    // ─────────────────────────────────────────────────────────
-    // The Beat — Core Catch-up Logic
-    // ─────────────────────────────────────────────────────────
+    // Debounce rapid beats
+    this._debounceTimer = setTimeout(() => {
+      this._executeBeat(reason, force);
+    }, force ? 0 : CONFIG.DEBOUNCE_DELAY);
+  }
 
-    async _beat(reason = 'tick', force = false) {
-        if (!this._isRunning || !this.userId || !navigator.onLine) return;
-        if (this._isSyncing) return;
+  /**
+   * Execute the actual sync beat
+   */
+  async _executeBeat(reason, force) {
+    // Pre-flight checks
+    if (!this._isRunning || !this.userId || !navigator.onLine) {
+      return;
+    }
 
-        const now = Date.now();
-        if (!force && now - this._lastHeartbeatAt < this.MIN_BEAT_GAP) return;
-        this._lastHeartbeatAt = now;
-        this._isSyncing = true;
+    if (this._isSyncing) {
+      console.log('[SyncHeartbeat] Sync already in progress, skipping');
+      return;
+    }
 
-        console.log(`[SyncHeartbeat] Beat (${reason})`);
+    // Rate limiting
+    const now = Date.now();
+    if (!force && (now - this._lastHeartbeatAt) < CONFIG.MIN_BEAT_GAP) {
+      console.log('[SyncHeartbeat] Rate limited, skipping beat');
+      return;
+    }
 
-        try {
-            // ── Step 1: Patch the active chat first (highest priority) ──
-            if (this.activeChatId) {
-                await this._patchChat(this.activeChatId);
-            }
+    this._lastHeartbeatAt = now;
+    this._isSyncing = true;
+    this._stats.totalBeats++;
 
-            // ── Step 2: Patch chat list heads for all chats ──
-            await this._patchChatListHeads();
+    console.log(`[SyncHeartbeat] 🔄 Beat #${this._stats.totalBeats} (${reason})`);
 
-        } catch (err) {
-            console.warn('[SyncHeartbeat] Beat failed:', err.message);
-        } finally {
-            this._isSyncing = false;
+    try {
+      // Create abort controller for this sync session
+      this._abortController = new AbortController();
+      const signal = this._abortController.signal;
+
+      // Priority 1: Sync active chat (if any)
+      if (this.activeChatId) {
+        await this._patchChat(this.activeChatId, signal);
+      }
+
+      // Priority 2: Sync all chat list heads
+      await this._patchChatListHeads(signal);
+
+      this._stats.successfulBeats++;
+      console.log(`[SyncHeartbeat] ✅ Beat completed successfully`);
+
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('[SyncHeartbeat] Beat aborted');
+      } else {
+        this._stats.failedBeats++;
+        this._stats.lastError = err.message;
+        console.error('[SyncHeartbeat] ❌ Beat failed:', err);
+      }
+    } finally {
+      this._isSyncing = false;
+      this._abortController = null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Sync Operations
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Patch missing messages for a specific chat
+   */
+  async _patchChat(chatId, signal) {
+    try {
+      // Get latest local message
+      const latestLocal = await db.messages
+        .where('[chatId+createdAt]')
+        .between([chatId, ''], [chatId, '\uffff'])
+        .reverse()
+        .first();
+
+      const since = latestLocal?.createdAt || new Date(0).toISOString();
+
+      // Fetch newer messages from server
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*, sender:sender_id(id, name, avatar), receiver:receiver_id(id, name, avatar)')
+        .eq('chat_id', chatId)
+        .gt('created_at', since)
+        .order('created_at', { ascending: true })
+        .limit(CONFIG.MAX_MESSAGES_PER_FETCH)
+        .abortSignal(signal);
+
+      if (error) throw error;
+      if (!data?.length) return;
+
+      console.log(`[SyncHeartbeat] 📥 Patching ${data.length} messages for chat ${chatId}`);
+
+      // Decrypt messages
+      const chat = await db.chats_list.get(chatId);
+      const decrypted = await this._decryptMessages(data, chat);
+
+      // Convert to DB format
+      const converted = safeDbConversion(decrypted);
+
+      // Single transaction write
+      await db.transaction('rw', [db.messages, db.chats_list], async () => {
+        await db.messages.bulkPut(converted);
+
+        // Update chat head
+        const newest = converted[converted.length - 1];
+        if (newest) {
+          await db.chats_list.update(chatId, {
+            lastMessage: newest.content,
+            lastMessageAt: newest.createdAt,
+            timestamp: newest.createdAt,
+          }).catch(err => {
+            console.warn('[SyncHeartbeat] Failed to update chat head:', err);
+          });
         }
+      });
+
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error(`[SyncHeartbeat] Failed to patch chat ${chatId}:`, err);
+      }
+      throw err;
     }
+  }
 
-    /**
-     * Fetch messages newer than local state for a specific chat.
-     * This patches the gap if the WebSocket missed an INSERT.
-     */
-    async _patchChat(chatId) {
-        const latestLocal = await db.messages
-            .where('[chatId+createdAt]')
-            .between([chatId, ''], [chatId, '\uffff'])
-            .reverse()
-            .first();
+  /**
+   * Patch chat list heads for all chats
+   */
+  async _patchChatListHeads(signal) {
+    try {
+      // Fetch server-side chat heads
+      const { data, error } = await supabase
+        .rpc('get_unified_chat_list', { user_id: this.userId })
+        .abortSignal(signal);
 
-        const since = latestLocal?.createdAt || new Date(0).toISOString();
+      if (error) throw error;
+      if (!data?.length) return;
 
-        const { data, error } = await supabase
-            .from('messages')
-            .select('*, sender:sender_id(id, name, avatar), receiver:receiver_id(id, name, avatar)')
-            .eq('chat_id', chatId)
-            .gt('created_at', since)
-            .order('created_at', { ascending: true })
-            .limit(50);
+      // Get local chats
+      const localChats = await db.chats_list.toArray();
+      const localMap = new Map(
+        localChats.map(c => [String(c.id), c])
+      );
 
-        if (error || !data?.length) return;
+      // Normalize and collect stale chats
+      const { normalizeChat } = await import('../utils/chatHelpers');
+      const toPatch = [];
 
-        console.log(`[SyncHeartbeat] Patching ${data.length} missed messages in chat ${chatId}`);
+      for (const serverChat of data) {
+        const chatId = String(serverChat.chat_id || serverChat.id);
+        const serverTime = serverChat.last_message_time;
+        const local = localMap.get(chatId);
+        const localTime = local?.lastMessageAt || local?.timestamp;
 
-        const chat = await db.chats_list.get(chatId);
-        const processed = data.map(msg => {
-            const m = { ...msg };
-            if (m.content && chat?.otherUserId) {
-                try {
-                    m.content = EncryptionService.decrypt(m.content, chatId, chat.otherUserId);
-                } catch { /* keep encrypted */ }
-            }
-            return m;
+        const serverIsNewer = serverTime && (
+          !localTime || new Date(serverTime) > new Date(localTime)
+        );
+
+        // Skip active chat (already patched above)
+        if (serverIsNewer && chatId !== this.activeChatId) {
+          toPatch.push(normalizeChat(serverChat, this.userId));
+        }
+      }
+
+      if (toPatch.length > 0) {
+        // Single bulk write
+        await db.transaction('rw', db.chats_list, async () => {
+          await db.chats_list.bulkPut(toPatch);
         });
 
-        const converted = safeDbConversion(processed);
+        console.log(`[SyncHeartbeat] 📊 Patched ${toPatch.length} chat heads`);
+      }
 
-        await db.transaction('rw', [db.messages, db.chats_list], async () => {
-            await db.messages.bulkPut(converted);
-
-            // Update chat head with latest message
-            const newest = converted[converted.length - 1];
-            if (newest) {
-                await db.chats_list.update(chatId, {
-                    lastMessage: newest.content,
-                    lastMessageAt: newest.createdAt,
-                    timestamp: newest.createdAt,
-                }).catch(() => {});
-            }
-        });
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('[SyncHeartbeat] Failed to patch chat list:', err);
+      }
+      throw err;
     }
+  }
 
-    /**
-     * Check each chat in chats_list and verify the server's latest message_at
-     * matches local. If not, dispatch a sync request for that chat.
-     */
-    async _patchChatListHeads() {
-        // Get server-side chat list heads in one RPC call
-        const { data, error } = await supabase
-            .rpc('get_unified_chat_list', { user_id: this.userId });
+  // ═══════════════════════════════════════════════════════════
+  // Helper Methods
+  // ═══════════════════════════════════════════════════════════
 
-        if (error || !data?.length) return;
+  /**
+   * Decrypt messages in batch
+   */
+  async _decryptMessages(messages, chat) {
+    if (!chat?.otherUserId) return messages;
 
-        const localChats = await db.chats_list.toArray();
-        const localMap = new Map(localChats.map(c => [String(c.id), c]));
+    return messages.map(msg => {
+      if (!msg.content || typeof msg.content !== 'string') return msg;
 
-        let patchCount = 0;
+      try {
+        const decrypted = EncryptionService.decrypt(
+          msg.content,
+          chat.id,
+          chat.otherUserId
+        );
+        return { ...msg, content: decrypted };
+      } catch (err) {
+        console.warn(`[SyncHeartbeat] Failed to decrypt message ${msg.id}:`, err);
+        return msg; // Keep encrypted
+      }
+    });
+  }
 
-        for (const serverChat of data) {
-            const chatId = String(serverChat.chat_id || serverChat.id);
-            const serverTime = serverChat.last_message_time;
-            const local = localMap.get(chatId);
-
-            // If server has a newer timestamp than local, this chat was missed
-            const localTime = local?.lastMessageAt || local?.timestamp;
-            const serverIsNewer = serverTime && (!localTime || new Date(serverTime) > new Date(localTime));
-
-            if (serverIsNewer) {
-                patchCount++;
-                // Patch missed messages for this specific chat
-                if (chatId !== this.activeChatId) {
-                    // For non-active chats, just update the head (faster, no message fetch)
-                    const { normalizeChat } = await import('../utils/chatHelpers');
-                    const normalized = normalizeChat(serverChat, this.userId);
-                    await db.chats_list.put(normalized).catch(() => {});
-                } else {
-                    // Active chat already handled in _patchChat above
-                }
-            }
-        }
-
-        if (patchCount > 0) {
-            console.log(`[SyncHeartbeat] Patched ${patchCount} stale chat heads`);
-        }
+  /**
+   * Cancel all pending network requests
+   */
+  _cancelPendingRequests() {
+    if (this._abortController) {
+      this._abortController.abort();
+      this._abortController = null;
     }
+  }
+
+  /**
+   * Clear a specific timer
+   */
+  _clearTimer(type) {
+    if (type === 'foreground' && this._foregroundTimer) {
+      clearInterval(this._foregroundTimer);
+      this._foregroundTimer = null;
+    } else if (type === 'background' && this._backgroundTimer) {
+      clearInterval(this._backgroundTimer);
+      this._backgroundTimer = null;
+    } else if (type === 'debounce' && this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
+      this._debounceTimer = null;
+    }
+  }
+
+  /**
+   * Clear all timers
+   */
+  _clearAllTimers() {
+    this._clearTimer('foreground');
+    this._clearTimer('background');
+    this._clearTimer('debounce');
+  }
+
+  /**
+   * Reset statistics
+   */
+  _resetStats() {
+    this._stats = {
+      totalBeats: 0,
+      successfulBeats: 0,
+      failedBeats: 0,
+      lastError: null,
+    };
+  }
 }
 
+// Export singleton instance
 export const syncHeartbeat = new SyncHeartbeat();

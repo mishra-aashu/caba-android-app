@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCall } from '../../contexts/CallContext';
 import { useGroupCall } from '../../contexts/GroupCallContext';
@@ -58,32 +58,6 @@ export function useChatCalls({
         return () => clearInterval(interval);
     }, [isGroupChat, chatId, currentUser?.id]);
 
-    const handleVoiceCall = async () => {
-        if (isGroupChat) {
-            handleStartGroupCall('voice');
-            return;
-        }
-        try {
-            const { callId } = await startCall(otherUserId, 'voice');
-            navigate(`/call/${callId}`);
-        } catch (error) {
-            showAlert('Failed to start call: ' + error.message);
-        }
-    };
-
-    const handleVideoCall = async () => {
-        if (isGroupChat) {
-            handleStartGroupCall('video');
-            return;
-        }
-        try {
-            const { callId } = await startCall(otherUserId, 'video');
-            navigate(`/call/${callId}`);
-        } catch (error) {
-            showAlert('Failed to start call: ' + error.message);
-        }
-    };
-
     const handleStartGroupCall = useCallback(async (callType) => {
         try {
             setShowGroupCallScreen(true);
@@ -95,18 +69,44 @@ export function useChatCalls({
         }
     }, [chatId, initializeGroupCall]);
 
+    const handleVoiceCall = useCallback(async () => {
+        if (isGroupChat) {
+            handleStartGroupCall('voice');
+            return;
+        }
+        try {
+            const { callId } = await startCall(otherUserId, 'voice');
+            navigate(`/call/${callId}`);
+        } catch (error) {
+            showAlert('Failed to start call: ' + error.message);
+        }
+    }, [isGroupChat, otherUserId, startCall, navigate, showAlert, handleStartGroupCall]);
+
+    const handleVideoCall = useCallback(async () => {
+        if (isGroupChat) {
+            handleStartGroupCall('video');
+            return;
+        }
+        try {
+            const { callId } = await startCall(otherUserId, 'video');
+            navigate(`/call/${callId}`);
+        } catch (error) {
+            showAlert('Failed to start call: ' + error.message);
+        }
+    }, [isGroupChat, otherUserId, startCall, navigate, showAlert, handleStartGroupCall]);
+
     const handleEndGroupCall = useCallback(() => {
         leaveGroupCall();
         setShowGroupCallScreen(false);
     }, [leaveGroupCall]);
 
-    return {
-        activeCallData,
+    return useMemo(() => ({
+        activeGroupCall: activeCallData, // Rename for consistency with useChatRoom consumption
         showGroupCallScreen,
         setShowGroupCallScreen,
         handleVoiceCall,
         handleVideoCall,
         handleStartGroupCall,
         handleEndGroupCall,
-    };
+    }), [activeCallData, showGroupCallScreen, handleVoiceCall, handleVideoCall, handleStartGroupCall, handleEndGroupCall]);
 }

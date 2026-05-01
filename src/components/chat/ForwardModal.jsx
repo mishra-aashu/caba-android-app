@@ -4,16 +4,19 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { dpOptions } from '../../utils/dpOptions';
 import { getInitials } from '../../utils/stringUtils';
 import { isUserOnline } from '../../utils/dateFormatter';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import styles from './ForwardModal.module.css';
 
 const ForwardModal = ({
   isOpen,
   onClose,
-  chats = [],
   messagesToForward = [],
   onForward,
   currentUser
 }) => {
+  const chats = useLiveQuery(() => db.chats_list.toArray()) || [];
+
   const handleForward = async (chat) => {
     await onForward(messagesToForward, chat);
     onClose();
@@ -34,7 +37,7 @@ const ForwardModal = ({
               const isGroup = chat.isGroup || chat.is_group || false;
               const displayName = isGroup
                 ? (chat.name || chat.groupName || 'Group Chat')
-                : (contact?.contact_name || chat.otherUser?.name || 'Unknown');
+                : (chat.otherUser?.name || 'Unknown');
 
               return (
                 <div key={chat.id} className={styles['forward-modal-item']}>
