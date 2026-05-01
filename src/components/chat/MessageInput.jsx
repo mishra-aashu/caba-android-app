@@ -253,52 +253,56 @@ const MessageInput = ({
 
 
       <div className={styles['input-row']}>
-        <VoiceRecorder
-          isExternalRecording={isRecordingUI}
-          onRecordingComplete={handleRecordingComplete}
-          onCancel={() => setIsRecordingUI(false)}
-          formatTime={formatTime}
-        />
+        {isRecordingUI || voiceBlob ? (
+          <VoiceRecorder
+            isExternalRecording={isRecordingUI}
+            onRecordingComplete={handleRecordingComplete}
+            onCancel={() => setIsRecordingUI(false)}
+            formatTime={formatTime}
+          />
+        ) : (
+          <>
+            <InputBar
+              message={message}
+              setMessage={setMessage}
+              textareaRef={textareaRef}
+              isRecording={isRecordingUI}
+              voiceBlob={voiceBlob}
+              isUploading={isUploading}
+              externalDisabled={externalDisabled}
+              disabledPlaceholder={disabledPlaceholder}
+              onInputChange={handleInputChange}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+              onToggleEmoji={() => setShowEmojiPicker(!showEmojiPicker)}
+              onToggleAttachment={() => setShowAttachmentMenu(!showAttachmentMenu)}
+            />
 
-        <InputBar
-          message={message}
-          setMessage={setMessage}
-          textareaRef={textareaRef}
-          isRecording={isRecordingUI}
-          voiceBlob={voiceBlob}
-          isUploading={isUploading}
-          externalDisabled={externalDisabled}
-          disabledPlaceholder={disabledPlaceholder}
-          onInputChange={handleInputChange}
-          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-          onToggleEmoji={() => setShowEmojiPicker(!showEmojiPicker)}
-          onToggleAttachment={() => setShowAttachmentMenu(!showAttachmentMenu)}
-        />
-
-        {!isRecordingUI && !voiceBlob && (
-          canShowInputBar && !filePreview && !message.trim() ? (
-            <button
-              className={styles['btn-action']}
-              onClick={() => setIsRecordingUI(true)}
-              disabled={isUploading || externalDisabled}
-              title="Voice Message"
-            >
-              <Mic size={24} />
-            </button>
-          ) : (
-            <button
-              className={styles['btn-action']}
-              onClick={() => handleSend()}
-              disabled={isUploading || externalDisabled}
-              title="Send"
-            >
-              {isUploading ? (
-                <LoaderCircle size={24} className={styles['animate-spin']} />
+            {!isRecordingUI && !voiceBlob && (
+              canShowInputBar && !filePreview && !message.trim() ? (
+                <button
+                  className={styles['btn-action']}
+                  onClick={() => setIsRecordingUI(true)}
+                  disabled={isUploading || externalDisabled}
+                  title="Voice Message"
+                >
+                  <Mic size={24} />
+                </button>
               ) : (
-                <Send size={24} />
-              )}
-            </button>
-          )
+                <button
+                  className={styles['btn-action']}
+                  onClick={() => handleSend()}
+                  disabled={isUploading || externalDisabled}
+                  title="Send"
+                >
+                  {isUploading ? (
+                    <LoaderCircle size={24} className={styles['animate-spin']} />
+                  ) : (
+                    <Send size={24} />
+                  )}
+                </button>
+              )
+            )}
+          </>
         )}
       </div>
 

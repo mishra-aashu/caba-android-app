@@ -182,7 +182,10 @@ export const manualRetrySyncItem = async (tempId) => {
     const failedItems = await db.sync_queue
         .where('status')
         .equals('failed')
-        .filter(item => item.payload?.tempId === tempId)
+        .filter(item => {
+            const d = item.data || item.payload;
+            return d?.tempId === tempId || d?.client_id === tempId;
+        })
         .toArray();
 
     for (const item of failedItems) {

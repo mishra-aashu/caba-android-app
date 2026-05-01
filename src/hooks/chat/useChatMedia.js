@@ -109,19 +109,20 @@ export function useChatMedia({
                     navigate(`/chat/${data.chat_id}/${otherUserId}`, { replace: true });
                 }
             } else {
-                // ── Offline OR file that needs uploading ──
-                // [FIX #1 — CRITICAL] File serialization for IndexedDB
-                // Previously: `file: localFile` — raw File object was stored in sync queue
-                // File/Blob objects lose their prototype in IndexedDB — becomes a plain
-                // object with no readable data stream. Upload always failed silently.
-                // Now: serialize to ArrayBuffer + metadata, reconstruct in useNetworkSync
+                // Offline OR file that needs uploading
                 let syncPayload = { ...dbData, tempId };
 
                 if (localFile) {
                     try {
                         const arrayBuffer = await localFile.arrayBuffer();
                         syncPayload.fileData = arrayBuffer;
-                        syncPayload.fileName = localFile.name || `media_${tempId}`;
+                        
+                        // Ensure we have a valid filename with extension for storage
+                        const ext = (localFile.name && localFile.name.includes('.')) 
+                            ? localFile.name.split('.').pop() 
+                            : (mediaType === 'voice' ? 'webm' : 'bin');
+                            
+                        syncPayload.fileName = localFile.name || `media_${tempId}.${ext}`;
                         syncPayload.fileType = localFile.type || 'application/octet-stream';
                     } catch (serializeErr) {
                         console.error('Failed to serialize file for sync queue:', serializeErr);
@@ -129,7 +130,8 @@ export function useChatMedia({
                     }
                 }
 
-                await addToSyncQueue('send_message', syncPayload);
+                const { queueAction, QUEUE_ACTIONS } = await import('../../services/offlineQueue');
+                await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', syncPayload);
 
                 if (!navigator.onLine) {
                     toast.success('Message queued for sync');

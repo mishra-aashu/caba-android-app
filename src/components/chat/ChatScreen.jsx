@@ -63,7 +63,8 @@ const ChatScreen = () => {
         isMessagesLoading, allChats,
         connectionStatus, retryConnection,
         authError, currentUser,
-        markMessagesAsRead, unreadCount, setUnreadCount, isScrolledToBottom, setIsScrolledToBottom
+        markMessagesAsRead, unreadCount, setUnreadCount, isScrolledToBottom, setIsScrolledToBottom,
+        handleManualRetry
     } = useChatRoom();
 
     useVanishCleanup(chatId);
@@ -466,6 +467,7 @@ const ChatScreen = () => {
                                     initialTopMostItemIndex={initialScrollPosition}
                                     onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
                                     chatId={validChatId}
+                                    onManualRetry={handleManualRetry}
                                 />
 
                                 {showScrollButton && (

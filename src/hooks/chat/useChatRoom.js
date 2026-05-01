@@ -360,7 +360,8 @@ const useChatRoom = () => {
     setUnreadCount,
     isScrolledToBottom,
     setIsScrolledToBottom,
-    handleShareAsForward
+    handleShareAsForward,
+    handleManualRetry: memoizedMessagesApi.handleManualRetry
   }), [
     chatId, otherUserId, isGroupChat, isNewChat, navigate, location, 
     currentUser, otherUser, setOtherUser, authLoading, isDataLoading,
@@ -368,7 +369,8 @@ const useChatRoom = () => {
     memoizedCallsApi, memoizedSettingsApi, showAlert, handleAcceptGame, 
     handleRejectGame, handleJoinGame, supabase, initialScrollPosition, 
     saveScrollPosition, allChats, authError, markMessagesAsRead, 
-    unreadCount, isScrolledToBottom, handleShareAsForward
+    unreadCount, isScrolledToBottom, handleShareAsForward,
+    memoizedMessagesApi.handleManualRetry
   ]);
 };
 

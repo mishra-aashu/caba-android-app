@@ -56,6 +56,7 @@ const MessageItem = ({
   onSenderClick,
   isLastRead,
   isLast,
+  onManualRetry,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -220,21 +221,24 @@ const MessageItem = ({
     const tempId = message.tempId || (String(msgId).startsWith('temp_') ? String(msgId).replace('temp_', '') : null);
     if (tempId) {
       try {
-        await manualRetrySyncItem(tempId);
-        toast.success('Retrying message...');
-
-        if (navigator.onLine) {
-          window.dispatchEvent(new Event('online'));
+        if (onManualRetry) {
+          await onManualRetry(tempId);
+        } else {
+          await manualRetrySyncItem(tempId);
+          if (navigator.onLine) {
+            window.dispatchEvent(new Event('online'));
+          }
         }
+        toast.success('Retrying message...');
       } catch (err) {
         console.error('Retry failed:', err);
         toast.error('Failed to retry');
       }
     }
-  }, [msgId, message.tempId]);
+  }, [msgId, message.tempId, onManualRetry]);
 
   const renderContent = () => {
-    const mediaPath = message.mediaPath || message.media_path;
+    const mediaPath = message.mediaPath || message.media_path || message.mediaUrl || message.media_url;
     const mediaType = message.mediaType || message.media_type;
     const time = formatBubbleTime(message.createdAt || message.created_at);
 
@@ -246,13 +250,10 @@ const MessageItem = ({
           currentUserId={currentUser?.id}
           isSender={isSent}
           time={time}
-          // [FIX #4] Was: status={isRead ? 'read' : 'sent'}
-          // 'pending', 'sending', 'failed' were never shown
           status={messageStatus}
           onMediaClick={(url, msg) => isSelectionMode ? toggleSelection(msgId) : onMediaView?.(url, mediaType, msg)}
           isLastRead={isLastRead}
           isLast={isLast}
-          // [FIX #4] Was: not passed at all — retry button never worked
           onRetry={handleRetry}
         />
       );
@@ -266,11 +267,9 @@ const MessageItem = ({
           currentUserId={currentUser?.id}
           isSender={isSent}
           time={time}
-          // [FIX #4] Same fix as MediaMessage
           status={messageStatus}
           isLastRead={isLastRead}
           isLast={isLast}
-          // [FIX #4] Same fix — retry now works for voice messages
           onRetry={handleRetry}
         />
       );

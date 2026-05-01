@@ -106,6 +106,11 @@ export const processSyncQueue = async () => {
           retries: newRetries,
         });
       }
+
+      // [ROOT FIX] Reflect sync failure in the local messages table immediately
+      if (item.action === QUEUE_ACTIONS.INSERT_MESSAGE && item.data?.tempId) {
+        await db.messages.where('tempId').equals(item.data.tempId).modify({ status: 'failed' }).catch(() => {});
+      }
     }
   }
 

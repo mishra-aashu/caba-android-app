@@ -19,6 +19,7 @@ const VoiceRecorder = ({
   const [recordingTime, setRecordingTime] = useState(0);
   const [waveformPoints, setWaveformPoints] = useState([]);
   const [voiceBlob, setVoiceBlob] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -149,9 +150,15 @@ const VoiceRecorder = ({
   };
 
   const handleCancel = () => {
-    cleanup();
-    onCancel();
+    setIsDeleting(true);
     hapticsManager.notification('warning');
+    
+    // Duration of the animation before actually cleaning up
+    setTimeout(() => {
+        cleanup();
+        onCancel();
+        setIsDeleting(false);
+    }, 800);
   };
 
   const togglePreviewPlayback = () => {
@@ -185,91 +192,133 @@ const VoiceRecorder = ({
     };
   }, [isExternalRecording, cleanup]);
 
-  if (!isRecording && !voiceBlob) return null;
+  if (!isRecording && !voiceBlob && !isDeleting) return null;
 
   return (
-    <motion.div 
-      className={`${styles['voice-recorder-wrapper']} ${voiceBlob ? styles['has-preview'] : ''}`}
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 20, opacity: 0 }}
-    >
-      <div className={styles['recorder-inner']}>
-        {isRecording ? (
-          <div className={styles['recording-active-ui']}>
-            <div className={styles['recording-info']}>
-              <motion.div 
-                className={styles['recording-dot']} 
-                animate={{ scale: isPaused ? 1 : [1, 1.2, 1], opacity: isPaused ? 0.5 : [1, 0.5, 1] }} 
-                transition={{ repeat: Infinity, duration: 1 }}
-              />
-              <span className={styles['recording-timer']}>{formatTime(recordingTime)}</span>
-            </div>
-
-            <div className={styles['recording-visualizer']}>
-              {waveformPoints.map((point, i) => (
-                <div key={i} className={styles['waveform-bar']} style={{ height: `${point}%` }} />
-              ))}
-            </div>
-
-            <div className={styles['recording-actions']}>
-              <button className={styles['btn-icon-danger']} onClick={handleCancel} title="Delete">
-                <Trash2 size={20} />
-              </button>
-              
-              <div className={styles['recording-main-controls']}>
-                <button 
-                  className={styles['btn-icon-secondary']} 
-                  onClick={isPaused ? resumeRecording : pauseRecording}
-                  title={isPaused ? "Resume" : "Pause"}
+    <AnimatePresence>
+      {(isRecording || voiceBlob || isDeleting) && (
+        <motion.div 
+          className={`${styles['voice-recorder-wrapper']} ${voiceBlob ? styles['has-preview'] : ''} ${isDeleting ? styles['deleting'] : ''}`}
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 20, opacity: 0 }}
+        >
+          <div className={styles['recorder-inner']}>
+            {isDeleting ? (
+              <div className={styles['delete-animation-container']}>
+                <motion.div 
+                   className={styles['flying-mic']}
+                   initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
+                   animate={{ 
+                     x: -160, 
+                     y: [0, -60, 40], 
+                     opacity: [1, 1, 0], 
+                     scale: [1, 0.8, 0.2], 
+                     rotate: [0, -45, -180] 
+                   }}
+                   transition={{ 
+                     duration: 0.8, 
+                     times: [0, 0.4, 1],
+                     ease: "easeInOut" 
+                   }}
                 >
-                  {isPaused ? <Mic size={22} /> : <Pause size={22} />}
-                </button>
-                
-                <button 
-                  className={styles['btn-icon-primary']} 
-                  onClick={stopRecording}
-                  title="Stop"
-                >
-                  <Square size={20} />
-                </button>
+                  <Mic size={24} />
+                </motion.div>
+
+                <div className={styles['trash-bin-wrapper']}>
+                   <motion.div 
+                      className={styles['trash-lid']}
+                      initial={{ rotate: -45 }}
+                      animate={{ rotate: [-45, 0] }}
+                      transition={{ 
+                        duration: 0.4, 
+                        delay: 0.6, // Close when mic hits the bottom
+                        ease: "backOut" 
+                      }}
+                   >
+                     <div className={styles['lid-handle']} />
+                     <div className={styles['lid-main']} />
+                   </motion.div>
+                   <div className={styles['trash-body']} />
+                </div>
               </div>
+            ) : isRecording ? (
+              <div className={styles['recording-active-ui']}>
+                <div className={styles['recording-info']}>
+                  <motion.div 
+                    className={styles['recording-dot']} 
+                    animate={{ scale: isPaused ? 1 : [1, 1.2, 1], opacity: isPaused ? 0.5 : [1, 0.5, 1] }} 
+                    transition={{ repeat: Infinity, duration: 1 }}
+                  />
+                  <span className={styles['recording-timer']}>{formatTime(recordingTime)}</span>
+                </div>
 
-              <button className={styles['btn-icon-success']} onClick={handleSend} title="Send Now">
-                <Send size={22} />
-              </button>
-            </div>
+                <div className={styles['recording-visualizer']}>
+                  {waveformPoints.map((point, i) => (
+                    <div key={i} className={styles['waveform-bar']} style={{ height: `${point}%` }} />
+                  ))}
+                </div>
+
+                <div className={styles['recording-actions']}>
+                  <button className={styles['btn-icon-danger']} onClick={handleCancel} title="Delete">
+                    <Trash2 size={20} />
+                  </button>
+                  
+                  <div className={styles['recording-main-controls']}>
+                    <button 
+                      className={styles['btn-icon-secondary']} 
+                      onClick={isPaused ? resumeRecording : pauseRecording}
+                      title={isPaused ? "Resume" : "Pause"}
+                    >
+                      {isPaused ? <Mic size={22} /> : <Pause size={22} />}
+                    </button>
+                    
+                    <button 
+                      className={styles['btn-icon-primary']} 
+                      onClick={stopRecording}
+                      title="Stop"
+                    >
+                      <Square size={20} />
+                    </button>
+                  </div>
+
+                  <button className={styles['btn-icon-success']} onClick={handleSend} title="Send Now">
+                    <Send size={22} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={styles['preview-ui']}>
+                <button className={styles['btn-play-preview']} onClick={togglePreviewPlayback}>
+                  {isPlayingPreview ? <Pause size={24} /> : <Play size={24} fill="currentColor" />}
+                </button>
+
+                <div className={styles['preview-visualizer']}>
+                  {waveformPoints.map((point, i) => (
+                    <div 
+                      key={i} 
+                      className={`${styles['waveform-bar']} ${(i / waveformPoints.length) < previewProgress ? styles['played'] : ''}`} 
+                      style={{ height: `${point}%` }} 
+                    />
+                  ))}
+                </div>
+
+                <span className={styles['preview-time']}>{formatTime(recordingTime)}</span>
+
+                <div className={styles['preview-actions']}>
+                  <button className={styles['btn-icon-danger']} onClick={handleCancel} title="Discard">
+                    <Trash2 size={20} />
+                  </button>
+                  <button className={styles['btn-send-final']} onClick={handleSend} title="Send Voice Message">
+                    <Send size={22} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className={styles['preview-ui']}>
-            <button className={styles['btn-play-preview']} onClick={togglePreviewPlayback}>
-              {isPlayingPreview ? <Pause size={24} /> : <Play size={24} fill="currentColor" />}
-            </button>
-
-            <div className={styles['preview-visualizer']}>
-              {waveformPoints.map((point, i) => (
-                <div 
-                  key={i} 
-                  className={`${styles['waveform-bar']} ${(i / waveformPoints.length) < previewProgress ? styles['played'] : ''}`} 
-                  style={{ height: `${point}%` }} 
-                />
-              ))}
-            </div>
-
-            <span className={styles['preview-time']}>{formatTime(recordingTime)}</span>
-
-            <div className={styles['preview-actions']}>
-              <button className={styles['btn-icon-danger']} onClick={handleCancel} title="Discard">
-                <Trash2 size={20} />
-              </button>
-              <button className={styles['btn-send-final']} onClick={handleSend} title="Send Voice Message">
-                <Send size={22} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

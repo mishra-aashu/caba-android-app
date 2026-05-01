@@ -7,17 +7,32 @@ const MAX_AUDIO_SIZE_MB = 10;
 
 /**
  * Gets the file extension from a MIME type.
- * @param {string} mimeType The MIME type (e.g., 'image/jpeg').
+ * @param {string} mimeType The MIME type (e.g., 'image/jpeg; charset=utf-8').
  * @returns {string} The file extension (e.g., 'jpg').
  */
 const getExtensionFromMimeType = (mimeType) => {
     if (!mimeType) return '';
-    return mimeType.split('/')[1] || '';
+    // Handle cases like 'audio/webm;codecs=opus'
+    const typeOnly = mimeType.split(';')[0];
+    const subtype = typeOnly.split('/')[1] || '';
+    
+    const map = {
+        'jpeg': 'jpg',
+        'svg+xml': 'svg',
+        'plain': 'txt',
+        'mpeg': 'mp3',
+        'webm': 'webm',
+        'ogg': 'ogg',
+        'quicktime': 'mov',
+        'x-m4a': 'm4a'
+    };
+    
+    return map[subtype] || subtype;
 };
 
 /**
- * Uploads a media file to the 'chat-media' storage bucket.
- * @param {File} file The file to upload.
+ * Uploads a media file to the 'media' storage bucket.
+ * @param {File|Blob} file The file to upload.
  * @param {string} userId The ID of the user uploading the file.
  * @returns {Promise<string|null>} The storage path of the uploaded file, or null on error.
  */
@@ -27,7 +42,10 @@ export const uploadMedia = async (file, userId) => {
         return null;
     }
 
-    const fileExt = file.name ? file.name.split('.').pop() : getExtensionFromMimeType(file.type);
+    const fileExt = (file.name && file.name.includes('.')) 
+        ? file.name.split('.').pop().toLowerCase() 
+        : getExtensionFromMimeType(file.type);
+
     if (!fileExt) {
         console.error('Could not determine file extension.');
         return null;
@@ -95,8 +113,8 @@ export const getSignedMediaUrl = async (mediaPath) => {
 };
 
 /**
- * Uploads an audio file for voice messages to the 'chat-media' storage bucket.
- * @param {File} file The audio file to upload.
+ * Uploads an audio file for voice messages to the 'media' storage bucket.
+ * @param {File|Blob} file The audio file to upload.
  * @param {string} userId The ID of the user uploading the file.
  * @returns {Promise<string|null>} The storage path of the uploaded file, or null if an error occurred.
  */
@@ -106,16 +124,21 @@ export const uploadVoiceMessage = async (file, userId) => {
     return null;
   }
 
-  // Validation...
+  // Validation
   if (!file.type.startsWith('audio/')) {
     console.error('Invalid file type. Must be audio.');
     return null;
   }
-  const fileExt = file.name.split('.').pop()?.toLowerCase();
+
+  const fileExt = (file.name && file.name.includes('.'))
+    ? file.name.split('.').pop()?.toLowerCase()
+    : getExtensionFromMimeType(file.type);
+
   if (!fileExt || !ALLOWED_AUDIO_FORMATS.includes(fileExt)) {
-    console.error('Unsupported audio format.');
+    console.error('Unsupported audio format:', fileExt);
     return null;
   }
+
   const maxSize = MAX_AUDIO_SIZE_MB * 1024 * 1024;
   if (file.size > maxSize) {
     console.error(`File size exceeds limit of ${MAX_AUDIO_SIZE_MB}MB.`);

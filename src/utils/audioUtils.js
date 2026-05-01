@@ -8,7 +8,7 @@ export const extractWaveformData = async (blob, samples = 40) => {
     try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const arrayBuffer = await blob.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioBuffer(arrayBuffer);
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         
         const rawData = audioBuffer.getChannelData(0); // Get first channel
         const blockSize = Math.floor(rawData.length / samples);
@@ -24,11 +24,17 @@ export const extractWaveformData = async (blob, samples = 40) => {
         }
         
         // Normalize
-        const multiplier = Math.pow(Math.max(...filteredData), -1);
-        return filteredData.map(n => n * multiplier);
+        const maxAmplitude = Math.max(...filteredData);
+        if (maxAmplitude === 0) {
+            // Silent audio - return all zeros or a small baseline
+            return Array.from({ length: samples }, () => 0.1);
+        }
+        
+        const multiplier = 1 / maxAmplitude;
+        return filteredData.map(n => Math.min(1, n * multiplier));
     } catch (error) {
         console.error("Error extracting waveform:", error);
-        // Fallback to random data if extraction fails
-        return Array.from({ length: samples }, () => Math.random());
+        // Fallback to minimal data if extraction fails
+        return Array.from({ length: samples }, () => 0.1 + Math.random() * 0.2);
     }
 };

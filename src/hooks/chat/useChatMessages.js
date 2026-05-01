@@ -434,5 +434,11 @@ export function useChatMessages({
         handleReply: useCallback((msg) => setReplyingTo(msg), []),
         cancelReply: useCallback(() => setReplyingTo(null), []),
         toggleReaction,
+        handleManualRetry: useCallback(async (tempId) => {
+            const { manualRetrySyncItem } = await import('../../db/db');
+            await manualRetrySyncItem(tempId);
+            // Trigger a network sync check
+            window.dispatchEvent(new Event('online'));
+        }, []),
     };
 }
