@@ -4,6 +4,7 @@ import { shallow } from 'zustand/shallow';
 const useChatStore = create((set, get) => ({
     // ─── STATE ───────────────────────────────────────────────────
     roomScrollPositions: {},
+    chatMessagesCache: {}, // ✅ Store last few messages for instant display
     isSyncing: false,
     isSelectionMode: false,
     selectedMessageIds: new Set(),
@@ -11,6 +12,13 @@ const useChatStore = create((set, get) => ({
     activeChatId: null, // ✅ Add separate primitive value
 
     // ─── ACTIONS ─────────────────────────────────────────────────
+
+    setCachedMessages: (chatId, messages) => set((state) => ({
+        chatMessagesCache: {
+            ...state.chatMessagesCache,
+            [chatId]: messages.slice(-20) // Only cache last 20 for memory efficiency
+        }
+    })),
 
     setActiveChat: (chat) => set((state) => {
         const currentId = state.activeChatId;

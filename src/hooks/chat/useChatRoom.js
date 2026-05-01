@@ -24,12 +24,6 @@ import { useChatCalls } from './useChatCalls';
 import { useChatSettings } from './useChatSettings';
 
 const useChatRoom = () => {
-    // ✅ Render counter INSIDE the component
-    const renderCountRef = useRef(0);
-    renderCountRef.current++;
-    if (renderCountRef.current % 10 === 0) {
-        console.log(`🌀 [useChatRoom] Render #${renderCountRef.current}`);
-    }
 
     const { chatId: paramChatId, otherUserId: paramOtherUserId } = useParams();
     const { activeChat } = useChatStore();
@@ -268,7 +262,8 @@ const useChatRoom = () => {
         deleteMessage: messagesApi.deleteMessage,
         forwardMessages: messagesApi.forwardMessages,
         handleReactionToggle: messagesApi.handleReactionToggle,
-        isLoading: messagesApi.isLoading,
+        isMessagesLoading: messagesApi.isMessagesLoading,
+        isDexieLoading: messagesApi.isDexieLoading,
         sendMessage: messagesApi.sendMessage,
         replyingTo: messagesApi.replyingTo,
         handleReply: messagesApi.handleReply,
@@ -278,8 +273,9 @@ const useChatRoom = () => {
         confirmSelectionDelete: messagesApi.confirmSelectionDelete,
         handleManualRetry: messagesApi.handleManualRetry,
     }), [
-        messagesApi.messages?.length,           // Only length + last item id
-        messagesApi.messages?.[0]?.id,
+        messagesApi.messages,
+        messagesApi.isMessagesLoading,
+        messagesApi.isDexieLoading,
         messagesApi.isFetchingNextPage,
         messagesApi.hasNextPage,
     ]);
@@ -316,7 +312,8 @@ const useChatRoom = () => {
         deleteMessage: stableMessagesApi.deleteMessage,
         forwardMessages: stableMessagesApi.forwardMessages,
         handleReactionToggle: stableMessagesApi.handleReactionToggle,
-        isMessagesLoading: stableMessagesApi.isLoading,
+        isMessagesLoading: stableMessagesApi.isMessagesLoading,
+        isDexieLoading: stableMessagesApi.isDexieLoading,
         
         // Media & Sending
         sendMessage: stableMessagesApi.sendMessage,

@@ -2225,39 +2225,42 @@ body.light-mode .search-result-time {
 .skeleton-message {
   height: 40px;
   width: 60%;
-  margin: 10px 0;
-  border-radius: 10px;
-  background: var(--bg-surface);
+  margin: 12px 0;
+  border-radius: 12px;
+  background: var(--bg-active, rgba(0, 0, 0, 0.05));
   position: relative;
   overflow: hidden;
+  border: 1px solid var(--border-subtle, transparent);
 }
 
 .skeleton-message.sent {
   margin-left: auto;
-  border-radius: 10px 10px 0 10px;
+  border-radius: 12px 12px 0 12px;
+  background: var(--brand-primary-subtle, rgba(0, 168, 132, 0.1));
 }
 
 .skeleton-message.received {
   margin-right: auto;
-  border-radius: 10px 10px 10px 0;
+  border-radius: 12px 12px 12px 0;
+  background: var(--bg-surface-raised, rgba(255, 255, 255, 0.1));
 }
 
 .skeleton-message::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-  animation: shimmer 1.5s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  animation: shimmer 2s infinite linear;
 }
 
 [data-theme='light'] .skeleton-message,
 body.light-mode .skeleton-message {
-  background: var(--border-subtle);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 [data-theme='light'] .skeleton-message::after,
 body.light-mode .skeleton-message::after {
-  background: linear-gradient(90deg, transparent, rgba(0, 168, 132, 0.05), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 168, 132, 0.1), transparent);
 }
 
 

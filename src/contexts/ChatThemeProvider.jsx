@@ -213,26 +213,6 @@ export const ChatThemeProvider = ({ children }) => {
     }, [state.themeKey, state.wallpaperUrl, state.patternId]);
 
     // ── Load theme/wallpaper for a chat ─────────────────────────────────────
-    const setChatId = useCallback((chatId) => {
-        if (!chatId) {
-            setState({
-                chatId:      null,
-                themeKey:    standardDefault,
-                wallpaperUrl: null,
-                patternId:   'pattern',
-                loading:     false,
-            });
-            return;
-        }
-
-        // 1. Apply cache immediately (synchronous) so the UI isn't blank
-        const cached = readCache(chatId, isDark);
-        setState({ chatId, ...cached, loading: false });
-
-        // 2. Refresh from DB in the background
-        refreshTheme(chatId);
-    }, [isDark, standardDefault]); // eslint-disable-line react-hooks/exhaustive-deps
-
     // ── Refresh from Supabase ────────────────────────────────────────────────
     const refreshTheme = useCallback(async (chatId) => {
         if (!chatId) return;
@@ -317,6 +297,32 @@ export const ChatThemeProvider = ({ children }) => {
             console.warn('[ChatTheme] refreshTheme failed:', e);
         }
     }, [queryClient]);
+
+    // ── Load theme/wallpaper for a chat ─────────────────────────────────────
+    const setChatId = useCallback((chatId) => {
+        setState(prev => {
+            // Guard: already active
+            if (prev.chatId === chatId && !prev.loading) return prev;
+
+            if (!chatId) {
+                return {
+                    chatId:      null,
+                    themeKey:    standardDefault,
+                    wallpaperUrl: null,
+                    patternId:   'pattern',
+                    loading:     false,
+                };
+            }
+
+            // Apply cache immediately (synchronous) so the UI isn't blank
+            const cached = readCache(chatId, isDark);
+            
+            // Refresh from DB in the background
+            refreshTheme(chatId);
+
+            return { chatId, ...cached, loading: false };
+        });
+    }, [isDark, standardDefault, refreshTheme]);
 
     // ── Select theme ─────────────────────────────────────────────────────────
     const selectTheme = useCallback(async (themeKey) => {

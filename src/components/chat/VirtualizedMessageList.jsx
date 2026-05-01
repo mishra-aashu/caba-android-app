@@ -34,6 +34,7 @@ const VirtualizedMessageList = React.forwardRef(({
   isVanishMode = false,
   onToggleVanish,
   onManualRetry,
+  isDexieLoading = false,
 }, ref) => {
   const isSelectionMode = useChatStore(state => state.isSelectionMode);
 
@@ -59,7 +60,7 @@ const VirtualizedMessageList = React.forwardRef(({
     return m;
   }, [messages]);
 
-  const isLoadingTotal = isQueryLoading && messages.length === 0;
+  const isLoadingTotal = (isQueryLoading || isDexieLoading) && messages.length === 0;
   const virtuosoRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -361,7 +362,7 @@ const VirtualizedMessageList = React.forwardRef(({
     );
   }
 
-  if (!isLoadingTotal && messages.length === 0) {
+  if (!isLoadingTotal && !isDexieLoading && messages.length === 0) {
     return (
       <div className={`${styles['messages-wrapper']} ${styles['virtuoso-empty']}`}>
         <div className={styles['no-messages-placeholder']}>
@@ -384,7 +385,7 @@ const VirtualizedMessageList = React.forwardRef(({
         ref={virtuosoRef}
         data={itemsWithHeaders}
         initialTopMostItemIndex={
-          initialTopMostItemIndex ?? (itemsWithHeaders.length > 0 ? itemsWithHeaders.length - 1 : 0)
+          initialTopMostItemIndex ?? (itemsWithHeaders.length > 0 ? 999999 : 0)
         }
         followOutput="auto"
         // [FIX #6] Both callbacks now send BOTH isAtBottom and isAtTop
@@ -478,6 +479,7 @@ export default memo(VirtualizedMessageList, (prevProps, nextProps) => {
   if (prevProps.isFetchingNextPage !== nextProps.isFetchingNextPage) return false;
   if (prevProps.hasNextPage !== nextProps.hasNextPage) return false;
   if (prevProps.isVanishMode !== nextProps.isVanishMode) return false;  // FIX: re-render on vanish toggle
+  if (prevProps.isDexieLoading !== nextProps.isDexieLoading) return false;
 
   const prevTyping = Object.keys(prevProps.typingUsers || {}).length;
   const nextTyping = Object.keys(nextProps.typingUsers || {}).length;

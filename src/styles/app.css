@@ -222,7 +222,6 @@
 
 html {
   font-size: 16px;
-  scroll-behavior: smooth;
 }
 
 body {
@@ -275,7 +274,6 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
   padding-bottom: var(--sab);
   transform: translateZ(0);
   will-change: scroll-position;

@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { db } from '../db/db';
 import toast from 'react-hot-toast';
@@ -86,5 +87,7 @@ export function useDeleteMessage(chatId) {
         }
     };
 
-    return { mutateAsync: deleteMessage };
+    const mutateAsync = useCallback(deleteMessage, [chatId, supabase]);
+
+    return useMemo(() => ({ mutateAsync }), [mutateAsync]);
 }

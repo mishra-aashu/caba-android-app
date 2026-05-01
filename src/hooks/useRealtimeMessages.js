@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { realtimeManager } from '../utils/realtimeManager';
 import { supabase } from '../config/supabase';
 import useUserStore from '../store/userStore';
@@ -413,7 +413,7 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
         };
     }, [chatId, handlePayload, fetchMissedMessages, _log]);
 
-    return { status, retry };
+    return useMemo(() => ({ status, retry }), [status, retry]);
 };
 
 export default useRealtimeMessages;

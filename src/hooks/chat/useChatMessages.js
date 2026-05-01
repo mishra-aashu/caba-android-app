@@ -12,6 +12,9 @@ import toast from 'react-hot-toast';
 import hapticsManager from '../../utils/hapticsManager';
 import { useNavigate } from 'react-router-dom';
 import { EncryptionService } from '../../services/EncryptionService';
+import useChatStore from '../../store/useChatStore';
+
+const STABLE_EMPTY_ARRAY = [];
 
 export function useChatMessages({
     chatId,
@@ -38,11 +41,8 @@ export function useChatMessages({
             const collection = db.messages.where('[chatId+createdAt]')
                 .between([chatId, Dexie.minKey], [chatId, Dexie.maxKey]);
             
-            const count = await collection.count();
             const currentLimit = page * PAGE_SIZE;
             
-            setHasNextPage(count > currentLimit);
-
             let latest = await collection
                 .reverse()
                 .limit(currentLimit)
@@ -60,36 +60,68 @@ export function useChatMessages({
             return latest.sort((a, b) => new Date(a.createdAt || a.created_at) - new Date(b.createdAt || b.created_at));
         },
         [chatId, page]
-    ) || [];
+    );
 
-    const rawMessagesRef = useRef(rawMessages);
-    const messages = useMemo(() => {
-        if (rawMessagesRef.current !== rawMessages) {
-            console.log('📦 rawMessages reference changed', {
-                count: rawMessages?.length,
-                sameData: JSON.stringify(rawMessagesRef.current) === JSON.stringify(rawMessages)
-            });
-            rawMessagesRef.current = rawMessages;
+    // [FIX] Update hasNextPage in an effect, not during render/query
+    useEffect(() => {
+        if (!chatId || chatId === 'new') {
+            setHasNextPage(false);
+            return;
         }
+        
+        const checkHasNext = async () => {
+            try {
+                const count = await db.messages.where('[chatId+createdAt]')
+                    .between([chatId, Dexie.minKey], [chatId, Dexie.maxKey])
+                    .count();
+                setHasNextPage(count > page * PAGE_SIZE);
+            } catch (err) {
+                console.warn('[useChatMessages] hasNextPage check failed:', err);
+            }
+        };
+        
+        checkHasNext();
+    }, [chatId, page, rawMessages?.length]);
+
+    const setCachedMessages = useChatStore(state => state.setCachedMessages);
+    const cachedMessages = useChatStore(state => state.chatMessagesCache[chatId]) || STABLE_EMPTY_ARRAY;
+
+    // [STABILITY] Map raw messages to frontend format
+    const mappedMessages = useMemo(() => {
+        if (!rawMessages) return [];
         return rawMessages.map(msg => dbToFrontend(msg));
     }, [rawMessages]);
 
+    // [STABILITY] Final messages array (prefers cache if loading)
+    const messages = useMemo(() => {
+        if (rawMessages === undefined && cachedMessages.length > 0) {
+            return cachedMessages;
+        }
+        return mappedMessages;
+    }, [rawMessages, cachedMessages, mappedMessages]);
+
+    // [FIX] Update cache in an effect, not during render/memo
+    useEffect(() => {
+        if (mappedMessages.length > 0 && chatId && chatId !== 'new') {
+            setCachedMessages(chatId, mappedMessages);
+        }
+    }, [chatId, mappedMessages, setCachedMessages]);
+
     // ─── OFFLINE-FIRST INITIALIZATION ───
-    const [isSyncing, setIsSyncing] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(Boolean(chatId && chatId !== 'new'));
 
     useEffect(() => {
         if (navigator.onLine && chatId && chatId !== 'new') {
-            const timer = setTimeout(() => {
-                setIsSyncing(true);
-                import('../../services/syncService').then(({ syncService }) => {
-                    syncService.syncChat(chatId).finally(() => setIsSyncing(false));
-                });
-            }, 500);
-            return () => clearTimeout(timer);
+            setIsSyncing(true);
+            import('../../services/syncService').then(({ syncService }) => {
+                syncService.syncChat(chatId).finally(() => setIsSyncing(false));
+            }).catch(() => setIsSyncing(false));
         }
     }, [chatId]);
 
-    const isMessagesLoading = messages.length === 0 && isSyncing;
+    const isDexieLoading = rawMessages === undefined;
+    // We only show the "loading" skeleton if we have absolutely nothing (no local DB data AND no in-memory cache)
+    const isMessagesLoading = (isDexieLoading || isSyncing) && messages.length === 0;
 
     const fetchNextPage = useCallback(() => {
         if (!hasNextPage || isFetchingNextPage) return;
@@ -294,6 +326,7 @@ export function useChatMessages({
         handleReply: (msg) => setReplyingTo(msg),
         cancelReply: () => setReplyingTo(null),
         toggleReaction,
+        isDexieLoading,
         handleManualRetry: async (tempId) => {
             const { manualRetrySyncItem } = await import('../../db/db');
             await manualRetrySyncItem(tempId);
@@ -303,6 +336,6 @@ export function useChatMessages({
         messages, isMessagesLoading, isFetchingNextPage, hasNextPage, 
         fetchNextPage, connectionStatus, retryConnection, sendMessage, 
         forwardMessages, deleteMessageMutation, deleteSelectedMessages, 
-        clearChat, replyingTo, toggleReaction
+        clearChat, replyingTo, toggleReaction, isDexieLoading
     ]);
 }

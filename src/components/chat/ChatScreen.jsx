@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { debounce } from 'lodash';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 import { ArrowDown } from 'lucide-react';
@@ -10,7 +11,6 @@ import VirtualizedMessageList from './VirtualizedMessageList';
 import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import { messageReadsService } from '../../services/messageReadsService';
-import debounce from 'lodash/debounce';
 import { Capacitor } from '@capacitor/core';
 import { isNativeWithPlugins } from '../../utils/platformCheck';
 import hapticsManager from '../../utils/hapticsManager';
@@ -56,6 +56,7 @@ const ChatScreen = () => {
         handleAcceptGame, handleRejectGame, handleJoinGame, handleReactionToggle,
         supabase, showAlert, initialScrollPosition, saveScrollPosition,
         isMessagesLoading,
+        isDexieLoading,
         connectionStatus, retryConnection,
         authError, currentUser,
         markMessagesAsRead, unreadCount, setUnreadCount, isScrolledToBottom, setIsScrolledToBottom,
@@ -183,10 +184,19 @@ const ChatScreen = () => {
         };
     }, [handleScrollToBottom]);
 
-    const debouncedSaveScroll = useCallback(
-        debounce((id, index) => saveScrollPosition(id, index), 500),
+    const debouncedSaveScroll = useMemo(
+        () => debounce((id, index) => saveScrollPosition(id, index), 500),
         [saveScrollPosition],
     );
+
+    const handleRangeChanged = useCallback((startIndex) => {
+        if (chatId && !isScrolledToBottom) {
+            debouncedSaveScroll(chatId, startIndex);
+        } else if (chatId && isScrolledToBottom) {
+            debouncedSaveScroll.cancel();
+            saveScrollPosition(chatId, null); // Sentinel for "at bottom"
+        }
+    }, [chatId, isScrolledToBottom, saveScrollPosition, debouncedSaveScroll]);
 
     useEffect(() => {
         if (!chatId || !currentUser || chatId === 'new') return;
@@ -446,6 +456,7 @@ const ChatScreen = () => {
                                     isVanishMode={isTempChat}
                                     onToggleVanish={toggleVanishMode}
                                     isLoading={isMessagesLoading}
+                                    isDexieLoading={isDexieLoading}
                                     isFetchingNextPage={isFetchingNextPage}
                                     fetchNextPage={fetchNextPage}
                                     hasNextPage={hasNextPage}
@@ -460,7 +471,7 @@ const ChatScreen = () => {
                                     followOutput="auto"
                                     typingUsers={typingUsers}
                                     initialTopMostItemIndex={initialScrollPosition}
-                                    onRangeChanged={(index) => debouncedSaveScroll(validChatId, index)}
+                                    onRangeChanged={handleRangeChanged}
                                     chatId={validChatId}
                                     onManualRetry={handleManualRetry}
                                 />
