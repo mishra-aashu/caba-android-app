@@ -200,23 +200,42 @@ Alternatively, open the `android/` directory directly in Android Studio.
 
 ## <img src="https://api.iconify.design/lucide:folder-tree.svg?height=24&color=%23646cff" vertical-align="middle" /> Project Structure
 
-```
+```text
 caba-android-app/
-├── android/                    # Android native app (Capacitor)
-├── public/                    # Static assets (images, audio, PWA manifests)
-├── src/
-│   ├── components/           # React components (auth, chat, calls, groups)
-│   ├── contexts/            # Context API (Auth, Theme, Data)
-│   ├── hooks/               # Custom hooks
-│   ├── services/           # Supabase/Firebase/WebRTC logic
-│   ├── store/              # Zustand state management
-│   ├── utils/              # Client-side helpers
-│   ├── styles/             # Application styles
-│   └── main.jsx            # Entry point
-├── supabase/                 # Backend configuration & Edge functions
-├── .github/                  # CI/CD Workflows
-├── package.json              # Config & dependencies
-└── vite.config.js            # Build configuration
+├── .github/                   # CI/CD Workflows (OTA deployments, Auto-releases)
+├── android/                   # Native Android Project (Capacitor generated)
+│   ├── app/                   # Main Android application source
+│   └── build.gradle           # Native build configuration
+├── public/                    # Static assets
+│   ├── icons/                 # PWA and App icons
+│   ├── audio/                 # Sound effects for calls/messages
+│   └── manifests/             # PWA and Web App manifests
+├── src/                       # Frontend Source Code
+│   ├── components/            # UI Components
+│   │   ├── auth/              # Login, Register, Recovery
+│   │   ├── chat/              # Message lists, Input area, Bubbles
+│   │   ├── calls/             # WebRTC Call screens (Audio/Video)
+│   │   ├── settings/          # User preferences & Theme toggles
+│   │   ├── layout/            # Sidebar, BottomNav, Shell
+│   │   └── games/             # Arena games integration
+│   ├── contexts/              # React Context API (Auth, Notifications, Audio)
+│   ├── hooks/                 # Custom React Hooks
+│   │   ├── chat/              # Messaging logic & Realtime subscriptions
+│   │   └── media/             # Camera, Gallery, and File handling
+│   ├── services/              # Core Logic & API Integrations
+│   │   ├── supabase/          # Database, Storage & Auth logic
+│   │   ├── firebase/          # Push Notifications (FCM)
+│   │   └── webrtc/            # Real-time Call signaling
+│   ├── store/                 # Zustand State Management
+│   ├── styles/                # Global CSS, Animations & Themes
+│   ├── utils/                 # Helper functions & Constants
+│   └── main.jsx               # App entry point & Router setup
+├── supabase/                  # Backend Infrastructure
+│   ├── migrations/            # SQL Database Schema versions
+│   └── functions/             # Deno-based Edge Functions
+├── scripts/                   # Automation scripts (Sprite generation, OTA)
+├── package.json               # Dependencies & Build scripts
+└── vite.config.js             # Vite build & Plugin configuration
 ```
 
 ---
