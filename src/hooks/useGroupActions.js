@@ -114,7 +114,6 @@ export const useCreateGroup = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userGroups'] });
       queryClient.invalidateQueries({ queryKey: ['chatList'] });
-      toast.success('Group created successfully!');
     },
     onError: (error) => {
       console.error('Error creating group:', error);
@@ -135,7 +134,6 @@ export const useAddMembers = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['groupMembers', variables.groupId] });
       queryClient.invalidateQueries({ queryKey: ['chatList'] });
-      toast.success('Members added successfully!');
     },
     onError: (error) => {
       console.error('Error adding members:', error);
@@ -155,7 +153,6 @@ export const useRemoveMember = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['groupMembers', variables.groupId] });
-      toast.success('Member removed');
     },
     onError: (error) => {
       console.error('Error removing member:', error);
@@ -176,7 +173,6 @@ export const useMakeAdmin = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['groupMembers', variables.groupId] });
       queryClient.invalidateQueries({ queryKey: ['isAdmin', variables.groupId] });
-      toast.success('Promoted to admin!');
     },
     onError: (error) => {
       console.error('Error making admin:', error);
@@ -196,7 +192,6 @@ export const useDemoteAdmin = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['groupMembers', variables.groupId] });
-      toast.success('Demoted to member');
     },
     onError: (error) => {
       console.error('Error demoting admin:', error);
@@ -217,7 +212,6 @@ export const useLeaveGroup = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userGroups'] });
       queryClient.invalidateQueries({ queryKey: ['chatList'] });
-      toast.success('Left the group');
     },
     onError: (error) => {
       console.error('Error leaving group:', error);
@@ -237,7 +231,6 @@ export const useUpdateGroup = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['group', variables.groupId] });
-      toast.success('Group updated!');
     },
     onError: (error) => {
       console.error('Error updating group:', error);
