@@ -13,7 +13,7 @@
 .message-row {
   display: flex;
   width: 100%;
-  padding: 0 12px;
+  padding: 0 1px;
   margin-bottom: 2px;
 }
 
@@ -28,8 +28,9 @@
 /* Voice Card */
 .voice-card {
   position: relative;
-  max-width: 82%;
-  width: 310px;
+  max-width: 78%;
+  width: auto;
+  min-width: 240px;
   padding: 12px 14px;
   
   /* Performance optimizations */
@@ -440,7 +441,7 @@
   color: var(--text-secondary, #667781);
   opacity: 0.7;
   margin-top: 2px;
-  margin-right: 18px;
+  margin-right: 2px;
   margin-bottom: 6px;
   font-weight: 500;
   letter-spacing: 0.2px;
@@ -455,8 +456,9 @@
 /* Responsive Design */
 @media (max-width: 480px) {
   .voice-card {
-    max-width: 90%;
-    width: 280px;
+    max-width: 82%;
+    width: auto;
+    min-width: 230px;
     padding: 10px 12px;
   }
 

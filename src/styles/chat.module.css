@@ -418,7 +418,7 @@ body.light-mode .load-more-indicator p {
   overscroll-behavior-y: contain;
   will-change: scroll-position, transform;
   position: relative;
-  padding: 0 1rem 8px;
+  padding: 0 1px 8px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -431,19 +431,19 @@ body.light-mode .load-more-indicator p {
 
 @media (max-width: 320px) {
   .messages-container {
-    padding: 0 0.5rem 8px;
+    padding: 0 1px 8px;
   }
 }
 
 @media (min-width: 400px) and (max-width: 600px) {
   .messages-container {
-    padding: 0 1.25rem 8px;
+    padding: 0 2px 8px;
   }
 }
 
 @media (min-width: 601px) {
   .messages-container {
-    padding: 0 1.5rem 8px;
+    padding: 0 2px 8px;
   }
 }
 
@@ -642,11 +642,11 @@ body.light-mode .messages-container {
   transition: transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
   will-change: transform;
   z-index: 1;
-  max-width: 85%;
+  max-width: 92%;
 }
 
 .message-item.sent .message-bubble-wrapper {
-  max-width: 85%;
+  max-width: 92%;
 }
 
 
