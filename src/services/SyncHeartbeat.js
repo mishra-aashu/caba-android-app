@@ -22,11 +22,11 @@ import { EncryptionService } from './EncryptionService';
 
 // Configuration constants
 const CONFIG = {
-  FOREGROUND_INTERVAL: 15_000,  // 15s - Active monitoring
-  BACKGROUND_INTERVAL: 45_000,  // 45s - Battery-friendly
-  MIN_BEAT_GAP: 8_000,          // Rate limiting
+  FOREGROUND_INTERVAL: 45_000,  // 45s - Adaptive monitoring (Increased from 15s)
+  BACKGROUND_INTERVAL: 90_000,  // 90s - Battery-friendly (Increased from 45s)
+  MIN_BEAT_GAP: 20_000,         // Rate limiting (Increased from 8s)
   MAX_MESSAGES_PER_FETCH: 50,   // Pagination limit
-  DEBOUNCE_DELAY: 1_000,        // Beat debounce
+  DEBOUNCE_DELAY: 2_000,        // Beat debounce (Increased from 1s)
   REQUEST_TIMEOUT: 30_000,      // Network timeout
 };
 
@@ -64,6 +64,7 @@ class SyncHeartbeat {
       successfulBeats: 0,
       failedBeats: 0,
       lastError: null,
+      emptyBeats: 0,
     };
   }
 
@@ -275,10 +276,13 @@ class SyncHeartbeat {
       return;
     }
 
-    // Rate limiting
+    // Rate limiting with adaptive back-off
     const now = Date.now();
-    if (!force && (now - this._lastHeartbeatAt) < CONFIG.MIN_BEAT_GAP) {
-      console.log('[SyncHeartbeat] Rate limited, skipping beat');
+    const backoffMultiplier = Math.min(Math.pow(1.5, this._stats.emptyBeats), 4); // Max 4x interval
+    const interval = (document.visibilityState === 'visible' ? CONFIG.FOREGROUND_INTERVAL : CONFIG.BACKGROUND_INTERVAL) * backoffMultiplier;
+    
+    if (!force && (now - this._lastHeartbeatAt) < Math.max(CONFIG.MIN_BEAT_GAP, interval)) {
+      console.log(`[SyncHeartbeat] Throttled (Backoff: ${backoffMultiplier.toFixed(1)}x), skipping beat`);
       return;
     }
 
@@ -299,7 +303,19 @@ class SyncHeartbeat {
       }
 
       // Priority 2: Sync all chat list heads
-      await this._patchChatListHeads(signal);
+      const patchedCount = await this._patchChatListHeads(signal);
+
+      // Track empty beats for back-off
+      if (patchedCount === 0) {
+        this._stats.emptyBeats++;
+      } else {
+        this._stats.emptyBeats = 0; // Reset on activity
+      }
+
+      // Dispatch global heartbeat event for other providers (e.g. CallProvider)
+      window.dispatchEvent(new CustomEvent('app:sync-heartbeat', { 
+        detail: { timestamp: now, userId: this.userId } 
+      }));
 
       this._stats.successfulBeats++;
       console.log(`[SyncHeartbeat] ✅ Beat completed successfully`);
@@ -422,14 +438,16 @@ class SyncHeartbeat {
         }
       }
 
-      if (toPatch.length > 0) {
-        // Single bulk write
-        await db.transaction('rw', db.chats_list, async () => {
-          await db.chats_list.bulkPut(toPatch);
-        });
-
-        console.log(`[SyncHeartbeat] 📊 Patched ${toPatch.length} chat heads`);
-      }
+        if (toPatch.length > 0) {
+          // Single bulk write
+          await db.transaction('rw', db.chats_list, async () => {
+            await db.chats_list.bulkPut(toPatch);
+          });
+  
+          console.log(`[SyncHeartbeat] 📊 Patched ${toPatch.length} chat heads`);
+          return toPatch.length;
+        }
+        return 0;
 
     } catch (err) {
       if (err.name !== 'AbortError') {

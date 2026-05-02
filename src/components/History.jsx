@@ -8,6 +8,7 @@ import { callService } from '../services/callService';
 import BottomNavigation from './common/BottomNavigation';
 import { isUserOnline, formatInboxTime } from '../utils/dateFormatter';
 import useAuthStore from '../store/authStore';
+import { useCallHistory } from '../hooks/useCallHistory';
 import '../styles/calls.css';
 import '../styles/history.css';
 
@@ -20,27 +21,13 @@ const History = ({ isSidebar = false }) => {
   const { dbUser, isAuthenticated } = authState;
   const userId = dbUser?.id;
 
-  // React Query for call history - cached for 10 minutes
-  const {
-    data: queryData,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['callHistory', userId],
-    queryFn: async () => {
-      if (!userId || !isAuthenticated) {
-        return { calls: [], hasMore: false, lastCallId: null };
-      }
-      const result = await callService.getCallHistory(userId, 20, null);
-      return result;
-    },
-    enabled: !!userId && !!isAuthenticated,
-    staleTime: 1000 * 30, // 30 seconds - keep data fresh for real-time updates
-    gcTime: 1000 * 30, // 30 seconds - keep in cache
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  });
+  const { 
+    history: rawHistory, 
+    loading: isLoading, 
+    error, 
+    refetch,
+    hasMore: hookHasMore
+  } = useCallHistory(userId);
 
   // Local state for grouped history and pagination
   const [history, setHistory] = useState([]);
@@ -51,20 +38,23 @@ const History = ({ isSidebar = false }) => {
   const [loadingLocked, setLoadingLocked] = useState(false);
   const loaderRef = useRef(null);
 
+  // Sync hasMore from hook
+  useEffect(() => {
+    setHasMore(hookHasMore);
+  }, [hookHasMore]);
+
   // Handle manual refresh
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
 
-  // Update history when query data changes
+  // Update history when data changes
   useEffect(() => {
-    if (queryData?.calls) {
-      const groupedCalls = groupCallsByUser(queryData.calls);
+    if (rawHistory) {
+      const groupedCalls = groupCallsByUser(rawHistory);
       setHistory(groupedCalls);
-      setHasMore(queryData.hasMore || false);
-      setLastCallId(queryData.lastCallId);
     }
-  }, [queryData]);
+  }, [rawHistory]);
 
   // Set current user when available
   useEffect(() => {
@@ -270,7 +260,8 @@ const History = ({ isSidebar = false }) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Show loading while checking auth or fetching
+  // isLoading comes from hook now
+
   if (!isAuthenticated || isLoading) {
     return (
       <div className="history-container">

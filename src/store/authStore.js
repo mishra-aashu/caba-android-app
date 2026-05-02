@@ -496,14 +496,35 @@ const useAuthStore = create((set, get) => ({
       // Step 1: Fetch user profile from database
       // ────────────────────────────────────────────────────────
 
-      const { data: existingUser, error: fetchError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .maybeSingle(); // Use maybeSingle to avoid 406 errors
+      let existingUser = null;
+      let fetchError = null;
+
+      try {
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authUser.id)
+            .maybeSingle();
+          existingUser = data;
+          fetchError = error;
+      } catch (err) {
+          fetchError = err;
+      }
 
       if (fetchError) {
-        console.error('[Auth] ⚠️ Profile fetch error:', fetchError.message);
+        console.warn('[Auth] Profile fetch failed (likely offline):', fetchError.message);
+        
+        // [OFFLINE] Try loading from Dexie
+        try {
+            const { db } = await import('../db/db');
+            const cachedProfile = await db.user_profiles.get(authUser.id);
+            if (cachedProfile) {
+                console.log('[Auth] 💾 Restored profile from Dexie cache');
+                existingUser = cachedProfile;
+            }
+        } catch (dexieErr) {
+            console.error('[Auth] Dexie cache load failed:', dexieErr.message);
+        }
       }
 
       // ────────────────────────────────────────────────────────
@@ -602,10 +623,25 @@ const useAuthStore = create((set, get) => ({
       // Step 5: Update store
       // ────────────────────────────────────────────────────────
 
+      const frontendUser = dbToFrontend(dbUser);
       set({
-        dbUser: dbToFrontend(dbUser),
+        dbUser: frontendUser,
         isDbUserLoaded: true,
       });
+
+      // [OFFLINE] Cache in Dexie
+      if (dbUser && !dbUser._isFallback) {
+          try {
+              const { db } = await import('../db/db');
+              await db.user_profiles.put({
+                  ...dbUser,
+                  id: dbUser.id,
+                  name: dbUser.name
+              });
+          } catch (dexieErr) {
+              console.warn('[Auth] Dexie cache save failed:', dexieErr.message);
+          }
+      }
 
       // Update Sentry user context
       setSentryUser(dbUser);

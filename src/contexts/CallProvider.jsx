@@ -241,21 +241,20 @@ export function CallProvider({ children, currentUser }) {
           return;
         }
 
-        // Add a timeout to user details fetching to ensure modal shows up
-        const callerInfoPromise = callService.getUserById(signal.from_user_id);
-        const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({
+        // [OPTIMIZATION] Dispatch IMMEDIATELY with placeholder info to show UI without delay
+        const placeholderInfo = {
           id: signal.from_user_id,
-          name: 'Unknown User',
+          name: 'Loading...',
           avatar: null
-        }), 2000));
+        };
 
-        const callerInfo = await Promise.race([callerInfoPromise, timeoutPromise]).catch(err => ({
-          id: signal.from_user_id,
-          name: 'Unknown User',
-          avatar: null
-        }));
-
-        console.log('👤 Caller info resolved:', callerInfo.name);
+        dispatch({
+          type: ACTIONS.SET_INCOMING_CALL,
+          payload: {
+            ...signal,
+            callerInfo: placeholderInfo
+          }
+        });
 
         // Clear existing ring timeout
         if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
@@ -267,14 +266,34 @@ export function CallProvider({ children, currentUser }) {
           ringTimeoutRef.current = null;
         }, 45000);
 
-        dispatch({
-          type: ACTIONS.SET_INCOMING_CALL,
-          payload: {
-            ...signal,
-            callerInfo
-          }
-        });
-        dispatch({ type: ACTIONS.SET_CALLER_INFO, payload: callerInfo });
+        // Load REAL user info in background
+        callService.getUserById(signal.from_user_id)
+          .then(callerInfo => {
+            console.log('👤 Caller info resolved:', callerInfo.name);
+            dispatch({
+              type: ACTIONS.SET_INCOMING_CALL,
+              payload: {
+                ...signal,
+                callerInfo
+              }
+            });
+            dispatch({ type: ACTIONS.SET_CALLER_INFO, payload: callerInfo });
+          })
+          .catch(err => {
+            console.warn('Failed to load caller info:', err);
+            const fallbackInfo = {
+              id: signal.from_user_id,
+              name: 'Unknown User',
+              avatar: null
+            };
+            dispatch({
+              type: ACTIONS.SET_INCOMING_CALL,
+              payload: {
+                ...signal,
+                callerInfo: fallbackInfo
+              }
+            });
+          });
       } else {
         // Handle other signals (answer, ice_candidate, call_end)
         try {
@@ -432,17 +451,22 @@ export function CallProvider({ children, currentUser }) {
       signalChannelRef.current = callService.subscribeToSignals(currentUser.id, stableSignalHandler);
       historyChannelRef.current = callService.subscribeToCallHistory(currentUser.id, stableHistoryHandler);
 
-      // 3. Setup polling fallback (every 5 seconds)
-      pollingIntervalRef.current = setInterval(() => {
-        if (callStateRef.current === 'idle') {
-          if (checkPendingSignalsRef.current) checkPendingSignalsRef.current();
+      // Polling fallback removed to prevent network spam.
+      // Realtime (WS) handles instant delivery. 
+      // Periodic reconciliation is synchronized with the global SyncHeartbeat.
+      const handleHeartbeat = () => {
+        if (callStateRef.current === 'idle' && checkPendingSignalsRef.current) {
+          console.log('[CallProvider] Heartbeat sync: Checking pending signals');
+          checkPendingSignalsRef.current();
         }
-      }, 5000);
+      };
 
+      window.addEventListener('app:sync-heartbeat', handleHeartbeat);
+      
       return () => {
         if (signalChannelRef.current) callService.unsubscribe(signalChannelRef.current);
         if (historyChannelRef.current) callService.unsubscribe(historyChannelRef.current);
-        if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+        window.removeEventListener('app:sync-heartbeat', handleHeartbeat);
       };
     }
   }, [currentUser?.id, state.callState]); // Re-setup if user changes, or polling check logic depends on state
@@ -619,7 +643,12 @@ export function CallProvider({ children, currentUser }) {
     replaceLocalStream,
     restoreCameraStream,
     playOutgoingRing,
-    playIncomingRing
+    playIncomingRing,
+    checkPendingSignals: () => {
+        if (state.callState === 'idle' && checkPendingSignalsRef.current) {
+            checkPendingSignalsRef.current();
+        }
+    }
   };
 
   return (

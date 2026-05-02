@@ -179,6 +179,17 @@ class CallService {
       const hasMore = calls.length === limit;
       const newLastCallId = calls.length > 0 ? calls[calls.length - 1].id : null;
 
+      // [OFFLINE] Sync to Dexie
+      const { db } = await import('../db/db');
+      await db.transaction('rw', db.call_history, async () => {
+        // If it's the first page, we might want to clear or just bulkPut
+        // For now, bulkPut is safer.
+        await db.call_history.bulkPut(transformedData.map(c => ({
+            ...c,
+            id: String(c.id) // Ensure ID is string for consistency
+        })));
+      });
+
       return {
         calls: transformedData,
         hasMore,

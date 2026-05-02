@@ -47,8 +47,8 @@ const SharedMedia = lazy(() => import('./chat/SharedMedia'));
 // Constants
 // ══════════════════════════════════════════════════════════════
 
-const SYNC_THROTTLE_MS = 60_000; // 1 minute
-const SYNC_DEBOUNCE_MS = 1_000;  // 1 second
+const SYNC_THROTTLE_MS = 120_000; // 2 minutes (Increased from 1m)
+const SYNC_DEBOUNCE_MS = 2_000;   // 2 seconds (Increased from 1s)
 
 const OVERLAY_ROUTES = new Set([
   '/contacts',

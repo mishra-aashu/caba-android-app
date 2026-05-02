@@ -194,36 +194,52 @@ const useChatRoom = () => {
         if (authLoading || isDataLoading || isNewChat || !chatId || !currentUser) return;
 
         const verifyParticipation = async () => {
+            // [OFFLINE-FIRST] Step 1: Trust Local Cache (Dexie)
+            // If the chat exists in our local list, they are authorized to see it.
             const chatInList = allChats.find((c) => String(c.id) === String(chatId));
             if (chatInList) {
                 setAuthError(null);
                 return;
             }
 
-            if (isGroupChat) {
-                const { data: group, error } = await supabase
-                    .from('groups')
-                    .select('id')
-                    .eq('id', chatId)
-                    .single();
-
-                if (error || !group) {
-                    setAuthError('Unauthorized: You are not a member of this group.');
-                    return;
-                }
-            } else {
-                const { data: chat, error } = await supabase
-                    .from('chats')
-                    .select('id')
-                    .eq('id', chatId)
-                    .single();
-
-                if (error || !chat) {
-                    setAuthError('Unauthorized: You are not a participant of this chat.');
-                    return;
-                }
+            // Step 2: Server-side validation (Only if offline cache is missing)
+            // This allows entry to new chats shared via deep-link while online.
+            if (!navigator.onLine) {
+                // If offline and not in cache, we can't verify, but we also can't fetch.
+                // We'll show a "not in cache" error instead of "unauthorized".
+                setAuthError('This chat is not available offline. Please connect to the internet.');
+                return;
             }
-            setAuthError(null);
+
+            try {
+                if (isGroupChat) {
+                    const { data: group, error } = await supabase
+                        .from('groups')
+                        .select('id')
+                        .eq('id', chatId)
+                        .single();
+
+                    if (error || !group) {
+                        setAuthError('Unauthorized: You are not a member of this group.');
+                        return;
+                    }
+                } else {
+                    const { data: chat, error } = await supabase
+                        .from('chats')
+                        .select('id')
+                        .eq('id', chatId)
+                        .single();
+
+                    if (error || !chat) {
+                        setAuthError('Unauthorized: You are not a participant of this chat.');
+                        return;
+                    }
+                }
+                setAuthError(null);
+            } catch (err) {
+                console.warn('[useChatRoom] Remote auth check failed:', err);
+                // On error (e.g. network timeout), don't block if we can't be sure
+            }
         };
 
         verifyParticipation();

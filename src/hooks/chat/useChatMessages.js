@@ -108,7 +108,7 @@ export function useChatMessages({
     }, [chatId, mappedMessages, setCachedMessages]);
 
     // ─── OFFLINE-FIRST INITIALIZATION ───
-    const [isSyncing, setIsSyncing] = useState(Boolean(chatId && chatId !== 'new'));
+    const [isSyncing, setIsSyncing] = useState(Boolean(navigator.onLine && chatId && chatId !== 'new'));
 
     useEffect(() => {
         if (navigator.onLine && chatId && chatId !== 'new') {

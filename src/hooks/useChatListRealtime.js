@@ -148,7 +148,7 @@ export const useChatListRealtime = (currentUserId) => {
         } catch (error) {
             console.error('[ChatList] Sync failed:', error);
         } finally {
-            if (!silent) setLoading(false);
+            setLoading(false);
         }
     }, [currentUserId, supabase]);
 
@@ -161,10 +161,11 @@ export const useChatListRealtime = (currentUserId) => {
             if (!currentUserId) return;
 
             try {
-                // Check Dexie first
                 const localCount = await db.chats_list.count();
-
-                if (localCount === 0) {
+                if (localCount > 0) {
+                    // Dexie has data - show it immediately
+                    setLoading(false);
+                } else {
                     // Dexie empty - try filesystem
                     await initializeFileSystem();
                     const localChats = await loadChatsFromDevice();
@@ -181,6 +182,7 @@ export const useChatListRealtime = (currentUserId) => {
                 loadAndSyncChats(true);
             } catch (error) {
                 console.warn('[ChatList] Cache load failed:', error);
+                // Fallback to full sync which will set loading to false in finally
                 loadAndSyncChats();
             }
         };

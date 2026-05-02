@@ -22,17 +22,11 @@ class SyncService {
 
     /**
      * Start periodic synchronization
+     * (Deprecated: Logic moved to SyncHeartbeat for better orchestration)
      */
     startPeriodicSync(userId) {
         if (!userId) return;
-        this.stopPeriodicSync();
-        
-        console.log('[Sync] Starting periodic background sync');
-        this.periodicSyncTimer = setInterval(() => {
-            if (navigator.onLine) {
-                this.performGlobalSync(userId);
-            }
-        }, this.syncInterval);
+        console.log('[Sync] Periodic sync orchestration moved to SyncHeartbeat');
     }
 
     /**
