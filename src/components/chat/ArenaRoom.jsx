@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Send, Image, Mic, Video, X, Maximize2, 
+  Send, Image, Mic, MicOff, Video, X, Maximize2, 
   Gamepad2, MessageSquare, ChevronUp, ChevronDown,
   Volume2, Play, Pause, Download, Clock, Camera
 } from 'lucide-react';
@@ -26,7 +26,10 @@ const ArenaRoom = ({
   const scrollRef = useRef(null);
   const { user: currentUser } = useAuth();
 
-  const { chatMessages, sendChat, sendMedia, peers, connectionState } = webrtcProps;
+  const { 
+    chatMessages, sendChat, sendMedia, peers, connectionState,
+    isAudioEnabled, toggleAudio, remoteStreams
+  } = webrtcProps;
   const peerCount = (peers || []).length;
   const isConnected = connectionState === 'connected' || peerCount > 0;
 
@@ -49,10 +52,21 @@ const ArenaRoom = ({
   return (
     <div className={styles.arenaContainer}>
       {onExit && (
-        <button className={styles.exitArenaBtn} onClick={handleExitRequest} title="Leave Arena">
-          <X size={20} />
-          <span>LEAVE</span>
-        </button>
+        <div className={styles.topActions}>
+          <button 
+            className={`${styles.voiceToggleBtn} ${isAudioEnabled ? styles.voiceActive : ''}`}
+            onClick={toggleAudio}
+            title={isAudioEnabled ? "Stop Voice Chat" : "Join Voice Chat"}
+          >
+            {isAudioEnabled ? <Mic size={18} /> : <MicOff size={18} />}
+            <span className={styles.voiceLabel}>{isAudioEnabled ? 'LIVE' : 'VOICE'}</span>
+          </button>
+
+          <button className={styles.exitArenaBtn} onClick={handleExitRequest} title="Leave Arena">
+            <X size={18} />
+            <span>LEAVE</span>
+          </button>
+        </div>
       )}
 
       <AnimatePresence>
@@ -115,14 +129,14 @@ const ArenaRoom = ({
 
         <div className={styles.chatSection}>
           <div className={styles.sectionHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MessageSquare size={20} />
-              <span>LIVE P2P CHAT</span>
-            </div>
-            <div className={`${styles.statusBadge} ${isConnected ? styles.online : styles.offline}`}>
-              <div className={styles.statusDot} />
-            </div>
-          </div>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+               <MessageSquare size={20} />
+               <span>LIVE P2P CHAT</span>
+             </div>
+             <div className={`${styles.statusBadge} ${isConnected ? styles.online : styles.offline}`}>
+               <div className={styles.statusDot} />
+             </div>
+           </div>
           
           <div className={styles.chatFeed} ref={scrollRef}>
             {chatMessages.length === 0 && (
@@ -231,11 +245,30 @@ const ArenaRoom = ({
           </button>
         </div>
       </div>
+
+      {/* Hidden Audio Elements for Live Voice */}
+      <div className={styles.audioContainer}>
+        {Object.entries(remoteStreams || {}).map(([peerId, stream]) => (
+          <RemoteAudio key={peerId} stream={stream} />
+        ))}
+      </div>
     </div>
   );
 };
 
 // --- Sub Components ---
+
+const RemoteAudio = ({ stream }) => {
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (audioRef.current && stream) {
+      audioRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return <audio ref={audioRef} autoPlay style={{ display: 'none' }} />;
+};
 
 const ChatMessage = ({ msg, isMe, onExpand }) => {
   return (

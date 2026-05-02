@@ -20,6 +20,10 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
   const [lastGameEvent, setLastGameEvent] = useState(null);
   const [mediaProgress, setMediaProgress] = useState({}); // { transferId: 0-1 }
   const [lastPeerId, setLastPeerId] = useState(null);
+  
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStreams, setRemoteStreams] = useState({}); // { [peerId]: MediaStream }
 
   // ── Initialize Manager (via Singleton) ─────────────────
   useEffect(() => {
@@ -101,6 +105,18 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
       ]);
     };
 
+    const onLocalStreamChanged = (e) => {
+      setLocalStream(e.detail.stream);
+      setIsAudioEnabled(!!e.detail.stream);
+    };
+
+    const onTrackReceived = (e) => {
+      setRemoteStreams(prev => ({
+        ...prev,
+        [e.detail.peerId]: e.detail.stream
+      }));
+    };
+
     manager.addEventListener('peer-connected', onPeerConnected);
     manager.addEventListener('peer-disconnected', onPeerDisconnected);
     manager.addEventListener('peer-left', onPeerLeft);
@@ -109,6 +125,8 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     manager.addEventListener('game-event', onGameEvent);
     manager.addEventListener('media-progress', onMediaProgress);
     manager.addEventListener('media-received', onMediaReceived);
+    manager.addEventListener('local-stream-changed', onLocalStreamChanged);
+    manager.addEventListener('track-received', onTrackReceived);
 
     setConnectionState('waiting');
 
@@ -122,6 +140,8 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
       manager.removeEventListener('game-event', onGameEvent);
       manager.removeEventListener('media-progress', onMediaProgress);
       manager.removeEventListener('media-received', onMediaReceived);
+      manager.removeEventListener('local-stream-changed', onLocalStreamChanged);
+      manager.removeEventListener('track-received', onTrackReceived);
 
       // Release singleton reference — destroys only when refCount hits 0
       releaseManager(roomId);
@@ -152,6 +172,19 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     await managerRef.current?.reAnnounce();
   }, []);
 
+  const toggleAudio = useCallback(async () => {
+    if (isAudioEnabled) {
+      managerRef.current?.stopAudio();
+    } else {
+      try {
+        await managerRef.current?.startAudio();
+      } catch (err) {
+        console.error('[WebRTC] Voice error:', err);
+        toast.error('Could not access microphone. Please check permissions.');
+      }
+    }
+  }, [isAudioEnabled]);
+
   return {
     peers,
     connectionState,
@@ -159,9 +192,13 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     lastGameEvent,
     mediaProgress,
     lastPeerId,
+    isAudioEnabled,
+    localStream,
+    remoteStreams,
     sendChat,
     sendGameEvent,
     sendMedia,
     reAnnounce,
+    toggleAudio,
   };
 }

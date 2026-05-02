@@ -48,6 +48,10 @@ export default class WebRTCRoomManager extends EventTarget {
     this.mediaAssembly = new Map();
     // Map<transferId, { meta, chunks: ArrayBuffer[], received: number }>
 
+    // ── Live Media State ────────────────────────────────────
+    this.localStream = null;
+    this.remoteStreams = new Map(); // Map<peerId, MediaStream>
+
     // ── Active ObjectURLs (for cleanup) ─────────────────────
     this._objectURLs = new Set();
 
@@ -168,7 +172,19 @@ export default class WebRTCRoomManager extends EventTarget {
     if (iAmPolite) {
       // I create the offer
       const pc = this._createPeerConnection(peerId, peerName);
+      
+      // Data channels will follow the audio m-line
       this._createDataChannels(pc, peerId);
+
+      // If audio is already active, enable the transceiver
+      if (this.localStream) {
+        const audioTrack = this.localStream.getAudioTracks()[0];
+        const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
+        if (transceiver && audioTrack) {
+          transceiver.sender.replaceTrack(audioTrack);
+          transceiver.direction = 'sendrecv';
+        }
+      }
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -211,6 +227,11 @@ export default class WebRTCRoomManager extends EventTarget {
       }
     };
 
+    // ── Pre-allocate Transceivers (Consistent M-Lines) ────
+    // We add an audio transceiver immediately so the m-line order 
+    // is consistent [Audio, Data] for all peers.
+    pc.addTransceiver('audio', { direction: 'recvonly' });
+
     // ── Connection State ──────────────────────────────────
     pc.onconnectionstatechange = () => {
       const state = pc.connectionState;
@@ -231,6 +252,29 @@ export default class WebRTCRoomManager extends EventTarget {
             this._emit('peer-disconnected', { peerId });
           }
         }, 5000);
+      }
+    };
+
+    // ── Tracks (Incoming Media) ───────────────────────────
+    pc.ontrack = (event) => {
+      // console.log(`[WebRTC] Track received from ${peerId}:`, event.track.kind);
+      const stream = event.streams[0] || new MediaStream([event.track]);
+      this.remoteStreams.set(peerId, stream);
+      this._emit('track-received', { peerId, stream });
+    };
+
+    // ── Negotiation ───────────────────────────────────────
+    pc.onnegotiationneeded = async () => {
+      try {
+        if (pc.signalingState !== 'stable') return;
+        
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await this._sendTo(peerId, 'sdp-offer', {
+          sdp: pc.localDescription.toJSON(),
+        });
+      } catch (err) {
+        console.error('[WebRTC] Negotiation failed:', err);
       }
     };
 
@@ -327,10 +371,35 @@ export default class WebRTCRoomManager extends EventTarget {
 
     if (!peer) {
       const pc = this._createPeerConnection(peerId, peerName);
+      
+      // If audio is already active, prepare the transceiver
+      if (this.localStream) {
+        const audioTrack = this.localStream.getAudioTracks()[0];
+        const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
+        if (transceiver && audioTrack) {
+          transceiver.sender.replaceTrack(audioTrack);
+          transceiver.direction = 'sendrecv';
+        }
+      }
+      
       peer = this.peers.get(peerId);
     }
 
     const { pc } = peer;
+
+    // --- Glare/Collision Handling ---
+    const isCollision = (pc.signalingState !== 'stable' || pc.remoteDescription !== null);
+    const iAmPolite = this.userId < peerId;
+    
+    if (isCollision && !iAmPolite) {
+      // console.log(`[WebRTC] Glare detected, ignoring offer from ${peerId} (I am impolite)`);
+      return; 
+    }
+    
+    if (isCollision && iAmPolite) {
+      // console.log(`[WebRTC] Glare detected, rolling back for ${peerId} (I am polite)`);
+      await pc.setLocalDescription({ type: 'rollback' });
+    }
 
     await pc.setRemoteDescription(new RTCSessionDescription(sdp));
 
@@ -437,6 +506,54 @@ export default class WebRTCRoomManager extends EventTarget {
     this._emit('chat-message', { ...msg, isLocal: true });
     
     return sent;
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PUBLIC API: Live Audio (Voice Chat)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  async startAudio() {
+    if (this.localStream) return this.localStream;
+    try {
+      this.localStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+      });
+      
+      const audioTrack = this.localStream.getAudioTracks()[0];
+      
+      for (const [, peer] of this.peers) {
+        const transceiver = peer.pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
+        if (transceiver) {
+          transceiver.sender.replaceTrack(audioTrack);
+          transceiver.direction = 'sendrecv';
+        }
+      }
+      this._emit('local-stream-changed', { stream: this.localStream });
+      return this.localStream;
+    } catch (err) {
+      console.error('[WebRTC] Failed to start audio:', err);
+      throw err;
+    }
+  }
+
+  stopAudio() {
+    if (!this.localStream) return;
+    this.localStream.getTracks().forEach(track => track.stop());
+    
+    for (const [, peer] of this.peers) {
+      const transceiver = peer.pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
+      if (transceiver) {
+        transceiver.sender.replaceTrack(null);
+        transceiver.direction = 'recvonly';
+      }
+    }
+    
+    this.localStream = null;
+    this._emit('local-stream-changed', { stream: null });
+  }
+
+  isAudioActive() {
+    return !!(this.localStream && this.localStream.getAudioTracks().some(t => t.enabled));
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -659,6 +776,9 @@ export default class WebRTCRoomManager extends EventTarget {
       URL.revokeObjectURL(url);
     }
     this._objectURLs.clear();
+
+    this.stopAudio();
+    this.remoteStreams.clear();
 
     // Clear media assembly buffers
     this.mediaAssembly.clear();
