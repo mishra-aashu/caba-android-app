@@ -3,6 +3,7 @@ import { onSWNeedRefresh, activateSWUpdate } from '../pwa';
 import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 import { callService } from '../services/callService';
 import { webRTCService } from '../services/webrtcService';
+import useUserStore from '../store/userStore';
 import { CallContext } from './CallContext';
 
 // Action Types
@@ -182,8 +183,13 @@ export function CallProvider({ children, currentUser }) {
     } else if (state.callState === 'ringing') {
       // Update incoming ringtone from settings before playing
       const savedRingtone = localStorage.getItem('callRingtone') || 'fm-freemusic-give-me-a-smile(chosic.com).ogg';
+      const targetSrc = getAssetPath(`assets/audio/${savedRingtone}`);
+      
       if (incomingAudioRef.current) {
-        incomingAudioRef.current.src = getAssetPath(`assets/audio/${savedRingtone}`);
+        // [OPTIMIZATION] Only update src if it changed to prevent reload delay
+        if (incomingAudioRef.current.src !== new URL(targetSrc, window.location.origin).href) {
+          incomingAudioRef.current.src = targetSrc;
+        }
       }
       playAudio(incomingAudioRef.current, incomingAudioPromiseRef);
       stopAudio(outgoingAudioRef.current, outgoingAudioPromiseRef);
@@ -229,20 +235,28 @@ export function CallProvider({ children, currentUser }) {
     }
   }, []);
 
-  // Handle incoming signal
+  // Keep state in a ref for use in subscription handlers to avoid closure issues
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // Handle incoming signaling
   const handleSignal = useCallback(async (signal) => {
+    const currentState = stateRef.current;
     console.log('📨 Signal received in context:', signal.signal_type, 'Call ID:', signal.call_id, 'From:', signal.from_user_id);
 
     try {
       if (signal.signal_type === 'offer') {
         // Incoming call - check if we are already in a call
-        if (state.callState !== 'idle' && state.callState !== 'ringing') {
-          console.log(`📞 Busy: Current state is ${state.callState}. Ignoring new offer.`);
+        if (currentState.callState !== 'idle' && currentState.callState !== 'ringing') {
+          console.log(`📞 Busy: Current state is ${currentState.callState}. Ignoring new offer.`);
           return;
         }
 
-        // [OPTIMIZATION] Dispatch IMMEDIATELY with placeholder info to show UI without delay
-        const placeholderInfo = {
+        // [OPTIMIZATION] Resolve caller info IMMEDIATELY from cache if available
+        const cachedUser = useUserStore.getState().getUser(signal.from_user_id);
+        const initialCallerInfo = cachedUser || {
           id: signal.from_user_id,
           name: 'Loading...',
           avatar: null
@@ -252,7 +266,7 @@ export function CallProvider({ children, currentUser }) {
           type: ACTIONS.SET_INCOMING_CALL,
           payload: {
             ...signal,
-            callerInfo: placeholderInfo
+            callerInfo: initialCallerInfo
           }
         });
 
@@ -266,9 +280,10 @@ export function CallProvider({ children, currentUser }) {
           ringTimeoutRef.current = null;
         }, 45000);
 
-        // Load REAL user info in background
-        callService.getUserById(signal.from_user_id)
+        // Load/Refresh user info in background
+        useUserStore.getState().fetchUserIfNeeded(signal.from_user_id)
           .then(callerInfo => {
+            if (!callerInfo) return;
             console.log('👤 Caller info resolved:', callerInfo.name);
             dispatch({
               type: ACTIONS.SET_INCOMING_CALL,
@@ -313,30 +328,31 @@ export function CallProvider({ children, currentUser }) {
     } catch (error) {
       console.error('Error in handleSignal:', error);
     }
-  }, [state.callState]);
+  }, []); // No dependencies, uses stateRef
 
   // Handle call history update (fallback for signals)
   const handleCallHistoryUpdate = useCallback(async (payload) => {
     const { eventType, new: newCall } = payload;
+    const currentState = stateRef.current;
     console.log('📜 Call history event:', eventType, newCall?.call_status);
 
     if ((eventType === 'INSERT' || eventType === 'UPDATE') && newCall?.call_status === 'initiated') {
       // If we are already in a call, ignore
-      if (state.callState !== 'idle' && state.callState !== 'ringing') return;
+      if (currentState.callState !== 'idle' && currentState.callState !== 'ringing') return;
 
-      console.log('📞 Detected initiated call in history, checking for signals...');
-      // Give it a tiny bit of time for the signal to arrive naturally
-      setTimeout(() => {
-        if (checkPendingSignalsRef.current) checkPendingSignalsRef.current();
-      }, 1000);
+      console.log('📞 Detected initiated call in history, ensuring signal is handled...');
+      // Just do one check as safety; the Broadcast/Signal listener is the primary driver
+      if (checkPendingSignalsRef.current) checkPendingSignalsRef.current();
     } else if (eventType === 'UPDATE' && ['ended', 'missed', 'rejected'].includes(newCall?.call_status)) {
       // If call was ended remotely, cleanup
-      if (state.callId === newCall.call_id) {
+      // Check both currentState.callId and webRTCService.callId for robustness
+      const activeCallId = currentState.callId || webRTCService.callId;
+      if (activeCallId && activeCallId === newCall.call_id) {
         console.log('📞 Call was ended in database');
         dispatch({ type: ACTIONS.RESET_CALL });
       }
     }
-  }, [state.callState, state.callId]);
+  }, []); // No dependencies, uses stateRef
 
   // Update handler ref whenever it changes
   useEffect(() => {
@@ -353,8 +369,13 @@ export function CallProvider({ children, currentUser }) {
     if (!currentUser?.id) return;
 
     try {
-      // 1. Check signaling table
-      const signals = await callService.getPendingSignals(currentUser.id);
+      // [PERF] Check both signals and history in PARALLEL
+      const [signals, incomingCalls] = await Promise.all([
+        callService.getPendingSignals(currentUser.id),
+        callService.getIncomingCalls(currentUser.id)
+      ]);
+
+      // 1. Handle signals first (higher priority)
       if (signals && signals.length > 0) {
         console.log(`📡 Found ${signals.length} pending signals via check`);
         const latestOffer = [...signals].reverse().find(s => s.signal_type === 'offer');
@@ -367,22 +388,20 @@ export function CallProvider({ children, currentUser }) {
         }
       }
 
-      // 2. Check history table as secondary trigger if no active call
-      if (state.callState === 'idle') {
-        const incomingCalls = await callService.getIncomingCalls(currentUser.id);
-        if (incomingCalls && incomingCalls.length > 0) {
-          const latestCall = incomingCalls[0];
-          const createdTime = new Date(latestCall.started_at).getTime();
-          if (Date.now() - createdTime < 60000) {
-            console.log('📜 Found pending call in history but no signal yet');
+      // 2. Handle history as fallback
+      if (stateRef.current.callState === 'idle' && incomingCalls && incomingCalls.length > 0) {
+        const latestCall = incomingCalls[0];
+        const createdTime = new Date(latestCall.started_at).getTime();
+        if (Date.now() - createdTime < 60000) {
+          console.log('📜 Found pending call in history but no signal yet');
             
-            // Show the modal even without the signal data yet
-            // We'll use placeholder data until signal arrives
-            const callerInfo = await callService.getUserById(latestCall.caller_id).catch(() => ({
-              id: latestCall.caller_id,
-              name: 'Unknown User',
-              avatar: null
-            }));
+            // [OPTIMIZATION] Resolve caller info via store for speed
+            const callerInfo = await useUserStore.getState().fetchUserIfNeeded(latestCall.caller_id)
+              .catch(() => ({
+                id: latestCall.caller_id,
+                name: 'Unknown User',
+                avatar: null
+              }));
 
             dispatch({
               type: ACTIONS.SET_INCOMING_CALL,
@@ -394,13 +413,12 @@ export function CallProvider({ children, currentUser }) {
                 callerInfo
               }
             });
-          }
         }
       }
     } catch (error) {
       console.error('Error checking pending signals:', error);
     }
-  }, [currentUser?.id, handleSignal, state.callState, state.callId]);
+  }, [currentUser?.id, handleSignal]);
 
   // Update checkPendingSignals ref
   useEffect(() => {
@@ -469,7 +487,7 @@ export function CallProvider({ children, currentUser }) {
         window.removeEventListener('app:sync-heartbeat', handleHeartbeat);
       };
     }
-  }, [currentUser?.id, state.callState]); // Re-setup if user changes, or polling check logic depends on state
+  }, [currentUser?.id]); // Only re-setup if user changes. Logic inside uses stateRef.
 
   // Start outgoing call
   const startCall = useCallback(async (receiverId, callType = 'video') => {

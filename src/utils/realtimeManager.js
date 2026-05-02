@@ -10,7 +10,6 @@ const STATES = {
   ERROR: 'error',
 };
 
-// Error severity classification
 const ERROR_TYPES = {
   RECOVERABLE: 'recoverable',
   FATAL: 'fatal',
@@ -19,65 +18,89 @@ const ERROR_TYPES = {
 
 class RealtimeManager {
   constructor() {
-    // Map<string, { channel, status, config, subscribers: Map<string, { callbacks, config }> }>
-    this.subscriptions = new Map();
+    // Core state
+    this.subscriptions = new Map(); // channelName -> { channel, status, config, subscribers, multiplexers, createdAt }
     this.subIdCounter = 0;
-    this.pendingSubscriptions = new Map();
-    this.pendingUnsubscribes = new Map(); // Map<channelName, Set<subId>>
+    this.pendingSubscriptions = new Map(); // channelName -> Promise
+    this.pendingUnsubscribes = new Map(); // channelName -> Set<subId>
+    
+    // Timers
     this.reconnectTimers = new Map();
+    this.reconnectDebounceTimers = new Map();
+    this.pollTimers = new Map();
+    this.heartbeatTimers = new Map();
+    
+    // Tracking
     this.retryCount = new Map();
     this.states = new Map();
-    this.pollTimers = new Map();
-    this.heartbeatTimers = new Map(); // NEW: Connection health monitoring
-    this.reconnectDebounceTimers = new Map(); // NEW: Prevent reconnect storms
+    this._methodCache = new WeakMap();
+    
+    // Lifecycle
     this._killed = false;
     this.VERBOSE = false;
-
-    // Cache for bound Proxy methods to avoid GC pressure
-    this._methodCache = new WeakMap();
-
-    // NEW: Metrics tracking
+    
+    // Metrics
     this.metrics = {
       totalSubscriptions: 0,
       totalReconnects: 0,
       totalErrors: 0,
       lastErrorTime: null,
       lastErrorMessage: null,
-      channelMetrics: new Map(), // Per-channel metrics
+      channelMetrics: new Map(),
     };
 
+    // Configuration
     this.MAX_RETRIES = 8;
     this.BASE_RETRY_DELAY = 1000;
-    this.POLL_WS_RETRY_INTERVAL = 120000;
-    this.HEARTBEAT_INTERVAL = 30000; // NEW: 30s heartbeat
-    this.RECONNECT_DEBOUNCE_MS = 2000; // NEW: Debounce reconnections
-    this.STALE_CONNECTION_THRESHOLD = 90000; // NEW: 90s without activity = stale
+    this.MAX_RETRY_DELAY = 30000;
+    this.POLL_INTERVAL = 30000;
+    this.HEARTBEAT_INTERVAL = 30000;
+    this.RECONNECT_DEBOUNCE_MS = 2000;
+    this.STALE_CONNECTION_THRESHOLD = 90000;
+    this.CHANNEL_CREATION_TIMEOUT = 10000;
 
     if (typeof window !== 'undefined') {
       this._setupAuthListener();
-      this._setupNetworkListeners(); // NEW: Network state monitoring
+      this._setupNetworkListeners();
+      this._setupVisibilityListener();
     }
   }
 
   // ══════════════════════════════════════════════════════════════
-  // NEW: Network & Lifecycle Listeners
+  // LIFECYCLE & EVENT LISTENERS
   // ══════════════════════════════════════════════════════════════
 
-  _setupNetworkListeners() {
-    if (typeof window === 'undefined') return;
+  _setupAuthListener() {
+    try {
+      const { data } = supabase.auth.onAuthStateChange((event, _session) => {
+        this._log('Auth event', { event });
 
-    // Handle online/offline events
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          this._resubscribeAll();
+        } else if (event === 'SIGNED_OUT') {
+          this.unsubscribeAll();
+        }
+      });
+
+      this._authSubscription = data?.subscription || null;
+    } catch (error) {
+      console.error('[RealtimeManager] Failed to setup auth listener:', error);
+    }
+  }
+
+  _setupNetworkListeners() {
     window.addEventListener('online', () => {
-      this._log('Network online — triggering reconnect', { force: true });
+      this._log('Network online', { force: true });
       this._handleNetworkReconnect();
     });
 
     window.addEventListener('offline', () => {
-      this._log('Network offline — pausing reconnection attempts', { force: true });
+      this._log('Network offline', { force: true });
       this._pauseReconnections();
     });
+  }
 
-    // Handle visibility changes (tab becomes active)
+  _setupVisibilityListener() {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         this._log('Tab visible — checking connection health');
@@ -86,253 +109,439 @@ class RealtimeManager {
     });
   }
 
-  _setupAuthListener() {
-    const { data } = supabase.auth.onAuthStateChange((event, _session) => {
-      this._log('Auth event', { event });
-
-      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-        this._resubscribeAll();
-      }
-
-      if (event === 'SIGNED_OUT') {
-        this.unsubscribeAll();
-      }
+  _handleNetworkReconnect() {
+    // Reset all retry counts and clear timers
+    this.subscriptions.forEach((_, name) => {
+      this._clearAllTimers(name);
+      this.retryCount.set(name, 0);
     });
 
-    this._authSubscription = data?.subscription || null;
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // NEW: Network Event Handlers
-  // ══════════════════════════════════════════════════════════════
-
-  _handleNetworkReconnect() {
-    // Clear all pending reconnect timers
-    for (const [name] of this.subscriptions) {
-      this._clearReconnectTimer(name);
-      this.retryCount.set(name, 0); // Reset retry count on network recovery
-    }
-
-    // Trigger resubscribe for all channels
     this._resubscribeAll();
   }
 
   _pauseReconnections() {
-    // Clear all active reconnect timers while offline
-    for (const [name] of this.subscriptions) {
-      this._clearReconnectTimer(name);
-      this._clearReconnectDebounce(name);
+    this.subscriptions.forEach((_, name) => {
+      this._clearAllTimers(name);
       this._transition(name, STATES.DISCONNECTED);
-    }
+    });
   }
 
   async _checkAllConnectionHealth() {
-    for (const [name, entry] of this.subscriptions) {
+    const checks = Array.from(this.subscriptions.entries()).map(async ([name, entry]) => {
       if (entry.status === 'SUBSCRIBED') {
-        const isStale = await this._isConnectionStale(name);
+        const isStale = this._isConnectionStale(name);
         if (isStale) {
-          this._log('Stale connection detected, refreshing', { channel: name, force: true });
+          this._log('Stale connection detected', { channel: name, force: true });
           await this.refreshChannel(name);
         }
       }
-    }
+    });
+
+    await Promise.allSettled(checks);
   }
 
-  async _isConnectionStale(channelName) {
+  _isConnectionStale(channelName) {
     const metrics = this.metrics.channelMetrics.get(channelName);
-    if (!metrics || !metrics.lastActivity) return false;
+    if (!metrics?.lastActivity) return false;
 
     const timeSinceActivity = Date.now() - metrics.lastActivity;
     return timeSinceActivity > this.STALE_CONNECTION_THRESHOLD;
   }
 
-  // ══════════════════════════════════════════════════════════════
-  // Manager Lifecycle
-  // ══════════════════════════════════════════════════════════════
-
-  revive() {
+  async revive() {
     this._killed = false;
     this._log('Manager revived', { force: true });
+    
     if (!this._authSubscription) {
       this._setupAuthListener();
     }
   }
 
   async _resubscribeAll() {
-    this._log('Re-establishing all subscriptions after auth change', {
+    this._log('Re-establishing all subscriptions', {
       count: this.subscriptions.size,
       force: true,
     });
 
-    const entries = Array.from(this.subscriptions.entries());
+    // Snapshot current subscriptions to avoid mutation during iteration
+    const snapshot = Array.from(this.subscriptions.entries()).map(([name, entry]) => ({
+      name,
+      subscribers: Array.from(entry.subscribers.values()),
+      channel: entry.channel,
+    }));
 
-    for (const [name, entry] of entries) {
-      // Clean old channel before re-subscribing
-      if (entry.channel) {
-        await this._safeRemoveChannel(entry.channel, name);
-      }
+    // Clean up all existing channels first
+    await Promise.allSettled(
+      snapshot.map(({ channel, name }) => 
+        channel ? this._safeRemoveChannel(channel, name) : Promise.resolve()
+      )
+    );
 
-      // Capture subscribers before deleting entry
-      const savedSubscribers = Array.from(entry.subscribers.values());
-
-      // Remove from map so subscribe() doesn't see stale SUBSCRIBED status
-      this.subscriptions.delete(name);
-      this._clearReconnectTimer(name);
-      this._clearHeartbeat(name);
+    // Clear state
+    this.subscriptions.clear();
+    snapshot.forEach(({ name }) => {
+      this._clearAllTimers(name);
       this.retryCount.set(name, 0);
+    });
 
-      // Re-subscribe each one
-      for (const sub of savedSubscribers) {
-        await this.subscribe(name, sub.config, sub.callbacks);
-      }
-    }
+    // Re-subscribe all
+    const resubscribePromises = snapshot.flatMap(({ name, subscribers }) =>
+      subscribers.map(sub => 
+        this.subscribe(name, sub.config, sub.callbacks)
+      )
+    );
+
+    await Promise.allSettled(resubscribePromises);
   }
 
   // ══════════════════════════════════════════════════════════════
-  // Core Subscription Logic
+  // CORE SUBSCRIPTION LOGIC
   // ══════════════════════════════════════════════════════════════
 
   async subscribe(channelName, config, callbacks = {}) {
     if (this._killed) {
-      this._log('Refusing subscribe — manager is killed', { channel: channelName });
+      this._log('Refusing subscribe — manager killed', { channel: channelName });
       return null;
     }
 
-    // NEW: Validate config
     if (!this._validateConfig(channelName, config)) {
-      this._log('Invalid config — aborting subscribe', { channel: channelName, config });
       return null;
     }
 
-    // Track metrics
+    // Initialize metrics
     this.metrics.totalSubscriptions++;
     this._initChannelMetrics(channelName);
 
-    const existing = this.subscriptions.get(channelName);
     const subId = `sub_${++this.subIdCounter}`;
+    const existing = this.subscriptions.get(channelName);
 
-    // ── Add subscriber to existing channel ──
-    if (existing?.channel) {
-      this._log('Adding subscriber to existing channel', { channel: channelName, subId });
-
-      existing.subscribers.set(subId, { callbacks, config });
-      this._addHandlersForSubscriber(existing.channel, channelName, subId, callbacks);
-
-      const wrappedChannel = this._wrapChannel(existing.channel, channelName, subId);
-
-      // Fire late-join events
-      if (existing.status === 'SUBSCRIBED') {
-        this._fireLateJoinEvents(channelName, subId, callbacks, existing.channel);
-      }
-
-      return wrappedChannel;
+    // Case 1: Channel exists and is ready
+    if (existing?.channel && existing.status !== 'CLOSED') {
+      return this._addSubscriberToExisting(channelName, subId, config, callbacks, existing);
     }
 
-    // ── Wait for in-flight subscription ──
+    // Case 2: Subscription in-flight
     if (this.pendingSubscriptions.has(channelName)) {
-      this._log('Subscription in-flight — waiting', { channel: channelName });
       try {
         await this.pendingSubscriptions.get(channelName);
-        return this.subscribe(channelName, config, callbacks);
-      } catch (e) {
-        this._log('In-flight subscription failed', { channel: channelName, error: e.message });
-        this._recordError(channelName, e, ERROR_TYPES.RECOVERABLE);
-        throw e;
+        return this.subscribe(channelName, config, callbacks); // Retry
+      } catch (error) {
+        this._log('In-flight subscription failed', { channel: channelName, error: error.message });
+        this._recordError(channelName, error, ERROR_TYPES.RECOVERABLE);
+        throw error;
       }
     }
 
-    // ── Create new subscription ──
-    this._transition(channelName, STATES.CONNECTING);
-
-    const subscriptionPromise = this._createSubscription(channelName, config, callbacks, subId);
-
-    this.pendingSubscriptions.set(channelName, subscriptionPromise);
-    return subscriptionPromise;
+    // Case 3: Create new subscription
+    return this._createNewSubscription(channelName, config, callbacks, subId);
   }
 
-  async _createSubscription(channelName, config, callbacks, subId) {
-    try {
-      this._clearReconnectTimer(channelName);
-      this._clearReconnectDebounce(channelName);
+  _addSubscriberToExisting(channelName, subId, config, callbacks, existing) {
+    this._log('Adding subscriber to existing channel', { channel: channelName, subId });
 
-      // Remove old channel if exists
-      const existing = this.subscriptions.get(channelName);
-      if (existing?.channel) {
-        this._log('Removing old channel before re-subscribe', { channel: channelName });
-        await this._safeRemoveChannel(existing.channel, channelName);
-        this.subscriptions.delete(channelName);
-      }
+    // Store subscriber
+    existing.subscribers.set(subId, { callbacks, config });
 
-      this._log('Creating new channel', { channel: channelName, config });
+    // Add handlers for this subscriber
+    this._addHandlersForSubscriber(existing.channel, channelName, subId, callbacks);
 
-      // NEW: Wrap channel creation in timeout
-      const channel = await this._createChannelWithTimeout(channelName, config);
+    const wrappedChannel = this._wrapChannel(existing.channel, channelName, subId);
 
-      if (!channel) {
-        throw new Error('Channel creation timed out');
-      }
+    // Fire late-join events if channel already subscribed
+    if (existing.status === 'SUBSCRIBED' || existing.status === 'JOINED') {
+      this._fireLateJoinEvents(channelName, subId, callbacks, existing.channel);
+    }
 
-      // Check if aborted while creating
-      const abortedSubs = this.pendingUnsubscribes.get(channelName);
-      const isAborted = abortedSubs && (abortedSubs.has(subId) || abortedSubs.has('__ALL__'));
+    return wrappedChannel;
+  }
 
-      if (isAborted) {
-        this._log('Aborting subscription establishment — already unsubscribed', {
-          channel: channelName,
-          subId,
+  async _createNewSubscription(channelName, config, callbacks, subId) {
+    this._transition(channelName, STATES.CONNECTING);
+
+    const subscriptionPromise = (async () => {
+      try {
+        this._clearAllTimers(channelName);
+
+        // Clean up any existing channel
+        const existing = this.subscriptions.get(channelName);
+        if (existing?.channel) {
+          await this._safeRemoveChannel(existing.channel, channelName);
+          this.subscriptions.delete(channelName);
+        }
+
+        this._log('Creating new channel', { channel: channelName, config });
+
+        // Create channel with timeout
+        const channel = await this._createChannelWithTimeout(channelName, config);
+
+        if (!channel) {
+          throw new Error('Channel creation timed out');
+        }
+
+        // Check if unsubscribed during creation
+        if (this._wasUnsubscribedDuringCreation(channelName, subId)) {
+          await this._safeRemoveChannel(channel, channelName);
+          return null;
+        }
+
+        // Store subscription entry
+        const entry = {
+          channel,
+          status: 'SUBSCRIBING',
+          config,
+          subscribers: new Map([[subId, { callbacks, config }]]),
+          multiplexers: {
+            postgres: new Map(),
+            broadcast: new Map(),
+          },
+          createdAt: Date.now(),
+        };
+
+        this.subscriptions.set(channelName, entry);
+
+        // Setup handlers
+        this._registerCoreHandlers(channel, channelName);
+        this._addHandlersForSubscriber(channel, channelName, subId, callbacks);
+
+        // Subscribe
+        channel.subscribe((status, err) => {
+          this._handleSubscriptionStatus(channelName, status, err);
         });
 
-        if (abortedSubs.has(subId)) abortedSubs.delete(subId);
-        if (abortedSubs.size === 0) this.pendingUnsubscribes.delete(channelName);
+        // Start health monitoring
+        this._startHeartbeat(channelName);
 
-        await this._safeRemoveChannel(channel, channelName);
-        return null;
+        return this._wrapChannel(channel, channelName, subId);
+
+      } catch (error) {
+        console.error(`[RealtimeManager] Error creating subscription ${channelName}:`, error);
+        this._recordError(channelName, error, ERROR_TYPES.FATAL);
+        this._transition(channelName, STATES.ERROR);
+        this.subscriptions.delete(channelName);
+        throw error;
       }
+    })();
 
-      // Store subscription
-      this.subscriptions.set(channelName, {
-        channel,
-        status: 'SUBSCRIBING',
-        subscribers: new Map([[subId, { callbacks, config }]]),
-        createdAt: Date.now(), // NEW: Track creation time
-      });
+    this.pendingSubscriptions.set(channelName, subscriptionPromise);
 
-      // Register handlers
-      this._registerHandlers(channel, channelName);
-
-      // Subscribe with status tracking
-      channel.subscribe((status, err) => {
-        this._handleSubscriptionStatus(channelName, status, err, callbacks);
-      });
-
-      // NEW: Start heartbeat monitoring
-      this._startHeartbeat(channelName);
-
-      return this._wrapChannel(channel, channelName, subId);
-    } catch (error) {
-      console.error(`[RealtimeManager] Error creating subscription ${channelName}:`, error);
-      this._recordError(channelName, error, ERROR_TYPES.FATAL);
-      this._transition(channelName, STATES.ERROR);
-      return null;
+    try {
+      return await subscriptionPromise;
     } finally {
       this.pendingSubscriptions.delete(channelName);
     }
   }
 
-  // NEW: Channel creation with timeout
-  async _createChannelWithTimeout(channelName, config, timeoutMs = 10000) {
-    return Promise.race([
-      Promise.resolve(supabaseRealtime.channel(channelName, { config })),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Channel creation timeout')), timeoutMs)
-      ),
-    ]).catch((err) => {
-      this._log('Channel creation failed', { channel: channelName, error: err.message });
+  _wasUnsubscribedDuringCreation(channelName, subId) {
+    const abortedSubs = this.pendingUnsubscribes.get(channelName);
+    const wasAborted = abortedSubs && (abortedSubs.has(subId) || abortedSubs.has('__ALL__'));
+
+    if (wasAborted) {
+      this._log('Aborting subscription — unsubscribed during creation', {
+        channel: channelName,
+        subId,
+      });
+
+      if (abortedSubs.has(subId)) abortedSubs.delete(subId);
+      if (abortedSubs.size === 0) this.pendingUnsubscribes.delete(channelName);
+
+      return true;
+    }
+
+    return false;
+  }
+
+  async _createChannelWithTimeout(channelName, config) {
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Channel creation timeout')), this.CHANNEL_CREATION_TIMEOUT)
+    );
+
+    const channelPromise = Promise.resolve(
+      supabaseRealtime.channel(channelName, { config })
+    );
+
+    try {
+      return await Promise.race([channelPromise, timeoutPromise]);
+    } catch (error) {
+      this._log('Channel creation failed', { channel: channelName, error: error.message });
       return null;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // HANDLER REGISTRATION
+  // ══════════════════════════════════════════════════════════════
+
+  _registerCoreHandlers(channel, channelName) {
+    // Presence sync
+    channel.on('presence', { event: 'sync' }, () => {
+      this._updateChannelMetric(channelName, 'lastActivity', Date.now());
+      this._broadcastToSubscribers(channelName, 'presence', () => {
+        return channel.presenceState();
+      });
+    });
+
+    // Presence join
+    channel.on('presence', { event: 'join' }, (payload) => {
+      this._updateChannelMetric(channelName, 'lastActivity', Date.now());
+      this._broadcastToSubscribers(channelName, 'presence_join', () => payload);
+    });
+
+    // Presence leave
+    channel.on('presence', { event: 'leave' }, (payload) => {
+      this._updateChannelMetric(channelName, 'lastActivity', Date.now());
+      this._broadcastToSubscribers(channelName, 'presence_leave', () => payload);
     });
   }
 
-  _handleSubscriptionStatus(channelName, status, err, callbacks) {
+  _broadcastToSubscribers(channelName, callbackType, getPayload) {
+    const entry = this.subscriptions.get(channelName);
+    if (!entry) return;
+
+    entry.subscribers.forEach((sub) => {
+      const cb = sub.callbacks?.[callbackType];
+      if (!cb) return;
+
+      const payload = getPayload();
+      
+      this._safeExecute(() => {
+        if (typeof cb === 'function') {
+          cb(payload);
+        } else if (cb.callback) {
+          cb.callback(payload);
+        }
+      }, `${callbackType} callback`);
+    });
+  }
+
+  _addHandlersForSubscriber(channel, channelName, subId, callbacks) {
+    const entry = this.subscriptions.get(channelName);
+    if (!entry) return;
+
+    // PostgreSQL change handlers
+    this._addPostgresHandlers(channel, channelName, subId, callbacks, entry);
+
+    // Broadcast handlers
+    this._addBroadcastHandlers(channel, channelName, subId, callbacks, entry);
+  }
+
+  _addPostgresHandlers(channel, channelName, subId, callbacks, entry) {
+    const pgCallbacks = callbacks?.postgres_changes;
+    if (!pgCallbacks) return;
+
+    const listeners = Array.isArray(pgCallbacks) ? pgCallbacks : [pgCallbacks];
+
+    listeners.forEach((listenerConfig) => {
+      const { handler, ...supabaseConfig } = listenerConfig;
+      if (!handler) return;
+
+      const configKey = this._getConfigKey('pg', supabaseConfig);
+      let subSet = entry.multiplexers.postgres.get(configKey);
+
+      if (!subSet) {
+        // Warn if adding to active channel (Supabase limitation)
+        if (entry.status === 'SUBSCRIBED' || entry.status === 'JOINED') {
+          this._log('⚠️ Cannot add new postgres config to active channel', {
+            channel: channelName,
+            config: supabaseConfig,
+            force: true,
+          });
+          return;
+        }
+
+        // Register new handler
+        subSet = new Set([subId]);
+        entry.multiplexers.postgres.set(configKey, subSet);
+
+        channel.on('postgres_changes', supabaseConfig, (payload) => {
+          this._updateChannelMetric(channelName, 'lastActivity', Date.now());
+          this._executeMultiplexedHandlers(channelName, 'postgres', configKey, payload);
+        });
+
+        this._log('Registered postgres handler', { channel: channelName, configKey });
+      } else {
+        // Reuse existing handler
+        subSet.add(subId);
+        this._log('Multiplexing postgres handler', { channel: channelName, configKey, subId });
+      }
+    });
+  }
+
+  _addBroadcastHandlers(channel, channelName, subId, callbacks, entry) {
+    const bcConfig = callbacks?.broadcast;
+    if (!bcConfig) return;
+
+    const eventName = typeof bcConfig === 'object' ? bcConfig.event : '*';
+    const configKey = this._getConfigKey('bc', eventName);
+    
+    let subSet = entry.multiplexers.broadcast.get(configKey);
+
+    if (!subSet) {
+      subSet = new Set([subId]);
+      entry.multiplexers.broadcast.set(configKey, subSet);
+
+      channel.on('broadcast', { event: eventName }, (payload) => {
+        this._updateChannelMetric(channelName, 'lastActivity', Date.now());
+        this._executeMultiplexedHandlers(channelName, 'broadcast', configKey, payload);
+      });
+
+      this._log('Registered broadcast handler', { channel: channelName, eventName });
+    } else {
+      subSet.add(subId);
+      this._log('Multiplexing broadcast handler', { channel: channelName, eventName, subId });
+    }
+  }
+
+  _executeMultiplexedHandlers(channelName, type, configKey, payload) {
+    const entry = this.subscriptions.get(channelName);
+    if (!entry) return;
+
+    const subSet = entry.multiplexers[type].get(configKey);
+    if (!subSet) return;
+
+    subSet.forEach((subId) => {
+      const sub = entry.subscribers.get(subId);
+      if (!sub) return;
+
+      if (type === 'postgres') {
+        this._executePostgresHandler(sub, configKey, payload);
+      } else if (type === 'broadcast') {
+        this._executeBroadcastHandler(sub, payload);
+      }
+    });
+  }
+
+  _executePostgresHandler(sub, configKey, payload) {
+    const pgCallbacks = sub.callbacks?.postgres_changes;
+    const listeners = Array.isArray(pgCallbacks) ? pgCallbacks : [pgCallbacks];
+
+    listeners.forEach((listener) => {
+      const { handler, ...sConfig } = listener;
+      const listenerKey = this._getConfigKey('pg', sConfig);
+
+      if (listenerKey === configKey && handler) {
+        this._safeExecute(() => handler(payload), 'postgres_changes handler');
+      }
+    });
+  }
+
+  _executeBroadcastHandler(sub, payload) {
+    const cb = sub.callbacks?.broadcast;
+    const finalCb = typeof cb === 'function' ? cb : cb?.callback;
+
+    if (finalCb) {
+      this._safeExecute(() => finalCb(payload), 'broadcast handler');
+    }
+  }
+
+  _getConfigKey(prefix, config) {
+    return `${prefix}:${JSON.stringify(config)}`;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // SUBSCRIPTION STATUS HANDLING
+  // ══════════════════════════════════════════════════════════════
+
+  _handleSubscriptionStatus(channelName, status, err) {
     this._log('Channel status', {
       channel: channelName,
       status,
@@ -346,217 +555,57 @@ class RealtimeManager {
     }
 
     if (status === 'SUBSCRIBED') {
-      this._transition(channelName, STATES.CONNECTED);
-
-      const wasReconnecting = (this.retryCount.get(channelName) || 0) > 0;
-      this.retryCount.set(channelName, 0);
-      this._clearPollTimer(channelName);
-
-      if (wasReconnecting) {
-        this.metrics.totalReconnects++;
-        this._updateChannelMetric(channelName, 'reconnects', (m) => (m.reconnects || 0) + 1);
-
-        // Fire reconnect callbacks for ALL subscribers
-        if (entry) {
-          entry.subscribers.forEach((sub) => {
-            if (sub.callbacks.onReconnect) sub.callbacks.onReconnect(true);
-          });
-        }
-      }
-    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      this._transition(channelName, STATES.DISCONNECTED);
-      
-      // Classify error type
-      const errorType = status === 'TIMED_OUT' ? ERROR_TYPES.NETWORK : ERROR_TYPES.RECOVERABLE;
-      this._recordError(channelName, new Error(status), errorType);
-
-      // Use debounced reconnect to prevent storms
-      this._scheduleDebouncedReconnect(channelName, entry?.config, callbacks);
+      this._handleSubscriptionSuccess(channelName, entry);
+    } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
+      this._handleSubscriptionError(channelName, status, entry);
     }
   }
 
-  // ══════════════════════════════════════════════════════════════
-  // NEW: Debounced Reconnection (Prevents Reconnect Storms)
-  // ══════════════════════════════════════════════════════════════
+  _handleSubscriptionSuccess(channelName, entry) {
+    this._transition(channelName, STATES.CONNECTED);
 
-  _scheduleDebouncedReconnect(channelName, config, callbacks) {
-    // If already debouncing, skip
-    if (this.reconnectDebounceTimers.has(channelName)) {
-      this._log('Reconnect already debouncing, skipping', { channel: channelName });
-      return;
-    }
+    const wasReconnecting = (this.retryCount.get(channelName) || 0) > 0;
+    this.retryCount.set(channelName, 0);
+    this._clearPollTimer(channelName);
 
-    const debounceTimer = setTimeout(() => {
-      this.reconnectDebounceTimers.delete(channelName);
-      this._scheduleReconnect(channelName, config, callbacks);
-    }, this.RECONNECT_DEBOUNCE_MS);
+    if (wasReconnecting) {
+      this.metrics.totalReconnects++;
+      this._updateChannelMetric(channelName, 'reconnects', (m) => (m.reconnects || 0) + 1);
 
-    this.reconnectDebounceTimers.set(channelName, debounceTimer);
-  }
-
-  _clearReconnectDebounce(channelName) {
-    if (this.reconnectDebounceTimers.has(channelName)) {
-      clearTimeout(this.reconnectDebounceTimers.get(channelName));
-      this.reconnectDebounceTimers.delete(channelName);
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // Handler Registration
-  // ══════════════════════════════════════════════════════════════
-
-  _registerHandlers(channel, channelName) {
-    // Presence handlers
-    channel.on('presence', { event: 'sync' }, () => {
-      this._updateChannelMetric(channelName, 'lastActivity', Date.now());
-      const entry = this.subscriptions.get(channelName);
-      if (entry) {
-        entry.subscribers.forEach((sub) => {
-          const cb = sub.callbacks?.presence;
-          if (typeof cb === 'function') cb();
-          else if (cb?.callback) cb.callback();
-        });
-      }
-    });
-
-    channel.on('presence', { event: 'join' }, (payload) => {
-      this._updateChannelMetric(channelName, 'lastActivity', Date.now());
-      const entry = this.subscriptions.get(channelName);
-      if (entry) {
-        entry.subscribers.forEach((sub) => {
-          const cb = sub.callbacks?.presence_join || sub.callbacks?.presence;
-          if (typeof cb === 'function' && sub.callbacks?.presence_join) cb(payload);
-        });
-      }
-    });
-
-    channel.on('presence', { event: 'leave' }, (payload) => {
-      this._updateChannelMetric(channelName, 'lastActivity', Date.now());
-      const entry = this.subscriptions.get(channelName);
-      if (entry) {
-        entry.subscribers.forEach((sub) => {
-          const cb = sub.callbacks?.presence_leave || sub.callbacks?.presence;
-          if (typeof cb === 'function' && sub.callbacks?.presence_leave) cb(payload);
-        });
-      }
-    });
-
-    // Register handlers for first subscriber
-    const initialEntry = this.subscriptions.get(channelName);
-    const subId = Array.from(initialEntry?.subscribers.keys() || [])[0];
-    const callbacks = initialEntry?.subscribers.get(subId)?.callbacks;
-    if (subId && callbacks) {
-      this._addHandlersForSubscriber(channel, channelName, subId, callbacks);
-    }
-  }
-
-  _addHandlersForSubscriber(channel, channelName, subId, callbacks) {
-    const entry = this.subscriptions.get(channelName);
-    if (!entry) return;
-
-    if (!entry.multiplexers) {
-      entry.multiplexers = {
-        postgres: new Map(), // configKey -> Set<subId>
-        broadcast: new Map(), // eventName -> Set<subId>
-      };
-    }
-
-    // --- Postgres Changes Multiplexing ---
-    const pgCallbacks = callbacks?.postgres_changes;
-    if (pgCallbacks) {
-      const listeners = Array.isArray(pgCallbacks) ? pgCallbacks : [pgCallbacks];
-      listeners.forEach((listenerConfig) => {
-        const { handler, ...supabaseConfig } = listenerConfig;
-        const configKey = `pg:${JSON.stringify(supabaseConfig)}`;
-        
-        let subSet = entry.multiplexers.postgres.get(configKey);
-        
-        if (!subSet) {
-          // New unique config for this channel
-          if (entry.status === 'SUBSCRIBED' || entry.status === 'JOINED') {
-            this._log('Warning: Late-joiner adding NEW postgres config to active channel. This is not supported by Supabase.', { channel: channelName, config: supabaseConfig });
-            return;
-          }
-
-          subSet = new Set([subId]);
-          entry.multiplexers.postgres.set(configKey, subSet);
-
-          channel.on('postgres_changes', supabaseConfig, (payload) => {
-            this._updateChannelMetric(channelName, 'lastActivity', Date.now());
-            const currentEntry = this.subscriptions.get(channelName);
-            if (!currentEntry) return;
-
-            const currentSubSet = currentEntry.multiplexers.postgres.get(configKey);
-            if (currentSubSet) {
-              currentSubSet.forEach(id => {
-                const sub = currentEntry.subscribers.get(id);
-                const subCbs = sub?.callbacks?.postgres_changes;
-                const subListeners = Array.isArray(subCbs) ? subCbs : [subCbs];
-                
-                // Execute all matching handlers for this subscriber
-                subListeners.forEach(l => {
-                  const { handler: h, ...sConfig } = l;
-                  if (`pg:${JSON.stringify(sConfig)}` === configKey && h) {
-                    this._safeExecute(() => h(payload), 'postgres_changes multiplexed handler');
-                  }
-                });
-              });
-            }
-          });
-        } else {
-          // Reuse existing handler
-          subSet.add(subId);
-          this._log('Multiplexing postgres handler', { channel: channelName, configKey, subId });
+      // Notify all subscribers of reconnection
+      entry?.subscribers.forEach((sub) => {
+        if (sub.callbacks.onReconnect) {
+          this._safeExecute(() => sub.callbacks.onReconnect(true), 'onReconnect');
         }
       });
     }
-
-    // --- Broadcast Multiplexing ---
-    const bcConfig = callbacks?.broadcast;
-    if (bcConfig) {
-      const eventName = typeof bcConfig === 'object' ? bcConfig.event : '*';
-      const configKey = `bc:${eventName}`;
-      
-      let subSet = entry.multiplexers.broadcast.get(configKey);
-
-      if (!subSet) {
-        if (entry.status === 'SUBSCRIBED' || entry.status === 'JOINED') {
-            this._log('Warning: Late-joiner adding NEW broadcast event to active channel.', { channel: channelName, eventName });
-            // Broadcast might be more lenient than Postgres in some versions, but better safe.
-        }
-
-        subSet = new Set([subId]);
-        entry.multiplexers.broadcast.set(configKey, subSet);
-
-        channel.on('broadcast', { event: eventName }, (payload) => {
-          this._updateChannelMetric(channelName, 'lastActivity', Date.now());
-          const currentEntry = this.subscriptions.get(channelName);
-          if (!currentEntry) return;
-
-          const currentSubSet = currentEntry.multiplexers.broadcast.get(configKey);
-          if (currentSubSet) {
-            currentSubSet.forEach(id => {
-              const sub = currentEntry.subscribers.get(id);
-              const cb = sub?.callbacks?.broadcast;
-              const finalCb = typeof cb === 'function' ? cb : cb?.callback;
-              if (finalCb) {
-                this._safeExecute(() => finalCb(payload), 'broadcast multiplexed handler');
-              }
-            });
-          }
-        });
-      } else {
-        subSet.add(subId);
-        this._log('Multiplexing broadcast handler', { channel: channelName, eventName, subId });
-      }
-    }
   }
 
-  // NEW: Fire late-join events for subscribers added to existing channels
-  _fireLateJoinEvents(channelName, subId, callbacks, channel) {
-    setTimeout(() => {
-      this._log('Firing late-join SUBSCRIBED status', { channel: channelName, subId });
+  _handleSubscriptionError(channelName, status, entry) {
+    this._transition(channelName, STATES.DISCONNECTED);
 
+    const errorType = status === 'TIMED_OUT' ? ERROR_TYPES.NETWORK : ERROR_TYPES.RECOVERABLE;
+    this._recordError(channelName, new Error(status), errorType);
+
+    // Don't reconnect if offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this._log('Skipping reconnect — network offline', { channel: channelName });
+      return;
+    }
+
+    this._scheduleDebouncedReconnect(channelName);
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // LATE-JOIN EVENTS
+  // ══════════════════════════════════════════════════════════════
+
+  _fireLateJoinEvents(channelName, subId, callbacks, channel) {
+    // Use setTimeout to avoid blocking
+    setTimeout(() => {
+      this._log('Firing late-join events', { channel: channelName, subId });
+
+      // Fire onStatusChange
       if (callbacks.onStatusChange) {
         this._safeExecute(
           () => callbacks.onStatusChange('SUBSCRIBED'),
@@ -564,21 +613,335 @@ class RealtimeManager {
         );
       }
 
-      // Fire presence sync immediately so new subscriber gets current state
-      const pCb = callbacks.presence;
-      if (pCb) {
-        // NEW: Hydrate presence state from channel
-        const presenceState = channel.presenceState();
-        this._safeExecute(() => {
-          if (typeof pCb === 'function') pCb(presenceState);
-          else if (pCb.callback) pCb.callback(presenceState);
-        }, 'presence (late-join hydration)');
+      // Hydrate presence state
+      if (callbacks.presence) {
+        try {
+          const presenceState = channel.presenceState();
+          this._safeExecute(() => {
+            if (typeof callbacks.presence === 'function') {
+              callbacks.presence(presenceState);
+            } else if (callbacks.presence.callback) {
+              callbacks.presence.callback(presenceState);
+            }
+          }, 'presence (late-join)');
+        } catch (error) {
+          this._log('Failed to get presence state', { channel: channelName, error: error.message });
+        }
       }
     }, 0);
   }
 
   // ══════════════════════════════════════════════════════════════
-  // Channel Wrapping & Proxy
+  // RECONNECTION LOGIC
+  // ══════════════════════════════════════════════════════════════
+
+  _scheduleDebouncedReconnect(channelName) {
+    // Prevent multiple debounced reconnects
+    if (this.reconnectDebounceTimers.has(channelName)) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      this.reconnectDebounceTimers.delete(channelName);
+      this._scheduleReconnect(channelName);
+    }, this.RECONNECT_DEBOUNCE_MS);
+
+    this.reconnectDebounceTimers.set(channelName, timer);
+  }
+
+  _scheduleReconnect(channelName) {
+    this._clearReconnectTimer(channelName);
+
+    // Don't reconnect if offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this._log('Skipping reconnect — offline', { channel: channelName });
+      return;
+    }
+
+    const attempt = (this.retryCount.get(channelName) || 0) + 1;
+    this.retryCount.set(channelName, attempt);
+
+    if (attempt > this.MAX_RETRIES) {
+      this._log('Max retries reached — switching to polling', { channel: channelName });
+      this._transition(channelName, STATES.POLLING);
+
+      const entry = this.subscriptions.get(channelName);
+      entry?.subscribers.forEach((sub) => {
+        if (sub.callbacks.onMaxRetriesReached) {
+          this._safeExecute(sub.callbacks.onMaxRetriesReached, 'onMaxRetriesReached');
+        }
+      });
+
+      this._startPollingFallback(channelName);
+      return;
+    }
+
+    this._transition(channelName, STATES.RECONNECTING);
+
+    const delay = Math.min(
+      this.BASE_RETRY_DELAY * Math.pow(2, attempt - 1),
+      this.MAX_RETRY_DELAY
+    );
+
+    this._log('Reconnect scheduled', { channel: channelName, attempt, delay });
+
+    const timer = setTimeout(async () => {
+      await this._executeReconnect(channelName);
+    }, delay);
+
+    this.reconnectTimers.set(channelName, timer);
+  }
+
+  async _executeReconnect(channelName) {
+    const entry = this.subscriptions.get(channelName);
+    if (!entry || entry.subscribers.size === 0) {
+      return;
+    }
+
+    // Snapshot subscribers
+    const savedSubscribers = Array.from(entry.subscribers.values());
+
+    // Clean up old channel
+    if (entry.channel) {
+      await this._safeRemoveChannel(entry.channel, channelName);
+    }
+
+    this.subscriptions.delete(channelName);
+
+    // Re-subscribe all
+    const promises = savedSubscribers.map(sub =>
+      this.subscribe(channelName, sub.config, sub.callbacks)
+    );
+
+    await Promise.allSettled(promises);
+  }
+
+  async refreshChannel(channelName) {
+    const entry = this.subscriptions.get(channelName);
+    if (!entry) return null;
+
+    this._log('Manual refresh triggered', { channel: channelName, force: true });
+
+    // Clear all timers and reset state
+    this._clearAllTimers(channelName);
+    this.retryCount.set(channelName, 0);
+
+    // Snapshot subscribers
+    const savedSubscribers = Array.from(entry.subscribers.values());
+
+    // Clean up
+    if (entry.channel) {
+      await this._safeRemoveChannel(entry.channel, channelName);
+    }
+    this.subscriptions.delete(channelName);
+
+    // Re-subscribe all
+    const results = await Promise.allSettled(
+      savedSubscribers.map(sub => this.subscribe(channelName, sub.config, sub.callbacks))
+    );
+
+    return results[0]?.value || null;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // HEARTBEAT MONITORING
+  // ══════════════════════════════════════════════════════════════
+
+  _startHeartbeat(channelName) {
+    this._clearHeartbeat(channelName);
+
+    const timer = setInterval(() => {
+      const entry = this.subscriptions.get(channelName);
+      if (!entry || entry.status !== 'SUBSCRIBED') {
+        this._clearHeartbeat(channelName);
+        return;
+      }
+
+      if (this._isConnectionStale(channelName)) {
+        this._log('Heartbeat detected stale connection', { channel: channelName, force: true });
+        this.refreshChannel(channelName);
+      }
+    }, this.HEARTBEAT_INTERVAL);
+
+    this.heartbeatTimers.set(channelName, timer);
+  }
+
+  _clearHeartbeat(channelName) {
+    if (this.heartbeatTimers.has(channelName)) {
+      clearInterval(this.heartbeatTimers.get(channelName));
+      this.heartbeatTimers.delete(channelName);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // POLLING FALLBACK
+  // ══════════════════════════════════════════════════════════════
+
+  _startPollingFallback(channelName) {
+    this._clearPollTimer(channelName);
+
+    let pollCount = 0;
+
+    const timer = setInterval(async () => {
+      pollCount++;
+      this._log('[POLL] Polling tick', { channel: channelName, tick: pollCount });
+
+      const entry = this.subscriptions.get(channelName);
+      if (!entry) {
+        this._clearPollTimer(channelName);
+        return;
+      }
+
+      // Notify subscribers
+      entry.subscribers.forEach((sub) => {
+        if (sub.callbacks.onReconnect) {
+          this._safeExecute(() => sub.callbacks.onReconnect(true), 'onReconnect (poll)');
+        }
+        if (sub.callbacks.onStatusChange) {
+          this._safeExecute(() => sub.callbacks.onStatusChange(STATES.POLLING), 'onStatusChange (poll)');
+        }
+      });
+
+      // Try WebSocket recovery every 3 ticks (~90s)
+      if (pollCount % 3 === 0) {
+        this._log('[POLL] Attempting WebSocket recovery', { channel: channelName });
+        await this.refreshChannel(channelName);
+      }
+    }, this.POLL_INTERVAL);
+
+    this.pollTimers.set(channelName, timer);
+  }
+
+  _clearPollTimer(channelName) {
+    if (this.pollTimers.has(channelName)) {
+      clearInterval(this.pollTimers.get(channelName));
+      this.pollTimers.delete(channelName);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // UNSUBSCRIBE LOGIC
+  // ══════════════════════════════════════════════════════════════
+
+  async unsubscribe(channelName, subId = null) {
+    const entry = this.subscriptions.get(channelName);
+
+    // Handle pending subscriptions
+    if (!entry) {
+      if (this.pendingSubscriptions.has(channelName)) {
+        this._markForAbortion(channelName, subId);
+      }
+      return;
+    }
+
+    // Remove subscriber
+    if (subId) {
+      this._log('Removing subscriber', { channel: channelName, subId });
+      this._removeSubscriberFromMultiplexers(channelName, subId, entry);
+      entry.subscribers.delete(subId);
+    } else {
+      // Legacy: remove most recent
+      const lastId = Array.from(entry.subscribers.keys()).pop();
+      if (lastId) {
+        this._log('Removing most recent subscriber', { channel: channelName, subId: lastId });
+        this._removeSubscriberFromMultiplexers(channelName, lastId, entry);
+        entry.subscribers.delete(lastId);
+      }
+    }
+
+    // Clean up method cache
+    if (entry.channel) {
+      this._cleanupMethodCache(entry.channel);
+    }
+
+    // Keep channel alive if there are remaining subscribers
+    if (entry.subscribers.size > 0) {
+      this._log('Keeping channel alive', { channel: channelName, remaining: entry.subscribers.size });
+      return;
+    }
+
+    // No more subscribers — clean up channel
+    this._log('No more subscribers — removing channel', { channel: channelName });
+    await this._cleanupChannel(channelName, entry);
+  }
+
+  _markForAbortion(channelName, subId) {
+    this._log('Marking pending subscription for abortion', {
+      channel: channelName,
+      subId: subId || 'all',
+    });
+
+    if (!this.pendingUnsubscribes.has(channelName)) {
+      this.pendingUnsubscribes.set(channelName, new Set());
+    }
+
+    const abortSet = this.pendingUnsubscribes.get(channelName);
+    abortSet.add(subId || '__ALL__');
+  }
+
+  _removeSubscriberFromMultiplexers(channelName, subId, entry) {
+    if (!entry.multiplexers) return;
+
+    // Remove from postgres multiplexers
+    entry.multiplexers.postgres.forEach((subSet, configKey) => {
+      subSet.delete(subId);
+      if (subSet.size === 0) {
+        entry.multiplexers.postgres.delete(configKey);
+      }
+    });
+
+    // Remove from broadcast multiplexers
+    entry.multiplexers.broadcast.forEach((subSet, configKey) => {
+      subSet.delete(subId);
+      if (subSet.size === 0) {
+        entry.multiplexers.broadcast.delete(configKey);
+      }
+    });
+  }
+
+  async _cleanupChannel(channelName, entry) {
+    this._clearAllTimers(channelName);
+    this.retryCount.delete(channelName);
+    this.states.delete(channelName);
+    this.metrics.channelMetrics.delete(channelName);
+
+    if (entry.channel) {
+      await this._safeRemoveChannel(entry.channel, channelName);
+    }
+
+    this.subscriptions.delete(channelName);
+  }
+
+  async unsubscribeAll() {
+    this._log('Unsubscribing all channels', { count: this.subscriptions.size, force: true });
+
+    // Clear all timers
+    this._clearAllTimersGlobal();
+
+    // Clear state
+    this.retryCount.clear();
+    this.states.clear();
+
+    // Snapshot and clear subscriptions
+    const entries = Array.from(this.subscriptions.values());
+    this.subscriptions.clear();
+    this.pendingSubscriptions.clear();
+    this.pendingUnsubscribes.clear();
+    this.metrics.channelMetrics.clear();
+
+    // Remove all channels
+    await Promise.allSettled(
+      entries.map(entry => 
+        entry.channel ? this._safeRemoveChannel(entry.channel, entry.channel.topic) : Promise.resolve()
+      )
+    );
+
+    // Clear method cache
+    this._methodCache = new WeakMap();
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // CHANNEL WRAPPING & PROXY
   // ══════════════════════════════════════════════════════════════
 
   _wrapChannel(channel, channelName, subId) {
@@ -590,7 +953,7 @@ class RealtimeManager {
 
         const val = target[prop];
         if (typeof val === 'function') {
-          // Cache bound methods to reduce GC pressure
+          // Cache bound methods
           let targetMap = this._methodCache.get(target);
           if (!targetMap) {
             targetMap = new Map();
@@ -609,302 +972,31 @@ class RealtimeManager {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // Reconnection Logic
+  // BROADCAST API
   // ══════════════════════════════════════════════════════════════
 
-  _scheduleReconnect(channelName, config, callbacks) {
-    this._clearReconnectTimer(channelName);
-
-    // NEW: Don't reconnect if offline
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      this._log('Skipping reconnect — network offline', { channel: channelName });
-      return;
-    }
-
-    const attempt = (this.retryCount.get(channelName) || 0) + 1;
-    this.retryCount.set(channelName, attempt);
-
-    if (attempt > this.MAX_RETRIES) {
-      this._log('Max retries reached — switching to polling fallback', { channel: channelName });
-      this._transition(channelName, STATES.POLLING);
-
-      const entry = this.subscriptions.get(channelName);
-      if (entry) {
-        entry.subscribers.forEach((sub) => {
-          if (sub.callbacks.onMaxRetriesReached) {
-            this._safeExecute(sub.callbacks.onMaxRetriesReached, 'onMaxRetriesReached');
-          }
-        });
-      }
-
-      this._startPollingFallback(channelName, config, callbacks);
-      return;
-    }
-
-    this._transition(channelName, STATES.RECONNECTING);
-
-    const delay = Math.min(this.BASE_RETRY_DELAY * Math.pow(2, attempt - 1), 30000);
-    this._log('Reconnect scheduled', { channel: channelName, attempt, delay });
-
-    const timer = setTimeout(async () => {
-      // Re-fetch latest config and callbacks from all subscribers
-      const entry = this.subscriptions.get(channelName);
-      if (entry && entry.subscribers.size > 0) {
-        const savedSubscribers = Array.from(entry.subscribers.values());
-        
-        // Clean existing channel
-        if (entry.channel) {
-          await this._safeRemoveChannel(entry.channel, channelName);
-        }
-        this.subscriptions.delete(channelName);
-
-        // Resubscribe all
-        for (const sub of savedSubscribers) {
-          await this.subscribe(channelName, sub.config, sub.callbacks);
-        }
-      }
-    }, delay);
-
-    this.reconnectTimers.set(channelName, timer);
-  }
-
-  async refreshChannel(channelName) {
+  async sendBroadcast(channelName, event, payload) {
     const entry = this.subscriptions.get(channelName);
-    if (!entry) return;
-
-    this._log('Manual refresh triggered', { channel: channelName, force: true });
-    this._clearReconnectTimer(channelName);
-    this._clearReconnectDebounce(channelName);
-    this._clearPollTimer(channelName);
-    this._clearHeartbeat(channelName);
-    this.retryCount.set(channelName, 0);
-
-    // Force remove old channel
-    if (entry.channel) {
-      await this._safeRemoveChannel(entry.channel, channelName);
+    if (!entry?.channel) {
+      this._log('Cannot send broadcast — channel not subscribed', { channel: channelName });
+      return false;
     }
 
-    // Snapshot all subscribers before clearing
-    const savedSubscribers = Array.from(entry.subscribers.values());
-    this.subscriptions.delete(channelName);
-
-    // Restore ALL subscribers
-    const results = [];
-    for (const sub of savedSubscribers) {
-      results.push(await this.subscribe(channelName, sub.config, sub.callbacks));
-    }
-    return results[0];
-  }
-
-  _clearReconnectTimer(channelName) {
-    if (this.reconnectTimers.has(channelName)) {
-      clearTimeout(this.reconnectTimers.get(channelName));
-      this.reconnectTimers.delete(channelName);
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // NEW: Heartbeat / Connection Health Monitoring
-  // ══════════════════════════════════════════════════════════════
-
-  _startHeartbeat(channelName) {
-    this._clearHeartbeat(channelName);
-
-    const timer = setInterval(() => {
-      const entry = this.subscriptions.get(channelName);
-      if (!entry || entry.status !== 'SUBSCRIBED') {
-        this._clearHeartbeat(channelName);
-        return;
-      }
-
-      // Check if connection is stale
-      const metrics = this.metrics.channelMetrics.get(channelName);
-      if (metrics && metrics.lastActivity) {
-        const timeSinceActivity = Date.now() - metrics.lastActivity;
-        if (timeSinceActivity > this.STALE_CONNECTION_THRESHOLD) {
-          this._log('Heartbeat detected stale connection', {
-            channel: channelName,
-            timeSinceActivity,
-            force: true,
-          });
-          this.refreshChannel(channelName);
-        }
-      }
-    }, this.HEARTBEAT_INTERVAL);
-
-    this.heartbeatTimers.set(channelName, timer);
-  }
-
-  _clearHeartbeat(channelName) {
-    if (this.heartbeatTimers.has(channelName)) {
-      clearInterval(this.heartbeatTimers.get(channelName));
-      this.heartbeatTimers.delete(channelName);
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // Unsubscribe Logic
-  // ══════════════════════════════════════════════════════════════
-
-  async unsubscribe(channelName, subId = null) {
-    const entry = this.subscriptions.get(channelName);
-
-    // Handle pending subscriptions that haven't landed yet
-    if (!entry) {
-      if (this.pendingSubscriptions.has(channelName)) {
-        this._log('Unsubscribe called for pending channel — marking for abortion', {
-          channel: channelName,
-          subId: subId || 'all',
-        });
-
-        if (!this.pendingUnsubscribes.has(channelName)) {
-          this.pendingUnsubscribes.set(channelName, new Set());
-        }
-
-        const abortedSet = this.pendingUnsubscribes.get(channelName);
-        if (subId) {
-          abortedSet.add(subId);
-        } else {
-          abortedSet.add('__ALL__');
-        }
-      }
-      return;
-    }
-
-    if (subId) {
-      this._log('Removing specific subscriber', { channel: channelName, subId });
-      entry.subscribers.delete(subId);
-
-      // NEW: Clean up method cache for this subscriber
-      this._cleanupMethodCache(entry.channel);
-    } else {
-      // Legacy: remove most recent subscriber
-      const lastId = Array.from(entry.subscribers.keys()).pop();
-      this._log('Removing most recent subscriber (legacy call)', {
-        channel: channelName,
-        subId: lastId,
+    try {
+      const response = await entry.channel.send({
+        type: 'broadcast',
+        event,
+        payload,
       });
-      if (lastId) {
-        entry.subscribers.delete(lastId);
-        this._cleanupMethodCache(entry.channel);
-      }
-    }
-
-    if (entry.subscribers.size > 0) {
-      this._log('Remaining subscribers, keeping channel open', {
-        channel: channelName,
-        count: entry.subscribers.size,
-      });
-      return;
-    }
-
-    // No more subscribers — clean up channel
-    this._log('No more subscribers, removing channel', { channel: channelName });
-    this._clearReconnectTimer(channelName);
-    this._clearReconnectDebounce(channelName);
-    this._clearPollTimer(channelName);
-    this._clearHeartbeat(channelName);
-    this.retryCount.delete(channelName);
-    this.states.delete(channelName);
-
-    // [PERF] Handle pending subscription landing in background to avoid blocking main thread
-    if (this.pendingSubscriptions.has(channelName)) {
-      this.pendingSubscriptions.get(channelName).finally(() => {
-        this.pendingSubscriptions.delete(channelName);
-      }).catch(() => {});
-    }
-
-    if (entry.channel) {
-      await this._safeRemoveChannel(entry.channel, channelName);
-    }
-
-    this.subscriptions.delete(channelName);
-    this.metrics.channelMetrics.delete(channelName);
-  }
-
-  async unsubscribeAll() {
-    this._log('Unsubscribing all channels', { count: this.subscriptions.size, force: true });
-
-    // Clear all timers
-    this.reconnectTimers.forEach((timer) => clearTimeout(timer));
-    this.reconnectTimers.clear();
-
-    this.reconnectDebounceTimers.forEach((timer) => clearTimeout(timer));
-    this.reconnectDebounceTimers.clear();
-
-    this.pollTimers.forEach((timer) => clearInterval(timer));
-    this.pollTimers.clear();
-
-    this.heartbeatTimers.forEach((timer) => clearInterval(timer));
-    this.heartbeatTimers.clear();
-
-    this.retryCount.clear();
-    this.states.clear();
-
-    const entries = Array.from(this.subscriptions.values());
-    this.subscriptions.clear();
-    this.pendingSubscriptions.clear();
-    this.pendingUnsubscribes.clear();
-
-    // Remove all channels
-    await Promise.allSettled(
-      entries.map(async (entry) => {
-        if (entry.channel) {
-          await this._safeRemoveChannel(entry.channel, entry.channel.topic);
-        }
-      })
-    );
-
-    // Clear method cache
-    this._methodCache = new WeakMap();
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // Polling Fallback
-  // ══════════════════════════════════════════════════════════════
-
-  _startPollingFallback(channelName, config, callbacks) {
-    this._clearPollTimer(channelName);
-
-    let pollCount = 0;
-
-    const timer = setInterval(async () => {
-      pollCount++;
-      this._log('[POLL] Polling fallback tick', { channel: channelName, tick: pollCount });
-
-      // Signal all subscribers that they should perform a health-check/sync
-      const entry = this.subscriptions.get(channelName);
-      if (entry) {
-        entry.subscribers.forEach((sub) => {
-          if (sub.callbacks.onReconnect) {
-            this._safeExecute(() => sub.callbacks.onReconnect(true), 'onReconnect (poll)');
-          }
-          // NEW: Also trigger onStatusChange to let hooks know we're in polling mode
-          if (sub.callbacks.onStatusChange) {
-            this._safeExecute(() => sub.callbacks.onStatusChange(STATES.POLLING), 'onStatusChange (poll)');
-          }
-        });
-      }
-
-      // Every 3 ticks (~90s), try WebSocket recovery
-      if (pollCount % 3 === 0) {
-        this._log('[POLL] Attempting WebSocket recovery', { channel: channelName });
-        this.refreshChannel(channelName);
-      }
-    }, 30000);
-
-    this.pollTimers.set(channelName, timer);
-  }
-
-  _clearPollTimer(channelName) {
-    if (this.pollTimers.has(channelName)) {
-      clearInterval(this.pollTimers.get(channelName));
-      this.pollTimers.delete(channelName);
+      return response === 'ok';
+    } catch (error) {
+      this._log('Error sending broadcast', { channel: channelName, error: error.message });
+      return false;
     }
   }
 
   // ══════════════════════════════════════════════════════════════
-  // State Management
+  // STATE & TRANSITION
   // ══════════════════════════════════════════════════════════════
 
   _transition(channelName, newState) {
@@ -914,31 +1006,29 @@ class RealtimeManager {
     this._log('State transition', { channel: channelName, from: prev || 'none', to: newState });
     this.states.set(channelName, newState);
 
-    // Add Sentry breadcrumb
     addRealtimeBreadcrumb(channelName, 'state_change', {
       from: prev,
       to: newState,
     });
 
     const entry = this.subscriptions.get(channelName);
-    if (entry) {
-      entry.subscribers.forEach((sub) => {
-        if (sub.callbacks?.onStatusChange) {
-          this._safeExecute(
-            () => sub.callbacks.onStatusChange(newState, prev),
-            'onStatusChange'
-          );
-        }
-      });
-    }
+    entry?.subscribers.forEach((sub) => {
+      if (sub.callbacks?.onStatusChange) {
+        this._safeExecute(
+          () => sub.callbacks.onStatusChange(newState, prev),
+          'onStatusChange'
+        );
+      }
+    });
   }
 
   // ══════════════════════════════════════════════════════════════
-  // Utilities & Helpers
+  // METRICS & DIAGNOSTICS
   // ══════════════════════════════════════════════════════════════
 
   getChannel(channelName) {
-    return this.subscriptions.get(channelName) || null;
+    const entry = this.subscriptions.get(channelName);
+    return entry?.channel || null;
   }
 
   getStats() {
@@ -966,13 +1056,12 @@ class RealtimeManager {
     };
   }
 
-  // NEW: Health check API
   getHealthStatus() {
     const stats = this.getStats();
     const now = Date.now();
 
-    const healthyChannels = stats.details.filter((ch) => ch.state === STATES.CONNECTED);
-    const staleChannels = stats.details.filter((ch) => {
+    const healthyChannels = stats.details.filter(ch => ch.state === STATES.CONNECTED);
+    const staleChannels = stats.details.filter(ch => {
       if (!ch.lastActivity) return false;
       return now - ch.lastActivity > this.STALE_CONNECTION_THRESHOLD;
     });
@@ -987,7 +1076,10 @@ class RealtimeManager {
     };
   }
 
-  // NEW: Config validation
+  // ══════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ══════════════════════════════════════════════════════════════
+
   _validateConfig(channelName, config) {
     if (!channelName || typeof channelName !== 'string') {
       console.error('[RealtimeManager] Invalid channelName:', channelName);
@@ -1002,7 +1094,6 @@ class RealtimeManager {
     return true;
   }
 
-  // NEW: Initialize per-channel metrics
   _initChannelMetrics(channelName) {
     if (!this.metrics.channelMetrics.has(channelName)) {
       this.metrics.channelMetrics.set(channelName, {
@@ -1013,7 +1104,6 @@ class RealtimeManager {
     }
   }
 
-  // NEW: Update channel metric
   _updateChannelMetric(channelName, key, value) {
     const metrics = this.metrics.channelMetrics.get(channelName);
     if (!metrics) return;
@@ -1025,13 +1115,12 @@ class RealtimeManager {
     }
   }
 
-  // NEW: Record error with classification
   _recordError(channelName, error, errorType = ERROR_TYPES.RECOVERABLE) {
     this.metrics.totalErrors++;
     this.metrics.lastErrorTime = Date.now();
     this.metrics.lastErrorMessage = error.message;
 
-    this._updateChannelMetric(channelName, 'errors', (m) => (m.errors || 0) + 1);
+    this._updateChannelMetric(channelName, 'errors', m => (m.errors || 0) + 1);
 
     this._log('Error recorded', {
       channel: channelName,
@@ -1041,38 +1130,70 @@ class RealtimeManager {
     });
   }
 
-  // NEW: Safe callback execution with error boundary
   _safeExecute(fn, context = 'callback') {
     try {
       fn();
-    } catch (err) {
-      console.error(`[RealtimeManager] Error in ${context}:`, err);
+    } catch (error) {
+      console.error(`[RealtimeManager] Error in ${context}:`, error);
       this.metrics.totalErrors++;
     }
   }
 
-  // NEW: Safe channel removal with error handling
   async _safeRemoveChannel(channel, channelName) {
     try {
       await supabaseRealtime.removeChannel(channel);
-      this._log('Channel removed successfully', { channel: channelName });
-    } catch (e) {
+      this._log('Channel removed', { channel: channelName });
+    } catch (error) {
       this._log('Channel removal failed (non-fatal)', {
         channel: channelName,
-        error: e.message,
+        error: error.message,
       });
     }
   }
 
-  // NEW: Clean up method cache for removed channels
   _cleanupMethodCache(channel) {
     if (this._methodCache.has(channel)) {
       this._methodCache.delete(channel);
     }
   }
 
+  _clearAllTimers(channelName) {
+    this._clearReconnectTimer(channelName);
+    this._clearReconnectDebounce(channelName);
+    this._clearPollTimer(channelName);
+    this._clearHeartbeat(channelName);
+  }
+
+  _clearAllTimersGlobal() {
+    this.reconnectTimers.forEach(timer => clearTimeout(timer));
+    this.reconnectTimers.clear();
+
+    this.reconnectDebounceTimers.forEach(timer => clearTimeout(timer));
+    this.reconnectDebounceTimers.clear();
+
+    this.pollTimers.forEach(timer => clearInterval(timer));
+    this.pollTimers.clear();
+
+    this.heartbeatTimers.forEach(timer => clearInterval(timer));
+    this.heartbeatTimers.clear();
+  }
+
+  _clearReconnectTimer(channelName) {
+    if (this.reconnectTimers.has(channelName)) {
+      clearTimeout(this.reconnectTimers.get(channelName));
+      this.reconnectTimers.delete(channelName);
+    }
+  }
+
+  _clearReconnectDebounce(channelName) {
+    if (this.reconnectDebounceTimers.has(channelName)) {
+      clearTimeout(this.reconnectDebounceTimers.get(channelName));
+      this.reconnectDebounceTimers.delete(channelName);
+    }
+  }
+
   // ══════════════════════════════════════════════════════════════
-  // Lifecycle Management
+  // LIFECYCLE MANAGEMENT
   // ══════════════════════════════════════════════════════════════
 
   async kill() {
@@ -1083,51 +1204,21 @@ class RealtimeManager {
     if (this._authSubscription) {
       try {
         this._authSubscription.unsubscribe();
-      } catch (e) {
-        // non-fatal
+      } catch (error) {
+        // Non-fatal
       }
       this._authSubscription = null;
     }
 
-    // Clear all timers
-    for (const [name] of this.subscriptions.entries()) {
-      this._clearReconnectTimer(name);
-      this._clearReconnectDebounce(name);
-      this._clearPollTimer(name);
-      this._clearHeartbeat(name);
-    }
-
-    const entries = Array.from(this.subscriptions.values());
-    this.subscriptions.clear();
-    this.states.clear();
-    this.retryCount.clear();
-    this.reconnectTimers.clear();
-    this.reconnectDebounceTimers.clear();
-    this.pollTimers.clear();
-    this.heartbeatTimers.clear();
-    this.pendingSubscriptions.clear();
-    this.pendingUnsubscribes.clear();
-    this.metrics.channelMetrics.clear();
-
-    // Remove all channels
-    await Promise.allSettled(
-      entries.map(async (entry) => {
-        if (entry.channel) {
-          await this._safeRemoveChannel(entry.channel, entry.channel.topic);
-        }
-      })
-    );
-
-    // Clear method cache
-    this._methodCache = new WeakMap();
+    await this.unsubscribeAll();
   }
 
-  destroy() {
+  async destroy() {
     return this.kill();
   }
 
   // ══════════════════════════════════════════════════════════════
-  // Logging
+  // LOGGING
   // ══════════════════════════════════════════════════════════════
 
   _log(message, detail = {}) {
@@ -1142,8 +1233,8 @@ class RealtimeManager {
           ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][conn.readyState] || conn.readyState;
         wsInfo.transport = conn.constructor?.name || 'unknown';
       }
-    } catch (e) {
-      // non-fatal
+    } catch (error) {
+      // Non-fatal
     }
 
     console.log(`[RT] ${message}`, {
@@ -1155,12 +1246,12 @@ class RealtimeManager {
 }
 
 // ══════════════════════════════════════════════════════════════
-// Singleton Export
+// SINGLETON EXPORT
 // ══════════════════════════════════════════════════════════════
 
 export const realtimeManager = new RealtimeManager();
 
-// Global cleanup on page unload
+// Global cleanup
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     realtimeManager.unsubscribeAll();

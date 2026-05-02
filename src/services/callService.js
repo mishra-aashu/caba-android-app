@@ -344,15 +344,41 @@ class CallService {
             table: 'call_signaling',
             filter: `to_user_id=eq.${userId}`,
             handler: (payload) => {
-              console.log('📨 New signal received:', payload.new);
+              console.log('📨 New DB signal received:', payload.new);
               onSignal(payload.new);
             }
           }
-        ]
+        ],
+        broadcast: {
+          event: 'signal',
+          callback: (envelope) => {
+            console.log('⚡ High-speed broadcast signal received:', envelope);
+            const signal = envelope.payload || envelope;
+            onSignal(signal);
+          }
+        }
       }
     );
 
     return channelName;
+  }
+
+  /**
+   * Send a high-speed broadcast signal (bypasses DB)
+   */
+  async sendBroadcastSignal(toUserId, signalData) {
+    const channelName = `signals:${toUserId}`;
+    
+    // Check if already subscribed to this channel
+    if (!realtimeManager.getChannel(channelName)) {
+      console.log(`📡 Joining channel ${channelName} for high-speed signaling`);
+      await realtimeManager.subscribe(channelName, {
+        table: 'call_signaling',
+        filter: `to_user_id=eq.${toUserId}`
+      });
+    }
+
+    return realtimeManager.sendBroadcast(channelName, 'signal', signalData);
   }
 
   /**
@@ -375,6 +401,16 @@ class CallService {
             filter: `receiver_id=eq.${userId}`,
             handler: (payload) => {
               console.log('📞 Call history update (receiver):', payload.eventType, payload.new?.call_status);
+              onCallUpdate(payload);
+            }
+          },
+          {
+            event: '*',
+            schema: 'public',
+            table: 'call_history',
+            filter: `caller_id=eq.${userId}`,
+            handler: (payload) => {
+              console.log('📞 Call history update (caller):', payload.eventType, payload.new?.call_status);
               onCallUpdate(payload);
             }
           }

@@ -206,10 +206,23 @@ class WebRTCService {
 
       console.log('📞 Starting call:', this.callId);
 
+      // [ULTRA-SPEED FIX] Fire database creation and broadcast signal in PARALLEL
+      // Do not await them to avoid blocking the very first milliseconds of initiation.
+      Promise.all([
+        callService.createCall(callerId, receiverId, this.callId, callType),
+        callService.sendBroadcastSignal(receiverId, {
+          call_id: this.callId,
+          from_user_id: callerId,
+          to_user_id: receiverId,
+          signal_type: 'offer',
+          signal_data: { callType },
+          created_at: new Date().toISOString()
+        })
+      ]).catch(e => console.warn('⚠️ Call initiation sync failed:', e));
+
+      // Immediately start getting camera/mic while signaling is happening
       await this.getLocalStream(callType === 'video', true, quality);
       this.initializePeerConnection();
-
-      await callService.createCall(callerId, receiverId, this.callId, callType);
 
       // Create offer
       const offer = await this.peerConnection.createOffer({
