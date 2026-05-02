@@ -249,7 +249,7 @@ const ArenaRoom = ({
       {/* Hidden Audio Elements for Live Voice */}
       <div className={styles.audioContainer}>
         {Object.entries(remoteStreams || {}).map(([peerId, stream]) => (
-          <RemoteAudio key={peerId} stream={stream} />
+          <RemoteAudio key={peerId} peerId={peerId} stream={stream} />
         ))}
       </div>
     </div>
@@ -258,16 +258,36 @@ const ArenaRoom = ({
 
 // --- Sub Components ---
 
-const RemoteAudio = ({ stream }) => {
+const RemoteAudio = ({ peerId, stream }) => {
   const audioRef = useRef(null);
 
   useEffect(() => {
     if (audioRef.current && stream) {
+      // console.log(`[ArenaRoom] Attaching stream for peer ${peerId}`);
       audioRef.current.srcObject = stream;
+      
+      // Explicitly trigger play to handle some browser policies
+      const playAudio = () => {
+        audioRef.current.play().catch(err => {
+          if (err.name !== 'AbortError') {
+            console.warn(`[ArenaRoom] Autoplay blocked for ${peerId}:`, err);
+          }
+        });
+      };
+      
+      playAudio();
     }
-  }, [stream]);
+  }, [stream, peerId]);
 
-  return <audio ref={audioRef} autoPlay style={{ display: 'none' }} />;
+  return (
+    <audio 
+      ref={audioRef} 
+      autoPlay 
+      playsInline 
+      controls={false}
+      style={{ display: 'none', position: 'absolute', opacity: 0 }} 
+    />
+  );
 };
 
 const ChatMessage = ({ msg, isMe, onExpand }) => {

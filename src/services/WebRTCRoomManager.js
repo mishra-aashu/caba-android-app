@@ -182,6 +182,9 @@ export default class WebRTCRoomManager extends EventTarget {
         const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
         if (transceiver && audioTrack) {
           transceiver.sender.replaceTrack(audioTrack);
+          if (transceiver.sender.setStreams) {
+            transceiver.sender.setStreams(this.localStream);
+          }
           transceiver.direction = 'sendrecv';
         }
       }
@@ -257,7 +260,7 @@ export default class WebRTCRoomManager extends EventTarget {
 
     // ── Tracks (Incoming Media) ───────────────────────────
     pc.ontrack = (event) => {
-      // console.log(`[WebRTC] Track received from ${peerId}:`, event.track.kind);
+      console.log(`[WebRTC] 🎤 Track received from ${peerId}:`, event.track.kind);
       const stream = event.streams[0] || new MediaStream([event.track]);
       this.remoteStreams.set(peerId, stream);
       this._emit('track-received', { peerId, stream });
@@ -265,6 +268,7 @@ export default class WebRTCRoomManager extends EventTarget {
 
     // ── Negotiation ───────────────────────────────────────
     pc.onnegotiationneeded = async () => {
+      console.log(`[WebRTC] 🔄 Negotiation needed for ${peerId}`);
       try {
         if (pc.signalingState !== 'stable') return;
         
@@ -274,7 +278,7 @@ export default class WebRTCRoomManager extends EventTarget {
           sdp: pc.localDescription.toJSON(),
         });
       } catch (err) {
-        console.error('[WebRTC] Negotiation failed:', err);
+        console.error('[WebRTC] ❌ Negotiation failed:', err);
       }
     };
 
@@ -378,6 +382,9 @@ export default class WebRTCRoomManager extends EventTarget {
         const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
         if (transceiver && audioTrack) {
           transceiver.sender.replaceTrack(audioTrack);
+          if (transceiver.sender.setStreams) {
+            transceiver.sender.setStreams(this.localStream);
+          }
           transceiver.direction = 'sendrecv';
         }
       }
@@ -525,6 +532,9 @@ export default class WebRTCRoomManager extends EventTarget {
         const transceiver = peer.pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
         if (transceiver) {
           transceiver.sender.replaceTrack(audioTrack);
+          if (transceiver.sender.setStreams) {
+            transceiver.sender.setStreams(this.localStream);
+          }
           transceiver.direction = 'sendrecv';
         }
       }

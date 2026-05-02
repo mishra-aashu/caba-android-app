@@ -111,6 +111,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     };
 
     const onTrackReceived = (e) => {
+      console.log(`[useWebRTCRoom] Track received from ${e.detail.peerId}`);
       setRemoteStreams(prev => ({
         ...prev,
         [e.detail.peerId]: e.detail.stream
