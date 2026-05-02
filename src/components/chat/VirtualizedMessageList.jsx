@@ -33,9 +33,10 @@ const VirtualizedMessageList = React.forwardRef(({
   chatId,
   isVanishMode = false,
   onToggleVanish,
-  onManualRetry,
-  isDexieLoading = false,
   isInitializing = false,
+  isDexieLoading = false,
+  onManualRetry,
+  onPin,
 }, ref) => {
   const isSelectionMode = useChatStore(state => state.isSelectionMode);
 
@@ -200,6 +201,7 @@ const VirtualizedMessageList = React.forwardRef(({
         isLastRead={message.id === lastReadMessageId}
         isLast={messageIndex === messages.length - 1}
         onManualRetry={onManualRetry}
+        onPin={onPin}
       />
     );
   }, [

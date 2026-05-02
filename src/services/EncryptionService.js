@@ -1,5 +1,6 @@
 import CryptoJS from 'crypto-js';
 import useAuthStore from '../store/authStore';
+import { doubleRatchetService } from './DoubleRatchetService';
 
 /**
  * End-to-End Encryption Service for CaBa Chat.
@@ -58,12 +59,17 @@ export const EncryptionService = {
         // Don't double encrypt
         if (text.startsWith(E2EE_PREFIX)) return text;
 
-        const key = this._deriveChatKey(chatId, otherUserId);
-        if (!key) return text;
+        const rootKey = this._deriveChatKey(chatId, otherUserId);
+        if (!rootKey) return text;
 
         try {
-            const encrypted = CryptoJS.AES.encrypt(text, key).toString();
-            return E2EE_PREFIX + encrypted;
+            // Ensure ratchet is initialized
+            if (!doubleRatchetService.sessions.has(chatId)) {
+                doubleRatchetService.initSession(chatId, rootKey);
+            }
+
+            const { ciphertext, ratchetNumber } = doubleRatchetService.encryptMessage(chatId, text);
+            return `${E2EE_PREFIX}RATCHET:v1:${ratchetNumber}:${ciphertext}`;
         } catch (error) {
             console.error('[E2EE] Encryption failed:', error);
             return text;
@@ -71,19 +77,38 @@ export const EncryptionService = {
     },
 
     /**
-     * Decrypted a cipher text for a specific chat.
+     * Decrypts a cipher text for a specific chat.
      */
     decrypt(encryptedText, chatId, otherUserId = null) {
         if (!encryptedText || typeof encryptedText !== 'string' || !encryptedText.startsWith(E2EE_PREFIX)) {
             return encryptedText;
         }
 
-        const key = this._deriveChatKey(chatId, otherUserId);
-        if (!key) return encryptedText;
+        const rootKey = this._deriveChatKey(chatId, otherUserId);
+        if (!rootKey) return encryptedText;
 
         try {
-            const cipherText = encryptedText.substring(E2EE_PREFIX.length);
-            const bytes = CryptoJS.AES.decrypt(cipherText, key);
+            const payload = encryptedText.substring(E2EE_PREFIX.length);
+
+            // Check if it's a ratcheted message
+            if (payload.startsWith('RATCHET:v1:')) {
+                const parts = payload.split(':');
+                if (parts.length >= 4) { // RATCHET:v1:{number}:{ciphertext}
+                    const ratchetNumber = parseInt(parts[2], 10);
+                    const ciphertext = parts.slice(3).join(':'); // The rest is ciphertext
+
+                    if (!doubleRatchetService.sessions.has(chatId)) {
+                        doubleRatchetService.initSession(chatId, rootKey);
+                    }
+
+                    const decrypted = doubleRatchetService.decryptMessage(chatId, ciphertext, ratchetNumber);
+                    if (!decrypted) return '[Encrypted Message]';
+                    return decrypted;
+                }
+            }
+
+            // Fallback to legacy deterministic decryption
+            const bytes = CryptoJS.AES.decrypt(payload, rootKey);
             const decrypted = bytes.toString(CryptoJS.enc.Utf8);
             
             if (!decrypted) {

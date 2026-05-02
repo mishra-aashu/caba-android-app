@@ -44,6 +44,8 @@ const MessageInput = ({
   const [voiceBlob, setVoiceBlob] = useState(null);
   const [isRecordingUI, setIsRecordingUI] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState(null);
+  const [showScheduler, setShowScheduler] = useState(false);
 
   const textareaRef = useRef(null);
   const containerRef = useRef(null);
@@ -160,7 +162,11 @@ const MessageInput = ({
 
           onSendMedia(processedFile, fileType, vanishAt);
         } else if (trimmedMessage) {
-          onSendMessage(trimmedMessage, { vanishAt });
+          onSendMessage(trimmedMessage, { vanishAt, scheduledAt });
+        }
+        
+        if (scheduledAt) {
+          toast.success(`Message scheduled for ${new Date(scheduledAt).toLocaleString()}`);
         }
 
     } catch (error) {
@@ -173,9 +179,10 @@ const MessageInput = ({
       // was sent, requiring a full page reload to send another message.
       setIsUploading(false);
       setMessage('');
-      setVoiceBlob(null);
       setFilePreview(null);
       setIsRecordingUI(false);
+      setScheduledAt(null);
+      setShowScheduler(false);
       if (chatId) clearDraft(chatId);
     }
   };
@@ -288,23 +295,56 @@ const MessageInput = ({
                   <Mic size={24} />
                 </button>
               ) : (
-                <button
-                  className={styles['btn-action']}
-                  onClick={() => handleSend()}
-                  disabled={isUploading || externalDisabled}
-                  title="Send"
-                >
-                  {isUploading ? (
-                    <LoaderCircle size={24} className={styles['animate-spin']} />
-                  ) : (
-                    <Send size={24} />
-                  )}
-                </button>
+                <div className={styles['send-actions-group']}>
+                  <button
+                    className={styles['btn-scheduler']}
+                    onClick={() => setShowScheduler(!showScheduler)}
+                    disabled={isUploading || externalDisabled}
+                    title="Schedule Message"
+                    style={{ color: scheduledAt ? 'var(--accent-color)' : 'inherit' }}
+                  >
+                    <Clock size={20} />
+                  </button>
+                  <button
+                    className={styles['btn-action']}
+                    onClick={() => handleSend()}
+                    disabled={isUploading || externalDisabled}
+                    title="Send"
+                  >
+                    {isUploading ? (
+                      <LoaderCircle size={24} className={styles['animate-spin']} />
+                    ) : (
+                      <Send size={24} />
+                    )}
+                  </button>
+                </div>
               )
             )}
           </>
         )}
       </div>
+
+      {showScheduler && (
+        <div className={styles['scheduler-popover']}>
+          <div className={styles['scheduler-header']}>
+            <span>Schedule Message</span>
+            <button onClick={() => setShowScheduler(false)}>✕</button>
+          </div>
+          <div className={styles['scheduler-body']}>
+            <input 
+              type="datetime-local" 
+              className={styles['scheduler-input']}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => setScheduledAt(e.target.value ? new Date(e.target.value).getTime() : null)}
+            />
+            {scheduledAt && (
+              <p className={styles['scheduler-preview']}>
+                Will be sent on: {new Date(scheduledAt).toLocaleString()}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <Suspense fallback={null}>
         {showEmojiPicker && (

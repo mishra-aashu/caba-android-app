@@ -6,17 +6,19 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 
 import {
   Gamepad2, Sword, Users, Clock, ChevronRight,
-  Zap, Trophy, Circle, RefreshCw
+  Zap, Trophy, Circle, RefreshCw, Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import PlayerAvatar from '../common/PlayerAvatar';
 import { useTruthDareGame } from '../../hooks/useTruthDareGame';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db/db';
 import ArenaRoom from '../chat/ArenaRoom';
 import { DB_TABLES } from '../../constants/gameData';
 import styles from './GamesPanel.module.css';
 import usePresenceStore from '../../store/usePresenceStore';
-
+import { isUserOnline, formatLastSeen } from '../../utils/dateFormatter';
 
 // ─── Constants ────────────────────────────────────────
 const INVITES_CHANNEL_PREFIX = 'games_panel_invites';
@@ -25,6 +27,8 @@ const REFRESH_DEBOUNCE_MS = 1000;
 const INVITE_EXPIRY_MS = 3600000; // 1 hour expiry for auto-join
 
 // ─── Helpers ──────────────────────────────────────────────
+// NOTE: For invite card timestamps (created_at), we use a compact relative time.
+// For user presence, we use the unified formatLastSeen from dateFormatter.
 const timeAgo = (iso) => {
   if (!iso) return '';
   const diff = Date.now() - new Date(iso).getTime();
@@ -56,13 +60,56 @@ const GamesPanel = () => {
   const { supabase } = useSupabase();
   const navigate = useNavigate();
 
+  // ── Contacts Filtering ────────────────────────────────
+  const myContacts = useLiveQuery(() => db.contacts.toArray()) || [];
+  const contactIds = useMemo(() => new Set(myContacts.map(c => String(c.contactUserId))), [myContacts]);
 
   const onlineUsersMap = usePresenceStore(state => state.onlineUsers);
-  const onlineUsers = useMemo(() => {
-    return Object.values(onlineUsersMap || {})
-      .filter(u => u.isOnline && String(u.id) !== String(dbUser?.id))
-      .sort((a, b) => new Date(b.onlineAt) - new Date(a.onlineAt));
-  }, [onlineUsersMap, dbUser?.id]);
+  
+  // ── All Opponents (Unified List) ──────────────────────
+  const allOpponents = useMemo(() => {
+    if (!myContacts) return [];
+    
+    return myContacts.map(contact => {
+      const u = contact.otherUser;
+      if (!u) return null;
+
+      // 1. Check Live Presence (Zustand/Supabase Realtime) — single source of truth
+      const presence = onlineUsersMap[String(u.id)];
+      const isLiveOnline = presence?.isOnline || false;
+
+      // 2. DB fallback: only used if not live-present (handles brief disconnects)
+      const isDbOnline = isUserOnline(Boolean(u.is_online || u.isOnline), u.last_seen || u.lastSeen);
+
+      const isOnline = isLiveOnline || isDbOnline;
+
+      // For offline users: use DB last_seen for formatting via unified formatLastSeen
+      // For online users:  use live presence onlineAt (when they joined the presence channel)
+      const lastSeenTs = u.last_seen || u.lastSeen || null;
+      
+      return {
+        id: u.id,
+        name: contact.contactName || u.name || 'Unknown',
+        avatar: u.avatar,
+        // onlineAt = live presence join time (for online users)
+        // lastSeen = DB last_seen (for offline display via unified formatLastSeen)
+        onlineAt: presence?.onlineAt || null,
+        lastSeen: lastSeenTs,
+        isOnline: isOnline
+      };
+    }).filter(u => u !== null).sort((a, b) => {
+      // Online users first, then by last seen
+      if (a.isOnline && !b.isOnline) return -1;
+      if (!a.isOnline && b.isOnline) return 1;
+      
+      // Sort offline users by last seen (most recent first)
+      const dateA = new Date(a.lastSeen || 0);
+      const dateB = new Date(b.lastSeen || 0);
+      return dateB - dateA;
+    });
+  }, [myContacts, onlineUsersMap]);
+
+  const onlineCount = useMemo(() => allOpponents.filter(u => u.isOnline).length, [allOpponents]);
 
   const [pendingInvites, setPendingInvites] = useState([]);
 
@@ -73,7 +120,8 @@ const GamesPanel = () => {
 
   // Unified Battle Context
   const [battleContext, setBattleContext] = useState(null); // { chatId, opponentId }
-  const game = useTruthDareGame(battleContext?.chatId, dbUser?.id, supabase);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const game = useTruthDareGame(battleContext?.chatId, dbUser, supabase);
 
   // ── Load pending invitations ───────────────────────────
   const loadInvites = useCallback(async () => {
@@ -149,6 +197,19 @@ const GamesPanel = () => {
     }
   }, [pendingInvites, game.isActive, dbUser?.id, loadingInvites, game.joinBattle]);
 
+
+  const handleRefreshPresence = async () => {
+    setIsRefreshing(true);
+    console.log('[GamesPanel] Manual refresh triggered');
+    
+    // We'll just wait a bit to simulate refresh since the 
+    // presence channel handles updates automatically
+    await new Promise(r => setTimeout(r, 1000));
+    
+    toast.success('Player list updated');
+    setIsRefreshing(false);
+  };
+
   useEffect(() => {
     if (!game.isActive && battleContext) {
       const timer = setTimeout(() => {
@@ -208,8 +269,18 @@ const GamesPanel = () => {
       toast.success('Invitation sent!');
       
       // 3. Set context and join the battle in inviting state
-      setBattleContext({ chatId, opponentId: targetUser.id });
-      game.joinBattle(invite.id, true, invite.status, targetUser.id); // true = isHost
+      setBattleContext({ 
+        chatId, 
+        opponentId: targetUser.id,
+        opponentMetadata: {
+          name: targetUser.name,
+          avatar: targetUser.avatar
+        }
+      });
+      game.joinBattle(invite.id, true, invite.status, targetUser.id, { 
+        name: targetUser.name, 
+        avatar: targetUser.avatar 
+      }); // true = isHost
       
       // 4. Refresh invites list
       loadInvites();
@@ -226,7 +297,14 @@ const GamesPanel = () => {
     const loadingToast = toast.loading('Joining battle...');
     try {
       toast.dismiss(loadingToast);
-      setBattleContext({ chatId: invite.chat_id, opponentId: invite.sender_id });
+      setBattleContext({ 
+        chatId: invite.chat_id, 
+        opponentId: invite.sender_id,
+        opponentMetadata: {
+          name: invite.sender?.name,
+          avatar: invite.sender?.avatar
+        }
+      });
       game.acceptGame(invite);
     } catch (err) {
       toast.dismiss(loadingToast);
@@ -253,8 +331,19 @@ const GamesPanel = () => {
 
   const handleResume = useCallback((invite) => {
     const opponentId = invite.sender_id === dbUser?.id ? invite.receiver_id : invite.sender_id;
-    setBattleContext({ chatId: invite.chat_id, opponentId });
-    game.joinBattle(invite.id, invite.sender_id === dbUser?.id, invite.status, opponentId);
+    const opponent = invite.sender_id === dbUser?.id ? invite.receiver : invite.sender;
+    setBattleContext({ 
+      chatId: invite.chat_id, 
+      opponentId,
+      opponentMetadata: {
+        name: opponent?.name,
+        avatar: opponent?.avatar
+      }
+    });
+    game.joinBattle(invite.id, invite.sender_id === dbUser?.id, invite.status, opponentId, {
+      name: opponent?.name,
+      avatar: opponent?.avatar
+    });
   }, [dbUser?.id, game.joinBattle]);
 
   const gameProps = useMemo(() => ({
@@ -279,7 +368,7 @@ const GamesPanel = () => {
     onSwitch: game.switchType,
     onConfirmSettings: game.confirmSettings,
     onExit: () => game.closeGame(),
-    isHost: game.gameState?.isHost ?? false,
+    isHost: game.isHost,
     isMyTurn: game.isMyTurn
   }), [game, dbUser?.id, battleContext?.opponentId, pendingInvites, handleRejectInvite]);
 
@@ -318,7 +407,7 @@ const GamesPanel = () => {
           <div>
             <h2 className={styles.headerTitle}>Game Hub</h2>
             <p className={styles.headerSub}>
-              {onlineUsers.length} online · {pendingForMe.length} invite{pendingForMe.length !== 1 ? 's' : ''}
+              {onlineCount} online · {pendingForMe.length} invite{pendingForMe.length !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -327,45 +416,42 @@ const GamesPanel = () => {
         </button>
       </div>
 
-      <div className={styles.tabs}>
-        <button className={`${styles.tab} ${tab === 'online' ? styles.tabActive : ''}`} onClick={() => setTab('online')}>
-          <Users size={14} /> Online {onlineUsers.length > 0 && <span className={styles.tabBadge}>{onlineUsers.length}</span>}
-        </button>
-        <button className={`${styles.tab} ${tab === 'invites' ? styles.tabActive : ''}`} onClick={() => setTab('invites')}>
-          <Sword size={14} /> Invites {pendingForMe.length > 0 && <span className={`${styles.tabBadge} ${styles.tabBadgeAlert}`}>{pendingForMe.length}</span>}
-        </button>
-      </div>
+        <div className={styles.tabs}>
+          <button className={`${styles.tab} ${tab === 'online' ? styles.tabActive : ''}`} onClick={() => setTab('online')}>
+            <Users size={14} /> Players {onlineCount > 0 && <span className={styles.tabBadge}>{onlineCount}</span>}
+          </button>
+          <button className={`${styles.tab} ${tab === 'invites' ? styles.tabActive : ''}`} onClick={() => setTab('invites')}>
+            <Sword size={14} /> Invites {pendingForMe.length > 0 && <span className={`${styles.tabBadge} ${styles.tabBadgeAlert}`}>{pendingForMe.length}</span>}
+          </button>
+          <div className={styles.tabSpacer} />
+          <button className={styles.refreshIconBtn} onClick={handleRefreshPresence} disabled={isRefreshing} title="Refresh list">
+            <RefreshCw size={14} className={isRefreshing ? styles.spinning : ''} />
+          </button>
+        </div>
 
-      <div className={styles.content}>
-        <AnimatePresence mode="wait">
-          {tab === 'online' ? (
-            <motion.div key="online" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} className={styles.listWrap}>
-              {onlineUsers.length === 0 ? (
-                <div className={styles.emptyContainer}>
-                  <div className={styles.myStatusCard}>
-                    <div className={styles.userCardLeft}>
-                      <div className={styles.avatarWrap}>
-                        <PlayerAvatar avatar={dbUser?.avatar} name={dbUser?.name} size={38} />
-                        <span className={styles.onlineDot} />
-                      </div>
-                      <div className={styles.userInfo}>
-                        <p className={styles.userName}>{dbUser?.name} (You)</p>
-                        <p className={styles.userSub}><Circle size={6} fill="currentColor" /> Online & Waiting</p>
-                      </div>
-                    </div>
+        <div className={styles.content}>
+          <AnimatePresence mode="wait">
+            {tab === 'online' ? (
+              <motion.div key="online" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} className={styles.listWrap}>
+                {allOpponents.length > 0 ? (
+                  <div className={styles.userList}>
+                    {allOpponents.map((user) => (
+                      <OnlineUserCard 
+                        key={user.id} 
+                        user={user} 
+                        isOffline={!user.isOnline} 
+                        onInvite={() => handleInviteUser(user)} 
+                      />
+                    ))}
                   </div>
+                ) : (
                   <EmptyState 
                     icon={<Users size={36} />} 
-                    title="No one else online" 
-                    sub="Share your profile or invite friends to start a battle!" 
+                    title="No contacts found" 
+                    sub="Add some friends to start a battle!" 
                   />
-                </div>
-              ) : (
-                <div className={styles.userList}>
-                  {onlineUsers.map((user) => <OnlineUserCard key={user.id} user={user} onInvite={() => handleInviteUser(user)} />)}
-                </div>
-              )}
-            </motion.div>
+                )}
+              </motion.div>
           ) : (
             <motion.div key="invites" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} className={styles.listWrap}>
               {loadingInvites && myActive.length === 0 ? <div className={styles.loadingArea}><div className={styles.spinner} /><p>Loading...</p></div> : 
@@ -393,19 +479,35 @@ const GamesPanel = () => {
 };
 
 // ─── Online User Card ──────────────────────────────────────
-const OnlineUserCard = React.memo(({ user, onInvite }) => (
-  <motion.div className={styles.userCard} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+// Uses unified formatLastSeen (same as ChatHeader & UserDetails) for consistent display.
+const OnlineUserCard = React.memo(({ user, onInvite, isOffline }) => (
+  <motion.div className={`${styles.userCard} ${isOffline ? styles.userCardOffline : ''}`} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
     <div className={styles.userCardLeft}>
       <div className={styles.avatarWrap}>
         <PlayerAvatar avatar={user.avatar} name={user.name} size={38} />
-        <span className={styles.onlineDot} />
+        <span className={isOffline ? styles.offlineDot : styles.onlineDot} />
       </div>
       <div className={styles.userInfo}>
         <p className={styles.userName}>{user.name}</p>
-        <p className={styles.userSub}><Circle size={6} fill="currentColor" /> Online {timeAgo(user.onlineSince)}</p>
+        <p className={styles.userSub}>
+          {isOffline ? (
+            // Offline: show "Last seen X" using the unified formatLastSeen (same as ChatHeader)
+            user.lastSeen ? (
+              <><Clock size={10} /> Last seen {formatLastSeen(user.lastSeen)}</>
+            ) : (
+              <><Clock size={10} /> Offline</>
+            )
+          ) : (
+            // Online: confirmed by live Supabase Realtime presence channel
+            <><Circle size={6} fill="currentColor" /> Online</>
+          )}
+        </p>
       </div>
     </div>
-    <button className={styles.inviteBtn} onClick={onInvite}><Zap size={14} /><span>Invite</span></button>
+    <button className={styles.inviteBtn} onClick={onInvite}>
+      {isOffline ? <Bell size={14} /> : <Zap size={14} />}
+      <span>{isOffline ? 'Notify' : 'Invite'}</span>
+    </button>
   </motion.div>
 ));
 

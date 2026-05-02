@@ -165,6 +165,14 @@ db.version(13).stores({
     sync_queue: '++id, status, action, createdAt, nextRetryAt, dependencyId, retryCount'
 });
 
+// Version 14: Advanced Features Support
+// - Adds scheduledAt to sync_queue for "Send Later"
+// - Adds isPinned to messages for Pinned Messages
+db.version(14).stores({
+    messages: 'id, chatId, createdAt, senderId, tempId, vanishAt, retryCount, isPinned, [chatId+createdAt]',
+    sync_queue: '++id, status, action, createdAt, nextRetryAt, scheduledAt, dependencyId, retryCount'
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────

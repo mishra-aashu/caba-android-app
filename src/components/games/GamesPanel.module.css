@@ -579,3 +579,164 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+/* ── Suggested List ───────────────────────────────────────── */
+.suggestedList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.sectionHeader span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.sectionHeader p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.userCardOffline {
+  opacity: 0.7;
+  filter: grayscale(0.4);
+}
+
+.userCardOffline:hover {
+  filter: grayscale(0);
+  opacity: 1;
+}
+
+.offlineDot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  border: 2px solid var(--surface-color);
+  opacity: 0.5;
+}
+
+.refreshIconBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refreshIconBtn:hover {
+  background: rgba(0, 168, 132, 0.1);
+  color: #00a884;
+}
+
+.tabSpacer {
+  flex: 1;
+}
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: rgba(0, 168, 132, 0.2);
+  color: #00a884;
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: 4px;
+}
+
+/* ── Responsive Polish ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .header {
+    padding: 14px 12px 10px;
+  }
+  
+  .headerIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+  
+  .headerTitle {
+    font-size: 16px;
+  }
+  
+  .tabs {
+    padding: 0 12px 10px;
+    gap: 4px;
+  }
+  
+  .tab {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  .listWrap {
+    padding: 4px 8px 20px;
+  }
+  
+  .userCard {
+    padding: 10px;
+  }
+  
+  .avatarWrap {
+    width: 34px;
+    height: 34px;
+  }
+  
+  .userName {
+    font-size: 12px;
+  }
+  
+  .inviteBtn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .player span {
+    max-width: 65px;
+    font-size: 10px;
+  }
+  
+  .vsText {
+    font-size: 10px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .userList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+  
+  .inviteList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+  }
+}

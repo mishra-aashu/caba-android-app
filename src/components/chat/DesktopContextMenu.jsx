@@ -1,5 +1,5 @@
 import React, { useRef, useLayoutEffect, useState, useEffect, useCallback } from 'react';
-import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag } from 'lucide-react';
+import { Reply, Copy, Share2, Edit, Trash2, MousePointer, Flag, Pin } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import EmojiRenderer from '../common/EmojiRenderer';
 import styles from './DesktopContextMenu.module.css';
@@ -15,7 +15,9 @@ const DesktopContextMenu = ({
   onDelete,
   onSelect,
   onReport,
+  onPin,
   isSent,
+  isPinned = false,
   onClose,
   onReactionSelect,
   preferredEmojis = [],
@@ -199,6 +201,12 @@ const DesktopContextMenu = ({
             )}
 
             <div className={styles['menu-divider']} />
+
+            {/* ── Pin ── */}
+            <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onPin)}>
+              <span className={styles.icon}><Pin size={16} /></span>
+              <span>{isPinned ? 'Unpin' : 'Pin'}</span>
+            </div>
 
             {/* ── Select ── */}
             <div className={styles['menu-item']} role="menuitem" onClick={safeCall(onSelect)}>

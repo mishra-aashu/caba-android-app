@@ -90,17 +90,21 @@ const BottomNavigation = () => {
         };
 
         loadCount();
-        // Listen for global game invite updates
-        const handleUpdate = () => {
-            console.log('[BottomNavigation] Game invite update detected, reloading count...');
-            loadCount();
-        };
-
-        window.addEventListener('app:game-invites-update', handleUpdate);
+        
+        // Realtime subscription for game invitations
+        const channel = supabase
+            .channel(`bottom_nav_game_invites_${dbUser.id}`)
+            .on('postgres_changes', {
+                event: '*', 
+                schema: 'public', 
+                table: 'game_invitations',
+                filter: `receiver_id=eq.${dbUser.id}`,
+            }, loadCount)
+            .subscribe();
 
         return () => {
             cancelled = true;
-            window.removeEventListener('app:game-invites-update', handleUpdate);
+            supabase.removeChannel(channel);
         };
     }, [dbUser?.id]);
 

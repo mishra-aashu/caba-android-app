@@ -4243,3 +4243,230 @@ body.light-mode .no-messages-content {
 .lid-main {
   height: 2px;
 }
+
+/* ─────────────────────────────────────────────
+   SCHEDULER & SEND ACTIONS
+───────────────────────────────────────────── */
+
+.send-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-scheduler {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-scheduler:hover {
+  background: var(--hover-color, rgba(0, 168, 132, 0.1));
+  color: var(--brand-primary);
+}
+
+.scheduler-popover {
+  position: absolute;
+  bottom: 100%;
+  right: 16px;
+  width: 280px;
+  background: var(--bg-1);
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.2));
+  margin-bottom: 12px;
+  z-index: 100;
+  animation: slideUpFade 0.2s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.scheduler-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.scheduler-header span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.scheduler-header button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.scheduler-body {
+  padding: 16px;
+}
+
+.scheduler-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 12px;
+}
+
+.scheduler-input:focus {
+  border-color: var(--brand-primary);
+}
+
+.scheduler-preview {
+  font-size: 12px;
+  color: var(--brand-primary);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ─────────────────────────────────────────────
+   PINNED MESSAGES BAR
+───────────────────────────────────────────── */
+
+.pinned-bar-container {
+  width: 100%;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border-medium);
+  z-index: 4;
+  transition: max-height 0.3s ease;
+  overflow: hidden;
+}
+
+.pinned-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.pinned-bar-header:hover {
+  background: var(--bg-2);
+}
+
+.pinned-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pin-icon {
+  color: var(--brand-primary);
+  flex-shrink: 0;
+}
+
+.pinned-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pinned-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pinned-preview {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pinned-bar-right {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.pinned-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-2);
+}
+
+.pinned-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.pinned-list-item:hover {
+  background: var(--bg-hover);
+}
+
+.pinned-item-content {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.pinned-item-content p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pinned-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.unpin-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  margin-left: 8px;
+  border-radius: 50%;
+}
+
+.unpin-btn:hover {
+  background: rgba(var(--status-error-rgb), 0.1);
+  color: var(--status-error);
+}

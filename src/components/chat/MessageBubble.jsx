@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect, useMemo } from 'react';
 import EmojiRenderer from '../common/EmojiRenderer';
+import LinkPreview, { extractUrls } from './LinkPreview';
 import { isOnlyEmoji, getEmojiCount } from '../../utils/emojiUtils';
 import { formatLastSeen } from '../../utils/dateFormatter';
 import { Clock, AlertCircle, RefreshCcw } from 'lucide-react';
@@ -166,6 +167,10 @@ const MessageBubble = memo(({
               {isDeleted && <BlockIcon />}
               <EmojiRenderer text={isLocked ? 'Time Capsule' : displayedText} style={emojiStyle} />
             </span>
+
+            {!isDeleted && !isLocked && extractUrls(displayedText).length > 0 && (
+              <LinkPreview url={extractUrls(displayedText)[0]} />
+            )}
 
             {message?.metadata && (
               <div className={styles['message-reactions']}>

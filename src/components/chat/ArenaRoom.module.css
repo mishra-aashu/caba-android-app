@@ -175,44 +175,47 @@
   overflow: hidden;
 }
 
-.mobileTabs {
+.bottomNav {
   display: flex;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(65px + env(safe-area-inset-bottom));
 }
 
-.tabBtn {
+.navBtn {
   flex: 1;
-  padding: 16px;
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  border-bottom: 2px solid transparent;
+  gap: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.tabBtnActive {
+.navBtnActive {
   color: #00a884;
-  background: rgba(0, 168, 132, 0.05);
-  border-bottom-color: #00a884;
+}
+
+.navBtnActive span {
+  color: #00a884;
+  font-weight: 900;
 }
 
 .mobileChatArea {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
   min-height: 0; /* Critical for flex child scroll */
 }
 
@@ -225,10 +228,14 @@
 
 .mobileInputArea {
   flex-shrink: 0;
-  padding: 0.75rem;
   background: rgba(18, 18, 18, 0.9);
   backdrop-filter: blur(30px);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.arenaInputSection {
+  padding: 10px;
+  background: #0a0a0a;
 }
 
 /* Chat Bubbles */
@@ -330,58 +337,6 @@
   to { transform: translateX(0); }
 }
 
-/* Chat Input Bar */
-.inputContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.inputBar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #1a1a1a;
-  padding: 8px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-.inputBar input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-size: 14px;
-  outline: none;
-}
-
-.mediaActions {
-  display: flex;
-  gap: 8px;
-}
-
-.iconBtn {
-  color: rgba(255, 255, 255, 0.4);
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.iconBtn:hover { color: #00a884; }
-
-.sendBtn {
-  background: #00a884;
-  color: #fff;
-  border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
 .sendBtn:disabled {
   background: #262626;
   opacity: 0.5;
@@ -441,4 +396,91 @@
 @media (min-width: 1024px) {
   .desktopLayout { display: flex; }
   .mobileLayout { display: none; }
+}
+
+/* Modal Styling */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.confirmModal {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 30px;
+  border-radius: 24px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.confirmModal h3 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 12px;
+  color: #fff;
+}
+
+.confirmModal p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.modalActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirmBtn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+}
+
+.confirmBtn:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+}
+
+.cancelBtn {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 768px) {
+  .modalActions {
+    flex-direction: row;
+  }
+  .confirmBtn, .cancelBtn {
+    flex: 1;
+  }
 }

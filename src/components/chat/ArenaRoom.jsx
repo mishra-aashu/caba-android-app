@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, Image, Mic, Video, X, Maximize2, 
   Gamepad2, MessageSquare, ChevronUp, ChevronDown,
-  Volume2, Play, Pause, Download, Clock
+  Volume2, Play, Pause, Download, Clock, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import TruthDareGame from './TruthDareGame';
 import styles from './ArenaRoom.module.css';
+import MessageInput from './MessageInput';
+import { useAuth } from '../../hooks/useAuth';
 
 const ArenaRoom = ({ 
   chatId, 
@@ -18,12 +20,13 @@ const ArenaRoom = ({
   onExit
 }) => {
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'game' (for mobile)
-  const [inputText, setInputText] = useState('');
   const [isGameExpanded, setIsGameExpanded] = useState(gameProps.gameState?.stage && gameProps.gameState.stage !== 'idle');
   const [fullscreenMedia, setFullscreenMedia] = useState(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const scrollRef = useRef(null);
+  const { user: currentUser } = useAuth();
 
-  const { chatMessages, sendChat, sendMedia, mediaProgress, peers, connectionState } = webrtcProps;
+  const { chatMessages, sendChat, sendMedia, peers, connectionState } = webrtcProps;
   const peerCount = (peers || []).length;
   const isConnected = connectionState === 'connected' || peerCount > 0;
 
@@ -34,35 +37,49 @@ const ArenaRoom = ({
     }
   }, [chatMessages]);
 
-  const handleSendText = () => {
-    if (!inputText.trim()) return;
-    const sent = sendChat(inputText);
-    if (sent === false) {
-      // console.warn("P2P Message might not have been sent to any peers yet.");
+  const handleExitRequest = () => {
+    const isGameActive = gameProps.gameState?.stage && gameProps.gameState.stage !== 'idle' && gameProps.gameState.stage !== 'gameOver';
+    if (!isGameActive) {
+      onExit();
+      return;
     }
-    setInputText('');
-  };
-
-  const handleFileSelect = async (e, type) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    try {
-      await sendMedia(file, type);
-    } catch (err) {
-      console.error("Failed to send media:", err);
-      toast.error("Failed to send media. Check connection.");
-    }
+    setShowExitConfirm(true);
   };
 
   return (
     <div className={styles.arenaContainer}>
       {onExit && (
-        <button className={styles.exitArenaBtn} onClick={onExit} title="Leave Arena">
+        <button className={styles.exitArenaBtn} onClick={handleExitRequest} title="Leave Arena">
           <X size={20} />
           <span>LEAVE</span>
         </button>
       )}
+
+      <AnimatePresence>
+        {showExitConfirm && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={styles.modalOverlay}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className={styles.confirmModal}
+            >
+              <h3>Leave Arena?</h3>
+              <p>Your current game progress will be lost. Are you sure you want to leave the battle?</p>
+              <div className={styles.modalActions}>
+                <button className={styles.cancelBtn} onClick={() => setShowExitConfirm(false)}>STAY</button>
+                <button className={styles.confirmBtn} onClick={onExit}>LEAVE ARENA</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {fullscreenMedia && (
           <motion.div 
@@ -87,7 +104,12 @@ const ArenaRoom = ({
             <span>GAME BOARD</span>
           </div>
           <div className={styles.gameBoardScroll}>
-            <TruthDareGame {...gameProps} userId={userId} isEmbedded={true} />
+            <TruthDareGame 
+              {...gameProps.gameState} 
+              {...gameProps} 
+              userId={userId} 
+              isEmbedded={true} 
+            />
           </div>
         </div>
 
@@ -120,39 +142,20 @@ const ArenaRoom = ({
             ))}
           </div>
 
-          <ChatInput 
-            value={inputText}
-            onChange={setInputText}
-            onSend={handleSendText}
-            onFileSelect={handleFileSelect}
-            progress={mediaProgress}
-          />
+          <div className={styles.arenaInputSection}>
+            <MessageInput 
+              chatId={chatId}
+              currentUser={currentUser}
+              onSendMessage={(text) => sendChat(text)}
+              onSendMedia={(file, type) => sendMedia(file, type)}
+              onTyping={() => {}}
+            />
+          </div>
         </div>
       </div>
 
       {/* MOBILE LAYOUT */}
       <div className={styles.mobileLayout}>
-        {/* Tab Switcher */}
-        <div className={styles.mobileTabs}>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'chat' ? styles.tabBtnActive : ''}`}
-            onClick={() => setActiveTab('chat')}
-          >
-            <MessageSquare size={16} />
-            <span>CHAT</span>
-          </button>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'game' ? styles.tabBtnActive : ''}`}
-            onClick={() => setActiveTab('game')}
-          >
-            <Gamepad2 size={16} />
-            <span>GAME</span>
-            {gameProps.gameState?.stage && gameProps.gameState.stage !== 'idle' && (
-              <div className={styles.statusDot} style={{ background: '#00a884', marginLeft: '-5px', marginTop: '-10px' }} />
-            )}
-          </button>
-        </div>
-
         <AnimatePresence mode="wait">
           {activeTab === 'chat' ? (
             <motion.div 
@@ -180,13 +183,13 @@ const ArenaRoom = ({
                 ))}
               </div>
               
-              <div className={styles.mobileInputArea}>
-                <ChatInput 
-                  value={inputText}
-                  onChange={setInputText}
-                  onSend={handleSendText}
-                  onFileSelect={handleFileSelect}
-                  progress={mediaProgress}
+              <div className={styles.arenaInputSection}>
+                <MessageInput 
+                  chatId={chatId}
+                  currentUser={currentUser}
+                  onSendMessage={(text) => sendChat(text)}
+                  onSendMedia={(file, type) => sendMedia(file, type)}
+                  onTyping={() => {}}
                 />
               </div>
             </motion.div>
@@ -198,10 +201,35 @@ const ArenaRoom = ({
               exit={{ opacity: 0, x: -10 }}
               className={styles.mobileGameArea}
             >
-              <TruthDareGame {...gameProps} userId={userId} isEmbedded={true} />
+            <TruthDareGame 
+              {...gameProps.gameState} 
+              {...gameProps} 
+              userId={userId} 
+              isEmbedded={true} 
+            />
             </motion.div>
           )}
         </AnimatePresence>
+
+        <div className={styles.bottomNav}>
+          <button 
+            className={`${styles.navBtn} ${activeTab === 'chat' ? styles.navBtnActive : ''}`}
+            onClick={() => setActiveTab('chat')}
+          >
+            <MessageSquare size={20} />
+            <span>CHAT</span>
+          </button>
+          <button 
+            className={`${styles.navBtn} ${activeTab === 'game' ? styles.navBtnActive : ''}`}
+            onClick={() => setActiveTab('game')}
+          >
+            <Gamepad2 size={20} />
+            <span>GAME</span>
+            {gameProps.gameState?.stage && gameProps.gameState.stage !== 'idle' && (
+              <div className={styles.statusDot} style={{ background: '#00a884', position: 'absolute', top: '12px', right: 'calc(50% - 25px)', width: '6px', height: '6px' }} />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -245,55 +273,6 @@ const ChatMessage = ({ msg, isMe, onExpand }) => {
         </span>
       </div>
     </motion.div>
-  );
-};
-
-const ChatInput = ({ value, onChange, onSend, onFileSelect, progress }) => {
-  const activeTransfers = Object.entries(progress);
-
-  return (
-    <div className={styles.inputContainer}>
-      {activeTransfers.length > 0 && (
-        <div className={styles.transferTracker}>
-          {activeTransfers.map(([id, p]) => (
-            <div key={id} className={styles.progressBar}>
-              <motion.div 
-                className={styles.progressFill}
-                initial={{ width: 0 }}
-                animate={{ width: `${p * 100}%` }}
-              />
-              <span>Transferring... {Math.round(p * 100)}%</span>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className={styles.inputBar}>
-        <div className={styles.mediaActions}>
-          <label className={styles.iconBtn}>
-            <input type="file" accept="image/*" hidden onChange={e => onFileSelect(e, 'image')} />
-            <Image size={20} />
-          </label>
-          <label className={styles.iconBtn}>
-            <input type="file" accept="audio/*" hidden onChange={e => onFileSelect(e, 'voice')} />
-            <Mic size={20} />
-          </label>
-          <label className={styles.iconBtn}>
-            <input type="file" accept="video/*" hidden onChange={e => onFileSelect(e, 'video')} />
-            <Video size={20} />
-          </label>
-        </div>
-        <input 
-          type="text" 
-          placeholder="Message..." 
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          onKeyPress={e => e.key === 'Enter' && onSend()}
-        />
-        <button className={styles.sendBtn} onClick={onSend} disabled={!value.trim()}>
-          <Send size={20} />
-        </button>
-      </div>
-    </div>
   );
 };
 

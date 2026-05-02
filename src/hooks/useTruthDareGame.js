@@ -22,11 +22,12 @@ export const GAME_STATES = {
   JOINING: 'joining',
   ACCEPTED: 'accepted',
   SETUP: 'setup',
+  INITIAL_SPIN: 'initial-spin',
   TURN_ANNOUNCE: 'turn-announce',
-  TURN_CHOOSING: 'turn-choosing',
+  TURN_ASKS: 'turn-asks',
+  TURN_CHOOSES: 'turn-chooses',
   TURN_CHALLENGE: 'turn-challenge',
   TURN_RESPONDING: 'turn-responding',
-  TURN_VOTING: 'turn-voting',
   TURN_RESULT: 'turn-result',
   GAME_OVER: 'game-over'
 };
@@ -42,9 +43,11 @@ const INITIAL_GAME_STATE = {
   round: 1,
   maxRounds: 5,
   mode: GAME_MODES.CLASSIC,
-  players: {},
+  players: {}, // { [id]: { points: 0, streak: 0, lastType: null, name: '', avatar: '' } }
   winnerId: null,
   partnerId: null,
+  targetId: null, // The person who is currently being challenged
+  askerId: null, // The person who is currently asking
   votes: {},
 };
 
@@ -91,9 +94,35 @@ const isStateEqual = (state1, state2) => {
 function gameReducer(state, action) {
   switch (action.type) {
     case 'SYNC_STATE': {
-      // Never overwrite local isHost with network data
-      const { isHost, ...rest } = action.payload;
-      return { ...state, ...rest };
+      // Extract properties
+      const { isHost: payloadIsHost, players: networkPlayers, ...rest } = action.payload;
+      
+      const newState = { ...state, ...rest };
+      
+      // Only update isHost if it was explicitly provided in the payload 
+      // AND we are not in a network sync (handled by caller or via specific flag)
+      // Actually, simplest is to check if payloadIsHost is undefined
+      if (payloadIsHost !== undefined) {
+        newState.isHost = payloadIsHost;
+      }
+      
+      if (networkPlayers) {
+        const mergedPlayers = { ...state.players };
+        Object.entries(networkPlayers).forEach(([id, data]) => {
+          mergedPlayers[id] = {
+            ...(mergedPlayers[id] || {}),
+            ...data,
+            // Keep existing name/avatar if new one is generic or missing
+            name: (data.name && data.name !== 'Opponent' && data.name !== 'You') 
+              ? data.name 
+              : (mergedPlayers[id]?.name || data.name),
+            avatar: data.avatar || mergedPlayers[id]?.avatar
+          };
+        });
+        newState.players = mergedPlayers;
+      }
+      
+      return newState;
     }
     
     case 'SET_HOST':
@@ -128,17 +157,23 @@ function gameReducer(state, action) {
 }
 
 // ─── Main Hook ─────────────────────────────────────────────
-export const useTruthDareGame = (roomId, userId, supabase) => {
+export const useTruthDareGame = (roomId, dbUser, supabase) => {
+  const userId = dbUser?.id;
   const [state, dispatch] = useReducer(gameReducer, INITIAL_GAME_STATE);
   const stateRef = useRef(state);
+  const dbUserRef = useRef(dbUser);
   const timerRef = useRef(null);
   const isMountedRef = useRef(true);
   const lastBroadcastRef = useRef(null);
 
-  // Sync ref to current state
+  // Sync refs
   useEffect(() => { 
     stateRef.current = state; 
   }, [state]);
+
+  useEffect(() => {
+    dbUserRef.current = dbUser;
+  }, [dbUser]);
   
   // Mount/unmount tracking
   useEffect(() => {
@@ -221,13 +256,20 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
     if (nextStage === GAME_STATES.TURN_ANNOUNCE) {
       nextState.type = null;
       nextState.content = '';
-      nextState.votes = {};
+      
+      // Target is always the one who just took a turn (if rotation logic follows)
+      // For first round, this is determined by INITIAL_SPIN
       
       timerRef.current = setTimeout(() => {
         if (isMountedRef.current) {
-          hostTransition(GAME_STATES.TURN_CHOOSING);
+          hostTransition(GAME_STATES.TURN_ASKS);
         }
       }, TURN_ANNOUNCE_DELAY);
+    }
+
+    // Initial spin auto-advance (after spin animation)
+    if (nextStage === GAME_STATES.INITIAL_SPIN) {
+       // This will be triggered manually after spin finishes in UI
     }
 
     // Turn result auto-advance
@@ -236,15 +278,20 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
         if (!isMountedRef.current) return;
         
         const currentState = stateRef.current;
-        const isFinalTurn = currentState.turn === currentState.partnerId;
         const isLastRound = currentState.round >= currentState.maxRounds;
+        
+        // In the new flow, the person who was the Target becomes the Asker
+        const nextAskerId = currentState.targetId;
+        const nextTargetId = currentState.askerId;
 
-        if (isFinalTurn && isLastRound) {
+        if (isLastRound && currentState.targetId === currentState.partnerId) {
           hostTransition(GAME_STATES.GAME_OVER);
         } else {
           hostTransition(GAME_STATES.TURN_ANNOUNCE, {
-            round: isFinalTurn ? currentState.round + 1 : currentState.round,
-            turn: currentState.turn === userId ? currentState.partnerId : userId
+            round: (currentState.targetId === currentState.partnerId) ? currentState.round + 1 : currentState.round,
+            askerId: nextAskerId,
+            targetId: nextTargetId,
+            turn: nextAskerId // turn property is kept for compatibility with isMyTurn logic
           });
         }
       }, TURN_RESULT_DELAY);
@@ -270,8 +317,24 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
       let nextState = { ...current };
       
       switch (action.type) {
+        case 'COMPLETE_SPIN': {
+          if (current.stage !== GAME_STATES.INITIAL_SPIN) return;
+          const winnerId = action.payload; // the person who will ASK first
+          nextState.askerId = winnerId;
+          nextState.targetId = winnerId === userId ? current.partnerId : userId;
+          nextState.turn = winnerId;
+          nextState.stage = GAME_STATES.TURN_ANNOUNCE;
+          break;
+        }
+
+        case 'ASK_TD': {
+           if (current.stage !== GAME_STATES.TURN_ASKS) return;
+           nextState.stage = GAME_STATES.TURN_CHOOSES;
+           break;
+        }
+
         case 'PICK_TYPE': {
-          if (current.stage !== GAME_STATES.TURN_CHOOSING) {
+          if (current.stage !== GAME_STATES.TURN_CHOOSES) {
             console.warn('Invalid stage for PICK_TYPE:', current.stage);
             return;
           }
@@ -295,6 +358,7 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
             console.warn('Invalid stage for COMPLETE_TURN:', current.stage);
             return;
           }
+          // action.from is the target (Player B)
           nextState.players = calculateScores(current.players, action.from, current.type);
           dispatch({ type: 'SYNC_STATE', payload: nextState });
           hostTransition(GAME_STATES.TURN_RESULT, { players: nextState.players });
@@ -306,23 +370,19 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
             console.warn('Invalid stage for SKIP_TURN:', current.stage);
             return;
           }
+          // Penalty for refusal
           nextState.players = calculateScores(current.players, action.from, 'SKIP');
           dispatch({ type: 'SYNC_STATE', payload: nextState });
           hostTransition(GAME_STATES.TURN_RESULT, { players: nextState.players });
           return;
         }
         
-        case 'SWITCH_TYPE': {
-          if (current.stage !== GAME_STATES.TURN_CHALLENGE) {
-            console.warn('Invalid stage for SWITCH_TYPE:', current.stage);
-            return;
-          }
-          nextState.type = current.type === 'truth' ? 'dare' : 'truth';
-          nextState.players = calculateScores(current.players, action.from, 'SWITCH');
-          nextState.stage = GAME_STATES.TURN_CHALLENGE;
+        case 'UPDATE_SETTINGS_DRAFT': {
+          if (current.stage !== GAME_STATES.SETUP) return;
+          nextState = { ...nextState, ...action.payload };
           break;
         }
-        
+
         case 'CONFIRM_SETTINGS': {
           if (current.stage !== GAME_STATES.SETUP) {
             console.warn('Invalid stage for CONFIRM_SETTINGS:', current.stage);
@@ -330,16 +390,14 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
           }
           nextState = { ...nextState, ...action.payload };
           dispatch({ type: 'SYNC_STATE', payload: nextState });
-          hostTransition(GAME_STATES.TURN_ANNOUNCE, action.payload);
+          hostTransition(GAME_STATES.INITIAL_SPIN, action.payload);
           return;
         }
         
         case 'ACCEPT_GAME': {
-          // Host transitions to first turn on acceptance
           if (current.stage === GAME_STATES.INVITING || current.stage === GAME_STATES.IDLE || current.stage === GAME_STATES.JOINING) {
-            hostTransition(GAME_STATES.TURN_ANNOUNCE, { round: 1 });
+            hostTransition(GAME_STATES.SETUP);
           } else {
-            // Already in progress, just sync current state
             broadcastState(current);
           }
           return;
@@ -453,11 +511,23 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
         gameId: data.id,
         isHost: true,
         stage: GAME_STATES.INVITING,
-        turn: userId,
+        turn: userId, // Host starts first
         partnerId: targetPartnerId,
         players: {
-          [userId]: { points: 0, streak: 0, lastType: null },
-          [targetPartnerId]: { points: 0, streak: 0, lastType: null }
+          [userId]: { 
+            points: 0, 
+            streak: 0, 
+            lastType: null,
+            name: dbUserRef.current?.name || 'You',
+            avatar: dbUserRef.current?.avatar || null
+          },
+          [targetPartnerId]: { 
+            points: 0, 
+            streak: 0, 
+            lastType: null,
+            name: 'Opponent', // Will be updated by client on join
+            avatar: null
+          }
         }
       };
 
@@ -481,13 +551,33 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
       return;
     }
 
+    const opponentId = gameInvitation.sender_id;
+    const opponentMetadata = gameInvitation.sender;
+
     // Optimistic update
     dispatch({ type: 'SET_HOST', payload: false });
     dispatch({ 
       type: 'SYNC_STATE', 
       payload: { 
         gameId: gameInvitation.id, 
-        stage: GAME_STATES.JOINING 
+        stage: GAME_STATES.JOINING,
+        partnerId: opponentId,
+        players: {
+          [userId]: { 
+            points: 0, 
+            streak: 0, 
+            lastType: null,
+            name: dbUserRef.current?.name || 'You',
+            avatar: dbUserRef.current?.avatar || null
+          },
+          [opponentId]: { 
+            points: 0, 
+            streak: 0, 
+            lastType: null,
+            name: opponentMetadata?.name || 'Opponent',
+            avatar: opponentMetadata?.avatar || null
+          }
+        }
       } 
     });
     
@@ -585,7 +675,7 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
     clearTimer();
   }, [supabase, sendGameEvent, clearTimer]);
 
-  const joinBattle = useCallback((id, isHost = false, initialStatus = 'pending', partnerId = null) => {
+  const joinBattle = useCallback((id, isHost = false, initialStatus = 'pending', partnerId = null, opponentMetadata = null) => {
     if (!id) {
       toast.error('Invalid game ID');
       return;
@@ -604,8 +694,22 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
         partnerId,
         round: stage === GAME_STATES.TURN_ANNOUNCE ? 1 : stateRef.current.round,
         players: partnerId ? {
-          [userId]: { points: 0, streak: 0, lastType: null },
-          [partnerId]: { points: 0, streak: 0, lastType: null }
+          [userId]: { 
+            points: 0, 
+            streak: 0, 
+            lastType: null,
+            name: dbUserRef.current?.name || 'You', 
+            avatar: dbUserRef.current?.avatar || null,
+            ...(stateRef.current.players[userId] || {}) 
+          },
+          [partnerId]: { 
+            points: 0, 
+            streak: 0, 
+            lastType: null,
+            name: opponentMetadata?.name || 'Opponent',
+            avatar: opponentMetadata?.avatar || null,
+            ...(stateRef.current.players[partnerId] || {})
+          }
         } : stateRef.current.players
       }
     });
@@ -621,10 +725,10 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
 
   // ─── Derived State ─────────────────────────────────────────
   const derived = useMemo(() => {
-    const isMyTurn = state.turn === userId;
+    const isMyTurn = String(state.turn) === String(userId);
     const isActive = state.stage !== GAME_STATES.IDLE;
-    const opponentId = state.partnerId === userId 
-      ? Object.keys(state.players).find(id => id !== userId) 
+    const opponentId = String(state.partnerId) === String(userId) 
+      ? Object.keys(state.players).find(id => String(id) !== String(userId)) 
       : state.partnerId;
     
     return { isMyTurn, isActive, opponentId };
@@ -650,6 +754,9 @@ export const useTruthDareGame = (roomId, userId, supabase) => {
     skipTurn: () => handleAction({ type: 'SKIP_TURN' }),
     switchType: () => handleAction({ type: 'SWITCH_TYPE' }),
     confirmSettings: (s) => handleAction({ type: 'CONFIRM_SETTINGS', payload: s }),
+    updateSettingsDraft: (s) => handleAction({ type: 'UPDATE_SETTINGS_DRAFT', payload: s }),
+    completeSpin: (winnerId) => handleAction({ type: 'COMPLETE_SPIN', payload: winnerId }),
+    askTD: () => handleAction({ type: 'ASK_TD' }),
     
     // WebRTC
     webrtc

@@ -21,6 +21,8 @@ const TruthDareGame = ({
     players = {},
     winnerId,
     partnerId,
+    askerId,
+    targetId,
     // Action Props
     onPick,
     onSend,
@@ -32,14 +34,25 @@ const TruthDareGame = ({
     onSkip,
     onSwitch,
     onConfirmSettings,
+    completeSpin,
+    askTD,
     isHost,
-    userId
+    userId,
+    ...props
 }) => {
     const [challengeText, setChallengeText] = useState('');
-    const [localMode, setLocalMode] = useState(mode);
-    const [localRounds, setLocalRounds] = useState(maxRounds);
     
-    const isMyTurn = turn === userId;
+    // Spinner state
+    const [isSpinning, setIsSpinning] = useState(false);
+    const [rotation, setRotation] = useState(0);
+    
+    const isAsker = String(askerId) === String(userId);
+    const isTarget = String(targetId) === String(userId);
+    const isMyTurn = props.isMyTurn ?? (String(turn) === String(userId));
+    
+    const opponentId = partnerId;
+    const me = players[userId] || { name: 'You', points: 0 };
+    const opponent = players[opponentId] || { name: 'Opponent', points: 0 };
     
     const handleSendChallenge = () => {
         if (!challengeText.trim()) return;
@@ -62,44 +75,39 @@ const TruthDareGame = ({
         </motion.div>
     );
 
-    const renderInviting = () => (
-        <div className={styles['td-container']}>
-            <div className={styles['inviting-status']}>
-                {isHost ? (
-                    <>
-                        <motion.div animate={{ scale: [1, 1.1, 1] }} className={styles['pulse-icon']}><Swords size={64} /></motion.div>
-                        <h2 className={styles['td-title']}>WAITING FOR OPPONENT...</h2>
-                        <p className={styles['td-subtitle']}>They've been challenged. Will they accept?</p>
-                    </>
-                ) : (
-                    <>
-                        <Sparkles size={64} style={{ color: '#00a884', marginBottom: '24px' }} />
-                        <h2 className={styles['td-title']}>BATTLE INVITATION!</h2>
-                        <p className={styles['td-subtitle']}>Join for a session of truth and dares.</p>
-                        <div className={styles['arena-invitation-actions']}>
-                            <button className={styles['accept-btn']} onClick={() => {
-                                console.log('✅ ACCEPT clicked');
-                                onAccept();
-                            }}>ACCEPT</button>
-                            <button className={styles['skip-btn']} onClick={() => {
-                                console.log('❌ DECLINE clicked');
-                                onReject();
-                            }}>DECLINE</button>
-                        </div>
-                    </>
-                )}
+    const renderInviting = () => {
+        const isActuallyInvited = !isHost && String(userId) === String(partnerId);
+
+        return (
+            <div className={styles['td-container']}>
+                <div className={styles['inviting-status']}>
+                    {!isActuallyInvited ? (
+                        <>
+                            <motion.div animate={{ scale: [1, 1.1, 1] }} className={styles['pulse-icon']}><Swords size={64} /></motion.div>
+                            <h2 className={styles['td-title']}>WAITING FOR OPPONENT...</h2>
+                            <p className={styles['td-subtitle']}>They've been challenged. Will they accept?</p>
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles size={64} style={{ color: '#00a884', marginBottom: '24px' }} />
+                            <h2 className={styles['td-title']}>BATTLE INVITATION!</h2>
+                            <p className={styles['td-subtitle']}>Join for a session of truth and dares.</p>
+                            <div className={styles['arena-invitation-actions']}>
+                                <button className={styles['accept-btn']} onClick={onAccept}>ACCEPT</button>
+                                <button className={styles['skip-btn']} onClick={onReject}>DECLINE</button>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderJoining = () => (
         <div className={styles['td-container']}>
             <div className={styles['inviting-status']}>
                 <motion.div 
-                    animate={{ 
-                        rotate: [0, -10, 10, -10, 10, 0],
-                        scale: [1, 1.1, 1]
-                    }} 
+                    animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.1, 1] }} 
                     transition={{ repeat: Infinity, duration: 1.5 }}
                     className={styles['pulse-icon']}
                 >
@@ -111,33 +119,113 @@ const TruthDareGame = ({
         </div>
     );
 
-    const renderSetup = () => (
-        <div className={styles['td-container']}>
-            <div className={styles['td-header']}>
-                <h2 className={styles['td-title']}>GAME SETTINGS</h2>
-                <p className={styles['td-subtitle']}>Customize your battle arena</p>
-            </div>
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className={styles['setup-options']}>
-                    {Object.values(GAME_MODES).map(m => (
-                        <button key={m} onClick={() => setLocalMode(m)} className={`${styles['setup-btn']} ${localMode === m ? styles['active'] : ''}`}>{m}</button>
-                    ))}
+    const renderSetup = () => {
+        const handleUpdateMode = (m) => {
+            if (!isHost) return;
+            props.updateSettingsDraft({ mode: m });
+        };
+
+        const handleUpdateRounds = (r) => {
+            if (!isHost) return;
+            props.updateSettingsDraft({ maxRounds: r });
+        };
+
+        return (
+            <div className={styles['td-container']}>
+                <div className={styles['td-header']}>
+                    <h2 className={styles['td-title']}>GAME SETTINGS</h2>
+                    <p className={styles['td-subtitle']}>Customize your battle arena</p>
                 </div>
-                <div className={styles['setup-options']}>
-                    {[3, 5, 10].map(r => (
-                        <button key={r} onClick={() => setLocalRounds(r)} className={`${styles['setup-btn']} ${localRounds === r ? styles['active'] : ''}`}>{r} Rounds</button>
-                    ))}
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className={styles['setup-options']}>
+                        {Object.values(GAME_MODES).map(m => (
+                            <button 
+                                key={m} 
+                                onClick={() => handleUpdateMode(m)} 
+                                className={`${styles['setup-btn']} ${mode === m ? styles['active'] : ''}`}
+                                disabled={!isHost}
+                            >
+                                {m}
+                            </button>
+                        ))}
+                    </div>
+                    <div className={styles['setup-options']}>
+                        {[3, 5, 10].map(r => (
+                            <button 
+                                key={r} 
+                                onClick={() => handleUpdateRounds(r)} 
+                                className={`${styles['setup-btn']} ${maxRounds === r ? styles['active'] : ''}`}
+                                disabled={!isHost}
+                            >
+                                {r} Rounds
+                            </button>
+                        ))}
+                    </div>
                 </div>
+                <button 
+                    onClick={() => onConfirmSettings({ mode, maxRounds })}
+                    className={styles['launch-btn']}
+                    disabled={!isHost}
+                >
+                    {isHost ? 'CONFIRM & START' : 'WAITING FOR HOST...'}
+                </button>
+                {!isHost && (
+                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '12px', fontStyle: 'italic' }}>
+                        The host is adjusting the arena settings...
+                    </p>
+                )}
             </div>
-            <button 
-                onClick={() => onConfirmSettings({ mode: localMode, maxRounds: localRounds })}
-                className={styles['launch-btn']}
-                disabled={!isHost}
-            >
-                {isHost ? 'CONFIRM & START' : 'WAITING FOR HOST...'}
-            </button>
-        </div>
-    );
+        );
+    };
+
+    const renderInitialSpin = () => {
+        const handleSpin = () => {
+            if (isSpinning) return;
+            setIsSpinning(true);
+            
+            // Randomly pick who starts (0 = Me, 180 = Opponent)
+            const whoStarts = Math.random() > 0.5 ? 'me' : 'opponent';
+            const targetRotation = 360 * 5 + (whoStarts === 'me' ? 0 : 180);
+            
+            setRotation(targetRotation);
+
+            setTimeout(() => {
+                setIsSpinning(false);
+                setTimeout(() => {
+                    const firstAsker = whoStarts === 'me' ? userId : opponentId;
+                    completeSpin(firstAsker);
+                }, 800);
+            }, 2500);
+        };
+
+        return (
+            <div className={styles['td-container']}>
+                <h2 className={styles['td-title']}>{isHost ? 'SPIN TO DECIDE WHO STARTS' : 'WAITING FOR SPIN...'}</h2>
+                <div className={styles['spinner-outer']}>
+                    <motion.div 
+                        className={styles['spinner-ring']}
+                        animate={{ rotate: rotation }}
+                        transition={{ duration: 2.5, ease: "circOut" }}
+                    >
+                        <div className={`${styles['spinner-label']} ${styles['label-truth']}`}>YOU</div>
+                        <div className={`${styles['spinner-label']} ${styles['label-dare']}`}>THEM</div>
+                        <div className={styles['spinner-line']} />
+                    </motion.div>
+                    <div className={styles['spinner-pointer']} />
+                    {isHost && !rotation && (
+                        <button className={styles['spin-btn']} onClick={handleSpin}>
+                            SPIN
+                        </button>
+                    )}
+                </div>
+                {!isHost && (
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', animation: 'pulse 2s infinite' }}>
+                        {opponent.name} is spinning...
+                    </p>
+                )}
+            </div>
+        );
+    };
 
     const renderAnnounce = () => (
         <div className={styles['td-container']}>
@@ -146,25 +234,59 @@ const TruthDareGame = ({
                     Round {round} of {maxRounds}
                 </h3>
                 <h2 style={{ color: 'white', fontWeight: '900', fontSize: '36px', textTransform: 'uppercase', marginBottom: '24px', fontStyle: 'italic' }}>
-                    {isMyTurn ? "IT'S YOUR TURN!" : "THEIR TURN!"}
+                    {isAsker ? "YOUR TURN TO ASK!" : "GET READY..."}
                 </h2>
-                <PlayerAvatar avatar={null} name={isMyTurn ? 'You' : 'Opponent'} size={80} />
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <PlayerAvatar 
+                        avatar={isAsker ? me.avatar : opponent.avatar} 
+                        name={isAsker ? me.name : opponent.name} 
+                        size={100} 
+                    />
+                    <div className={styles['turn-badge']}>ASKER</div>
+                </div>
             </motion.div>
         </div>
     );
 
-    const renderChoosing = () => (
+    const renderTurnAsks = () => (
         <div className={styles['td-container']}>
-            <h2 className={styles['td-title']}>{isMyTurn ? 'PICK YOUR POISON' : 'WAITING FOR CHOICE...'}</h2>
-            {isMyTurn ? (
-                <div className={styles['choice-grid']}>
-                    <button onClick={() => onPick('truth')} className={`${styles['choice-card']} ${styles['truth']}`}><AlertCircle size={40} /><span>TRUTH</span></button>
-                    <button onClick={() => onPick('dare')} className={`${styles['choice-card']} ${styles['dare']}`}><Flame size={40} /><span>DARE</span></button>
-                </div>
+            <h2 className={styles['td-title']}>{isAsker ? 'TIME TO ASK' : 'WAITING FOR QUESTION...'}</h2>
+            <div className={styles['ask-bubble']}>
+                <p>"Truth or Dare?"</p>
+            </div>
+            {isAsker ? (
+                <button onClick={askTD} className={styles['launch-btn']}>
+                    ASK {opponent.name.toUpperCase()}
+                </button>
             ) : (
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', animation: 'pulse 2s infinite' }}>
-                    Opponent is deciding...
-                </p>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>{opponent.name} is asking you...</p>
+            )}
+        </div>
+    );
+
+    const renderTurnChooses = () => (
+        <div className={styles['td-container']}>
+            <h2 className={styles['td-title']}>{isTarget ? 'CHOOSE YOUR PATH' : 'WAITING FOR CHOICE...'}</h2>
+            <div className={styles['choice-grid']}>
+                <button 
+                    disabled={!isTarget}
+                    onClick={() => onPick('truth')} 
+                    className={`${styles['choice-card']} ${styles['truth']}`}
+                >
+                    <Flame size={32} />
+                    <span>TRUTH</span>
+                </button>
+                <button 
+                    disabled={!isTarget}
+                    onClick={() => onPick('dare')} 
+                    className={`${styles['choice-card']} ${styles['dare']}`}
+                >
+                    <Swords size={32} />
+                    <span>DARE</span>
+                </button>
+            </div>
+            {!isTarget && (
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>{opponent.name} is choosing...</p>
             )}
         </div>
     );
@@ -172,17 +294,20 @@ const TruthDareGame = ({
     const renderChallenge = () => (
         <div className={styles['td-container']}>
             <h2 className={styles['td-title']}>SET THE {type?.toUpperCase()}</h2>
-            {isMyTurn ? (
+            <p className={styles['td-subtitle']} style={{ marginBottom: '20px' }}>
+                {isAsker ? `Assign a ${type} to ${opponent.name}` : `${opponent.name} is assigning your ${type}`}
+            </p>
+            {isAsker ? (
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <textarea 
                         value={challengeText} 
                         onChange={(e) => setChallengeText(e.target.value)} 
                         className={styles['td-textarea']} 
-                        placeholder="Type your challenge..." 
+                        placeholder={`Type the ${type} here...`} 
                     />
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                         <button 
-                            onClick={() => setChallengeText((type === 'truth' ? TRUTHS : DARES)[localMode][Math.floor(Math.random() * 10)])} 
+                            onClick={() => setChallengeText((type === 'truth' ? TRUTHS : DARES)[localMode][Math.floor(Math.random() * (type === 'truth' ? TRUTHS[localMode].length : DARES[localMode].length))])} 
                             style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
                             <Sparkles size={12} /> Suggestion
@@ -192,33 +317,39 @@ const TruthDareGame = ({
                             className={styles['launch-btn']} 
                             disabled={!challengeText.trim()}
                         >
-                            SEND CHALLENGE
+                            SEND
                         </button>
                     </div>
                 </div>
             ) : (
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>Crafting your fate...</p>
+                <div className={styles['inviting-status']}>
+                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+                        <RotateCcw size={32} style={{ color: '#00a884' }} />
+                    </motion.div>
+                </div>
             )}
         </div>
     );
 
     const renderResponding = () => (
         <div className={styles['td-container']}>
-            <div className={styles['challenge-box']}><p className={styles['challenge-text']}>{content}</p></div>
-            {!isMyTurn ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', width: '100%' }}>
+            <h2 className={styles['td-title']} style={{ color: type === 'truth' ? '#3b82f6' : '#ef4444' }}>
+                {type?.toUpperCase()} TIME!
+            </h2>
+            <div className={styles['challenge-box']}>
+                <p className={styles['challenge-text']}>{content}</p>
+            </div>
+            {isTarget ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
                     <button onClick={onComplete} className={styles['launch-btn']}>
-                        <Check size={16} /> DONE
+                        <Check size={16} /> I COMPLETED IT
                     </button>
-                    <button onClick={onSwitch} className={styles['setup-btn']}>
-                        <RotateCcw size={16} /> SWITCH
-                    </button>
-                    <button onClick={onSkip} className={styles['setup-btn']}>
-                        <X size={16} /> SKIP
+                    <button onClick={onSkip} className={styles['skip-btn']} style={{ width: '100%', padding: '12px' }}>
+                        <X size={16} /> I REFUSE (PENALTY)
                     </button>
                 </div>
             ) : (
-                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>Waiting for completion...</p>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>Waiting for {opponent.name} to complete the {type}...</p>
             )}
         </div>
     );
@@ -228,8 +359,8 @@ const TruthDareGame = ({
             <Zap size={64} style={{ color: '#fbbf24', marginBottom: '16px' }} />
             <h2 style={{ fontSize: '28px', fontWeight: '900', marginBottom: '16px', textTransform: 'uppercase' }}>POINT EARNED!</h2>
             <div className={styles['score-stats']}>
-                <div><p>YOU</p><p>{players[userId]?.points || 0}</p></div>
-                <div><p>THEM</p><p>{players[partnerId]?.points || 0}</p></div>
+                <div><p>{me.name?.toUpperCase() || 'YOU'}</p><p>{me.points || 0}</p></div>
+                <div><p>{opponent.name?.toUpperCase() || 'THEM'}</p><p>{opponent.points || 0}</p></div>
             </div>
         </div>
     );
@@ -238,26 +369,32 @@ const TruthDareGame = ({
         <div className={styles['td-container']}>
             <Trophy size={64} style={{ color: '#fbbf24', marginBottom: '16px' }} />
             <h2 style={{ fontSize: '36px', fontWeight: '900', fontStyle: 'italic' }}>BATTLE OVER</h2>
+            <div className={styles['score-stats']} style={{ marginBottom: '30px' }}>
+                <div className={winnerId === userId ? styles['winner'] : ''}><p>{me.name}</p><p>{me.points}</p></div>
+                <div className={winnerId === opponentId ? styles['winner'] : ''}><p>{opponent.name}</p><p>{opponent.points}</p></div>
+            </div>
             <button onClick={onStart} className={styles['launch-btn']}>REMATCH</button>
         </div>
     );
 
     return (
-        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <div className={styles['game-root']}>
             <AnimatePresence mode="wait">
                 <motion.div 
                     key={stage} 
-                    initial={{ opacity: 0, y: 10 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    exit={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, scale: 0.95 }} 
+                    animate={{ opacity: 1, scale: 1 }} 
+                    exit={{ opacity: 0, scale: 1.05 }}
                     transition={{ duration: 0.2 }}
-                    style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
+                    className={styles['stage-wrapper']}
                 >
                     {stage === GAME_STATES.INVITING && renderInviting()}
                     {stage === GAME_STATES.JOINING && renderJoining()}
                     {stage === GAME_STATES.SETUP && renderSetup()}
+                    {stage === GAME_STATES.INITIAL_SPIN && renderInitialSpin()}
                     {stage === GAME_STATES.TURN_ANNOUNCE && renderAnnounce()}
-                    {stage === GAME_STATES.TURN_CHOOSING && renderChoosing()}
+                    {stage === GAME_STATES.TURN_ASKS && renderTurnAsks()}
+                    {stage === GAME_STATES.TURN_CHOOSES && renderTurnChooses()}
                     {stage === GAME_STATES.TURN_CHALLENGE && renderChallenge()}
                     {stage === GAME_STATES.TURN_RESPONDING && renderResponding()}
                     {stage === GAME_STATES.TURN_RESULT && renderResult()}

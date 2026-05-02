@@ -26,6 +26,8 @@ import { getStableMessageId, extractMessageContent } from '../../utils/messageHe
 import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 import { mapMessage as dbToFrontend } from '../../services/dataGateway';
 import { useVanishCleanup } from '../../hooks/chat/useVanishCleanup';
+import { db } from '../../db/db';
+import PinnedMessagesBar from './PinnedMessagesBar';
 
 
 const MediaViewer = lazy(() => import('../media/MediaViewer'));
@@ -134,6 +136,7 @@ const ChatScreen = () => {
 
     const [showForwardModal, setShowForwardModal] = useState(false);
     const [showVanishSettingsModal, setShowVanishSettingsModal] = useState(false);
+    const [pinnedMessages, setPinnedMessages] = useState([]);
     const messagesContainerRef = useRef(null);
 
     const handleEmojiSelect = useCallback((emoji) => {
@@ -217,6 +220,42 @@ const ChatScreen = () => {
             document.removeEventListener('visibilitychange', handleReadTrigger);
         };
     }, [chatId, currentUser?.id, markMessagesAsRead, isNewChat]);
+    useEffect(() => {
+        if (!chatId) return;
+        const fetchPinned = async () => {
+            const pinned = await db.messages
+                .where('chatId')
+                .equals(chatId)
+                .filter(m => m.isPinned)
+                .toArray();
+            setPinnedMessages(pinned);
+        };
+        fetchPinned();
+    }, [chatId, messages]); // Refresh when messages change (though inefficient, it works for local)
+
+    const handlePinMessage = useCallback(async (msg) => {
+        const isPinned = !msg.isPinned;
+        try {
+            await db.messages.update(msg.id || msg.tempId, { isPinned });
+            // Also sync to Supabase if possible (assuming column exists)
+            await supabase.from('messages').update({ is_pinned: isPinned }).eq('id', msg.id);
+            toast.success(isPinned ? 'Message pinned' : 'Message unpinned');
+        } catch (err) {
+            console.error('Pin failed:', err);
+            toast.error('Failed to pin message');
+        }
+    }, [supabase]);
+
+    const handleJumpToMessage = useCallback((messageId) => {
+        const el = document.getElementById(`message-${messageId}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add(styles['highlighted']);
+            setTimeout(() => { el.classList.remove(styles['highlighted']); }, 2000);
+        } else {
+            toast.error('Message not found in current view');
+        }
+    }, []);
 
 
     const handleScroll = useCallback((scrollLocation) => {
@@ -278,27 +317,27 @@ const ChatScreen = () => {
     };
 
     const debouncedSearch = useCallback(
-        debounce((query) => {
+        debounce(async (query) => {
             if (!query.trim() || !chatId) { setSearchResults([]); return; }
             setIsSearching(true);
-            supabase
-                .from('messages')
-                .select('*')
-                .eq('chat_id', chatId)
-                .ilike('content', `%${query}%`)
-                .order('created_at', { ascending: false })
-                .limit(50)
-                .then(({ data, error }) => {
-                    if (error) throw error;
-                    setSearchResults((data || []).map(dbToFrontend));
-                })
-                .catch((error) => {
-                    console.error('Error searching messages:', error);
-                    setSearchResults([]);
-                })
-                .finally(() => setIsSearching(false));
+            try {
+                const lowerQuery = query.toLowerCase();
+                const results = await db.messages
+                    .where('chatId')
+                    .equals(chatId)
+                    .filter(msg => msg.content && msg.content.toLowerCase().includes(lowerQuery))
+                    .reverse()
+                    .limit(50)
+                    .toArray();
+                setSearchResults(results);
+            } catch (error) {
+                console.error('Error searching messages locally:', error);
+                setSearchResults([]);
+            } finally {
+                setIsSearching(false);
+            }
         }, 500),
-        [chatId, supabase],
+        [chatId],
     );
 
     const handleSearchQueryChange = (e) => {
@@ -432,6 +471,12 @@ const ChatScreen = () => {
                                 </div>
                             )}
 
+                            <PinnedMessagesBar 
+                                pinnedMessages={pinnedMessages} 
+                                onUnpin={(id) => handlePinMessage({ id, isPinned: true })} 
+                                onJumpToMessage={handleJumpToMessage} 
+                            />
+
                             <div className={`${styles['messages-container']} smooth-scroll`}>
                                 {isFetchingNextPage && (
                                     <div className={styles['load-more-indicator']}>
@@ -475,6 +520,7 @@ const ChatScreen = () => {
                                     onRangeChanged={handleRangeChanged}
                                     chatId={validChatId}
                                     onManualRetry={handleManualRetry}
+                                    onPin={handlePinMessage}
                                 />
 
                                 {showScrollButton && (

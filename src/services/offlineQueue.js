@@ -45,6 +45,7 @@ export const queueAction = async (action, table, data, options = {}) => {
     nextRetryAt: Date.now(),
     dependencyId: options.dependencyId || null,
     createdAt: Date.now(),
+    scheduledAt: options.scheduledAt || null,
     metadata: options.metadata || {},
   };
 
@@ -57,7 +58,7 @@ export const queueAction = async (action, table, data, options = {}) => {
     }
 
     await db.sync_queue.add(queueItem);
-    addDbBreadcrumb('sync_queue', 'queued', { action, table, taskId });
+    addDbBreadcrumb('sync_queue', 'queued', { action, table, taskId, scheduledAt: options.scheduledAt });
     
     // Trigger processing (async)
     processSyncQueue().catch(err => console.error('[OfflineQueue] Trigger failed:', err));
@@ -100,6 +101,10 @@ export const processSyncQueue = async () => {
       .anyOf([QUEUE_STATUS.PENDING, QUEUE_STATUS.WAITING])
       .filter(item => {
         if (item.status === QUEUE_STATUS.WAITING) return false; // Handled separately
+        
+        // Check for scheduled time
+        if (item.scheduledAt && item.scheduledAt > now) return false;
+
         return !item.nextRetryAt || item.nextRetryAt <= now;
       })
       .toArray();

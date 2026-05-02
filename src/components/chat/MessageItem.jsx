@@ -57,6 +57,7 @@ const MessageItem = ({
   isLastRead,
   isLast,
   onManualRetry,
+  onPin,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -353,6 +354,8 @@ const MessageItem = ({
             onDelete={() => onDelete(message.id)}
             onEdit={() => onEdit(message)}
             onSelect={() => { toggleSelection(msgId); }}
+            onPin={() => onPin?.(message)}
+            isPinned={message.isPinned}
             onReactionSelect={(emoji) => window.handleReactionToggle?.(msgId, emoji)}
             onClose={() => setShowActions(false)}
             isSent={isSent}

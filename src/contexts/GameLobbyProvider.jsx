@@ -21,29 +21,26 @@ export const GameLobbyProvider = ({ children }) => {
     const setOnlineUsersStore = usePresenceStore(state => state.setOnlineUsers);
     const [isConnected, setIsConnected] = useState(false);
 
-    const dbUserRef = useRef(dbUser);
-    const mountedRef = useRef(true);
-    const channelRef = useRef(null);
-
-    // Keep ref in sync
+    // ... (rest of the presence channel logic stays similar but uses syncPresenceState)
+    // I'll keep the useEffect that sets up the channel
     useEffect(() => {
-        dbUserRef.current = dbUser;
-    }, [dbUser]);
+        if (!dbUser?.id) return;
 
-    const syncPresenceState = useCallback((channel) => {
-        if (!mountedRef.current || !channel) return;
-        try {
-            const state = channel.presenceState();
-            const uniqueUsersMap = {};
-
+        const handlePresenceSync = (state) => {
+            console.log('[GameLobbyProvider] Presence sync received:', state);
+            const currentMap = { ...usePresenceStore.getState().onlineUsers };
+            
+            // Sync is the full state, but we should be careful not to 
+            // clear users who might be in the middle of joining/leaving
+            const newMap = {};
             Object.values(state).flat().forEach(u => {
-                const uid = u.user_id || u.id;
+                const uid = u.user_id || u.id || u.subId;
                 if (!uid) return;
-
                 const uidStr = String(uid);
-                const existing = uniqueUsersMap[uidStr];
-                if (!existing || new Date(u.online_at) > new Date(existing.onlineAt)) {
-                    uniqueUsersMap[uidStr] = {
+                
+                // Keep the freshest metadata
+                if (!newMap[uidStr] || new Date(u.online_at) > new Date(newMap[uidStr].onlineAt)) {
+                    newMap[uidStr] = {
                         id: uidStr,
                         name: u.name || 'Unknown',
                         avatar: u.avatar || null,
@@ -52,78 +49,91 @@ export const GameLobbyProvider = ({ children }) => {
                     };
                 }
             });
-
-            const myId = dbUserRef.current?.id ? String(dbUserRef.current.id) : null;
-            // We keep self in store but helper handles display
             
-            setOnlineUsersStore(uniqueUsersMap);
-        } catch (err) {
-            console.error('[GameLobbyProvider] Sync error:', err);
-        }
-    }, [setOnlineUsersStore]);
+            console.log('[GameLobbyProvider] Setting online users:', Object.keys(newMap).length);
+            setOnlineUsersStore(newMap);
+        };
 
-    // ... (rest of the presence channel logic stays similar but uses syncPresenceState)
-    // I'll keep the useEffect that sets up the channel
-    useEffect(() => {
-        if (!dbUser?.id) return;
-
-        let syncInterval = null;
-        let channel = null;
-
-        const setupPresence = async () => {
-            if (channelRef.current) {
-                supabaseRealtime.removeChannel(channelRef.current).catch(() => {});
-            }
-
-            channel = supabaseRealtime.channel(PRESENCE_CHANNEL, {
-                config: { presence: { key: String(dbUser.id) } },
+        const handlePresenceJoin = (payload) => {
+            console.log('[GameLobbyProvider] Presence join:', payload);
+            if (!payload.newPresences) return;
+            
+            payload.newPresences.forEach(u => {
+                const uid = u.user_id || u.id;
+                if (!uid) return;
+                usePresenceStore.getState().updateUser(String(uid), {
+                    name: u.name,
+                    avatar: u.avatar,
+                    onlineAt: u.online_at || new Date().toISOString()
+                });
             });
+        };
 
-            channelRef.current = channel;
+        const handlePresenceLeave = (payload) => {
+            console.log('[GameLobbyProvider] Presence leave:', payload);
+            if (!payload.leftPresences) return;
+            
+            payload.leftPresences.forEach(u => {
+                const uid = u.user_id || u.id;
+                if (uid) usePresenceStore.getState().removeUser(String(uid));
+            });
+        };
 
-            channel
-                .on('presence', { event: 'sync' }, () => syncPresenceState(channel))
-                .on('presence', { event: 'join' }, () => syncPresenceState(channel))
-                .on('presence', { event: 'leave' }, () => syncPresenceState(channel))
-                .subscribe(async (status) => {
+        let activeChannel = null;
+
+        const startPresence = async () => {
+            activeChannel = await realtimeManager.subscribe(PRESENCE_CHANNEL, {
+                presence: { key: String(dbUser.id) }
+            }, {
+                presence: handlePresenceSync,
+                presence_join: handlePresenceJoin,
+                presence_leave: handlePresenceLeave,
+                onStatusChange: async (status) => {
+                    console.log(`[GameLobbyProvider] Status change: ${status}`);
                     if (status === 'SUBSCRIBED') {
                         setIsConnected(true);
-                        const user = dbUserRef.current;
-                        if (!user?.id) return;
                         try {
-                            await channel.track({
-                                user_id: String(user.id),
-                                id: String(user.id),
-                                name: user.name || 'Unknown',
-                                avatar: user.avatar || null,
+                            const trackPayload = {
+                                user_id: String(dbUser.id),
+                                id: String(dbUser.id),
+                                name: dbUser.name || 'Unknown',
+                                avatar: dbUser.avatar || null,
                                 online_at: new Date().toISOString(),
-                            });
-                            syncPresenceState(channel);
+                            };
+                            
+                            await activeChannel.track(trackPayload);
+                            
+                            // Periodic re-track to ensure presence stays alive
+                            const trackInterval = setInterval(() => {
+                                if (activeChannel) activeChannel.track(trackPayload);
+                            }, 60000);
+                            
+                            activeChannel.__trackInterval = trackInterval;
+
+                            // Immediate fetch of current state
+                            const initialState = activeChannel.presenceState();
+                            if (initialState && Object.keys(initialState).length > 0) {
+                                handlePresenceSync(initialState);
+                            }
                         } catch (err) {
                             console.error('[GameLobby] track failed:', err);
                         }
                     } else {
                         setIsConnected(false);
                     }
-                });
-
-            syncInterval = setInterval(() => {
-                if (channelRef.current && mountedRef.current) {
-                    syncPresenceState(channelRef.current);
                 }
-            }, 15000);
+            });
         };
 
-        setupPresence();
+        startPresence();
 
         return () => {
-            if (syncInterval) clearInterval(syncInterval);
-            if (channel) {
-                supabaseRealtime.removeChannel(channel).catch(() => {});
-                channelRef.current = null;
+            if (activeChannel) {
+                if (activeChannel.__trackInterval) clearInterval(activeChannel.__trackInterval);
+                realtimeManager.unsubscribe(PRESENCE_CHANNEL);
             }
         };
-    }, [dbUser?.id, syncPresenceState]);
+    }, [dbUser?.id, setOnlineUsersStore]);
 
     // ... (Game invitations logic)
     useEffect(() => {
