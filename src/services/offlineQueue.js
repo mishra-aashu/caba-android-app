@@ -196,6 +196,33 @@ export const getQueueStats = async () => {
 };
 
 /**
+ * Helper: Execute Supabase insert with Idempotency fallback
+ */
+const safeInsert = async (table, payload, taskId) => {
+  const { data, error } = await supabase.from(table).insert({
+    ...payload,
+    idempotency_key: taskId
+  }).select().single();
+
+  if (error) {
+    // 1. Column missing fallback
+    if (error.message?.includes("idempotency_key")) {
+      console.warn(`⚠️ [OfflineQueue] Column 'idempotency_key' missing on ${table}.`);
+      const { data: retryData, error: retryError } = await supabase.from(table).insert(payload).select().single();
+      if (retryError) throw retryError;
+      return retryData;
+    }
+    // 2. Conflict handling
+    if (error.code === '23505') {
+      const { data: existing } = await supabase.from(table).select().eq('idempotency_key', taskId).single();
+      if (existing) return existing;
+    }
+    throw error;
+  }
+  return data;
+};
+
+/**
  * Execute individual queue action (Atomic Mutations)
  */
 const executeQueueAction = async (item) => {
@@ -203,50 +230,21 @@ const executeQueueAction = async (item) => {
 
   switch (action) {
     case QUEUE_ACTIONS.INSERT_MESSAGE: {
-      const { tempId, fileData, fileName, fileType, ...supabasePayload } = data;
-      let finalPayload = { 
-        ...supabasePayload,
-        idempotency_key: taskId // Use taskId as idempotency key on server
-      };
-
+      const { tempId, fileData, fileName, fileType, ...payload } = data;
+      
       // Handle media upload
       if (fileData && fileName) {
         const { uploadMedia, uploadVoiceMessage } = await import('./mediaService');
         const reconstructedFile = new File([fileData], fileName, { type: fileType });
-
-        const mediaPath = supabasePayload.media_type === 'voice'
-          ? await uploadVoiceMessage(reconstructedFile, supabasePayload.sender_id)
-          : await uploadMedia(reconstructedFile, supabasePayload.sender_id);
+        const mediaPath = payload.media_type === 'voice'
+          ? await uploadVoiceMessage(reconstructedFile, payload.sender_id)
+          : await uploadMedia(reconstructedFile, payload.sender_id);
 
         if (!mediaPath) throw new Error('Media upload failed');
-        finalPayload.media_path = mediaPath;
+        payload.media_path = mediaPath;
       }
 
-      const { data: msgData, error } = await supabase.from(table).insert(finalPayload).select().single();
-      
-      // Fallback if idempotency_key column is missing in Supabase
-      if (error && error.message?.includes("idempotency_key")) {
-        console.warn(`⚠️ [OfflineQueue] Column 'idempotency_key' missing on ${table}. Retrying without it...`);
-        const { id: _, idempotency_key: __, ...fallbackPayload } = finalPayload;
-        const { data: retryData, error: retryError } = await supabase.from(table).insert(fallbackPayload).select().single();
-        if (retryError) throw retryError;
-        await swapMessageInDexie(tempId, retryData);
-        return;
-      }
-
-      // Handle server-side idempotency (conflict means already inserted)
-      if (error) {
-        if (error.code === '23505') { // Unique violation
-          console.log('[OfflineQueue] Server already has this message, fetching...');
-          const { data: existingMsg } = await supabase.from(table).select().eq('idempotency_key', taskId).single();
-          if (existingMsg) {
-             await swapMessageInDexie(tempId, existingMsg);
-             return;
-          }
-        }
-        throw error;
-      }
-
+      const msgData = await safeInsert(table, payload, taskId);
       await swapMessageInDexie(tempId, msgData);
       break;
     }
@@ -263,12 +261,10 @@ const executeQueueAction = async (item) => {
 
     case QUEUE_ACTIONS.SEND_SIGNAL: {
       const { to, signal } = data;
-      const { error } = await supabase.from('webrtc_signals').insert({
+      await safeInsert('webrtc_signals', {
         to_user_id: to,
-        signal_data: signal,
-        idempotency_key: taskId
-      });
-      if (error) throw error;
+        signal_data: signal
+      }, taskId);
       break;
     }
 
@@ -283,20 +279,12 @@ const executeQueueAction = async (item) => {
     }
 
     case QUEUE_ACTIONS.CREATE_GROUP: {
-      // Existing logic with idempotency key added
       const { tempId, payload } = data;
-      const { data: groupData, error } = await supabase.from('groups').insert({
-        ...payload,
-        idempotency_key: taskId
-      }).select().single();
-      
-      if (error && error.code !== '23505') throw error;
-      
-      // Atomic swap logic same as before...
+      const groupData = await safeInsert('groups', payload, taskId);
+      // Optional: Add logic to update local group ID if tempId was used
       break;
     }
 
-    // Add other cases as needed...
     default:
       throw new Error(`Unknown action: ${action}`);
   }
