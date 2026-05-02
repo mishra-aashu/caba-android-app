@@ -34,6 +34,7 @@
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^6.0.3",
+    "@capawesome/capacitor-background-task": "^8.0.2",
     "@capgo/capacitor-updater": "^8.45.10",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@giphy/js-fetch-api": "^5.7.0",

@@ -18,85 +18,13 @@ import '../../styles/offline-indicator.css';
  *   <YourAppComponents />
  * </OfflineIndicator>
  */
-const OfflineIndicator = ({ 
-  showWhenOnline = false, 
-  position = 'top',
-  children 
-}) => {
-  const { isServerUnreachable } = useAuth();
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [showBanner, setShowBanner] = useState(false);
+import SystemStatusBanner from './SystemStatusBanner';
+import { useSystemHealth } from '../../contexts/HealthProvider';
 
-  useEffect(() => {
-    let timeoutId;
-
-    const handleOnline = () => {
-      clearTimeout(timeoutId);
-      setIsOnline(true);
-      // Hide banner after 2 seconds when back online
-      setTimeout(() => {
-        setShowBanner(false);
-      }, 2000);
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      // Delay showing the banner by 3 seconds
-      timeoutId = setTimeout(() => {
-        setShowBanner(true);
-      }, 3000);
-    };
-
-    // Set initial state
-    const online = navigator.onLine;
-    setIsOnline(online);
-    if (!online) {
-      // Even if initially offline, wait 3 seconds before showing banner
-      handleOffline();
-    }
-
-    // Listen for network changes
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearTimeout(timeoutId);
-    };
-  }, []);
-
+const OfflineIndicator = ({ children }) => {
   return (
     <div className="offline-indicator-wrapper">
-      {/* Offline Banner */}
-      {(showBanner || isServerUnreachable) && (
-        <div 
-          className={`offline-banner ${position} ${
-            !isOnline ? 'offline' : (isServerUnreachable ? 'server-error' : 'coming-online')
-          }`}
-        >
-          <div className="offline-banner-content">
-            {!isOnline ? (
-              <>
-                <WifiOff size={16} className="offline-icon" />
-                <span className="offline-banner-text">No internet connection</span>
-              </>
-            ) : isServerUnreachable ? (
-              <>
-                <CloudOff size={16} className="offline-icon" />
-                <span className="offline-banner-text">Server connection lost</span>
-              </>
-            ) : (
-              <>
-                <Wifi size={16} className="offline-icon" />
-                <span className="offline-banner-text">Back online</span>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Children */}
+      <SystemStatusBanner />
       {children}
     </div>
   );

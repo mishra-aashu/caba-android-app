@@ -188,7 +188,10 @@ export function useChatMessages({
 
     const sendMessage = useCallback(async (content, vanishConfig = null) => {
         if (!content?.trim() || !currentUser) return null;
+        
         const tempId = String(Date.now());
+        const taskId = crypto.randomUUID(); // Idempotency Key
+        
         const frontendMsg = {
             chatId,
             senderId: currentUser.id,
@@ -199,14 +202,17 @@ export function useChatMessages({
             messageType: 'text',
             createdAt: new Date().toISOString(),
             vanishAt: vanishConfig?.vanishAt || null,
-            status: navigator.onLine ? 'sending' : 'pending',
+            status: 'sending', // Optimistic status
             tempId: tempId,
         };
+
         setReplyingTo(null);
         hapticsManager.impact();
+
         try {
+            // 1. Optimistic Write to Dexie
             await db.transaction('rw', [db.messages, db.chats_list], async () => {
-                await db.messages.put({ ...frontendMsg, id: `temp_${tempId}`, tempId });
+                await db.messages.put({ ...frontendMsg, id: `temp_${tempId}` });
                 await db.chats_list.update(String(chatId), {
                     lastMessageAt: frontendMsg.createdAt,
                     timestamp: frontendMsg.createdAt,
@@ -215,41 +221,18 @@ export function useChatMessages({
                 }).catch(() => {});
             });
 
+            // 2. Queue for Processing (The Muscles)
             const dbData = frontendToDb(frontendMsg);
-            if (!navigator.onLine) {
-                await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData);
-                return null;
-            }
-            dbData.content = EncryptionService.encrypt(dbData.content, chatId, isGroupChat ? null : otherUserId);
-            dbData.status = 'sent';
-            const { data, error } = await supabase.from('messages').insert(dbData).select().single();
-            if (error) {
-                await db.messages.update(`temp_${tempId}`, { status: 'failed' });
-                throw error;
-            }
-            const normalizedData = dbToFrontend(data);
-            if (normalizedData.content) {
-                normalizedData.content = EncryptionService.decrypt(normalizedData.content, chatId, isGroupChat ? null : otherUserId);
-            }
-            await db.transaction('rw', [db.messages, db.chats_list], async () => {
-                await db.messages.delete(`temp_${tempId}`).catch(() => {});
-                if (normalizedData) {
-                    await db.messages.put(normalizedData);
-                    await db.chats_list.update(String(chatId), {
-                        lastMessageAt: normalizedData.createdAt,
-                        timestamp: normalizedData.createdAt,
-                        lastMessage: normalizedData.content,
-                        status: 'delivered'
-                    }).catch(() => {});
-                }
-            });
-            return data;
+            await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData, { taskId });
+            
+            return { id: `temp_${tempId}`, ...frontendMsg };
         } catch (error) {
-            await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
+            console.error('[useChatMessages] Send failed:', error);
+            await db.messages.update(`temp_${tempId}`, { status: 'failed' });
             hapticsManager.error();
             return null;
         }
-    }, [chatId, otherUserId, isGroupChat, isNewChat, currentUser, replyingTo, supabase]);
+    }, [chatId, otherUserId, isGroupChat, currentUser, replyingTo]);
 
     const toggleReaction = useCallback(async (messageId, emoji) => {
         if (!currentUser || !messageId) return;
@@ -272,8 +255,11 @@ export function useChatMessages({
     const forwardMessages = useCallback(async (msgs, targetChat) => {
         if (!msgs?.length || !targetChat || !currentUser) return;
         const isTargetGroup = targetChat.isGroup || targetChat.is_group || false;
+        
         for (const msg of msgs) {
             const tempId = `${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+            const taskId = crypto.randomUUID();
+            
             const frontendMsg = {
                 chatId: targetChat.id,
                 senderId: currentUser.id,
@@ -285,28 +271,20 @@ export function useChatMessages({
                 isGroupMessage: Boolean(isTargetGroup),
                 replyTo: null,
                 createdAt: new Date().toISOString(),
-                status: navigator.onLine ? 'sending' : 'pending',
+                status: 'sending',
                 tempId,
             };
+
             try {
                 await db.messages.put({ ...frontendMsg, id: `temp_${tempId}` });
-                if (!navigator.onLine) {
-                    await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', frontendMsg);
-                } else {
-                    const dbData = frontendToDb(frontendMsg);
-                    dbData.content = EncryptionService.encrypt(dbData.content, targetChat.id, isTargetGroup ? null : (targetChat.otherUser?.id || targetChat.receiver_id));
-                    const { data, error } = await supabase.from('messages').insert(dbData).select().single();
-                    if (error) throw error;
-                    const normalizedData = dbToFrontend(data);
-                    await db.transaction('rw', db.messages, async () => {
-                        await db.messages.delete(`temp_${tempId}`).catch(() => {});
-                        if (normalizedData) await db.messages.put(normalizedData);
-                    });
-                }
-            } catch (err) {}
+                const dbData = frontendToDb(frontendMsg);
+                await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData, { taskId });
+            } catch (err) {
+                console.error('[useChatMessages] Forward failed:', err);
+            }
         }
-        toast.success(`Forwarded ${msgs.length} messages`);
-    }, [currentUser, supabase]);
+        toast.success(`Forwarding ${msgs.length} messages...`);
+    }, [currentUser]);
 
     return useMemo(() => ({
         messages,

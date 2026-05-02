@@ -33,6 +33,7 @@ import './styles/safeArea.css';
 import { ThemeProvider } from './contexts/ThemeProvider.jsx';
 import { SupabaseProvider } from './contexts/SupabaseProvider.jsx';
 import { AuthProvider } from './contexts/AuthProvider.jsx';
+import { HealthProvider } from './contexts/HealthProvider.jsx';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
@@ -77,9 +78,11 @@ createRoot(document.getElementById('root')).render(
       >
         <SupabaseProvider>
           <AuthProvider>
-            <ThemeProvider>
-              <PublicApp />
-            </ThemeProvider>
+            <HealthProvider>
+              <ThemeProvider>
+                <PublicApp />
+              </ThemeProvider>
+            </HealthProvider>
           </AuthProvider>
         </SupabaseProvider>
       </PersistQueryClientProvider>

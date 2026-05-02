@@ -3,9 +3,7 @@ import EmojiRenderer from '../common/EmojiRenderer';
 import { isOnlyEmoji, getEmojiCount } from '../../utils/emojiUtils';
 import { formatLastSeen } from '../../utils/dateFormatter';
 import { Clock, AlertCircle, RefreshCcw } from 'lucide-react';
-// EncryptionService intentionally NOT imported here.
-// Decryption happens once at sync time (syncService/useRealtimeMessages).
-// Running AES decrypt per-bubble on every render was the root cause of chat-switch freezes.
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './MessageBubble.module.css';
 
 // Icon for deleted messages
@@ -134,8 +132,11 @@ const MessageBubble = memo(({
   const emojiStyle = isJumboEmoji ? { width: '96px', height: '96px', fontSize: '96px', lineHeight: '1' } : {};
 
   return (
-    <div
-      className={`${styles['message-outer-container']} ${isMine ? styles['outer-mine'] : ''}`}
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      layout
+      className={`${styles['message-outer-container']} ${isMine ? styles['outer-mine'] : ''} ${status === 'sending' ? styles.optimistic : ''}`}
       style={{ contain: 'layout' }}
     >
       <div
@@ -190,30 +191,40 @@ const MessageBubble = memo(({
               {isMine && (
                 <span className={styles['status-indicator']}>
                   {(status === 'pending' || status === 'sending') && <Clock size={10} className={styles['status-icon']} />}
+                  {status === 'repairing' && <RefreshCcw size={10} className={`${styles['status-icon']} ${styles['pulse']}`} />}
                   {status === 'failed' && <AlertCircle size={10} className={styles['status-icon-failed']} />}
                 </span>
               )}
             </span>
           </div>
 
-          {isMine && status === 'failed' && (
-            <button
-              className={styles['retry-button']}
-              onClick={(e) => { e.stopPropagation(); onRetry?.(); }}
-            >
-              <RefreshCcw size={10} />
-              <span>Retry</span>
-            </button>
-          )}
+          <AnimatePresence>
+            {isMine && status === 'failed' && (
+              <motion.button
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className={styles['retry-button']}
+                onClick={(e) => { e.stopPropagation(); onRetry?.(); }}
+              >
+                <RefreshCcw size={10} />
+                <span>Retry</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {isMine && (isLastRead || isLast) && status !== 'pending' && status !== 'sending' && status !== 'failed' && (
-        <div className={styles['external-status']}>
+      {isMine && (isLastRead || isLast) && status !== 'pending' && status !== 'sending' && status !== 'repairing' && status !== 'failed' && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className={styles['external-status']}
+        >
           {status === 'read' || message.isRead || message.is_read ? 'Seen' : 'Sent'} {formatLastSeen((status === 'read' || message.isRead || message.is_read) && (message.seenAt || message.seen_at) ? (message.seenAt || message.seen_at) : (message.createdAt || message.created_at))}
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }, (prev, next) => {
   return prev.text === next.text &&

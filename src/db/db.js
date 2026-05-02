@@ -127,8 +127,6 @@ db.version(9).stores({
     messages: 'id, chatId, createdAt, senderId, tempId, vanishAt',
 });
 
-// Version 11: [ROOT FIX] Comprehensive migration to ensure all messages have camelCase fields
-// and valid timestamps for the [chatId+createdAt] compound index.
 db.version(11).stores({
     messages: 'id, chatId, createdAt, senderId, tempId, vanishAt, [chatId+createdAt]',
 }).upgrade(async (tx) => {
@@ -141,15 +139,31 @@ db.version(11).stores({
         if (m.sender_id && !m.senderId) m.senderId = m.sender_id;
         if (m.client_id && !m.tempId) m.tempId = m.client_id;
         
-        // Ensure chatId is always present if possible (fallback to sender_id + receiver_id logic if needed, but usually chatId exists)
-        
-        // CRITICAL: If createdAt is still missing, use a safe default to ensure it's indexed
+        // Ensure chatId is always present if possible
         if (!m.createdAt) {
             m.createdAt = new Date(0).toISOString();
         }
     });
 });
 
+// Version 12: Advanced Sync Queue Support
+// - Switches sync_queue to use taskId (UUID) as primary key 'id'
+// - Adds indices for nextRetryAt and dependencyId
+db.version(12).stores({
+    messages: 'id, chatId, createdAt, senderId, tempId, vanishAt, [chatId+createdAt]',
+    sync_queue: '++id, status, action, createdAt, nextRetryAt, dependencyId'
+}).upgrade(async tx => {
+    // Migration: Integer IDs → UUID Strings
+    // No action needed as Dexie handles 'id' type changes gracefully in memory,
+    // but existing integer records will coexist with new UUID records.
+});
+
+// Version 13: Visual Healing Support
+// Adds retryCount to messages for UI feedback during auto-repair
+db.version(13).stores({
+    messages: 'id, chatId, createdAt, senderId, tempId, vanishAt, retryCount, [chatId+createdAt]',
+    sync_queue: '++id, status, action, createdAt, nextRetryAt, dependencyId, retryCount'
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
