@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Check, Send, Gamepad2, Flame, Sparkles, Zap, 
   Swords, Trophy, RotateCcw, X, AlertCircle
@@ -34,6 +34,8 @@ const TruthDareGame = ({
     onSkip,
     onSwitch,
     onConfirmSettings,
+    updateSettingsDraft,
+    onStartSpin,
     completeSpin,
     askTD,
     isHost,
@@ -45,6 +47,27 @@ const TruthDareGame = ({
     // Spinner state
     const [isSpinning, setIsSpinning] = useState(false);
     const [rotation, setRotation] = useState(0);
+    
+    // Sync local rotation with game state spinData
+    useEffect(() => {
+        if (props.spinData?.rotation && !isSpinning) {
+            console.log('[TruthDareGame] Starting spin animation:', props.spinData.rotation);
+            setIsSpinning(true);
+            setRotation(props.spinData.rotation);
+            
+            // Auto-complete spin after animation duration
+            const timer = setTimeout(() => {
+                setIsSpinning(false);
+                if (isHost) {
+                    const firstAsker = props.spinData.whoStarts === 'me' ? userId : partnerId;
+                    console.log('[TruthDareGame] Spin complete, calling completeSpin for:', firstAsker);
+                    completeSpin(firstAsker);
+                }
+            }, 2800); // 2.5s animation + 300ms buffer
+            
+            return () => clearTimeout(timer);
+        }
+    }, [props.spinData?.rotation, isHost, userId, partnerId, completeSpin]);
     
     const isAsker = String(askerId) === String(userId);
     const isTarget = String(targetId) === String(userId);
@@ -122,12 +145,12 @@ const TruthDareGame = ({
     const renderSetup = () => {
         const handleUpdateMode = (m) => {
             if (!isHost) return;
-            props.updateSettingsDraft({ mode: m });
+            updateSettingsDraft({ mode: m });
         };
 
         const handleUpdateRounds = (r) => {
             if (!isHost) return;
-            props.updateSettingsDraft({ maxRounds: r });
+            updateSettingsDraft({ maxRounds: r });
         };
 
         return (
@@ -180,27 +203,22 @@ const TruthDareGame = ({
 
     const renderInitialSpin = () => {
         const handleSpin = () => {
-            if (isSpinning) return;
-            setIsSpinning(true);
+            if (isSpinning || !isHost) return;
             
             // Randomly pick who starts (0 = Me, 180 = Opponent)
             const whoStarts = Math.random() > 0.5 ? 'me' : 'opponent';
             const targetRotation = 360 * 5 + (whoStarts === 'me' ? 0 : 180);
             
-            setRotation(targetRotation);
-
-            setTimeout(() => {
-                setIsSpinning(false);
-                setTimeout(() => {
-                    const firstAsker = whoStarts === 'me' ? userId : opponentId;
-                    completeSpin(firstAsker);
-                }, 800);
-            }, 2500);
+            // Broadcast the spin to everyone
+            onStartSpin({ 
+                rotation: targetRotation, 
+                whoStarts 
+            });
         };
 
         return (
             <div className={styles['td-container']}>
-                <h2 className={styles['td-title']}>{isHost ? 'SPIN TO DECIDE WHO STARTS' : 'WAITING FOR SPIN...'}</h2>
+                <h2 className={styles['td-title']}>{isHost ? 'SPIN TO DECIDE WHO STARTS' : `${opponent.name.toUpperCase()} IS SPINNING...`}</h2>
                 <div className={styles['spinner-outer']}>
                     <motion.div 
                         className={styles['spinner-ring']}
@@ -212,15 +230,15 @@ const TruthDareGame = ({
                         <div className={styles['spinner-line']} />
                     </motion.div>
                     <div className={styles['spinner-pointer']} />
-                    {isHost && !rotation && (
+                    {isHost && !props.spinData && (
                         <button className={styles['spin-btn']} onClick={handleSpin}>
                             SPIN
                         </button>
                     )}
                 </div>
-                {!isHost && (
+                {!isHost && !props.spinData && (
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', animation: 'pulse 2s infinite' }}>
-                        {opponent.name} is spinning...
+                        Waiting for {opponent.name} to spin...
                     </p>
                 )}
             </div>
@@ -298,17 +316,17 @@ const TruthDareGame = ({
                 {isAsker ? `Assign a ${type} to ${opponent.name}` : `${opponent.name} is assigning your ${type}`}
             </p>
             {isAsker ? (
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className={styles['challenge-input-group']}>
                     <textarea 
                         value={challengeText} 
                         onChange={(e) => setChallengeText(e.target.value)} 
                         className={styles['td-textarea']} 
                         placeholder={`Type the ${type} here...`} 
                     />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <div className={styles['challenge-actions']}>
                         <button 
-                            onClick={() => setChallengeText((type === 'truth' ? TRUTHS : DARES)[localMode][Math.floor(Math.random() * (type === 'truth' ? TRUTHS[localMode].length : DARES[localMode].length))])} 
-                            style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            onClick={() => setChallengeText((type === 'truth' ? TRUTHS : DARES)[mode][Math.floor(Math.random() * (type === 'truth' ? TRUTHS[mode].length : DARES[mode].length))])} 
+                            className={styles['suggestion-btn']}
                         >
                             <Sparkles size={12} /> Suggestion
                         </button>

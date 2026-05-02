@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabase } from '../../contexts/SupabaseContext';
 
@@ -59,6 +59,7 @@ const GamesPanel = () => {
   const { dbUser } = useAuth();
   const { supabase } = useSupabase();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // ── Contacts Filtering ────────────────────────────────
   const myContacts = useLiveQuery(() => db.contacts.toArray()) || [];
@@ -176,28 +177,7 @@ const GamesPanel = () => {
 
     return () => { supabase.removeChannel(channel); };
   }, [dbUser?.id, supabase, loadInvites]);
-
-  // ── Auto-Join Logic ────────────────────────────────────
-  const hasAutoJoinedRef = useRef(false);
-  useEffect(() => {
-    if (game.isActive || loadingInvites || hasAutoJoinedRef.current) return;
-    if (!dbUser?.id || pendingInvites.length === 0) return;
-
-    const acceptedInv = pendingInvites.find(inv => 
-      inv.status === 'accepted' && 
-      (inv.sender_id === dbUser.id || inv.receiver_id === dbUser.id) &&
-      (Date.now() - new Date(inv.created_at).getTime() < INVITE_EXPIRY_MS)
-    );
-
-    if (acceptedInv) {
-      hasAutoJoinedRef.current = true;
-      const opponentId = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver_id : acceptedInv.sender_id;
-      setBattleContext({ chatId: acceptedInv.chat_id, opponentId });
-      game.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, acceptedInv.status, opponentId);
-    }
-  }, [pendingInvites, game.isActive, dbUser?.id, loadingInvites, game.joinBattle]);
-
-
+  
   const handleRefreshPresence = async () => {
     setIsRefreshing(true);
     console.log('[GamesPanel] Manual refresh triggered');
@@ -314,6 +294,36 @@ const GamesPanel = () => {
     }
   }, [game.acceptGame]);
 
+  // ── Handle Auto-Join from Notification (Moved after handleAcceptInvite) ──
+  useEffect(() => {
+    if (location.state?.autoJoinInvite) {
+      const invite = location.state.autoJoinInvite;
+      // Clear the state so it doesn't trigger again on re-render
+      window.history.replaceState({}, document.title);
+      handleAcceptInvite(invite);
+    }
+  }, [location.state, handleAcceptInvite]);
+
+  // ── Auto-Join Logic (Restored) ─────────────────────────
+  const hasAutoJoinedRef = useRef(false);
+  useEffect(() => {
+    if (game.isActive || loadingInvites || hasAutoJoinedRef.current) return;
+    if (!dbUser?.id || pendingInvites.length === 0) return;
+
+    const acceptedInv = pendingInvites.find(inv => 
+      inv.status === 'accepted' && 
+      (inv.sender_id === dbUser.id || inv.receiver_id === dbUser.id) &&
+      (Date.now() - new Date(inv.created_at).getTime() < INVITE_EXPIRY_MS)
+    );
+
+    if (acceptedInv) {
+      hasAutoJoinedRef.current = true;
+      const opponentId = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver_id : acceptedInv.sender_id;
+      setBattleContext({ chatId: acceptedInv.chat_id, opponentId });
+      game.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, acceptedInv.status, opponentId);
+    }
+  }, [pendingInvites, game.isActive, dbUser?.id, loadingInvites, game.joinBattle]);
+
   const handleRejectInvite = useCallback(async (invite) => {
     setProcessingInviteId(invite.id);
     try {
@@ -367,6 +377,10 @@ const GamesPanel = () => {
     onSkip: game.skipTurn,
     onSwitch: game.switchType,
     onConfirmSettings: game.confirmSettings,
+    onStartSpin: game.startSpin,
+    completeSpin: game.completeSpin,
+    askTD: game.askTD,
+    updateSettingsDraft: game.updateSettingsDraft,
     onExit: () => game.closeGame(),
     isHost: game.isHost,
     isMyTurn: game.isMyTurn

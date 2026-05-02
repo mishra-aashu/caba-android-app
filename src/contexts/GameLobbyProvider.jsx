@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { supabaseRealtime } from '../config/supabase';
+import { supabase, supabaseRealtime } from '../config/supabase';
 import { realtimeManager } from '../utils/realtimeManager';
 import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { GameLobbyContext } from './GameLobbyContext';
 import usePresenceStore from '../store/usePresenceStore';
 import toast from 'react-hot-toast';
@@ -17,14 +18,22 @@ import styles from '../components/games/GameInviteNotification.module.css';
 const PRESENCE_CHANNEL = 'game_lobby_presence';
 
 export const GameLobbyProvider = ({ children }) => {
-    const { dbUser } = useAuth();
+    const dbUser = useAuth(state => state.dbUser);
     const setOnlineUsersStore = usePresenceStore(state => state.setOnlineUsers);
     const [isConnected, setIsConnected] = useState(false);
+    const navigate = useNavigate();
+    
+    // Refs to prevent duplicate logic execution
+    const processedInvitesRef = useRef(new Set());
+    const inviteSubscriptionRef = useRef(null);
+    const presenceSubscriptionRef = useRef(null);
 
     // ... (rest of the presence channel logic stays similar but uses syncPresenceState)
     // I'll keep the useEffect that sets up the channel
     useEffect(() => {
         if (!dbUser?.id) return;
+        if (presenceSubscriptionRef.current === dbUser.id) return;
+        presenceSubscriptionRef.current = dbUser.id;
 
         const handlePresenceSync = (state) => {
             console.log('[GameLobbyProvider] Presence sync received:', state);
@@ -141,6 +150,9 @@ export const GameLobbyProvider = ({ children }) => {
 
         const INVITES_CHANNEL = `global_invites_${dbUser.id}`;
 
+        if (inviteSubscriptionRef.current === INVITES_CHANNEL) return;
+        inviteSubscriptionRef.current = INVITES_CHANNEL;
+
         realtimeManager.subscribe(
             INVITES_CHANNEL,
             {},
@@ -153,6 +165,16 @@ export const GameLobbyProvider = ({ children }) => {
                         filter: `receiver_id=eq.${dbUser.id}`,
                         handler: async (payload) => {
                             if (payload.new.status !== 'pending') return;
+                            
+                            // Prevent duplicate toasts for the same invite
+                            if (processedInvitesRef.current.has(payload.new.id)) return;
+                            processedInvitesRef.current.add(payload.new.id);
+                            
+                            // Limit size of processed invites ref
+                            if (processedInvitesRef.current.size > 100) {
+                                const first = processedInvitesRef.current.values().next().value;
+                                processedInvitesRef.current.delete(first);
+                            }
 
                             toast.custom((t) => (
                                 <div className={`${styles.inviteToast} ${t.visible ? styles.animateIn : styles.animateOut}`}>
@@ -165,18 +187,36 @@ export const GameLobbyProvider = ({ children }) => {
                                         <div className={styles.inviteActions}>
                                             <button
                                                 className={styles.acceptBtn}
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     toast.dismiss(t.id);
-                                                    window.location.hash = '#/games';
+                                                    try {
+                                                        // Direct Accept
+                                                        await supabase
+                                                            .from('game_invitations')
+                                                            .update({ status: 'accepted' })
+                                                            .eq('id', payload.new.id);
+                                                        
+                                                        // Navigate with state to signal auto-join
+                                                        navigate('/games', { state: { autoJoinInvite: payload.new } });
+                                                    } catch (err) {
+                                                        console.error('Accept failed:', err);
+                                                        navigate('/games');
+                                                    }
                                                 }}
                                             >
-                                                VIEW INVITE
+                                                ACCEPT & PLAY
                                             </button>
                                             <button
                                                 className={styles.declineBtn}
-                                                onClick={() => toast.dismiss(t.id)}
+                                                onClick={async () => {
+                                                    toast.dismiss(t.id);
+                                                    await supabase
+                                                        .from('game_invitations')
+                                                        .update({ status: 'rejected' })
+                                                        .eq('id', payload.new.id);
+                                                }}
                                             >
-                                                CLOSE
+                                                DECLINE
                                             </button>
                                         </div>
                                     </div>

@@ -140,7 +140,7 @@ const PublicApp = () => {
       />
 
       <Toaster 
-        position="bottom-center" 
+        position="top-center" 
         toastOptions={{ 
           duration: 3500,
           className: 'premium-toast',

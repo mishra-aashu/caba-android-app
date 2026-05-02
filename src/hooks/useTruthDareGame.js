@@ -49,6 +49,7 @@ const INITIAL_GAME_STATE = {
   targetId: null, // The person who is currently being challenged
   askerId: null, // The person who is currently asking
   votes: {},
+  spinData: null, // { rotation: number, whoStarts: string }
 };
 
 const TURN_ANNOUNCE_DELAY = 2500;
@@ -317,14 +318,21 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
       let nextState = { ...current };
       
       switch (action.type) {
-        case 'COMPLETE_SPIN': {
+        case 'START_SPIN': {
           if (current.stage !== GAME_STATES.INITIAL_SPIN) return;
-          const winnerId = action.payload; // the person who will ASK first
-          nextState.askerId = winnerId;
-          nextState.targetId = winnerId === userId ? current.partnerId : userId;
-          nextState.turn = winnerId;
-          nextState.stage = GAME_STATES.TURN_ANNOUNCE;
+          nextState.spinData = action.payload; // { rotation, whoStarts }
           break;
+        }
+
+        case 'COMPLETE_SPIN': {
+          const winnerId = action.payload; 
+          hostTransition(GAME_STATES.TURN_ANNOUNCE, {
+            askerId: winnerId,
+            targetId: winnerId === userId ? current.partnerId : userId,
+            turn: winnerId,
+            spinData: null
+          });
+          return;
         }
 
         case 'ASK_TD': {
@@ -756,6 +764,7 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
     confirmSettings: (s) => handleAction({ type: 'CONFIRM_SETTINGS', payload: s }),
     updateSettingsDraft: (s) => handleAction({ type: 'UPDATE_SETTINGS_DRAFT', payload: s }),
     completeSpin: (winnerId) => handleAction({ type: 'COMPLETE_SPIN', payload: winnerId }),
+    startSpin: (data) => handleAction({ type: 'START_SPIN', payload: data }),
     askTD: () => handleAction({ type: 'ASK_TD' }),
     
     // WebRTC

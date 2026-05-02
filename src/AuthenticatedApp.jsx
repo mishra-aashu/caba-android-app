@@ -238,7 +238,8 @@ const AppContent = () => {
 // This whole module is lazy-loaded from main.jsx
 // ──────────────────────────────────────────────
 const AuthenticatedApp = () => {
-  const { dbUser, loading: authLoading } = useAuth();
+  const dbUser = useAuth(state => state.dbUser);
+  const authLoading = useAuth(state => state.loading);
 
   useCapacitorPlugins();
   useNetworkSync();
