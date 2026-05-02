@@ -60,7 +60,12 @@ function callReducer(state, action) {
     case ACTIONS.SET_REMOTE_STREAM:
       return { ...state, remoteStream: action.payload };
     case ACTIONS.SET_INCOMING_CALL:
-      return { ...state, incomingCall: action.payload, callState: 'ringing' };
+      return { 
+        ...state, 
+        incomingCall: action.payload, 
+        callerInfo: action.payload.callerInfo || state.callerInfo,
+        callState: 'ringing' 
+      };
     case ACTIONS.SET_CALL_DURATION:
       return { ...state, callDuration: action.payload };
     case ACTIONS.TOGGLE_MUTE:
@@ -100,6 +105,7 @@ export function CallProvider({ children, currentUser }) {
   const handleSignalRef = useRef(null);
   const checkPendingSignalsRef = useRef(null);
   const callStateRef = useRef(state.callState);
+  const processedSignalsRef = useRef(new Set()); // Deduplication cache
 
   // Keep callStateRef in sync
   useEffect(() => {
@@ -247,6 +253,18 @@ export function CallProvider({ children, currentUser }) {
     console.log('📨 Signal received in context:', signal.signal_type, 'Call ID:', signal.call_id, 'From:', signal.from_user_id);
 
     try {
+      // 1. Deduplication check - prevents loops and redundant processing
+      if (processedSignalsRef.current.has(signal.id || signal.call_id)) {
+        return;
+      }
+      processedSignalsRef.current.add(signal.id || signal.call_id);
+      
+      // Keep cache small
+      if (processedSignalsRef.current.size > 50) {
+        const firstValue = processedSignalsRef.current.values().next().value;
+        processedSignalsRef.current.delete(firstValue);
+      }
+
       if (signal.signal_type === 'offer') {
         // Incoming call - check if we are already in a call
         if (currentState.callState !== 'idle' && currentState.callState !== 'ringing') {
@@ -254,7 +272,7 @@ export function CallProvider({ children, currentUser }) {
           return;
         }
 
-        // [OPTIMIZATION] Resolve caller info IMMEDIATELY from cache if available
+        // [PERF] Resolve caller info IMMEDIATELY from cache if available
         const cachedUser = useUserStore.getState().getUser(signal.from_user_id);
         const initialCallerInfo = cachedUser || {
           id: signal.from_user_id,
@@ -262,6 +280,7 @@ export function CallProvider({ children, currentUser }) {
           avatar: null
         };
 
+        // Unified dispatch to trigger exactly ONE re-render
         dispatch({
           type: ACTIONS.SET_INCOMING_CALL,
           payload: {
@@ -280,35 +299,16 @@ export function CallProvider({ children, currentUser }) {
           ringTimeoutRef.current = null;
         }, 45000);
 
-        // Load/Refresh user info in background
+        // Load/Refresh user info in background without blocking
         useUserStore.getState().fetchUserIfNeeded(signal.from_user_id)
           .then(callerInfo => {
             if (!callerInfo) return;
-            console.log('👤 Caller info resolved:', callerInfo.name);
-            dispatch({
-              type: ACTIONS.SET_INCOMING_CALL,
-              payload: {
-                ...signal,
-                callerInfo
-              }
-            });
-            dispatch({ type: ACTIONS.SET_CALLER_INFO, payload: callerInfo });
+            // Only dispatch if the info actually changed or wasn't in cache
+            if (!cachedUser || cachedUser.name !== callerInfo.name || cachedUser.avatar !== callerInfo.avatar) {
+              dispatch({ type: ACTIONS.SET_CALLER_INFO, payload: callerInfo });
+            }
           })
-          .catch(err => {
-            console.warn('Failed to load caller info:', err);
-            const fallbackInfo = {
-              id: signal.from_user_id,
-              name: 'Unknown User',
-              avatar: null
-            };
-            dispatch({
-              type: ACTIONS.SET_INCOMING_CALL,
-              payload: {
-                ...signal,
-                callerInfo: fallbackInfo
-              }
-            });
-          });
+          .catch(err => console.warn('Failed to load caller info:', err));
       } else {
         // Handle other signals (answer, ice_candidate, call_end)
         try {
