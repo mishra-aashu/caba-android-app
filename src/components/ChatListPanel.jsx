@@ -263,12 +263,30 @@ const ChatListPanel = ({
     );
   }, [chats, searchTerm]);
 
-  // Filtered chats by type
-  const { dmChats, groupChats, displayChats } = useMemo(() => {
-    const dms = searchFilteredChats.filter(c => !c.isGroup);
-    const groups = searchFilteredChats.filter(c => c.isGroup);
+  // 1. First enhance ALL searchFilteredChats (names + avatars)
+  const allEnhancedChats = useMemo(() => {
+    return searchFilteredChats.map(chat => {
+      const otherUserId = chat.isGroup
+        ? null
+        : (chat.metadata?.otherUserId || chat.otherUserId || chat.id);
 
-    let filtered = searchFilteredChats;
+      const contact = contactMap.get(otherUserId);
+
+      return {
+        ...chat,
+        name: contact?.contactName || chat.name,
+        avatar: getChatAvatar(chat, contact),
+        otherUserId,
+      };
+    });
+  }, [searchFilteredChats, contactMap]);
+
+  // 2. Then filter into dmChats, groupChats, and displayChats
+  const { dmChats, groupChats, displayChats } = useMemo(() => {
+    const dms = allEnhancedChats.filter(c => !c.isGroup);
+    const groups = allEnhancedChats.filter(c => c.isGroup);
+
+    let filtered = allEnhancedChats;
     if (activeFilter === FILTER_TYPES.CHATS) {
       filtered = dms;
     } else if (activeFilter === FILTER_TYPES.GROUPS) {
@@ -279,7 +297,7 @@ const ChatListPanel = ({
     const visible = filtered.filter(c => !pendingDeletions.includes(c.id));
 
     return { dmChats: dms, groupChats: groups, displayChats: visible };
-  }, [searchFilteredChats, activeFilter, pendingDeletions]);
+  }, [allEnhancedChats, activeFilter, pendingDeletions]);
 
   // Dropdown menu items
   const dropdownItems = useMemo(() => {
@@ -500,27 +518,7 @@ const ChatListPanel = ({
     setAvatarViewerData(prev => ({ ...prev, isOpen: false }));
   }, []);
 
-  // ──────────────────────────────────────────────────────────
-  // Data Enhancement (contact names + avatars) — data layer,
-  // not render layer, so renderChatItem stays stable.
-  // ──────────────────────────────────────────────────────────
-
-  const enhancedChats = useMemo(() => {
-    return displayChats.map(chat => {
-      const otherUserId = chat.isGroup
-        ? null
-        : (chat.metadata?.otherUserId || chat.otherUserId || chat.id);
-
-      const contact = contactMap.get(otherUserId);
-
-      return {
-        ...chat,
-        name: contact?.contactName || chat.name,
-        avatar: getChatAvatar(chat),
-        otherUserId,
-      };
-    });
-  }, [displayChats, contactMap]);
+  // Logic moved to allEnhancedChats for consistency across all views
 
   // ──────────────────────────────────────────────────────────
   // Render Chat Item
@@ -752,14 +750,14 @@ const ChatListPanel = ({
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {sidebarView === 'chats' ? (
             <PullToRefresh onRefresh={handleManualRefresh} isAtTop={isAtTop}>
-              {loading && enhancedChats.length === 0 ? (
+              {loading && displayChats.length === 0 ? (
                 <LoadingSpinner />
               ) : (
                 <ScrollableChatList
                   isDesktop={isDesktop}
                   groupChats={groupChats}
                   dmChats={dmChats}
-                  filteredChats={enhancedChats}
+                  filteredChats={displayChats}
                   activeFilter={activeFilter}
                   searchTerm={searchTerm}
                   currentChatId={currentChatId}

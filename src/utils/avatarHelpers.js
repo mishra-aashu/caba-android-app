@@ -22,13 +22,21 @@ export const resolveAvatarUrl = (avatarValue) => {
  * getChatAvatar - Resolves avatar for a chat object (handles both avatar and avatar_url)
  * 
  * @param {object} chat - The chat or group object
+ * @param {object} [contact] - Optional contact object to look for avatar
  * @returns {string|null} Resolved image source
  */
-export const getChatAvatar = (chat) => {
+export const getChatAvatar = (chat, contact = null) => {
     if (!chat) return null;
     
-    // Check possible property names
-    const avatarValue = chat.avatar || chat.avatar_url || chat.otherUser?.avatar;
+    // Check possible property names in order of priority:
+    // 1. Contact's custom avatar (most specific)
+    // 2. Chat's avatar (stored in chat list)
+    // 3. Chat's avatar_url
+    // 4. otherUser data if present
+    const avatarValue = contact?.contactAvatar || 
+                       chat.avatar || 
+                       chat.avatar_url || 
+                       chat.otherUser?.avatar;
     
     return resolveAvatarUrl(avatarValue);
 };
