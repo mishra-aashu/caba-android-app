@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { WifiOff, Wifi } from 'lucide-react';
+import { WifiOff, Wifi, CloudOff, RefreshCw } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 import '../../styles/offline-indicator.css';
 
 /**
@@ -22,6 +23,7 @@ const OfflineIndicator = ({
   position = 'top',
   children 
 }) => {
+  const { isServerUnreachable } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showBanner, setShowBanner] = useState(false);
 
@@ -67,20 +69,27 @@ const OfflineIndicator = ({
   return (
     <div className="offline-indicator-wrapper">
       {/* Offline Banner */}
-      {showBanner && (
+      {(showBanner || isServerUnreachable) && (
         <div 
-          className={`offline-banner ${position} ${isOnline ? 'coming-online' : 'offline'}`}
+          className={`offline-banner ${position} ${
+            !isOnline ? 'offline' : (isServerUnreachable ? 'server-error' : 'coming-online')
+          }`}
         >
           <div className="offline-banner-content">
-            {isOnline ? (
+            {!isOnline ? (
               <>
-                <Wifi size={16} className="offline-icon" />
-                <span>Back online! Syncing data...</span>
+                <WifiOff size={16} className="offline-icon" />
+                <span className="offline-banner-text">No internet connection</span>
+              </>
+            ) : isServerUnreachable ? (
+              <>
+                <CloudOff size={16} className="offline-icon" />
+                <span className="offline-banner-text">Server connection lost</span>
               </>
             ) : (
               <>
-                <WifiOff size={16} className="offline-icon" />
-                <span>You're offline. Showing cached data.</span>
+                <Wifi size={16} className="offline-icon" />
+                <span className="offline-banner-text">Back online</span>
               </>
             )}
           </div>

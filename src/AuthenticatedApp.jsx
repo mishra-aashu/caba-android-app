@@ -80,7 +80,8 @@ import GlobalDialog from './components/common/GlobalDialog';
 
 
 const ProtectedLayout = ({ children }) => {
-  const { isAuthenticated, dbUser } = useAuth();
+  const { isAuthenticated, dbUser, isDbUserLoaded, isServerUnreachable } = useAuth();
+  const { isOnline } = useOnlineStatus();
   const isDesktop = useIsDesktop();
 
   const [showPhoneAuth, setShowPhoneAuth] = useState(() => !isAuthenticated);
@@ -92,10 +93,23 @@ const ProtectedLayout = ({ children }) => {
       setShowPhoneCollect(false);
     } else {
       setShowPhoneAuth(false);
-      // Show collect modal if phone is missing/blank AND user is online
-      setShowPhoneCollect(!!dbUser && (!dbUser.phone || dbUser.phone === '') && navigator.onLine);
+      
+      // ✅ PROFESSIONAL LOGIC: 
+      // Only show collect modal if:
+      // 1. User is online AND server is reachable
+      // 2. Database user is fully loaded (not a fallback)
+      // 3. Phone is missing
+      const shouldCollect = 
+        isOnline && 
+        !isServerUnreachable && 
+        isDbUserLoaded && 
+        !!dbUser && 
+        !dbUser._isFallback && 
+        (!dbUser.phone || dbUser.phone === '');
+
+      setShowPhoneCollect(shouldCollect);
     }
-  }, [isAuthenticated, dbUser]);
+  }, [isAuthenticated, dbUser, isDbUserLoaded, isOnline, isServerUnreachable]);
 
   const handleAuthSuccess = () => setShowPhoneAuth(false);
 
