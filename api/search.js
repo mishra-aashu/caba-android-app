@@ -32,6 +32,13 @@ export default async function handler(req, res) {
             "96_KBPS": downloadUrl.find(d => d.quality === '96kbps')?.link || null
         };
 
+        // Better artist extraction
+        const singers = song.more_info?.singers || 
+                        song.more_info?.primary_artists || 
+                        song.primary_artists || 
+                        song.subtitle || 
+                        '';
+
         return {
             id: song.id,
             name: song.title || song.song || song.name,
@@ -39,16 +46,12 @@ export default async function handler(req, res) {
             album: song.more_info?.album || song.album || 'Unknown',
             year: song.year || '',
             duration: parseInt(song.more_info?.duration || song.duration || 0),
-            singers: song.more_info?.singers || song.primary_artists || song.singers || '',
+            singers: singers,
             image: song.image ? song.image.replace('150x150', '500x500').replace('50x50', '500x500') : '',
             downloadUrl: downloadUrl,
             media_urls: media_urls,
             rawEncryptedUrl: encryptedUrl || '',
-            decryptedUrl: decryptedUrl || null,
-            debug: {
-                hasEncrypted: !!encryptedUrl,
-                hasDecrypted: !!decryptedUrl
-            }
+            decryptedUrl: decryptedUrl || null
         };
     });
 

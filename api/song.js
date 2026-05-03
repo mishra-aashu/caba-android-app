@@ -37,6 +37,13 @@ export default async function handler(req, res) {
         "96_KBPS": downloadUrl.find(d => d.quality === '96kbps')?.link || null
     };
 
+    // Better artist extraction
+    const singers = rawSong.more_info?.singers || 
+                    rawSong.more_info?.primary_artists || 
+                    rawSong.primary_artists || 
+                    rawSong.subtitle || 
+                    '';
+
     const result = {
         id: rawSong.id,
         name: rawSong.title || rawSong.song || rawSong.name || 'Unknown',
@@ -44,16 +51,12 @@ export default async function handler(req, res) {
         album: rawSong.more_info?.album || rawSong.album || 'Single',
         year: rawSong.year || '',
         duration: parseInt(rawSong.more_info?.duration || rawSong.duration || 0),
-        singers: rawSong.more_info?.singers || rawSong.primary_artists || rawSong.singers || '',
+        singers: singers,
         image: rawSong.image ? rawSong.image.replace('150x150', '500x500').replace('50x50', '500x500') : '',
         downloadUrl: downloadUrl,
         media_urls: media_urls,
         rawEncryptedUrl: encryptedUrl || '',
-        decryptedUrl: decryptedUrl || null,
-        debug: {
-            hasEncrypted: !!encryptedUrl,
-            hasDecrypted: !!decryptedUrl
-        }
+        decryptedUrl: decryptedUrl || null
     };
 
     res.status(200).json({
