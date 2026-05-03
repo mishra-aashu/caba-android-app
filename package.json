@@ -17,7 +17,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "verify-rls": "node scripts/verify-rls.js"
+    "verify-rls": "node scripts/verify-rls.js",
+    "dev:vercel": "vercel dev"
   },
   "dependencies": {
     "@capacitor-community/privacy-screen": "^8.0.0",

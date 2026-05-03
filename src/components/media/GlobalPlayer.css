@@ -107,12 +107,26 @@
 
 /* --- Main Layout --- */
 .player-content {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   gap: 12px;
+}
+
+.player-time-labels {
+  position: absolute;
+  top: -24px;
+  right: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 /* Left: Artwork & Info */
@@ -249,6 +263,16 @@
 
 .expand-btn:hover {
   color: #fff;
+}
+
+.close-btn {
+  color: rgba(255, 255, 255, 0.2);
+  margin-left: -4px;
+}
+
+.close-btn:hover {
+  color: #ff4b4b;
+  background: rgba(255, 75, 75, 0.1);
 }
 
 /* Mobile adjustments */

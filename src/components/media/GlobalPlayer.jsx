@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import useMusicStore from '../../store/useMusicStore';
-import { Play, Pause, SkipBack, SkipForward, Maximize2, Music } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Maximize2, Music, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import './GlobalPlayer.css';
 
 /**
@@ -15,12 +16,16 @@ const GlobalPlayer = () => {
     duration, setDuration,
     volume,
     togglePanel,
-    isPanelOpen
+    isPanelOpen,
+    refreshCurrentSongMetadata,
+    setCurrentSong
   } = useMusicStore();
 
   const audioRef = useRef(null);
   const progressBarRef = useRef(null);
   const animationRef = useRef(null);
+  const isRefreshingRef = useRef(false);
+  const retryCountRef = useRef(0); // Max retry attempts to prevent infinite loops
 
   // Animation loop for progress bar (High Performance)
   const updateProgressUI = useCallback(() => {
@@ -50,28 +55,69 @@ const GlobalPlayer = () => {
     
     if (currentSong?.media_url) {
       if (audioRef.current.src !== currentSong.media_url) {
+        console.log("[Player] Source change detected, loading:", currentSong.title);
+        retryCountRef.current = 0; // Reset retry count for new song
+        
+        // Safety: If there was a pending play, we need to handle it
+        // but changing .src usually cancels it anyway.
         audioRef.current.src = currentSong.media_url;
         audioRef.current.load();
+        
+        // Restore progress if persisted
+        if (progress > 0) {
+          audioRef.current.currentTime = progress;
+        }
+
         if (isPlaying) {
-          audioRef.current.play().catch(e => console.warn("Playback blocked:", e));
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(e => {
+              if (e.name !== 'AbortError') {
+                console.warn("[Player] Playback failed:", e);
+              }
+            });
+          }
         }
       }
     } else {
-      audioRef.current.pause();
-      audioRef.current.src = "";
+      // No URL or song cleared - pause safely
+      if (!audioRef.current.paused) {
+        audioRef.current.pause();
+      }
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
     }
   }, [currentSong]);
 
   useEffect(() => {
-    if (!audioRef.current || !currentSong) return;
+    if (!audioRef.current || !currentSong?.media_url) return;
     
     if (isPlaying) {
-      audioRef.current.play().catch(e => {
-        console.warn("Playback failed:", e);
-        setIsPlaying(false);
-      });
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          if (e.name === 'AbortError') {
+             // Interrupted by pause, ignore
+             return;
+          }
+          console.warn("[Player] Playback failed:", e);
+          if (e.name === 'NotSupportedError') {
+             if (!isRefreshingRef.current) {
+               isRefreshingRef.current = true;
+               refreshCurrentSongMetadata().finally(() => {
+                 isRefreshingRef.current = false;
+               });
+             }
+          } else if (e.name === 'NotAllowedError') {
+            setIsPlaying(false);
+          }
+        });
+      }
     } else {
-      audioRef.current.pause();
+      // Only pause if not already paused to avoid redundant calls
+      if (!audioRef.current.paused) {
+        audioRef.current.pause();
+      }
     }
   }, [isPlaying]);
 
@@ -83,7 +129,7 @@ const GlobalPlayer = () => {
 
   // Occasional store sync for progress (not every frame)
   const onTimeUpdate = () => {
-    if (audioRef.current && Math.abs(audioRef.current.currentTime - progress) > 1) {
+    if (audioRef.current && Math.abs(audioRef.current.currentTime - progress) > 2) {
       setProgress(audioRef.current.currentTime);
     }
   };
@@ -94,9 +140,52 @@ const GlobalPlayer = () => {
     }
   };
 
+  const onAudioError = (e) => {
+    const error = audioRef.current?.error;
+    
+    // CRITICAL: Ignore harmless errors during source transitions
+    if (!error || error.code === 1 || error.message?.includes('Empty src')) return;
+    
+    console.error("[AudioError]", error);
+    
+    const isRealError = error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || 
+                        error.code === MediaError.MEDIA_ERR_NETWORK;
+    
+    if (isRealError && currentSong?.id && !isRefreshingRef.current && retryCountRef.current < 2) {
+      isRefreshingRef.current = true;
+      retryCountRef.current += 1;
+      
+      console.log(`[Player] Attempting refresh ${retryCountRef.current}/2 for: ${currentSong.title}`);
+      toast.loading(`Refreshing stream... (${retryCountRef.current}/2)`, { 
+        id: 'music-refresh', duration: 3000 
+      });
+      
+      refreshCurrentSongMetadata().then(success => {
+        if (!success) {
+          toast.error("Stream unavailable. Try another song.", { id: 'music-refresh' });
+          setIsPlaying(false);
+        }
+        // Note: We DON'T reset retryCountRef here anymore. 
+        // We only reset it in the 'onPlay' event or on source change.
+      }).finally(() => {
+        isRefreshingRef.current = false;
+      });
+    } else if (retryCountRef.current >= 2) {
+      toast.error("Stream unavailable. Please select the song again.", { id: 'music-refresh' });
+      setIsPlaying(false);
+      retryCountRef.current = 0;
+    }
+  };
+
+  const onPlay = () => {
+    console.log("[Player] Playback started successfully");
+    retryCountRef.current = 0; // SUCCESS! Reset retries
+    setIsPlaying(true);
+  };
+
   const handleSeek = (e) => {
     const time = parseFloat(e.target.value);
-    if (audioRef.current) {
+    if (audioRef.current && audioRef.current.duration) {
       audioRef.current.currentTime = time;
       setProgress(time);
       if (progressBarRef.current) {
@@ -104,6 +193,13 @@ const GlobalPlayer = () => {
         progressBarRef.current.style.width = `${percent}%`;
       }
     }
+  };
+
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   if (!currentSong) return null;
@@ -114,7 +210,9 @@ const GlobalPlayer = () => {
         ref={audioRef}
         onTimeUpdate={onTimeUpdate}
         onLoadedMetadata={onLoadedMetadata}
+        onError={onAudioError}
         onEnded={() => setIsPlaying(false)}
+        onPlay={onPlay}
         preload="auto"
       />
       
@@ -122,19 +220,26 @@ const GlobalPlayer = () => {
         <div 
           ref={progressBarRef}
           className="player-progress-fill" 
-          style={{ width: `${(progress / duration) * 100}%` }} 
+          style={{ width: `${(progress / (duration || 1)) * 100}%` }} 
         />
         <input 
           type="range" 
           className="player-seek-slider"
           min="0"
           max={duration || 0}
-          value={progress}
+          step="0.1"
+          value={progress || 0}
           onChange={handleSeek}
         />
       </div>
 
       <div className="player-content">
+        <div className="player-time-labels">
+          <span className="time-current">{formatTime(progress)}</span>
+          <span className="time-divider">/</span>
+          <span className="time-total">{formatTime(duration)}</span>
+        </div>
+
         <div className="player-left" onClick={() => togglePanel(true)}>
           <div className="player-artwork-mini">
             {currentSong.image ? (
@@ -175,6 +280,15 @@ const GlobalPlayer = () => {
         <div className="player-right">
           <button className="player-btn-icon expand" onClick={() => togglePanel(true)}>
             <Maximize2 size={18} />
+          </button>
+          <button 
+            className="player-btn-icon close-btn" 
+            onClick={() => {
+              setIsPlaying(false);
+              setCurrentSong(null);
+            }}
+          >
+            <X size={18} />
           </button>
         </div>
       </div>

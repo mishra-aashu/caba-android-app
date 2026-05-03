@@ -1,13 +1,14 @@
 import React, { useState, useEffect, memo } from 'react';
 
 import useMusicStore from '../../store/useMusicStore';
+import { MUSIC_API_URL } from '../../config/musicConfig';
 
 import useChatStore, { selectActiveChatId } from '../../store/useChatStore';
 import useAuthStore from '../../store/authStore';
 import { db } from '../../db/db';
 import { frontendToDb } from '../../utils/dbFieldMapping';
 import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
-import { Search, Play, Users, Music, Loader2, Send } from 'lucide-react';
+import { Search, Play, Pause, Users, Music, Loader2, Send } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import './MusicSearch.css';
 
@@ -17,28 +18,42 @@ import './MusicSearch.css';
  * Provides a premium interface for searching music via the JioSaavn Media Engine.
  */
 const MusicSearch = () => {
-  const { 
-    searchQuery, setSearchQuery, 
-    searchResults, setSearchResults, 
-    isSearchLoading, setSearchLoading,
-    setCurrentSong
-  } = useMusicStore();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearchLoading, setSearchLoading] = useState(false);
+  const [loadingSongId, setLoadingSongId] = useState(null); // Track which song is fetching details
+  
+  const { currentSong, setCurrentSong, setIsPlaying } = useMusicStore();
 
   const activeChatId = useChatStore(selectActiveChatId);
   const activeChat = useChatStore(state => state.activeChat);
   const user = useAuthStore(state => state.user);
 
 
+  useEffect(() => {
+    // Fetch trending bollywood songs on mount if we have no results yet
+    if (searchResults.length === 0 && !searchQuery) {
+      handleSearch("Bollywood Trending");
+    }
+  }, []);
+
   const handleSearch = async (query) => {
     if (!query.trim()) return;
     
     setSearchLoading(true);
     try {
-      const res = await fetch(`https://listen-together-steel.vercel.app/api/search?query=${encodeURIComponent(query)}`);
+      const res = await fetch(`${MUSIC_API_URL}/api/search?query=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+      
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        console.error("[MusicSearch] Expected JSON but got:", text.substring(0, 50));
+        throw new Error("Server returned an invalid response (not JSON). Please use 'npm run dev:vercel' for local API support.");
+      }
+
       const data = await res.json();
       
-      // Structure: { status: 'success', data: { results: [...] } }
-      // Structure: can be { data: { results: [] } } OR { results: [] }
       const results = data.data?.results || data.results || [];
       setSearchResults(results);
 
@@ -53,58 +68,68 @@ const MusicSearch = () => {
   
   const selectSong = async (song) => {
     let songData = song;
+    const cacheBust = `_t=${Date.now()}`;
 
-    // 1. Check if we have high-quality download links. If not, fetch full details.
-    if (!song.downloadUrl && !song.media_urls && !song.download_url) {
-      setSearchLoading(true);
-      try {
-        const res = await fetch(`https://listen-together-steel.vercel.app/api/songs?id=${song.id}`);
-        const json = await res.json();
-        // Handle { status: true, data: [...] } or { status: true, results: [...] }
-        const details = json.data?.[0] || json.results?.[0] || json?.[0];
-        if (details) songData = details;
-      } catch (err) {
-        console.error("Failed to fetch full song details:", err);
-      } finally {
-        setSearchLoading(false);
+    setLoadingSongId(song.id);
+    try {
+      // 1. Fetch fresh details (Try direct API then proxy)
+      let res = null;
+      if (song.api_url?.song) {
+        const directUrl = `${song.api_url.song}&${cacheBust}`;
+        res = await fetch(directUrl, { cache: 'no-store' }).catch(() => null);
       }
+
+      if (!res || !res.ok) {
+        const proxyUrl = `${MUSIC_API_URL}/api/song?id=${song.id}&${cacheBust}`;
+        res = await fetch(proxyUrl, { cache: 'no-store' });
+      }
+
+      if (res.ok) {
+        const json = await res.json();
+        const details = (json.data?.[0] || json.results?.[0] || json?.[0]) ??
+                       (json.media_urls || json.media_url ? json : null);
+        if (details) songData = details;
+      }
+    } catch (err) {
+      console.warn("[MusicSearch] Detail fetch failed:", err);
+    } finally {
+      setLoadingSongId(null);
     }
 
-    // 2. Extract media URL (320kbps > 160kbps > any)
-    const downloads = songData.downloadUrl || songData.media_urls || songData.download_url || [];
-    let mediaUrl = '';
-    if (Array.isArray(downloads)) {
-      const highQuality = downloads.find(u => u.quality === '320kbps' || u.bitrate === '320') || 
-                          downloads.find(u => u.quality === '160kbps' || u.bitrate === '160') ||
-                          downloads[downloads.length - 1];
-      mediaUrl = highQuality?.url || highQuality?.link || '';
-    } else {
-      mediaUrl = downloads; // String fallback
+    // 2. Comprehensive URL Extraction (Priority: 320kbps > 160kbps > any)
+    const urls = songData.media_urls || songData.download_url || songData.downloadUrl || {};
+    let finalMediaUrl = songData.media_url || "";
+
+    if (typeof urls === 'object' && !Array.isArray(urls)) {
+      finalMediaUrl = urls['320kbps'] || urls['320_KBPS'] || 
+                      urls['160kbps'] || urls['160_KBPS'] || 
+                      urls['96kbps'] || Object.values(urls)[0] || finalMediaUrl;
+    } else if (Array.isArray(urls) && urls.length > 0) {
+      const best = urls.find(u => u.quality === '320kbps') || 
+                   urls.find(u => u.quality === '160kbps') || 
+                   urls[urls.length - 1];
+      finalMediaUrl = best?.link || best?.url || finalMediaUrl;
     }
 
-    // Fallback to preview vlink if still nothing (better than silence)
-    if (!mediaUrl && songData.more_info?.vlink) {
-      mediaUrl = songData.more_info.vlink;
+    // Fallback to preview if no full link (Better than nothing)
+    if (!finalMediaUrl || finalMediaUrl.includes('preview')) {
+      finalMediaUrl = songData.more_info?.vlink || songData.vlink || songData.preview_url || finalMediaUrl;
     }
 
-    // 3. Extract best image (500x500 > 150x150 > string)
-    const imgObj = songData.images || {};
-    const imgArr = songData.image || [];
-    let bestImage = '';
+    // 3. Map final metadata
+    const finalSong = {
+      id: song.id,
+      title: songData.song || songData.title || song.title || "Unknown Track",
+      artist: songData.singers || songData.primary_artists || songData.artist || song.artist || "Unknown Artist",
+      image: songData.image || (songData.images?.['500x500'] || songData.images?.['150x150']) || song.image,
+      media_url: finalMediaUrl,
+      duration: songData.duration || 0
+    };
+
+    console.log(`[MusicEngine] Playing: ${finalSong.title}`, finalSong.media_url);
     
-    if (imgObj['500x500']) bestImage = imgObj['500x500'];
-    else if (imgObj['150x150']) bestImage = imgObj['150x150'];
-    else if (Array.isArray(imgArr)) bestImage = imgArr[imgArr.length - 1]?.url || imgArr[imgArr.length - 1]?.link || '';
-    else bestImage = imgArr;
-
-    setCurrentSong({
-      id: songData.id,
-      title: songData.title || songData.name,
-      artist: songData.more_info?.singers || songData.artist || songData.subtitle || songData.primaryArtists || 'Unknown Artist',
-      image: bestImage,
-      media_url: mediaUrl,
-      duration: songData.duration
-    });
+    setCurrentSong(finalSong);
+    setIsPlaying(true);
   };
 
 
@@ -123,7 +148,7 @@ const MusicSearch = () => {
     // Fetch details if missing (for sharing high-quality links)
     if (!song.downloadUrl && !song.media_urls) {
       try {
-        const res = await fetch(`https://listen-together-steel.vercel.app/api/songs?id=${song.id}`);
+        const res = await fetch(`${MUSIC_API_URL}/api/song?id=${song.id}`);
         const json = await res.json();
         const details = json.data?.[0] || json.results?.[0] || json?.[0];
         if (details) songData = details;
@@ -251,6 +276,7 @@ const MusicSearch = () => {
               onToggle={togglePlayback}
               currentSongId={currentSong?.id}
               isPlaying={useMusicStore.getState().isPlaying}
+              isLoadingDetails={loadingSongId === song.id}
             />
           ))
 
@@ -272,7 +298,7 @@ const MusicSearch = () => {
  * Memoized Song Item
  * Prevents heavy list re-renders.
  */
-const SongItem = memo(({ song, index, onSelect, onInvite, onToggle, currentSongId, isPlaying }) => {
+const SongItem = memo(({ song, index, onSelect, onInvite, onToggle, currentSongId, isPlaying, isLoadingDetails }) => {
   const imgObj = song.images || {};
   const imgArr = song.image || [];
   const thumbnail = imgObj['150x150'] || imgObj['50x50'] || 
@@ -282,21 +308,23 @@ const SongItem = memo(({ song, index, onSelect, onInvite, onToggle, currentSongI
 
   return (
     <div 
-      className={`song-result-item ${isCurrent ? 'active' : ''}`}
+      className={`song-item ${isCurrent ? 'active' : ''} ${isLoadingDetails ? 'loading-details' : ''}`}
+      onClick={() => !isLoadingDetails && onSelect(song)}
       style={{ animationDelay: `${index * 0.05}s` }}
     >
-      <div className="song-artwork-wrapper" onClick={() => onSelect(song)}>
-        <img 
-          src={thumbnail} 
-          alt="" 
-          className="song-artwork" 
-          loading="lazy"
-        />
-        <div className="artwork-overlay">
-          {isCurrent && isPlaying ? <Pause size={20} fill="white" /> : <Play size={20} fill="white" />}
-        </div>
+      <div className="song-art">
+        <img src={thumbnail} alt={song.title} loading="lazy" />
+        {isLoadingDetails ? (
+          <div className="art-overlay loading">
+            <Loader2 className="animate-spin text-white" size={24} />
+          </div>
+        ) : isCurrent ? (
+          <div className="art-overlay active" onClick={(e) => onToggle(e, song)}>
+            {isPlaying ? <Pause size={24} fill="white" /> : <Play size={24} fill="white" />}
+          </div>
+        ) : null}
       </div>
-      
+
       <div className="song-meta" onClick={() => onSelect(song)}>
         <h4 className="song-title-text" dangerouslySetInnerHTML={{ __html: song.title || song.name }} />
         <p className="song-artist-text" dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle || song.primaryArtists }} />
