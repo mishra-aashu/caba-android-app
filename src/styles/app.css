@@ -1,3 +1,13 @@
+@keyframes revealApp {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.reveal-app {
+  animation: revealApp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
 @import "./sidebar-groups.css";
 
 /* =============================================

@@ -228,6 +228,25 @@ const ChatScreen = () => {
             document.removeEventListener('visibilitychange', handleReadTrigger);
         };
     }, [chatId, currentUser?.id, markMessagesAsRead, isNewChat]);
+
+    // Handle jump to message from URL
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const messageId = searchParams.get('messageId');
+        
+        if (messageId && !isMessagesLoading && messages.length > 0) {
+            // Give a tiny delay for Virtuoso to stabilize
+            const timer = setTimeout(() => {
+                const success = messagesContainerRef.current?.scrollToMessageId(messageId);
+                if (success) {
+                    // Clear the param after jump
+                    navigate(location.pathname, { replace: true });
+                }
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [location.search, isMessagesLoading, messages.length, chatId]);
+
     useEffect(() => {
         if (!chatId) return;
         const fetchPinned = async () => {
@@ -261,12 +280,8 @@ const ChatScreen = () => {
     }, [supabase]);
 
     const handleJumpToMessage = useCallback((messageId) => {
-        const el = document.getElementById(`message-${messageId}`);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.classList.add(styles['highlighted']);
-            setTimeout(() => { el.classList.remove(styles['highlighted']); }, 2000);
-        } else {
+        const success = messagesContainerRef.current?.scrollToMessageId(messageId);
+        if (!success) {
             toast.error('Message not found in current view');
         }
     }, []);

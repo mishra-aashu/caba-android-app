@@ -315,11 +315,19 @@ if (typeof window !== 'undefined') {
     App.addListener('appStateChange', async ({ isActive }) => {
       if (!isActive) {
         console.log('[OfflineQueue] App backgrounded - initiating final sync');
-        const { BackgroundTask } = await import('@capawesome/capacitor-background-task');
-        const taskId = await BackgroundTask.beforeExit(async () => {
-          await processSyncQueue();
-          BackgroundTask.finish({ taskId });
-        });
+        
+        // Guard: BackgroundTask is only available on Native
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { BackgroundTask } = await import('@capawesome/capacitor-background-task');
+          const taskId = await BackgroundTask.beforeExit(async () => {
+            await processSyncQueue();
+            BackgroundTask.finish({ taskId });
+          });
+        } else {
+          // Web fallback: Just try to process once before visibility ends
+          processSyncQueue().catch(() => {});
+        }
       } else {
         processSyncQueue();
       }

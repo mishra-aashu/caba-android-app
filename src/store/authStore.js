@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import { supabase, onConnectionError } from '../config/supabase';
+import { persist } from 'zustand/middleware';
+import { supabase, onConnectionError, onSessionExpired } from '../config/supabase';
+import { toast } from 'react-hot-toast';
 import { dbToFrontend } from '../utils/dbFieldMapping';
 import { getRedirectUrl } from '../utils/authUtils';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
@@ -122,15 +124,20 @@ const migrateSessionFromPreferences = async () => {
 // Store Definition
 // ══════════════════════════════════════════════════════════════
 
-const useAuthStore = create((set, get) => ({
+const useAuthStore = create(
+  persist(
+    (set, get) => ({
   user: null,
   session: null,
   dbUser: null,
   isAuthenticated: false,
   loading: true,
+  hasHydrated: false,
   isPhoneAuth: false,
   isServerUnreachable: false,
   isDbUserLoaded: false,
+
+  setHasHydrated: (val) => set({ hasHydrated: val }),
 
   clearServerError: () => set({ isServerUnreachable: false }),
 
@@ -148,6 +155,15 @@ const useAuthStore = create((set, get) => ({
     }
     
     isAuthInitialized = true;
+
+    // ═══ Handle Global Session Expiry (401s) ═══
+    onSessionExpired(() => {
+      const { isAuthenticated, signOut } = get();
+      if (isAuthenticated) {
+        toast.error('Session expired. Please log in again.', { id: 'session-expired' });
+        signOut();
+      }
+    });
     console.log('[Auth] 🚀 Initializing authentication system');
 
     try {
@@ -829,6 +845,31 @@ const useAuthStore = create((set, get) => ({
 
     console.log('[Auth] 👋 User signed out');
   },
+}), {
+  name: 'caba-auth-hint',
+  partialize: (state) => ({ 
+    isAuthenticated: state.isAuthenticated,
+    dbUser: state.dbUser 
+  }),
+  onRehydrateStorage: () => async (state) => {
+    if (state) {
+      // ═══ Elite Refinement: Font Orchestration ═══
+      // Wait for Inter/Custom fonts to load to prevent FOUT (Flash of Unstyled Text)
+      if (typeof document !== 'undefined' && document.fonts) {
+        try {
+          await document.fonts.ready;
+        } catch (e) {
+          console.warn('[Auth] Font loading timed out or failed:', e);
+        }
+      }
+
+      state.setHasHydrated(true);
+      // If we rehydrated as authenticated, we can optimistically stop loading
+      if (state.isAuthenticated) {
+        state.loading = false;
+      }
+    }
+  }
 }));
 
 export default useAuthStore;

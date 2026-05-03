@@ -36,7 +36,7 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 0,           // Don't auto-hide on timer
       launchAutoHide: false,           // WE control when to hide (in JS)
-      backgroundColor: '#1a1a2e',      // Match app dark theme
+      backgroundColor: '#0b141a',      // Match app dark theme (#0b141a)
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
       splashImmersive: true,           // Full screen splash

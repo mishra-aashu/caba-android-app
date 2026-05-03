@@ -20,6 +20,16 @@ export const onConnectionError = (callback) => {
   return () => connectionErrorSubscribers.delete(callback);
 };
 
+const sessionExpirySubscribers = new Set();
+export const onSessionExpired = (callback) => {
+  sessionExpirySubscribers.add(callback);
+  return () => sessionExpirySubscribers.delete(callback);
+};
+
+const notifySessionExpired = () => {
+  sessionExpirySubscribers.forEach((cb) => cb());
+};
+
 const notifyConnectionError = () => {
   connectionErrorSubscribers.forEach((cb) => cb());
 };
@@ -96,6 +106,11 @@ const createResilientFetch = () => {
         clearTimeout(timeoutId);
 
         // Handle specific HTTP errors
+        if (response.status === 401) {
+          console.warn('[Supabase] 401 Unauthorized - Session may have expired');
+          notifySessionExpired();
+        }
+
         if (response.status === 403) {
           const errorText = await response.clone().text().catch(() => 'Unknown error');
           console.error(`[Supabase] 403 Forbidden on ${url}:\n`, errorText);

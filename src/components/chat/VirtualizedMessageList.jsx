@@ -75,6 +75,14 @@ const VirtualizedMessageList = React.forwardRef(({
   const isAtTopRef = useRef(false);
 
   // Swipe up to vanish mode logic
+  const previousChatIdRef = useRef(null);
+  const isNewChat = previousChatIdRef.current !== chatId;
+  useEffect(() => {
+      previousChatIdRef.current = chatId;
+  }, [chatId]);
+
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+
   const [swipeProgress, setSwipeProgress] = useState(0);
   const touchStartY = useRef(0);
   const startedAtBottom = useRef(false);
@@ -141,16 +149,32 @@ const VirtualizedMessageList = React.forwardRef(({
     }, [messages, isVanishMode, hasNextPage]);
 
   const scrollToBottom = useCallback((behavior = 'auto') => {
-    if (virtuosoRef.current && itemsWithHeaders.length > 0) {
-      virtuosoRef.current.scrollToIndex({
-        index: itemsWithHeaders.length - 1,
-        behavior,
-        align: 'end',
-      });
-    }
+    virtuosoRef.current?.scrollToIndex({
+      index: itemsWithHeaders.length - 1,
+      align: 'end',
+      behavior
+    });
   }, [itemsWithHeaders.length]);
 
-  React.useImperativeHandle(ref, () => ({ scrollToBottom }), [scrollToBottom]);
+  const scrollToMessageId = useCallback((msgId, behavior = 'smooth') => {
+    const index = messageIdToIndex.get(msgId);
+    if (index !== undefined) {
+      virtuosoRef.current?.scrollToIndex({
+        index,
+        align: 'center',
+        behavior
+      });
+      setHighlightedMessageId(msgId);
+      setTimeout(() => setHighlightedMessageId(null), 3000);
+      return true;
+    }
+    return false;
+  }, [messageIdToIndex]);
+
+  React.useImperativeHandle(ref, () => ({ 
+    scrollToBottom,
+    scrollToMessageId
+  }), [scrollToBottom, scrollToMessageId]);
 
   const VanishEmptyState = () => (
     <div className={styles['vanish-empty-inner']}>
@@ -214,6 +238,7 @@ const VirtualizedMessageList = React.forwardRef(({
         isLast={messageIndex === messages.length - 1}
         onManualRetry={onManualRetry}
         onPin={onPin}
+        isHighlighted={highlightedMessageId === (message.id || message.tempId)}
       />
     );
   }, [
@@ -225,6 +250,7 @@ const VirtualizedMessageList = React.forwardRef(({
     isGroupChat, onSenderClick,
     onAcceptGame, onRejectGame, onJoinGame,
     lastReadMessageId,
+    highlightedMessageId
   ]);
 
   const renderItem = useCallback((index, item) => {

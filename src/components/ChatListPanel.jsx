@@ -58,6 +58,8 @@ import DeleteConfirmation from './chat/DeleteConfirmation';
 import ChatContextMenu from './chat/ChatContextMenu';
 import ErrorBoundary from './common/ErrorBoundary';
 import LoadingSpinner from './common/LoadingSpinner';
+import ChatListSkeleton from './chat/ChatListSkeleton';
+import { isNativeWithPlugins } from '../utils/platformCheck';
 
 // Lazy loaded components
 const CreateGroupModal = lazy(() => import('./groups/CreateGroupModal'));
@@ -212,13 +214,41 @@ const ChatListPanel = ({
 
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // ═══ Splash Screen Coordination ═══
+    // Hide the splash screen as soon as Dexie data is ready (even if empty)
+    if (chats !== undefined) {
+      const revealApp = async () => {
+        if (!isNativeWithPlugins()) return;
+        try {
+          const { StatusBar } = await import('@capacitor/status-bar');
+          const { SplashScreen } = await import('@capacitor/splash-screen');
+          
+          // Match the status bar to the theme before reveal
+          await StatusBar.setBackgroundColor({ color: '#0b141a' });
+          
+          // Haptic Tick - Elite Sensory Cue
+          try {
+            const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+            await Haptics.impact({ style: ImpactStyle.Light });
+          } catch (hapticErr) {}
+
+          await SplashScreen.hide({ fadeOutDuration: 500 });
+          console.log('[Splash] Manual hide triggered by data ready');
+        } catch (e) {
+          console.warn('[Splash] Manual hide failed:', e);
+        }
+      };
+      revealApp();
+    }
+
     return () => {
       isMountedRef.current = false;
       if (searchDebounceRef.current) {
         clearTimeout(searchDebounceRef.current);
       }
     };
-  }, []);
+  }, [chats]); // Run when 'chats' changes from undefined to array
 
   // Sync sidebar view with URL
   useEffect(() => {
@@ -480,9 +510,9 @@ const ChatListPanel = ({
     const otherUserId = result.senderId !== user.id ? result.senderId : null;
     
     if (result.isGroupMessage || !otherUserId) {
-        navigate(`/chat/${result.chatId}`);
+        navigate(`/chat/${result.chatId}?messageId=${result.id}`);
     } else {
-        navigate(`/chat/${result.chatId}/${otherUserId}`);
+        navigate(`/chat/${result.chatId}/${otherUserId}?messageId=${result.id}`);
     }
   }, [navigate, user?.id]);
 
@@ -792,8 +822,22 @@ const ChatListPanel = ({
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {sidebarView === 'chats' ? (
             <PullToRefresh onRefresh={handleManualRefresh} isAtTop={isAtTop}>
-              {loading && displayChats.length === 0 ? (
-                <LoadingSpinner />
+              {chats === undefined ? (
+                <ChatListSkeleton />
+              ) : displayChats.length === 0 && !searchTerm ? (
+                <div className={styles['empty-state']}>
+                  <div className={styles['empty-state-icon-wrapper']}>
+                    <Search size={48} className={styles['empty-state-icon']} />
+                  </div>
+                  <h3>No conversations yet</h3>
+                  <p>Start a new conversation with your contacts or groups.</p>
+                  <button 
+                    onClick={() => navigate('/contacts')} 
+                    className={styles['start-chat-btn']}
+                  >
+                    Start a chat
+                  </button>
+                </div>
               ) : (
                 <ScrollableChatList
                   isDesktop={isDesktop}

@@ -42,7 +42,7 @@ const AuthenticatedApp = lazy(() => import('./AuthenticatedApp'));
 
 
 const PublicApp = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, hasHydrated } = useAuth();
   const { needsRefresh, handleRefresh, handleDismiss, isRefreshing } = useAutoRefresh();
   const location = useLocation();
   const isDesktop = useIsDesktop();
@@ -51,22 +51,22 @@ const PublicApp = () => {
   useOnlineStatus();
   usePlatformInit();
 
-  // ═══ Hide native splash screen after app renders ═══
+  // ═══ Splash Screen Safety Net ═══
   useEffect(() => {
-    if (loading) return;
+    // If we're on a native platform, ensure the splash hides eventually
+    // even if the data-driven hide signal in ChatListPanel fails.
+    if (!isNativeWithPlugins()) return;
     
-    const hideSplash = async () => {
-      if (!isNativeWithPlugins()) return;
+    const timer = setTimeout(async () => {
       try {
         const { SplashScreen } = await import('@capacitor/splash-screen');
-        await new Promise(r => setTimeout(r, 400));
-        await SplashScreen.hide({ fadeOutDuration: 400 });
-      } catch (e) {
-        console.warn('[Splash] Hide failed:', e.message);
-      }
-    };
-    hideSplash();
-  }, [loading]);
+        await SplashScreen.hide({ fadeOutDuration: 500 });
+        console.log('[Splash] Safety net triggered - hiding splash');
+      } catch (e) {}
+    }, 4000); // 4 second safety net
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const isNative = Capacitor.isNativePlatform();
 
@@ -94,16 +94,10 @@ const PublicApp = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // 3. INITIALIZING LOADER (Safety fallback)
-  if (loading) {
-    return (
-      <div className="premium-loader-overlay" style={{ background: '#0b141a' }}>
-        <div className="premium-loader-container">
-          <div className="premium-spinner"></div>
-          <p className="premium-loader-text">Initializing...</p>
-        </div>
-      </div>
-    );
+  // 3. HYDRATION GUARD
+  // Return null while Zustand is reading from LocalStorage to keep Splash visible.
+  if (!hasHydrated) {
+    return null;
   }
 
   return (

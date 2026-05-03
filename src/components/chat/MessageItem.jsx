@@ -58,6 +58,7 @@ const MessageItem = ({
   isLast,
   onManualRetry,
   onPin,
+  isHighlighted,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -299,7 +300,7 @@ const MessageItem = ({
     <div
       ref={messageRef}
       id={`message-${msgId}`}
-      className={`${styles['message-item']} ${isSent ? styles.sent : styles.received} ${isSelected ? styles.selected : ''} ${isSelectionMode ? styles['selection-active'] : ''} ${isGroupChat && !isSent ? styles['group-message'] : ''}`}
+      className={`${styles['message-item']} ${isSent ? styles.sent : styles.received} ${isHighlighted ? styles.highlighted : ''} ${isSelected ? styles.selected : ''} ${isSelectionMode ? styles['selection-active'] : ''} ${isGroupChat && !isSent ? styles['group-message'] : ''}`}
       style={{ contain: 'layout' }}
     >
       {isSelectionMode && (

@@ -161,11 +161,16 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
                 handlersRef.current.onUpdateMessage(newRecord);
             }
         } else if (eventType === 'DELETE' && oldRecord) {
-            // [PRIVACY FIX] Do NOT delete from Dexie when the server deletes the message.
-            // Our server now auto-deletes messages after they are read for privacy.
-            // If we delete here, the message disappears from the phone too!
-            // Local deletion should only happen via manual user action or 'is_deleted' flag updates.
-            _log('Server deleted message row (Privacy Cleanup) - keeping local copy');
+            // [PRIVACY FIX]
+            // Supabase Realtime sends DELETE events for ALL messages to ALL clients because 'chat_id' 
+            // is not a primary key (server cannot filter OLD record). We MUST check if this message 
+            // exists in our local Dexie DB for the CURRENT chat before logging or handling.
+            const localMsg = await db.messages.get(oldRecord.id);
+            if (!localMsg || String(localMsg.chatId) !== String(chatIdRef.current)) {
+                return; // Ignore delete events for other chats
+            }
+
+            _log('Server deleted message row (Privacy Cleanup) - keeping local copy', { chat: chatIdRef.current, id: oldRecord.id });
 
             if (mountedRef.current && handlersRef.current.onDeleteMessage) {
                 handlersRef.current.onDeleteMessage(oldRecord.id);

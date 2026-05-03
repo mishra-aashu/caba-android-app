@@ -581,7 +581,7 @@ const MainLayout = () => {
       <UserDetailsContext.Provider value={userDetailsContextValue}>
         <VersionUpdateModal />
         
-        <div className="mobile-layout">
+        <div className="mobile-layout reveal-app">
           {/* Chat List View */}
           <div 
             className={`list-view ${isChatViewActive ? 'list-view--behind' : ''}`}
@@ -654,12 +654,14 @@ const MainLayout = () => {
       
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
-          <DesktopLayout
-            chatListPanel={sidebarPanel}
-            chatComponent={chatComponent}
-            userDetailsPanel={sidePanel}
-            particleOverlay={<ParticleOverlay />}
-          />
+          <div className="reveal-app" style={{ width: '100%', height: '100%' }}>
+            <DesktopLayout
+              chatListPanel={sidebarPanel}
+              chatComponent={chatComponent}
+              userDetailsPanel={sidePanel}
+              particleOverlay={<ParticleOverlay />}
+            />
+          </div>
         </Suspense>
       </ErrorBoundary>
     </UserDetailsContext.Provider>

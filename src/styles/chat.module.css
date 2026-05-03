@@ -651,8 +651,16 @@ body.light-mode .messages-container {
 
 
 .message-item.highlighted {
-  background-color: rgba(0, 168, 132, 0.08);
-  border-radius: 12px;
+  background-color: var(--highlight-bg, rgba(0, 168, 132, 0.15));
+  box-shadow: 0 0 0 2px var(--brand-primary);
+  border-radius: 8px;
+  animation: messagePulse 1s ease-in-out infinite alternate;
+  z-index: 10;
+}
+
+@keyframes messagePulse {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.9; transform: scale(1.01); }
 }
 
 .message-item.selected {

@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Clock, User } from 'lucide-react';
+import { MessageSquare, Clock, User, Users } from 'lucide-react';
 import { formatInboxTime } from '../../utils/dateFormatter';
+import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 import styles from '../../styles/ChatListItem.module.css';
 
 const MessageSearchResultItem = ({ 
@@ -20,6 +21,7 @@ const MessageSearchResultItem = ({
     } = result;
 
     const displayTime = formatInboxTime(createdAt);
+    const resolvedAvatar = resolveAvatarUrl(chatAvatar);
 
     // Highlight search term in content
     const highlightSearchTerm = (text, term) => {
@@ -47,11 +49,11 @@ const MessageSearchResultItem = ({
             type="button"
         >
             <div className={styles['result-avatar-container']}>
-                {chatAvatar ? (
-                    <img src={chatAvatar} alt="" className={styles['result-avatar']} />
+                {resolvedAvatar ? (
+                    <img src={resolvedAvatar} alt="" className={styles['result-avatar']} />
                 ) : (
                     <div className={styles['result-avatar-fallback']}>
-                        <User size={18} />
+                        {result.isGroupMessage ? <Users size={18} /> : <User size={18} />}
                     </div>
                 )}
             </div>
