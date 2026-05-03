@@ -312,7 +312,7 @@ const ChatHeader = memo(({
 
     // ─── NORMAL HEADER ───
     return (
-        <header className={styles['chat-header']}>
+        <header className={`${styles['chat-header']} ${isTempChat ? styles['vanish-header'] : ''}`}>
             <button 
                 type="button"
                 className={styles['back-btn']} 
@@ -374,9 +374,9 @@ const ChatHeader = memo(({
                         {isInitializing ? 'Loading...' : (isGroupChat
                             ? (otherUser?.name || 'Group Chat')
                             : resolvedName)}
-                        <Lock size={12} style={{ marginLeft: '6px', opacity: 0.6, color: 'var(--brand-primary)' }} />
+                        {isTempChat && <Lock size={12} className={styles['vanish-lock-pulse']} style={{ marginLeft: '6px', color: 'var(--brand-primary)' }} />}
                     </h3>
-                    <p className={styles['user-status']}>{statusText}</p>
+                    <p className={styles['user-status']}>{isTempChat ? '🔐 Secret Connection' : statusText}</p>
                 </div>
             </div>
 

@@ -28,6 +28,8 @@ import { mapMessage as dbToFrontend } from '../../services/dataGateway';
 import { useVanishCleanup } from '../../hooks/chat/useVanishCleanup';
 import { db } from '../../db/db';
 import PinnedMessagesBar from './PinnedMessagesBar';
+import { useVanishPrivacy } from '../../hooks/chat/useVanishPrivacy';
+
 
 
 const MediaViewer = lazy(() => import('../media/MediaViewer'));
@@ -65,7 +67,13 @@ const ChatScreen = () => {
         handleManualRetry
     } = useChatRoom();
 
+    useVanishPrivacy(isTempChat, { 
+        chatId, 
+        userId: currentUser?.id, 
+        userName: currentUser?.name || 'Someone' 
+    });
     useVanishCleanup(chatId);
+
 
     // ✅ Track whether this is genuinely a new chat (not just a re-mount)
     const previousChatIdRef = useRef(null);
@@ -367,6 +375,7 @@ const ChatScreen = () => {
 
     const handleTempChatToggle = async () => {
         try {
+            hapticsManager.impact('medium');
             const newState = !isTempChat;
             if (newState) {
                 await supabase.from('temporary_chat_settings').upsert({

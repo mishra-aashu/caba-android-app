@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useMemo, memo, useEffect, useState } from 'react';
 import { Virtuoso } from 'react-virtuoso';
+import { motion } from 'framer-motion';
 import MessageItem from './MessageItem';
 import TypingIndicator from './TypingIndicator';
 import useChatStore from '../../store/useChatStore';
@@ -155,14 +156,25 @@ const VirtualizedMessageList = React.forwardRef(({
     <div className={styles['vanish-empty-inner']}>
       <div className={styles['vanish-empty-icon']}>
         <div className={styles['vanish-glow']} />
-        <EyeOff size={48} color="rgba(255,255,255,0.4)" strokeWidth={1.5} />
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <EyeOff size={56} color="var(--brand-primary)" strokeWidth={1.2} style={{ opacity: 0.9 }} />
+        </motion.div>
       </div>
-      <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
-        Private Messaging
+      <h3 className={styles['vanish-title-gradient']}>
+        Secret Messaging
       </h3>
-      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', maxWidth: '240px', lineHeight: '1.5' }}>
-        Messages disappear after they've been seen or when you leave the chat.
+      <p className={styles['vanish-description']}>
+        Messages in this mode are end-to-end encrypted and self-destruct automatically.
       </p>
+      <div className={styles['vanish-shield-badge']}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Screenshot Protection Active
+      </div>
     </div>
   );
 

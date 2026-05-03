@@ -278,6 +278,7 @@ const MessageInput = ({
               isUploading={isUploading}
               externalDisabled={externalDisabled}
               disabledPlaceholder={disabledPlaceholder}
+              isTempChat={isTempChat}
               onInputChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
               onToggleEmoji={() => setShowEmojiPicker(!showEmojiPicker)}

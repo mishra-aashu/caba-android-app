@@ -45,13 +45,19 @@ const InputBar = ({
         <span className={styles['textarea-mirror']}>{message + '\n'}</span>
         <textarea
           ref={textareaRef}
-          className={styles['chat-input']}
-          placeholder={externalDisabled ? disabledPlaceholder : "Type a message..."}
+          className={`${styles['chat-input']} ${isTempChat ? styles['vanish-input'] : ''}`}
+          placeholder={externalDisabled ? disabledPlaceholder : (isTempChat ? "Secret message..." : "Type a message...")}
           value={message}
           onChange={onInputChange}
           onKeyDown={onKeyDown}
           rows={1}
           disabled={isUploading || externalDisabled}
+          // [PRIVACY] Disable keyboard learning/suggestions in Vanish Mode
+          autoComplete={isTempChat ? "off" : "on"}
+          autoCorrect={isTempChat ? "off" : "on"}
+          spellCheck={!isTempChat}
+          data-private={isTempChat}
+          inputMode={isTempChat ? "text" : undefined}
         />
       </div>
 

@@ -4493,3 +4493,193 @@ body.light-mode .no-messages-content {
   opacity: 1;
   transform: scale(1.1);
 }
+
+/* ─────────────────────────────────────────────
+   VANISH MODE PRIVACY (GLOBAL)
+───────────────────────────────────────────── */
+
+:global(body.vanish-mode-blurred) {
+  filter: blur(25px) !important;
+  pointer-events: none !important;
+  transition: filter 0.3s ease;
+}
+
+/* Optional: Overlay message when blurred */
+:global(body.vanish-mode-blurred)::after {
+  content: '🛡️ Private Chat Protected';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  z-index: 99999;
+  text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────
+   PREMIUM VANISH EMPTY STATE
+───────────────────────────────────────────── */
+
+.vanish-empty-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  margin: auto;
+  animation: vanishFadeIn 0.8s ease-out;
+}
+
+@keyframes vanishFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.vanish-empty-icon {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.vanish-glow {
+  position: absolute;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(0, 168, 132, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: vanishPulse 3s infinite ease-in-out;
+}
+
+@keyframes vanishPulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+}
+
+.vanish-title-gradient {
+  background: linear-gradient(135deg, #fff 0%, #aebac1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+.vanish-description {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 280px;
+  font-weight: 400;
+}
+
+.vanish-shield-badge {
+  margin-top: 20px;
+  padding: 6px 14px;
+  background: rgba(0, 168, 132, 0.1);
+  border: 1px solid rgba(0, 168, 132, 0.2);
+  border-radius: 20px;
+  color: var(--brand-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─────────────────────────────────────────────
+   SECURITY LOCK (SCREENSHOT ATTEMPT)
+───────────────────────────────────────────── */
+
+:global(body.vanish-mode-locked) {
+  filter: blur(40px) grayscale(1) !important;
+  pointer-events: none !important;
+  transition: filter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:global(body.vanish-mode-locked)::after {
+  content: '⚠️ SECURITY BREACH DETECTED \A Screenshot attempt blocked. \A Leave and re-enter to unlock.';
+  white-space: pre-wrap;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ff4b4b;
+  font-size: 24px;
+  font-weight: 800;
+  text-align: center;
+  z-index: 100000;
+  text-shadow: 0 0 20px rgba(255, 75, 75, 0.5);
+  background: rgba(0,0,0,0.8);
+  padding: 30px;
+  border-radius: 20px;
+  border: 2px solid #ff4b4b;
+  width: 80%;
+  max-width: 400px;
+}
+
+/* ─────────────────────────────────────────────
+   LEVEL 3 PRIVACY (NO SELECTION)
+───────────────────────────────────────────── */
+
+:global(body.vanish-mode-blurred),
+:global(body.vanish-mode-locked) {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* ─────────────────────────────────────────────
+   VANISH MODE HEADER
+───────────────────────────────────────────── */
+
+.chat-header.vanish-header {
+  background: rgba(7, 20, 20, 0.95) !important;
+  border-bottom: 1px solid rgba(0, 168, 132, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.vanish-header .user-name {
+  color: var(--brand-primary) !important;
+}
+
+.vanish-header .user-status {
+  color: rgba(0, 168, 132, 0.7) !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.vanish-lock-pulse {
+  animation: lockPulse 2s infinite ease-in-out;
+}
+
+@keyframes lockPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ─────────────────────────────────────────────
+   INCOGNITO INPUT (VANISH MODE)
+───────────────────────────────────────────── */
+
+.chat-input.vanish-input {
+  color: var(--brand-primary) !important;
+  caret-color: var(--brand-primary) !important;
+}
+
+.chat-input.vanish-input::placeholder {
+  color: rgba(0, 168, 132, 0.4) !important;
+}
