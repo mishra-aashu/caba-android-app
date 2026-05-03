@@ -419,3 +419,48 @@
     border-left: none;
   }
 }
+
+.session-join-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manual-join-form {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.manual-join-form input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  outline: none;
+}
+
+.manual-join-form button {
+  background: var(--brand-primary, #00a884);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.manual-join-form button:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}

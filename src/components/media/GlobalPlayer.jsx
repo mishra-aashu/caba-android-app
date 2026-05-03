@@ -18,7 +18,9 @@ const GlobalPlayer = () => {
     togglePanel,
     isPanelOpen,
     refreshCurrentSongMetadata,
-    setCurrentSong
+    setCurrentSong,
+    roomId,
+    isHost
   } = useMusicStore();
 
   const audioRef = useRef(null);
@@ -229,7 +231,13 @@ const GlobalPlayer = () => {
           max={duration || 0}
           step="0.1"
           value={progress || 0}
-          onChange={handleSeek}
+          onChange={(e) => {
+            if (!isHost && roomId) {
+              toast.error("Only Host can seek", { id: 'host-only' });
+              return;
+            }
+            handleSeek(e);
+          }}
         />
       </div>
 
@@ -262,8 +270,14 @@ const GlobalPlayer = () => {
           </button>
           
           <button 
-            className="player-btn-main" 
-            onClick={() => setIsPlaying(!isPlaying)}
+            className={`player-btn-main ${(!isHost && roomId) ? 'disabled' : ''}`} 
+            onClick={() => {
+              if (!isHost && roomId) {
+                toast.error("Only Host can control playback", { id: 'host-only', duration: 1000 });
+                return;
+              }
+              setIsPlaying(!isPlaying);
+            }}
           >
             {isPlaying ? (
               <Pause size={24} fill="currentColor" />

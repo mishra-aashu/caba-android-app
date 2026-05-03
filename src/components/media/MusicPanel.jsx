@@ -2,6 +2,12 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useMusicStore from '../../store/useMusicStore';
 import MusicSearch from './MusicSearch';
+import useChatStore, { selectActiveChatId } from '../../store/useChatStore';
+import useAuthStore from '../../store/authStore';
+import { db } from '../../db/db';
+import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
+import { frontendToDb } from '../../utils/dbFieldMapping';
+import { toast } from 'react-hot-toast';
 import { X, Share2, Users, Radio, ChevronRight, Music, Play, Pause } from 'lucide-react';
 import './MusicPanel.css';
 
@@ -46,9 +52,58 @@ const MusicPanel = () => {
     joinRoom(newRoomId, true);
   };
 
-  const handleShareSession = () => {
-    // TODO: Integrate with chat to share the Room ID
-    console.log("Sharing session:", roomId);
+  const handleShareSession = async () => {
+    if (!roomId) return;
+    
+    const { activeChatId, activeChat } = useChatStore.getState();
+    const { user } = useAuthStore.getState();
+    
+    if (!activeChatId || !user) {
+      toast.error("Open a chat to share session", { icon: '💬' });
+      return;
+    }
+
+    const tempId = String(Date.now());
+    const taskId = crypto.randomUUID();
+
+    const shareMsg = {
+      chatId: activeChatId,
+      senderId: user.id,
+      receiverId: activeChat.isGroup ? user.id : activeChat.otherUserId,
+      content: `Join my Music Session! Room ID: ${roomId}`,
+      metadata: {
+        type: 'music_session_share',
+        roomId: roomId,
+        song: currentSong
+      },
+      isGroupMessage: Boolean(activeChat.isGroup),
+      messageType: 'text', // Using text to avoid constraint issues, or could use a new type
+      createdAt: new Date().toISOString(),
+      status: 'sending',
+      tempId,
+    };
+
+    try {
+      await db.transaction('rw', [db.messages, db.chats_list], async () => {
+        await db.messages.put({ ...shareMsg, id: `temp_${tempId}` });
+      });
+      
+      const dbData = frontendToDb(shareMsg);
+      await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData, { taskId });
+      
+      toast.success("Room ID shared to chat!");
+    } catch (err) {
+      console.error("Session share failed:", err);
+      toast.error("Failed to share room");
+    }
+  };
+
+  const handleJoinManual = (e) => {
+    e.preventDefault();
+    const id = e.target.roomInput.value.trim().toUpperCase();
+    if (id) {
+      joinRoom(id, false);
+    }
   };
 
   return (
@@ -91,15 +146,27 @@ const MusicPanel = () => {
                 {/* Session Control */}
                 <div className="session-status-container">
                   {!roomId ? (
-                    <div className="session-invite-card" onClick={handleCreateRoom}>
-                      <div className="invite-icon">
-                        <Users size={20} />
+                    <div className="session-join-options">
+                      <div className="session-invite-card" onClick={handleCreateRoom}>
+                        <div className="invite-icon">
+                          <Users size={20} />
+                        </div>
+                        <div className="invite-text">
+                          <h4>Host Session</h4>
+                          <p>Start a new room</p>
+                        </div>
+                        <ChevronRight size={20} className="invite-arrow" />
                       </div>
-                      <div className="invite-text">
-                        <h4>Listen Together</h4>
-                        <p>Sync music with your friends</p>
-                      </div>
-                      <ChevronRight size={20} className="invite-arrow" />
+
+                      <form className="manual-join-form" onSubmit={handleJoinManual}>
+                        <input 
+                          type="text" 
+                          name="roomInput" 
+                          placeholder="ENTER ROOM ID" 
+                          maxLength={6}
+                        />
+                        <button type="submit">JOIN</button>
+                      </form>
                     </div>
                   ) : (
                     <div className="session-active-card">

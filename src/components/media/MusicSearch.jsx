@@ -23,7 +23,7 @@ const MusicSearch = () => {
   const [isSearchLoading, setSearchLoading] = useState(false);
   const [loadingSongId, setLoadingSongId] = useState(null); // Track which song is fetching details
   
-  const { currentSong, setCurrentSong, setIsPlaying } = useMusicStore();
+  const { currentSong, setCurrentSong, setIsPlaying, roomId, isHost } = useMusicStore();
 
   const activeChatId = useChatStore(selectActiveChatId);
   const activeChat = useChatStore(state => state.activeChat);
@@ -193,8 +193,9 @@ const MusicSearch = () => {
       receiverId: activeChat.isGroup ? user.id : activeChat.otherUserId,
       content: `Shared a song: ${songData.title}`,
       metadata: {
-        song: songData,
-        type: 'music_share'
+        song: finalSong,
+        type: 'music_share',
+        roomId: roomId
       },
       isGroupMessage: Boolean(activeChat.isGroup),
       messageType: 'song',
@@ -226,6 +227,12 @@ const MusicSearch = () => {
 
   const togglePlayback = (e, song) => {
     e.stopPropagation();
+    
+    if (roomId && !isHost) {
+      toast.error("Only Host can control playback", { id: 'host-only-warn' });
+      return;
+    }
+
     const isCurrent = currentSong?.id === song.id;
     if (isCurrent) {
       useMusicStore.getState().setIsPlaying(!useMusicStore.getState().isPlaying);
@@ -271,7 +278,13 @@ const MusicSearch = () => {
               key={song.id} 
               song={song} 
               index={index} 
-              onSelect={selectSong} 
+              onSelect={(s) => {
+                if (roomId && !isHost) {
+                  toast.error("Only Host can change songs", { id: 'host-only-warn' });
+                  return;
+                }
+                selectSong(s);
+              }} 
               onInvite={handleInvite}
               onToggle={togglePlayback}
               currentSongId={currentSong?.id}

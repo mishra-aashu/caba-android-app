@@ -4,7 +4,8 @@ import { supabase } from '../../config/supabase';
 
 /**
  * useMusicSync - Custom hook for Listen Together synchronization
- * Uses Supabase Realtime Broadcast to sync playback state between Host and Guest.
+ * Uses Supabase Realtime Broadcast for ultra-low latency sync.
+ * (Note: Broadcast does NOT write to database, it's transient like WebRTC).
  */
 const useMusicSync = () => {
   const { 
@@ -16,11 +17,13 @@ const useMusicSync = () => {
     setSyncStatus, 
     setCurrentSong, 
     setIsPlaying, 
-    setProgress 
+    setProgress,
+    leaveRoom
   } = useMusicStore();
   
   const channelRef = useRef(null);
   const lastBroadcastRef = useRef(0);
+  const isInternalUpdate = useRef(false);
 
   // 1. Channel Lifecycle: Join/Leave room
   useEffect(() => {
@@ -40,10 +43,23 @@ const useMusicSync = () => {
       handleSyncEvent(payload);
     });
 
-    channel.subscribe((status) => {
+    // Handle host leaving
+    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+      if (!isHost && leftPresences.some(p => p.isHost)) {
+        console.log("[MusicSync] Host left the room");
+        leaveRoom();
+      }
+    });
+
+    channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         console.log(`[MusicSync] Joined room: ${roomId}`);
         setSyncStatus('synced');
+        
+        // Track presence to know when host leaves
+        if (isHost) {
+          await channel.track({ isHost: true, user_id: 'host' });
+        }
       } else {
         setSyncStatus('disconnected');
       }
@@ -56,24 +72,24 @@ const useMusicSync = () => {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [roomId]);
+  }, [roomId, isHost]);
 
   // 2. Host Side: Broadcast state changes
   useEffect(() => {
-    if (!isHost || !channelRef.current || !currentSong) return;
+    if (!isHost || !channelRef.current) return;
 
     const broadcastState = (isImmediate = false) => {
       const now = Date.now();
       
-      // Throttle broadcasts unless it's an immediate event (play/pause)
+      // Throttle heartbeat broadcasts, but allow immediate events
       if (!isImmediate && now - lastBroadcastRef.current < 2000) return;
 
       channelRef.current.send({
         type: 'broadcast',
         event: 'sync',
         payload: {
-          songId: currentSong.id,
-          songMeta: currentSong,
+          songId: currentSong?.id || null,
+          songMeta: currentSong || null,
           playing: isPlaying,
           pos: progress,
           sent_at: now
@@ -83,10 +99,10 @@ const useMusicSync = () => {
       lastBroadcastRef.current = now;
     };
 
-    // Broadcast on progress update (throttled by useEffect dependency or internal timer)
-    const interval = setInterval(() => broadcastState(false), 3000);
+    // Heartbeat for keeping guests in sync
+    const interval = setInterval(() => broadcastState(false), 2000);
     
-    // Immediate broadcast on play/pause or song change
+    // Immediate broadcast on any major state change
     broadcastState(true);
 
     return () => clearInterval(interval);
@@ -94,37 +110,42 @@ const useMusicSync = () => {
 
   // 3. Guest Side: Handle incoming sync events
   const handleSyncEvent = useCallback((payload) => {
-    if (isHost) return; // Host ignores sync messages
+    if (isHost) return;
 
     const { songId, songMeta, playing, pos, sent_at } = payload;
     
-    // A. Sync Song Selection
-    if (!currentSong || currentSong.id !== songId) {
-      console.log(`[MusicSync] Syncing new song: ${songMeta.title}`);
+    isInternalUpdate.current = true;
+
+    // A. Sync Song Selection (Master Control)
+    if (!songId) {
+      if (currentSong) {
+        setCurrentSong(null);
+      }
+    } else if (!currentSong || currentSong.id !== songId) {
+      console.log(`[MusicSync] Host changed song: ${songMeta.title}`);
       setCurrentSong(songMeta);
     }
 
-    // B. Sync Playback Status
+    // B. Sync Playback Status (Master Control)
     if (playing !== isPlaying) {
       setIsPlaying(playing);
     }
 
-    // C. Sync Progress (with latency compensation)
+    // C. Sync Progress (Latency compensated)
     const latency = (Date.now() - sent_at) / 1000;
     const targetPos = pos + (playing ? latency : 0);
 
-    // Only seek if drift is significant (> 1.5s) to avoid jitter
     const drift = Math.abs(progress - targetPos);
-    if (drift > 1.5) {
-      console.log(`[MusicSync] Correcting drift: ${drift.toFixed(2)}s`);
+    if (drift > 2.0 || (!isPlaying && drift > 0.5)) {
+      // Significant drift or host stopped at different position
       setProgress(targetPos);
-      
-      // If we are significantly behind/ahead, we might show "lagging" status
       setSyncStatus('lagging');
-      setTimeout(() => setSyncStatus('synced'), 1000);
+      setTimeout(() => setSyncStatus('synced'), 500);
     } else {
       setSyncStatus('synced');
     }
+
+    setTimeout(() => { isInternalUpdate.current = false; }, 100);
   }, [isHost, currentSong, isPlaying, progress]);
 
   return null;
