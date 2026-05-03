@@ -8,7 +8,7 @@ import { db } from '../../db/db';
 import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
 import { frontendToDb } from '../../utils/dbFieldMapping';
 import { toast } from 'react-hot-toast';
-import { X, Share2, Users, Radio, ChevronRight, Music, Play, Pause } from 'lucide-react';
+import { X, Share2, Users, Radio, ChevronRight, Music, Play, Pause, Maximize2, UserPlus } from 'lucide-react';
 import './MusicPanel.css';
 
 /**
@@ -17,6 +17,7 @@ import './MusicPanel.css';
  * Uses Framer Motion for high-end cinematic transitions.
  */
 const MusicPanel = () => {
+  const [sessionMode, setSessionMode] = React.useState(null);
   const { 
     isPanelOpen, 
     togglePanel, 
@@ -142,53 +143,96 @@ const MusicPanel = () => {
                   </button>
                 </div>
                 
-                <h2 className="panel-title">Explore Beats</h2>
+                <h2 className="panel-title">
+                  <Music size={24} className="title-icon" />
+                  Explore Beats
+                </h2>
                 
-                {/* Session Control */}
+                {/* Session Action Bar */}
                 <div className="session-status-container">
                   {!roomId ? (
-                    <div className="session-join-options">
-                      <div className="session-invite-card" onClick={handleCreateRoom}>
-                        <div className="invite-icon">
-                          <Users size={20} />
-                        </div>
-                        <div className="invite-text">
-                          <h4>Host Session</h4>
-                          <p>Start a new room</p>
-                        </div>
-                        <ChevronRight size={20} className="invite-arrow" />
-                      </div>
-
-                      <form className="manual-join-form" onSubmit={handleJoinManual}>
-                        <input 
-                          type="text" 
-                          name="roomInput" 
-                          placeholder="ENTER ROOM ID" 
-                          maxLength={6}
-                        />
-                        <button type="submit">JOIN</button>
-                      </form>
+                    <div className="session-quick-actions">
+                      <button 
+                        className={`action-pill ${sessionMode === 'host' ? 'active' : ''}`}
+                        onClick={() => setSessionMode(sessionMode === 'host' ? null : 'host')}
+                      >
+                        <Users size={18} />
+                        <span>HOST</span>
+                      </button>
+                      <button 
+                        className={`action-pill ${sessionMode === 'join' ? 'active' : ''}`}
+                        onClick={() => setSessionMode(sessionMode === 'join' ? null : 'join')}
+                      >
+                        <UserPlus size={18} />
+                        <span>JOIN</span>
+                      </button>
                     </div>
                   ) : (
-                    <div className="session-active-card">
+                    <div className="session-active-card mini">
                       <div className="active-room-pulse">
-                        <Radio size={18} className="pulse-icon" />
                         <div className="pulse-ring" />
+                        <Radio size={16} />
                       </div>
                       <div className="room-details">
-                        <h4>Active Room: <span>{roomId}</span></h4>
-                        <p>{isHost ? 'Hosting Session' : 'Listening with Friend'}</p>
+                        <span>{roomId}</span>
+                        <p>{isHost ? 'HOSTING' : 'LISTENING'}</p>
                       </div>
                       <div className="room-actions">
-                        <button className="share-session-btn" onClick={handleShareSession}>
-                          <Share2 size={18} />
+                        <button className="share-session-btn" onClick={handleShareSession} title="Share Room ID">
+                          <Share2 size={14} />
                         </button>
                         <button className="leave-session-btn" onClick={leaveRoom}>
-                          Leave
+                          LEAVE
                         </button>
                       </div>
                     </div>
                   )}
+
+                  {/* Dropdown Boxes */}
+                  <AnimatePresence mode="wait">
+                    {sessionMode === 'host' && !roomId && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="session-reveal-box"
+                      >
+                        <div className="session-invite-card" onClick={() => {
+                          joinRoom(Math.random().toString(36).substring(2, 8).toUpperCase(), true);
+                          setSessionMode(null);
+                        }}>
+                          <div className="invite-icon">
+                            <Users size={20} />
+                          </div>
+                          <div className="invite-text">
+                            <h4>Create New Room</h4>
+                            <p>Everyone will hear your music</p>
+                          </div>
+                          <ChevronRight size={18} />
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {sessionMode === 'join' && !roomId && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="session-reveal-box"
+                      >
+                        <form className="manual-join-form-pro" onSubmit={(e) => {
+                          handleJoinManual(e);
+                          setSessionMode(null);
+                        }}>
+                          <div className="pro-input-wrapper">
+                            <UserPlus size={18} className="input-icon" />
+                            <input name="roomInput" placeholder="Enter 6-digit Room ID" autoComplete="off" autoFocus />
+                          </div>
+                          <button type="submit">JOIN SESSION</button>
+                        </form>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
@@ -238,7 +282,12 @@ const MusicPanel = () => {
                       </div>
                       <div className="footer-info">
                         <h4 dangerouslySetInnerHTML={{ __html: currentSong.title }} />
-                        <p dangerouslySetInnerHTML={{ __html: currentSong.artist }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <p dangerouslySetInnerHTML={{ __html: currentSong.artist }} style={{ display: 'none' }} />
+                          <span style={{ fontSize: '10px', color: 'var(--brand-primary)', fontWeight: 700, opacity: 0.8, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Maximize2 size={10} /> FULLSCREEN
+                          </span>
+                        </div>
                       </div>
                       <div className="footer-actions">
                         <button 

@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 2000;
+  z-index: 3000;
   background: #000;
   display: flex;
   flex-direction: column;
@@ -94,8 +94,9 @@
 
 .song-info-expanded p {
   font-size: 1.1rem;
-  opacity: 0.7;
-  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 8px 0 0 0;
+  display: none;
 }
 
 .player-controls-footer {

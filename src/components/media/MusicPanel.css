@@ -38,8 +38,8 @@
 
 /* --- Header Section --- */
 .panel-header-glass {
-  padding: 24px;
-  padding-top: calc(24px + var(--safe-top, 0px));
+  padding: 16px 20px;
+  padding-top: calc(16px + var(--safe-top, 0px));
   background: linear-gradient(180deg, rgba(0, 168, 132, 0.12) 0%, transparent 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -48,7 +48,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .brand-badge {
@@ -93,28 +93,150 @@
 }
 
 .panel-title {
-  font-size: 2rem;
+  font-size: 1.4rem;
   font-weight: 900;
-  margin: 0 0 24px 0;
+  margin: 0 0 12px 0;
   letter-spacing: -0.04em;
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* --- Session Control Cards --- */
-.session-status-container {
+.title-icon {
+  color: var(--brand-primary, #00a884);
+  filter: drop-shadow(0 0 8px rgba(0, 168, 132, 0.4));
+}
+
+.session-quick-actions {
+  display: flex;
+  gap: 12px;
   margin-bottom: 8px;
 }
 
-.session-invite-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 24px;
-  padding: 20px;
+.action-pill {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px;
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.action-pill.active {
+  background: rgba(0, 168, 132, 0.1);
+  border-color: var(--brand-primary, #00a884);
+  color: var(--brand-primary, #00a884);
+  box-shadow: 0 4px 15px rgba(0, 168, 132, 0.15);
+}
+
+.session-reveal-box {
+  margin: 12px 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.session-invite-card {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.session-invite-card:hover {
+  background: rgba(0, 168, 132, 0.05);
+}
+
+.invite-icon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--brand-primary) 0%, #00d2ad 100%);
+  color: #fff;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(0, 168, 132, 0.3);
+}
+
+.invite-text h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 2px 0;
+  color: #fff;
+}
+
+.invite-text p {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+}
+
+.manual-join-form-pro {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pro-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.pro-input-wrapper:focus-within {
+  border-color: var(--brand-primary);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.pro-input-wrapper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  letter-spacing: 0.02em;
+}
+
+.manual-join-form-pro button {
+  background: var(--brand-primary, #00a884);
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(0, 168, 132, 0.2);
 }
 
 .session-invite-card:hover {
@@ -125,15 +247,15 @@
 }
 
 .invite-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   background: var(--brand-primary, #00a884);
   color: #fff;
-  border-radius: 16px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 20px rgba(0, 168, 132, 0.3);
+  box-shadow: 0 6px 15px rgba(0, 168, 132, 0.2);
 }
 
 .invite-text h4 {
@@ -463,3 +585,5 @@
   filter: brightness(1.2);
   transform: translateY(-1px);
 }
+
+
