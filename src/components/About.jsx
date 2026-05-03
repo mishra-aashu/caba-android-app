@@ -25,54 +25,64 @@ const About = () => {
   }, [dbVersionData, isUpdateAvailable]);
 
   return (
-    <div className="about-container">
-      <header className="about-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={24} />
+    <div className="about-container premium-theme">
+      {/* Decorative Background Elements */}
+      <div className="about-bg-blob blob-1"></div>
+      <div className="about-bg-blob blob-2"></div>
+      <div className="about-bg-blob blob-3"></div>
+
+      <header className="about-header glass-header">
+        <button className="back-btn-premium" onClick={() => navigate(-1)}>
+          <ArrowLeft size={22} />
         </button>
         <h1>About <AppName size="small" /></h1>
       </header>
 
       <div className="about-content">
         {/* Hero Section */}
-        <div className="about-hero">
-          <AppName size="large" />
+        <div className="about-hero-premium">
+          <div className="hero-logo-wrapper">
+            <AppName size="large" />
+          </div>
           <div className="version-badge-container">
-            <p className="version">Version {localVersion}</p>
+            <p className="version-text">Version {localVersion}</p>
             {!isUpdateAvailable ? (
-              <span className="version-status latest">Latest Updated</span>
+              <span className="version-status-premium latest">Latest Updated</span>
             ) : (
-              <span className="version-status update">Update Available</span>
+              <span className="version-status-premium update">Update Available</span>
             )}
           </div>
-          <p className="tagline">Connect, Communicate, Care</p>
+          <p className="tagline-premium">Connect • Communicate • Care</p>
         </div>
 
         {/* Purpose Section */}
-        <div className="about-section">
-          <div className="section-icon">
-            <Heart size={32} />
+        <div className="about-section-premium animate-on-scroll">
+          <div className="section-icon-premium">
+            <div className="icon-pulse-wrapper">
+              <Heart size={32} />
+              <div className="pulse-ring"></div>
+            </div>
           </div>
           <h3>Our Purpose</h3>
-          <p>
+          <p className="purpose-description">
             Elevengram is designed to bring people closer together through secure, private, and reliable communication.
             Whether you're chatting with friends, family, or colleagues, Elevengram ensures your conversations remain
             private and your connections stay strong.
           </p>
-          <div className="purpose-features">
-            <div className="feature-item">
+          <div className="purpose-features-grid">
+            <div className="feature-item-premium">
               <MessageCircle size={20} />
               <span>Instant Messaging</span>
             </div>
-            <div className="feature-item">
+            <div className="feature-item-premium">
               <Phone size={20} />
               <span>Voice & Video Calls</span>
             </div>
-            <div className="feature-item">
+            <div className="feature-item-premium">
               <Users size={20} />
               <span>Group Chats</span>
             </div>
-            <div className="feature-item">
+            <div className="feature-item-premium">
               <Shield size={20} />
               <span>End-to-End Encryption</span>
             </div>
@@ -80,8 +90,9 @@ const About = () => {
         </div>
 
         {/* Developer Section */}
-        <div className="about-section developer-section">
-          <div className="section-icon">
+        <div className="about-section-premium visionary-section animate-on-scroll">
+          <div className="visionary-badge">FOUNDER & ARCHITECT</div>
+          <div className="section-icon-premium">
             <Users size={32} />
           </div>
           <h3>The Visionary Behind Elevengram</h3>
@@ -89,155 +100,52 @@ const About = () => {
             I'm <strong>Aashutosh Mishra</strong>, an innovator and engineer at <strong>IIT Madras</strong>. 
             My journey began with a simple question: <em>How can we reclaim our digital sovereignty?</em> 
             Elevengram is the answer—a culmination of rigorous engineering and a deep-seated 
-            belief that privacy is not a luxury, but a fundamental human right. 
-            By merging cutting-edge cryptography with intuitive design, I've built more than 
-            just a chat app—I've built a sanctuary for your conversations.
+            belief that privacy is not a luxury, but a fundamental human right.
           </p>
-          <div className="developer-badge">
+          <div className="developer-badge-premium">
             <Heart size={16} fill="#ff4b2b" color="#ff4b2b" />
-            <span>Crafted with Passion</span>
+            <span>Crafted with Passion at IIT Madras</span>
           </div>
         </div>
 
-        {/* Security Section */}
-        <div className="about-section">
-          <div className="section-icon">
-            <Shield size={32} />
+        {/* Security Suite */}
+        <div className="about-section-premium security-suite animate-on-scroll">
+          <div className="section-icon-premium">
+            <Lock size={32} />
           </div>
-          <h3>The "2E Integrated" Security Suite</h3>
-          <p className="section-subtitle">
-            We've spent months perfecting our security architecture. With the release of <strong>Version 3.5</strong>, 
-            Elevengram now features official <strong>2E (End-to-End)</strong> integration, 
-            providing unmatched privacy that even we cannot bypass.
+          <h3>Integrated Security Suite</h3>
+          <p className="section-subtitle-premium">
+            Engineered with a <strong>Security-First</strong> mindset. Version 3.5 introduces 
+            enhanced <strong>2E (End-to-End)</strong> protocols for absolute privacy.
           </p>
-          <div className="security-grid">
-            <div className="security-item">
-              <Lock size={24} />
-              <h4>AES-256 Military Grade</h4>
-              <p>
-                Every single message and media file is locked with a unique 256-bit key. 
-                This is the same standard used by governments to protect top-secret data. 
-                Encryption happens <strong>on your device</strong>, not on our servers.
-              </p>
+          <div className="security-grid-premium">
+            <div className="security-card">
+              <Shield size={24} className="card-icon" />
+              <h4>AES-256 Protocol</h4>
+              <p>Military-grade encryption for all media and messages, locked on-device.</p>
             </div>
-            <div className="security-item">
-              <Shield size={24} />
-              <h4>SHA-256 Key Derivation</h4>
-              <p>
-                We use the SHA-256 hashing algorithm to derive unique, deterministic keys for every chat. 
-                This ensures that your keys are never stored, never transmitted, and can only be unlocked by the participants.
-              </p>
+            <div className="security-card">
+              <Lock size={24} className="card-icon" />
+              <h4>SHA-256 Derivation</h4>
+              <p>Deterministic keys ensure your identity remains private and untraceable.</p>
             </div>
-            <div className="security-item">
-              <Eye size={24} />
-              <h4>Server-Blind Protection</h4>
-              <p>
-                Our Supabase servers are "blind" to your content. They only see encrypted strings (ciphertext). 
-                Even if someone gained access to our database, they would only find gibberish.
-                <strong> No one—not even the developers—can read your chats.</strong>
-              </p>
+            <div className="security-card">
+              <Eye size={24} className="card-icon" />
+              <h4>Server-Blind</h4>
+              <p>Our infrastructure is architected to be completely blind to your data.</p>
             </div>
           </div>
         </div>
 
-        {/* Privacy Section */}
-        <div className="about-section">
-          <div className="section-icon">
-            <Eye size={32} />
-          </div>
-          <h3>Your Privacy Matters</h3>
-          <div className="privacy-points">
-            <div className="privacy-point">
-              <div className="privacy-icon">
-                <Lock size={20} />
-              </div>
-              <div>
-                <h4>Data Encryption</h4>
-                <p>Your messages are encrypted in transit and at rest using AES-256 encryption.</p>
-              </div>
-            </div>
-            <div className="privacy-point">
-              <div className="privacy-icon">
-                <Shield size={20} />
-              </div>
-              <div>
-                <h4>No Tracking</h4>
-                <p>We don't track your location or monitor your online activity.</p>
-              </div>
-            </div>
-            <div className="privacy-point">
-              <div className="privacy-icon">
-                <Eye size={20} />
-              </div>
-              <div>
-                <h4>Device Control</h4>
-                <p>You control who can contact you and what information is shared.</p>
-              </div>
-            </div>
-            <div className="privacy-point">
-              <div className="privacy-icon">
-                <Trash2 size={20} />
-              </div>
-              <div>
-                <h4>Data Deletion</h4>
-                <p>You can delete your account and all associated data at any time.</p>
-              </div>
-            </div>
-            <div className="privacy-point">
-              <div className="privacy-icon">
-                <Shield size={20} />
-              </div>
-              <div>
-                <h4>Secure Authentication</h4>
-                <p>Multi-factor authentication and secure login methods protect your account.</p>
-              </div>
-            </div>
-            <div className="privacy-point">
-              <div className="privacy-icon">
-                <FileText size={20} />
-              </div>
-              <div>
-                <h4>Minimal Data Collection</h4>
-                <p>We only collect what's necessary: your name, phone number, and profile information.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Features Section */}
-        <div className="about-section">
-          <h3>Key Features</h3>
-          <div className="features-grid">
-            <div className="feature-card">
-              <MessageCircle size={24} />
-              <h4>Real-time Messaging</h4>
-              <p>Send and receive messages instantly with read receipts and typing indicators.</p>
-            </div>
-            <div className="feature-card">
-              <Phone size={24} />
-              <h4>HD Voice & Video Calls</h4>
-              <p>Crystal clear voice calls and high-definition video calls with screen sharing.</p>
-            </div>
-            <div className="feature-card">
-              <Users size={24} />
-              <h4>Group Conversations</h4>
-              <p>Create groups for family, friends, or work with up to 1000 members.</p>
-            </div>
-            <div className="feature-card">
-              <Shield size={24} />
-              <h4>Advanced Security</h4>
-              <p>Self-destructing messages, two-factor authentication, and biometric login.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="about-footer">
-          <p>Thank you for choosing Elevengram for your communication needs.</p>
-          <p className="copyright">© 2026 Aashutosh Mishra | IIT Madras. All rights reserved.</p>
+        <div className="about-footer-premium">
+          <div className="footer-divider"></div>
+          <p>Thank you for choosing Elevengram</p>
+          <p className="copyright-premium">© 2026 Aashutosh Mishra | IIT Madras</p>
         </div>
       </div>
     </div>
   );
+
 };
 
 export default About;

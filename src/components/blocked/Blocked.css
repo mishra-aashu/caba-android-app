@@ -14,9 +14,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(11, 20, 26, 0.8);
+  backdrop-filter: blur(12px); /* Reduced from 20px */
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 10;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);

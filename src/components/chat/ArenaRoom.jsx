@@ -258,15 +258,13 @@ const ArenaRoom = ({
 
 // --- Sub Components ---
 
-const RemoteAudio = ({ peerId, stream }) => {
+const RemoteAudio = React.memo(({ peerId, stream }) => {
   const audioRef = useRef(null);
 
   useEffect(() => {
     if (audioRef.current && stream) {
-      // console.log(`[ArenaRoom] Attaching stream for peer ${peerId}`);
       audioRef.current.srcObject = stream;
       
-      // Explicitly trigger play to handle some browser policies
       const playAudio = () => {
         audioRef.current.play().catch(err => {
           if (err.name !== 'AbortError') {
@@ -288,9 +286,9 @@ const RemoteAudio = ({ peerId, stream }) => {
       style={{ display: 'none', position: 'absolute', opacity: 0 }} 
     />
   );
-};
+});
 
-const ChatMessage = ({ msg, isMe, onExpand }) => {
+const ChatMessage = React.memo(({ msg, isMe, onExpand }) => {
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -310,6 +308,7 @@ const ChatMessage = ({ msg, isMe, onExpand }) => {
                 alt="Shared" 
                 onClick={() => onExpand(msg)}
                 className={styles.tappableMedia}
+                loading="lazy"
               />
             )}
             {msg.mediaType === 'video' && (
@@ -327,9 +326,9 @@ const ChatMessage = ({ msg, isMe, onExpand }) => {
       </div>
     </motion.div>
   );
-};
+});
 
-const VoicePlayer = ({ url }) => {
+const VoicePlayer = React.memo(({ url }) => {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
 
@@ -350,6 +349,7 @@ const VoicePlayer = ({ url }) => {
       </div>
     </div>
   );
-};
+});
 
-export default ArenaRoom;
+export default React.memo(ArenaRoom);
+
