@@ -21,6 +21,7 @@ const useMusicStore = create(
       isSearchLoading: false,
       searchResults: [],
       searchQuery: '',
+      isPlayerExpanded: false,
       
       // ─── Listen Together (Sync) State ───
       roomId: null,
@@ -63,6 +64,10 @@ const useMusicStore = create(
       
       setSearchQuery: (query) => set({ searchQuery: query }),
       
+      setPlayerExpanded: (expanded) => set((state) => ({ 
+        isPlayerExpanded: typeof expanded === 'boolean' ? expanded : !state.isPlayerExpanded 
+      })),
+      
       // ─── Listen Together Actions ───
       
       joinRoom: (id, isHost = false) => set({ 
@@ -71,11 +76,17 @@ const useMusicStore = create(
         syncStatus: 'synced' 
       }),
       
-      leaveRoom: () => set({ 
-        roomId: null, 
-        isHost: false, 
-        syncStatus: 'disconnected' 
-      }),
+      leaveRoom: () => {
+        set({ 
+          roomId: null, 
+          isHost: false, 
+          syncStatus: 'disconnected',
+          isPlaying: false,
+          currentSong: null,
+          progress: 0
+        });
+        console.log("[MusicStore] Left room and cleaned up playback state");
+      },
       
       setSyncStatus: (status) => set({ syncStatus: status }),
       

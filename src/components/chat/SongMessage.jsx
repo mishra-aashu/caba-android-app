@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, Music, Radio } from 'lucide-react';
 import useMusicStore from '../../store/useMusicStore';
+import { toast } from 'react-hot-toast';
 import styles from './SongMessage.module.css';
 
 /**
@@ -15,18 +16,18 @@ const SongMessage = ({ message, isMine }) => {
   if (!song) return null;
 
   const handlePlayAndSync = () => {
-    // Set the song as current
-    setCurrentSong(song);
-    
-    // Create/Join a room based on the message ID (deterministic for the pair/group)
-    // For now, let's just play. Real-time room joining can be enhanced by 
-    // including the roomId in the message metadata.
-    if (message.metadata?.roomId) {
-      joinRoom(message.metadata.roomId, false);
-    } else {
-      // If no room ID, just start playing locally and maybe open panel
-      togglePanel(true);
+    if (song) {
+      setCurrentSong(song);
     }
+    
+    if (message.metadata?.roomId) {
+      console.log(`[SongMessage] Joining room from chat: ${message.metadata.roomId}`);
+      joinRoom(message.metadata.roomId, false);
+      toast.success(`Joined Session: ${message.metadata.roomId}`, { icon: '🎧' });
+    }
+    
+    // Always open panel so user sees the player/room status
+    togglePanel(true);
   };
 
   return (

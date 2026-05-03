@@ -29,7 +29,8 @@ const MusicPanel = () => {
     roomId, 
     joinRoom, 
     leaveRoom,
-    isHost
+    isHost,
+    setPlayerExpanded
   } = useMusicStore();
 
   const formatTime = (seconds) => {
@@ -77,7 +78,7 @@ const MusicPanel = () => {
         song: currentSong
       },
       isGroupMessage: Boolean(activeChat.isGroup),
-      messageType: 'text', // Using text to avoid constraint issues, or could use a new type
+      messageType: 'song', 
       createdAt: new Date().toISOString(),
       status: 'sending',
       tempId,
@@ -227,7 +228,11 @@ const MusicPanel = () => {
                       </div>
                     </div>
 
-                    <div className="footer-song-card">
+                    <div 
+                      className="footer-song-card" 
+                      onClick={() => setPlayerExpanded(true)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className="footer-art">
                         <img src={currentSong.image} alt="" />
                       </div>

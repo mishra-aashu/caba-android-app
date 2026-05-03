@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import useMusicStore from '../../store/useMusicStore';
 import { Play, Pause, SkipBack, SkipForward, Maximize2, Music, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -17,10 +18,12 @@ const GlobalPlayer = () => {
     volume,
     togglePanel,
     isPanelOpen,
+    isPlayerExpanded,
     refreshCurrentSongMetadata,
     setCurrentSong,
     roomId,
-    isHost
+    isHost,
+    setPlayerExpanded
   } = useMusicStore();
 
   const audioRef = useRef(null);
@@ -207,7 +210,7 @@ const GlobalPlayer = () => {
   if (!currentSong) return null;
 
   return (
-    <div className={`global-player-wrapper ${isPanelOpen ? 'hidden' : ''}`}>
+    <div className={`global-player-wrapper ${(isPanelOpen || isPlayerExpanded) ? 'hidden' : ''}`}>
       <audio 
         ref={audioRef}
         onTimeUpdate={onTimeUpdate}
@@ -248,14 +251,24 @@ const GlobalPlayer = () => {
           <span className="time-total">{formatTime(duration)}</span>
         </div>
 
-        <div className="player-left" onClick={() => togglePanel(true)}>
-          <div className="player-artwork-mini">
+        <div 
+          className="player-left" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setPlayerExpanded(true);
+          }}
+        >
+          <motion.div 
+            className="player-artwork-mini" 
+            layoutId={`artwork-${currentSong.id}`}
+          >
             {currentSong.image ? (
               <img src={currentSong.image} alt="" />
             ) : (
               <Music size={20} />
             )}
-          </div>
+          </motion.div>
           <div className="player-info-mini">
             <div className="mini-title-scroller">
                <span className="mini-title-text" dangerouslySetInnerHTML={{ __html: currentSong.title }} />
@@ -292,7 +305,7 @@ const GlobalPlayer = () => {
         </div>
 
         <div className="player-right">
-          <button className="player-btn-icon expand" onClick={() => togglePanel(true)}>
+          <button className="player-btn-icon expand" onClick={() => setPlayerExpanded(true)} title="Fullscreen">
             <Maximize2 size={18} />
           </button>
           <button 

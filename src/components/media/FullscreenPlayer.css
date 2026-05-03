@@ -1,0 +1,203 @@
+.fullscreen-player-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+}
+
+.dynamic-gradient-bg {
+  position: absolute;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
+  z-index: 0;
+  filter: blur(100px) saturate(1.5);
+  opacity: 0.6;
+  transition: all 1s ease;
+}
+
+.player-header {
+  position: relative;
+  z-index: 2;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.player-main-content {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 30px;
+}
+
+.artwork-container {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1/1;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  margin-bottom: 40px;
+  transition: transform 0.3s ease;
+}
+
+.artwork-container.playing {
+  transform: scale(1.05);
+}
+
+.artwork-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.song-info-expanded {
+  text-align: center;
+  width: 100%;
+}
+
+.song-info-expanded h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.song-info-expanded p {
+  font-size: 1.1rem;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.player-controls-footer {
+  position: relative;
+  z-index: 2;
+  padding: 40px 30px 60px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+}
+
+.progress-section {
+  margin-bottom: 30px;
+}
+
+.time-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.6;
+  margin-bottom: 10px;
+}
+
+.seek-bar-container {
+  position: relative;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.seek-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #fff;
+  border-radius: 3px;
+}
+
+.seek-input-fs {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 100%;
+  height: 26px;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.main-controls-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.fs-control-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.fs-control-btn:active {
+  transform: scale(0.9);
+}
+
+.fs-play-btn {
+  width: 72px;
+  height: 72px;
+  background: #fff;
+  color: #000;
+  border-radius: 50%;
+  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+}
+
+.bottom-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  opacity: 0.6;
+}
+
+/* Animations */
+@keyframes float {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(10px, 15px); }
+  100% { transform: translate(0, 0); }
+}
+
+.dynamic-gradient-bg .blob {
+  position: absolute;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  animation: float 10s infinite ease-in-out;
+}
+
+.blob-1 { top: 10%; left: 10%; background: #4f46e5; animation-delay: 0s; }
+.blob-2 { top: 40%; right: 10%; background: #ec4899; animation-delay: -2s; }
+.blob-3 { bottom: 10%; left: 30%; background: #06b6d4; animation-delay: -4s; }

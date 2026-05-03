@@ -44,6 +44,7 @@ const ThemeSelector = lazy(() => import('./chat/ThemeSelector'));
 const SharedMedia = lazy(() => import('./chat/SharedMedia'));
 import GlobalPlayer from './media/GlobalPlayer';
 import MusicPanel from './media/MusicPanel';
+import FullscreenPlayer from './media/FullscreenPlayer';
 import useMusicSync from '../hooks/media/useMusicSync';
 import useMusicStore from '../store/useMusicStore';
 
@@ -302,7 +303,8 @@ const MainLayout = () => {
     currentSong, 
     isPlaying,
     setIsPlaying,
-    setCurrentSong
+    setCurrentSong,
+    isPlayerExpanded
   } = useMusicStore();
 
 
@@ -596,8 +598,13 @@ const MainLayout = () => {
     return (
       <UserDetailsContext.Provider value={userDetailsContextValue}>
         <VersionUpdateModal />
-      <GlobalPlayer />
       <MusicPanel />
+      <GlobalPlayer />
+      <AnimatePresence>
+        {isPlayerExpanded && <FullscreenPlayer />}
+      </AnimatePresence>
+
+
 
         
         <div className={`mobile-layout ${currentSong ? 'has-global-player' : ''}`}>
@@ -674,6 +681,7 @@ const MainLayout = () => {
       <GlobalPlayer />
       <MusicPanel />
 
+
       
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
@@ -687,6 +695,10 @@ const MainLayout = () => {
           </div>
         </Suspense>
       </ErrorBoundary>
+
+      <AnimatePresence>
+        {isPlayerExpanded && <FullscreenPlayer />}
+      </AnimatePresence>
     </UserDetailsContext.Provider>
   );
 };

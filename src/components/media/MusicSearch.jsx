@@ -31,9 +31,15 @@ const MusicSearch = () => {
 
 
   useEffect(() => {
-    // Fetch trending bollywood songs on mount if we have no results yet
+    // Fetch random trending category on mount
     if (searchResults.length === 0 && !searchQuery) {
-      handleSearch("Bollywood Trending");
+      const categories = [
+        "Bollywood Trending", "Top Hindi Songs", "Latest Punjabi Hits", 
+        "Lofi Beats Hindi", "Arijit Singh Radio", "Top Global 2026",
+        "Romantic Melodies", "Party Anthems", "Indian Indie Hits"
+      ];
+      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+      handleSearch(randomCategory);
     }
   }, []);
 

@@ -137,6 +137,8 @@
   flex: 2; /* Take more space for text */
   min-width: 0;
   cursor: pointer;
+  position: relative;
+  z-index: 50;
 }
 
 .player-artwork-mini {
