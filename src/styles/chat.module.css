@@ -4464,9 +4464,32 @@ body.light-mode .no-messages-content {
   padding: 8px;
   margin-left: 8px;
   border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .unpin-btn:hover {
   background: rgba(var(--status-error-rgb), 0.1);
   color: var(--status-error);
+}
+
+.unpin-btn-mini {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  margin-left: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.unpin-btn-mini:hover {
+  background: rgba(var(--status-error-rgb), 0.15);
+  color: var(--status-error);
+  opacity: 1;
+  transform: scale(1.1);
 }

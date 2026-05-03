@@ -233,16 +233,22 @@ const ChatScreen = () => {
         fetchPinned();
     }, [chatId, messages]); // Refresh when messages change (though inefficient, it works for local)
 
-    const handlePinMessage = useCallback(async (msg) => {
-        const isPinned = !msg.isPinned;
+    const handlePinMessage = useCallback(async (msgOrId, explicitState = null) => {
+        const isIdOnly = typeof msgOrId === 'string' || typeof msgOrId === 'number';
+        const msgId = isIdOnly ? msgOrId : (msgOrId.id || msgOrId.tempId);
+        
+        // If explicitState is provided (e.g. from unpin call), use it. 
+        // Otherwise toggle based on msgOrId.isPinned.
+        const newPinnedState = explicitState !== null ? explicitState : !msgOrId.isPinned;
+        
         try {
-            await db.messages.update(msg.id || msg.tempId, { isPinned });
+            await db.messages.update(msgId, { isPinned: newPinnedState });
             // Also sync to Supabase if possible (assuming column exists)
-            await supabase.from('messages').update({ is_pinned: isPinned }).eq('id', msg.id);
-            toast.success(isPinned ? 'Message pinned' : 'Message unpinned');
+            await supabase.from('messages').update({ is_pinned: newPinnedState }).eq('id', msgId);
+            toast.success(newPinnedState ? 'Message pinned' : 'Message unpinned');
         } catch (err) {
-            console.error('Pin failed:', err);
-            toast.error('Failed to pin message');
+            console.error('Pin operation failed:', err);
+            toast.error(`Failed to ${newPinnedState ? 'pin' : 'unpin'} message`);
         }
     }, [supabase]);
 
@@ -473,7 +479,7 @@ const ChatScreen = () => {
 
                             <PinnedMessagesBar 
                                 pinnedMessages={pinnedMessages} 
-                                onUnpin={(id) => handlePinMessage({ id, isPinned: true })} 
+                                onUnpin={(id) => handlePinMessage(id, false)} 
                                 onJumpToMessage={handleJumpToMessage} 
                             />
 

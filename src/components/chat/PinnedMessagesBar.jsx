@@ -11,7 +11,10 @@ const PinnedMessagesBar = ({ pinnedMessages = [], onUnpin, onJumpToMessage }) =>
 
   return (
     <div className={`${styles['pinned-bar-container']} ${isExpanded ? styles['expanded'] : ''}`}>
-      <div className={styles['pinned-bar-header']} onClick={() => pinnedMessages.length > 1 && setIsExpanded(!isExpanded)}>
+      <div 
+        className={styles['pinned-bar-header']} 
+        onClick={() => pinnedMessages.length > 1 && setIsExpanded(!isExpanded)}
+      >
         <div className={styles['pinned-bar-left']}>
           <Pin size={16} className={styles['pin-icon']} />
           <div className={styles['pinned-info']}>
@@ -26,8 +29,25 @@ const PinnedMessagesBar = ({ pinnedMessages = [], onUnpin, onJumpToMessage }) =>
           </div>
         </div>
         <div className={styles['pinned-bar-right']}>
-          {pinnedMessages.length > 1 && (
-            isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />
+          {pinnedMessages.length === 1 ? (
+            <button 
+              className={styles['unpin-btn-mini']} 
+              onClick={(e) => { e.stopPropagation(); onUnpin(latestPinned.id); }}
+              title="Unpin"
+            >
+              <X size={18} />
+            </button>
+          ) : (
+            <>
+              <button 
+                className={styles['unpin-btn-mini']} 
+                onClick={(e) => { e.stopPropagation(); onUnpin(latestPinned.id); }}
+                title="Unpin latest"
+              >
+                <X size={18} />
+              </button>
+              {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+            </>
           )}
         </div>
       </div>
