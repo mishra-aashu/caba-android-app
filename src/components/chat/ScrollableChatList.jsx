@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { MessageCircle, Search, Plus, Users } from 'lucide-react';
 import { Virtuoso } from 'react-virtuoso';
 import ChatListItem from './ChatListItem';
+import MessageSearchResultItem from './MessageSearchResultItem';
 import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 import styles from '../../styles/ChatListItem.module.css';
 
@@ -21,7 +22,10 @@ const ScrollableChatList = ({
     renderChatItem,
     setShowCreateGroupModal,
     onAtTopChange,
-    onAvatarClick
+    onAvatarClick,
+    messageSearchResults = [],
+    isSearchingMessages = false,
+    onMessageResultClick
 }) => {
     // 1. Separate logic for the list header (Groups + Messages Label)
     const ListHeader = () => (
@@ -86,9 +90,54 @@ const ScrollableChatList = ({
     // - **Issue**: Returning to the home page caused the chat list to go blank due to a syntax error (corrupted comments) and collapsing virtualization containers.
     // - **Fix**: Re-wrote `ScrollableChatList` with a robust Virtuoso architecture using internal scroll management and `flexbox` to guarantee height.
     // - **Infinite Loading**: Integrated `hasMoreChats` directly into Virtuoso for smoother scrolling beyond the first 20 chats.
-    const data = isDesktop
-        ? (activeFilter === 'all' ? dmChats : (activeFilter === 'chats' ? dmChats : (activeFilter === 'groups' ? groupChats : [])))
-        : filteredChats;
+    // 2. Data Preparation
+    const data = useMemo(() => {
+        if (searchTerm) {
+            const items = [];
+            
+            // Add Chat Results Header
+            if (filteredChats.length > 0) {
+                items.push({ type: 'header', label: 'Chats' });
+                filteredChats.forEach(chat => items.push({ type: 'chat', data: chat }));
+            }
+
+            // Add Message Results Header
+            if (messageSearchResults.length > 0) {
+                items.push({ type: 'header', label: 'Messages' });
+                messageSearchResults.forEach(msg => items.push({ type: 'message', data: msg }));
+            } else if (isSearchingMessages) {
+                items.push({ type: 'header', label: 'Searching messages...' });
+            }
+
+            return items;
+        }
+
+        return isDesktop
+            ? (activeFilter === 'all' ? dmChats : (activeFilter === 'chats' ? dmChats : (activeFilter === 'groups' ? groupChats : [])))
+            : filteredChats;
+    }, [searchTerm, filteredChats, messageSearchResults, isSearchingMessages, isDesktop, activeFilter, dmChats, groupChats]);
+
+    const renderItem = (index, item) => {
+        if (searchTerm) {
+            if (item.type === 'header') {
+                return <div className={styles['search-results-label']}>{item.label}</div>;
+            }
+            if (item.type === 'chat') {
+                return renderChatItem(item.data);
+            }
+            if (item.type === 'message') {
+                return (
+                    <MessageSearchResultItem 
+                        result={item.data} 
+                        searchTerm={searchTerm} 
+                        onClick={onMessageResultClick}
+                    />
+                );
+            }
+            return null;
+        }
+        return renderChatItem(item);
+    };
 
     return (
         <div className={styles['chat-list-container']} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -97,8 +146,8 @@ const ScrollableChatList = ({
                 style={{ flex: 1, height: '100%' }}
                 data={data}
                 initialTopMostItemIndex={0}
-                itemContent={(index, chat) => renderChatItem(chat)}
-                components={{ Header: ListHeader }}
+                itemContent={renderItem}
+                components={{ Header: searchTerm ? null : ListHeader }}
                 overscan={15}
                 increaseViewportBy={300}
                 endReached={loadMoreChats}

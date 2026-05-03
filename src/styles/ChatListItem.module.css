@@ -1053,3 +1053,131 @@
   transform: scale(0.9) rotate(0deg);
 }
 
+
+/* =============================================
+   12. GLOBAL MESSAGE SEARCH RESULTS
+   ============================================= */
+
+.search-results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-results-label {
+  padding: 1rem 1rem 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--bg-surface);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 16px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  gap: 12px;
+  border-radius: 12px;
+  margin: 0 8px;
+  width: calc(100% - 16px);
+}
+
+.result-avatar-container {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--brand-gradient, linear-gradient(135deg, #00a884, #00876a));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.result-avatar-fallback {
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
+.result-chat-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.result-sender {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--brand-primary);
+  margin-bottom: 2px;
+}
+
+.result-snippet {
+  font-size: 14px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+
+.result-snippet p {
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.search-highlight {
+  background-color: rgba(0, 168, 132, 0.2);
+  color: var(--brand-primary);
+  border-radius: 2px;
+  padding: 0 2px;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .search-highlight {
+  background-color: rgba(0, 168, 132, 0.4);
+  color: #fff;
+}

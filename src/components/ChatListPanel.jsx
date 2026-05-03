@@ -43,6 +43,7 @@ import { db } from '../db/db';
 
 // Services
 import messageReadsService from '../services/messageReadsService';
+import { searchMessagesLocally } from '../services/messageService';
 
 // Utilities
 import { getChatAvatar } from '../utils/avatarHelpers';
@@ -169,6 +170,8 @@ const ChatListPanel = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [messageSearchResults, setMessageSearchResults] = useState([]);
+  const [isSearchingMessages, setIsSearchingMessages] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [sidebarView, setSidebarView] = useState('chats');
   const [activeFilter, setActiveFilter] = useState(FILTER_TYPES.ALL);
@@ -367,15 +370,16 @@ const ChatListPanel = ({
   }, [isRefreshing, refetchChats]);
 
   const handleSearchChange = useCallback((e) => {
-    const query = e.target.value.replace(/\D/g, ''); // Digits only
+    const query = e.target.value;
     setSearchTerm(query);
 
     if (searchDebounceRef.current) {
       clearTimeout(searchDebounceRef.current);
     }
 
-    if (query.length !== 10) {
+    if (!query.trim()) {
       setSearchSuggestions([]);
+      setMessageSearchResults([]);
       setShowSuggestions(false);
       return;
     }
@@ -384,26 +388,46 @@ const ChatListPanel = ({
     searchDebounceRef.current = setTimeout(async () => {
       if (!isMountedRef.current) return;
 
+      // 1. Search messages locally (always)
+      setIsSearchingMessages(true);
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, name, phone, avatar, is_online, last_seen')
-          .eq('phone', query)
-          .neq('id', user.id)
-          .limit(5);
-
-        if (error) throw error;
-
+        const msgResults = await searchMessagesLocally(query);
         if (isMountedRef.current) {
-          const { safeDbConversion } = await import('../utils/dbFieldMapping');
-          setSearchSuggestions(safeDbConversion(data || []));
-          setShowSuggestions(data?.length > 0);
+          setMessageSearchResults(msgResults);
         }
-      } catch (error) {
-        console.error('[ChatListPanel] Search error:', error);
-        if (isMountedRef.current) {
-          toast.error('Search failed');
+      } catch (err) {
+        console.error('[ChatListPanel] Message search error:', err);
+      } finally {
+        if (isMountedRef.current) setIsSearchingMessages(false);
+      }
+
+      // 2. Search users by phone number (only if 10 digits)
+      const phoneQuery = query.replace(/\D/g, '');
+      if (phoneQuery.length === 10) {
+        try {
+          const { data, error } = await supabase
+            .from('users')
+            .select('id, name, phone, avatar, is_online, last_seen')
+            .eq('phone', phoneQuery)
+            .neq('id', user.id)
+            .limit(5);
+
+          if (error) throw error;
+
+          if (isMountedRef.current) {
+            const { safeDbConversion } = await import('../utils/dbFieldMapping');
+            setSearchSuggestions(safeDbConversion(data || []));
+            setShowSuggestions(data?.length > 0);
+          }
+        } catch (error) {
+          console.error('[ChatListPanel] Phone search error:', error);
+          if (isMountedRef.current) {
+            toast.error('User search failed');
+          }
         }
+      } else {
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
       }
     }, SEARCH_DEBOUNCE_MS);
   }, [supabase, user?.id]);
@@ -412,6 +436,7 @@ const ChatListPanel = ({
     setSearchTerm('');
     setShowSuggestions(false);
     setShowSearch(false);
+    setMessageSearchResults([]);
 
     try {
       // Check if chat exists
@@ -443,6 +468,23 @@ const ChatListPanel = ({
       toast.error('Failed to start chat');
     }
   }, [supabase, user?.id, navigate]);
+
+  const handleMessageResultClick = useCallback((result) => {
+    setSearchTerm('');
+    setShowSearch(false);
+    setMessageSearchResults([]);
+    
+    // Navigate to chat
+    // If it's a group chat, we might only have chatId
+    // If it's a DM, we might need otherUserId
+    const otherUserId = result.senderId !== user.id ? result.senderId : null;
+    
+    if (result.isGroupMessage || !otherUserId) {
+        navigate(`/chat/${result.chatId}`);
+    } else {
+        navigate(`/chat/${result.chatId}/${otherUserId}`);
+    }
+  }, [navigate, user?.id]);
 
   const handleExitCreateGroup = useCallback(() => {
     setSidebarView('chats');
@@ -671,13 +713,12 @@ const ChatListPanel = ({
             >
               <Search size={16} className={styles['search-input-icon']} aria-hidden="true" />
               <input
-                type="tel"
-                placeholder="Search by phone number..."
+                type="text"
+                placeholder="Search messages or phone..."
                 value={searchTerm}
                 onChange={handleSearchChange}
                 autoFocus
-                aria-label="Search users by phone"
-                maxLength={10}
+                aria-label="Search messages or phone"
               />
               <button
                 className={styles['close-search']}
@@ -685,6 +726,7 @@ const ChatListPanel = ({
                   setShowSearch(false);
                   setSearchTerm('');
                   setSearchSuggestions([]);
+                  setMessageSearchResults([]);
                   setShowSuggestions(false);
                 }}
                 aria-label="Close search"
@@ -769,6 +811,9 @@ const ChatListPanel = ({
                   setShowCreateGroupModal={() => setSidebarView('create-group')}
                   onAtTopChange={setIsAtTop}
                   onAvatarClick={handleOpenAvatarModal}
+                  messageSearchResults={messageSearchResults}
+                  isSearchingMessages={isSearchingMessages}
+                  onMessageResultClick={handleMessageResultClick}
                 />
               )}
             </PullToRefresh>

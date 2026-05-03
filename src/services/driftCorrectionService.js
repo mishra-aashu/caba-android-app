@@ -1,6 +1,7 @@
 import { db } from '../db/db';
 import { supabase } from '../config/supabase';
 import { dbToFrontend } from '../utils/dbFieldMapping';
+import { EncryptionService } from './EncryptionService';
 
 const ZOMBIE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 const RECONCILIATION_INTERVAL = 15 * 60 * 1000; // 15 minutes
@@ -98,6 +99,80 @@ export const driftCorrectionService = {
   },
 
   /**
+   * Finds and deletes duplicate messages from the local database.
+   * This is part of the periodic maintenance to keep the DB clean.
+   */
+  async cleanupDuplicateMessages() {
+    console.log('🛡️ [ImmuneSystem] Running duplicate message cleanup...');
+    try {
+      const allMessages = await db.messages.toArray();
+      const seenSignatures = new Map();
+      const idsToDelete = [];
+
+      for (const msg of allMessages) {
+        if (!msg.content) continue;
+
+        // 1. Check by tempId (very reliable)
+        if (msg.tempId) {
+            const tempKey = `temp_${msg.tempId}`;
+            if (seenSignatures.has(tempKey)) {
+                idsToDelete.push(msg.id);
+                continue;
+            }
+            seenSignatures.set(tempKey, msg.id);
+        }
+
+        // 2. Decrypt content if needed for a proper signature
+        let content = msg.content;
+        if (typeof content === 'string' && content.startsWith('🔒:')) {
+            // For deduplication, we try to decrypt. 
+            // Note: In 1v1 we need otherUserId, but for global cleanup we might not have it easily available here
+            // However, if the ciphertexts are the same, they are definitely duplicates.
+            // If ciphertexts are different but plaintext is same, they might be duplicates.
+            // We'll use ciphertext as a secondary check if decryption fails.
+            try {
+                // Try to get otherUserId from chat
+                const chat = await db.chats_list.get(msg.chatId);
+                const isGroup = msg.isGroupMessage || chat?.is_group || chat?.isGroup;
+                const otherUserId = isGroup ? null : (chat?.otherUserId || chat?.metadata?.otherUserId);
+                const decrypted = EncryptionService.decrypt(content, msg.chatId, otherUserId);
+                if (decrypted && decrypted !== '[Encrypted Message]') {
+                    content = decrypted;
+                }
+            } catch (e) {
+                // Ignore decryption errors for cleanup
+            }
+        }
+
+        // 3. Check by content signature with fuzzy timestamp (5 second window)
+        const timestamp = new Date(msg.createdAt || msg.created_at).getTime();
+        const fuzzyTs = Math.floor(timestamp / 5000); // 5 second buckets
+        const signature = `sig_${msg.chatId}_${msg.senderId}_${content}_${fuzzyTs}`;
+
+        if (seenSignatures.has(signature)) {
+            const existingId = seenSignatures.get(signature);
+            // If existing is a temp ID and current isn't, keep current
+            if (String(existingId).startsWith('tmp_') && !String(msg.id).startsWith('tmp_')) {
+                idsToDelete.push(existingId);
+                seenSignatures.set(signature, msg.id);
+            } else {
+                idsToDelete.push(msg.id);
+            }
+        } else {
+            seenSignatures.set(signature, msg.id);
+        }
+      }
+
+      if (idsToDelete.length > 0) {
+        console.warn(`🛡️ [ImmuneSystem] Deleting ${idsToDelete.length} duplicate messages.`);
+        await db.messages.bulkDelete(idsToDelete);
+      }
+    } catch (err) {
+      console.error('🛡️ [ImmuneSystem] Duplicate cleanup failed:', err);
+    }
+  },
+
+  /**
    * Start the background maintenance loop
    */
   start() {
@@ -107,6 +182,7 @@ export const driftCorrectionService = {
     // Schedule periodic checks
     setInterval(() => this.recoverZombieTasks(), 5 * 60 * 1000);
     setInterval(() => this.reconcileActiveChats(), RECONCILIATION_INTERVAL);
+    setInterval(() => this.cleanupDuplicateMessages(), 30 * 60 * 1000); // Every 30 mins
     
     console.log('🛡️ [ImmuneSystem] Background maintenance service started');
   }

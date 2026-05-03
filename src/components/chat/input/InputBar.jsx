@@ -12,6 +12,7 @@ const InputBar = ({
   isUploading,
   externalDisabled,
   disabledPlaceholder,
+  isTempChat = false,
   onInputChange,
   onKeyDown,
   onToggleEmoji,
