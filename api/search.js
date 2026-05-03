@@ -1,4 +1,4 @@
-import { decryptUrl, formatMediaUrls } from './_utils/crypto.js';
+import { decryptUrl, formatDownloadUrls } from './_utils/crypto.js';
 
 export default async function handler(req, res) {
   const { query } = req.query;
@@ -8,7 +8,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // JioSaavn Search API V4
     const searchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&n=20&p=1&_marker=0&ctx=web64bit&api_version=4&q=${encodeURIComponent(query)}`;
 
     const response = await fetch(searchUrl, {
@@ -18,36 +17,39 @@ export default async function handler(req, res) {
       }
     });
 
-    if (!response.ok) {
-      throw new Error(`JioSaavn API responded with ${response.status}`);
-    }
-
     const data = await response.json();
     const results = (data.results || []).map(song => {
-      // Step 2 & 3: Decrypt and Format URLs
-      const rawUrl = song.more_info?.encrypted_media_url || song.encrypted_media_url;
-      let mediaUrls = null;
-      
-      if (rawUrl) {
-        const decrypted = decryptUrl(rawUrl);
-        mediaUrls = formatMediaUrls(decrypted);
-      }
+        const encryptedUrl = song.more_info?.encrypted_media_url || 
+                            song.encrypted_media_url || 
+                            song.rawEncryptedUrl;
 
-      // Cleanup image URL (swap 150x150 with 500x500 for premium feel)
-      const image = (song.image || '').replace('150x150', '500x500');
+        const decryptedUrl = decryptUrl(encryptedUrl);
+        const downloadUrl = formatDownloadUrls(decryptedUrl);
 
-      return {
-        id: song.id,
-        name: song.title || song.song,
-        title: song.title || song.song,
-        album: song.album,
-        year: song.year,
-        duration: song.duration,
-        singers: song.more_info?.singers || song.subtitle,
-        image: image,
-        media_urls: mediaUrls,
-        rawEncryptedUrl: rawUrl
-      };
+        const media_urls = {
+            "320_KBPS": downloadUrl.find(d => d.quality === '320kbps')?.link || null,
+            "160_KBPS": downloadUrl.find(d => d.quality === '160kbps')?.link || null,
+            "96_KBPS": downloadUrl.find(d => d.quality === '96kbps')?.link || null
+        };
+
+        return {
+            id: song.id,
+            name: song.title || song.song || song.name,
+            title: song.title || song.song || song.name,
+            album: song.more_info?.album || song.album || 'Unknown',
+            year: song.year || '',
+            duration: parseInt(song.more_info?.duration || song.duration || 0),
+            singers: song.more_info?.singers || song.primary_artists || song.singers || '',
+            image: song.image ? song.image.replace('150x150', '500x500').replace('50x50', '500x500') : '',
+            downloadUrl: downloadUrl,
+            media_urls: media_urls,
+            rawEncryptedUrl: encryptedUrl || '',
+            decryptedUrl: decryptedUrl || null,
+            debug: {
+                hasEncrypted: !!encryptedUrl,
+                hasDecrypted: !!decryptedUrl
+            }
+        };
     });
 
     res.status(200).json({
@@ -59,7 +61,6 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('[API Search] Error:', error.message);
     res.status(500).json({ status: 'error', message: error.message });
   }
 }

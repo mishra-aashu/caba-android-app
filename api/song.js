@@ -17,14 +17,10 @@ export default async function handler(req, res) {
       }
     });
 
-    if (!response.ok) {
-      throw new Error(`JioSaavn API responded with ${response.status}`);
-    }
-
     const data = await response.json();
-    const rawSong = data[id] || Object.values(data)[0];
+    let rawSong = data[id] || Object.values(data)[0];
 
-    if (!rawSong) {
+    if (!rawSong || typeof rawSong !== 'object') {
       return res.status(404).json({ status: 'error', message: 'Song not found' });
     }
 
@@ -35,22 +31,29 @@ export default async function handler(req, res) {
     const decryptedUrl = decryptUrl(encryptedUrl);
     const downloadUrl = formatDownloadUrls(decryptedUrl);
 
-    const imageUrl = rawSong.image 
-        ? rawSong.image.replace('150x150', '500x500').replace('50x50', '500x500')
-        : '';
+    const media_urls = {
+        "320_KBPS": downloadUrl.find(d => d.quality === '320kbps')?.link || null,
+        "160_KBPS": downloadUrl.find(d => d.quality === '160kbps')?.link || null,
+        "96_KBPS": downloadUrl.find(d => d.quality === '96kbps')?.link || null
+    };
 
     const result = {
         id: rawSong.id,
-        name: rawSong.title || rawSong.song || rawSong.name,
-        title: rawSong.title || rawSong.song || rawSong.name,
-        album: rawSong.more_info?.album || rawSong.album || 'Unknown',
+        name: rawSong.title || rawSong.song || rawSong.name || 'Unknown',
+        title: rawSong.title || rawSong.song || rawSong.name || 'Unknown',
+        album: rawSong.more_info?.album || rawSong.album || 'Single',
         year: rawSong.year || '',
         duration: parseInt(rawSong.more_info?.duration || rawSong.duration || 0),
         singers: rawSong.more_info?.singers || rawSong.primary_artists || rawSong.singers || '',
-        image: imageUrl,
+        image: rawSong.image ? rawSong.image.replace('150x150', '500x500').replace('50x50', '500x500') : '',
         downloadUrl: downloadUrl,
-        encryptedUrl: encryptedUrl,
-        decryptedUrl: decryptedUrl
+        media_urls: media_urls,
+        rawEncryptedUrl: encryptedUrl || '',
+        decryptedUrl: decryptedUrl || null,
+        debug: {
+            hasEncrypted: !!encryptedUrl,
+            hasDecrypted: !!decryptedUrl
+        }
     };
 
     res.status(200).json({
@@ -59,7 +62,6 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('[API Song] Error:', error.message);
     res.status(500).json({ status: 'error', message: error.message });
   }
 }
