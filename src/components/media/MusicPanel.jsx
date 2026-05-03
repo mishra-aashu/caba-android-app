@@ -237,13 +237,13 @@ const MusicPanel = () => {
               </div>
 
               {/* Body: Search & Discovery */}
-              <div className="panel-body-scrollable">
+              <div className={`panel-body-scrollable ${currentSong && isPlaying ? 'with-footer' : ''}`}>
                 <MusicSearch />
               </div>
 
               {/* Expanded Player Detail (Footer) */}
               <AnimatePresence>
-                {currentSong && (
+                {currentSong && isPlaying && (
                   <motion.div 
                     className="panel-player-footer"
                     initial={{ y: 100 }}

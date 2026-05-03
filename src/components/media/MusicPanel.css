@@ -38,8 +38,8 @@
 
 /* --- Header Section --- */
 .panel-header-glass {
-  padding: 16px 20px;
-  padding-top: calc(16px + var(--safe-top, 0px));
+  padding: 10px 18px;
+  padding-top: calc(10px + var(--safe-top, 0px));
   background: linear-gradient(180deg, rgba(0, 168, 132, 0.12) 0%, transparent 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -48,7 +48,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .brand-badge {
@@ -93,14 +93,14 @@
 }
 
 .panel-title {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 900;
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
   letter-spacing: -0.04em;
   color: #fff;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .title-icon {
@@ -145,7 +145,7 @@
 }
 
 .session-reveal-box {
-  margin: 12px 0;
+  margin: 8px 0;
   overflow: hidden;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.02);
@@ -367,8 +367,12 @@
 .panel-body-scrollable {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 120px; /* Space for footer */
+  padding-bottom: 20px;
   scrollbar-width: none;
+}
+
+.panel-body-scrollable.with-footer {
+  padding-bottom: 120px;
 }
 
 .panel-body-scrollable::-webkit-scrollbar {
