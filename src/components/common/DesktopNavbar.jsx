@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, User, History, Settings, Bell, Users, Gamepad2, Music } from 'lucide-react';
+import useMusicStore from '../../store/useMusicStore';
+
 import { useSupabase } from '../../contexts/SupabaseContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useContacts } from '../../hooks/useCommonQueries';
@@ -11,6 +13,8 @@ const DesktopNavbar = () => {
   const { supabase } = useSupabase();
   const { user } = useAuth();
   const location = useLocation();
+  const { togglePanel } = useMusicStore();
+
 
   // Use cached contacts hook
   const { data: contactsData } = useContacts(user?.id);
@@ -96,10 +100,15 @@ const DesktopNavbar = () => {
             </Link>
           </li>
           <li className="desktop-nav-item">
-            <Link to="/listen-together" className={`desktop-nav-link${location.pathname === '/listen-together' ? ' active' : ''}`} data-tooltip="Listen Together">
-              <Music className="desktop-nav-icon music-icon" style={{ color: location.pathname === '/listen-together' ? '#00a884' : undefined }} />
-            </Link>
+            <button 
+              className="desktop-nav-link" 
+              data-tooltip="Music Discovery"
+              onClick={() => togglePanel(true)}
+            >
+              <Music className="desktop-nav-icon music-icon" />
+            </button>
           </li>
+
           <li className="desktop-nav-item">
             <Link to="/profile" className="desktop-nav-link" data-tooltip="Profile">
               <User className="desktop-nav-icon profile-nav-icon" />

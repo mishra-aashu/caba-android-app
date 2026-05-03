@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Image, Video, Camera, MapPin, User, FileText } from 'lucide-react';
+import { Image, Video, Camera, MapPin, User, FileText, Music } from 'lucide-react';
+import useMusicStore from '../../store/useMusicStore';
+
 import { toast } from 'react-hot-toast';
 import styles from './AttachmentMenu.module.css';
 import hapticsManager from '../../utils/hapticsManager';
@@ -8,6 +10,8 @@ import hapticsManager from '../../utils/hapticsManager';
 const AttachmentMenu = ({ isOpen, onClose, onFileSelect }) => {
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const { togglePanel } = useMusicStore();
+
 
   const handleOptionClick = (type) => {
     hapticsManager.impact();
@@ -53,7 +57,9 @@ const AttachmentMenu = ({ isOpen, onClose, onFileSelect }) => {
     { icon: <FileText size={24} />, label: 'File', onClick: () => handleComingSoon('File'), color: styles['file-option'] },
     { icon: <MapPin size={24} />, label: 'Location', onClick: () => handleComingSoon('Location'), color: styles['location-option'] },
     { icon: <User size={24} />, label: 'Contact', onClick: () => handleComingSoon('Contact'), color: styles['contact-option'] },
+    { icon: <Music size={24} />, label: 'Music', onClick: () => { togglePanel(true); onClose(); }, color: styles['music-option'] },
   ];
+
 
   return (
     <AnimatePresence>

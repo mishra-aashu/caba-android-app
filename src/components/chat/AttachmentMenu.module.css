@@ -87,6 +87,10 @@
   background: linear-gradient(135deg, #5f27cd, #341f97);
 }
 
+.music-option {
+  background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+}
+
 .attachment-menu-overlay {
   position: fixed;
   top: 0;

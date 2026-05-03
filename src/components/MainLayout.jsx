@@ -42,6 +42,11 @@ const ChatListPanel = lazy(() => import('./ChatListPanel'));
 const DesktopLayout = lazy(() => import('./DesktopLayout'));
 const ThemeSelector = lazy(() => import('./chat/ThemeSelector'));
 const SharedMedia = lazy(() => import('./chat/SharedMedia'));
+import GlobalPlayer from './media/GlobalPlayer';
+import MusicPanel from './media/MusicPanel';
+import useMusicSync from '../hooks/media/useMusicSync';
+import useMusicStore from '../store/useMusicStore';
+
 
 // ══════════════════════════════════════════════════════════════
 // Constants
@@ -64,8 +69,9 @@ const OVERLAY_ROUTES = new Set([
   '/emoji-settings',
   '/history',
   '/games',
-  '/listen-together',
 ]);
+
+
 
 const ACTIVE_CHAT_PATHS = new Set([
   '/user-details/',
@@ -282,7 +288,8 @@ const MainLayout = () => {
   const CLICK_THROTTLE_MS = 200;
 
   useSyncOrchestration(user?.id);
-  
+  useMusicSync(); // Global music synchronization
+
   const {
     panelType,
     targetId,
@@ -290,6 +297,14 @@ const MainLayout = () => {
     openPanel,
     closePanel,
   } = useSidePanel();
+
+  const {
+    currentSong, 
+    isPlaying,
+    setIsPlaying,
+    setCurrentSong
+  } = useMusicStore();
+
 
   const routeInfo = useRouteDetection(location.pathname);
 
@@ -348,7 +363,6 @@ const MainLayout = () => {
         return;
     }
 
-    console.log('🚀 Calling setActiveChat');
     setActiveChat(chat);
   }, [setActiveChat]);
 
@@ -358,6 +372,7 @@ const MainLayout = () => {
     if (isDesktop) {
       openPanel('user', userId);
     } else {
+
       navigate(`/user-details/${userId}`);
     }
   }, [isDesktop, openPanel, navigate]);
@@ -564,8 +579,9 @@ const MainLayout = () => {
           isEmojiSettingsRoute={location.pathname === '/emoji-settings'}
           isHistoryRoute={location.pathname === '/history'}
           isGamesRoute={location.pathname === '/games'}
-          isListenTogetherRoute={location.pathname === '/listen-together'}
           chatListPanelProps={chatListPanelProps}
+
+
           onCloseSidebar={() => navigate('/')}
         />
       </Suspense>
@@ -580,9 +596,13 @@ const MainLayout = () => {
     return (
       <UserDetailsContext.Provider value={userDetailsContextValue}>
         <VersionUpdateModal />
+      <GlobalPlayer />
+      <MusicPanel />
+
         
-        <div className="mobile-layout reveal-app">
+        <div className={`mobile-layout ${currentSong ? 'has-global-player' : ''}`}>
           {/* Chat List View */}
+
           <div 
             className={`list-view ${isChatViewActive ? 'list-view--behind' : ''}`}
             aria-hidden={isChatViewActive}
@@ -651,6 +671,9 @@ const MainLayout = () => {
   return (
     <UserDetailsContext.Provider value={userDetailsContextValue}>
       <VersionUpdateModal />
+      <GlobalPlayer />
+      <MusicPanel />
+
       
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>

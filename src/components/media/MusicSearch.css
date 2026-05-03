@@ -1,0 +1,318 @@
+/* =============================================
+   MUSIC SEARCH STYLES — Premium Glassmorphic UI
+   ============================================= */
+
+.music-search-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: transparent;
+  color: #ffffff;
+}
+
+.search-header {
+  padding: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(11, 20, 26, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 16px;
+  border-radius: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-input-wrapper:focus-within {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 0 0 4px rgba(0, 168, 132, 0.1);
+}
+
+.search-input-wrapper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  padding: 2px 0;
+}
+
+.search-input-wrapper input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.search-icon {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.loading-spinner-icon {
+  color: var(--brand-primary, #00a884);
+}
+
+.search-results-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  scrollbar-width: none;
+}
+
+.search-results-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* --- Song Item Styles --- */
+.song-result-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: songReveal 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes songReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.song-result-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.song-result-item:active {
+  transform: scale(0.98);
+}
+
+.song-artwork-wrapper {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  background: #1a1a1a;
+}
+
+.song-artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.song-result-item:hover .song-artwork {
+  transform: scale(1.1);
+}
+
+.artwork-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.song-result-item:hover .artwork-overlay {
+  opacity: 1;
+}
+
+.song-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.song-title-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.song-artist-text {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 4px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-item-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.play-btn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.play-btn-circle:hover {
+  background: rgba(0, 168, 132, 0.15);
+  border-color: var(--brand-primary, #00a884);
+  color: var(--brand-primary, #00a884);
+  transform: scale(1.1);
+}
+
+.play-btn-circle.playing {
+  background: var(--brand-primary, #00a884);
+  color: #fff;
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 0 15px rgba(0, 168, 132, 0.3);
+}
+
+.song-result-item.active {
+  background: rgba(0, 168, 132, 0.1);
+  border: 1px solid rgba(0, 168, 132, 0.2);
+}
+
+.invite-btn {
+
+  background: rgba(0, 168, 132, 0.1);
+  color: var(--brand-primary, #00a884);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.invite-btn:hover {
+  background: var(--brand-primary, #00a884);
+  color: #fff;
+  transform: rotate(10deg) scale(1.1);
+}
+
+/* --- Shimmer Skeleton --- */
+.shimmer-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.shimmer-song-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.shimmer-art {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.shimmer-details {
+  flex: 1;
+}
+
+.shimmer-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.shimmer-line.title {
+  width: 70%;
+  margin-bottom: 10px;
+}
+
+.shimmer-line.artist {
+  width: 45%;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* --- Empty State --- */
+.search-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 350px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.empty-icon-circle {
+  width: 80px;
+  height: 80px;
+  background: rgba(0, 168, 132, 0.05);
+  color: var(--brand-primary, #00a884);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  border: 1px dashed rgba(0, 168, 132, 0.2);
+}
+
+.search-empty-state h3 {
+  color: #fff;
+  margin-bottom: 10px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.search-empty-state p {
+  font-size: 0.9rem;
+  max-width: 200px;
+  line-height: 1.5;
+}

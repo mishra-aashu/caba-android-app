@@ -1,0 +1,180 @@
+/* =============================================
+   SONG MESSAGE BUBBLE STYLES
+   ============================================= */
+
+.songContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 260px;
+  max-width: 100%;
+  padding: 4px;
+}
+
+.songCard {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+/* --- Artwork --- */
+.artworkWrapper {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  background: #1a1a1a;
+}
+
+.artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.playBtn {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+}
+
+.artworkWrapper:hover .playBtn {
+  opacity: 1;
+}
+
+.artworkWrapper:hover .artwork {
+  transform: scale(1.1);
+}
+
+.playIconCircle {
+  width: 38px;
+  height: 38px;
+  background: #fff;
+  color: #0b141a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0.7);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.playBtn:hover .playIconCircle {
+  transform: scale(1);
+  background: var(--brand-primary, #00a884);
+  color: #fff;
+}
+
+/* --- Meta Info --- */
+.songMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.songTitle {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.songArtist {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 3px 0 8px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.platformBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 10px;
+  border-radius: 8px;
+  width: fit-content;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.badgeIcon {
+  color: var(--brand-primary, #00a884);
+  display: flex;
+}
+
+.platformBadge span {
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* --- Action Footer --- */
+.joinAction {
+  background: rgba(0, 210, 255, 0.1);
+  border: 1px solid rgba(0, 210, 255, 0.2);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.joinAction:hover {
+  background: rgba(0, 210, 255, 0.15);
+  border-color: #00d2ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 210, 255, 0.1);
+}
+
+.joinAction:active {
+  transform: translateY(0);
+}
+
+.radioIcon {
+  color: #ff4757;
+  animation: pulseRadio 2s infinite;
+}
+
+@keyframes pulseRadio {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .songContainer {
+    width: 220px;
+  }
+  .artworkWrapper {
+    width: 60px;
+    height: 60px;
+  }
+}

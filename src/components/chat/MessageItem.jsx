@@ -2,7 +2,9 @@ import React, { useState, useRef, useCallback, memo, Suspense, lazy, useMemo } f
 import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
 import { formatBubbleTime } from '../../utils/dateFormatter';
+import SongMessage from './SongMessage';
 import { Check, Reply } from 'lucide-react';
+
 import MessageBubble from './MessageBubble';
 import useChatStore from '../../store/useChatStore';
 import { manualRetrySyncItem } from '../../db/db';
@@ -273,6 +275,15 @@ const MessageItem = ({
           isLastRead={isLastRead}
           isLast={isLast}
           onRetry={handleRetry}
+        />
+      );
+    }
+
+    if (message.messageType === 'song') {
+      return (
+        <SongMessage
+          message={message}
+          isMine={isSent}
         />
       );
     }

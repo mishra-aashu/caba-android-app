@@ -6,7 +6,9 @@ import { db } from '../../db/db';
 import hapticsManager from '../../utils/hapticsManager';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../config/supabase';
+import useMusicStore from '../../store/useMusicStore';
 import styles from './BottomNavigation.module.css';
+
 
 const NAV_ITEMS = [
     { path: '/', icon: MessageCircle, label: 'Chats', matchPaths: ['/', '/chat'] },
@@ -61,6 +63,8 @@ const BottomNavigation = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { dbUser } = useAuth();
+    const toggleMusicPanel = useMusicStore(state => state.togglePanel);
+
 
     // Live unread count from Dexie
     const unreadCount = useLiveQuery(async () => {
@@ -116,11 +120,17 @@ const BottomNavigation = () => {
     }, [location.pathname]);
 
     const handleNavigate = useCallback((path) => {
+        if (path === '/listen-together') {
+            hapticsManager.selectionChanged();
+            toggleMusicPanel(true);
+            return;
+        }
         // Don't navigate if already on the same tab
         if (location.pathname === path) return;
         hapticsManager.selectionChanged();
         navigate(path);
-    }, [navigate, location.pathname]);
+    }, [navigate, location.pathname, toggleMusicPanel]);
+
 
     // Get badge for each tab
     const getBadge = useCallback((path) => {
