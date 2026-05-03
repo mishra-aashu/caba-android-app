@@ -19,6 +19,7 @@ import { db } from '../db/db';
 import { supabase } from '../config/supabase';
 import { safeDbConversion } from '../utils/dbFieldMapping';
 import { EncryptionService } from './EncryptionService';
+import { useSyncStore, SYNC_STATUS } from '../store/useSyncStore';
 
 // Configuration constants
 const CONFIG = {
@@ -181,9 +182,9 @@ class SyncHeartbeat {
     this._listeners.visibility = this._onVisibilityChange.bind(this);
     document.addEventListener('visibilitychange', this._listeners.visibility);
 
-    // Network status
-    this._listeners.online = this._onNetworkOnline.bind(this);
-    window.addEventListener('online', this._listeners.online);
+    // Network status (Deprecated: Handled by useConnectivity via SyncStore)
+    // this._listeners.online = this._onNetworkOnline.bind(this);
+    // window.addEventListener('online', this._listeners.online);
 
     // Capacitor app state (if available)
     this._attachCapacitorListener();
@@ -266,8 +267,10 @@ class SyncHeartbeat {
    * Execute the actual sync beat
    */
   async _executeBeat(reason, force) {
+    const { status, setStatus } = useSyncStore.getState();
+
     // Pre-flight checks
-    if (!this._isRunning || !this.userId || !navigator.onLine) {
+    if (!this._isRunning || !this.userId || status === SYNC_STATUS.OFFLINE) {
       return;
     }
 
@@ -289,6 +292,7 @@ class SyncHeartbeat {
     this._lastHeartbeatAt = now;
     this._isSyncing = true;
     this._stats.totalBeats++;
+    setStatus(SYNC_STATUS.SYNCING);
 
     console.log(`[SyncHeartbeat] 🔄 Beat #${this._stats.totalBeats} (${reason})`);
 
@@ -318,6 +322,7 @@ class SyncHeartbeat {
       }));
 
       this._stats.successfulBeats++;
+      setStatus(SYNC_STATUS.IDLE);
       console.log(`[SyncHeartbeat] ✅ Beat completed successfully`);
 
     } catch (err) {
@@ -326,6 +331,7 @@ class SyncHeartbeat {
       } else {
         this._stats.failedBeats++;
         this._stats.lastError = err.message;
+        setStatus(SYNC_STATUS.ERROR);
         console.error('[SyncHeartbeat] ❌ Beat failed:', err);
       }
     } finally {
@@ -439,9 +445,22 @@ class SyncHeartbeat {
       }
 
         if (toPatch.length > 0) {
-          // Single bulk write
+          // ═══ Smart Merge (Heartbeat Version) ═══
           await db.transaction('rw', db.chats_list, async () => {
-            await db.chats_list.bulkPut(toPatch);
+            for (const sChat of toPatch) {
+              const localChat = await db.chats_list.get(sChat.id);
+              if (localChat) {
+                const merged = {
+                  ...sChat,
+                  pinStatus: localChat.pinStatus || sChat.pinStatus,
+                  isMuted: localChat.isMuted !== undefined ? localChat.isMuted : sChat.isMuted,
+                  draft: localChat.draft || sChat.draft,
+                };
+                await db.chats_list.put(merged);
+              } else {
+                await db.chats_list.put(sChat);
+              }
+            }
           });
   
           console.log(`[SyncHeartbeat] 📊 Patched ${toPatch.length} chat heads`);

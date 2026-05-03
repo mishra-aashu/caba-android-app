@@ -46,7 +46,7 @@ const SafeEmoji = ({ emoji, hex, vendor, className = '', style = {} }) => {
 
   // RESOLVE URL: 
   // 1. Apple is local (bundled)
-  // 2. Others are remote (fetched from Supabase table)
+  // 2. Others are remote (fetched from Supabase table) with local fallback
   let spriteUrl = `${baseUrl}assets/emojis/spritesheets/${sheetFileName}`;
   if (vendor !== 'apple' && remoteAssets?.[vendor]) {
     spriteUrl = remoteAssets[vendor];

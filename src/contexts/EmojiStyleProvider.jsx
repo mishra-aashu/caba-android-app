@@ -84,7 +84,7 @@ export const EmojiStyleProvider = ({ children }) => {
 
   // Load remote asset URLs from Supabase table with LocalStorage caching
   const loadRemoteAssets = async () => {
-    const CACHE_KEY = 'emoji_assets_cache';
+    const CACHE_KEY = 'emoji_assets_cache_v2';
     const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
     try {

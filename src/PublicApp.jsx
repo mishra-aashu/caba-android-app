@@ -9,6 +9,7 @@
 
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
+import { useConnectivity } from './hooks/useConnectivity';
 import { useAuth } from './hooks/useAuth';
 import { isNativeWithPlugins } from './utils/platformCheck';
 import { Capacitor } from '@capacitor/core';
@@ -50,6 +51,7 @@ const PublicApp = () => {
   
   useOnlineStatus();
   usePlatformInit();
+  useConnectivity();
 
   // ═══ Splash Screen Safety Net ═══
   useEffect(() => {

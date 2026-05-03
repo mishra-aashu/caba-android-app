@@ -30,6 +30,7 @@
     "@capacitor/haptics": "^6.0.3",
     "@capacitor/ios": "^6.2.1",
     "@capacitor/keyboard": "^6.0.4",
+    "@capacitor/network": "^8.0.1",
     "@capacitor/preferences": "^6.0.4",
     "@capacitor/push-notifications": "^6.0.5",
     "@capacitor/share": "^8.0.1",

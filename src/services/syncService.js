@@ -2,6 +2,7 @@ import { db } from '../db/db';
 import { supabase } from '../config/supabase';
 import { safeDbConversion } from '../utils/dbFieldMapping';
 import { EncryptionService } from './EncryptionService';
+import { useSyncStore, SYNC_STATUS } from '../store/useSyncStore';
 
 /**
  * SyncService
@@ -44,8 +45,11 @@ class SyncService {
      * Fetches any messages created after the latest locally stored message.
      */
     async performGlobalSync(userId) {
-        if (this.isSyncing || !navigator.onLine || !userId) return;
+        const { status, setStatus, setLastSyncAt } = useSyncStore.getState();
+        if (this.isSyncing || status === SYNC_STATUS.OFFLINE || !userId) return;
+        
         this.isSyncing = true;
+        setStatus(SYNC_STATUS.SYNCING);
 
         try {
             console.log('[Sync] Starting global catch-up...');
@@ -103,11 +107,14 @@ class SyncService {
                 await this.updateChatListHeads(converted);
             }
 
-            this.lastSyncTime = new Date().toISOString();
-            localStorage.setItem('last_global_sync_at', this.lastSyncTime);
+            const syncTime = new Date().toISOString();
+            this.lastSyncTime = syncTime;
+            setLastSyncAt(syncTime);
+            setStatus(SYNC_STATUS.IDLE);
 
         } catch (error) {
             console.error('[Sync] Global sync failed:', error);
+            setStatus(SYNC_STATUS.ERROR);
         } finally {
             this.isSyncing = false;
         }
@@ -139,15 +146,38 @@ class SyncService {
      * Fetches the entire unified chat list from Supabase
      */
     async syncChatList(userId) {
-        if (!userId || !navigator.onLine) return;
+        const { isOnline } = useSyncStore.getState();
+        if (!userId || !isOnline) return;
         
         try {
             const { data, error } = await supabase.rpc('get_unified_chat_list', { user_id: userId });
             
             if (!error && data) {
                 const { normalizeChat } = await import('../utils/chatHelpers');
-                const formattedChats = data.map(rawItem => normalizeChat(rawItem, userId));
-                await db.chats_list.bulkPut(formattedChats);
+                const serverChats = data.map(rawItem => normalizeChat(rawItem, userId));
+                
+                // ═══ Smart Merge: Preserve Local Metadata ═══
+                await db.transaction('rw', [db.chats_list], async () => {
+                    for (const sChat of serverChats) {
+                        const localChat = await db.chats_list.get(sChat.id);
+                        if (localChat) {
+                            // Keep local fields that don't exist on server
+                            const merged = {
+                                ...sChat,
+                                pinStatus: localChat.pinStatus || sChat.pinStatus,
+                                isMuted: localChat.isMuted !== undefined ? localChat.isMuted : sChat.isMuted,
+                                draft: localChat.draft || sChat.draft,
+                                metadata: {
+                                    ...(sChat.metadata || {}),
+                                    ...(localChat.metadata || {})
+                                }
+                            };
+                            await db.chats_list.put(merged);
+                        } else {
+                            await db.chats_list.put(sChat);
+                        }
+                    }
+                });
             }
         } catch (err) {
             console.error('[Sync] Chat list sync failed:', err);

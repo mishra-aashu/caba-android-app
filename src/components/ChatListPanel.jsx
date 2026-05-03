@@ -28,6 +28,7 @@ import {
   ArrowLeft,
   AlertCircle,
   X,
+  WifiOff,
 } from 'lucide-react';
 
 // Contexts & Hooks
@@ -59,6 +60,7 @@ import ChatContextMenu from './chat/ChatContextMenu';
 import ErrorBoundary from './common/ErrorBoundary';
 import LoadingSpinner from './common/LoadingSpinner';
 import ChatListSkeleton from './chat/ChatListSkeleton';
+import { useSyncStore, SYNC_STATUS } from '../store/useSyncStore';
 import { isNativeWithPlugins } from '../utils/platformCheck';
 
 // Lazy loaded components
@@ -124,6 +126,56 @@ const SearchSuggestionItem = memo(({ user, onClick }) => (
 ));
 SearchSuggestionItem.displayName = 'SearchSuggestionItem';
 
+const SyncPulseBar = memo(({ status }) => {
+  if (status === SYNC_STATUS.IDLE) return null;
+
+  const config = {
+    [SYNC_STATUS.SYNCING]: { text: 'Updating...', color: 'var(--brand-primary)' },
+    [SYNC_STATUS.CONNECTING]: { text: 'Connecting...', color: 'var(--text-secondary)' },
+    [SYNC_STATUS.OFFLINE]: { text: 'Waiting for network', color: '#ff4b4b' },
+    [SYNC_STATUS.ERROR]: { text: 'Sync error', color: '#ff4b4b' },
+  };
+
+  const { text, color } = config[status] || config[SYNC_STATUS.CONNECTING];
+
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: 32, opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      style={{
+        backgroundColor: 'var(--bg-1)',
+        borderBottom: '1px solid var(--border-color)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        fontSize: '11px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        fontWeight: '700',
+        color,
+        overflow: 'hidden',
+        zIndex: 10,
+        flexShrink: 0,
+      }}
+    >
+      {status === SYNC_STATUS.SYNCING && (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+          style={{ display: 'flex' }}
+        >
+          <RefreshCw size={12} />
+        </motion.div>
+      )}
+      {status === SYNC_STATUS.OFFLINE && <WifiOff size={12} />}
+      <span>{text}</span>
+    </motion.div>
+  );
+});
+SyncPulseBar.displayName = 'SyncPulseBar';
+
 // ══════════════════════════════════════════════════════════════
 // Main Component (Refactored)
 // ══════════════════════════════════════════════════════════════
@@ -138,6 +190,7 @@ const ChatListPanel = ({
   const location = useLocation();
   const isDesktop = useIsDesktop();
   const { user, dbUser } = useAuth();
+  const { status: syncStatus } = useSyncStore();
 
   // ──────────────────────────────────────────────────────────
   // Data Layer
@@ -730,6 +783,11 @@ const ChatListPanel = ({
             )}
           </div>
         </header>
+
+        {/* Sync Pulse Bar */}
+        <AnimatePresence>
+          <SyncPulseBar status={syncStatus} />
+        </AnimatePresence>
 
         {/* Search Bar */}
         <AnimatePresence>
