@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../../contexts/SupabaseContext';
 import useAuthStore from '../../store/authStore';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldOff, UserMinus } from 'lucide-react';
 import { useDialog } from '../../contexts/DialogContext';
 import './Blocked.css';
 
@@ -31,7 +31,8 @@ const Blocked = ({ onBack, isSidebar = false }) => {
             name,
             avatar,
             is_online,
-            last_seen
+            last_seen,
+            phone
           )
         `)
         .eq('blocker_id', user.id)
@@ -66,7 +67,7 @@ const Blocked = ({ onBack, isSidebar = false }) => {
   };
 
   const getInitials = (name) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
   };
 
   if (loading) {
@@ -80,17 +81,17 @@ const Blocked = ({ onBack, isSidebar = false }) => {
 
   return (
     <div className={`blocked-container ${isSidebar ? 'is-sidebar' : ''}`}>
-      <header className="app-header">
+      <header className="app-header glass-header">
         <div className="header-left">
-          <button className="back-btn" onClick={isSidebar ? () => navigate('/settings') : onBack}>
-            <ArrowLeft size={20} />
+          <button className="back-btn-premium" onClick={isSidebar ? () => navigate('/settings') : onBack}>
+            <ArrowLeft size={22} />
           </button>
         </div>
         <div className="header-center">
           <h1>Blocked Users</h1>
         </div>
         <div className="header-right">
-          {/* Empty for balance */}
+          <div className="header-badge">{blockedUsers.length}</div>
         </div>
       </header>
 
@@ -102,12 +103,12 @@ const Blocked = ({ onBack, isSidebar = false }) => {
               if (!user) return null;
 
               return (
-                <div key={block.id} className="blocked-user-item">
-                  <div className="blocked-user-avatar">
+                <div key={block.id} className="blocked-user-item-premium">
+                  <div className="blocked-user-avatar-premium">
                     {user.avatar ? (
                       <img src={user.avatar} alt={user.name} />
                     ) : (
-                      getInitials(user.name)
+                      <div className="avatar-placeholder">{getInitials(user.name)}</div>
                     )}
                   </div>
                   <div className="blocked-user-info">
@@ -116,10 +117,12 @@ const Blocked = ({ onBack, isSidebar = false }) => {
                   </div>
                   <div className="blocked-user-actions">
                     <button
-                      className="unblock-btn"
+                      className="unblock-btn-premium"
                       onClick={() => handleUnblock(block.id, user.name)}
+                      title="Unblock User"
                     >
-                      Unblock
+                      <UserMinus size={18} />
+                      <span>Unblock</span>
                     </button>
                   </div>
                 </div>
@@ -127,15 +130,16 @@ const Blocked = ({ onBack, isSidebar = false }) => {
             })}
           </div>
         ) : (
-          <div className="empty-state">
-            <div className="empty-icon">🚫</div>
+          <div className="empty-state-premium">
+            <div className="empty-icon-wrapper">
+              <div className="empty-icon-pulse"></div>
+              <ShieldOff size={48} className="empty-icon" />
+            </div>
             <h3>No blocked users</h3>
-            <p>You haven't blocked any users yet.</p>
+            <p>Your block list is currently empty. You haven't restricted any users yet.</p>
           </div>
         )}
       </div>
-
-      {/* Modal removed in favor of GlobalDialog */}
     </div>
   );
 };
