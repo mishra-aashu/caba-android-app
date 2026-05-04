@@ -1,16 +1,32 @@
 import React, { useState } from 'react';
 import { supabase } from '../../config/supabase';
-import { useAuth } from '../../hooks/useAuth';
+import useAuthStore from '../../store/authStore';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useEffect } from 'react';
 import '../../styles/PhoneModal.css';
 
 const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onCollectSuccess, onBackToLogin = () => {} }) => {
-  const { signInWithPhone } = useAuth();
+  const navigate = useNavigate();
+  const { signInWithPhone, signOut } = useAuthStore();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [step, setStep] = useState('phone'); // 'phone', 'name'
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isNewUser, setIsNewUser] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
@@ -138,13 +154,32 @@ const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onColle
     onClose();
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      onClose();
+      navigate('/login');
+      toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast.error('Logout failed');
+    }
+  };
+
   if (!isOpen) return null;
 
-  const title = mode === 'collect' ? 'Complete Your Profile!!!' : (step === 'phone' ? 'Enter Phone Number' : 'Enter Your Name');
+  const title = mode === 'collect' ? 'Complete Your Profile' : (step === 'phone' ? 'Enter Phone Number' : 'Enter Your Name');
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
+    <div className="modal-overlay" onClick={(e) => {
+      // Prevent closing when clicking overlay in collect mode
+      if (mode === 'collect') return;
+      if (e.target === e.currentTarget) onClose();
+    }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        {mode !== 'collect' && (
+          <button className="close-icon" onClick={onClose} aria-label="Close">×</button>
+        )}
         <h2 className="phone-auth-title">{title}</h2>
         {error && (
           <div className="error-message" style={{ color: '#ef4444', marginBottom: '16px', fontSize: '0.9rem' }}>
@@ -167,9 +202,23 @@ const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onColle
                 autoFocus
               />
             </div>
-            <button className="continue-btn" type="submit" disabled={loading}>
-              {loading ? 'Checking...' : 'Continue'}
+            <button 
+              className="continue-btn" 
+              type="submit" 
+              disabled={loading || (!isOnline && mode === 'collect')}
+            >
+              {loading ? 'Checking...' : (!isOnline && mode === 'collect' ? 'Offline' : 'Continue')}
             </button>
+            {!isOnline && mode === 'collect' && (
+              <p style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '8px' }}>
+                Please connect to the internet to complete your profile.
+              </p>
+            )}
+            {mode === 'collect' && (
+              <div className="back-to-login-link" onClick={handleLogout} style={{ marginTop: '24px', opacity: 0.7, fontSize: '0.8rem', cursor: 'pointer', textAlign: 'center' }}>
+                Not you? <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Log Out</span>
+              </div>
+            )}
             {mode !== 'collect' && (
               <p className="back-to-login-link" onClick={onBackToLogin}>Back to Login</p>
             )}
@@ -193,8 +242,15 @@ const PhoneAuthModal = ({ isOpen, onClose, onAuthSuccess, mode = 'auth', onColle
               <button className="continue-btn" type="button" onClick={() => setStep('phone')} style={{ flex: 1, background: '#374151' }}>
                 Back
               </button>
-              <button className="continue-btn" type="submit" disabled={loading} style={{ flex: 1 }}>
-                {loading ? 'Creating Account...' : 'Create Account'}
+              <button 
+                className="continue-btn" 
+                type="submit" 
+                disabled={loading || (!isOnline && mode === 'collect')} 
+              >
+                {loading 
+                  ? (mode === 'collect' ? 'Updating...' : 'Creating...') 
+                  : (!isOnline && mode === 'collect' ? 'Offline' : (mode === 'collect' ? 'Complete Profile' : 'Create Account'))
+                }
               </button>
             </div>
           </form>

@@ -504,6 +504,7 @@ const useAuthStore = create(
     }
 
     isHandlingSession = true;
+    set({ isDbUserLoaded: false }); // Ensure we mark as loading
 
     try {
       console.log('[Auth] 🔍 Loading profile for:', authUser.email);

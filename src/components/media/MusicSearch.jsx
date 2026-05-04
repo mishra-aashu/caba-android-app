@@ -23,7 +23,6 @@ import './MusicSearch.css';
 const MusicSearch = () => {
   const [contextMenu, setContextMenu] = useState(null); // { song, x, y }
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
   const [isSearchLoading, setSearchLoading] = useState(false);
   const [isMoreLoading, setMoreLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +46,8 @@ const MusicSearch = () => {
   const { 
     currentSong, setCurrentSong, isPlaying, setIsPlaying, roomId, isHost, 
     playbackHistory, clearHistory, tabCache, setTabCache,
-    likedSongs, toggleLikeSong, fetchLikedSongs
+    likedSongs, toggleLikeSong, fetchLikedSongs,
+    searchResults, setSearchResults, recommendations
   } = useMusicStore();
 
   const activeChatId = useChatStore(selectActiveChatId);
@@ -138,6 +138,10 @@ const MusicSearch = () => {
         // Save to cache if it's a tab-initiated search (only first page for cache)
         if (tabId && page === 1) {
           setTabCache(tabId, results);
+          // Sync with global background if it's Trending
+          if (tabId === "Trending") {
+            useMusicStore.getState().setBackgroundImages(results);
+          }
         }
       } else {
         if (page === 1) setSearchResults([]);
@@ -305,37 +309,8 @@ const MusicSearch = () => {
 
 
   return (
-    <div 
-      className="music-search-container"
-      onScroll={(e) => {
-        const scrolled = e.currentTarget.scrollTop;
-        const hero = e.currentTarget.querySelector('.music-hero-container');
-        // Simple opacity fade is much cheaper than transform parallax on every scroll
-        if (hero) {
-          hero.style.opacity = Math.max(0, 1 - scrolled / 250);
-        }
-      }}
-    >
-      <div className="parallax-bg-layer">
-        <div className="bg-slider-wrapper">
-          {heroSongs.length > 0 ? (
-            heroSongs.slice(0, 3).map((song, i) => (
-              <img 
-                key={`bg-${song.id}-${i}`} 
-                src={song.image || (song.images?.['500x500'])} 
-                alt="" 
-                className="bg-parallax-img"
-                style={{ animationDelay: `${i * -20}s` }}
-                loading="lazy"
-              />
-            ))
-          ) : (
-             <div className="bg-placeholder" />
-          )}
-        </div>
-        <div className="bg-overlay-gradient" />
-        <div className="vignette-overlay" />
-      </div>
+    <div className="music-search-container">
+
 
       <div className="search-header">
         <MusicHero songs={heroSongs} onPlay={selectSong} />

@@ -91,18 +91,17 @@ const ProtectedLayout = ({ children }) => {
     if (!isAuthenticated) {
       setShowPhoneAuth(true);
       setShowPhoneCollect(false);
-    } else {
+    } else if (isDbUserLoaded) {
       setShowPhoneAuth(false);
       
       // ✅ PROFESSIONAL LOGIC: 
-      // Only show collect modal if:
-      // 1. User is online AND server is reachable
+      // Show collect modal if:
+      // 1. Server is reachable (not in emergency fallback mode)
       // 2. Database user is fully loaded (not a fallback)
       // 3. Phone is missing
+      // (Even if offline, we show the modal to prevent bypass)
       const shouldCollect = 
-        isOnline && 
         !isServerUnreachable && 
-        isDbUserLoaded && 
         !!dbUser && 
         !dbUser._isFallback && 
         (!dbUser.phone || dbUser.phone === '');
@@ -131,24 +130,63 @@ const ProtectedLayout = ({ children }) => {
     }
   };
 
+  if (isAuthenticated && !isDbUserLoaded && !isServerUnreachable && isOnline) {
+    return (
+      <div className="full-page-loader" style={{ 
+        height: '100vh', 
+        width: '100vw', 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        background: '#0f172a',
+        color: 'white',
+        gap: '20px'
+      }}>
+        <div className="loading-spinner" style={{ width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#3aeda2', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <p style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>Initializing your profile...</p>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="app-layout">
-        {isDesktop && (
-          <SafeSuspense>
-            <DesktopNavbar />
-          </SafeSuspense>
-        )}
-        <main className="app-content">
-          <SafeSuspense>
-            {children || <Outlet />}
-          </SafeSuspense>
-        </main>
-      </div>
+      {/* 🚀 PERFORMANCE FIX: Don't render app background if modal is active to save resources */}
+      {!showPhoneCollect ? (
+        <div className="app-layout">
+          {isDesktop && (
+            <SafeSuspense>
+              <DesktopNavbar />
+            </SafeSuspense>
+          )}
+          <main className="app-content">
+            <SafeSuspense>
+              {children || <Outlet />}
+            </SafeSuspense>
+          </main>
+        </div>
+      ) : (
+        <div className="auth-lock-background" style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          background: '#0f172a', 
+          zIndex: 0 
+        }} />
+      )}
+
       <SafeSuspense>
         <PhoneAuthModal
           isOpen={showPhoneCollect}
-          onClose={() => setShowPhoneCollect(false)}
+          onClose={() => {
+            // Only allow closing if we don't NEED to collect
+            const stillNeedsCollect = !isServerUnreachable && isDbUserLoaded && !!dbUser && (!dbUser.phone || dbUser.phone === '');
+            if (!stillNeedsCollect) {
+              setShowPhoneCollect(false);
+            }
+          }}
           mode="collect"
           onCollectSuccess={handleCollectSuccess}
         />

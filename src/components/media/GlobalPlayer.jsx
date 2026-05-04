@@ -1,6 +1,8 @@
-import React, { useRef, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import useMusicStore from '../../store/useMusicStore';
+import useChatStore from '../../store/useChatStore';
 import { Play, Pause, SkipBack, SkipForward, Maximize2, Music, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import './GlobalPlayer.css';
@@ -26,10 +28,17 @@ const GlobalPlayer = () => {
     setPlayerExpanded
   } = useMusicStore();
 
+  const location = useLocation();
+  const activeChatId = useChatStore(state => state.activeChatId);
   const audioRef = useRef(null);
   const progressBarRef = useRef(null);
   const animationRef = useRef(null);
   const isRefreshingRef = useRef(false);
+  const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 });
+  
+  // Floating mode active when in a chat OR on a sub-page
+  const rootPaths = ['/', '/chat']; 
+  const isFloating = !!activeChatId || !rootPaths.includes(location.pathname);
   const retryCountRef = useRef(0); // Max retry attempts to prevent infinite loops
 
   // Animation loop for progress bar (High Performance)
@@ -210,7 +219,7 @@ const GlobalPlayer = () => {
   if (!currentSong) return null;
 
   return (
-    <div className={`global-player-wrapper ${(isPanelOpen || isPlayerExpanded) ? 'hidden' : ''}`}>
+    <div className={`global-player-root ${(isPanelOpen || isPlayerExpanded) ? 'hidden' : ''}`}>
       <audio 
         ref={audioRef}
         onTimeUpdate={onTimeUpdate}
@@ -219,117 +228,162 @@ const GlobalPlayer = () => {
         onEnded={() => {
           console.log("[Player] Song ended, playing next...");
           setIsPlaying(false);
-          // Small delay for smooth transition
           setTimeout(() => {
-            const nextSong = useMusicStore.getState().playNext();
-            if (!nextSong) {
-              // If no next song in list, maybe fetch more recommendations?
-              // For now playNext handles looping through searchResults.
-            }
+            useMusicStore.getState().playNext();
           }, 500);
         }}
         onPlay={onPlay}
         preload="auto"
       />
-      
-      <div className="player-progress-container">
-        <div 
-          ref={progressBarRef}
-          className="player-progress-fill" 
-          style={{ width: `${(progress / (duration || 1)) * 100}%` }} 
-        />
-        <input 
-          type="range" 
-          className="player-seek-slider"
-          min="0"
-          max={duration || 0}
-          step="0.1"
-          value={progress || 0}
-          onChange={(e) => {
-            if (!isHost && roomId) {
-              toast.error("Only Host can seek", { id: 'host-only' });
-              return;
-            }
-            handleSeek(e);
-          }}
-        />
-      </div>
 
-      <div className="player-content">
-        <div className="player-time-labels">
-          <span className="time-current">{formatTime(progress)}</span>
-          <span className="time-divider">/</span>
-          <span className="time-total">{formatTime(duration)}</span>
-        </div>
-
-        <div 
-          className="player-left" 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setPlayerExpanded(true);
-          }}
-        >
-          <motion.div 
-            className="player-artwork-mini" 
-            layoutId={`artwork-${currentSong.id}`}
+      <AnimatePresence mode="wait">
+        {isFloating ? (
+          /* ─── FLOATING BUBBLE PLAYER (Circle Mode) ─── */
+          <motion.div
+            key="bubble-player"
+            className="floating-bubble-player"
+            drag
+            dragConstraints={{ 
+              left: -window.innerWidth + 80, 
+              right: 20, 
+              top: -window.innerHeight + 150, 
+              bottom: 20 
+            }}
+            dragElastic={0.1}
+            dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+            initial={{ scale: 0, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+               // Prevent drag-click collision: only expand if not moved much
+               setPlayerExpanded(true);
+            }}
           >
-            {currentSong.image ? (
-              <img src={currentSong.image} alt="" />
-            ) : (
-              <Music size={20} />
-            )}
-          </motion.div>
-          <div className="player-info-mini">
-            <div className="mini-title-scroller">
-               <span className="mini-title-text" dangerouslySetInnerHTML={{ __html: currentSong.title }} />
+            {/* Circular Progress Ring */}
+            <svg className="bubble-progress-svg" viewBox="0 0 100 100">
+              <circle className="bubble-bg-circle" cx="50" cy="50" r="46" />
+              <motion.circle 
+                className="bubble-progress-circle" 
+                cx="50" cy="50" r="46"
+                style={{
+                  pathLength: (progress / (duration || 1)) || 0
+                }}
+              />
+            </svg>
+
+            <div className="bubble-art-wrap">
+              {currentSong.image ? (
+                <img src={currentSong.image} alt="" className={isPlaying ? 'spinning' : ''} />
+              ) : (
+                <Music size={24} color="#00ff88" />
+              )}
             </div>
-            <span className="mini-artist-text" dangerouslySetInnerHTML={{ __html: currentSong.artist }} />
-          </div>
-        </div>
 
-        <div className="player-center">
-          <button className="player-btn-icon secondary">
-            <SkipBack size={20} fill="currentColor" />
-          </button>
-          
-          <button 
-            className={`player-btn-main ${(!isHost && roomId) ? 'disabled' : ''}`} 
-            onClick={() => {
-              if (!isHost && roomId) {
-                toast.error("Only Host can control playback", { id: 'host-only', duration: 1000 });
-                return;
-              }
-              setIsPlaying(!isPlaying);
-            }}
+            <button 
+              className="bubble-play-overlay"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsPlaying(!isPlaying);
+              }}
+            >
+              {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="play-offset" />}
+            </button>
+          </motion.div>
+        ) : (
+          /* ─── STANDARD BOTTOM BAR PLAYER ─── */
+          <motion.div 
+            key="bar-player"
+            className="global-player-wrapper"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 100 }}
           >
-            {isPlaying ? (
-              <Pause size={24} fill="currentColor" />
-            ) : (
-              <Play size={24} fill="currentColor" className="play-icon-offset" />
-            )}
-          </button>
-          
-          <button className="player-btn-icon secondary">
-            <SkipForward size={20} fill="currentColor" />
-          </button>
-        </div>
+            <div className="player-progress-container">
+              <div 
+                ref={progressBarRef}
+                className="player-progress-fill" 
+                style={{ width: `${(progress / (duration || 1)) * 100}%` }} 
+              />
+              <input 
+                type="range" 
+                className="player-seek-slider"
+                min="0"
+                max={duration || 0}
+                step="0.1"
+                value={progress || 0}
+                onChange={(e) => {
+                  if (!isHost && roomId) {
+                    toast.error("Only Host can seek", { id: 'host-only' });
+                    return;
+                  }
+                  handleSeek(e);
+                }}
+              />
+            </div>
 
-        <div className="player-right">
-          <button className="player-btn-icon expand" onClick={() => setPlayerExpanded(true)} title="Fullscreen">
-            <Maximize2 size={18} />
-          </button>
-          <button 
-            className="player-btn-icon close-btn" 
-            onClick={() => {
-              setIsPlaying(false);
-              setCurrentSong(null);
-            }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-      </div>
+            <div className="player-content">
+              <div className="player-time-labels">
+                <span className="time-current">{formatTime(progress)}</span>
+                <span className="time-divider">/</span>
+                <span className="time-total">{formatTime(duration)}</span>
+              </div>
+
+              <div 
+                className="player-left" 
+                onClick={() => setPlayerExpanded(true)}
+              >
+                <div className="player-artwork-mini">
+                  {currentSong.image ? (
+                    <img src={currentSong.image} alt="" />
+                  ) : (
+                    <Music size={20} />
+                  )}
+                </div>
+                <div className="player-info-mini">
+                  <div className="mini-title-scroller">
+                    <span className="mini-title-text" dangerouslySetInnerHTML={{ __html: currentSong.title }} />
+                  </div>
+                  <span className="mini-artist-text" dangerouslySetInnerHTML={{ __html: currentSong.artist }} />
+                </div>
+              </div>
+
+              <div className="player-center">
+                <button className="player-btn-icon secondary" onClick={() => useMusicStore.getState().playPrevious()}>
+                  <SkipBack size={20} fill="currentColor" />
+                </button>
+                
+                <button 
+                  className={`player-btn-main ${(!isHost && roomId) ? 'disabled' : ''}`} 
+                  onClick={() => setIsPlaying(!isPlaying)}
+                >
+                  {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="play-icon-offset" />}
+                </button>
+                
+                <button className="player-btn-icon secondary" onClick={() => useMusicStore.getState().playNext()}>
+                  <SkipForward size={20} fill="currentColor" />
+                </button>
+              </div>
+
+              <div className="player-right">
+                <button className="player-btn-icon expand" onClick={() => setPlayerExpanded(true)}>
+                  <Maximize2 size={18} />
+                </button>
+                <button 
+                  className="player-btn-icon close-btn" 
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setCurrentSong(null);
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

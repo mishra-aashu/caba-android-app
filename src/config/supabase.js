@@ -112,8 +112,14 @@ const createResilientFetch = () => {
         }
 
         if (response.status === 403) {
-          const errorText = await response.clone().text().catch(() => 'Unknown error');
-          console.error(`[Supabase] 403 Forbidden on ${url}:\n`, errorText);
+          const errorJson = await response.clone().json().catch(() => ({}));
+          console.error(`[Supabase] 403 Forbidden on ${url}:\n`, errorJson);
+          
+          // CRITICAL: Handle JWT session mismatch (session_not_found)
+          if (errorJson.code === 'session_not_found') {
+            console.warn('[Supabase] Session mismatch detected. Clearing invalid session.');
+            notifySessionExpired();
+          }
         }
 
         // Retry on server errors

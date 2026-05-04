@@ -31,7 +31,8 @@ const MusicPanel = () => {
     joinRoom, 
     leaveRoom,
     isHost,
-    setPlayerExpanded
+    setPlayerExpanded,
+    backgroundImages
   } = useMusicStore();
 
   const formatTime = (seconds) => {
@@ -130,6 +131,38 @@ const MusicPanel = () => {
             transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
           >
             <div className="music-panel-inner">
+              {/* Root Background Layer */}
+              <div className="parallax-bg-layer">
+                <div className="bg-slider-wrapper">
+                  {currentSong ? (
+                    <img 
+                      src={currentSong.image} 
+                      alt="" 
+                      className="bg-parallax-img active-song-bg"
+                      loading="lazy"
+                    />
+                  ) : (backgroundImages || []).length > 0 ? (
+                    backgroundImages.slice(0, 3).map((song, i) => (
+                      <img 
+                        key={`bg-root-${song.id}-${i}`} 
+                        src={song.image || (song.images?.['500x500'])} 
+                        alt="" 
+                        className="bg-parallax-img"
+                        style={{ animationDelay: `${i * -15}s` }}
+                        loading="lazy"
+                      />
+                    ))
+                  ) : (
+                    <div className="bg-placeholder" />
+                  )}
+                </div>
+                <div className="bg-overlay-gradient" />
+                <div className="vignette-overlay" />
+              </div>
+              
+              {/* Content Layers (z-index: 1 via CSS) */}
+              <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
+
               
               {/* Header */}
               <div className="panel-header-glass">
@@ -237,13 +270,13 @@ const MusicPanel = () => {
               </div>
 
               {/* Body: Search & Discovery */}
-              <div className={`panel-body-scrollable ${currentSong && isPlaying ? 'with-footer' : ''}`}>
+              <div className={`panel-body-scrollable ${currentSong ? 'with-footer' : ''}`}>
                 <MusicSearch />
               </div>
 
               {/* Expanded Player Detail (Footer) */}
               <AnimatePresence>
-                {currentSong && isPlaying && (
+                {currentSong && (
                   <motion.div 
                     className="panel-player-footer"
                     initial={{ y: 100 }}
@@ -283,7 +316,7 @@ const MusicPanel = () => {
                       <div className="footer-info">
                         <h4 dangerouslySetInnerHTML={{ __html: currentSong.title }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <p dangerouslySetInnerHTML={{ __html: currentSong.artist }} style={{ display: 'none' }} />
+                          <p dangerouslySetInnerHTML={{ __html: currentSong.artist }} />
                           <span style={{ fontSize: '10px', color: 'var(--brand-primary)', fontWeight: 700, opacity: 0.8, display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <Maximize2 size={10} /> FULLSCREEN
                           </span>
@@ -307,6 +340,7 @@ const MusicPanel = () => {
                 )}
               </AnimatePresence>
 
+              </div>
             </div>
           </motion.div>
         </>
