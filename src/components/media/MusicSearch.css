@@ -17,13 +17,17 @@
 }
 
 .search-header {
-  padding: 4px 16px;
+  padding: 12px 16px 8px;
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(11, 20, 26, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(11, 20, 26, 0.95);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .search-input-wrapper {
@@ -63,6 +67,45 @@
 
 .loading-spinner-icon {
   color: var(--brand-primary, #00a884);
+}
+
+/* --- Category Tabs --- */
+.category-tabs-container {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  -ms-overflow-style: none;  /* Hide scrollbar for IE/Edge */
+}
+
+.category-tabs-container::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome/Safari */
+}
+
+.category-tab {
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.category-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.category-tab.active {
+  background: var(--brand-primary, #00a884);
+  color: #fff;
+  border-color: var(--brand-primary, #00a884);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
 }
 
 .search-results-list {

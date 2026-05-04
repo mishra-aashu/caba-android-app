@@ -21,7 +21,18 @@ const MusicSearch = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchLoading, setSearchLoading] = useState(false);
-  const [loadingSongId, setLoadingSongId] = useState(null); // Track which song is fetching details
+  const [loadingSongId, setLoadingSongId] = useState(null);
+  const [activeTab, setActiveTab] = useState("Trending");
+
+  const tabs = [
+    { id: "Trending", query: "Bollywood Trending" },
+    { id: "Hindi", query: "Top Hindi Songs" },
+    { id: "Punjabi", query: "Latest Punjabi Hits" },
+    { id: "Haryanvi", query: "Latest Haryanvi Songs" },
+    { id: "Lofi", query: "Lofi Beats Hindi" },
+    { id: "Global", query: "Top Global Hits" },
+    { id: "Party", query: "Party Anthems" }
+  ];
   
   const { currentSong, setCurrentSong, setIsPlaying, roomId, isHost } = useMusicStore();
 
@@ -31,17 +42,20 @@ const MusicSearch = () => {
 
 
   useEffect(() => {
-    // Fetch random trending category on mount
-    if (searchResults.length === 0 && !searchQuery) {
-      const categories = [
-        "Bollywood Trending", "Top Hindi Songs", "Latest Punjabi Hits", 
-        "Lofi Beats Hindi", "Arijit Singh Radio", "Top Global 2026",
-        "Romantic Melodies", "Party Anthems", "Indian Indie Hits"
-      ];
-      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-      handleSearch(randomCategory);
+    // Fetch based on active tab
+    const tab = tabs.find(t => t.id === activeTab);
+    if (tab && !searchQuery) {
+      handleSearch(tab.query);
     }
-  }, []);
+  }, [activeTab]);
+
+  useEffect(() => {
+    // If user starts searching, maybe switch to a search mode or just clear results if query empty
+    if (!searchQuery) {
+      const tab = tabs.find(t => t.id === activeTab);
+      if (tab) handleSearch(tab.query);
+    }
+  }, [searchQuery]);
 
   const handleSearch = async (query) => {
     if (!query.trim()) return;
@@ -217,12 +231,27 @@ const MusicSearch = () => {
           <Search className="search-icon" size={18} />
           <input 
             type="text" 
-            placeholder="Songs, Artists, Albums..." 
+            placeholder="Search songs, artists..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
           />
           {isSearchLoading && <Loader2 className="loading-spinner-icon animate-spin" size={18} />}
+        </div>
+
+        <div className="category-tabs-container">
+          {tabs.map(tab => (
+            <button 
+              key={tab.id}
+              className={`category-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setSearchQuery(""); // Clear search when switching tabs
+              }}
+            >
+              {tab.id}
+            </button>
+          ))}
         </div>
       </div>
 
