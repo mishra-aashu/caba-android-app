@@ -145,7 +145,7 @@ const MusicPanel = () => {
                 
                 <h2 className="panel-title">
                   <Music size={24} className="title-icon" />
-                  Explore Beats
+                  Discover Your Sound
                 </h2>
                 
                 {/* Session Action Bar */}
