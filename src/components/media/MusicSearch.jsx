@@ -1,7 +1,7 @@
 import React, { useState, useEffect, memo } from 'react';
 
 import useMusicStore from '../../store/useMusicStore';
-import { MUSIC_API_URL } from '../../config/musicConfig';
+import { MUSIC_API_URL, MUSIC_API_BASE } from '../../config/musicConfig';
 
 import useChatStore, { selectActiveChatId } from '../../store/useChatStore';
 import useAuthStore from '../../store/authStore';
@@ -48,23 +48,18 @@ const MusicSearch = () => {
     
     setSearchLoading(true);
     try {
-      const res = await fetch(`${MUSIC_API_URL}/api/search?query=${encodeURIComponent(query)}`);
+      const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(query)}`);
       if (!res.ok) throw new Error(`Search failed: ${res.status}`);
       
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await res.text();
-        console.error("[MusicSearch] Expected JSON but got:", text.substring(0, 50));
-        throw new Error("Server returned an invalid response (not JSON). Please use 'npm run dev:vercel' for local API support.");
-      }
-
       const data = await res.json();
-      
-      const results = data.data?.results || data.results || [];
-      setSearchResults(results);
-
+      if (data.status === 'success') {
+        setSearchResults(data.data.results || []);
+      } else {
+        setSearchResults([]);
+      }
     } catch (err) {
       console.error("Music search failed:", err);
+      toast.error("Search failed. Check your connection.");
     } finally {
       setSearchLoading(false);
     }
@@ -73,63 +68,39 @@ const MusicSearch = () => {
   // Debounced search could be added here, but manual Enter/Search button is fine for now
   
   const selectSong = async (song) => {
-    let songData = song;
-    const cacheBust = `_t=${Date.now()}`;
+    // 1. Check if we already have the media URL (New API provides it in results)
+    let finalMediaUrl = song.media_urls?.['320_KBPS'] || song.media_urls?.['160_KBPS'] || song.media_url;
 
-    setLoadingSongId(song.id);
-    try {
-      // 1. Fetch fresh details (Try direct API then proxy)
-      let res = null;
-      if (song.api_url?.song) {
-        const directUrl = `${song.api_url.song}&${cacheBust}`;
-        res = await fetch(directUrl, { cache: 'no-store' }).catch(() => null);
+    if (!finalMediaUrl) {
+      setLoadingSongId(song.id);
+      try {
+        const res = await fetch(`${MUSIC_API_BASE}/song?id=${song.id}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status === 'success' && json.data) {
+            finalMediaUrl = json.data.media_urls?.['320_KBPS'] || json.data.media_urls?.['160_KBPS'] || json.data.media_url;
+          }
+        }
+      } catch (err) {
+        console.warn("[MusicSearch] Detail fetch failed:", err);
+      } finally {
+        setLoadingSongId(null);
       }
-
-      if (!res || !res.ok) {
-        const proxyUrl = `${MUSIC_API_URL}/api/song?id=${song.id}&${cacheBust}`;
-        res = await fetch(proxyUrl, { cache: 'no-store' });
-      }
-
-      if (res.ok) {
-        const json = await res.json();
-        const details = (json.data?.[0] || json.results?.[0] || json?.[0]) ??
-                       (json.media_urls || json.media_url ? json : null);
-        if (details) songData = details;
-      }
-    } catch (err) {
-      console.warn("[MusicSearch] Detail fetch failed:", err);
-    } finally {
-      setLoadingSongId(null);
     }
 
-    // 2. Comprehensive URL Extraction (Priority: 320kbps > 160kbps > any)
-    const urls = songData.media_urls || songData.download_url || songData.downloadUrl || {};
-    let finalMediaUrl = songData.media_url || "";
-
-    if (typeof urls === 'object' && !Array.isArray(urls)) {
-      finalMediaUrl = urls['320kbps'] || urls['320_KBPS'] || 
-                      urls['160kbps'] || urls['160_KBPS'] || 
-                      urls['96kbps'] || Object.values(urls)[0] || finalMediaUrl;
-    } else if (Array.isArray(urls) && urls.length > 0) {
-      const best = urls.find(u => u.quality === '320kbps') || 
-                   urls.find(u => u.quality === '160kbps') || 
-                   urls[urls.length - 1];
-      finalMediaUrl = best?.link || best?.url || finalMediaUrl;
+    if (!finalMediaUrl) {
+      toast.error("Could not get play link");
+      return;
     }
 
-    // Fallback to preview if no full link (Better than nothing)
-    if (!finalMediaUrl || finalMediaUrl.includes('preview')) {
-      finalMediaUrl = songData.more_info?.vlink || songData.vlink || songData.preview_url || finalMediaUrl;
-    }
-
-    // 3. Map final metadata
+    // 2. Map final metadata
     const finalSong = {
       id: song.id,
-      title: songData.song || songData.title || song.title || "Unknown Track",
-      artist: songData.singers || songData.primary_artists || songData.artist || song.artist || "Unknown Artist",
-      image: songData.image || (songData.images?.['500x500'] || songData.images?.['150x150']) || song.image,
+      title: song.title || song.name || "Unknown Track",
+      artist: song.singers || song.primary_artists || song.artist || "Unknown Artist",
+      image: song.image || (song.images?.['500x500'] || song.images?.['150x150']),
       media_url: finalMediaUrl,
-      duration: songData.duration || 0
+      duration: song.duration || 0
     };
 
     console.log(`[MusicEngine] Playing: ${finalSong.title}`, finalSong.media_url);
@@ -152,12 +123,11 @@ const MusicSearch = () => {
     let songData = song;
 
     // Fetch details if missing (for sharing high-quality links)
-    if (!song.downloadUrl && !song.media_urls) {
+    if (!songData.media_urls && !songData.media_url) {
       try {
-        const res = await fetch(`${MUSIC_API_URL}/api/song?id=${song.id}`);
+        const res = await fetch(`${MUSIC_API_BASE}/song?id=${song.id}`);
         const json = await res.json();
-        const details = json.data?.[0] || json.results?.[0] || json?.[0];
-        if (details) songData = details;
+        if (json.status === 'success' && json.data) songData = json.data;
       } catch (e) { console.warn("Detail fetch failed for share", e); }
     }
 
@@ -169,16 +139,7 @@ const MusicSearch = () => {
       bestImage = Array.isArray(imgArr) ? (imgArr[imgArr.length - 1]?.url || '') : imgArr;
     }
     
-    const downloads = songData.downloadUrl || songData.media_urls || songData.download_url || [];
-    let mediaUrl = '';
-    if (Array.isArray(downloads)) {
-      const best = downloads.find(d => d.quality === '320kbps') || downloads[downloads.length - 1];
-      mediaUrl = best?.url || best?.link || '';
-    } else {
-      mediaUrl = downloads;
-    }
-
-    if (!mediaUrl) mediaUrl = songData.more_info?.vlink || '';
+    const mediaUrl = songData.media_urls?.['320_KBPS'] || songData.media_urls?.['160_KBPS'] || songData.media_url || '';
 
     const finalSong = {
       id: songData.id,
@@ -318,11 +279,7 @@ const MusicSearch = () => {
  * Prevents heavy list re-renders.
  */
 const SongItem = memo(({ song, index, onSelect, onInvite, onToggle, currentSongId, isPlaying, isLoadingDetails }) => {
-  const imgObj = song.images || {};
-  const imgArr = song.image || [];
-  const thumbnail = imgObj['150x150'] || imgObj['50x50'] || 
-                   (Array.isArray(imgArr) ? (imgArr[1]?.url || imgArr[1]?.link || imgArr[0]?.url || '') : imgArr);
-
+  const thumbnail = song.image || (song.images?.['150x150']) || '';
   const isCurrent = currentSongId === song.id;
 
   return (
@@ -346,7 +303,7 @@ const SongItem = memo(({ song, index, onSelect, onInvite, onToggle, currentSongI
 
       <div className="song-meta" onClick={() => onSelect(song)}>
         <h4 className="song-title-text" dangerouslySetInnerHTML={{ __html: song.title || song.name }} />
-        <p className="song-artist-text" dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle || song.primaryArtists }} />
+        <p className="song-artist-text" dangerouslySetInnerHTML={{ __html: song.singers || song.artist || song.subtitle || song.primaryArtists }} />
       </div>
 
       <div className="song-item-actions">

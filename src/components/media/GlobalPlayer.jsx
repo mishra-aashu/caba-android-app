@@ -216,7 +216,18 @@ const GlobalPlayer = () => {
         onTimeUpdate={onTimeUpdate}
         onLoadedMetadata={onLoadedMetadata}
         onError={onAudioError}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={() => {
+          console.log("[Player] Song ended, playing next...");
+          setIsPlaying(false);
+          // Small delay for smooth transition
+          setTimeout(() => {
+            const nextSong = useMusicStore.getState().playNext();
+            if (!nextSong) {
+              // If no next song in list, maybe fetch more recommendations?
+              // For now playNext handles looping through searchResults.
+            }
+          }, 500);
+        }}
         onPlay={onPlay}
         preload="auto"
       />

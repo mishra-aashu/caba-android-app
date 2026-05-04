@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { MUSIC_API_URL } from '../config/musicConfig';
+import { MUSIC_API_URL, MUSIC_API_BASE } from '../config/musicConfig';
 
 /**
  * useMusicStore - Global state for Elevengram Music System
@@ -44,6 +44,31 @@ const useMusicStore = create(
           progress: isNewSong ? 0 : get().progress,
           isPlaying: true 
         });
+
+        // Trigger smart recommendations if it's a new song
+        if (isNewSong) {
+          get().fetchRecommendations(song.id);
+        }
+      },
+
+      fetchRecommendations: async (songId) => {
+        if (!songId) return;
+        try {
+          const res = await fetch(`${MUSIC_API_BASE}/recommendations?song_id=${songId}&limit=20`);
+          if (!res.ok) throw new Error("Failed to fetch recommendations");
+          const data = await res.json();
+          
+          if (data.status === 'success') {
+            const recs = data.data.results || [];
+            if (recs.length > 0) {
+              const current = get().currentSong;
+              // Mix recommendations with current song at top
+              set({ searchResults: [current, ...recs.filter(r => r.id !== current.id)] });
+            }
+          }
+        } catch (err) {
+          console.error("[MusicStore] Recs failed:", err);
+        }
       },
       
       setIsPlaying: (playing) => set({ isPlaying: playing }),
@@ -89,62 +114,51 @@ const useMusicStore = create(
       },
       
       setSyncStatus: (status) => set({ syncStatus: status }),
-      
+
+      playNext: () => {
+        const { currentSong, searchResults, setCurrentSong } = get();
+        if (searchResults.length === 0) return null;
+        
+        const currentIndex = searchResults.findIndex(s => s.id === currentSong?.id);
+        const nextIndex = (currentIndex + 1) % searchResults.length;
+        const nextSong = searchResults[nextIndex];
+        setCurrentSong(nextSong);
+        return nextSong;
+      },
+
+      playPrevious: () => {
+        const { currentSong, searchResults, setCurrentSong } = get();
+        if (searchResults.length === 0) return null;
+        
+        const currentIndex = searchResults.findIndex(s => s.id === currentSong?.id);
+        const prevIndex = currentIndex <= 0 ? searchResults.length - 1 : currentIndex - 1;
+        const prevSong = searchResults[prevIndex];
+        setCurrentSong(prevSong);
+        return prevSong;
+      },
+
       refreshCurrentSongMetadata: async () => {
         const { currentSong } = get();
         if (!currentSong?.id) return;
         
         console.log(`[MusicStore] Refreshing metadata for: ${currentSong.id}`);
         try {
-          // Cache-bust to prevent Vercel from serving expired CDN tokens
-          const cacheBust = `_t=${Date.now()}`;
-          const proxyUrl = `${MUSIC_API_URL}/api/song?id=${currentSong.id}&${cacheBust}`;
-          
-          // Also try jiosaavn-api.vercel.app directly (bypasses our proxy's cache)
-          const directUrl = `https://jiosaavn-api.vercel.app/song?id=${currentSong.id}&${cacheBust}`;
-          
-          let res = await fetch(directUrl, { cache: 'no-store' }).catch(() => null);
-          if (!res || !res.ok) {
-            res = await fetch(proxyUrl, { cache: 'no-store' });
-          }
+          const res = await fetch(`${MUSIC_API_BASE}/song?id=${currentSong.id}`);
           if (!res.ok) throw new Error(`API returned ${res.status}`);
           
           const json = await res.json();
-          // API returns flat object or wrapped in data/results
-          const details = (json.data?.[0] || json.results?.[0] || json?.[0]) ??
-            (json.media_urls || json.media_url ? json : null);
-          
-          if (details) {
-            // 2. Comprehensive URL Extraction (Priority: 320kbps > 160kbps > any)
-            const urls = details.media_urls || details.download_url || details.downloadUrl || {};
-            let freshMediaUrl = details.media_url || "";
-
-            if (typeof urls === 'object' && !Array.isArray(urls)) {
-              freshMediaUrl = urls['320kbps'] || urls['320_KBPS'] || 
-                             urls['160kbps'] || urls['160_KBPS'] || 
-                             urls['96kbps'] || Object.values(urls)[0] || freshMediaUrl;
-            } else if (Array.isArray(urls) && urls.length > 0) {
-              const best = urls.find(u => u.quality === '320kbps') || 
-                           urls.find(u => u.quality === '160kbps') || 
-                           urls[urls.length - 1];
-              freshMediaUrl = best?.link || best?.url || freshMediaUrl;
-            }
-
-            // Fallback to preview
-            if (!freshMediaUrl || freshMediaUrl.includes('preview')) {
-              freshMediaUrl = details.more_info?.vlink || details.vlink || details.preview_url || freshMediaUrl;
-            }
-
-            const finalTitle = details.song || details.title || details.name || currentSong.title;
-            const finalArtist = details.primary_artists || details.singers || details.artist || currentSong.artist;
+          if (json.status === 'success' && json.data) {
+            const details = json.data;
+            const freshMediaUrl = details.media_urls?.['320_KBPS'] || details.media_urls?.['160_KBPS'] || details.media_url;
 
             if (freshMediaUrl) {
               set({ 
                 currentSong: { 
                   ...currentSong, 
-                  title: finalTitle,
-                  artist: finalArtist,
+                  title: details.title || details.name || currentSong.title,
+                  artist: details.singers || details.primary_artists || currentSong.artist,
                   media_url: freshMediaUrl,
+                  image: details.image || currentSong.image,
                   duration: details.duration || currentSong.duration
                 } 
               });
