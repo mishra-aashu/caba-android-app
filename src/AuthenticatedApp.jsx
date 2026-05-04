@@ -277,6 +277,7 @@ const AppContent = () => {
 // ──────────────────────────────────────────────
 const AuthenticatedApp = () => {
   const dbUser = useAuth(state => state.dbUser);
+  const user = useAuth(state => state.user);
   const authLoading = useAuth(state => state.loading);
 
   useCapacitorPlugins();
@@ -288,18 +289,18 @@ const AuthenticatedApp = () => {
   return (
     <ChatThemeProvider>
       <EmojiStyleProvider>
-        <AppWithCallProvider dbUser={dbUser} authLoading={authLoading} />
+        <AppWithCallProvider dbUser={dbUser} user={user} authLoading={authLoading} />
       </EmojiStyleProvider>
     </ChatThemeProvider>
   );
 };
 
-const AppWithCallProvider = ({ dbUser, authLoading }) => {
+const AppWithCallProvider = ({ dbUser, user, authLoading }) => {
   return (
     <DialogProvider>
       <GameLobbyProvider>
-        <GroupCallProvider currentUser={authLoading ? null : dbUser}>
-          <CallProvider currentUser={authLoading ? null : dbUser}>
+        <GroupCallProvider currentUser={authLoading ? null : (dbUser || user)}>
+          <CallProvider currentUser={authLoading ? null : (dbUser || user)}>
             <SafeAreaDebugger />
             <OfflineIndicator>
               <AppContent />

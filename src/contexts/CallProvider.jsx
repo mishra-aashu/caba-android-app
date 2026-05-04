@@ -366,13 +366,14 @@ export function CallProvider({ children, currentUser }) {
 
   // Check for pending signals (e.g. after reload)
   const checkPendingSignals = useCallback(async () => {
-    if (!currentUser?.id) return;
+    const userId = currentUser?.id;
+    if (!userId) return;
 
     try {
       // [PERF] Check both signals and history in PARALLEL
       const [signals, incomingCalls] = await Promise.all([
-        callService.getPendingSignals(currentUser.id),
-        callService.getIncomingCalls(currentUser.id)
+        callService.getPendingSignals(userId),
+        callService.getIncomingCalls(userId)
       ]);
 
       // 1. Handle signals first (higher priority)
@@ -492,6 +493,10 @@ export function CallProvider({ children, currentUser }) {
   // Start outgoing call
   const startCall = useCallback(async (receiverId, callType = 'video') => {
     try {
+      if (!currentUser?.id) {
+        throw new Error('Authentication required to start a call');
+      }
+
       dispatch({
         type: ACTIONS.SET_CALL_STATE,
         payload: { state: 'calling', data: { callType } }
@@ -528,6 +533,9 @@ export function CallProvider({ children, currentUser }) {
   // Answer incoming call
   const answerCall = useCallback(async () => {
     try {
+      if (!currentUser?.id) {
+        throw new Error('Authentication required to answer a call');
+      }
       const { incomingCall } = state;
 
       if (!incomingCall) {

@@ -356,7 +356,7 @@ export function GroupCallProvider({ children, currentUser }) {
       await supabase
         .from('webrtc_signals')
         .insert({
-          from_user_id: currentUser.id,
+          from_user_id: currentUser?.id,
           to_user_id: toUserId,
           call_id: state.callId,
           group_id: state.groupId,
@@ -476,6 +476,7 @@ export function GroupCallProvider({ children, currentUser }) {
   // Initialize group call
   const initializeGroupCall = useCallback(async (groupId, callType = 'video') => {
     try {
+      if (!currentUser?.id) throw new Error('Auth required');
       dispatch({
         type: ACTIONS.SET_GROUP_CALL_STATE,
         payload: { state: 'initiating', data: { groupId, callType } }
@@ -538,6 +539,7 @@ export function GroupCallProvider({ children, currentUser }) {
   // Join group call
   const joinGroupCall = useCallback(async (callId, withVideo = true) => {
     try {
+      if (!currentUser?.id) throw new Error('Auth required');
       // Get call details
       const { data: call, error } = await supabase
         .from('calls')
