@@ -211,6 +211,18 @@
   box-shadow: 0 4px 15px rgba(0, 168, 132, 0.15);
 }
 
+.action-pill.spotify-pill {
+  background: rgba(29, 185, 84, 0.05);
+  border-color: rgba(29, 185, 84, 0.2);
+}
+
+.action-pill.spotify-pill:hover {
+  background: rgba(29, 185, 84, 0.1);
+  border-color: #1DB954;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(29, 185, 84, 0.15);
+}
+
 .session-reveal-box {
   margin: 8px 0;
   overflow: hidden;

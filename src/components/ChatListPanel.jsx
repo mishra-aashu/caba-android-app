@@ -29,6 +29,8 @@ import {
   AlertCircle,
   X,
   WifiOff,
+  MessageCircle,
+  Users as UsersIcon,
 } from 'lucide-react';
 
 // Contexts & Hooks
@@ -834,7 +836,8 @@ const ChatListPanel = ({
               className={`${styles['filter-pill']} ${activeFilter === FILTER_TYPES.ALL ? styles.active : ''}`}
               onClick={() => setActiveFilter(FILTER_TYPES.ALL)}
             >
-              All
+              <MessageCircle size={14} />
+              <span>All</span>
             </button>
             <button
               role="tab"
@@ -842,7 +845,8 @@ const ChatListPanel = ({
               className={`${styles['filter-pill']} ${activeFilter === FILTER_TYPES.CHATS ? styles.active : ''}`}
               onClick={() => setActiveFilter(FILTER_TYPES.CHATS)}
             >
-              Chats
+              <User size={14} />
+              <span>Chats</span>
             </button>
             <button
               role="tab"
@@ -850,7 +854,8 @@ const ChatListPanel = ({
               className={`${styles['filter-pill']} ${activeFilter === FILTER_TYPES.GROUPS ? styles.active : ''}`}
               onClick={() => setActiveFilter(FILTER_TYPES.GROUPS)}
             >
-              Groups
+              <UsersIcon size={14} />
+              <span>Groups</span>
             </button>
           </nav>
         )}

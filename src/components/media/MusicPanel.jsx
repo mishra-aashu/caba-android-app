@@ -199,6 +199,15 @@ const MusicPanel = () => {
                         <UserPlus size={18} />
                         <span>JOIN</span>
                       </button>
+                      <button 
+                        className="action-pill spotify-pill"
+                        onClick={() => {
+                          useMusicStore.getState().setActiveTab('Spotify');
+                        }}
+                      >
+                        <Music size={18} style={{ color: '#1DB954' }} />
+                        <span>SPOTIFY</span>
+                      </button>
                     </div>
                   ) : (
                     <div className="session-active-card mini">

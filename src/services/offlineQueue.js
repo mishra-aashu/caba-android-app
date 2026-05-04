@@ -95,12 +95,18 @@ export const processSyncQueue = async () => {
   try {
     const now = Date.now();
     
-    // Find items that are PENDING and (no nextRetryAt or nextRetryAt is in the past)
+    // Find items that are PENDING, WAITING, or stuck in PROCESSING
     const pendingItems = await db.sync_queue
-      .where('status')
-      .anyOf([QUEUE_STATUS.PENDING, QUEUE_STATUS.WAITING])
       .filter(item => {
-        if (item.status === QUEUE_STATUS.WAITING) return false; // Handled separately
+        if (item.status === QUEUE_STATUS.COMPLETED || item.status === QUEUE_STATUS.FAILED) return false;
+        
+        // If it's processing, check if it's stuck (older than 30s)
+        if (item.status === QUEUE_STATUS.PROCESSING) {
+          const stuckThreshold = 30000; // 30 seconds
+          return (now - (item.lastRetryAt || item.createdAt)) > stuckThreshold;
+        }
+
+        if (item.status === QUEUE_STATUS.WAITING) return false; // Handled by dependency logic
         
         // Check for scheduled time
         if (item.scheduledAt && item.scheduledAt > now) return false;

@@ -799,6 +799,125 @@
   transform: translateY(0);
 }
 
+/* --- Spotify Specific Styles --- */
+.spotify-tab-container {
+  margin-bottom: 24px;
+  animation: fadeIn 0.4s ease;
+}
+
+.spotify-login-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: rgba(29, 185, 84, 0.05);
+  border: 1px dashed rgba(29, 185, 84, 0.2);
+  border-radius: 24px;
+  text-align: center;
+}
+
+.spotify-icon-big {
+  width: 80px;
+  height: 80px;
+  background: rgba(29, 185, 84, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.spotify-login-prompt h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.spotify-login-prompt p {
+  margin: 0 0 24px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 250px;
+  line-height: 1.5;
+}
+
+.spotify-connect-btn {
+  background: #1DB954;
+  color: #fff;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
+}
+
+.spotify-connect-btn:hover {
+  background: #1ed760;
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 6px 20px rgba(29, 185, 84, 0.4);
+}
+
+.spotify-import-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: rgba(29, 185, 84, 0.1);
+  border: 1px solid rgba(29, 185, 84, 0.2);
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.spotify-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spotify-status {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1DB954;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.spotify-track-count {
+  font-size: 0.9rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+.spotify-import-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1DB954;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.spotify-import-all-btn:hover:not(:disabled) {
+  background: #1ed760;
+  transform: translateY(-2px);
+}
+
+.spotify-import-all-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #333;
+}
+
 .load-more-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

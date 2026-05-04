@@ -33,8 +33,11 @@ const useMusicStore = create(
       roomId: null,
       isHost: false,
       syncStatus: 'disconnected', // 'disconnected' | 'synced' | 'lagging'
+      activeTab: 'Trending',
       
       // ─── Actions ───
+      
+      setActiveTab: (tab) => set({ activeTab: tab }),
       
       setCurrentSong: (song) => {
         const state = get();
@@ -416,6 +419,7 @@ const useMusicStore = create(
         playbackHistory: state.playbackHistory,
         likedSongs: state.likedSongs,
         searchQuery: state.searchQuery,
+        activeTab: state.activeTab,
         // Don't persist: isPlaying, progress, isPanelOpen, searchResults, etc.
       })
     }

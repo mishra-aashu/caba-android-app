@@ -10,9 +10,10 @@ import { frontendToDb } from '../../utils/dbFieldMapping';
 import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
 import { 
   Search, Play, Pause, Users, Music, Loader2, Send, Heart, 
-  MoreVertical, List, User, Disc 
+  MoreVertical, List, User, Disc, CloudDownload
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { spotifyService } from '../../services/spotifyService';
 import './MusicSearch.css';
 
 
@@ -28,8 +29,13 @@ const MusicSearch = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingSongId, setLoadingSongId] = useState(null);
-  const [activeTab, setActiveTab] = useState("Trending");
   const [heroSongs, setHeroSongs] = useState([]);
+  
+  // Spotify State
+  const [spotifyToken, setSpotifyToken] = useState(null);
+  const [spotifyTracks, setSpotifyTracks] = useState([]);
+  const [isSpotifyLoading, setIsSpotifyLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
 
   const tabs = useMemo(() => [
     { id: "Trending", query: "Bollywood Trending" },
@@ -39,6 +45,7 @@ const MusicSearch = () => {
     { id: "Lofi", query: "Lofi Beats Hindi" },
     { id: "Global", query: "Top Global Hits" },
     { id: "Party", query: "Party Anthems" },
+    { id: "Spotify", query: "" },
     { id: "History", query: "" },
     { id: "Liked", query: "" }
   ], []);
@@ -47,7 +54,8 @@ const MusicSearch = () => {
     currentSong, setCurrentSong, isPlaying, setIsPlaying, roomId, isHost, 
     playbackHistory, clearHistory, tabCache, setTabCache,
     likedSongs, toggleLikeSong, fetchLikedSongs,
-    searchResults, setSearchResults, recommendations
+    searchResults, setSearchResults, recommendations,
+    activeTab, setActiveTab
   } = useMusicStore();
 
   const activeChatId = useChatStore(selectActiveChatId);
@@ -58,6 +66,15 @@ const MusicSearch = () => {
   useEffect(() => {
     if (user?.id) {
       fetchLikedSongs(user.id);
+    }
+
+    // Check for Spotify callback token
+    const token = spotifyService.getAccessTokenFromUrl();
+    if (token) {
+      setSpotifyToken(token);
+      setActiveTab("Spotify");
+      // Remove token from URL for cleanliness
+      window.history.replaceState(null, "", window.location.pathname);
     }
   }, [user?.id]);
 
@@ -70,6 +87,15 @@ const MusicSearch = () => {
     
     if (activeTab === "Liked") {
       setSearchResults(likedSongs);
+      return;
+    }
+
+    if (activeTab === "Spotify") {
+      if (spotifyToken) {
+        handleFetchSpotifyTracks();
+      } else {
+        setSearchResults([]);
+      }
       return;
     }
 
@@ -147,13 +173,66 @@ const MusicSearch = () => {
         if (page === 1) setSearchResults([]);
         setHasMore(false);
       }
-    } catch (err) {
-      console.error("Music search failed:", err);
-      toast.error("Search failed. Check your connection.");
     } finally {
       setSearchLoading(false);
       setMoreLoading(false);
     }
+  };
+
+  const handleFetchSpotifyTracks = async () => {
+    if (!spotifyToken) return;
+    setIsSpotifyLoading(true);
+    try {
+      const tracks = await spotifyService.getLikedTracks(spotifyToken);
+      setSpotifyTracks(tracks);
+      setSearchResults(tracks); // Temporarily show spotify tracks in search results
+    } catch (err) {
+      toast.error("Failed to fetch Spotify tracks");
+    } finally {
+      setIsSpotifyLoading(false);
+    }
+  };
+
+  const handleImportSpotifyTracks = async () => {
+    if (spotifyTracks.length === 0) return;
+    
+    setImportProgress({ current: 0, total: spotifyTracks.length });
+    let importedCount = 0;
+
+    toast.promise(
+      (async () => {
+        for (let i = 0; i < spotifyTracks.length; i++) {
+          const track = spotifyTracks[i];
+          setImportProgress(prev => ({ ...prev, current: i + 1 }));
+
+          try {
+            // 1. Search for track on JioSaavn
+            const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(`${track.title} ${track.artist}`)}&page=1`);
+            const data = await res.json();
+
+            if (data.status === 'success' && data.data.results?.length > 0) {
+              const matchedSong = data.data.results[0];
+              
+              // 2. Check if already liked
+              const alreadyLiked = likedSongs.some(ls => ls.id === matchedSong.id);
+              if (!alreadyLiked) {
+                await toggleLikeSong(matchedSong, user?.id);
+                importedCount++;
+              }
+            }
+          } catch (e) {
+            console.error(`Import failed for ${track.title}:`, e);
+          }
+        }
+        setImportProgress({ current: 0, total: 0 });
+        return importedCount;
+      })(),
+      {
+        loading: 'Matching and importing songs...',
+        success: (count) => `Successfully imported ${count} new songs!`,
+        error: 'Import process encountered issues.',
+      }
+    );
   };
 
   const handleLoadMore = () => {
@@ -346,6 +425,54 @@ const MusicSearch = () => {
       </div>
 
       <div className="search-results-list">
+        {activeTab === "Spotify" && (
+          <div className="spotify-tab-container">
+            {!spotifyToken ? (
+              <div className="spotify-login-prompt">
+                <div className="spotify-icon-big">
+                  <Music size={48} color="#1DB954" />
+                </div>
+                <h3>Connect to Spotify</h3>
+                <p>Import your liked songs and playlists from Spotify to Elevengram.</p>
+                <button className="spotify-connect-btn" onClick={spotifyService.login}>
+                  Login with Spotify
+                </button>
+              </div>
+            ) : (
+              <div className="spotify-import-header">
+                <div className="spotify-info">
+                  <span className="spotify-status">Connected to Spotify</span>
+                  <span className="spotify-track-count">{spotifyTracks.length} liked songs found</span>
+                </div>
+                <button 
+                  className="spotify-import-all-btn" 
+                  onClick={handleImportSpotifyTracks}
+                  disabled={importProgress.total > 0}
+                >
+                  <CloudDownload size={18} />
+                  {importProgress.total > 0 
+                    ? `Importing (${importProgress.current}/${importProgress.total})` 
+                    : "Import All to Liked"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isSpotifyLoading && (
+          <div className="shimmer-container">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="shimmer-song-item">
+                <div className="shimmer-art" />
+                <div className="shimmer-details">
+                  <div className="shimmer-line title" />
+                  <div className="shimmer-line artist" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === "History" && playbackHistory.length > 0 && (
           <div className="history-header">
             <span className="history-count">{playbackHistory.length} recently played</span>
