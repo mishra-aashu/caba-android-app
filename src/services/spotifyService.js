@@ -8,6 +8,24 @@ const CLIENT_ID = '9671353a99d746eaa9de005714b1760e';
 // Use dynamic origin for the redirect URI to support localhost, network IPs, and production
 const REDIRECT_URI = window.location.origin;
 
+// PKCE Helpers
+const generateRandomString = (length) => {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  return values.reduce((acc, x) => acc + possible[x % possible.length], "");
+};
+
+const sha256 = async (plain) => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  return window.crypto.subtle.digest('SHA-256', data);
+};
+
+const base64urlencode = (a) => {
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(a)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
 const SCOPES = [
   'user-library-read',
   'playlist-read-private',
@@ -16,20 +34,63 @@ const SCOPES = [
 
 export const spotifyService = {
   /**
-   * Redirects user to Spotify Authorization page
+   * Redirects user to Spotify Authorization page with PKCE
    */
-  login: () => {
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&show_dialog=true`;
+  login: async () => {
+    const codeVerifier = generateRandomString(64);
+    const hashed = await sha256(codeVerifier);
+    const codeChallenge = base64urlencode(hashed);
+
+    localStorage.setItem('spotify_code_verifier', codeVerifier);
+
+    const params = {
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      code_challenge_method: 'S256',
+      code_challenge: codeChallenge,
+      redirect_uri: REDIRECT_URI,
+    };
+
+    const authUrl = `https://accounts.spotify.com/authorize?${new URLSearchParams(params).toString()}`;
     window.location.href = authUrl;
   },
 
   /**
-   * Extracts access token from URL hash after redirect
+   * Exchanges authorization code for access token (PKCE)
    */
-  getAccessTokenFromUrl: () => {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    return params.get('access_token');
+  handleCallback: async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const codeVerifier = localStorage.getItem('spotify_code_verifier');
+
+    if (!code || !codeVerifier) return null;
+
+    try {
+      const payload = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: CLIENT_ID,
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: REDIRECT_URI,
+          code_verifier: codeVerifier,
+        }),
+      };
+
+      const response = await fetch('https://accounts.spotify.com/api/token', payload);
+      const data = await response.json();
+
+      if (data.access_token) {
+        localStorage.removeItem('spotify_code_verifier');
+        return data.access_token;
+      }
+      return null;
+    } catch (error) {
+      console.error('Spotify Token Exchange Error:', error);
+      return null;
+    }
   },
 
   /**

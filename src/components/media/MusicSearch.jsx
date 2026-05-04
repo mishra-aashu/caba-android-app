@@ -68,14 +68,21 @@ const MusicSearch = () => {
       fetchLikedSongs(user.id);
     }
 
-    // Check for Spotify callback token
-    const token = spotifyService.getAccessTokenFromUrl();
-    if (token) {
-      setSpotifyToken(token);
-      setActiveTab("Spotify");
-      // Remove token from URL for cleanliness
-      window.history.replaceState(null, "", window.location.pathname);
-    }
+    // Check for Spotify callback (PKCE)
+    const handleSpotifyAuth = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('code')) {
+        const token = await spotifyService.handleCallback();
+        if (token) {
+          setSpotifyToken(token);
+          setActiveTab("Spotify");
+          // Remove code from URL for cleanliness
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      }
+    };
+
+    handleSpotifyAuth();
   }, [user?.id]);
 
   useEffect(() => {
