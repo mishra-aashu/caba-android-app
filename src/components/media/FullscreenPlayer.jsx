@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useMusicStore from '../../store/useMusicStore';
+import useAuthStore from '../../store/authStore';
 import { ChevronDown, MoreHorizontal, SkipBack, SkipForward, Play, Pause, Share2, ListMusic, Heart, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import './FullscreenPlayer.css';
@@ -14,8 +15,11 @@ const FullscreenPlayer = () => {
     playNext, playPrevious,
     togglePanel,
     setProgress,
-    searchResults
+    searchResults,
+    likedSongs, toggleLikeSong
   } = useMusicStore();
+
+  const user = useAuthStore(state => state.user);
 
   const nextSong = useMemo(() => {
     if (!currentSong || searchResults.length <= 1) return null;
@@ -100,7 +104,8 @@ const FullscreenPlayer = () => {
   };
 
   const handleLike = () => {
-    toast.success("Added to your Liked Songs", { icon: '❤️' });
+    if (!currentSong) return;
+    toggleLikeSong(currentSong, user?.id);
   };
 
   const handleQueueOpen = () => {
@@ -234,8 +239,12 @@ const FullscreenPlayer = () => {
         )}
 
         <div className="bottom-actions">
-          <button className="fs-control-btn" onClick={handleLike}>
-            <Heart size={22} />
+          <button 
+            className={`fs-control-btn ${likedSongs.some(s => s.id === currentSong.id) ? 'active' : ''}`} 
+            onClick={handleLike}
+            style={{ color: likedSongs.some(s => s.id === currentSong.id) ? '#ff4b4b' : 'inherit' }}
+          >
+            <Heart size={22} fill={likedSongs.some(s => s.id === currentSong.id) ? "currentColor" : "none"} strokeWidth={likedSongs.some(s => s.id === currentSong.id) ? 0 : 2} />
           </button>
           <button className="fs-control-btn" onClick={handleShare}>
             <Share2 size={22} />

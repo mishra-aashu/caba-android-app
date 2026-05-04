@@ -8,7 +8,7 @@ import useAuthStore from '../../store/authStore';
 import { db } from '../../db/db';
 import { frontendToDb } from '../../utils/dbFieldMapping';
 import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
-import { Search, Play, Pause, Users, Music, Loader2, Send } from 'lucide-react';
+import { Search, Play, Pause, Users, Music, Loader2, Send, Heart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import './MusicSearch.css';
 
@@ -31,10 +31,16 @@ const MusicSearch = () => {
     { id: "Haryanvi", query: "Latest Haryanvi Songs" },
     { id: "Lofi", query: "Lofi Beats Hindi" },
     { id: "Global", query: "Top Global Hits" },
-    { id: "Party", query: "Party Anthems" }
+    { id: "Party", query: "Party Anthems" },
+    { id: "History", query: "" },
+    { id: "Liked", query: "" }
   ];
   
-  const { currentSong, setCurrentSong, setIsPlaying, roomId, isHost } = useMusicStore();
+  const { 
+    currentSong, setCurrentSong, isPlaying, setIsPlaying, roomId, isHost, 
+    playbackHistory, clearHistory, tabCache, setTabCache,
+    likedSongs, toggleLikeSong, fetchLikedSongs
+  } = useMusicStore();
 
   const activeChatId = useChatStore(selectActiveChatId);
   const activeChat = useChatStore(state => state.activeChat);
@@ -42,12 +48,35 @@ const MusicSearch = () => {
 
 
   useEffect(() => {
-    // Fetch based on active tab
+    if (user?.id) {
+      fetchLikedSongs(user.id);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    // 1. Handle History/Liked separately
+    if (activeTab === "History") {
+      setSearchResults(playbackHistory);
+      return;
+    }
+    
+    if (activeTab === "Liked") {
+      setSearchResults(likedSongs);
+      return;
+    }
+
+    // 2. Check Cache
+    if (tabCache[activeTab] && !searchQuery) {
+      setSearchResults(tabCache[activeTab]);
+      return;
+    }
+
+    // 3. Fetch if not cached
     const tab = tabs.find(t => t.id === activeTab);
     if (tab && !searchQuery) {
-      handleSearch(tab.query);
+      handleSearch(tab.query, activeTab);
     }
-  }, [activeTab]);
+  }, [activeTab, playbackHistory, likedSongs]); // We don't include tabCache here to avoid re-fetch loops if cache updates
 
   useEffect(() => {
     // If user starts searching, maybe switch to a search mode or just clear results if query empty
@@ -57,7 +86,7 @@ const MusicSearch = () => {
     }
   }, [searchQuery]);
 
-  const handleSearch = async (query) => {
+  const handleSearch = async (query, tabId = null) => {
     if (!query.trim()) return;
     
     setSearchLoading(true);
@@ -67,7 +96,12 @@ const MusicSearch = () => {
       
       const data = await res.json();
       if (data.status === 'success') {
-        setSearchResults(data.data.results || []);
+        const results = data.data.results || [];
+        setSearchResults(results);
+        // Save to cache if it's a tab-initiated search
+        if (tabId) {
+          setTabCache(tabId, results);
+        }
       } else {
         setSearchResults([]);
       }
@@ -256,6 +290,13 @@ const MusicSearch = () => {
       </div>
 
       <div className="search-results-list">
+        {activeTab === "History" && playbackHistory.length > 0 && (
+          <div className="history-header">
+            <span className="history-count">{playbackHistory.length} recently played</span>
+            <button className="clear-history-btn" onClick={clearHistory}>Clear All</button>
+          </div>
+        )}
+
         {isSearchLoading ? (
           <div className="shimmer-container">
             {[1, 2, 3, 4, 5, 6].map(i => (
@@ -271,7 +312,7 @@ const MusicSearch = () => {
         ) : searchResults.length > 0 ? (
           searchResults.map((song, index) => (
             <SongItem 
-              key={song.id} 
+              key={song.id || index} 
               song={song} 
               index={index} 
               onSelect={(s) => {
@@ -283,8 +324,10 @@ const MusicSearch = () => {
               }} 
               onInvite={handleInvite}
               onToggle={togglePlayback}
+              onLike={(s) => toggleLikeSong(s, user?.id)}
+              isLiked={likedSongs.some(ls => ls.id === song.id)}
               currentSongId={currentSong?.id}
-              isPlaying={useMusicStore.getState().isPlaying}
+              isPlaying={isPlaying}
               isLoadingDetails={loadingSongId === song.id}
             />
           ))
@@ -307,7 +350,10 @@ const MusicSearch = () => {
  * Memoized Song Item
  * Prevents heavy list re-renders.
  */
-const SongItem = memo(({ song, index, onSelect, onInvite, onToggle, currentSongId, isPlaying, isLoadingDetails }) => {
+const SongItem = memo(({ 
+  song, index, onSelect, onInvite, onToggle, onLike, 
+  currentSongId, isPlaying, isLiked, isLoadingDetails 
+}) => {
   const thumbnail = song.image || (song.images?.['150x150']) || '';
   const isCurrent = currentSongId === song.id;
 
@@ -343,8 +389,21 @@ const SongItem = memo(({ song, index, onSelect, onInvite, onToggle, currentSongI
           {isCurrent && isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
         </button>
         <button 
+          className={`like-btn ${isLiked ? 'active' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onLike(song);
+          }}
+          title={isLiked ? "Remove from Likes" : "Add to Likes"}
+        >
+          <Heart size={18} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
+        </button>
+        <button 
           className="invite-btn" 
-          onClick={() => onInvite(song)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onInvite(song);
+          }}
           title="Share to Chat"
         >
           <Users size={18} />

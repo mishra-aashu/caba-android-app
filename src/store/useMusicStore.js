@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { MUSIC_API_URL, MUSIC_API_BASE } from '../config/musicConfig';
+import { supabase } from '../config/supabase';
 
 /**
  * useMusicStore - Global state for Elevengram Music System
@@ -22,6 +23,9 @@ const useMusicStore = create(
       searchResults: [],
       searchQuery: '',
       isPlayerExpanded: false,
+      playbackHistory: [],
+      tabCache: {},
+      likedSongs: [],
       
       // ─── Listen Together (Sync) State ───
       roomId: null,
@@ -48,6 +52,77 @@ const useMusicStore = create(
         // Trigger smart recommendations if it's a new song
         if (isNewSong) {
           get().fetchRecommendations(song.id);
+          get().addToHistory(song);
+        }
+      },
+
+      addToHistory: (song) => {
+        if (!song?.id) return;
+        const { playbackHistory } = get();
+        // Remove duplicate if exists, then add to top
+        const updated = [
+          song,
+          ...playbackHistory.filter(s => s.id !== song.id)
+        ].slice(0, 50); // Keep last 50 songs
+        set({ playbackHistory: updated });
+      },
+
+      clearHistory: () => set({ playbackHistory: [] }),
+
+      setTabCache: (tabId, results) => {
+        set((state) => ({
+          tabCache: { ...state.tabCache, [tabId]: results }
+        }));
+      },
+
+      // ─── Liked Songs Sync ───
+      fetchLikedSongs: async (userId) => {
+        if (!userId) return;
+        try {
+          const { data, error } = await supabase
+            .from('music_likes')
+            .select('song_metadata')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+          const liked = (data || []).map(item => item.song_metadata);
+          set({ likedSongs: liked });
+        } catch (err) {
+          console.error("[MusicStore] Failed to fetch liked songs:", err);
+        }
+      },
+
+      toggleLikeSong: async (song, userId) => {
+        if (!song?.id) return;
+        const { likedSongs } = get();
+        const isLiked = likedSongs.some(s => s.id === song.id);
+
+        // 1. Update local state immediately
+        let updated;
+        if (isLiked) {
+          updated = likedSongs.filter(s => s.id !== song.id);
+        } else {
+          updated = [song, ...likedSongs];
+        }
+        set({ likedSongs: updated });
+
+        // 2. Sync to Supabase if logged in
+        if (userId) {
+          try {
+            if (isLiked) {
+              await supabase.from('music_likes').delete().eq('user_id', userId).eq('song_id', song.id);
+            } else {
+              await supabase.from('music_likes').upsert({
+                user_id: userId,
+                song_id: song.id,
+                song_metadata: song
+              });
+            }
+          } catch (err) {
+            console.error("[MusicStore] Sync failed:", err);
+            // Optionally rollback or toast
+          }
         }
       },
 
