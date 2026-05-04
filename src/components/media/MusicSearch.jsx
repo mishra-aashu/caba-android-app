@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, useRef, useMemo } from 'react';
 
 import useMusicStore from '../../store/useMusicStore';
 import { MUSIC_API_URL, MUSIC_API_BASE } from '../../config/musicConfig';
@@ -23,8 +23,9 @@ const MusicSearch = () => {
   const [isSearchLoading, setSearchLoading] = useState(false);
   const [loadingSongId, setLoadingSongId] = useState(null);
   const [activeTab, setActiveTab] = useState("Trending");
+  const [heroSongs, setHeroSongs] = useState([]);
 
-  const tabs = [
+  const tabs = useMemo(() => [
     { id: "Trending", query: "Bollywood Trending" },
     { id: "Hindi", query: "Top Hindi Songs" },
     { id: "Punjabi", query: "Latest Punjabi Hits" },
@@ -34,7 +35,7 @@ const MusicSearch = () => {
     { id: "Party", query: "Party Anthems" },
     { id: "History", query: "" },
     { id: "Liked", query: "" }
-  ];
+  ], []);
   
   const { 
     currentSong, setCurrentSong, isPlaying, setIsPlaying, roomId, isHost, 
@@ -67,7 +68,13 @@ const MusicSearch = () => {
 
     // 2. Check Cache
     if (tabCache[activeTab] && !searchQuery) {
-      setSearchResults(tabCache[activeTab]);
+      const cachedResults = tabCache[activeTab];
+      setSearchResults(cachedResults);
+      
+      // Also populate Hero if it's Trending and hero is empty
+      if (activeTab === "Trending" && heroSongs.length === 0) {
+        setHeroSongs(cachedResults.slice(0, 8));
+      }
       return;
     }
 
@@ -98,6 +105,12 @@ const MusicSearch = () => {
       if (data.status === 'success') {
         const results = data.data.results || [];
         setSearchResults(results);
+        
+        // Populate Hero with Trending if empty
+        if (tabId === "Trending" && heroSongs.length === 0) {
+          setHeroSongs(results.slice(0, 8));
+        }
+
         // Save to cache if it's a tab-initiated search
         if (tabId) {
           setTabCache(tabId, results);
@@ -259,33 +272,67 @@ const MusicSearch = () => {
 
 
   return (
-    <div className="music-search-container">
-      <div className="search-header">
-        <div className="search-input-wrapper">
-          <Search className="search-icon" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search songs, artists..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-          />
-          {isSearchLoading && <Loader2 className="loading-spinner-icon animate-spin" size={18} />}
+    <div 
+      className="music-search-container"
+      onScroll={(e) => {
+        const scrolled = e.currentTarget.scrollTop;
+        const hero = e.currentTarget.querySelector('.music-hero-container');
+        // Simple opacity fade is much cheaper than transform parallax on every scroll
+        if (hero) {
+          hero.style.opacity = Math.max(0, 1 - scrolled / 250);
+        }
+      }}
+    >
+      <div className="parallax-bg-layer">
+        <div className="bg-slider-wrapper">
+          {heroSongs.length > 0 ? (
+            heroSongs.map((song, i) => (
+              <img 
+                key={`bg-${song.id}-${i}`} 
+                src={song.image || (song.images?.['500x500'])} 
+                alt="" 
+                className="bg-parallax-img"
+                style={{ animationDelay: `${i * -10}s` }}
+              />
+            ))
+          ) : (
+             <div className="bg-placeholder" />
+          )}
         </div>
+        <div className="bg-overlay-gradient" />
+        <div className="vignette-overlay" />
+      </div>
 
-        <div className="category-tabs-container">
-          {tabs.map(tab => (
-            <button 
-              key={tab.id}
-              className={`category-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setSearchQuery(""); // Clear search when switching tabs
-              }}
-            >
-              {tab.id}
-            </button>
-          ))}
+      <div className="search-header">
+        <MusicHero songs={heroSongs} onPlay={selectSong} />
+
+        <div className="sticky-search-wrapper">
+          <div className="search-input-wrapper">
+            <Search className="search-icon" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search songs, artists..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+            />
+            {isSearchLoading && <Loader2 className="loading-spinner-icon animate-spin" size={18} />}
+          </div>
+
+          <div className="category-tabs-container">
+            {tabs.map(tab => (
+              <button 
+                key={tab.id}
+                className={`category-tab ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSearchQuery(""); // Clear search when switching tabs
+                }}
+              >
+                {tab.id}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -415,6 +462,130 @@ const SongItem = memo(({
 
 
 SongItem.displayName = 'SongItem';
+
+/**
+ * MusicHero Component
+ * Provides a smooth, parallax-style sliding gallery of songs.
+ */
+const MusicHero = memo(({ songs, onPlay }) => {
+  const scrollRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
+  const animationRef = useRef(null);
+  const scrollPosRef = useRef(0);
+
+  useEffect(() => {
+    if (!scrollRef.current || songs.length === 0 || isDragging) return;
+    
+    let lastTime = performance.now();
+    const scroll = (time) => {
+      if (!scrollRef.current || isDragging) return;
+      
+      const deltaTime = time - lastTime;
+      lastTime = time;
+      
+      scrollPosRef.current += 0.05 * deltaTime;
+      
+      if (scrollPosRef.current >= scrollRef.current.scrollWidth / 2) {
+        scrollPosRef.current = 0;
+      }
+      
+      scrollRef.current.style.transform = `translateX(-${scrollPosRef.current}px)`;
+      animationRef.current = requestAnimationFrame(scroll);
+    };
+
+    animationRef.current = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [songs, isDragging]);
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    startX.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeft.current = scrollPosRef.current;
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.5;
+    scrollPosRef.current = scrollLeft.current - walk;
+    
+    // Bounds check
+    if (scrollPosRef.current < 0) scrollPosRef.current = 0;
+    if (scrollPosRef.current > scrollRef.current.scrollWidth / 2) scrollPosRef.current = scrollRef.current.scrollWidth / 2;
+    
+    scrollRef.current.style.transform = `translateX(-${scrollPosRef.current}px)`;
+  };
+
+  const handleStopDragging = () => {
+    setIsDragging(false);
+  };
+
+  if (songs.length === 0) return null;
+
+  const displaySongs = [...songs, ...songs];
+
+  return (
+    <div className="music-hero-container">
+      <div 
+        className="hero-scroll-wrapper" 
+        ref={scrollRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleStopDragging}
+        onMouseLeave={handleStopDragging}
+        onTouchStart={(e) => {
+          setIsDragging(true);
+          startX.current = e.touches[0].pageX - scrollRef.current.offsetLeft;
+          scrollLeft.current = scrollPosRef.current;
+        }}
+        onTouchMove={(e) => {
+          if (!isDragging) return;
+          const x = e.touches[0].pageX - scrollRef.current.offsetLeft;
+          const walk = (x - startX.current) * 1.5;
+          scrollPosRef.current = scrollLeft.current - walk;
+          scrollRef.current.style.transform = `translateX(-${scrollPosRef.current}px)`;
+        }}
+        onTouchEnd={handleStopDragging}
+        style={{ 
+          willChange: 'transform',
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+      >
+        {displaySongs.map((song, i) => (
+          <div 
+            key={`${song.id}-${i}`} 
+            className="hero-card"
+            onClick={() => !isDragging && onPlay(song)}
+          >
+            <div className="hero-card-inner">
+              <img 
+                src={song.image || (song.images?.['500x500'])} 
+                alt={song.title} 
+                className="hero-img"
+                draggable="false"
+              />
+              <div className="hero-overlay">
+                <div className="hero-play-icon">
+                  <Play size={20} fill="white" />
+                </div>
+                <div className="hero-meta">
+                  <h5 dangerouslySetInnerHTML={{ __html: song.title }} />
+                  <p dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+MusicHero.displayName = 'MusicHero';
 
 export default MusicSearch;
 

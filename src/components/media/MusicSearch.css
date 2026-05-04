@@ -6,9 +6,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: transparent;
+  background: #0b141a;
   color: #ffffff;
   overflow: hidden;
+  position: relative;
 }
 
 .music-search-container img {
@@ -16,18 +17,134 @@
   height: auto;
 }
 
+/* --- Background Parallax Layer --- */
+.parallax-bg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-slider-wrapper {
+  position: absolute;
+  inset: -100px; /* Oversize for blur and movement */
+  display: flex;
+}
+
+.bg-parallax-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(40px) saturate(1.2) brightness(0.4); /* Reduced blur for performance */
+  opacity: 0;
+  animation: bgFadeSlide 60s infinite linear; /* Slower is smoother */
+  transform: scale(1.1);
+  will-change: opacity;
+}
+
+@keyframes bgFadeSlide {
+  0% { opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+.bg-placeholder {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, #004d40, #0b141a);
+}
+
+.bg-overlay-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, 
+    rgba(11, 20, 26, 0.4) 0%, 
+    rgba(11, 20, 26, 0.8) 50%, 
+    rgba(11, 20, 26, 1) 100%
+  );
+}
+
+.vignette-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.5) 100%);
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8);
+}
+
 .search-header {
-  padding: 12px 16px 8px;
-  position: sticky;
-  top: 0;
+  padding: 0 16px 12px;
+  position: relative; /* Not sticky yet */
   z-index: 10;
-  background: rgba(11, 20, 26, 0.95);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 16px;
+}
+
+.sticky-search-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 12px 16px 16px; /* Added more padding */
+  background: #0b141a;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  margin: 0 -16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px; /* Space between search input and tabs */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.music-search-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0b141a;
+  color: #ffffff;
+  overflow-y: auto; /* Parent handles scrolling */
+  position: relative;
+  scrollbar-width: none;
+}
+
+.music-search-container::-webkit-scrollbar {
+  display: none;
+}
+
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  background: #00ff88;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00ff88;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.brand-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
 }
 
 .search-input-wrapper {
@@ -109,10 +226,10 @@
 }
 
 .search-results-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 16px;
-  scrollbar-width: none;
+  padding: 8px 16px 80px; /* More bottom padding for player */
+  overflow: visible;
+  position: relative;
+  z-index: 1;
 }
 
 .search-results-list::-webkit-scrollbar {
@@ -428,4 +545,129 @@
   width: 36px !important;
   height: 36px !important;
   border-radius: 50% !important;
+}
+
+/* --- Music Hero Section --- */
+.music-hero-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  margin: 8px 0;
+  perspective: 1000px;
+  z-index: 5; /* Lower than sticky bar */
+}
+
+.hero-scroll-wrapper {
+  display: flex;
+  gap: 16px;
+  padding: 10px 0;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.hero-card {
+  flex: 0 0 240px;
+  height: 160px;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  background: #121212;
+  transform-style: preserve-3d;
+}
+
+.hero-card:hover {
+  transform: scale(1.05) translateZ(20px);
+  z-index: 2;
+}
+
+.hero-card-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.hero-card:hover .hero-img {
+  transform: scale(1.1);
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 16px;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.hero-card:hover .hero-overlay {
+  opacity: 1;
+}
+
+.hero-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  width: 50px;
+  height: 50px;
+  background: rgba(0, 255, 136, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+}
+
+.hero-card:hover .hero-play-icon {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.hero-meta {
+  transform: translateY(0);
+  transition: transform 0.3s ease;
+}
+
+.hero-meta h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.hero-meta p {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .hero-card {
+    flex: 0 0 180px;
+    height: 120px;
+  }
 }
