@@ -25,7 +25,8 @@ const ScrollableChatList = ({
     onAvatarClick,
     messageSearchResults = [],
     isSearchingMessages = false,
-    onMessageResultClick
+    onMessageResultClick,
+    hasSearchSuggestions = false
 }) => {
     // 1. Separate logic for the list header (Groups + Messages Label)
     const ListHeader = () => (
@@ -155,7 +156,7 @@ const ScrollableChatList = ({
             />
 
             {/* Empty States */}
-            {data.length === 0 && !loadingMore && (
+            {data.length === 0 && !loadingMore && !hasSearchSuggestions && (
                 <div className={styles['empty-state']}>
                     {searchTerm ? (
                         <>

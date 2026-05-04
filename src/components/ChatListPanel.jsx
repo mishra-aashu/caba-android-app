@@ -825,8 +825,8 @@ const ChatListPanel = ({
           )}
         </AnimatePresence>
 
-        {/* Filter Bar */}
-        {sidebarView === 'chats' && (
+        {/* Filter Bar - Hide when searching to clear up space */}
+        {sidebarView === 'chats' && !showSearch && (
           <nav className={styles['filter-bar']} role="tablist" aria-label="Chat filters">
             <button
               role="tab"
@@ -916,6 +916,7 @@ const ChatListPanel = ({
                   messageSearchResults={messageSearchResults}
                   isSearchingMessages={isSearchingMessages}
                   onMessageResultClick={handleMessageResultClick}
+                  hasSearchSuggestions={searchSuggestions.length > 0}
                 />
               )}
             </PullToRefresh>
