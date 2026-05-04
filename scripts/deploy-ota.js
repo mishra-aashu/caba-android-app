@@ -86,11 +86,28 @@ async function deploy() {
     const { data: urlData } = supabase.storage.from('ota-updates').getPublicUrl(zipFileName);
     const publicUrl = urlData.publicUrl;
 
+    // Parse CLI arguments for metadata
+    const args = process.argv.slice(2);
+    let changelog = [];
+    let priority = 'normal';
+
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--changelog' && args[i + 1]) {
+            changelog = args[i + 1].split(',').map(s => s.trim()).filter(Boolean);
+            i++;
+        } else if (args[i] === '--priority' && args[i + 1]) {
+            priority = args[i + 1].toLowerCase();
+            i++;
+        }
+    }
+
     console.log(`📝 Updating database for target app version: ${version} with bundle_version: ${timestamp}...`);
     const { error: dbErr } = await supabase.from('ota_updates').insert({
         target_app_version: version,
         bundle_version: timestamp,
-        bundle_url: publicUrl
+        bundle_url: publicUrl,
+        changelog: changelog,
+        priority: priority
     });
 
     if (dbErr) {

@@ -44,6 +44,11 @@ export const usePlatformInit = () => {
     requestPersistentStorage();
     FileCache.init();
 
+    // 6. Initialize OTA (notify native layer that app is ready)
+    import('../services/otaService').then(({ otaService }) => {
+      otaService.init();
+    }).catch(err => console.error("Failed to load OTA service", err));
+
     return () => window.removeEventListener('resize', updateAppHeight);
   }, []);
 };

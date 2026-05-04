@@ -44,7 +44,7 @@ const AuthenticatedApp = lazy(() => import('./AuthenticatedApp'));
 
 const PublicApp = () => {
   const { isAuthenticated, loading, hasHydrated } = useAuth();
-  const { needsRefresh, handleRefresh, handleDismiss, isRefreshing } = useAutoRefresh();
+  const { needsRefresh, handleRefresh, handleDismiss, isRefreshing, updateInfo } = useAutoRefresh();
   const location = useLocation();
   const isDesktop = useIsDesktop();
   const [splashFinished, setSplashFinished] = useState(false);
@@ -133,6 +133,7 @@ const PublicApp = () => {
         isRefreshing={isRefreshing}
         handleRefresh={handleRefresh}
         handleDismiss={handleDismiss}
+        updateInfo={updateInfo}
       />
 
       <Toaster 
