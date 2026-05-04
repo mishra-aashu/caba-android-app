@@ -8,7 +8,10 @@ import useAuthStore from '../../store/authStore';
 import { db } from '../../db/db';
 import { frontendToDb } from '../../utils/dbFieldMapping';
 import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
-import { Search, Play, Pause, Users, Music, Loader2, Send, Heart } from 'lucide-react';
+import { 
+  Search, Play, Pause, Users, Music, Loader2, Send, Heart, 
+  MoreVertical, List, User, Disc 
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import './MusicSearch.css';
 
@@ -18,9 +21,13 @@ import './MusicSearch.css';
  * Provides a premium interface for searching music via the JioSaavn Media Engine.
  */
 const MusicSearch = () => {
+  const [contextMenu, setContextMenu] = useState(null); // { song, x, y }
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchLoading, setSearchLoading] = useState(false);
+  const [isMoreLoading, setMoreLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loadingSongId, setLoadingSongId] = useState(null);
   const [activeTab, setActiveTab] = useState("Trending");
   const [heroSongs, setHeroSongs] = useState([]);
@@ -71,9 +78,10 @@ const MusicSearch = () => {
       const cachedResults = tabCache[activeTab];
       setSearchResults(cachedResults);
       
-      // Also populate Hero if it's Trending and hero is empty
-      if (activeTab === "Trending" && heroSongs.length === 0) {
-        setHeroSongs(cachedResults.slice(0, 8));
+      // Also populate Hero if it's Trending
+      if (activeTab === "Trending") {
+        const shuffled = [...cachedResults].sort(() => Math.random() - 0.5);
+        setHeroSongs(shuffled.slice(0, 10));
       }
       return;
     }
@@ -93,36 +101,61 @@ const MusicSearch = () => {
     }
   }, [searchQuery]);
 
-  const handleSearch = async (query, tabId = null) => {
+  const handleSearch = async (query, tabId = null, page = 1) => {
     if (!query.trim()) return;
     
-    setSearchLoading(true);
+    if (page === 1) setSearchLoading(true);
+    else setMoreLoading(true);
+
     try {
-      const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(query)}`);
+      const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(query)}&page=${page}`);
       if (!res.ok) throw new Error(`Search failed: ${res.status}`);
       
       const data = await res.json();
       if (data.status === 'success') {
         const results = data.data.results || [];
-        setSearchResults(results);
         
-        // Populate Hero with Trending if empty
-        if (tabId === "Trending" && heroSongs.length === 0) {
-          setHeroSongs(results.slice(0, 8));
+        if (page === 1) {
+          setSearchResults(results);
+          setCurrentPage(1);
+          setHasMore(results.length > 10);
+        } else {
+          setSearchResults(prev => {
+            const existingIds = new Set(prev.map(s => s.id));
+            const uniqueNewResults = results.filter(s => !existingIds.has(s.id));
+            return [...prev, ...uniqueNewResults];
+          });
+          setCurrentPage(page);
+          setHasMore(results.length > 0);
+        }
+        
+        // Populate Hero with random Trending songs (only on first page)
+        if (tabId === "Trending" && page === 1) {
+          const shuffled = [...results].sort(() => Math.random() - 0.5);
+          setHeroSongs(shuffled.slice(0, 10));
         }
 
-        // Save to cache if it's a tab-initiated search
-        if (tabId) {
+        // Save to cache if it's a tab-initiated search (only first page for cache)
+        if (tabId && page === 1) {
           setTabCache(tabId, results);
         }
       } else {
-        setSearchResults([]);
+        if (page === 1) setSearchResults([]);
+        setHasMore(false);
       }
     } catch (err) {
       console.error("Music search failed:", err);
       toast.error("Search failed. Check your connection.");
     } finally {
       setSearchLoading(false);
+      setMoreLoading(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    const query = searchQuery || tabs.find(t => t.id === activeTab)?.query;
+    if (query && hasMore && !isMoreLoading) {
+      handleSearch(query, null, currentPage + 1);
     }
   };
 
@@ -286,13 +319,14 @@ const MusicSearch = () => {
       <div className="parallax-bg-layer">
         <div className="bg-slider-wrapper">
           {heroSongs.length > 0 ? (
-            heroSongs.map((song, i) => (
+            heroSongs.slice(0, 3).map((song, i) => (
               <img 
                 key={`bg-${song.id}-${i}`} 
                 src={song.image || (song.images?.['500x500'])} 
                 alt="" 
                 className="bg-parallax-img"
-                style={{ animationDelay: `${i * -10}s` }}
+                style={{ animationDelay: `${i * -20}s` }}
+                loading="lazy"
               />
             ))
           ) : (
@@ -357,28 +391,48 @@ const MusicSearch = () => {
             ))}
           </div>
         ) : searchResults.length > 0 ? (
-          searchResults.map((song, index) => (
-            <SongItem 
-              key={song.id || index} 
-              song={song} 
-              index={index} 
-              onSelect={(s) => {
-                if (roomId && !isHost) {
-                  toast.error("Only Host can change songs", { id: 'host-only-warn' });
-                  return;
-                }
-                selectSong(s);
-              }} 
-              onInvite={handleInvite}
-              onToggle={togglePlayback}
-              onLike={(s) => toggleLikeSong(s, user?.id)}
-              isLiked={likedSongs.some(ls => ls.id === song.id)}
-              currentSongId={currentSong?.id}
-              isPlaying={isPlaying}
-              isLoadingDetails={loadingSongId === song.id}
-            />
-          ))
+          <>
+            <div className="section-header-title">Top Results</div>
+            {searchResults.map((song, index) => (
+              <SongItem 
+                key={song.id || index} 
+                song={song} 
+                index={index} 
+                onSelect={(s) => {
+                  if (roomId && !isHost) {
+                    toast.error("Only Host can change songs", { id: 'host-only-warn' });
+                    return;
+                  }
+                  selectSong(s);
+                }} 
+                onInvite={handleInvite}
+                onToggle={togglePlayback}
+                onLike={(s) => toggleLikeSong(s, user?.id)}
+                onShowOptions={(e, s) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setContextMenu({ song: s, x: rect.left - 180, y: rect.top });
+                }}
+                isLiked={likedSongs.some(ls => ls.id === song.id)}
+                currentSongId={currentSong?.id}
+                isPlaying={isPlaying}
+                isLoadingDetails={loadingSongId === song.id}
+              />
+            ))}
 
+            {hasMore && (
+              <button 
+                className="load-more-btn" 
+                onClick={handleLoadMore}
+                disabled={isMoreLoading}
+              >
+                {isMoreLoading ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  "Load More Results"
+                )}
+              </button>
+            )}
+          </>
         ) : (
           <div className="search-empty-state">
             <div className="empty-icon-circle">
@@ -389,6 +443,29 @@ const MusicSearch = () => {
           </div>
         )}
       </div>
+
+      {/* Context Menu Modal */}
+      {contextMenu && (
+        <SongContextMenu 
+          song={contextMenu.song} 
+          x={contextMenu.x} 
+          y={contextMenu.y} 
+          onClose={() => setContextMenu(null)}
+          onPlay={() => {
+            selectSong(contextMenu.song);
+            setContextMenu(null);
+          }}
+          onInvite={() => {
+            handleInvite(contextMenu.song);
+            setContextMenu(null);
+          }}
+          onLike={() => {
+            toggleLikeSong(contextMenu.song, user?.id);
+            setContextMenu(null);
+          }}
+          isLiked={likedSongs.some(ls => ls.id === contextMenu.song.id)}
+        />
+      )}
     </div>
   );
 };
@@ -398,7 +475,7 @@ const MusicSearch = () => {
  * Prevents heavy list re-renders.
  */
 const SongItem = memo(({ 
-  song, index, onSelect, onInvite, onToggle, onLike, 
+  song, index, onSelect, onInvite, onToggle, onLike, onShowOptions,
   currentSongId, isPlaying, isLiked, isLoadingDetails 
 }) => {
   const thumbnail = song.image || (song.images?.['150x150']) || '';
@@ -410,6 +487,7 @@ const SongItem = memo(({
       onClick={() => !isLoadingDetails && onSelect(song)}
       style={{ animationDelay: `${index * 0.05}s` }}
     >
+      <div className="song-item-vibe" style={{ backgroundImage: `url(${thumbnail})` }} />
       <div className="song-art">
         <img src={thumbnail} alt={song.title} loading="lazy" />
         {isLoadingDetails ? (
@@ -446,14 +524,13 @@ const SongItem = memo(({
           <Heart size={18} fill={isLiked ? "currentColor" : "none"} strokeWidth={isLiked ? 0 : 2} />
         </button>
         <button 
-          className="invite-btn" 
+          className="more-options-btn"
           onClick={(e) => {
             e.stopPropagation();
-            onInvite(song);
+            onShowOptions(e, song);
           }}
-          title="Share to Chat"
         >
-          <Users size={18} />
+          <MoreVertical size={18} />
         </button>
       </div>
     </div>
@@ -468,6 +545,7 @@ SongItem.displayName = 'SongItem';
  * Provides a smooth, parallax-style sliding gallery of songs.
  */
 const MusicHero = memo(({ songs, onPlay }) => {
+  const { isPlaying, currentSong } = useMusicStore();
   const scrollRef = useRef(null);
   const containerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -496,8 +574,14 @@ const MusicHero = memo(({ songs, onPlay }) => {
       animationRef.current = requestAnimationFrame(scroll);
     };
 
-    animationRef.current = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationRef.current);
+    const startTimeout = setTimeout(() => {
+      animationRef.current = requestAnimationFrame(scroll);
+    }, 500); // 500ms delay to allow page transition to finish
+
+    return () => {
+      clearTimeout(startTimeout);
+      cancelAnimationFrame(animationRef.current);
+    };
   }, [songs, isDragging]);
 
   const handleMouseDown = (e) => {
@@ -524,9 +608,12 @@ const MusicHero = memo(({ songs, onPlay }) => {
     setIsDragging(false);
   };
 
-  if (songs.length === 0) return null;
+  const displaySongs = useMemo(() => {
+    if (songs.length === 0) return [];
+    return [...songs, ...songs];
+  }, [songs]);
 
-  const displaySongs = [...songs, ...songs];
+  if (songs.length === 0) return null;
 
   return (
     <div className="music-hero-container">
@@ -568,15 +655,22 @@ const MusicHero = memo(({ songs, onPlay }) => {
                 className="hero-img"
                 draggable="false"
               />
-              <div className="hero-overlay">
-                <div className="hero-play-icon">
-                  <Play size={20} fill="white" />
+                <div className="hero-overlay">
+                  {isPlaying && currentSong?.id === song.id && (
+                    <div className="live-visualizer-mini">
+                      <div className="bar" />
+                      <div className="bar" />
+                      <div className="bar" />
+                    </div>
+                  )}
+                  <div className="hero-play-icon">
+                    {currentSong?.id === song.id && isPlaying ? <Pause size={20} fill="white" /> : <Play size={20} fill="white" />}
+                  </div>
+                  <div className="hero-meta">
+                    <h5 dangerouslySetInnerHTML={{ __html: song.title }} />
+                    <p dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle }} />
+                  </div>
                 </div>
-                <div className="hero-meta">
-                  <h5 dangerouslySetInnerHTML={{ __html: song.title }} />
-                  <p dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle }} />
-                </div>
-              </div>
             </div>
           </div>
         ))}
@@ -584,6 +678,63 @@ const MusicHero = memo(({ songs, onPlay }) => {
     </div>
   );
 });
+
+/**
+ * SongContextMenu Component
+ * A Spotify-style context menu for song actions.
+ */
+const SongContextMenu = ({ song, x, y, onClose, onPlay, onInvite, onLike, isLiked }) => {
+  useEffect(() => {
+    const handleGlobalClick = () => onClose();
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [onClose]);
+
+  return (
+    <div 
+      className="song-context-menu"
+      style={{ top: `${y}px`, left: `${x}px` }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="menu-header">
+        <img src={song.image || song.images?.['50x50']} alt="" />
+        <div className="menu-song-info">
+          <h5 dangerouslySetInnerHTML={{ __html: song.title }} />
+          <p dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle }} />
+        </div>
+      </div>
+      
+      <div className="menu-divider" />
+      
+      <button className="menu-item" onClick={onPlay}>
+        <Play size={18} />
+        <span>Play Now</span>
+      </button>
+      
+      <button className="menu-item" onClick={onLike}>
+        <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+        <span>{isLiked ? 'Liked' : 'Like'}</span>
+      </button>
+      
+      <button className="menu-item" onClick={onInvite}>
+        <Users size={18} />
+        <span>Share to Chat</span>
+      </button>
+      
+      <button className="menu-item" onClick={() => toast.success("Added to Queue")}>
+        <List size={18} />
+        <span>Add to Queue</span>
+      </button>
+      
+      <div className="menu-divider" />
+      
+      <button className="menu-item" onClick={() => toast.success("Artist page coming soon")}>
+        <User size={18} />
+        <span>View Artist</span>
+      </button>
+    </div>
+  );
+};
 
 MusicHero.displayName = 'MusicHero';
 
