@@ -5,12 +5,8 @@
 
 const CLIENT_ID = '9671353a99d746eaa9de005714b1760e';
 
-// Detect if we are on localhost or production
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-// Removing trailing slash for better compatibility
-const REDIRECT_URI = isLocal 
-  ? `http://${window.location.hostname}:5173` 
-  : 'https://caba-android-app.vercel.app'; 
+// Use dynamic origin for the redirect URI to support localhost, network IPs, and production
+const REDIRECT_URI = window.location.origin;
 
 const SCOPES = [
   'user-library-read',
