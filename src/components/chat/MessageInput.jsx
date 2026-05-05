@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
-import debounce from 'lodash/debounce';
+import debounce from 'lodash-es/debounce';
 import AttachmentMenu from './AttachmentMenu';
 import EmojiRenderer from '../common/EmojiRenderer';
 import { Send, LoaderCircle, Mic, Pause, Smile, Clock, Settings as SettingsIcon, X } from 'lucide-react';

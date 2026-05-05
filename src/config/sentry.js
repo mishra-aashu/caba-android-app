@@ -1,21 +1,22 @@
-import * as Sentry from '@sentry/react';
 import { Capacitor } from '@capacitor/core';
 
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 
-export const initSentry = () => {
+export const initSentry = async () => {
   if (!SENTRY_DSN) {
     console.warn('[Sentry] DSN not configured - skipping initialization');
     return;
   }
 
-  Sentry.init({
+  const { init, browserTracingIntegration, replayIntegration } = await import('@sentry/react');
+
+  init({
     dsn: SENTRY_DSN,
     environment: import.meta.env.MODE,
     
     integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({
+      browserTracingIntegration(),
+      replayIntegration({
         maskAllText: true,
         blockAllMedia: true,
       }),
@@ -59,13 +60,14 @@ export const initSentry = () => {
 };
 
 // User context updater (call from authStore)
-export const setSentryUser = (user) => {
+export const setSentryUser = async (user) => {
+  const { setUser } = await import('@sentry/react');
   if (!user) {
-    Sentry.setUser(null);
+    setUser(null);
     return;
   }
 
-  Sentry.setUser({
+  setUser({
     id: user.id,
     email: user.email,
     username: user.name,
@@ -73,8 +75,9 @@ export const setSentryUser = (user) => {
 };
 
 // Breadcrumb helpers
-export const addAuthBreadcrumb = (action, data = {}) => {
-  Sentry.addBreadcrumb({
+export const addAuthBreadcrumb = async (action, data = {}) => {
+  const { addBreadcrumb } = await import('@sentry/react');
+  addBreadcrumb({
     category: 'auth',
     message: action,
     level: 'info',
@@ -82,8 +85,9 @@ export const addAuthBreadcrumb = (action, data = {}) => {
   });
 };
 
-export const addRealtimeBreadcrumb = (channel, event, data = {}) => {
-  Sentry.addBreadcrumb({
+export const addRealtimeBreadcrumb = async (channel, event, data = {}) => {
+  const { addBreadcrumb } = await import('@sentry/react');
+  addBreadcrumb({
     category: 'realtime',
     message: `${channel}: ${event}`,
     level: 'info',
@@ -91,8 +95,9 @@ export const addRealtimeBreadcrumb = (channel, event, data = {}) => {
   });
 };
 
-export const addDbBreadcrumb = (table, operation, data = {}) => {
-  Sentry.addBreadcrumb({
+export const addDbBreadcrumb = async (table, operation, data = {}) => {
+  const { addBreadcrumb } = await import('@sentry/react');
+  addBreadcrumb({
     category: 'database',
     message: `${operation} ${table}`,
     level: 'info',

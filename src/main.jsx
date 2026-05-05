@@ -9,11 +9,22 @@ import { MemoryRouter } from 'react-router-dom';
 // ═══════════════════════════════════════════════════════════
 import './pwa';
 import './i18n';
-import { initSentry } from './config/sentry';
-
-// Initialize Sentry before React renders
+// ── Deferred Sentry Initialization (Main Thread Blocking Prevention) ──
 if (import.meta.env.PROD) {
-  initSentry();
+  // requestIdleCallback ensures Sentry only loads AFTER the initial paint
+  // and critical JS has finished executing.
+  const initDeferredSentry = () => {
+    import('./config/sentry').then(({ initSentry }) => {
+      initSentry().catch(err => console.error('[Sentry] Init failed:', err));
+    });
+  };
+
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(initDeferredSentry, { timeout: 3000 });
+  } else {
+    // Fallback for older browsers
+    setTimeout(initDeferredSentry, 2000);
+  }
 }
 
 // ── CSS imports (order matters for cascade) ──

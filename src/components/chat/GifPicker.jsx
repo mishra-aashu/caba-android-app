@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
-import debounce from 'lodash/debounce';
+import debounce from 'lodash-es/debounce';
 import styles from './GifPicker.module.css';
 
 // Giphy API Configuration (Provided by USER)

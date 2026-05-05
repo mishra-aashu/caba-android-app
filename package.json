@@ -43,7 +43,6 @@
     "@giphy/js-fetch-api": "^5.7.0",
     "@giphy/react-components": "^10.1.1",
     "@ionic/react": "^8.7.15",
-    "@lottiefiles/dotlottie-react": "^0.18.7",
     "@sentry/react": "^10.49.0",
     "@sentry/vite-plugin": "^5.2.0",
     "@supabase/supabase-js": "^2.105.1",
@@ -62,7 +61,7 @@
     "framer-motion": "^12.34.3",
     "i18next": "^26.0.4",
     "i18next-browser-languagedetector": "^8.2.1",
-    "lodash": "^4.17.23",
+    "lodash-es": "^4.17.21",
     "lucide-react": "^0.554.0",
     "qrcode": "^1.5.3",
     "react": "^19.2.0",
@@ -74,7 +73,6 @@
     "react-zoom-pan-pinch": "^3.7.0",
     "recharts": "^3.8.1",
     "styled-components": "^6.3.12",
-    "tus-js-client": "^4.3.1",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
@@ -86,6 +84,7 @@
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
     "@vitest/ui": "^4.1.5",
+    "archiver": "^7.0.1",
     "cross-env": "^10.1.0",
     "dotenv": "^17.3.1",
     "emoji-datasource-apple": "^16.0.0",
@@ -99,11 +98,11 @@
     "gh-pages": "^6.3.0",
     "globals": "^16.5.0",
     "happy-dom": "^20.9.0",
+    "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.2",
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^4.1.5",
-    "archiver": "^7.0.1"
+    "vitest": "^4.1.5"
   }
 }

@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { createHtmlPlugin } from 'vite-plugin-html';
 import fs from 'fs';
 import path from 'path';
+import { visualizer } from 'rollup-plugin-visualizer';
 export default defineConfig(({ mode }) => {
   const buildTime = Date.now();
   const isGitHubPages = process.env.GITHUB_PAGES === 'true';
@@ -200,6 +201,12 @@ export default defineConfig(({ mode }) => {
           ],
         },
       }),
+      visualizer({
+        filename: 'dist/bundle-stats.html',
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+      }),
     ],
 
     define: {
@@ -215,6 +222,7 @@ export default defineConfig(({ mode }) => {
                 manualChunks: {
                     'vendor-react': ['react', 'react-dom', 'react-router-dom'],
                     'vendor-supabase': ['@supabase/supabase-js'],
+                    'vendor-sentry': ['@sentry/react'],
                     'vendor-motion': ['framer-motion'],
                     'vendor-icons': ['lucide-react'],
                     'vendor-ui-extras': ['react-hot-toast'],
@@ -224,6 +232,8 @@ export default defineConfig(({ mode }) => {
                       '@tanstack/react-query-persist-client',
                     ],
                     'vendor-giphy': ['@giphy/react-components', '@giphy/js-fetch-api', 'styled-components'],
+                    'vendor-recharts': ['recharts'],
+                    'vendor-crypto': ['crypto-js'],
                 }
             }
         }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { debounce } from 'lodash';
+import debounce from 'lodash-es/debounce';
 import { useChatTheme } from '../../contexts/ChatThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 import { ArrowDown } from 'lucide-react';
