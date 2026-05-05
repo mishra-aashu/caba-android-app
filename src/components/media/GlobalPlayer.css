@@ -8,26 +8,27 @@
   left: 0;
   right: 0;
   height: 72px;
-  background: rgba(11, 20, 26, 0.85); /* Semi-transparent */
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background: rgba(11, 20, 26, 0.85);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  z-index: 1000;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  z-index: 99999; /* Absolute top priority */
+  box-shadow: 0 -10px 50px rgba(0, 0, 0, 0.4);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   padding-bottom: var(--safe-bottom, 0);
+  /* GPU Acceleration */
   will-change: transform, opacity;
-  --player-total-height: 84px; /* Increased for spacing */
+  transform: translateZ(0);
 }
 
 /* Float above Bottom Nav on mobile — Full Width Edge-to-Edge Style */
 @media (max-width: 768px) {
   .global-player-wrapper {
-    /* Lifted above Bottom Nav (60px height) */
-    bottom: 60px; 
-    border-radius: 16px 16px 0 0;
+    /* Lifted above Bottom Nav handled dynamically via JSX */
+    background: #0b141a; /* Solid background on mobile to prevent overlap artifacts */
+    border-radius: 12px 12px 0 0;
     margin: 0;
     width: 100%;
     right: 0;
@@ -68,10 +69,11 @@
 
 .player-progress-fill {
   height: 100%;
-  background: var(--brand-primary, #00a884);
-  box-shadow: 0 0 10px rgba(0, 168, 132, 0.5);
+  background: linear-gradient(90deg, #00ff88, #00a884);
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
   transition: width 0.1s linear;
   position: relative;
+  will-change: width;
 }
 
 .player-progress-fill::after {
@@ -89,8 +91,8 @@
   transition: opacity 0.2s ease;
 }
 
-.global-player-wrapper:hover .player-progress-fill::after {
-  opacity: 1;
+.player-progress-fill::after {
+  opacity: 0; /* Keep it hidden as per request to remove hover indicators */
 }
 
 .player-seek-slider {
@@ -216,9 +218,8 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-.player-btn-icon:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+.player-btn-icon:active {
+  opacity: 0.7;
 }
 
 .player-btn-main {
@@ -236,11 +237,9 @@
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.player-btn-main:hover {
-  transform: scale(1.1);
-  background: var(--brand-primary, #00a884);
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(0, 168, 132, 0.3);
+.player-btn-main:active {
+  transform: scale(0.95);
+  opacity: 0.9;
 }
 
 .player-btn-main:active {
@@ -263,8 +262,8 @@
   color: rgba(255, 255, 255, 0.3);
 }
 
-.expand-btn:hover {
-  color: #fff;
+.expand-btn:active {
+  opacity: 1;
 }
 
 .close-btn {
@@ -272,9 +271,8 @@
   margin-left: -4px;
 }
 
-.close-btn:hover {
+.close-btn:active {
   color: #ff4b4b;
-  background: rgba(255, 75, 75, 0.1);
 }
 
 /* Mobile adjustments */
@@ -397,18 +395,74 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.floating-bubble-player:hover .bubble-play-overlay {
-  opacity: 1;
-  transform: scale(1);
-}
+/* Hover overlay removed for performance */
 
 .bubble-play-overlay .play-offset {
   margin-left: 2px;
 }
 
 /* Responsive lift for different screens */
-@media (max-width: 768px) {
-  .floating-bubble-player {
-    bottom: 80px; /* Sufficiently high above bottom nav */
+@media (min-width: 1025px) {
+  .global-player-wrapper {
+    bottom: 20px;
+    /* Shifted right to avoid covering the Chat List (380px) and Side Navbar (80px) */
+    left: calc(460px + (100% - 460px) / 2);
+    transform: translateX(-50%) translateZ(0) !important;
+    width: calc(100% - 500px); /* Leave some breathing room */
+    max-width: 1000px;
+    height: 72px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    margin: 0;
+    padding-bottom: 0;
+  }
+
+  .player-progress-container {
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    width: calc(100% - 24px);
+  }
+
+  .player-content {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    gap: 0;
+    padding: 0 24px;
+  }
+
+  .player-time-labels {
+    position: relative;
+    top: 0;
+    right: 0;
+    font-size: 11px;
+    order: 4;
+  }
+
+  .player-left {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .player-center {
+    justify-content: center;
+    gap: 32px; /* Wider spacing for controls */
+  }
+
+  .player-right {
+    justify-content: flex-end;
+    gap: 16px;
+  }
+
+  .player-info-mini {
+    max-width: 250px;
+  }
+
+  .mini-title-text {
+    font-size: 0.95rem;
   }
 }

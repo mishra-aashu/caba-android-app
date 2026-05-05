@@ -10,6 +10,8 @@
   color: #ffffff;
   overflow: hidden;
   position: relative;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .music-search-container img {
@@ -31,17 +33,19 @@
 .sticky-search-wrapper {
   position: sticky;
   top: 0;
-  z-index: 100; /* Increased to stay above content */
+  z-index: 100;
   padding: 12px 16px 16px;
-  background: #0b141a; /* Solid background to prevent ghost gaps */
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(11, 20, 26, 0.6);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   margin: 0 -16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .music-search-container {
@@ -183,13 +187,14 @@
 }
 
 .section-header-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 4px 0 8px; /* Fixed gap: Reduced from 16px */
-  color: #fff;
-  opacity: 0.6;
+  font-size: 14px;
+  font-weight: 800;
+  margin: 12px 0 12px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 
 .more-options-btn {
@@ -227,6 +232,16 @@
   transform: translateY(10px);
   max-width: 100%;
   overflow: hidden;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.song-item.active {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 @keyframes songReveal {
@@ -274,8 +289,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: #fff;
-  width: 100%;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  max-width: fit-content;
 }
 
 .song-artist-text {
@@ -335,15 +350,35 @@
 }
 
 .song-item.active {
-  background: rgba(0, 168, 132, 0.12);
-  border: 1px solid rgba(0, 168, 132, 0.3);
-  box-shadow: inset 0 0 15px rgba(0, 168, 132, 0.1);
-  animation: activeGlow 3s infinite alternate;
+  background: rgba(0, 168, 132, 0.15);
+  border: 1px solid rgba(0, 168, 132, 0.4);
+  box-shadow: inset 0 0 20px rgba(0, 168, 132, 0.1);
+  animation: activeGlow 2s infinite alternate;
+  z-index: 2;
+}
+
+.song-item.active {
+  background: rgba(0, 168, 132, 0.15);
+  border: 1px solid rgba(0, 168, 132, 0.4);
+  box-shadow: inset 0 0 20px rgba(0, 168, 132, 0.1);
+  animation: activeGlow 2s infinite alternate;
+  z-index: 2;
+}
+
+.live-visualizer-mini.list-v {
+  height: 12px;
+  gap: 2px;
+}
+
+.live-visualizer-mini.list-v .bar {
+  width: 2px;
+  background: var(--brand-primary);
+  box-shadow: 0 0 8px var(--brand-primary);
 }
 
 @keyframes activeGlow {
   from { box-shadow: 0 0 5px rgba(0, 168, 132, 0.1); }
-  to { box-shadow: 0 0 20px rgba(0, 168, 132, 0.3); }
+  to { box-shadow: 0 0 25px rgba(0, 168, 132, 0.3); }
 }
 
 .invite-btn {
@@ -541,9 +576,10 @@
   width: 100%;
   overflow: hidden;
   position: relative;
-  margin: 0; /* Removed margin to fix gap */
+  margin: 0;
   perspective: 1000px;
   z-index: 5;
+  transform: translateZ(0);
 }
 
 .hero-scroll-wrapper {
@@ -687,21 +723,33 @@
   }
 }
 
-.song-context-menu {
+.menu-backdrop {
   position: fixed;
-  width: 220px;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.song-bottom-sheet {
+  width: 100%;
   background: #182229;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  z-index: 1000;
-  padding: 8px;
-  animation: menuFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px 24px 0 0;
+  padding: 16px 16px 40px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+  position: relative;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-@keyframes menuFadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin: 0 auto 20px;
 }
 
 .menu-header {

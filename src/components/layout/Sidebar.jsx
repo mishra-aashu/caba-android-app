@@ -31,6 +31,7 @@ const Sidebar = ({
     isEmojiSettingsRoute,
     isHistoryRoute,
     isGamesRoute,
+    isMusicRoute,
 
     chatListPanelProps,
     onCloseSidebar
@@ -232,9 +233,9 @@ const Sidebar = ({
                         >
                             <EmojiSettings isSidebar={true} />
                         </motion.div>
-                    ) : isDesktop && isHistoryRoute ? (
+                    ) : isDesktop && isMusicRoute ? (
                         <motion.div
-                            key="history"
+                            key="music-sidebar"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -245,12 +246,29 @@ const Sidebar = ({
                                 left: 0,
                                 right: 0,
                                 bottom: 0,
-                                zIndex: 6,
+                                zIndex: 11,
                                 backgroundColor: 'var(--surface-color)',
-                                willChange: 'transform, opacity'
+                                willChange: 'transform, opacity',
+                                padding: '20px'
                             }}
                         >
-                            <History isSidebar={true} />
+                            <div className="music-sidebar-content">
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '20px', color: 'var(--brand-primary)' }}>Music Hub</h2>
+                                <div className="music-sidebar-links" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Top Charts</h4>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.5 }}>Trending worldwide</p>
+                                    </div>
+                                    <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>New Releases</h4>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.5 }}>Fresh tracks daily</p>
+                                    </div>
+                                    <div style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Your Playlists</h4>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.5 }}>Songs you love</p>
+                                    </div>
+                                </div>
+                            </div>
                         </motion.div>
                     ) : (
                         <motion.div

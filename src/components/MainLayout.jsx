@@ -43,7 +43,6 @@ const DesktopLayout = lazy(() => import('./DesktopLayout'));
 const ThemeSelector = lazy(() => import('./chat/ThemeSelector'));
 const SharedMedia = lazy(() => import('./chat/SharedMedia'));
 import GlobalPlayer from './media/GlobalPlayer';
-import MusicPanel from './media/MusicPanel';
 import FullscreenPlayer from './media/FullscreenPlayer';
 import useMusicSync from '../hooks/media/useMusicSync';
 import useMusicStore from '../store/useMusicStore';
@@ -552,6 +551,8 @@ const MainLayout = () => {
       <Suspense fallback={<LoadingFallback />}>
         {isDesktop && routeInfo.isOverlay ? (
           <ChatPlaceholder />
+        ) : (location.pathname === '/listen-together') ? (
+          <Outlet />
         ) : activeChatId ? (
           <ChatScreen key={activeChatId} />
         ) : (
@@ -581,6 +582,7 @@ const MainLayout = () => {
           isEmojiSettingsRoute={location.pathname === '/emoji-settings'}
           isHistoryRoute={location.pathname === '/history'}
           isGamesRoute={location.pathname === '/games'}
+          isMusicRoute={location.pathname === '/listen-together'}
           chatListPanelProps={chatListPanelProps}
 
 
@@ -598,31 +600,27 @@ const MainLayout = () => {
     return (
       <UserDetailsContext.Provider value={userDetailsContextValue}>
         <VersionUpdateModal />
-      <MusicPanel />
-      <GlobalPlayer />
-      <AnimatePresence>
-        {isPlayerExpanded && <FullscreenPlayer />}
-      </AnimatePresence>
+        <AnimatePresence>
+          {isPlayerExpanded && <FullscreenPlayer />}
+        </AnimatePresence>
 
-
-
-        
-        <div className={`mobile-layout ${currentSong ? 'has-global-player' : ''}`}>
-          {/* Chat List View */}
-
-          <div 
-            className={`list-view ${isChatViewActive ? 'list-view--behind' : ''}`}
-            aria-hidden={isChatViewActive}
-          >
-            <ErrorBoundary>
-              <Suspense fallback={<LoadingFallback />}>
-                <ChatListPanel {...chatListPanelProps} />
-              </Suspense>
-            </ErrorBoundary>
-          </div>
-
-          {/* Bottom Navigation (only when no chat active) */}
-          {!isChatViewActive && <BottomNavigation />}
+        <div className={`mobile-layout ${currentSong ? 'has-global-player' : ''} ${isPlayerExpanded ? 'layout-hidden-for-player' : ''}`}>
+          {/* ✅ PERFORMANCE: Skip rendering background elements when player is full screen */}
+          {!isPlayerExpanded && (
+            <>
+              <div 
+                className={`list-view ${isChatViewActive ? 'list-view--behind' : ''}`}
+                aria-hidden={isChatViewActive}
+              >
+                <ErrorBoundary>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <ChatListPanel {...chatListPanelProps} />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+              {!isChatViewActive && <BottomNavigation />}
+            </>
+          )}
 
           {/* Backdrop */}
           <AnimatePresence>
@@ -647,10 +645,10 @@ const MainLayout = () => {
 
           {/* Sub-pages & Chat View */}
           <AnimatePresence mode="wait">
-            {isSubPage && (
+            {isSubPage && !isPlayerExpanded && (
               <PageTransition
                 key={location.pathname + (activeChat?.id || '')}
-                className={`chat-view ${location.pathname === '/games' ? 'with-nav' : ''}`}
+                className={`chat-view ${!isChatViewActive ? 'with-nav' : ''}`}
               >
                 <ErrorBoundary>
                   <Suspense fallback={<LoadingFallback />}>
@@ -666,6 +664,7 @@ const MainLayout = () => {
               </PageTransition>
             )}
           </AnimatePresence>
+          <GlobalPlayer showBottomNav={!isChatViewActive} />
         </div>
       </UserDetailsContext.Provider>
     );
@@ -679,19 +678,21 @@ const MainLayout = () => {
     <UserDetailsContext.Provider value={userDetailsContextValue}>
       <VersionUpdateModal />
       <GlobalPlayer />
-      <MusicPanel />
 
 
       
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           <div className="reveal-app" style={{ width: '100%', height: '100%' }}>
-            <DesktopLayout
-              chatListPanel={sidebarPanel}
-              chatComponent={chatComponent}
-              userDetailsPanel={sidePanel}
-              particleOverlay={<ParticleOverlay />}
-            />
+            {!isPlayerExpanded && (
+              <DesktopLayout
+                chatListPanel={sidebarPanel}
+                chatComponent={chatComponent}
+                userDetailsPanel={sidePanel}
+                particleOverlay={<ParticleOverlay />}
+              />
+            )}
+            {isPlayerExpanded && <div style={{ background: '#000', width: '100%', height: '100%' }} />}
           </div>
         </Suspense>
       </ErrorBoundary>

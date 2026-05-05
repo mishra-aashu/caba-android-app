@@ -63,7 +63,6 @@ const BottomNavigation = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { dbUser } = useAuth();
-    const toggleMusicPanel = useMusicStore(state => state.togglePanel);
 
 
     // Live unread count from Dexie
@@ -120,16 +119,11 @@ const BottomNavigation = () => {
     }, [location.pathname]);
 
     const handleNavigate = useCallback((path) => {
-        if (path === '/listen-together') {
-            hapticsManager.selectionChanged();
-            toggleMusicPanel(true);
-            return;
-        }
         // Don't navigate if already on the same tab
         if (location.pathname === path) return;
         hapticsManager.selectionChanged();
         navigate(path);
-    }, [navigate, location.pathname, toggleMusicPanel]);
+    }, [navigate, location.pathname]);
 
 
     // Get badge for each tab

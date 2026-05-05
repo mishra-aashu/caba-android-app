@@ -103,7 +103,7 @@ const DesktopNavbar = () => {
             <button 
               className="desktop-nav-link" 
               data-tooltip="Music Discovery"
-              onClick={() => togglePanel(true)}
+              onClick={() => navigate('/listen-together')}
             >
               <Music className="desktop-nav-icon music-icon" />
             </button>

@@ -67,6 +67,7 @@ const DesktopNavbar = lazy(() => import('./components/common/DesktopNavbar'));
 const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
 const GamesPanel = lazy(() => import('./components/games/GamesPanel'));
+const MusicPage = lazy(() => import('./components/media/MusicPage'));
 import PageTransition from './components/common/PageTransition';
 
 
@@ -251,6 +252,7 @@ const AppContent = () => {
                 <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
                 <Route path="support" element={<SupportChat />} />
                 <Route path="games" element={<GamesPanel />} />
+                <Route path="listen-together" element={<PageTransition><MusicPage /></PageTransition>} />
 
               </Route>
 

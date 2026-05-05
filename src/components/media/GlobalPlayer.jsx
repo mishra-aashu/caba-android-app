@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import useMusicStore from '../../store/useMusicStore';
 import useChatStore from '../../store/useChatStore';
+import useIsDesktop from '../../hooks/useIsDesktop';
 import { Play, Pause, SkipBack, SkipForward, Maximize2, Music, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import './GlobalPlayer.css';
@@ -12,7 +13,7 @@ import './GlobalPlayer.css';
  * A sticky "floating" player that persists across the app.
  * Integrated with useMusicStore for global state control.
  */
-const GlobalPlayer = () => {
+const GlobalPlayer = ({ showBottomNav = false }) => {
   const { 
     currentSong, isPlaying, setIsPlaying, 
     progress, setProgress, 
@@ -27,6 +28,8 @@ const GlobalPlayer = () => {
     isHost,
     setPlayerExpanded
   } = useMusicStore();
+  
+  const isDesktop = useIsDesktop();
 
   const location = useLocation();
   const activeChatId = useChatStore(state => state.activeChatId);
@@ -36,9 +39,8 @@ const GlobalPlayer = () => {
   const isRefreshingRef = useRef(false);
   const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 });
   
-  // Floating mode active when in a chat OR on a sub-page
-  const rootPaths = ['/', '/chat']; 
-  const isFloating = !!activeChatId || !rootPaths.includes(location.pathname);
+  // Floating mode active when in a chat OR on a sub-page without bottom nav
+  const isFloating = !showBottomNav;
   const retryCountRef = useRef(0); // Max retry attempts to prevent infinite loops
 
   // Animation loop for progress bar (High Performance)
@@ -218,8 +220,10 @@ const GlobalPlayer = () => {
 
   if (!currentSong) return null;
 
+  const isHidden = isPanelOpen || isPlayerExpanded;
+
   return (
-    <div className={`global-player-root ${(isPanelOpen || isPlayerExpanded) ? 'hidden' : ''}`}>
+    <div className={`global-player-root ${isHidden ? 'hidden' : ''}`}>
       <audio 
         ref={audioRef}
         onTimeUpdate={onTimeUpdate}
@@ -299,6 +303,11 @@ const GlobalPlayer = () => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+            onClick={() => setPlayerExpanded(true)}
+            style={{ 
+              cursor: 'pointer',
+              bottom: isDesktop ? undefined : (showBottomNav ? 'var(--bottom-nav-total-height)' : '0px')
+            }}
           >
             <div className="player-progress-container">
               <div 
@@ -332,7 +341,6 @@ const GlobalPlayer = () => {
 
               <div 
                 className="player-left" 
-                onClick={() => setPlayerExpanded(true)}
               >
                 <div className="player-artwork-mini">
                   {currentSong.image ? (
@@ -349,7 +357,7 @@ const GlobalPlayer = () => {
                 </div>
               </div>
 
-              <div className="player-center">
+              <div className="player-center" onClick={(e) => e.stopPropagation()}>
                 <button className="player-btn-icon secondary" onClick={() => useMusicStore.getState().playPrevious()}>
                   <SkipBack size={20} fill="currentColor" />
                 </button>
@@ -366,7 +374,7 @@ const GlobalPlayer = () => {
                 </button>
               </div>
 
-              <div className="player-right">
+              <div className="player-right" onClick={(e) => e.stopPropagation()}>
                 <button className="player-btn-icon expand" onClick={() => setPlayerExpanded(true)}>
                   <Maximize2 size={18} />
                 </button>

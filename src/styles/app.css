@@ -15,6 +15,10 @@
   transition: padding-bottom 0.4s ease;
 }
 
+.layout-hidden-for-player {
+  display: none !important;
+}
+
 
 /* =============================================
     EMERALD THEME - REFINED MODERN APP STYLES
@@ -446,7 +450,7 @@ body {
   }
 
   .chat-view.with-nav {
-    bottom: calc(var(--bottom-nav-height, 60px) + var(--sab, 0px));
+    bottom: var(--bottom-nav-total-height, 60px);
   }
 
   .mobile-layout.show-chat .list-view {
@@ -735,12 +739,9 @@ body {
     transform 0.15s ease;
 }
 
-.icon-btn:hover {
-  background-color: var(--hover-color);
-}
-
 .icon-btn:active {
-  transform: scale(0.92);
+  opacity: 0.7;
+  background-color: var(--hover-color);
 }
 
 [data-theme="dark"] .icon-btn:hover {
@@ -766,17 +767,8 @@ body {
   box-shadow: 0 4px 12px rgba(0, 168, 132, 0.25);
 }
 
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 8px 20px rgba(0, 168, 132, 0.35),
-    0 0 20px rgba(0, 168, 132, 0.4);
-  filter: brightness(110%);
-}
-
 .btn-primary:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 168, 132, 0.2);
+  filter: brightness(90%);
 }
 
 /* Form Input */

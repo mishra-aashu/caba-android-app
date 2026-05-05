@@ -1,4 +1,5 @@
-import React, { useState, useEffect, memo, useRef, useMemo } from 'react';
+import React, { useState, useEffect, memo, useRef, useMemo, useCallback } from 'react';
+import { motion as m, AnimatePresence } from 'framer-motion';
 
 import useMusicStore from '../../store/useMusicStore';
 import { MUSIC_API_URL, MUSIC_API_BASE } from '../../config/musicConfig';
@@ -17,564 +18,61 @@ import { spotifyService } from '../../services/spotifyService';
 import './MusicSearch.css';
 
 
+
 /**
- * MusicSearch Component
- * Provides a premium interface for searching music via the JioSaavn Media Engine.
+ * SongContextMenu Component
+ * A Spotify-style context menu for song actions.
  */
-const MusicSearch = () => {
-  const [contextMenu, setContextMenu] = useState(null); // { song, x, y }
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchLoading, setSearchLoading] = useState(false);
-  const [isMoreLoading, setMoreLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingSongId, setLoadingSongId] = useState(null);
-  const [heroSongs, setHeroSongs] = useState([]);
-  
-  // Spotify State
-  const [spotifyToken, setSpotifyToken] = useState(null);
-  const [spotifyTracks, setSpotifyTracks] = useState([]);
-  const [isSpotifyLoading, setIsSpotifyLoading] = useState(false);
-  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
-
-  const tabs = useMemo(() => [
-    { id: "Trending", query: "Bollywood Trending" },
-    { id: "Hindi", query: "Top Hindi Songs" },
-    { id: "Punjabi", query: "Latest Punjabi Hits" },
-    { id: "Haryanvi", query: "Latest Haryanvi Songs" },
-    { id: "Lofi", query: "Lofi Beats Hindi" },
-    { id: "Global", query: "Top Global Hits" },
-    { id: "Party", query: "Party Anthems" },
-    { id: "Spotify", query: "" },
-    { id: "History", query: "" },
-    { id: "Liked", query: "" }
-  ], []);
-  
-  const { 
-    currentSong, setCurrentSong, isPlaying, setIsPlaying, roomId, isHost, 
-    playbackHistory, clearHistory, tabCache, setTabCache,
-    likedSongs, toggleLikeSong, fetchLikedSongs,
-    searchResults, setSearchResults, recommendations,
-    activeTab, setActiveTab
-  } = useMusicStore();
-
-  const activeChatId = useChatStore(selectActiveChatId);
-  const activeChat = useChatStore(state => state.activeChat);
-  const user = useAuthStore(state => state.user);
-
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchLikedSongs(user.id);
-    }
-
-    // Check for Spotify callback (PKCE)
-    const handleSpotifyAuth = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('code')) {
-        const token = await spotifyService.handleCallback();
-        if (token) {
-          setSpotifyToken(token);
-          setActiveTab("Spotify");
-          // Remove code from URL for cleanliness
-          window.history.replaceState(null, "", window.location.pathname);
-        }
-      }
-    };
-
-    handleSpotifyAuth();
-  }, [user?.id]);
-
-  useEffect(() => {
-    // 1. Handle History/Liked separately
-    if (activeTab === "History") {
-      setSearchResults(playbackHistory);
-      return;
-    }
-    
-    if (activeTab === "Liked") {
-      setSearchResults(likedSongs);
-      return;
-    }
-
-    if (activeTab === "Spotify") {
-      if (spotifyToken) {
-        handleFetchSpotifyTracks();
-      } else {
-        setSearchResults([]);
-      }
-      return;
-    }
-
-    // 2. Check Cache
-    if (tabCache[activeTab] && !searchQuery) {
-      const cachedResults = tabCache[activeTab];
-      setSearchResults(cachedResults);
-      
-      // Also populate Hero if it's Trending
-      if (activeTab === "Trending") {
-        const shuffled = [...cachedResults].sort(() => Math.random() - 0.5);
-        setHeroSongs(shuffled.slice(0, 10));
-      }
-      return;
-    }
-
-    // 3. Fetch if not cached
-    const tab = tabs.find(t => t.id === activeTab);
-    if (tab && !searchQuery) {
-      handleSearch(tab.query, activeTab);
-    }
-  }, [activeTab, playbackHistory, likedSongs]); // We don't include tabCache here to avoid re-fetch loops if cache updates
-
-  useEffect(() => {
-    // If user starts searching, maybe switch to a search mode or just clear results if query empty
-    if (!searchQuery) {
-      const tab = tabs.find(t => t.id === activeTab);
-      if (tab) handleSearch(tab.query);
-    }
-  }, [searchQuery]);
-
-  const handleSearch = async (query, tabId = null, page = 1) => {
-    if (!query.trim()) return;
-    
-    if (page === 1) setSearchLoading(true);
-    else setMoreLoading(true);
-
-    try {
-      const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(query)}&page=${page}`);
-      if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-      
-      const data = await res.json();
-      if (data.status === 'success') {
-        const results = data.data.results || [];
-        
-        if (page === 1) {
-          setSearchResults(results);
-          setCurrentPage(1);
-          setHasMore(results.length > 10);
-        } else {
-          setSearchResults(prev => {
-            const existingIds = new Set(prev.map(s => s.id));
-            const uniqueNewResults = results.filter(s => !existingIds.has(s.id));
-            return [...prev, ...uniqueNewResults];
-          });
-          setCurrentPage(page);
-          setHasMore(results.length > 0);
-        }
-        
-        // Populate Hero with random Trending songs (only on first page)
-        if (tabId === "Trending" && page === 1) {
-          const shuffled = [...results].sort(() => Math.random() - 0.5);
-          setHeroSongs(shuffled.slice(0, 10));
-        }
-
-        // Save to cache if it's a tab-initiated search (only first page for cache)
-        if (tabId && page === 1) {
-          setTabCache(tabId, results);
-          // Sync with global background if it's Trending
-          if (tabId === "Trending") {
-            useMusicStore.getState().setBackgroundImages(results);
-          }
-        }
-      } else {
-        if (page === 1) setSearchResults([]);
-        setHasMore(false);
-      }
-    } finally {
-      setSearchLoading(false);
-      setMoreLoading(false);
-    }
-  };
-
-  const handleFetchSpotifyTracks = async () => {
-    if (!spotifyToken) return;
-    setIsSpotifyLoading(true);
-    try {
-      const tracks = await spotifyService.getLikedTracks(spotifyToken);
-      setSpotifyTracks(tracks);
-      setSearchResults(tracks); // Temporarily show spotify tracks in search results
-    } catch (err) {
-      toast.error("Failed to fetch Spotify tracks");
-    } finally {
-      setIsSpotifyLoading(false);
-    }
-  };
-
-  const handleImportSpotifyTracks = async () => {
-    if (spotifyTracks.length === 0) return;
-    
-    setImportProgress({ current: 0, total: spotifyTracks.length });
-    let importedCount = 0;
-
-    toast.promise(
-      (async () => {
-        for (let i = 0; i < spotifyTracks.length; i++) {
-          const track = spotifyTracks[i];
-          setImportProgress(prev => ({ ...prev, current: i + 1 }));
-
-          try {
-            // 1. Search for track on JioSaavn
-            const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(`${track.title} ${track.artist}`)}&page=1`);
-            const data = await res.json();
-
-            if (data.status === 'success' && data.data.results?.length > 0) {
-              const matchedSong = data.data.results[0];
-              
-              // 2. Check if already liked
-              const alreadyLiked = likedSongs.some(ls => ls.id === matchedSong.id);
-              if (!alreadyLiked) {
-                await toggleLikeSong(matchedSong, user?.id);
-                importedCount++;
-              }
-            }
-          } catch (e) {
-            console.error(`Import failed for ${track.title}:`, e);
-          }
-        }
-        setImportProgress({ current: 0, total: 0 });
-        return importedCount;
-      })(),
-      {
-        loading: 'Matching and importing songs...',
-        success: (count) => `Successfully imported ${count} new songs!`,
-        error: 'Import process encountered issues.',
-      }
-    );
-  };
-
-  const handleLoadMore = () => {
-    const query = searchQuery || tabs.find(t => t.id === activeTab)?.query;
-    if (query && hasMore && !isMoreLoading) {
-      handleSearch(query, null, currentPage + 1);
-    }
-  };
-
-  // Debounced search could be added here, but manual Enter/Search button is fine for now
-  
-  const selectSong = async (song) => {
-    // 1. Check if we already have the media URL (New API provides it in results)
-    let finalMediaUrl = song.media_urls?.['320_KBPS'] || song.media_urls?.['160_KBPS'] || song.media_url;
-
-    if (!finalMediaUrl) {
-      setLoadingSongId(song.id);
-      try {
-        const res = await fetch(`${MUSIC_API_BASE}/song?id=${song.id}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.status === 'success' && json.data) {
-            finalMediaUrl = json.data.media_urls?.['320_KBPS'] || json.data.media_urls?.['160_KBPS'] || json.data.media_url;
-          }
-        }
-      } catch (err) {
-        console.warn("[MusicSearch] Detail fetch failed:", err);
-      } finally {
-        setLoadingSongId(null);
-      }
-    }
-
-    if (!finalMediaUrl) {
-      toast.error("Could not get play link");
-      return;
-    }
-
-    // 2. Map final metadata
-    const finalSong = {
-      id: song.id,
-      title: song.title || song.name || "Unknown Track",
-      artist: song.singers || song.primary_artists || song.artist || "Unknown Artist",
-      image: song.image || (song.images?.['500x500'] || song.images?.['150x150']),
-      media_url: finalMediaUrl,
-      duration: song.duration || 0
-    };
-
-    console.log(`[MusicEngine] Playing: ${finalSong.title}`, finalSong.media_url);
-    
-    setCurrentSong(finalSong);
-    setIsPlaying(true);
-  };
-
-
-
-  const handleInvite = async (song) => {
-    if (!activeChatId || !user) {
-      toast.error("Open a chat to share music", {
-        icon: '💬',
-        style: { borderRadius: '12px', background: '#333', color: '#fff' }
-      });
-      return;
-    }
-
-    let songData = song;
-
-    // Fetch details if missing (for sharing high-quality links)
-    if (!songData.media_urls && !songData.media_url) {
-      try {
-        const res = await fetch(`${MUSIC_API_BASE}/song?id=${song.id}`);
-        const json = await res.json();
-        if (json.status === 'success' && json.data) songData = json.data;
-      } catch (e) { console.warn("Detail fetch failed for share", e); }
-    }
-
-    // Robust meta extraction
-    const imgObj = songData.images || {};
-    const imgArr = songData.image || [];
-    let bestImage = imgObj['500x500'] || imgObj['150x150'] || '';
-    if (!bestImage) {
-      bestImage = Array.isArray(imgArr) ? (imgArr[imgArr.length - 1]?.url || '') : imgArr;
-    }
-    
-    const mediaUrl = songData.media_urls?.['320_KBPS'] || songData.media_urls?.['160_KBPS'] || songData.media_url || '';
-
-    const finalSong = {
-      id: songData.id,
-      title: songData.title || songData.name,
-      artist: songData.more_info?.singers || songData.artist || songData.subtitle || songData.primaryArtists,
-      image: bestImage,
-      media_url: mediaUrl
-    };
-
-
-
-    const tempId = String(Date.now());
-    const taskId = crypto.randomUUID();
-
-    const frontendMsg = {
-      chatId: activeChatId,
-      senderId: user.id,
-      receiverId: activeChat.isGroup ? user.id : activeChat.otherUserId,
-      content: `Shared a song: ${songData.title}`,
-      metadata: {
-        song: finalSong,
-        type: 'music_share',
-        roomId: roomId
-      },
-      isGroupMessage: Boolean(activeChat.isGroup),
-      messageType: 'song',
-      createdAt: new Date().toISOString(),
-      status: 'sending',
-      tempId,
-    };
-
-    try {
-      await db.transaction('rw', [db.messages, db.chats_list], async () => {
-        await db.messages.put({ ...frontendMsg, id: `temp_${tempId}` });
-        await db.chats_list.update(String(activeChatId), {
-          lastMessageAt: frontendMsg.createdAt,
-          timestamp: frontendMsg.createdAt,
-          lastMessage: `🎵 ${songData.title}`,
-          status: 'sending'
-        }).catch(() => {});
-      });
-
-      const dbData = frontendToDb(frontendMsg);
-      await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData, { taskId });
-      
-      toast.success("Shared to chat!");
-    } catch (error) {
-      console.error("Music share failed:", error);
-      toast.error("Failed to share");
-    }
-  };
-
-  const togglePlayback = (e, song) => {
-    e.stopPropagation();
-    
-    if (roomId && !isHost) {
-      toast.error("Only Host can control playback", { id: 'host-only-warn' });
-      return;
-    }
-
-    const isCurrent = currentSong?.id === song.id;
-    if (isCurrent) {
-      useMusicStore.getState().setIsPlaying(!useMusicStore.getState().isPlaying);
-    } else {
-      selectSong(song);
-      useMusicStore.getState().setIsPlaying(true);
-    }
-  };
-
-
+const SongContextMenu = ({ song, onClose, onPlay, onInvite, onLike, isLiked }) => {
   return (
-    <div className="music-search-container">
-
-
-      <div className="search-header">
-        <MusicHero songs={heroSongs} onPlay={selectSong} />
-
-        <div className="sticky-search-wrapper">
-          <div className="search-input-wrapper">
-            <Search className="search-icon" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search songs, artists..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-            />
-            {isSearchLoading && <Loader2 className="loading-spinner-icon animate-spin" size={18} />}
-          </div>
-
-          <div className="category-tabs-container">
-            {tabs.map(tab => (
-              <button 
-                key={tab.id}
-                className={`category-tab ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setSearchQuery(""); // Clear search when switching tabs
-                }}
-              >
-                {tab.id}
-              </button>
-            ))}
+    <div className="menu-backdrop" onClick={onClose}>
+      <m.div 
+        className="song-bottom-sheet"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sheet-handle" />
+        
+        <div className="menu-header">
+          <img src={song.image || song.images?.['150x150']} alt="" />
+          <div className="menu-song-info">
+            <h5 dangerouslySetInnerHTML={{ __html: song.title }} />
+            <p dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle }} />
           </div>
         </div>
-      </div>
-
-      <div className="search-results-list">
-        {activeTab === "Spotify" && (
-          <div className="spotify-tab-container">
-            {!spotifyToken ? (
-              <div className="spotify-login-prompt">
-                <div className="spotify-icon-big">
-                  <Music size={48} color="#1DB954" />
-                </div>
-                <h3>Connect to Spotify</h3>
-                <p>Import your liked songs and playlists from Spotify to Elevengram.</p>
-                <button className="spotify-connect-btn" onClick={spotifyService.login}>
-                  Login with Spotify
-                </button>
-              </div>
-            ) : (
-              <div className="spotify-import-header">
-                <div className="spotify-info">
-                  <span className="spotify-status">Connected to Spotify</span>
-                  <span className="spotify-track-count">{spotifyTracks.length} liked songs found</span>
-                </div>
-                <button 
-                  className="spotify-import-all-btn" 
-                  onClick={handleImportSpotifyTracks}
-                  disabled={importProgress.total > 0}
-                >
-                  <CloudDownload size={18} />
-                  {importProgress.total > 0 
-                    ? `Importing (${importProgress.current}/${importProgress.total})` 
-                    : "Import All to Liked"}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {isSpotifyLoading && (
-          <div className="shimmer-container">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="shimmer-song-item">
-                <div className="shimmer-art" />
-                <div className="shimmer-details">
-                  <div className="shimmer-line title" />
-                  <div className="shimmer-line artist" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === "History" && playbackHistory.length > 0 && (
-          <div className="history-header">
-            <span className="history-count">{playbackHistory.length} recently played</span>
-            <button className="clear-history-btn" onClick={clearHistory}>Clear All</button>
-          </div>
-        )}
-
-        {isSearchLoading ? (
-          <div className="shimmer-container">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="shimmer-song-item">
-                <div className="shimmer-art" />
-                <div className="shimmer-details">
-                  <div className="shimmer-line title" />
-                  <div className="shimmer-line artist" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : searchResults.length > 0 ? (
-          <>
-            <div className="section-header-title">Top Results</div>
-            {searchResults.map((song, index) => (
-              <SongItem 
-                key={song.id || index} 
-                song={song} 
-                index={index} 
-                onSelect={(s) => {
-                  if (roomId && !isHost) {
-                    toast.error("Only Host can change songs", { id: 'host-only-warn' });
-                    return;
-                  }
-                  selectSong(s);
-                }} 
-                onInvite={handleInvite}
-                onToggle={togglePlayback}
-                onLike={(s) => toggleLikeSong(s, user?.id)}
-                onShowOptions={(e, s) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setContextMenu({ song: s, x: rect.left - 180, y: rect.top });
-                }}
-                isLiked={likedSongs.some(ls => ls.id === song.id)}
-                currentSongId={currentSong?.id}
-                isPlaying={isPlaying}
-                isLoadingDetails={loadingSongId === song.id}
-              />
-            ))}
-
-            {hasMore && (
-              <button 
-                className="load-more-btn" 
-                onClick={handleLoadMore}
-                disabled={isMoreLoading}
-              >
-                {isMoreLoading ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : (
-                  "Load More Results"
-                )}
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="search-empty-state">
-            <div className="empty-icon-circle">
-              <Music size={32} />
-            </div>
-            <h3>{searchQuery ? "No tracks found" : "Discover Music"}</h3>
-            <p>{searchQuery ? "Try different keywords" : "Search for millions of songs"}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Context Menu Modal */}
-      {contextMenu && (
-        <SongContextMenu 
-          song={contextMenu.song} 
-          x={contextMenu.x} 
-          y={contextMenu.y} 
-          onClose={() => setContextMenu(null)}
-          onPlay={() => {
-            selectSong(contextMenu.song);
-            setContextMenu(null);
-          }}
-          onInvite={() => {
-            handleInvite(contextMenu.song);
-            setContextMenu(null);
-          }}
-          onLike={() => {
-            toggleLikeSong(contextMenu.song, user?.id);
-            setContextMenu(null);
-          }}
-          isLiked={likedSongs.some(ls => ls.id === contextMenu.song.id)}
-        />
-      )}
+        
+        <div className="menu-divider" />
+        
+        <button className="menu-item" onClick={onPlay}>
+          <Play size={18} />
+          <span>Play Now</span>
+        </button>
+        
+        <button className="menu-item" onClick={onLike}>
+          <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+          <span>{isLiked ? 'Liked' : 'Like'}</span>
+        </button>
+        
+        <button className="menu-item" onClick={onInvite}>
+          <Users size={18} />
+          <span>Share to Chat</span>
+        </button>
+        
+        <button className="menu-item" onClick={() => toast.success("Added to Queue")}>
+          <List size={18} />
+          <span>Add to Queue</span>
+        </button>
+        
+        <div className="menu-divider" />
+        
+        <button className="menu-item" onClick={() => toast.success("Artist page coming soon")}>
+          <User size={18} />
+          <span>View Artist</span>
+        </button>
+      </m.div>
     </div>
   );
 };
@@ -611,7 +109,17 @@ const SongItem = memo(({
       </div>
 
       <div className="song-meta" onClick={() => onSelect(song)}>
-        <h4 className="song-title-text" dangerouslySetInnerHTML={{ __html: song.title || song.name }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h4 className="song-title-text" dangerouslySetInnerHTML={{ __html: song.title || song.name }} />
+          {isCurrent && isPlaying && (
+            <div className="live-visualizer-mini list-v">
+              <div className="bar" />
+              <div className="bar" />
+              <div className="bar" />
+              <div className="bar" />
+            </div>
+          )}
+        </div>
         <p className="song-artist-text" dangerouslySetInnerHTML={{ __html: song.singers || song.artist || song.subtitle || song.primaryArtists }} />
       </div>
 
@@ -645,9 +153,6 @@ const SongItem = memo(({
     </div>
   );
 });
-
-
-SongItem.displayName = 'SongItem';
 
 /**
  * MusicHero Component
@@ -789,63 +294,563 @@ const MusicHero = memo(({ songs, onPlay }) => {
 });
 
 /**
- * SongContextMenu Component
- * A Spotify-style context menu for song actions.
+ * MusicSearch Component
+ * Provides a premium interface for searching music via the JioSaavn Media Engine.
  */
-const SongContextMenu = ({ song, x, y, onClose, onPlay, onInvite, onLike, isLiked }) => {
+const MusicSearch = () => {
+  const [contextMenu, setContextMenu] = useState(null); // { song, x, y }
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchLoading, setSearchLoading] = useState(false);
+  const [isMoreLoading, setMoreLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingSongId, setLoadingSongId] = useState(null);
+  const [heroSongs, setHeroSongs] = useState([]);
+  
+  // Spotify State
+  const [spotifyToken, setSpotifyToken] = useState(null);
+  const [spotifyTracks, setSpotifyTracks] = useState([]);
+  const [isSpotifyLoading, setIsSpotifyLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+
+  const tabs = useMemo(() => [
+    { id: "Trending", query: "Bollywood Trending" },
+    { id: "Hindi", query: "Top Hindi Songs" },
+    { id: "Punjabi", query: "Latest Punjabi Hits" },
+    { id: "Haryanvi", query: "Latest Haryanvi Songs" },
+    { id: "Lofi", query: "Lofi Beats Hindi" },
+    { id: "Global", query: "Top Global Hits" },
+    { id: "Party", query: "Party Anthems" },
+    { id: "Spotify", query: "" },
+    { id: "History", query: "" },
+    { id: "Liked", query: "" }
+  ], []);
+  
+  const { 
+    currentSong, setCurrentSong, isPlaying, setIsPlaying, roomId, isHost, 
+    playbackHistory, clearHistory, tabCache, setTabCache,
+    likedSongs, toggleLikeSong, fetchLikedSongs,
+    searchResults, setSearchResults, recommendations,
+    activeTab, setActiveTab
+  } = useMusicStore();
+
+  const activeChatId = useChatStore(selectActiveChatId);
+  const activeChat = useChatStore(state => state.activeChat);
+  const user = useAuthStore(state => state.user);
+
+
   useEffect(() => {
-    const handleGlobalClick = () => onClose();
-    window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
-  }, [onClose]);
+    if (user?.id) {
+      fetchLikedSongs(user.id);
+    }
+
+    // Check for Spotify callback (PKCE)
+    const handleSpotifyAuth = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('code')) {
+        const token = await spotifyService.handleCallback();
+        if (token) {
+          setSpotifyToken(token);
+          setActiveTab("Spotify");
+          // Remove code from URL for cleanliness
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      }
+    };
+
+    handleSpotifyAuth();
+  }, [user?.id]);
+
+  // 1. Tab Switching & Search Query Effect
+  useEffect(() => {
+    if (activeTab === "History") {
+      setSearchResults(playbackHistory);
+      return;
+    }
+    
+    if (activeTab === "Liked") {
+      setSearchResults(likedSongs);
+      return;
+    }
+
+    if (activeTab === "Spotify") {
+      if (spotifyToken) {
+        handleFetchSpotifyTracks();
+      } else {
+        setSearchResults([]);
+      }
+      return;
+    }
+
+    // Check Cache for normal tabs
+    if (tabCache[activeTab] && !searchQuery) {
+      setSearchResults(tabCache[activeTab]);
+      
+      if (activeTab === "Trending") {
+        const shuffled = [...tabCache[activeTab]].sort(() => Math.random() - 0.5);
+        setHeroSongs(shuffled.slice(0, 10));
+      }
+      return;
+    }
+
+    // Fetch if not cached
+    const tab = tabs.find(t => t.id === activeTab);
+    if (tab && !searchQuery) {
+      handleSearch(tab.query, activeTab);
+    }
+  }, [activeTab]); // Only re-run when tab changes
+
+  // 2. Data Sync Effect (History/Liked)
+  useEffect(() => {
+    if (activeTab === "History") {
+      setSearchResults(playbackHistory);
+    } else if (activeTab === "Liked") {
+      setSearchResults(likedSongs);
+    }
+  }, [playbackHistory, likedSongs, activeTab]);
+
+  useEffect(() => {
+    // If user starts searching, maybe switch to a search mode or just clear results if query empty
+    if (!searchQuery) {
+      const tab = tabs.find(t => t.id === activeTab);
+      if (tab) handleSearch(tab.query);
+    }
+  }, [searchQuery]);
+
+  const handleSearch = async (query, tabId = null, page = 1) => {
+    if (!query.trim()) return;
+    
+    if (page === 1) setSearchLoading(true);
+    else setMoreLoading(true);
+
+    try {
+      const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(query)}&page=${page}`);
+      if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+      
+      const data = await res.json();
+      if (data.status === 'success') {
+        const results = data.data.results || [];
+        
+        if (page === 1) {
+          setSearchResults(results);
+          setCurrentPage(1);
+          setHasMore(results.length > 10);
+        } else {
+          setSearchResults(prev => {
+            const existingIds = new Set(prev.map(s => s.id));
+            const uniqueNewResults = results.filter(s => !existingIds.has(s.id));
+            return [...prev, ...uniqueNewResults];
+          });
+          setCurrentPage(page);
+          setHasMore(results.length > 0);
+        }
+        
+        // Populate Hero with random Trending songs (only on first page)
+        if (tabId === "Trending" && page === 1) {
+          const shuffled = [...results].sort(() => Math.random() - 0.5);
+          setHeroSongs(shuffled.slice(0, 10));
+        }
+
+        // Save to cache if it's a tab-initiated search (only first page for cache)
+        if (tabId && page === 1) {
+          setTabCache(tabId, results);
+          // Sync with global background if it's Trending
+          if (tabId === "Trending") {
+            useMusicStore.getState().setBackgroundImages(results);
+          }
+        }
+      } else {
+        if (page === 1) setSearchResults([]);
+        setHasMore(false);
+      }
+    } finally {
+      setSearchLoading(false);
+      setMoreLoading(false);
+    }
+  };
+
+  const handleFetchSpotifyTracks = async () => {
+    if (!spotifyToken) return;
+    setIsSpotifyLoading(true);
+    try {
+      const tracks = await spotifyService.getLikedTracks(spotifyToken);
+      setSpotifyTracks(tracks);
+      setSearchResults(tracks); // Temporarily show spotify tracks in search results
+    } catch (err) {
+      toast.error("Failed to fetch Spotify tracks");
+    } finally {
+      setIsSpotifyLoading(false);
+    }
+  };
+
+  const handleImportSpotifyTracks = async () => {
+    if (spotifyTracks.length === 0) return;
+    
+    setImportProgress({ current: 0, total: spotifyTracks.length });
+    let importedCount = 0;
+
+    toast.promise(
+      (async () => {
+        for (let i = 0; i < spotifyTracks.length; i++) {
+          const track = spotifyTracks[i];
+          setImportProgress(prev => ({ ...prev, current: i + 1 }));
+
+          try {
+            // 1. Search for track on JioSaavn
+            const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(`${track.title} ${track.artist}`)}&page=1`);
+            const data = await res.json();
+
+            if (data.status === 'success' && data.data.results?.length > 0) {
+              const matchedSong = data.data.results[0];
+              
+              // 2. Check if already liked
+              const alreadyLiked = likedSongs.some(ls => ls.id === matchedSong.id);
+              if (!alreadyLiked) {
+                await toggleLikeSong(matchedSong, user?.id);
+                importedCount++;
+              }
+            }
+          } catch (e) {
+            console.error(`Import failed for ${track.title}:`, e);
+          }
+        }
+        setImportProgress({ current: 0, total: 0 });
+        return importedCount;
+      })(),
+      {
+        loading: 'Matching and importing songs...',
+        success: (count) => `Successfully imported ${count} new songs!`,
+        error: 'Import process encountered issues.',
+      }
+    );
+  };
+
+  const handleLoadMore = () => {
+    const query = searchQuery || tabs.find(t => t.id === activeTab)?.query;
+    if (query && hasMore && !isMoreLoading) {
+      handleSearch(query, null, currentPage + 1);
+    }
+  };
+
+  // Debounced search could be added here, but manual Enter/Search button is fine for now
+  
+  // --- Callbacks for Performance ---
+  const selectSong = useCallback(async (song) => {
+    // 1. Check if we already have the media URL
+    let finalMediaUrl = song.media_urls?.['320_KBPS'] || song.media_urls?.['160_KBPS'] || song.media_url;
+
+    if (!finalMediaUrl) {
+      setLoadingSongId(song.id);
+      try {
+        const res = await fetch(`${MUSIC_API_BASE}/song?id=${song.id}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status === 'success' && json.data) {
+            finalMediaUrl = json.data.media_urls?.['320_KBPS'] || json.data.media_urls?.['160_KBPS'] || json.data.media_url;
+          }
+        }
+      } catch (err) {
+        console.warn("[MusicSearch] Detail fetch failed:", err);
+      } finally {
+        setLoadingSongId(null);
+      }
+    }
+
+    if (!finalMediaUrl) {
+      toast.error("Could not get play link");
+      return;
+    }
+
+    const finalSong = {
+      id: song.id,
+      title: song.title || song.name || "Unknown Track",
+      artist: song.singers || song.primary_artists || song.artist || "Unknown Artist",
+      image: song.image || (song.images?.['500x500'] || song.images?.['150x150']),
+      media_url: finalMediaUrl,
+      duration: song.duration || 0
+    };
+
+    setCurrentSong(finalSong);
+    setIsPlaying(true);
+  }, [setCurrentSong, setIsPlaying]);
+
+  const togglePlayback = useCallback((e, song) => {
+    e.stopPropagation();
+    if (currentSong?.id === song.id) {
+      setIsPlaying(!isPlaying);
+    } else {
+      selectSong(song);
+    }
+  }, [currentSong?.id, isPlaying, setIsPlaying, selectSong]);
+
+
+
+  const handleInvite = async (song) => {
+    if (!activeChatId || !user) {
+      toast.error("Open a chat to share music", {
+        icon: '💬',
+        style: { borderRadius: '12px', background: '#333', color: '#fff' }
+      });
+      return;
+    }
+
+    let songData = song;
+
+    // Fetch details if missing (for sharing high-quality links)
+    if (!songData.media_urls && !songData.media_url) {
+      try {
+        const res = await fetch(`${MUSIC_API_BASE}/song?id=${song.id}`);
+        const json = await res.json();
+        if (json.status === 'success' && json.data) songData = json.data;
+      } catch (e) { console.warn("Detail fetch failed for share", e); }
+    }
+
+    // Robust meta extraction
+    const imgObj = songData.images || {};
+    const imgArr = songData.image || [];
+    let bestImage = imgObj['500x500'] || imgObj['150x150'] || '';
+    if (!bestImage) {
+      bestImage = Array.isArray(imgArr) ? (imgArr[imgArr.length - 1]?.url || '') : imgArr;
+    }
+    
+    const mediaUrl = songData.media_urls?.['320_KBPS'] || songData.media_urls?.['160_KBPS'] || songData.media_url || '';
+
+    const finalSong = {
+      id: songData.id,
+      title: songData.title || songData.name,
+      artist: songData.more_info?.singers || songData.artist || songData.subtitle || songData.primaryArtists,
+      image: bestImage,
+      media_url: mediaUrl
+    };
+
+
+
+    const tempId = String(Date.now());
+    const taskId = crypto.randomUUID();
+
+    const frontendMsg = {
+      chatId: activeChatId,
+      senderId: user.id,
+      receiverId: activeChat.isGroup ? user.id : activeChat.otherUserId,
+      content: `Shared a song: ${songData.title}`,
+      metadata: {
+        song: finalSong,
+        type: 'music_share',
+        roomId: roomId
+      },
+      isGroupMessage: Boolean(activeChat.isGroup),
+      messageType: 'song',
+      createdAt: new Date().toISOString(),
+      status: 'sending',
+      tempId,
+    };
+
+    try {
+      await db.transaction('rw', [db.messages, db.chats_list], async () => {
+        await db.messages.put({ ...frontendMsg, id: `temp_${tempId}` });
+        await db.chats_list.update(String(activeChatId), {
+          lastMessageAt: frontendMsg.createdAt,
+          timestamp: frontendMsg.createdAt,
+          lastMessage: `🎵 ${songData.title}`,
+          status: 'sending'
+        }).catch(() => {});
+      });
+
+      const dbData = frontendToDb(frontendMsg);
+      await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData, { taskId });
+      
+      toast.success("Shared to chat!");
+    } catch (error) {
+      console.error("Music share failed:", error);
+      toast.error("Failed to share");
+    }
+  };
+
+
+
 
   return (
-    <div 
-      className="song-context-menu"
-      style={{ top: `${y}px`, left: `${x}px` }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="menu-header">
-        <img src={song.image || song.images?.['50x50']} alt="" />
-        <div className="menu-song-info">
-          <h5 dangerouslySetInnerHTML={{ __html: song.title }} />
-          <p dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle }} />
+    <div className="music-search-container">
+
+
+      <div className="search-header">
+        <MusicHero songs={heroSongs} onPlay={selectSong} />
+
+        <div className="sticky-search-wrapper">
+          <div className="search-input-wrapper">
+            <Search className="search-icon" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search songs, artists..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+            />
+            {isSearchLoading && <Loader2 className="loading-spinner-icon animate-spin" size={18} />}
+          </div>
+
+          <div className="category-tabs-container">
+            {tabs.map(tab => (
+              <button 
+                key={tab.id}
+                className={`category-tab ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSearchQuery(""); // Clear search when switching tabs
+                }}
+              >
+                {tab.id}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-      
-      <div className="menu-divider" />
-      
-      <button className="menu-item" onClick={onPlay}>
-        <Play size={18} />
-        <span>Play Now</span>
-      </button>
-      
-      <button className="menu-item" onClick={onLike}>
-        <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
-        <span>{isLiked ? 'Liked' : 'Like'}</span>
-      </button>
-      
-      <button className="menu-item" onClick={onInvite}>
-        <Users size={18} />
-        <span>Share to Chat</span>
-      </button>
-      
-      <button className="menu-item" onClick={() => toast.success("Added to Queue")}>
-        <List size={18} />
-        <span>Add to Queue</span>
-      </button>
-      
-      <div className="menu-divider" />
-      
-      <button className="menu-item" onClick={() => toast.success("Artist page coming soon")}>
-        <User size={18} />
-        <span>View Artist</span>
-      </button>
+
+      <div className="search-results-list">
+        {activeTab === "Spotify" && (
+          <div className="spotify-tab-container">
+            {!spotifyToken ? (
+              <div className="spotify-login-prompt">
+                <div className="spotify-icon-big">
+                  <Music size={48} color="#1DB954" />
+                </div>
+                <h3>Connect to Spotify</h3>
+                <p>Import your liked songs and playlists from Spotify to Elevengram.</p>
+                <button className="spotify-connect-btn" onClick={spotifyService.login}>
+                  Login with Spotify
+                </button>
+              </div>
+            ) : (
+              <div className="spotify-import-header">
+                <div className="spotify-info">
+                  <span className="spotify-status">Connected to Spotify</span>
+                  <span className="spotify-track-count">{spotifyTracks.length} liked songs found</span>
+                </div>
+                <button 
+                  className="spotify-import-all-btn" 
+                  onClick={handleImportSpotifyTracks}
+                  disabled={importProgress.total > 0}
+                >
+                  <CloudDownload size={18} />
+                  {importProgress.total > 0 
+                    ? `Importing (${importProgress.current}/${importProgress.total})` 
+                    : "Import All to Liked"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isSpotifyLoading && (
+          <div className="shimmer-container">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="shimmer-song-item">
+                <div className="shimmer-art" />
+                <div className="shimmer-details">
+                  <div className="shimmer-line title" />
+                  <div className="shimmer-line artist" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === "History" && playbackHistory.length > 0 && (
+          <div className="history-header">
+            <span className="history-count">{playbackHistory.length} recently played</span>
+            <button className="clear-history-btn" onClick={clearHistory}>Clear All</button>
+          </div>
+        )}
+
+        {isSearchLoading ? (
+          <div className="shimmer-container">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="shimmer-song-item">
+                <div className="shimmer-art" />
+                <div className="shimmer-details">
+                  <div className="shimmer-line title" />
+                  <div className="shimmer-line artist" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : searchResults.length > 0 ? (
+          <>
+            <div className="section-header-title">Top Results</div>
+            {searchResults.map((song, index) => (
+              <SongItem 
+                key={song.id || index} 
+                song={song} 
+                index={index} 
+                onSelect={selectSong} 
+                onInvite={handleInvite}
+                onToggle={togglePlayback}
+                onLike={(s) => toggleLikeSong(s, user?.id)}
+                onShowOptions={(e, s) => {
+                  setContextMenu({ song: s });
+                }}
+                isLiked={likedSongs.some(ls => ls.id === song.id)}
+                currentSongId={currentSong?.id}
+                isPlaying={isPlaying}
+                isLoadingDetails={loadingSongId === song.id}
+              />
+            ))}
+
+            {hasMore && (
+              <button 
+                className="load-more-btn" 
+                onClick={handleLoadMore}
+                disabled={isMoreLoading}
+              >
+                {isMoreLoading ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  "Load More Results"
+                )}
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="search-empty-state">
+            <div className="empty-icon-circle">
+              <Music size={32} />
+            </div>
+            <h3>{searchQuery ? "No tracks found" : "Discover Music"}</h3>
+            <p>{searchQuery ? "Try different keywords" : "Search for millions of songs"}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Context Menu Modal */}
+      <AnimatePresence>
+        {contextMenu && (
+          <SongContextMenu 
+            song={contextMenu.song} 
+            onClose={() => setContextMenu(null)}
+            onPlay={() => {
+              selectSong(contextMenu.song);
+              setContextMenu(null);
+            }}
+            onInvite={() => {
+              handleInvite(contextMenu.song);
+              setContextMenu(null);
+            }}
+            onLike={() => {
+              toggleLikeSong(contextMenu.song, user?.id);
+              setContextMenu(null);
+            }}
+            isLiked={likedSongs.some(ls => ls.id === contextMenu.song.id)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
+
 MusicHero.displayName = 'MusicHero';
+SongItem.displayName = 'SongItem';
+SongContextMenu.displayName = 'SongContextMenu';
 
 export default MusicSearch;
 

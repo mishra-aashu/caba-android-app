@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, Music, Radio } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import useMusicStore from '../../store/useMusicStore';
 import { toast } from 'react-hot-toast';
 import styles from './SongMessage.module.css';
@@ -10,6 +11,7 @@ import styles from './SongMessage.module.css';
  * Features: Artwork, metadata, and one-tap session joining.
  */
 const SongMessage = ({ message, isMine }) => {
+  const navigate = useNavigate();
   const song = message.metadata?.song;
   const { setCurrentSong, joinRoom, togglePanel } = useMusicStore();
 
@@ -26,8 +28,8 @@ const SongMessage = ({ message, isMine }) => {
       toast.success(`Joined Session: ${message.metadata.roomId}`, { icon: '🎧' });
     }
     
-    // Always open panel so user sees the player/room status
-    togglePanel(true);
+    // Always navigate so user sees the player/room status
+    navigate('/listen-together');
   };
 
   return (
