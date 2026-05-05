@@ -60,7 +60,7 @@ const useMusicStore = create(
         set({ 
           currentSong: song, 
           progress: isNewSong ? 0 : state.progress,
-          duration: song.duration || state.duration,
+          duration: song.duration || 0,
           isPlaying: true 
         });
 
@@ -68,6 +68,13 @@ const useMusicStore = create(
         if (isNewSong) {
           get().addToHistory(song);
           get().fetchRecommendations(song.id);
+          
+          // CRITICAL: If the song doesn't have a media_url (common for search/recommendations),
+          // fetch it immediately so playback can start.
+          if (!song.media_url) {
+            console.log("[MusicStore] Missing media_url for new song, refreshing...");
+            get().refreshCurrentSongMetadata();
+          }
         }
       },
 

@@ -127,7 +127,6 @@
   height: 6px;
   background: var(--brand-primary, #00a884);
   border-radius: 50%;
-  box-shadow: 0 0 12px var(--brand-primary, #00a884);
 }
 
 .panel-close-btn {
@@ -296,18 +295,7 @@
 }
 
 .pulse-ring {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border: 2px solid #ff4757;
-  border-radius: 50%;
-  animation: sessionPulse 2.5s infinite linear;
-}
-
-@keyframes sessionPulse {
-  0% { transform: scale(0.7); opacity: 0.8; }
-  70% { transform: scale(1.5); opacity: 0; }
-  100% { transform: scale(0.7); opacity: 0; }
+  display: none;
 }
 
 .room-details span {

@@ -132,21 +132,60 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: max(env(safe-area-inset-top), 16px) 20px 16px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+  padding: max(env(safe-area-inset-top), 24px) 20px 16px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
 .player-drag-handle {
   position: absolute;
-  top: 8px;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 40px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
+  width: 36px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.header-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0;
+  outline: none;
+}
+
+.header-btn:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.header-meta {
+  text-align: center;
+  flex: 1;
+}
+
+.header-meta span {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .fullscreen-player-scrollable {
@@ -208,12 +247,7 @@
 }
 
 @keyframes gentleFloat {
-  0%, 100% {
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-12px) scale(1.03) rotate(1deg);
-  }
+  /* Animation removed for performance */
 }
 
 /* Glow effect behind artwork */
@@ -233,8 +267,7 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% { opacity: 0.4; transform: scale(0.9); }
-  50% { opacity: 0.6; transform: scale(1.1); }
+  /* Animation removed for performance */
 }
 
 /* --- Song Info --- */
@@ -288,26 +321,34 @@
 
 /* --- Progress Section --- */
 .progress-section {
-  margin-bottom: 32px;
+  margin-bottom: 40px;
+  padding: 0 4px;
 }
 
 .time-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 0.85rem;
-  font-weight: 700;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: rgba(255, 255, 255, 0.5);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
 }
 
 .seek-bar-container {
   position: relative;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
   cursor: pointer;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  overflow: visible;
+  transition: height 0.2s ease;
+}
+
+.seek-bar-container:hover {
+  height: 8px;
 }
 
 .seek-bar-fill {
@@ -315,10 +356,31 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #ffffff 0%, #a5b4fc 100%);
-  border-radius: 4px;
-  box-shadow: 0 0 15px rgba(165, 180, 252, 0.5);
+  background: linear-gradient(90deg, #ffffff 0%, #cbd5e1 100%);
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
   transition: width 0.1s linear;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Add a small handle at the end of the fill */
+.seek-bar-fill::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  right: -6px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.seek-bar-container:hover .seek-bar-fill::after {
+  opacity: 1;
 }
 
 .seek-input-fs {
@@ -601,8 +663,7 @@
 .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes dotPulse {
-  from { opacity: 0.3; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1.1); }
+  /* Animation removed for performance */
 }
 
 /* =============================================
@@ -973,18 +1034,7 @@
 }
 
 @keyframes sessionPulse {
-  0% { 
-    transform: scale(0.8); 
-    opacity: 0.8; 
-  }
-  70% { 
-    transform: scale(1.6); 
-    opacity: 0; 
-  }
-  100% { 
-    transform: scale(0.8); 
-    opacity: 0; 
-  }
+  /* Animation removed for performance */
 }
 
 .room-details span {

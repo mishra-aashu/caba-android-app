@@ -145,13 +145,26 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
 
   // Occasional store sync for progress (not every frame)
   const onTimeUpdate = () => {
-    if (audioRef.current && Math.abs(audioRef.current.currentTime - progress) > 2) {
-      setProgress(audioRef.current.currentTime);
+    if (audioRef.current) {
+      const cur = audioRef.current.currentTime;
+      if (Math.abs(cur - progress) > 2) {
+        setProgress(cur);
+      }
+      // Defensive: Sync duration if it's still 0 but available in the audio element
+      if (duration === 0 && audioRef.current.duration > 0) {
+        setDuration(audioRef.current.duration);
+      }
     }
   };
 
   const onLoadedMetadata = () => {
-    if (audioRef.current) {
+    if (audioRef.current && audioRef.current.duration) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const onDurationChange = () => {
+    if (audioRef.current && audioRef.current.duration) {
       setDuration(audioRef.current.duration);
     }
   };
@@ -228,6 +241,7 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
         ref={audioRef}
         onTimeUpdate={onTimeUpdate}
         onLoadedMetadata={onLoadedMetadata}
+        onDurationChange={onDurationChange}
         onError={onAudioError}
         onEnded={() => {
           console.log("[Player] Song ended, playing next...");

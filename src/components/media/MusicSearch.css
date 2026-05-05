@@ -60,13 +60,6 @@
   background: #00ff88;
   border-radius: 50%;
   box-shadow: 0 0 10px #00ff88;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
-  100% { opacity: 1; transform: scale(1); }
 }
 
 .brand-name {
@@ -193,7 +186,6 @@
   background: rgba(0, 168, 132, 0.15);
   border: 1px solid rgba(0, 168, 132, 0.4);
   box-shadow: inset 0 0 20px rgba(0, 168, 132, 0.1);
-  animation: activeGlow 2s infinite alternate;
   z-index: 2;
   opacity: 1;
   transform: none;
@@ -206,10 +198,6 @@
   }
 }
 
-@keyframes activeGlow {
-  from { box-shadow: 0 0 5px rgba(0, 168, 132, 0.1); }
-  to { box-shadow: 0 0 25px rgba(0, 168, 132, 0.3); }
-}
 
 .song-art {
   position: relative;

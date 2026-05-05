@@ -35,6 +35,7 @@ const FullscreenPlayer = () => {
   const progressBarRef = useRef(null);
   const timeCurrentRef = useRef(null);
   const animationRef = useRef(null);
+  const recommendationsRef = useRef(null);
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00';
@@ -116,9 +117,8 @@ const FullscreenPlayer = () => {
     toggleLikeSong(currentSong, user?.id);
   };
 
-  const handleQueueOpen = () => {
-    setPlayerExpanded(false);
-    setTimeout(() => navigate('/listen-together'), 300);
+  const scrollToRecommendations = () => {
+    recommendationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handlePrevious = () => {
@@ -354,8 +354,8 @@ const FullscreenPlayer = () => {
               </button>
               <button 
                 className="fs-control-btn" 
-                onClick={handleQueueOpen}
-                aria-label="View queue"
+                onClick={scrollToRecommendations}
+                aria-label="View recommendations"
               >
                 <ListMusic size={22} />
               </button>
@@ -363,7 +363,7 @@ const FullscreenPlayer = () => {
           </div>
 
           {/* Recommendations Section */}
-          <div className="player-recommendations-section">
+          <div className="player-recommendations-section" ref={recommendationsRef}>
             <div className="section-header">
               <h3>Recommended for You</h3>
               <div className="section-tag">More like this</div>
