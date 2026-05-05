@@ -1,16 +1,18 @@
-import React, { useMemo, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useRef, useEffect } from 'react';
+import { motion, useDragControls } from 'framer-motion';
 import useMusicStore from '../../store/useMusicStore';
 import useAuthStore from '../../store/authStore';
-import { ChevronDown, MoreHorizontal, SkipBack, SkipForward, Play, Pause, Share2, ListMusic, Heart, ChevronRight, Repeat, Repeat1 } from 'lucide-react';
+import {
+  ChevronDown, MoreHorizontal, SkipBack, SkipForward,
+  Play, Pause, Share2, ListMusic, Heart, ChevronRight,
+  Repeat, Repeat1,
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import './FullscreenPlayer.css';
 
 const FullscreenPlayer = () => {
-  const navigate = useNavigate();
-  const { 
-    currentSong, isPlaying, setIsPlaying, 
+  const {
+    currentSong, isPlaying, setIsPlaying,
     duration,
     progress, setProgress, seekTo,
     isPlayerExpanded, setPlayerExpanded,
@@ -18,36 +20,17 @@ const FullscreenPlayer = () => {
     playNext, playPrevious,
     searchResults,
     likedSongs, toggleLikeSong,
-    recommendations, activeTab,
-    repeatMode, toggleRepeatMode
+    recommendations,
+    repeatMode, toggleRepeatMode,
   } = useMusicStore();
 
   const dragControls = useDragControls();
-  const user = useAuthStore(state => state.user);
-
-  const nextSong = useMemo(() => {
-    if (!currentSong) return null;
-    
-    // Prioritize recommendations as that's what the player usually follows
-    const playlist = recommendations.length > 0 ? recommendations : searchResults;
-    if (!playlist || playlist.length === 0) return null;
-
-    const currentIndex = playlist.findIndex(s => s.id === currentSong.id);
-    
-    // If current song isn't in playlist or it's the last song
-    if (currentIndex === -1 || currentIndex === playlist.length - 1) {
-      return playlist[0]; // Loop back or just show first
-    }
-    
-    return playlist[currentIndex + 1];
-  }, [currentSong, searchResults, recommendations]);
-
-  const progressRef = useRef(0);
+  const user = useAuthStore((state) => state.user);
   const progressBarRef = useRef(null);
   const timeCurrentRef = useRef(null);
-  const animationRef = useRef(null);
   const recommendationsRef = useRef(null);
 
+  // ─── Helpers ──────────────────────────────────────────────────
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -55,93 +38,108 @@ const FullscreenPlayer = () => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // High Performance Animation Loop
-  const updateUI = useCallback(() => {
-    const storeProgress = useMusicStore.getState().progress;
-    progressRef.current = storeProgress;
-    
-    if (progressBarRef.current) {
-      const percent = (storeProgress / (duration || 1)) * 100;
-      progressBarRef.current.style.width = `${percent}%`;
+  // ─── Reactive progress bar & time (no rAF) ────────────────────
+  useEffect(() => {
+    if (progressBarRef.current && duration > 0) {
+      progressBarRef.current.style.width = `${(progress / duration) * 100}%`;
     }
     if (timeCurrentRef.current) {
-      timeCurrentRef.current.textContent = formatTime(storeProgress);
+      timeCurrentRef.current.textContent = formatTime(progress);
     }
-    
-    animationRef.current = requestAnimationFrame(updateUI);
-  }, [duration]);
+  }, [progress, duration]);   // runs every time store updates
 
-  useEffect(() => {
-    if (isPlayerExpanded && isPlaying) {
-      animationRef.current = requestAnimationFrame(updateUI);
-    } else {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      // Final sync when paused
-      if (isPlayerExpanded) {
-        const storeProgress = useMusicStore.getState().progress;
-        if (progressBarRef.current) {
-          const percent = (storeProgress / (duration || 1)) * 100;
-          progressBarRef.current.style.width = `${percent}%`;
-        }
-        if (timeCurrentRef.current) {
-          timeCurrentRef.current.textContent = formatTime(storeProgress);
-        }
-      }
+  // ─── Derived playlist (stable references) ─────────────────────
+  const playlist = useMemo(() => {
+    return recommendations.length > 0 ? recommendations : searchResults;
+  }, [recommendations, searchResults]);
+
+  const nextSong = useMemo(() => {
+    if (!currentSong || playlist.length === 0) return null;
+    const idx = playlist.findIndex((s) => s.id === currentSong.id);
+    const nextIdx = idx === -1 || idx === playlist.length - 1 ? 0 : idx + 1;
+    return playlist[nextIdx];
+  }, [currentSong?.id, playlist]);   // depends only on ID
+
+  // ─── Colors (as before) ────────────────────────────────────────
+  const colors = useMemo(() => {
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    const baseLightness = isDarkMode ? 30 : 40;
+    const baseSaturation = isDarkMode ? 70 : 75;
+
+    if (!currentSong) {
+      return isDarkMode
+        ? ['hsl(220, 65%, 25%)', 'hsl(280, 60%, 28%)', 'hsl(180, 65%, 26%)', 'hsl(340, 60%, 27%)', 'hsl(140, 65%, 25%)']
+        : ['hsl(220, 75%, 45%)', 'hsl(280, 70%, 48%)', 'hsl(180, 75%, 46%)', 'hsl(340, 70%, 47%)', 'hsl(140, 75%, 45%)'];
     }
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPlayerExpanded, isPlaying, updateUI, duration]);
+    const id = currentSong.id || 'default';
+    const seed1 = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const seed2 = id.length;
 
+    const hue1 = (seed1 * 13) % 360;
+    const hue2 = (seed1 * 21 + seed2 * 17) % 360;
+    const hue3 = (hue1 + 72) % 360;
+    const hue4 = (hue2 + 144) % 360;
+    const hue5 = (hue1 + 216) % 360;
+
+    return [
+      `hsl(${hue1}, ${baseSaturation}%, ${baseLightness}%)`,
+      `hsl(${hue2}, ${baseSaturation}%, ${baseLightness}%)`,
+      `hsl(${hue3}, ${baseSaturation}%, ${baseLightness}%)`,
+      `hsl(${hue4}, ${baseSaturation}%, ${baseLightness}%)`,
+      `hsl(${hue5}, ${baseSaturation}%, ${baseLightness}%)`,
+    ];
+  }, [currentSong?.id]);
+
+  // ─── Handlers ─────────────────────────────────────────────────
   const handleSeek = (e) => {
     if (roomId && !isHost) {
-      toast.error("Only Host can seek", { id: 'fs-seek-warn' });
+      toast.error('Only Host can seek', { id: 'fs-seek-warn' });
       return;
     }
     const time = parseFloat(e.target.value);
-    seekTo(time);
-    
-    // Update local UI immediately for responsiveness
-    if (progressBarRef.current) {
-      progressBarRef.current.style.width = `${(time / (duration || 1)) * 100}%`;
-    }
-    if (timeCurrentRef.current) {
-      timeCurrentRef.current.textContent = formatTime(time);
-    }
+    seekTo(time);   // store handles audio sync
   };
 
   const handleContainerClick = (e) => {
     if (roomId && !isHost) {
-      toast.error("Only Host can seek", { id: 'fs-seek-warn' });
+      toast.error('Only Host can seek', { id: 'fs-seek-warn' });
       return;
     }
     if (!duration) return;
-    
     const rect = e.currentTarget.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const x = clientX - rect.left;
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
     const percent = Math.max(0, Math.min(1, x / rect.width));
-    const time = percent * duration;
-    
-    seekTo(time);
+    seekTo(percent * duration);
   };
 
   const handleTogglePlay = () => {
     if (roomId && !isHost) {
-      toast.error("You are listening together. Only Host controls playback.", { id: 'fs-play-warn' });
+      toast.error('You are listening together. Only Host controls playback.', { id: 'fs-play-warn' });
       return;
     }
     setIsPlaying(!isPlaying);
   };
 
+  const handleNext = () => {
+    if (roomId && !isHost) {
+      toast.error('Only Host can change songs', { id: 'fs-next-warn' });
+      return;
+    }
+    playNext();
+  };
+
+  const handlePrevious = () => {
+    if (roomId && !isHost) {
+      toast.error('Only Host can change songs', { id: 'fs-prev-warn' });
+      return;
+    }
+    playPrevious();
+  };
+
   const handleShare = () => {
     const text = `Listening to ${currentSong.title} by ${currentSong.artist} on Elevengram Music!`;
     navigator.clipboard.writeText(text);
-    toast.success("Song info copied to clipboard!", { icon: '🔗' });
+    toast.success('Song info copied to clipboard!', { icon: '🔗' });
   };
 
   const handleLike = () => {
@@ -153,88 +151,20 @@ const FullscreenPlayer = () => {
     recommendationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handlePrevious = () => {
-    if (roomId && !isHost) {
-      toast.error("Only Host can change songs", { id: 'fs-prev-warn' });
-      return;
-    }
-    playPrevious();
-  };
-
-  const handleNext = () => {
-    if (roomId && !isHost) {
-      toast.error("Only Host can change songs", { id: 'fs-next-warn' });
-      return;
-    }
-    playNext();
-  };
-
-  const colors = useMemo(() => {
-    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-    const baseLightness = isDarkMode ? 30 : 40;
-    const baseSaturation = isDarkMode ? 70 : 75;
-
-    if (!currentSong) {
-      return isDarkMode 
-        ? ['hsl(220, 65%, 25%)', 'hsl(280, 60%, 28%)', 'hsl(180, 65%, 26%)', 'hsl(340, 60%, 27%)', 'hsl(140, 65%, 25%)']
-        : ['hsl(220, 75%, 45%)', 'hsl(280, 70%, 48%)', 'hsl(180, 75%, 46%)', 'hsl(340, 70%, 47%)', 'hsl(140, 75%, 45%)'];
-    }
-    
-    const id = currentSong.id || 'default';
-    const seed1 = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const seed2 = id.length;
-    
-    const hue1 = (seed1 * 13) % 360;
-    const hue2 = (seed1 * 21 + seed2 * 17) % 360;
-    const hue3 = (hue1 + 72) % 360;
-    const hue4 = (hue2 + 144) % 360;
-    const hue5 = (hue1 + 216) % 360;
-    
-    return [
-      `hsl(${hue1}, ${baseSaturation}%, ${baseLightness}%)`,
-      `hsl(${hue2}, ${baseSaturation}%, ${baseLightness}%)`,
-      `hsl(${hue3}, ${baseSaturation}%, ${baseLightness}%)`,
-      `hsl(${hue4}, ${baseSaturation}%, ${baseLightness}%)`,
-      `hsl(${hue5}, ${baseSaturation}%, ${baseLightness}%)`
-    ];
-  }, [currentSong?.id]);
-
-  const containerVariants = {
-    initial: { 
-      y: '100%', 
-      opacity: 0,
-      transition: { duration: 0 }
-    },
-    animate: { 
-      y: 0, 
-      opacity: 1,
-      transition: {
-        type: 'spring',
-        damping: 30,
-        stiffness: 300,
-        mass: 0.8
-      }
-    },
-    exit: { 
-      y: '100%', 
-      opacity: 0,
-      transition: {
-        type: 'tween',
-        ease: 'easeIn',
-        duration: 0.25
-      }
-    }
-  };
+  // ─── Render helpers ────────────────────────────────────────────
+  const isLiked = likedSongs.some((s) => s.id === currentSong.id);
 
   if (!isPlayerExpanded || !currentSong) return null;
 
-  const isLiked = likedSongs.some(s => s.id === currentSong.id);
-
   return (
-    <motion.div 
+    <motion.div
       key="fullscreen-player"
       className="fullscreen-player-overlay"
-      variants={containerVariants}
+      variants={{
+        initial: { y: '100%', opacity: 0, transition: { duration: 0 } },
+        animate: { y: 0, opacity: 1, transition: { type: 'spring', damping: 30, stiffness: 300, mass: 0.8 } },
+        exit: { y: '100%', opacity: 0, transition: { type: 'tween', ease: 'easeIn', duration: 0.25 } },
+      }}
       initial="initial"
       animate="animate"
       exit="exit"
@@ -243,8 +173,8 @@ const FullscreenPlayer = () => {
       dragListener={false}
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={0.2}
-      onDragEnd={(e, { offset, velocity }) => {
-        if (offset.y > 100 || velocity.y > 500) {
+      onDragEnd={(_, info) => {
+        if (info.offset.y > 100 || info.velocity.y > 500) {
           setPlayerExpanded(false);
         }
       }}
@@ -261,20 +191,14 @@ const FullscreenPlayer = () => {
       {/* Header */}
       <div className="player-header" onPointerDown={(e) => dragControls.start(e)}>
         <div className="player-drag-handle" />
-        <button 
-          className="header-btn" 
-          onClick={() => setPlayerExpanded(false)}
-          aria-label="Close player"
-        >
+        <button className="header-btn" onClick={() => setPlayerExpanded(false)} aria-label="Close player">
           <ChevronDown size={24} />
         </button>
         <div className="header-meta">
-          <span>
-            {roomId ? `SYNCED ROOM: ${roomId}` : 'ELEVENGRAM MUSIC'}
-          </span>
+          <span>{roomId ? `SYNCED ROOM: ${roomId}` : 'ELEVENGRAM MUSIC'}</span>
         </div>
-        <button 
-          className={`header-btn ${repeatMode !== 'off' ? 'active-mode' : ''}`} 
+        <button
+          className={`header-btn ${repeatMode !== 'off' ? 'active-mode' : ''}`}
           onClick={toggleRepeatMode}
           aria-label={`Repeat mode: ${repeatMode}`}
         >
@@ -285,17 +209,13 @@ const FullscreenPlayer = () => {
         </button>
       </div>
 
-      {/* Scrollable Content Container */}
+      {/* Scrollable Content */}
       <div className="fullscreen-player-scrollable">
         <div className="scroll-content-inner">
           {/* Main Content: Artwork & Title */}
           <div className="player-main-content">
             <div className={`artwork-container ${isPlaying ? 'playing' : ''}`}>
-              <img 
-                src={currentSong.image} 
-                alt={currentSong.title}
-                loading="eager"
-              />
+              <img src={currentSong.image} alt={currentSong.title} loading="eager" />
             </div>
 
             <div className="song-info-expanded">
@@ -304,38 +224,24 @@ const FullscreenPlayer = () => {
             </div>
 
             <div className="song-actions-row">
-              <button 
-                className={`fs-action-btn ${repeatMode !== 'off' ? 'active' : ''}`} 
+              <button
+                className={`fs-action-btn ${repeatMode !== 'off' ? 'active' : ''}`}
                 onClick={toggleRepeatMode}
                 style={{ color: repeatMode !== 'off' ? '#00ff88' : 'inherit' }}
-                aria-label={`Repeat mode: ${repeatMode}`}
               >
                 {repeatMode === 'one' ? <Repeat1 size={20} /> : <Repeat size={20} />}
               </button>
-              <button 
-                className={`fs-action-btn ${isLiked ? 'active' : ''}`} 
+              <button
+                className={`fs-action-btn ${isLiked ? 'active' : ''}`}
                 onClick={handleLike}
                 style={{ color: isLiked ? '#ff4b4b' : 'inherit' }}
-                aria-label={isLiked ? "Unlike" : "Like"}
               >
-                <Heart 
-                  size={20} 
-                  fill={isLiked ? "currentColor" : "none"} 
-                  strokeWidth={isLiked ? 0 : 2} 
-                />
+                <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} strokeWidth={isLiked ? 0 : 2} />
               </button>
-              <button 
-                className="fs-action-btn" 
-                onClick={handleShare}
-                aria-label="Share"
-              >
+              <button className="fs-action-btn" onClick={handleShare}>
                 <Share2 size={20} />
               </button>
-              <button 
-                className="fs-action-btn" 
-                onClick={scrollToRecommendations}
-                aria-label="View recommendations"
-              >
+              <button className="fs-action-btn" onClick={scrollToRecommendations}>
                 <ListMusic size={20} />
               </button>
             </div>
@@ -348,12 +254,9 @@ const FullscreenPlayer = () => {
                 <span ref={timeCurrentRef}>0:00</span>
                 <span>{formatTime(duration)}</span>
               </div>
-              <div 
-                className="seek-bar-container" 
-                onClick={handleContainerClick}
-              >
+              <div className="seek-bar-container" onClick={handleContainerClick}>
                 <div ref={progressBarRef} className="seek-bar-fill" />
-                <input 
+                <input
                   type="range"
                   className="seek-input-fs"
                   min="0"
@@ -367,38 +270,24 @@ const FullscreenPlayer = () => {
             </div>
 
             <div className="main-controls-row">
-              <button 
-                className="fs-control-btn" 
-                onClick={handlePrevious}
-                aria-label="Previous song"
-              >
+              <button className="fs-control-btn" onClick={handlePrevious}>
                 <SkipBack size={32} fill="currentColor" />
               </button>
-              
-              <button 
-                className="fs-control-btn fs-play-btn"
-                onClick={handleTogglePlay}
-                aria-label={isPlaying ? "Pause" : "Play"}
-              >
-                {isPlaying ? (
-                  <Pause size={36} fill="currentColor" />
-                ) : (
-                  <Play size={36} fill="currentColor" style={{ marginLeft: 4 }} />
-                )}
+              <button className="fs-control-btn fs-play-btn" onClick={handleTogglePlay}>
+                {isPlaying ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" style={{ marginLeft: 4 }} />}
               </button>
-
-              <button 
-                className="fs-control-btn" 
-                onClick={handleNext}
-                aria-label="Next song"
-              >
+              <button className="fs-control-btn" onClick={handleNext}>
                 <SkipForward size={32} fill="currentColor" />
               </button>
             </div>
 
-            {/* Up Next Preview */}
+            {/* Up Next Preview – disabled when not host in a room */}
             {nextSong && (
-              <div className="up-next-mini-card" onClick={handleNext}>
+              <button
+                className={`up-next-mini-card ${roomId && !isHost ? 'disabled' : ''}`}
+                onClick={handleNext}
+                disabled={!!(roomId && !isHost)}
+              >
                 <div className="up-next-label">UP NEXT</div>
                 <div className="up-next-content">
                   <img src={nextSong.image} alt={nextSong.title} />
@@ -408,7 +297,7 @@ const FullscreenPlayer = () => {
                   </div>
                   <ChevronRight size={16} />
                 </div>
-              </div>
+              </button>
             )}
 
             <div className="bottom-spacing" style={{ height: '24px' }} />
@@ -420,12 +309,12 @@ const FullscreenPlayer = () => {
               <h3>Recommended for You</h3>
               <div className="section-tag">More like this</div>
             </div>
-            
+
             <div className="recommendations-list">
-              {recommendations.length > 0 ? (
-                recommendations.map((song, i) => (
-                  <motion.div 
-                    key={song.id + i} 
+              {playlist.length > 0 ? (
+                playlist.map((song, i) => (
+                  <motion.div
+                    key={song.id + i}
                     className={`recommendation-item ${currentSong.id === song.id ? 'active' : ''}`}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -433,7 +322,6 @@ const FullscreenPlayer = () => {
                     transition={{ delay: i * 0.05 }}
                     onClick={() => {
                       useMusicStore.getState().setCurrentSong(song);
-                      // Scroll back to top smoothly when a new song is picked
                       document.querySelector('.fullscreen-player-scrollable')?.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
@@ -452,19 +340,13 @@ const FullscreenPlayer = () => {
                       <p dangerouslySetInnerHTML={{ __html: song.artist }} />
                     </div>
                     <button className="rec-play-btn">
-                      {currentSong.id === song.id && isPlaying ? (
-                        <Pause size={16} fill="currentColor" />
-                      ) : (
-                        <Play size={16} fill="currentColor" />
-                      )}
+                      {currentSong.id === song.id && isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
                     </button>
                   </motion.div>
                 ))
               ) : (
                 <div className="recs-loading">
-                  <div className="loading-dots">
-                    <span></span><span></span><span></span>
-                  </div>
+                  <div className="loading-dots"><span /><span /><span /></div>
                   <p>Finding more music for you...</p>
                 </div>
               )}
