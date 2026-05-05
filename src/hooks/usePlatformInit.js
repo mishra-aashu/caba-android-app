@@ -4,6 +4,7 @@ import { KeyboardHandler } from '../utils/keyboardHandler';
 import { initializePushNotifications } from '../utils/PushNotifications';
 import { requestPersistentStorage } from '../db/db';
 import { FileCache } from '../utils/FileCache';
+import { otaService } from '../services/otaService';
 
 export const usePlatformInit = () => {
   useEffect(() => {
@@ -45,9 +46,7 @@ export const usePlatformInit = () => {
     FileCache.init();
 
     // 6. Initialize OTA (notify native layer that app is ready)
-    import('../services/otaService').then(({ otaService }) => {
-      otaService.init();
-    }).catch(err => console.error("Failed to load OTA service", err));
+    otaService.init().catch(err => console.error("OTA Service: Initialization failed", err));
 
     return () => window.removeEventListener('resize', updateAppHeight);
   }, []);

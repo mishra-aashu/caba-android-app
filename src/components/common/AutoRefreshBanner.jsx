@@ -13,7 +13,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, RefreshCw } from 'lucide-react';
 
-const AutoRefreshBanner = ({ needsRefresh, isRefreshing, handleRefresh, handleDismiss, updateInfo }) => {
+const AutoRefreshBanner = ({ needsRefresh, isRefreshing, handleRefresh, handleDismiss, updateInfo, downloadProgress }) => {
   const { changelog = [], priority = 'normal' } = updateInfo || {};
   const isCritical = priority === 'critical';
 
@@ -40,7 +40,7 @@ const AutoRefreshBanner = ({ needsRefresh, isRefreshing, handleRefresh, handleDi
               <div className="text-container">
                 <span className="refresh-title">
                   {isRefreshing
-                    ? 'Updating to latest version...'
+                    ? `Updating to latest version... ${downloadProgress > 0 ? `${downloadProgress}%` : ''}`
                     : (isCritical ? 'Critical Update Required' : 'New Update Available')}
                 </span>
                 
@@ -57,6 +57,19 @@ const AutoRefreshBanner = ({ needsRefresh, isRefreshing, handleRefresh, handleDi
                 
                 {!isRefreshing && changelog.length === 0 && (
                   <span className="refresh-subtitle">Tap to apply newest features and fixes</span>
+                )}
+
+                {isRefreshing && downloadProgress > 0 && (
+                  <div style={{
+                    width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)',
+                    borderRadius: '2px', marginTop: '8px', overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${downloadProgress}%`, height: '100%',
+                      background: 'linear-gradient(90deg, #3fcf8e, #00a884)',
+                      transition: 'width 0.3s ease-out'
+                    }} />
+                  </div>
                 )}
               </div>
             </div>

@@ -1,11 +1,8 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 // [FIX #2] Added useParams to the import — was missing, causing RoomRedirect to crash
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { X, Sparkles, RefreshCw } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
-// [FIX #11] Removed unused ChatThemeProvider import
 import { GroupCallProvider } from './contexts/GroupCallProvider';
-import { isNativeWithPlugins } from './utils/platformCheck';
 import { Capacitor } from '@capacitor/core';
 
 import PhoneAuthModal from './components/auth/PhoneAuthModal';
@@ -14,19 +11,14 @@ import { dbToFrontend } from './utils/dbFieldMapping';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import SafeSuspense from './components/common/SafeSuspense';
 import useIsDesktop from './hooks/useIsDesktop';
-import { SafeAreaDetector } from './utils/safeAreaDetector';
-import { KeyboardHandler } from './utils/keyboardHandler';
-import SafeAreaDebugger from './components/common/SafeAreaDebugger';
-import { initializePushNotifications } from './utils/PushNotifications';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useNetworkSync from './hooks/useNetworkSync';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
-import { requestPersistentStorage } from './db/db';
+import usePlatformInit from './hooks/usePlatformInit';
 
 import { DialogProvider } from './contexts/DialogProvider';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
 import GlobalDialog from './components/common/GlobalDialog';
-import { FileCache } from './utils/FileCache';
 
 // CSS Imports
 import '../src/styles/desktop.css';
@@ -85,7 +77,6 @@ const Chat = lazy(() => import('./components/chat/ChatScreen'));
 const SharedMediaGallery = lazy(() => import('./components/chat/SharedMediaGallery'));
 const Admin = lazy(() => import('./components/Admin'));
 const AdminAbout = lazy(() => import('./components/admin/AdminAbout'));
-const AutoRefreshBanner = lazy(() => import('./components/common/AutoRefreshBanner'));
 const MainLayout = lazy(() => import('./components/MainLayout'));
 
 
@@ -113,8 +104,6 @@ const AppContent = () => {
     }
 
     // Native App: Direct redirect to login for unauthenticated users
-    // Using Capacitor.isNativePlatform() directly here because it's safe on Vercel origin 
-    // and correctly identifies the platform even after redirect.
     if (!isAuthenticated && Capacitor.isNativePlatform() && location.pathname === '/') {
         return <Navigate to="/login" replace />;
     }
@@ -133,8 +122,6 @@ const AppContent = () => {
                     <Route path="/terms" element={<div className="legal-page-wrapper"><Terms /></div>} />
                     <Route path="/privacy" element={<div className="legal-page-wrapper"><Privacy /></div>} />
                     <Route path="/about" element={<About />} />
-
-                    {/* Gaming Hub is now handled within MainLayout at /games */}
 
                     <Route path="/" element={isAuthenticated ? <ProtectedRoute><MainLayout /></ProtectedRoute> : <LandingPage />}>
                         <Route index element={<ChatPlaceholder />} />
@@ -282,60 +269,14 @@ const ProtectedRoute = ({ children }) => {
 
 
 // ──────────────────────────────────────────────
-// SafeSuspense
-// ──────────────────────────────────────────────
-
-
-
-// ──────────────────────────────────────────────
 // App (root)
 // ──────────────────────────────────────────────
 const App = () => {
     const { dbUser, loading: authLoading } = useAuth();
-    const { needsRefresh, handleRefresh, handleDismiss, isRefreshing, updateInfo } = useAutoRefresh();
+    const { isRefreshing, updateInfo, downloadProgress } = useAutoRefresh();
 
+    usePlatformInit();
     useCapacitorPlugins();
-
-    useEffect(() => {
-        SafeAreaDetector.getInstance();
-        KeyboardHandler.getInstance();
-
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        const isAndroid = /Android/i.test(navigator.userAgent);
-        const platform = isIOS ? 'ios' : (isAndroid ? 'android' : 'web');
-
-        document.body.classList.add(`platform-${platform}`);
-
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-            window.navigator.standalone ||
-            document.referrer.includes('android-app://');
-
-        document.documentElement.setAttribute('data-standalone', isStandalone ? 'true' : 'false');
-
-        const updateAppHeight = () => {
-            document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-        };
-        updateAppHeight();
-        window.addEventListener('resize', updateAppHeight);
-
-        if (isIOS) {
-            document.body.style.overscrollBehavior = 'none';
-        }
-
-        initializePushNotifications();
-        requestPersistentStorage();
-        FileCache.init();
-        
-        // Initialize OTA Background Service
-        import('./services/otaService').then(({ otaService }) => {
-            otaService.init();
-        }).catch(err => console.error("Failed to load OTA service", err));
-
-        return () => {
-            window.removeEventListener('resize', updateAppHeight);
-        };
-    }, []);
-
     useNetworkSync();
 
     return (
@@ -343,11 +284,7 @@ const App = () => {
             <ErrorBoundary>
                 <DialogProvider>
                     <GroupCallProvider currentUser={authLoading ? null : dbUser}>
-                        <SafeAreaDebugger />
-
-                        <OfflineIndicator>
-                            <AppContent />
-                        </OfflineIndicator>
+                        <AppContent />
 
                         <SafeSuspense>
                             <CallStatusIndicator />
@@ -364,16 +301,6 @@ const App = () => {
                         <SyncIndicator />
 
                         <GlobalDialog />
-
-                        <SafeSuspense>
-                            <AutoRefreshBanner
-                                needsRefresh={needsRefresh}
-                                isRefreshing={isRefreshing}
-                                handleRefresh={handleRefresh}
-                                handleDismiss={handleDismiss}
-                                updateInfo={updateInfo}
-                            />
-                        </SafeSuspense>
                     </GroupCallProvider>
                 </DialogProvider>
             </ErrorBoundary>

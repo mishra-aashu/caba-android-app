@@ -1,6 +1,7 @@
 import { App as CapacitorApp } from '@capacitor/app';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
+import { Filesystem } from '@capacitor/filesystem';
 import { supabase } from '../config/supabase';
 
 export const otaService = {
@@ -45,7 +46,7 @@ export const otaService = {
       // 3. Query Supabase for newest update matching this native version
       const { data, error } = await supabase
         .from('ota_updates')
-        .select('bundle_version, bundle_url, changelog, priority')
+        .select('bundle_version, bundle_url, changelog, priority, checksum')
         .eq('target_app_version', currentNativeVersion)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -61,7 +62,8 @@ export const otaService = {
             version: latest.bundle_version,
             url: latest.bundle_url,
             changelog: Array.isArray(latest.changelog) ? latest.changelog : [],
-            priority: latest.priority || 'normal'
+            priority: latest.priority || 'normal',
+            checksum: latest.checksum || null
           };
         }
       }
@@ -86,10 +88,47 @@ export const otaService = {
         version: updateInfo.version
       });
 
+      // --- NEW: Checksum Verification ---
+      if (updateInfo.checksum) {
+        console.log('OTA Service: Verifying checksum...');
+        try {
+          // Read the downloaded ZIP file
+          const fileData = await Filesystem.readFile({
+            path: downloadObj.path,
+          });
+
+          // Convert base64 to ArrayBuffer
+          const binaryString = atob(fileData.data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const buffer = bytes.buffer;
+
+          // Compute SHA-256
+          const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+          if (computedHash !== updateInfo.checksum) {
+            console.error(`OTA Service: Checksum mismatch! Expected ${updateInfo.checksum}, got ${computedHash}`);
+            throw new Error('Update file verification failed. Please try again later.');
+          }
+          console.log('OTA Service: Checksum verified successfully.');
+        } catch (hashErr) {
+          console.error('OTA Service: Hash verification failed:', hashErr);
+          throw hashErr;
+        }
+      } else {
+        console.warn('OTA Service: No checksum provided for this update. Proceeding with caution.');
+      }
+      // ----------------------------------
+
       console.log('OTA Service: Download complete. Applying and reloading...');
       
-      // Set the update and reload the app immediately
-      await CapacitorUpdater.set(downloadObj);
+      // 4. Set the new version as the 'next' version to be loaded on restart
+      await CapacitorUpdater.next(downloadObj);
+      console.log('OTA Service: Update prepared for next restart.');
       
     } catch (err) {
       console.error('OTA Service: Update failed:', err);

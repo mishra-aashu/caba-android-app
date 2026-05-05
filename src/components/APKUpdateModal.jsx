@@ -11,9 +11,11 @@
  */
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
+import toast from 'react-hot-toast';
 import { isNativeWithPlugins } from '../utils/platformCheck';
 import { useAppVersions } from '../hooks/useAppVersions';
 import { isOlderVersion } from '../utils/versionUtils';
+import { isUpdateDismissed, setUpdateDismissed } from '../utils/updateUtils';
 
 // The version baked into this APK build (set by package.json at build time)
 const CURRENT_APP_VERSION = __APP_VERSION__;
@@ -22,16 +24,27 @@ const APKUpdateModal = () => {
   const [dismissed, setDismissed] = useState(false);
   const { data: versionData } = useAppVersions();
 
+  const isNative = isNativeWithPlugins();
+
+  // 1. Critical Fallback Check (Needs data)
+  const needsForceUpdate = versionData ? isOlderVersion(CURRENT_APP_VERSION, versionData.min_required_version) : false;
+
+  useEffect(() => {
+    if (versionData && isNative) {
+      const isDismissedPersistent = isUpdateDismissed('apk', versionData.latest_version);
+      if (isDismissedPersistent && !needsForceUpdate) {
+        setDismissed(true);
+      }
+    }
+  }, [versionData, isNative, needsForceUpdate]);
+
   // Only active on native Android
-  if (!isNativeWithPlugins() || dismissed) return null;
+  if (!isNative || dismissed) return null;
   if (!versionData) return null;
 
   const { latest_version, min_required_version, apk_download_url, release_notes } = versionData;
 
-  // 1. Critical Fallback: Version is below the minimum floor (APK MUST BE REPLACED)
-  const needsForceUpdate = isOlderVersion(CURRENT_APP_VERSION, min_required_version);
-
-  // 2. Soft Update: Version is older than latest
+  // 2. Soft Update Check
   const isOlder = isOlderVersion(CURRENT_APP_VERSION, latest_version);
 
   // Show APK Modal if it's a critical floor violation OR if there's a new native version available.
@@ -40,7 +53,15 @@ const APKUpdateModal = () => {
   if (!needsForceUpdate && !needsSoftUpdate) return null;
 
   const handleDownload = () => {
-    if (apk_download_url) window.open(apk_download_url, '_blank');
+    if (apk_download_url) {
+      toast.success('Starting APK download...');
+      window.open(apk_download_url, '_blank');
+    }
+  };
+
+  const handleRemindLater = () => {
+    setUpdateDismissed('apk', latest_version, 24);
+    setDismissed(true);
   };
 
   return (
@@ -156,7 +177,7 @@ const APKUpdateModal = () => {
 
           {!needsForceUpdate && (
             <button
-              onClick={() => setDismissed(true)}
+              onClick={handleRemindLater}
               style={{
                 padding: '13px', borderRadius: '12px',
                 background: 'transparent', border: '1px solid #2a2a4e',
