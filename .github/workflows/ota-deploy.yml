@@ -9,6 +9,7 @@ on:
       - 'public/**'
       - 'package.json'
       - 'vite.config.js'
+      - '.github/workflows/ota-deploy.yml'
 
 jobs:
   deploy-ota:
