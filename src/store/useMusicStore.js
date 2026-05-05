@@ -1,12 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { MUSIC_API_URL, MUSIC_API_BASE } from '../config/musicConfig';
+import { MUSIC_API_BASE } from '../config/musicConfig';
 import { supabase } from '../config/supabase';
 
-/**
- * useMusicStore - Global state for Elevengram Music System
- * Handles player state, UI state for the music panel, and Listen Together sync state.
- */
+// Counter to deduplicate recommendation fetches (race condition guard)
+let recFetchId = 0;
+
 const useMusicStore = create(
   persist(
     (set, get) => ({
@@ -16,7 +15,8 @@ const useMusicStore = create(
       progress: 0,
       duration: 0,
       volume: 0.8,
-      
+      lastSeekTo: null,
+
       // ─── UI State ───
       isPanelOpen: false,
       isSearchLoading: false,
@@ -28,51 +28,46 @@ const useMusicStore = create(
       likedSongs: [],
       backgroundImages: [],
       recommendations: [],
-      
+      repeatMode: 'off', // 'off', 'all', 'one'
+
       // ─── Listen Together (Sync) State ───
       roomId: null,
       isHost: false,
-      syncStatus: 'disconnected', // 'disconnected' | 'synced' | 'lagging'
+      syncStatus: 'disconnected',
       activeTab: 'Trending',
-      
+
       // ─── Actions ───
-      
+
       setActiveTab: (tab) => set({ activeTab: tab }),
-      
+
       setCurrentSong: (song) => {
         const state = get();
-        
-        // Stop current playback if song is null
+
         if (!song) {
-          set({ 
-            currentSong: null, 
-            isPlaying: false, 
-            progress: 0, 
-            duration: 0 
+          set({
+            currentSong: null,
+            isPlaying: false,
+            progress: 0,
+            duration: 0,
           });
           return;
         }
-        
-        // Check if it's a new song
+
         const isNewSong = state.currentSong?.id !== song.id;
-        
-        // Update state
-        set({ 
-          currentSong: song, 
+
+        set({
+          currentSong: song,
           progress: isNewSong ? 0 : state.progress,
           duration: song.duration || 0,
-          isPlaying: true 
+          isPlaying: isNewSong ? true : state.isPlaying, // keep playing state for same song
         });
 
-        // Trigger side effects only for new songs
         if (isNewSong) {
           get().addToHistory(song);
           get().fetchRecommendations(song.id);
-          
-          // CRITICAL: If the song doesn't have a media_url (common for search/recommendations),
-          // fetch it immediately so playback can start.
+
           if (!song.media_url) {
-            console.log("[MusicStore] Missing media_url for new song, refreshing...");
+            console.log('[MusicStore] Missing media_url for new song, refreshing...');
             get().refreshCurrentSongMetadata();
           }
         }
@@ -80,35 +75,25 @@ const useMusicStore = create(
 
       addToHistory: (song) => {
         if (!song?.id) return;
-        
         const { playbackHistory } = get();
-        
-        // Remove duplicate and add to top
-        const filtered = playbackHistory.filter(s => s.id !== song.id);
-        const updated = [song, ...filtered].slice(0, 50); // Keep last 50 songs
-        
-        set({ playbackHistory: updated });
+        const filtered = playbackHistory.filter((s) => s.id !== song.id);
+        set({ playbackHistory: [song, ...filtered].slice(0, 50) });
       },
 
-      clearHistory: () => {
-        set({ playbackHistory: [] });
-      },
+      clearHistory: () => set({ playbackHistory: [] }),
 
       setTabCache: (tabId, results) => {
         if (!tabId) return;
-        
         set((state) => ({
-          tabCache: { 
-            ...state.tabCache, 
-            [tabId]: results 
-          }
+          tabCache: { ...state.tabCache, [tabId]: results },
         }));
       },
 
       // ─── Liked Songs Management ───
       fetchLikedSongs: async (userId) => {
         if (!userId) {
-          console.warn("[MusicStore] Cannot fetch liked songs: No userId provided");
+          // Clear liked songs when no user is provided (e.g., logout)
+          set({ likedSongs: [] });
           return;
         }
 
@@ -122,313 +107,345 @@ const useMusicStore = create(
           if (error) throw error;
 
           const liked = (data || [])
-            .map(item => item.song_metadata)
-            .filter(song => song && song.id); // Filter out invalid entries
+            .map((item) => item.song_metadata)
+            .filter((song) => song && song.id);
 
           set({ likedSongs: liked });
-          
           console.log(`[MusicStore] Fetched ${liked.length} liked songs`);
         } catch (err) {
-          console.error("[MusicStore] Failed to fetch liked songs:", err);
+          console.error('[MusicStore] Failed to fetch liked songs:', err);
           set({ likedSongs: [] });
         }
       },
 
       toggleLikeSong: async (song, userId) => {
         if (!song?.id) {
-          console.warn("[MusicStore] Invalid song object");
+          console.warn('[MusicStore] Invalid song object');
           return;
         }
 
         const { likedSongs } = get();
-        const isLiked = likedSongs.some(s => s.id === song.id);
+        const isLiked = likedSongs.some((s) => s.id === song.id);
 
         // Optimistic update
-        const updatedLikes = isLiked
-          ? likedSongs.filter(s => s.id !== song.id)
-          : [song, ...likedSongs];
+        set({
+          likedSongs: isLiked
+            ? likedSongs.filter((s) => s.id !== song.id)
+            : [song, ...likedSongs],
+        });
 
-        set({ likedSongs: updatedLikes });
-
-        // Sync to Supabase if user is logged in
         if (userId) {
           try {
             if (isLiked) {
-              // Unlike song
-              const { error } = await supabase
+              await supabase
                 .from('music_likes')
                 .delete()
                 .eq('user_id', userId)
                 .eq('song_id', song.id);
-
-              if (error) throw error;
             } else {
-              // Like song
-              const { error } = await supabase
+              await supabase
                 .from('music_likes')
-                .upsert({
-                  user_id: userId,
-                  song_id: song.id,
-                  song_metadata: song,
-                  created_at: new Date().toISOString()
-                }, {
-                  onConflict: 'user_id,song_id'
-                });
-
-              if (error) throw error;
+                .upsert(
+                  {
+                    user_id: userId,
+                    song_id: song.id,
+                    song_metadata: song,
+                    created_at: new Date().toISOString(),
+                  },
+                  { onConflict: 'user_id,song_id' }
+                );
             }
-            
             console.log(`[MusicStore] Song ${isLiked ? 'unliked' : 'liked'} successfully`);
           } catch (err) {
-            console.error("[MusicStore] Sync failed:", err);
-            
-            // Rollback optimistic update
-            set({ likedSongs });
+            console.error('[MusicStore] Sync failed:', err);
+            // Safe rollback: only revert the exact song, preserving any concurrent changes
+            set((state) => {
+              if (isLiked) {
+                return { likedSongs: [song, ...state.likedSongs] };
+              } else {
+                return { likedSongs: state.likedSongs.filter((s) => s.id !== song.id) };
+              }
+            });
           }
         }
       },
 
-      // ─── Smart Recommendations ───
+      // ─── Smart Recommendations (with race‑condition guard) ───
       fetchRecommendations: async (songId) => {
         if (!songId) {
-          console.warn("[MusicStore] Cannot fetch recommendations: No songId");
+          set({ recommendations: [] });
           return;
         }
 
+        const currentFetchId = ++recFetchId;
+
         try {
-          const res = await fetch(
-            `${MUSIC_API_BASE}/recommendations?song_id=${songId}&limit=20`
-          );
-          
-          if (!res.ok) {
-            throw new Error(`API returned ${res.status}: ${res.statusText}`);
-          }
+          const res = await fetch(`${MUSIC_API_BASE}/recommendations?song_id=${songId}&limit=20`);
+          if (!res.ok) throw new Error(`API returned ${res.status}`);
 
           const data = await res.json();
-          
+
+          // Ignore if a newer fetch has been initiated
+          if (currentFetchId !== recFetchId) {
+            console.log('[MusicStore] Discarding stale recommendations');
+            return;
+          }
+
           if (data.status === 'success' && data.data?.results) {
-            const recs = data.data.results.filter(r => r && r.id); // Filter valid songs
-            
-            set({ recommendations: recs });
-            console.log(`[MusicStore] Fetched ${recs.length} recommendations`);
+            set({ recommendations: data.data.results.filter((r) => r && r.id) });
           } else {
             set({ recommendations: [] });
           }
         } catch (err) {
-          console.error("[MusicStore] Failed to fetch recommendations:", err);
-          set({ recommendations: [] });
+          console.error('[MusicStore] Failed to fetch recommendations:', err);
+          if (currentFetchId === recFetchId) {
+            set({ recommendations: [] });
+          }
         }
       },
-      
+
       // ─── Playback Controls ───
       setIsPlaying: (playing) => {
         if (typeof playing !== 'boolean') return;
         set({ isPlaying: playing });
       },
-      
+
       setProgress: (progress) => {
-        const value = Math.max(0, Number(progress) || 0);
-        set({ progress: value });
+        set({ progress: Math.max(0, Number(progress) || 0) });
       },
-      
+
+      seekTo: (time) => {
+        set({ progress: Math.max(0, Number(time) || 0), lastSeekTo: Date.now() });
+      },
+
       setDuration: (duration) => {
-        const value = Math.max(0, Number(duration) || 0);
-        set({ duration: value });
+        set({ duration: Math.max(0, Number(duration) || 0) });
       },
-      
+
       setVolume: (volume) => {
-        const value = Math.max(0, Math.min(1, Number(volume) || 0));
-        set({ volume: value });
+        set({ volume: Math.max(0, Math.min(1, Number(volume) || 0)) });
+      },
+
+      toggleRepeatMode: () => {
+        const modes = ['off', 'all', 'one'];
+        const current = get().repeatMode;
+        const nextIndex = (modes.indexOf(current) + 1) % modes.length;
+        set({ repeatMode: modes[nextIndex] });
       },
 
       playNext: () => {
-        const { currentSong, searchResults, recommendations } = get();
-        
-        // Use recommendations if available, otherwise use search results
+        const { currentSong, searchResults, recommendations, repeatMode } = get();
+
+        if (repeatMode === 'one' && currentSong) {
+          // Restart current song (addToHistory will deduplicate)
+          get().setCurrentSong(currentSong);
+          return currentSong;
+        }
+
         const playlist = recommendations.length > 0 ? recommendations : searchResults;
-        
         if (playlist.length === 0) {
-          console.warn("[MusicStore] No songs in queue to play next");
+          console.warn('[MusicStore] No songs in queue to play next');
           return null;
         }
-        
-        const currentIndex = playlist.findIndex(s => s.id === currentSong?.id);
-        const nextIndex = (currentIndex + 1) % playlist.length;
+
+        const currentIndex = playlist.findIndex((s) => s.id === currentSong?.id);
+        let nextIndex = currentIndex + 1;
+
+        if (nextIndex >= playlist.length) {
+          if (repeatMode === 'all') {
+            nextIndex = 0;
+          } else {
+            return null; // End of playlist
+          }
+        }
+
         const nextSong = playlist[nextIndex];
-        
         get().setCurrentSong(nextSong);
         return nextSong;
       },
 
       playPrevious: () => {
         const { currentSong, searchResults, recommendations } = get();
-        
-        // Use recommendations if available, otherwise use search results
         const playlist = recommendations.length > 0 ? recommendations : searchResults;
-        
+
         if (playlist.length === 0) {
-          console.warn("[MusicStore] No songs in queue to play previous");
+          console.warn('[MusicStore] No songs in queue to play previous');
           return null;
         }
-        
-        const currentIndex = playlist.findIndex(s => s.id === currentSong?.id);
+
+        const currentIndex = playlist.findIndex((s) => s.id === currentSong?.id);
         const prevIndex = currentIndex <= 0 ? playlist.length - 1 : currentIndex - 1;
         const prevSong = playlist[prevIndex];
-        
         get().setCurrentSong(prevSong);
         return prevSong;
       },
-      
+
       // ─── UI Controls ───
-      togglePanel: (isOpen) => {
-        set((state) => ({ 
-          isPanelOpen: typeof isOpen === 'boolean' ? isOpen : !state.isPanelOpen 
-        }));
-      },
-      
+      togglePanel: (isOpen) =>
+        set((state) => ({
+          isPanelOpen: typeof isOpen === 'boolean' ? isOpen : !state.isPanelOpen,
+        })),
+
       setSearchLoading: (loading) => {
         if (typeof loading !== 'boolean') return;
         set({ isSearchLoading: loading });
       },
-      
+
       setSearchResults: (results) => {
         if (Array.isArray(results)) {
-          const validResults = results.filter(r => r && r.id);
-          set({ searchResults: validResults });
+          set({ searchResults: results.filter((r) => r && r.id) });
         } else if (typeof results === 'function') {
           set((state) => {
             const newResults = results(state.searchResults);
-            return { searchResults: Array.isArray(newResults) ? newResults : state.searchResults };
+            return {
+              searchResults: Array.isArray(newResults)
+                ? newResults.filter((r) => r && r.id)
+                : state.searchResults,
+            };
           });
         }
       },
-      
-      setSearchQuery: (query) => {
-        set({ searchQuery: String(query || '') });
-      },
-      
+
+      setSearchQuery: (query) => set({ searchQuery: String(query || '') }),
+
       setBackgroundImages: (images) => {
-        if (!Array.isArray(images)) return;
-        set({ backgroundImages: images });
+        if (Array.isArray(images)) set({ backgroundImages: images });
       },
-      
-      setPlayerExpanded: (expanded) => {
-        set((state) => ({ 
-          isPlayerExpanded: typeof expanded === 'boolean' ? expanded : !state.isPlayerExpanded 
-        }));
-      },
-      
+
+      setPlayerExpanded: (expanded) =>
+        set((state) => ({
+          isPlayerExpanded: typeof expanded === 'boolean' ? expanded : !state.isPlayerExpanded,
+        })),
+
       // ─── Listen Together Actions ───
       joinRoom: (id, isHost = false) => {
-        if (!id) {
-          console.warn("[MusicStore] Cannot join room: No room ID");
-          return;
-        }
-
-        set({ 
-          roomId: String(id), 
-          isHost: Boolean(isHost), 
-          syncStatus: 'synced' 
-        });
-        
-        console.log(`[MusicStore] Joined room: ${id} as ${isHost ? 'host' : 'participant'}`);
+        if (!id) return;
+        set({ roomId: String(id), isHost: Boolean(isHost), syncStatus: 'synced' });
       },
-      
+
       leaveRoom: () => {
         const { roomId } = get();
-        
-        set({ 
-          roomId: null, 
-          isHost: false, 
+        set({
+          roomId: null,
+          isHost: false,
           syncStatus: 'disconnected',
           isPlaying: false,
           currentSong: null,
-          progress: 0
+          progress: 0,
         });
-        
         console.log(`[MusicStore] Left room: ${roomId}`);
       },
-      
+
       setSyncStatus: (status) => {
-        const validStatuses = ['disconnected', 'synced', 'lagging'];
-        
-        if (validStatuses.includes(status)) {
+        if (['disconnected', 'synced', 'lagging'].includes(status)) {
           set({ syncStatus: status });
         } else {
           console.warn(`[MusicStore] Invalid sync status: ${status}`);
         }
       },
 
-      // ─── Metadata Refresh ───
+      // ─── Metadata Refresh (race‑condition safe) ───
       refreshCurrentSongMetadata: async () => {
         const { currentSong } = get();
-        
         if (!currentSong?.id) {
-          console.warn("[MusicStore] No current song to refresh");
+          console.warn('[MusicStore] No current song to refresh');
           return false;
         }
-        
-        console.log(`[MusicStore] Refreshing metadata for: ${currentSong.id}`);
-        
+
+        const songId = currentSong.id; // capture before fetch
+        console.log(`[MusicStore] Refreshing metadata for: ${songId}`);
+
         try {
-          const res = await fetch(`${MUSIC_API_BASE}/song?id=${currentSong.id}`);
-          
-          if (!res.ok) {
-            throw new Error(`API returned ${res.status}: ${res.statusText}`);
-          }
-          
+          const res = await fetch(`${MUSIC_API_BASE}/song?id=${songId}`);
+          if (!res.ok) throw new Error(`API returned ${res.status}`);
+
           const json = await res.json();
-          
-          if (json.status === 'success' && json.data) {
-            const details = json.data;
-            
-            // Get best quality media URL
-            const freshMediaUrl = 
-              details.media_urls?.[0]?.url ||
-              details.media_urls?.['320_KBPS'] || 
-              details.media_urls?.['160_KBPS'] || 
-              details.media_url;
-
-            if (freshMediaUrl) {
-              const updatedSong = {
-                ...currentSong,
-                id: details.id || currentSong.id,
-                title: details.title || details.name || currentSong.title,
-                artist: details.singers || details.primary_artists || currentSong.artist,
-                media_url: freshMediaUrl,
-                image: details.image?.[2]?.url || details.image || currentSong.image,
-                duration: details.duration || currentSong.duration
-              };
-
-              set({ currentSong: updatedSong });
-              
-              console.log("[MusicStore] Metadata refreshed successfully");
-              return true;
-            } else {
-              console.warn("[MusicStore] No media URL found in refreshed metadata");
-            }
-          } else {
-            console.warn("[MusicStore] Invalid API response format");
+          if (json.status !== 'success' || !json.data) {
+            console.warn('[MusicStore] Invalid API response format');
+            return false;
           }
+
+          // Only update if the user is still listening to the same song
+          const latestSong = get().currentSong;
+          if (!latestSong || latestSong.id !== songId) {
+            console.log('[MusicStore] Song changed, discarding metadata refresh');
+            return false;
+          }
+
+          const details = json.data;
+          const freshMediaUrl =
+            details.media_urls?.[0]?.url ||
+            details.media_urls?.['320_KBPS'] ||
+            details.media_urls?.['160_KBPS'] ||
+            details.media_url;
+
+          if (!freshMediaUrl) {
+            console.warn('[MusicStore] No media URL found in refreshed metadata');
+            return false;
+          }
+
+          const updatedSong = {
+            ...latestSong,
+            id: details.id || latestSong.id,
+            title: details.title || details.name || latestSong.title,
+            artist: details.singers || details.primary_artists || latestSong.artist,
+            media_url: freshMediaUrl,
+            image: details.image?.[2]?.url || details.image || latestSong.image,
+            duration: details.duration || latestSong.duration,
+          };
+
+          set({ currentSong: updatedSong });
+          console.log('[MusicStore] Metadata refreshed successfully');
+          return true;
         } catch (err) {
-          console.error("[MusicStore] Metadata refresh failed:", err);
+          console.error('[MusicStore] Metadata refresh failed:', err);
+          return false;
         }
-        
-        return false;
-      }
+      },
+
+      // ─── User Cleanup (call on logout) ───
+      resetUserData: () => {
+        set({
+          likedSongs: [],
+          recommendations: [],
+          playbackHistory: [],
+          isPlaying: false,
+          currentSong: null,
+          progress: 0,
+          duration: 0,
+        });
+      },
     }),
     {
       name: 'elevengram-music-storage',
       partialize: (state) => ({
-        // Persist only essential data
-        currentSong: state.currentSong,
+        // Strip media_url to avoid storing expiring URLs; it will be re-fetched automatically
+        currentSong: state.currentSong
+          ? { ...state.currentSong, media_url: undefined }
+          : null,
         volume: state.volume,
         playbackHistory: state.playbackHistory,
         likedSongs: state.likedSongs,
         searchQuery: state.searchQuery,
         activeTab: state.activeTab,
-        // Don't persist: isPlaying, progress, isPanelOpen, searchResults, etc.
-      })
+        repeatMode: state.repeatMode,
+      }),
+      onRehydrateStorage: () => {
+        // After rehydration, refresh metadata if persisted song lacks a media_url
+        return (rehydratedState, rehydrationError) => {
+          if (rehydrationError) {
+            console.error('[MusicStore] Hydration error:', rehydrationError);
+            return;
+          }
+          const song = rehydratedState?.currentSong;
+          if (song?.id && !song.media_url) {
+            console.log('[MusicStore] Rehydrated song lacks media_url, refreshing...');
+            setTimeout(() => {
+              useMusicStore.getState().refreshCurrentSongMetadata();
+            }, 0);
+          }
+        };
+      },
     }
   )
 );

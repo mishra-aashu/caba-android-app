@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useMusicStore from '../../store/useMusicStore';
 import useAuthStore from '../../store/authStore';
-import { ChevronDown, MoreHorizontal, SkipBack, SkipForward, Play, Pause, Share2, ListMusic, Heart, ChevronRight } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, SkipBack, SkipForward, Play, Pause, Share2, ListMusic, Heart, ChevronRight, Repeat, Repeat1 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import './FullscreenPlayer.css';
 
@@ -12,24 +12,35 @@ const FullscreenPlayer = () => {
   const { 
     currentSong, isPlaying, setIsPlaying, 
     duration,
-    progress, setProgress,
+    progress, setProgress, seekTo,
     isPlayerExpanded, setPlayerExpanded,
     isHost, roomId,
     playNext, playPrevious,
     searchResults,
     likedSongs, toggleLikeSong,
-    recommendations, activeTab
+    recommendations, activeTab,
+    repeatMode, toggleRepeatMode
   } = useMusicStore();
 
   const dragControls = useDragControls();
   const user = useAuthStore(state => state.user);
 
   const nextSong = useMemo(() => {
-    if (!currentSong || searchResults.length <= 1) return null;
-    const currentIndex = searchResults.findIndex(s => s.id === currentSong.id);
-    if (currentIndex === -1 || currentIndex === searchResults.length - 1) return searchResults[0];
-    return searchResults[currentIndex + 1];
-  }, [currentSong, searchResults]);
+    if (!currentSong) return null;
+    
+    // Prioritize recommendations as that's what the player usually follows
+    const playlist = recommendations.length > 0 ? recommendations : searchResults;
+    if (!playlist || playlist.length === 0) return null;
+
+    const currentIndex = playlist.findIndex(s => s.id === currentSong.id);
+    
+    // If current song isn't in playlist or it's the last song
+    if (currentIndex === -1 || currentIndex === playlist.length - 1) {
+      return playlist[0]; // Loop back or just show first
+    }
+    
+    return playlist[currentIndex + 1];
+  }, [currentSong, searchResults, recommendations]);
 
   const progressRef = useRef(0);
   const progressBarRef = useRef(null);
@@ -92,7 +103,7 @@ const FullscreenPlayer = () => {
       return;
     }
     const time = parseFloat(e.target.value);
-    setProgress(time);
+    seekTo(time);
     
     // Update local UI immediately for responsiveness
     if (progressBarRef.current) {
@@ -116,7 +127,7 @@ const FullscreenPlayer = () => {
     const percent = Math.max(0, Math.min(1, x / rect.width));
     const time = percent * duration;
     
-    setProgress(time);
+    seekTo(time);
   };
 
   const handleTogglePlay = () => {
@@ -262,6 +273,13 @@ const FullscreenPlayer = () => {
             {roomId ? `SYNCED ROOM: ${roomId}` : 'ELEVENGRAM MUSIC'}
           </span>
         </div>
+        <button 
+          className={`header-btn ${repeatMode !== 'off' ? 'active-mode' : ''}`} 
+          onClick={toggleRepeatMode}
+          aria-label={`Repeat mode: ${repeatMode}`}
+        >
+          {repeatMode === 'one' ? <Repeat1 size={20} /> : <Repeat size={20} />}
+        </button>
         <button className="header-btn" aria-label="More options">
           <MoreHorizontal size={24} />
         </button>
@@ -283,6 +301,43 @@ const FullscreenPlayer = () => {
             <div className="song-info-expanded">
               <h2 dangerouslySetInnerHTML={{ __html: currentSong.title }} />
               <p dangerouslySetInnerHTML={{ __html: currentSong.artist }} />
+            </div>
+
+            <div className="song-actions-row">
+              <button 
+                className={`fs-action-btn ${repeatMode !== 'off' ? 'active' : ''}`} 
+                onClick={toggleRepeatMode}
+                style={{ color: repeatMode !== 'off' ? '#00ff88' : 'inherit' }}
+                aria-label={`Repeat mode: ${repeatMode}`}
+              >
+                {repeatMode === 'one' ? <Repeat1 size={20} /> : <Repeat size={20} />}
+              </button>
+              <button 
+                className={`fs-action-btn ${isLiked ? 'active' : ''}`} 
+                onClick={handleLike}
+                style={{ color: isLiked ? '#ff4b4b' : 'inherit' }}
+                aria-label={isLiked ? "Unlike" : "Like"}
+              >
+                <Heart 
+                  size={20} 
+                  fill={isLiked ? "currentColor" : "none"} 
+                  strokeWidth={isLiked ? 0 : 2} 
+                />
+              </button>
+              <button 
+                className="fs-action-btn" 
+                onClick={handleShare}
+                aria-label="Share"
+              >
+                <Share2 size={20} />
+              </button>
+              <button 
+                className="fs-action-btn" 
+                onClick={scrollToRecommendations}
+                aria-label="View recommendations"
+              >
+                <ListMusic size={20} />
+              </button>
             </div>
           </div>
 
@@ -356,34 +411,7 @@ const FullscreenPlayer = () => {
               </div>
             )}
 
-            <div className="bottom-actions">
-              <button 
-                className={`fs-control-btn ${isLiked ? 'active' : ''}`} 
-                onClick={handleLike}
-                style={{ color: isLiked ? '#ff4b4b' : 'inherit' }}
-                aria-label={isLiked ? "Unlike" : "Like"}
-              >
-                <Heart 
-                  size={22} 
-                  fill={isLiked ? "currentColor" : "none"} 
-                  strokeWidth={isLiked ? 0 : 2} 
-                />
-              </button>
-              <button 
-                className="fs-control-btn" 
-                onClick={handleShare}
-                aria-label="Share"
-              >
-                <Share2 size={22} />
-              </button>
-              <button 
-                className="fs-control-btn" 
-                onClick={scrollToRecommendations}
-                aria-label="View recommendations"
-              >
-                <ListMusic size={22} />
-              </button>
-            </div>
+            <div className="bottom-spacing" style={{ height: '24px' }} />
           </div>
 
           {/* Recommendations Section */}

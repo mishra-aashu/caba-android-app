@@ -72,17 +72,16 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
     if (currentSong?.media_url) {
       if (audioRef.current.src !== currentSong.media_url) {
         console.log("[Player] Source change detected, loading:", currentSong.title);
-        retryCountRef.current = 0; // Reset retry count for new song
+        retryCountRef.current = 0;
         
-        // Safety: If there was a pending play, we need to handle it
-        // but changing .src usually cancels it anyway.
         audioRef.current.src = currentSong.media_url;
         audioRef.current.load();
         
-        // Restore progress if persisted
+        // Restore progress ONLY for new source load to avoid jumps on metadata refresh
         if (progress > 0) {
           audioRef.current.currentTime = progress;
         }
+      }
 
         if (isPlaying) {
           const playPromise = audioRef.current.play();
@@ -94,7 +93,6 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
             });
           }
         }
-      }
     } else {
       // No URL or song cleared - pause safely
       if (!audioRef.current.paused) {
@@ -143,18 +141,21 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
     }
   }, [volume]);
 
-  // Handle external seeks (e.g. from FullscreenPlayer)
+  // Handle external seeks ONLY when lastSeekTo changes
+  const lastSeekTo = useMusicStore(state => state.lastSeekTo);
   useEffect(() => {
-    if (audioRef.current && Math.abs(audioRef.current.currentTime - progress) > 2) {
+    if (audioRef.current && lastSeekTo) {
+      console.log("[Player] Explicit seek requested, jumping to:", progress);
       audioRef.current.currentTime = progress;
     }
-  }, [progress]);
+  }, [lastSeekTo]);
 
   // Occasional store sync for progress (not every frame)
   const onTimeUpdate = () => {
     if (audioRef.current) {
       const cur = audioRef.current.currentTime;
-      if (Math.abs(cur - progress) > 2) {
+      // Normal progress update (every 1s)
+      if (Math.abs(cur - progress) >= 1) {
         setProgress(cur);
       }
       // Defensive: Sync duration if it's still 0 but available in the audio element
