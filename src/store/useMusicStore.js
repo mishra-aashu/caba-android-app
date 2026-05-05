@@ -16,6 +16,7 @@ const useMusicStore = create(
       duration: 0,
       volume: 0.8,
       lastSeekTo: null,
+      extractedColors: null,
 
       // ─── UI State ───
       isPanelOpen: false,
@@ -226,6 +227,8 @@ const useMusicStore = create(
         set({ volume: Math.max(0, Math.min(1, Number(volume) || 0)) });
       },
 
+      setExtractedColors: (colors) => set({ extractedColors: colors }),
+
       toggleRepeatMode: () => {
         const modes = ['off', 'all', 'one'];
         const current = get().repeatMode;
@@ -429,6 +432,7 @@ const useMusicStore = create(
         searchQuery: state.searchQuery,
         activeTab: state.activeTab,
         repeatMode: state.repeatMode,
+        extractedColors: state.extractedColors,
       }),
       onRehydrateStorage: () => {
         // After rehydration, refresh metadata if persisted song lacks a media_url

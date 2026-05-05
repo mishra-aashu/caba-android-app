@@ -69,8 +69,8 @@
 
 .player-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00ff88, #00a884);
-  box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+  background: var(--brand-primary, linear-gradient(90deg, #00ff88, #00a884));
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
   transition: width 0.1s linear;
   position: relative;
   will-change: width;

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { motion, useDragControls } from 'framer-motion';
 import useMusicStore from '../../store/useMusicStore';
 import useAuthStore from '../../store/authStore';
@@ -22,6 +22,7 @@ const FullscreenPlayer = () => {
     likedSongs, toggleLikeSong,
     recommendations,
     repeatMode, toggleRepeatMode,
+    extractedColors,
   } = useMusicStore();
 
   const dragControls = useDragControls();
@@ -63,6 +64,12 @@ const FullscreenPlayer = () => {
   // ─── Colors (as before) ────────────────────────────────────────
   const colors = useMemo(() => {
     const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    // If we have extracted colors, use them
+    if (extractedColors && extractedColors.length >= 5) {
+      return extractedColors;
+    }
+
     const baseLightness = isDarkMode ? 30 : 40;
     const baseSaturation = isDarkMode ? 70 : 75;
 
@@ -88,7 +95,7 @@ const FullscreenPlayer = () => {
       `hsl(${hue4}, ${baseSaturation}%, ${baseLightness}%)`,
       `hsl(${hue5}, ${baseSaturation}%, ${baseLightness}%)`,
     ];
-  }, [currentSong?.id]);
+  }, [currentSong?.id, extractedColors]);
 
   // ─── Handlers ─────────────────────────────────────────────────
   const handleSeek = (e) => {
@@ -178,6 +185,7 @@ const FullscreenPlayer = () => {
           setPlayerExpanded(false);
         }
       }}
+      style={{ '--artwork-dominant-color': colors[0] }}
     >
       {/* Dynamic Animated Background */}
       <div className="dynamic-gradient-bg">

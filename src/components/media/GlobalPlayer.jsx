@@ -6,6 +6,7 @@ import useChatStore from '../../store/useChatStore';
 import useIsDesktop from '../../hooks/useIsDesktop';
 import { Play, Pause, SkipBack, SkipForward, Maximize2, Music, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { extractColorsFromImage } from '../../utils/colorExtractor';
 import './GlobalPlayer.css';
 
 /**
@@ -47,6 +48,8 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
     isHost,
     setPlayerExpanded,
     lastSeekTo,
+    extractedColors,
+    setExtractedColors,
   } = useMusicStore();
 
   const isDesktop = useIsDesktop();
@@ -102,6 +105,21 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
     }
     return () => cancelAnimationFrame(animFrameId.current);
   }, [isPlaying, updateUI]);
+
+  // ── 1.5 Color Extraction (Centralized) ──────────────────────────
+  useEffect(() => {
+    let isMounted = true;
+    if (currentSong?.image) {
+      extractColorsFromImage(currentSong.image).then(colors => {
+        if (isMounted && colors) {
+          setExtractedColors(colors);
+        }
+      });
+    } else {
+      setExtractedColors(null);
+    }
+    return () => { isMounted = false; };
+  }, [currentSong?.image, setExtractedColors]);
 
   // ── 2. Unified Audio Controller (song + play/pause + preload) ──
   useEffect(() => {
@@ -287,9 +305,13 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
   if (!currentSong) return null;
 
   const isHidden = isPanelOpen || isPlayerExpanded;
+  const themeColor = extractedColors ? extractedColors[0] : '#00ff88';
 
   return (
-    <div className={`global-player-root ${isHidden ? 'hidden' : ''}`}>
+    <div 
+      className={`global-player-root ${isHidden ? 'hidden' : ''}`}
+      style={{ '--brand-primary': themeColor }}
+    >
       {/* Main audio element */}
       <audio
         ref={audioRef}
