@@ -78,14 +78,14 @@ export default defineConfig(({ mode }) => {
         injectRegister: null,     // Manual registration in src/pwa.js
         registerType: 'autoUpdate', // ✅ Turant update karne ke liye
 
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+        includeAssets: ['favicon-32x32.png', 'apple-touch-icon.png', 'mask-icon.svg'],
 
         manifest: {
-          name: 'CaBa Chat',
-          short_name: 'CaBa',
-          description: 'A production-grade offline-first chat app',
-          theme_color: '#000000',
-          background_color: '#ffffff',
+          name: 'Elevengram Music & Chat',
+          short_name: 'Elevengram',
+          description: 'A premium music and chat experience',
+          theme_color: '#0b141a',
+          background_color: '#0b141a',
           display: 'standalone',
           icons: [
             {
@@ -178,6 +178,23 @@ export default defineConfig(({ mode }) => {
                 cacheableResponse: {
                   statuses: [0, 200],
                 },
+              },
+            },
+            {
+              // Audio files caching (Range Request Support)
+              // Matches common audio extensions and the JioSaavn CDN pattern
+              urlPattern: /.*\.mp3|.*\.m4a|.*\.aac|.*\.ogg|.*\.wav|.*saavncdn\.com.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'audio-cache',
+                expiration: {
+                  maxEntries: 100, // Sufficient for a large library
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200], // 0 for opaque (CORS) responses
+                },
+                rangeRequests: true, // CRITICAL: Handles partial content for audio playback
               },
             },
           ],

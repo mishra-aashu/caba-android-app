@@ -4,9 +4,10 @@ import { useLocation } from 'react-router-dom';
 import useMusicStore from '../../store/useMusicStore';
 import useChatStore from '../../store/useChatStore';
 import useIsDesktop from '../../hooks/useIsDesktop';
-import { Play, Pause, SkipBack, SkipForward, Maximize2, Music, X } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Maximize2, Music, X, Zap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { extractColorsFromImage } from '../../utils/colorExtractor';
+import { isSongCached } from '../../utils/cacheUtils';
 import './GlobalPlayer.css';
 
 /**
@@ -68,7 +69,34 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
 
   // Floating bubble position (for drag)
   const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 });
+  const [isCached, setIsCached] = useState(false);
   const isFloating = !showBottomNav;
+
+  // ── 0. Caching Awareness ───────────────────────────────────────
+  useEffect(() => {
+    let isMounted = true;
+    if (currentSong?.media_url) {
+      isSongCached(currentSong.media_url).then(cached => {
+        if (isMounted) setIsCached(cached);
+      });
+    } else {
+      setIsCached(false);
+    }
+    return () => { isMounted = false; };
+  }, [currentSong?.media_url]);
+
+  // Update cache status when playback starts (since it will be cached then)
+  useEffect(() => {
+    if (isPlaying && !isCached) {
+      // Re-check after a short delay to allow SW to start caching
+      const timer = setTimeout(() => {
+        if (currentSong?.media_url) {
+          isSongCached(currentSong.media_url).then(cached => setIsCached(cached));
+        }
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isPlaying, currentSong?.media_url, isCached]);
 
   // ── 1. High‑performance UI loop (rAF) ──────────────────────────
   const updateUI = useCallback(() => {
@@ -241,6 +269,85 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
     }
   }, [lastSeekTo]);
 
+  // ── 4.5 Media Session API (Lock Screen & OS Controls) ───────────
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !currentSong) return;
+
+    // Update Metadata
+    navigator.mediaSession.metadata = new window.MediaMetadata({
+      title: currentSong.title?.replace(/&quot;/g, '"') || 'Unknown Title',
+      artist: currentSong.artist?.replace(/&quot;/g, '"') || 'Unknown Artist',
+      album: 'Elevengram Music',
+      artwork: [
+        { src: currentSong.image || '', sizes: '96x96', type: 'image/png' },
+        { src: currentSong.image || '', sizes: '128x128', type: 'image/png' },
+        { src: currentSong.image || '', sizes: '192x192', type: 'image/png' },
+        { src: currentSong.image || '', sizes: '256x256', type: 'image/png' },
+        { src: currentSong.image || '', sizes: '384x384', type: 'image/png' },
+        { src: currentSong.image || '', sizes: '512x512', type: 'image/png' },
+      ],
+    });
+
+    // Action Handlers
+    const handlers = [
+      ['play', () => setIsPlaying(true)],
+      ['pause', () => setIsPlaying(false)],
+      ['previoustrack', () => useMusicStore.getState().playPrevious()],
+      ['nexttrack', () => useMusicStore.getState().playNext()],
+      ['seekbackward', (details) => {
+        const audio = audioRef.current;
+        if (audio) audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 10));
+      }],
+      ['seekforward', (details) => {
+        const audio = audioRef.current;
+        if (audio) audio.currentTime = Math.min(audio.duration, audio.currentTime + (details.seekOffset || 10));
+      }],
+      ['seekto', (details) => {
+        const audio = audioRef.current;
+        if (audio && details.seekTime !== undefined) {
+          audio.currentTime = details.seekTime;
+        }
+      }],
+    ];
+
+    handlers.forEach(([action, handler]) => {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch (e) {
+        console.warn(`[MediaSession] Action "${action}" not supported.`);
+      }
+    });
+
+    // Cleanup handlers on unmount or song change
+    return () => {
+      handlers.forEach(([action]) => {
+        navigator.mediaSession.setActionHandler(action, null);
+      });
+    };
+  }, [currentSong, setIsPlaying]);
+
+  // Update playback state for Media Session
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  }, [isPlaying]);
+
+  // Update position state for Media Session
+  useEffect(() => {
+    if ('mediaSession' in navigator && audioRef.current && audioRef.current.duration) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: audioRef.current.duration,
+          playbackRate: audioRef.current.playbackRate,
+          position: audioRef.current.currentTime,
+        });
+      } catch (e) {
+        // Silently fail if state is invalid (e.g. duration is NaN)
+      }
+    }
+  }, [progress, isPlaying]);
+
   // ── 5. Event Handlers ──────────────────────────────────────────
   const onLoadedMetadata = () => {
     const dur = audioRef.current?.duration;
@@ -364,6 +471,11 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
               ) : (
                 <Music size={24} color="#00ff88" />
               )}
+              {isCached && (
+                <div className="bubble-cached-badge" title="Cached Locally">
+                  <Zap size={10} fill="currentColor" />
+                </div>
+              )}
             </div>
 
             <button
@@ -428,6 +540,7 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
                 <div className="player-info-mini">
                   <div className="mini-title-scroller">
                     <span className="mini-title-text" dangerouslySetInnerHTML={{ __html: currentSong.title }} />
+                    {isCached && <Zap size={12} className="cached-icon" fill="currentColor" title="Playing from local cache" />}
                   </div>
                   <span className="mini-artist-text" dangerouslySetInnerHTML={{ __html: currentSong.artist }} />
                 </div>
