@@ -350,9 +350,11 @@
 /* --- Body Scroll Area --- */
 .panel-body-scrollable {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding-bottom: 80px; /* Space for the GlobalPlayer bar */
+  padding-bottom: 160px; /* Space for the GlobalPlayer/Floating bubble */
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .panel-body-scrollable::-webkit-scrollbar {

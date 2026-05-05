@@ -23,7 +23,7 @@ const INITIAL_CHECK_DELAY = 4000;
 const FRESHNESS_WINDOW = 5000;
 
 const OTA_SESSION_GUARD = 'ota-just-refreshed';
-const REMOTE_ORIGIN = 'https://caba-android-app.vercel.app';
+const REMOTE_ORIGIN = window.location.origin; // Use current origin for web to avoid CORS
 
 export const useAutoRefresh = () => {
   const [needsRefresh, setNeedsRefresh] = useState(false);
