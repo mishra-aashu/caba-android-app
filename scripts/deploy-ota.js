@@ -1,4 +1,5 @@
 import fs from 'fs';
+import crypto from 'crypto';
 import { execSync } from 'child_process';
 import archiver from 'archiver';
 import { createClient } from '@supabase/supabase-js';
@@ -37,6 +38,17 @@ async function deploy() {
         archive.on('error', reject);
         archive.finalize();
     });
+
+    // --- Calculate Checksum ---
+    console.log(`🔒 Calculating SHA-256 checksum for ${zipFileName}...`);
+    const checksum = await new Promise((resolve, reject) => {
+        const hash = crypto.createHash('sha256');
+        const input = fs.createReadStream(zipFileName);
+        input.on('error', reject);
+        input.on('data', chunk => hash.update(chunk));
+        input.on('close', () => resolve(hash.digest('hex')));
+    });
+    console.log(`✅ Checksum: ${checksum}`);
 
     console.log(`☁️ Uploading ${zipFileName} to Supabase storage via TUS (Chunked Upload)...`);
     
@@ -106,6 +118,7 @@ async function deploy() {
         target_app_version: version,
         bundle_version: timestamp,
         bundle_url: publicUrl,
+        checksum: checksum, // Added automated checksum
         changelog: changelog,
         priority: priority
     });
