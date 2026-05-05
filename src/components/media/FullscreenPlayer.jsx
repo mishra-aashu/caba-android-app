@@ -12,10 +12,10 @@ const FullscreenPlayer = () => {
   const { 
     currentSong, isPlaying, setIsPlaying, 
     duration,
+    progress, setProgress,
     isPlayerExpanded, setPlayerExpanded,
     isHost, roomId,
     playNext, playPrevious,
-    setProgress,
     searchResults,
     likedSongs, toggleLikeSong,
     recommendations, activeTab
@@ -93,9 +93,30 @@ const FullscreenPlayer = () => {
     }
     const time = parseFloat(e.target.value);
     setProgress(time);
+    
+    // Update local UI immediately for responsiveness
     if (progressBarRef.current) {
       progressBarRef.current.style.width = `${(time / (duration || 1)) * 100}%`;
     }
+    if (timeCurrentRef.current) {
+      timeCurrentRef.current.textContent = formatTime(time);
+    }
+  };
+
+  const handleContainerClick = (e) => {
+    if (roomId && !isHost) {
+      toast.error("Only Host can seek", { id: 'fs-seek-warn' });
+      return;
+    }
+    if (!duration) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const x = clientX - rect.left;
+    const percent = Math.max(0, Math.min(1, x / rect.width));
+    const time = percent * duration;
+    
+    setProgress(time);
   };
 
   const handleTogglePlay = () => {
@@ -272,7 +293,10 @@ const FullscreenPlayer = () => {
                 <span ref={timeCurrentRef}>0:00</span>
                 <span>{formatTime(duration)}</span>
               </div>
-              <div className="seek-bar-container">
+              <div 
+                className="seek-bar-container" 
+                onClick={handleContainerClick}
+              >
                 <div ref={progressBarRef} className="seek-bar-fill" />
                 <input 
                   type="range"
@@ -280,7 +304,7 @@ const FullscreenPlayer = () => {
                   min="0"
                   max={duration || 0}
                   step="0.1"
-                  defaultValue="0"
+                  value={progress ?? 0}
                   onChange={handleSeek}
                   aria-label="Seek"
                 />

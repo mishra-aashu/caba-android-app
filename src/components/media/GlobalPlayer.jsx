@@ -143,6 +143,13 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
     }
   }, [volume]);
 
+  // Handle external seeks (e.g. from FullscreenPlayer)
+  useEffect(() => {
+    if (audioRef.current && Math.abs(audioRef.current.currentTime - progress) > 2) {
+      audioRef.current.currentTime = progress;
+    }
+  }, [progress]);
+
   // Occasional store sync for progress (not every frame)
   const onTimeUpdate = () => {
     if (audioRef.current) {
