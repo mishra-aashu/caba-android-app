@@ -50,7 +50,7 @@ const PublicApp = () => {
   const [splashFinished, setSplashFinished] = useState(false);
   
   useOnlineStatus();
-  usePlatformInit();
+  const { isInitialized } = usePlatformInit();
   useConnectivity();
 
   // ═══ Splash Screen Safety Net ═══
@@ -77,7 +77,7 @@ const PublicApp = () => {
   // We show it IMMEDIATELY without waiting for auth loading.
   if (isDesktop && !splashFinished) {
     return (
-      <div className="launch-container" style={{ background: '#000000', height: '100vh', width: '100vw' }}>
+      <div className="launch-container" style={{ background: 'radial-gradient(circle at 30% 10%, #1a1a2e, #0d0d14, #0a0a0f)', height: '100vh', width: '100vw' }}>
         <Intro onComplete={() => setSplashFinished(true)} />
         {/* Render AuthenticatedApp hidden in background so it can WARM UP during intro */}
         {isAuthenticated && (

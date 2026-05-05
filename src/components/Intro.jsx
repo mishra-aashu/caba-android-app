@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppName from './common/AppName';
+import { useAuth } from '../hooks/useAuth';
+import { usePlatformInit } from '../hooks/usePlatformInit';
 import '../styles/intro.css';
 
 // --- SMOOTH ANIMATION CONSTANTS ---
@@ -38,7 +40,7 @@ const letterVariants = {
         transition: {
             duration: 1.8,
             ease: PRECISE_EASE,
-            delay: 1.2 + (i * 0.06)
+            delay: 0.6 + (i * 0.06) // Faster reveal
         }
     })
 };
@@ -49,7 +51,7 @@ const taglineVariants = {
         opacity: 1,
         y: 0,
         transition: {
-            delay: 3.2,
+            delay: 1.8, // Faster reveal
             duration: 1.8,
             ease: PRECISE_EASE
         }
@@ -65,26 +67,38 @@ const overlayVariants = {
 };
 
 const Intro = ({ onComplete }) => {
+    const { loading: authLoading } = useAuth();
+    const { isInitialized } = usePlatformInit();
     const [phase, setPhase] = useState('fusion');
     const [isExiting, setIsExiting] = useState(false);
+    const [minTimePassed, setMinTimePassed] = useState(false);
 
     useEffect(() => {
-        const revelationTimer = setTimeout(() => setPhase('revelation'), 1200);
+        const revelationTimer = setTimeout(() => setPhase('revelation'), 200); // Super fast branding reveal
         
-        // Automatic transition after the animation is mostly done
-        const completeTimer = setTimeout(() => {
-            setIsExiting(true);
-            const finishTimer = setTimeout(() => {
-                onComplete?.();
-            }, 800);
-            return () => clearTimeout(finishTimer);
-        }, 6500);
+        // Minimum display time for branding (2 seconds)
+        const minTimer = setTimeout(() => setMinTimePassed(true), 2000);
 
         return () => {
             clearTimeout(revelationTimer);
-            clearTimeout(completeTimer);
+            clearTimeout(minTimer);
         };
-    }, [onComplete]);
+    }, []);
+
+    // Effect to trigger completion when everything is ready
+    useEffect(() => {
+        if (minTimePassed && !authLoading && isInitialized) {
+            handleComplete();
+        }
+    }, [minTimePassed, authLoading, isInitialized]);
+
+    const handleComplete = () => {
+        if (isExiting) return;
+        setIsExiting(true);
+        setTimeout(() => {
+            onComplete?.();
+        }, 800);
+    };
 
     const appName = "Elevengram";
 
@@ -104,43 +118,44 @@ const Intro = ({ onComplete }) => {
                     <AnimatePresence mode="wait">
                         {phase === 'fusion' && (
                             <motion.div
-                                key="cloud-core"
-                                variants={cloudVariants}
-                                initial="initial"
-                                animate="animate"
+                                key="fusion"
+                                initial={{ scale: 0.8, opacity: 0, filter: 'blur(20px)' }}
+                                animate={{
+                                    scale: [0.8, 1.2, 2.5],
+                                    opacity: [0, 0.8, 0],
+                                    filter: ['blur(20px)', 'blur(5px)', 'blur(40px)']
+                                }}
+                                transition={{ duration: 1.2, ease: "easeOut" }}
                                 className="cloud-fusion"
                             />
                         )}
-                    </AnimatePresence>
 
-                    <div className="revelation-container">
                         {phase === 'revelation' && (
                             <div className="revelation-container">
-                                {/* Cinematic Reveal of the Pill */}
                                 <motion.div
-                                    variants={taglineVariants}
-                                    initial="initial"
-                                    animate="animate"
-                                    style={{ marginBottom: '2rem' }}
+                                    key="revelation"
+                                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    transition={{
+                                        duration: 0.6,
+                                        ease: [0.16, 1, 0.3, 1]
+                                    }}
+                                    className="hero-branding"
                                 >
                                     <AppName size="large" />
+                                    
+                                    <motion.p 
+                                        className="tagline-text"
+                                        initial={{ opacity: 0, letterSpacing: '0.2em' }}
+                                        animate={{ opacity: 1, letterSpacing: '0.4em' }}
+                                        transition={{ delay: 0.3, duration: 1 }}
+                                    >
+                                        The Future of <span className="glow-span">Communication</span>
+                                    </motion.p>
                                 </motion.div>
-
-                                {/* Tagline also with smooth blur reveal */}
-                                <motion.p
-                                    variants={taglineVariants}
-                                    initial="initial"
-                                    animate="animate"
-                                    className="tagline-text"
-                                >
-                                    Messaging. Connection. Memories.
-                                    <span className="glow-span">
-                                        GET REVEALED
-                                    </span>
-                                </motion.p>
                             </div>
                         )}
-                    </div>
+                    </AnimatePresence>
 
                     {/* Subtle Grain Overlay */}
                     <div className="grain-overlay" />
@@ -149,10 +164,10 @@ const Intro = ({ onComplete }) => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 0.3 }}
                         whileHover={{ opacity: 1 }}
-                        onClick={() => window.location.reload()}
+                        onClick={handleComplete}
                         className="restart-button"
                     >
-                        Restart
+                        Skip Intro
                     </motion.button>
                 </motion.div>
             )}

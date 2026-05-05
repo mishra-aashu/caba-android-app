@@ -140,7 +140,7 @@ const ProtectedLayout = ({ children }) => {
         flexDirection: 'column',
         alignItems: 'center', 
         justifyContent: 'center', 
-        background: '#0f172a',
+        background: 'radial-gradient(circle at 30% 10%, #1a1a2e, #0d0d14, #0a0a0f)',
         color: 'white',
         gap: '20px'
       }}>

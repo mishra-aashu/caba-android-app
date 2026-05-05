@@ -5,7 +5,7 @@
 .cinematic-intro {
     position: fixed;
     inset: 0;
-    background-color: #000;
+    background: radial-gradient(circle at 30% 10%, #1a1a2e, #0d0d14, #0a0a0f);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -20,8 +20,8 @@
     position: absolute;
     inset: 0;
     z-index: 0;
-    background: radial-gradient(circle at center, #0a1a1f 0%, #000000 70%);
-    opacity: 0.4;
+    background: radial-gradient(circle at center, rgba(16, 24, 39, 0.8) 0%, #000000 100%);
+    opacity: 0.6;
     will-change: opacity;
     transform: translateZ(0);
 }
