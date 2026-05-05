@@ -1,59 +1,42 @@
-name: Deploy OTA Update
+name: OTA Deployment
 
 on:
   push:
     branches:
       - main
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'vite.config.js'
 
 jobs:
-  build-and-deploy:
+  deploy-ota:
+    name: Build and Deploy OTA
     runs-on: ubuntu-latest
     permissions:
-      contents: write 
+      contents: write # Required to create releases and upload assets
+    
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build the React App
+      - name: Build Application
         run: npm run build
 
-      - name: Create Bundle and Upload to GitHub Release
-        id: create_release
+      - name: Run OTA Deployment Script
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          # 1. Extract Version and Timestamp
-          VERSION=$(node -p "require('./package.json').version")
-          TIMESTAMP=$(date +%s)
-          ZIP_NAME="ota-$VERSION-$TIMESTAMP.zip"
-          TAG_NAME="ota-$VERSION-$TIMESTAMP"
-
-          # 2. Create ZIP
-          cd dist && zip -r ../$ZIP_NAME . && cd ..
-
-          # 3. Create GitHub Release and Upload ZIP
-          gh release create $TAG_NAME $ZIP_NAME --title "OTA Update $VERSION" --notes "Automated OTA build"
-          
-          # 4. Construct Public Download URL
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/$TAG_NAME/$ZIP_NAME"
-          
-          # 5. Update Supabase Database
-          node scripts/update-db.js $VERSION $TIMESTAMP $DOWNLOAD_URL
-
-          # 6. Cleanup: Keep only the latest 5 OTA releases to save space
-          echo "🧹 Starting robust cleanup..."
-          node scripts/cleanup-ota.js
-
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: node scripts/deploy-ota.js --priority normal --changelog "Automated OTA update from GitHub Actions"

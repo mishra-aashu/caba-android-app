@@ -13,7 +13,7 @@
     "postversion": "npm run version-sync",
     "generate-sprites": "node scripts/generate-sprites.js",
     "deploy": "cross-env GITHUB_PAGES=true vite build && cp ignore-vercel.json dist/vercel.json && gh-pages -d dist",
-    "build:ota": "node scripts/deploy-ota.js",
+    "build:ota": "npm run build && node scripts/deploy-ota.js",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",

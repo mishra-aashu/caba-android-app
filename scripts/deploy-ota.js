@@ -3,7 +3,6 @@ import crypto from 'crypto';
 import { execSync } from 'child_process';
 import archiver from 'archiver';
 import { createClient } from '@supabase/supabase-js';
-import * as tus from 'tus-js-client';
 import packageJson from '../package.json' with { type: 'json' };
 
 // You can use a local .env file during manual testing, but in GitHub Actions, these come from Secrets.
@@ -12,6 +11,7 @@ dotenv.config();
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_DIRECT_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const GITHUB_REPO = process.env.GITHUB_REPO || 'mishra-aashu/caba-android-app';
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error("❌ Missing Supabase credentials! Please ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.");
@@ -22,6 +22,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const version = packageJson.version; // e.g., "1.0.0"
 const timestamp = Date.now().toString(); // bundle_version
 const zipFileName = `ota-${version}-${timestamp}.zip`;
+const tagName = `ota-${version}-${timestamp}`;
 
 async function deploy() {
     console.log(`📦 Zipping dist folder for app version ${version}...`);
@@ -50,53 +51,25 @@ async function deploy() {
     });
     console.log(`✅ Checksum: ${checksum}`);
 
-    console.log(`☁️ Uploading ${zipFileName} to Supabase storage via TUS (Chunked Upload)...`);
-    
-    await new Promise((resolve, reject) => {
-        const fileStream = fs.createReadStream(zipFileName);
-        const stats = fs.statSync(zipFileName);
+    // --- GitHub URL Construction ---
+    const publicUrl = `https://github.com/${GITHUB_REPO}/releases/download/${tagName}/${zipFileName}`;
+    console.log(`🔗 Generated GitHub Release URL: ${publicUrl}`);
+
+    // --- Automated GitHub Upload ---
+    console.log(`🚀 Uploading ZIP to GitHub Release (${tagName})...`);
+    try {
+        // Create GitHub Release and upload the file
+        execSync(`gh release create ${tagName} ${zipFileName} --title "OTA Update ${version}" --notes "Checksum: ${checksum}"`, { stdio: 'inherit' });
+        console.log('✅ GitHub Release created and file uploaded!');
+    } catch (e) {
+        console.error("❌ GitHub Upload Failed! Please ensure 'gh' CLI is installed and authenticated.");
+        console.log(`   Manual Command: gh release create ${tagName} ${zipFileName} --title "OTA Update ${version}" --notes "Checksum: ${checksum}"`);
         
-        const upload = new tus.Upload(fileStream, {
-            endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
-            retryDelays: [0, 3000, 5000, 10000, 20000],
-            headers: {
-                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                'x-upsert': 'true',
-            },
-            uploadDataDuringCreation: true,
-            removeFingerprintOnSuccess: true,
-            metadata: {
-                bucketName: 'ota-updates',
-                objectName: zipFileName,
-                contentType: 'application/zip',
-                cacheControl: '3600',
-            },
-            chunkSize: 6 * 1024 * 1024, // 6MB chunks to bypass 50MB Cloudflare limit
-            uploadSize: stats.size,
-            onError: function (error) {
-                console.error('Failed to upload to storage:', error);
-                reject(error);
-            },
-            onProgress: function (bytesUploaded, bytesTotal) {
-                const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
-                console.log(`Upload Progress: ${percentage}%`);
-            },
-            onSuccess: function () {
-                console.log('Upload successful!');
-                resolve();
-            },
-        });
-
-        upload.findPreviousUploads().then(function (previousUploads) {
-            if (previousUploads.length) {
-                upload.resumeFromPreviousUpload(previousUploads[0]);
-            }
-            upload.start();
-        });
-    });
-
-    const { data: urlData } = supabase.storage.from('ota-updates').getPublicUrl(zipFileName);
-    const publicUrl = urlData.publicUrl;
+        // If in GitHub Actions, we should fail the build
+        if (process.env.GITHUB_ACTIONS) {
+            throw e;
+        }
+    }
 
     // Parse CLI arguments for metadata
     const args = process.argv.slice(2);
@@ -113,33 +86,35 @@ async function deploy() {
         }
     }
 
-    console.log(`📝 Updating database for target app version: ${version} with bundle_version: ${timestamp}...`);
+    console.log(`📝 Registering update in Supabase (target app: ${version}, bundle: ${timestamp})...`);
     const { error: dbErr } = await supabase.from('ota_updates').insert({
         target_app_version: version,
         bundle_version: timestamp,
         bundle_url: publicUrl,
-        checksum: checksum, // Added automated checksum
+        checksum: checksum,
         changelog: changelog,
         priority: priority
     });
 
     if (dbErr) {
-        console.error("Failed to insert into database:", dbErr);
+        console.error("❌ Failed to insert into database:", dbErr);
         throw dbErr;
     }
 
-    console.log('✅ OTA Deployment Successful!');
+    console.log('✅ OTA Metadata Registered Successfully!');
     
-    // Clean up the local zip file
-    fs.unlinkSync(zipFileName);
-    console.log(`🧹 Cleaned up local file ${zipFileName}.`);
+    // Clean up the local zip file after successful registration
+    if (fs.existsSync(zipFileName)) {
+        fs.unlinkSync(zipFileName);
+        console.log(`🧹 Cleaned up local file ${zipFileName}.`);
+    }
 
-    // Automatically trigger cleanup
-    console.log("🧹 Triggering cleanup...");
+    // Automatically trigger cleanup for OLD updates in DB
+    console.log("🧹 Triggering DB cleanup...");
     try {
         execSync('node scripts/cleanup-ota.js', { stdio: 'inherit' });
     } catch (e) {
-        console.warn("⚠️ Cleanup script failed, but deployment was successful.");
+        console.warn("⚠️ Cleanup script failed, but registration was successful.");
     }
 }
 
@@ -147,3 +122,4 @@ deploy().catch(err => {
     console.error("❌ Deployment failed:", err);
     process.exit(1);
 });
+
