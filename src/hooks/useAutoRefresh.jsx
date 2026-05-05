@@ -1,5 +1,5 @@
 /**
- * useAutoRefresh.js
+ * useAutoRefresh.jsx
  *
  * Detects new version availability and handles the update flow.
  *
@@ -145,7 +145,42 @@ export const useAutoRefresh = () => {
           if (status.connectionType === 'wifi') {
             handleRefresh(true); // true = isSilent
           } else {
-            console.log('[AutoRefresh] ℹ️ Skipping silent update on cellular data.');
+            // Mobile data: Don't auto-download, but ask the user
+            console.log('[AutoRefresh] ℹ️ Update detected on cellular data. Asking user...');
+            toast((t) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                  Update Available ({latest.version}). Download now? (Uses mobile data)
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      handleRefresh(true);
+                    }}
+                    style={{
+                      padding: '4px 12px', background: '#3fcf8e', border: 'none',
+                      borderRadius: '4px', color: '#fff', fontSize: '12px', fontWeight: 600
+                    }}
+                  >
+                    Download
+                  </button>
+                  <button 
+                    onClick={() => toast.dismiss(t.id)}
+                    style={{
+                      padding: '4px 12px', background: 'transparent', border: '1px solid #444',
+                      borderRadius: '4px', color: '#888', fontSize: '12px'
+                    }}
+                  >
+                    Later
+                  </button>
+                </div>
+              </div>
+            ), { 
+              duration: 10000,
+              position: 'bottom-center',
+              style: { background: '#1a1a2e', color: '#fff', border: '1px solid #333' }
+            });
           }
         }
       } else {
