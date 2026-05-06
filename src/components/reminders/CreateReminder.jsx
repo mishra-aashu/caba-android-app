@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
+import { resolveAvatarUrl } from '../../utils/avatarHelpers';
 import '../../styles/reminders.css';
 
 // Quick Templates
@@ -169,7 +170,10 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
           data.forEach(r => {
             if (r.receiver && !seenIds.has(r.receiver.id)) {
               seenIds.add(r.receiver.id);
-              uniqueRecipients.push(r.receiver);
+              uniqueRecipients.push({
+                ...r.receiver,
+                avatar: resolveAvatarUrl(r.receiver.avatar)
+              });
             }
           });
           setRecentRecipients(uniqueRecipients.slice(0, 5));
@@ -187,30 +191,39 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
 
     const contactMap = new Map();
 
-    // Add from contacts
+    // 1. Add from Circles (Saved Contacts)
     (cachedContacts || []).forEach(c => {
-      if (c.otherUser && c.otherUser.id !== currentUser.id) {
-        contactMap.set(c.otherUser.id, {
-          ...c.otherUser,
-          displayName: c.contact_name || c.otherUser.name
+      const u = c.otherUser || {};
+      const userId = c.contactUserId || u.id;
+      
+      if (userId && userId !== currentUser.id) {
+        contactMap.set(userId, {
+          ...u,
+          id: userId,
+          name: c.contactName || c.contact_name || u.name || 'Unknown User',
+          avatar: resolveAvatarUrl(c.avatar || u.avatar),
+          phone: u.phone || c.phone
         });
       }
     });
 
-    // Add from chats
+    // 2. Add from Recent Chats (DMs only)
     (cachedChats || []).forEach(chat => {
-      if (chat.otherUser && !contactMap.has(chat.otherUser.id) && chat.otherUser.id !== currentUser.id) {
-        contactMap.set(chat.otherUser.id, {
-          ...chat.otherUser,
-          displayName: chat.otherUser.name
+      if (chat.isGroup) return;
+
+      const userId = chat.otherUserId || (chat.otherUser && chat.otherUser.id);
+      if (userId && !contactMap.has(userId) && userId !== currentUser.id) {
+        contactMap.set(userId, {
+          ...(chat.otherUser || {}),
+          id: userId,
+          name: chat.name || (chat.otherUser && chat.otherUser.name) || 'Unknown User',
+          avatar: resolveAvatarUrl(chat.avatar || (chat.otherUser && chat.otherUser.avatar)),
+          phone: chat.phone || (chat.otherUser && chat.otherUser.phone)
         });
       }
     });
 
-    return Array.from(contactMap.values()).map(user => ({
-      ...user,
-      name: user.displayName
-    }));
+    return Array.from(contactMap.values());
   }, [cachedContacts, cachedChats, currentUser]);
 
   // Filtered contacts based on search
@@ -506,7 +519,7 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
                 >
                   <div className="avatar-tiny">
                     {recipient.avatar ? (
-                      <img src={recipient.avatar} alt={recipient.name} />
+                      <img src={recipient.avatar} alt="" />
                     ) : (
                       getInitials(recipient.name)
                     )}
@@ -526,7 +539,7 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
                 <>
                   <div className="avatar-placeholder">
                     {selectedRecipient.avatar ? (
-                      <img src={selectedRecipient.avatar} alt={selectedRecipient.name} />
+                      <img src={selectedRecipient.avatar} alt="" />
                     ) : (
                       getInitials(selectedRecipient.name)
                     )}
@@ -861,7 +874,7 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
                   >
                     <div className="avatar-placeholder">
                       {contact.avatar ? (
-                        <img src={contact.avatar} alt={contact.name} />
+                        <img src={contact.avatar} alt="" />
                       ) : (
                         getInitials(contact.name)
                       )}
