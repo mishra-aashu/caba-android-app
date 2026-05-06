@@ -664,7 +664,10 @@ const MainLayout = () => {
               </PageTransition>
             )}
           </AnimatePresence>
-          <GlobalPlayer showBottomNav={!isChatViewActive} />
+          <GlobalPlayer 
+            showBottomNav={!isChatViewActive} 
+            isMusicHub={location.pathname === '/listen-together'}
+          />
         </div>
       </UserDetailsContext.Provider>
     );

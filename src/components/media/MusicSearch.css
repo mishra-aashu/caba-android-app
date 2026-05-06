@@ -170,16 +170,22 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px;
-  margin-bottom: 8px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: songReveal 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(12px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.song-item:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .song-item.active {
@@ -223,21 +229,26 @@
 
 .song-title-text {
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 800;
   margin: 0;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
   color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .song-artist-text {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 2px 0 0 0;
-  white-space: nowrap;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 4px 0 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .song-item-actions {
@@ -401,6 +412,49 @@
   margin: 8px 0;
 }
 
+/* --- Shimmer Loading --- */
+.shimmer-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.shimmer-song-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+}
+
+.shimmer-art {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #121212 25%, #1a1a1a 50%, #121212 75%);
+  background-size: 200% 100%;
+  animation: shimmer-anim 1.5s infinite;
+}
+
+.shimmer-line {
+  height: 12px;
+  background: linear-gradient(90deg, #121212 25%, #1a1a1a 50%, #121212 75%);
+  background-size: 200% 100%;
+  animation: shimmer-anim 1.5s infinite;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.shimmer-line.title { width: 140px; }
+.shimmer-line.artist { width: 80px; }
+
+@keyframes shimmer-anim {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 /* Spotify Tab */
 .spotify-tab-container {
   padding: 20px 0;
@@ -431,4 +485,63 @@
 .spotify-import-all-btn:disabled {
   background: #333;
   cursor: not-allowed;
+}
+
+/* --- Recent Searches Quick --- */
+.recent-searches-quick {
+  padding: 4px 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.05em;
+}
+
+.recent-header button {
+  background: none;
+  border: none;
+  color: #00ff88;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.recent-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.recent-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.recent-chips button {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recent-chips button:active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(0.95);
 }

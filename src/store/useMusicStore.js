@@ -36,10 +36,23 @@ const useMusicStore = create(
       isHost: false,
       syncStatus: 'disconnected',
       activeTab: 'Trending',
+      activeSection: 'home', // 'home', 'search', 'library'
+      recentSearches: [],
 
       // ─── Actions ───
 
       setActiveTab: (tab) => set({ activeTab: tab }),
+      setActiveSection: (section) => set({ activeSection: section }),
+      
+      addToRecentSearches: (query) => {
+        if (!query || query.trim() === '') return;
+        set(state => {
+          const filtered = state.recentSearches.filter(q => q !== query);
+          return { recentSearches: [query, ...filtered].slice(0, 10) };
+        });
+      },
+
+      clearRecentSearches: () => set({ recentSearches: [] }),
 
       setCurrentSong: (song) => {
         const state = get();
@@ -322,8 +335,22 @@ const useMusicStore = create(
 
       // ─── Listen Together Actions ───
       joinRoom: (id, isHost = false) => {
-        if (!id) return;
-        set({ roomId: String(id), isHost: Boolean(isHost), syncStatus: 'synced' });
+        let finalId = id;
+        if (!finalId && isHost) {
+          // Generate a random 6-character room ID for host
+          finalId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+        
+        if (!finalId) return;
+        
+        set({ roomId: String(finalId), isHost: Boolean(isHost), syncStatus: 'synced' });
+        console.log(`[MusicStore] ${isHost ? 'Created' : 'Joined'} room: ${finalId}`);
+        
+        if (isHost) {
+          import('react-hot-toast').then(({ toast }) => {
+            toast.success(`Music Room Created: ${finalId}`, { icon: '🔥' });
+          });
+        }
       },
 
       leaveRoom: () => {
@@ -431,8 +458,12 @@ const useMusicStore = create(
         likedSongs: state.likedSongs,
         searchQuery: state.searchQuery,
         activeTab: state.activeTab,
+        activeSection: state.activeSection,
+        recentSearches: state.recentSearches,
         repeatMode: state.repeatMode,
         extractedColors: state.extractedColors,
+        roomId: state.roomId,
+        isHost: state.isHost,
       }),
       onRehydrateStorage: () => {
         // After rehydration, refresh metadata if persisted song lacks a media_url

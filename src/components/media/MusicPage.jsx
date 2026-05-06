@@ -1,6 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import { 
+  Music as MusicIcon, 
+  Share2, 
+  ChevronRight,
+  LayoutGrid,
+  Search as SearchIcon,
+  Library as LibraryIcon,
+  Users,
+  Radio,
+  UserPlus,
+  PlusCircle,
+  X,
+  Compass,
+  ArrowLeft,
+  MessageSquare
+} from 'lucide-react';
 import useMusicStore from '../../store/useMusicStore';
 import MusicSearch from './MusicSearch';
 import useChatStore from '../../store/useChatStore';
@@ -9,7 +26,13 @@ import { db } from '../../db/db';
 import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
 import { frontendToDb } from '../../utils/dbFieldMapping';
 import { toast } from 'react-hot-toast';
-import { X, Share2, Users, Radio, ChevronRight, Music, Play, Pause, Maximize2, UserPlus } from 'lucide-react';
+
+// Sub-pages
+import MusicHome from './MusicHome';
+import MusicSearchPage from './MusicSearchPage';
+import MusicLibrary from './MusicLibrary';
+import MusicSharePage from './MusicSharePage';
+import MusicCategoryPage from './MusicCategoryPage';
 import './MusicPage.css';
 
 /**
@@ -19,9 +42,22 @@ import './MusicPage.css';
  */
 const MusicPage = () => {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
+
+  // Hide main bottom navigation when on this page (mobile only)
+  useEffect(() => {
+    if (!isDesktop) {
+      document.body.classList.add('hide-main-nav');
+      return () => document.body.classList.remove('hide-main-nav');
+    }
+  }, [isDesktop]);
+
   const [sessionMode, setSessionMode] = React.useState(null);
+  const [selectedCategory, setSelectedCategory] = React.useState(null);
   const { 
     currentSong, 
+    activeSection,
+    setActiveSection,
     isPlaying,
     setIsPlaying,
     progress,
@@ -40,31 +76,36 @@ const MusicPage = () => {
     setProgress(time);
   };
 
-  const handleShareSession = async () => {
-    if (!roomId) return;
-    
-    const { activeChatId, activeChat } = useChatStore.getState();
-    const { user } = useAuthStore.getState();
-    
-    if (!activeChatId || !user) {
-      toast.error("Open a chat to share session", { icon: '💬' });
+  const handleShareSession = () => {
+    if (!roomId) {
+      toast.error("No active session to share");
       return;
     }
+    setActiveSection('share');
+  };
+
+  const handleShareToChat = async (targetChat) => {
+    if (!roomId || !targetChat) return;
+    
+    const { user } = useAuthStore.getState();
+    if (!user) return;
 
     const tempId = String(Date.now());
     const taskId = crypto.randomUUID();
 
+    const isGroup = !!(targetChat.isGroup || targetChat.is_group);
+    
     const shareMsg = {
-      chatId: activeChatId,
+      chatId: targetChat.id,
       senderId: user.id,
-      receiverId: activeChat.isGroup ? user.id : activeChat.otherUserId,
+      receiverId: isGroup ? user.id : targetChat.otherUserId,
       content: `Join my Music Session! Room ID: ${roomId}`,
       metadata: {
         type: 'music_session_share',
         roomId: roomId,
         song: currentSong
       },
-      isGroupMessage: Boolean(activeChat.isGroup),
+      isGroupMessage: isGroup,
       messageType: 'song', 
       createdAt: new Date().toISOString(),
       status: 'sending',
@@ -79,7 +120,10 @@ const MusicPage = () => {
       const dbData = frontendToDb(shareMsg);
       await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData, { taskId });
       
-      toast.success("Room ID shared to chat!");
+      toast.success(`Invited ${isGroup ? (targetChat.name || 'Group') : (targetChat.otherUser?.name || 'User')}`, { 
+        icon: <Users size={18} />,
+        style: { background: '#0b141a', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }
+      });
     } catch (err) {
       console.error("Session share failed:", err);
       toast.error("Failed to share room");
@@ -128,123 +172,90 @@ const MusicPage = () => {
         
         {/* Content Layers */}
         <div className="music-page-content-wrapper">
-          {/* Header */}
+          {/* Header remains but is simplified for sub-pages */}
           <div className="panel-header-glass">
             <div className="header-top">
               <div className="brand-badge">
                 <div className="brand-dot" />
-                <span>ELEVENGRAM MUSIC</span>
+                <span style={{ fontWeight: 800, letterSpacing: '0.05em' }}>
+                  {activeSection === 'share' ? 'SELECT CHAT' : 'ELEVENgram'}
+                </span>
               </div>
-              <button className="panel-close-btn" onClick={() => navigate(-1)}>
-                <X size={24} />
+              <button className="panel-close-btn" onClick={() => activeSection === 'share' ? setActiveSection('home') : navigate(-1)}>
+                {activeSection === 'share' ? <ArrowLeft size={24} /> : <X size={24} />}
               </button>
             </div>
             
-            <h2 className="panel-title">
-              <Music size={24} className="title-icon" />
-              Discover Your Sound
-            </h2>
-            
-            {/* Session Action Bar */}
-            <div className="session-status-container">
-              {!roomId ? (
-                <div className="session-quick-actions">
-                  <button 
-                    className={`action-pill ${sessionMode === 'host' ? 'active' : ''}`}
-                    onClick={() => setSessionMode(sessionMode === 'host' ? null : 'host')}
-                  >
-                    <Users size={18} />
-                    <span>HOST</span>
-                  </button>
-                  <button 
-                    className={`action-pill ${sessionMode === 'join' ? 'active' : ''}`}
-                    onClick={() => setSessionMode(sessionMode === 'join' ? null : 'join')}
-                  >
-                    <UserPlus size={18} />
-                    <span>JOIN</span>
-                  </button>
-                  <button 
-                    className="action-pill spotify-pill"
-                    onClick={() => {
-                      useMusicStore.getState().setActiveTab('Spotify');
-                    }}
-                  >
-                    <Music size={18} style={{ color: '#1DB954' }} />
-                    <span>SPOTIFY</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="session-active-card mini">
-                  <div className="active-room-pulse">
-                    <div className="pulse-ring" />
-                    <Radio size={16} />
-                  </div>
-                  <div className="room-details">
-                    <span>{roomId}</span>
-                    <p>{isHost ? 'HOSTING' : 'LISTENING'}</p>
-                  </div>
-                  <div className="room-actions">
-                    <button className="share-session-btn" onClick={handleShareSession} title="Share Room ID">
-                      <Share2 size={14} />
-                    </button>
-                    <button className="leave-session-btn" onClick={leaveRoom}>
-                      LEAVE
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Dropdown Boxes */}
-              <AnimatePresence mode="wait">
-                {sessionMode === 'host' && !roomId && (
-                  <motion.div 
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="session-reveal-box"
-                  >
-                    <div className="session-invite-card" onClick={() => {
-                      joinRoom(Math.random().toString(36).substring(2, 8).toUpperCase(), true);
-                      setSessionMode(null);
-                    }}>
-                      <div className="invite-icon">
-                        <Users size={20} />
-                      </div>
-                      <div className="invite-text">
-                        <h4>Create New Room</h4>
-                        <p>Everyone will hear your music</p>
-                      </div>
-                      <ChevronRight size={18} />
-                    </div>
-                  </motion.div>
-                )}
-
-                {sessionMode === 'join' && !roomId && (
-                  <motion.div 
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="session-reveal-box"
-                  >
-                    <form className="manual-join-form-pro" onSubmit={(e) => {
-                      handleJoinManual(e);
-                      setSessionMode(null);
-                    }}>
-                      <div className="pro-input-wrapper">
-                        <UserPlus size={18} className="input-icon" />
-                        <input name="roomInput" placeholder="Enter 6-digit Room ID" autoComplete="off" autoFocus />
-                      </div>
-                      <button type="submit">JOIN SESSION</button>
-                    </form>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            {activeSection === 'home' && (
+              <h2 className="panel-title" style={{ marginTop: '8px', fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.02em' }}>
+                <Compass size={24} className="title-icon" style={{ color: 'var(--brand-primary, #00ff88)' }} />
+                Discovery
+              </h2>
+            )}
           </div>
 
-          {/* Body: Search & Discovery */}
           <div className="panel-body-scrollable">
-            <MusicSearch />
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={selectedCategory ? `cat-${selectedCategory.id}` : activeSection}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                style={{ padding: selectedCategory ? '0' : '0 16px 120px 16px' }}
+              >
+                {selectedCategory ? (
+                  <MusicCategoryPage 
+                    category={selectedCategory} 
+                    onBack={() => setSelectedCategory(null)} 
+                  />
+                ) : (
+                  <>
+                    {activeSection === 'home' && (
+                      <MusicHome 
+                        onShareSession={handleShareSession} 
+                        onSelectCategory={(cat) => setSelectedCategory(cat)} 
+                      />
+                    )}
+                    {activeSection === 'search' && <MusicSearchPage />}
+                    {activeSection === 'library' && <MusicLibrary />}
+                    {activeSection === 'share' && <MusicSharePage onShare={handleShareToChat} onBack={() => setActiveSection('home')} />}
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Dedicated Music Hub Sub-Navigation */}
+          <div className="music-hub-nav">
+            <button 
+              className="hub-nav-item"
+              onClick={() => navigate('/')}
+            >
+              <MessageSquare size={22} />
+              <span>Chats</span>
+            </button>
+            <button 
+              className={`hub-nav-item ${activeSection === 'home' ? 'active' : ''}`}
+              onClick={() => setActiveSection('home')}
+            >
+              <LayoutGrid size={22} />
+              <span>Home</span>
+            </button>
+            <button 
+              className={`hub-nav-item ${activeSection === 'search' ? 'active' : ''}`}
+              onClick={() => setActiveSection('search')}
+            >
+              <SearchIcon size={22} />
+              <span>Search</span>
+            </button>
+            <button 
+              className={`hub-nav-item ${activeSection === 'library' ? 'active' : ''}`}
+              onClick={() => setActiveSection('library')}
+            >
+              <LibraryIcon size={22} />
+              <span>Library</span>
+            </button>
           </div>
         </div>
       </div>
@@ -253,3 +264,74 @@ const MusicPage = () => {
 };
 
 export default MusicPage;
+
+// Add styles for the new sub-navigation
+const styles = `
+.music-hub-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 75px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(25px) saturate(180%);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 1000;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
+}
+
+.hub-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.6;
+  flex: 1;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.hub-nav-item.active {
+  color: #00ff88;
+  opacity: 1;
+  transform: translateY(-4px);
+}
+
+.hub-nav-item span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.hub-nav-item svg {
+  filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0));
+  transition: filter 0.3s ease;
+}
+
+.hub-nav-item.active svg {
+  filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.4));
+}
+
+.music-home-fade-in, .music-search-page-fade-in, .music-library-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+`;
+
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = styles;
+  document.head.appendChild(styleSheet);
+}

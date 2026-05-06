@@ -42,6 +42,12 @@
         0 -4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* ─── Hide when music hub is open ─── */
+:global(body.hide-main-nav) .bottomNav {
+    transform: translateY(100%);
+    pointer-events: none;
+}
+
 /* ─── Hide when keyboard is open ─── */
 :global(body.keyboard-open) .bottomNav {
     transform: translateY(100%);

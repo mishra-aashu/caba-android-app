@@ -30,7 +30,7 @@ const formatTime = (sec) => {
 };
 
 // ─── component ────────────────────────────────────────────────────
-const GlobalPlayer = ({ showBottomNav = false }) => {
+const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
   const {
     currentSong,
     isPlaying,
@@ -453,6 +453,9 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
             exit={{ scale: 0, opacity: 0 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setPlayerExpanded(true)}
+            style={{
+              bottom: isMusicHub ? '160px' : '100px'
+            }}
           >
             <svg className="bubble-progress-svg" viewBox="0 0 100 100">
               <circle className="bubble-bg-circle" cx="50" cy="50" r="46" />
@@ -500,7 +503,7 @@ const GlobalPlayer = ({ showBottomNav = false }) => {
             onClick={() => setPlayerExpanded(true)}
             style={{
               cursor: 'pointer',
-              bottom: isDesktop ? undefined : showBottomNav ? 'var(--bottom-nav-total-height)' : '0px',
+              bottom: isDesktop ? undefined : isMusicHub ? '75px' : showBottomNav ? 'var(--bottom-nav-total-height)' : '0px',
             }}
           >
             <div className="player-progress-container">
