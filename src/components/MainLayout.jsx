@@ -69,6 +69,8 @@ const OVERLAY_ROUTES = new Set([
   '/emoji-settings',
   '/history',
   '/games',
+  '/reminders',
+  '/create-reminder',
 ]);
 
 
@@ -230,7 +232,10 @@ const useRouteDetection = (pathname) => {
   return useMemo(() => {
     // Check if overlay route (sidebar content)
     const isOverlay = OVERLAY_ROUTES.has(pathname) || 
-                     pathname.startsWith('/settings/');
+                     pathname.startsWith('/settings/') ||
+                     pathname.startsWith('/reminders/') ||
+                     pathname === '/reminders' ||
+                     pathname === '/create-reminder';
 
     // Check if sub-page (not root)
     const isSubPage = pathname !== '/';
@@ -308,6 +313,7 @@ const MainLayout = () => {
 
 
   const routeInfo = useRouteDetection(location.pathname);
+  const isRemindersRoute = location.pathname === '/reminders' || location.pathname === '/create-reminder';
 
   // ──────────────────────────────────────────────────────────
   // Side Effects
@@ -583,6 +589,7 @@ const MainLayout = () => {
           isHistoryRoute={location.pathname === '/history'}
           isGamesRoute={location.pathname === '/games'}
           isMusicRoute={location.pathname === '/listen-together'}
+          isRemindersRoute={isRemindersRoute}
           chatListPanelProps={chatListPanelProps}
 
 

@@ -16,7 +16,9 @@ import CreateReminder from './CreateReminder';
 import ReminderSettings from './ReminderSettings';
 import BottomNavigation from '../common/BottomNavigation';
 import { useLiveQuery } from 'dexie-react-hooks';
+import useIsDesktop from '../../hooks/useIsDesktop';
 import { db } from '../../db/db';
+import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
 import '../../styles/reminders.css';
 
 // Field mapping utility for consistent camelCase conversion
@@ -67,6 +69,7 @@ const Reminders = () => {
   const { theme } = useTheme();
   const currentUser = useAuthStore((state) => state.dbUser);
   const { showAlert, showConfirm, showPrompt } = useDialog();
+  const isDesktop = useIsDesktop();
 
   // State
   const [reminders, setReminders] = useState([]);
@@ -322,19 +325,30 @@ const Reminders = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('reminders')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .eq('receiver_id', currentUser.id); // Security: ensure receiver
+      const updates = {
+        status: 'accepted',
+        acceptedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
 
-      if (error) throw error;
+      // 1. Optimistic Dexie Update
+      await db.reminders.update(id, updates);
+
+      // 2. Queue for Sync
+      await queueAction(
+        QUEUE_ACTIONS.REMINDER_ACTION,
+        'reminders',
+        {
+          id,
+          updates: {
+            status: 'accepted',
+            accepted_at: updates.acceptedAt,
+            updated_at: updates.updatedAt
+          }
+        }
+      );
+
       toast.success('Reminder accepted');
-      loadReminders(currentUser);
     } catch (err) {
       console.error('Error accepting reminder:', err);
       toast.error('Failed to accept reminder');
@@ -352,18 +366,28 @@ const Reminders = () => {
     if (!confirmed) return;
 
     try {
-      const { error } = await supabase
-        .from('reminders')
-        .update({
-          status: 'rejected',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .eq('receiver_id', currentUser.id);
+      const updates = {
+        status: 'rejected',
+        updatedAt: new Date().toISOString()
+      };
 
-      if (error) throw error;
+      // 1. Optimistic Dexie Update
+      await db.reminders.update(id, updates);
+
+      // 2. Queue for Sync
+      await queueAction(
+        QUEUE_ACTIONS.REMINDER_ACTION,
+        'reminders',
+        {
+          id,
+          updates: {
+            status: 'rejected',
+            updated_at: updates.updatedAt
+          }
+        }
+      );
+
       toast.success('Reminder rejected');
-      loadReminders(currentUser);
     } catch (err) {
       console.error('Error rejecting reminder:', err);
       toast.error('Failed to reject reminder');
@@ -378,18 +402,30 @@ const Reminders = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('reminders')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
+      const updates = {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
 
-      if (error) throw error;
+      // 1. Optimistic Dexie Update
+      await db.reminders.update(id, updates);
+
+      // 2. Queue for Sync
+      await queueAction(
+        QUEUE_ACTIONS.REMINDER_ACTION,
+        'reminders',
+        {
+          id,
+          updates: {
+            status: 'completed',
+            completed_at: updates.completedAt,
+            updated_at: updates.updatedAt
+          }
+        }
+      );
+
       toast.success('Reminder completed! 🎉');
-      loadReminders(currentUser);
     } catch (err) {
       console.error('Error completing reminder:', err);
       toast.error('Failed to complete reminder');
@@ -419,20 +455,32 @@ const Reminders = () => {
       const snoozeUntil = new Date();
       snoozeUntil.setMinutes(snoozeUntil.getMinutes() + snoozeMinutes);
 
-      const { error } = await supabase
-        .from('reminders')
-        .update({
-          status: 'snoozed',
-          snooze_until: snoozeUntil.toISOString(),
-          snooze_count: (reminder.snoozeCount || 0) + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .eq('receiver_id', currentUser.id);
+      const updates = {
+        status: 'snoozed',
+        snoozeUntil: snoozeUntil.toISOString(),
+        snoozeCount: (reminder.snoozeCount || 0) + 1,
+        updatedAt: new Date().toISOString()
+      };
 
-      if (error) throw error;
+      // 1. Optimistic Dexie Update
+      await db.reminders.update(id, updates);
+
+      // 2. Queue for Sync
+      await queueAction(
+        QUEUE_ACTIONS.REMINDER_ACTION,
+        'reminders',
+        {
+          id,
+          updates: {
+            status: 'snoozed',
+            snooze_until: updates.snoozeUntil,
+            snooze_count: updates.snoozeCount,
+            updated_at: updates.updatedAt
+          }
+        }
+      );
+
       toast.success(`Snoozed for ${snoozeMinutes} minutes`);
-      loadReminders(currentUser);
     } catch (err) {
       console.error('Error snoozing reminder:', err);
       toast.error('Failed to snooze reminder');
@@ -450,18 +498,28 @@ const Reminders = () => {
     if (!confirmed) return;
 
     try {
-      const { error } = await supabase
-        .from('reminders')
-        .update({
-          status: 'cancelled',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .eq('sender_id', currentUser.id);
+      const updates = {
+        status: 'cancelled',
+        updatedAt: new Date().toISOString()
+      };
 
-      if (error) throw error;
+      // 1. Optimistic Dexie Update
+      await db.reminders.update(id, updates);
+
+      // 2. Queue for Sync
+      await queueAction(
+        QUEUE_ACTIONS.REMINDER_ACTION,
+        'reminders',
+        {
+          id,
+          updates: {
+            status: 'cancelled',
+            updated_at: updates.updatedAt
+          }
+        }
+      );
+
       toast.success('Reminder cancelled');
-      loadReminders(currentUser);
     } catch (err) {
       console.error('Error cancelling reminder:', err);
       toast.error('Failed to cancel reminder');
@@ -479,20 +537,20 @@ const Reminders = () => {
     if (!confirmed) return;
 
     try {
-      // Soft delete
-      const { error } = await supabase
-        .from('reminders')
-        .update({
-          deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+      const deletedAt = new Date().toISOString();
 
-      if (error) throw error;
+      // 1. Optimistic Dexie Update (Mark as deleted locally)
+      await db.reminders.update(id, { deletedAt });
+
+      // 2. Queue for Sync
+      await queueAction(
+        QUEUE_ACTIONS.DELETE_REMINDER,
+        'reminders',
+        { id }
+      );
+
       toast.success('Reminder deleted');
       setShowReminderDetail(null);
-      loadReminders(currentUser);
     } catch (err) {
       console.error('Error deleting reminder:', err);
       toast.error('Failed to delete reminder');
@@ -513,27 +571,36 @@ const Reminders = () => {
 
     for (const id of selectedReminders) {
       try {
+        const now = new Date().toISOString();
         switch (action) {
           case 'Complete':
             if (canComplete(reminders.find(r => r.id === id))) {
-              await supabase.from('reminders').update({
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }).eq('id', id);
+              // 1. Local update
+              await db.reminders.update(id, { 
+                status: 'completed', 
+                completedAt: now, 
+                updatedAt: now 
+              });
+              // 2. Queue sync
+              await queueAction(QUEUE_ACTIONS.REMINDER_ACTION, 'reminders', {
+                id,
+                updates: { status: 'completed', completed_at: now, updated_at: now }
+              });
               successCount++;
             }
             break;
           case 'Delete':
             if (canDelete(reminders.find(r => r.id === id))) {
-              await supabase.from('reminders').update({
-                deleted_at: new Date().toISOString()
-              }).eq('id', id);
+              // 1. Local update
+              await db.reminders.update(id, { deletedAt: now });
+              // 2. Queue sync
+              await queueAction(QUEUE_ACTIONS.DELETE_REMINDER, 'reminders', { id });
               successCount++;
             }
             break;
         }
-      } catch {
+      } catch (err) {
+        console.error(`Batch action ${action} failed for ${id}:`, err);
         errorCount++;
       }
     }
@@ -1224,7 +1291,8 @@ const Reminders = () => {
       {showMoreOptions && (
         <div className="overlay-click-catcher" onClick={() => setShowMoreOptions(null)} />
       )}
-      <BottomNavigation />
+      {/* Only render BottomNavigation on mobile */}
+      {!isDesktop && <BottomNavigation />}
     </div>
   );
 };

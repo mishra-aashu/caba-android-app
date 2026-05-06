@@ -12,6 +12,7 @@ import {
   CalendarCheck, Cake, ClipboardList, Eye, PlayCircle, Star
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
 import '../../styles/reminders.css';
 
 // Quick Templates
@@ -333,28 +334,27 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
         }
       }
 
-      let error;
-
       if (editingReminder) {
         // Update existing reminder
-        const { error: updateError } = await supabase
-          .from('reminders')
-          .update(reminderData)
-          .eq('id', editingReminder.id)
-          .eq('sender_id', currentUser.id);
-        error = updateError;
+        await queueAction(
+          QUEUE_ACTIONS.UPDATE_REMINDER,
+          'reminders',
+          {
+            id: editingReminder.id,
+            ...reminderData
+          }
+        );
       } else {
         // Create new reminder
         reminderData.status = 'pending';
         reminderData.created_at = new Date().toISOString();
 
-        const { error: insertError } = await supabase
-          .from('reminders')
-          .insert(reminderData);
-        error = insertError;
+        await queueAction(
+          QUEUE_ACTIONS.CREATE_REMINDER,
+          'reminders',
+          reminderData
+        );
       }
-
-      if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
       toast.success(editingReminder ? 'Reminder updated!' : 'Reminder created!');

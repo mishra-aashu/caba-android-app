@@ -185,6 +185,7 @@ export const addToSyncQueue = async (action, data, table = 'messages') => {
         status: 'pending',
         createdAt: Date.now(),
         retries: 0,
+        retryCount: 0,
         maxRetries: 3
     });
 };
@@ -213,8 +214,10 @@ export const manualRetrySyncItem = async (tempId) => {
     for (const item of failedItems) {
         await db.sync_queue.update(item.id, {
             status: 'pending',
-            retryCount: 0,
+            retries: 0,
+            retryCount: 0, // Keep both for safety
             failedAt: null,
+            nextRetryAt: null
         });
     }
 

@@ -138,12 +138,10 @@ const AppContent = () => {
                         <Route path="history" element={<History />} />
                         <Route path="blocked" element={<Blocked onBack={() => window.history.back()} />} />
                         <Route path="support" element={<SupportChat />} />
-                        <Route path="games" element={<GamesPanel />} />
-
+                        <Route path="reminders" element={<Reminders />} />
+                        <Route path="create-reminder" element={<CreateReminder />} />
                     </Route>
 
-                    <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-                    <Route path="/create-reminder" element={<ProtectedRoute><CreateReminder /></ProtectedRoute>} />
                     <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
                     <Route path="/qr" element={<ProtectedRoute><QRPage /></ProtectedRoute>} />
                     <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />

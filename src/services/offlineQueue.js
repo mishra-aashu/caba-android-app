@@ -25,6 +25,11 @@ export const QUEUE_ACTIONS = {
   MARK_READ: 'mark_read',
   SEND_SIGNAL: 'send_signal',
   UPDATE_PRESENCE: 'update_presence',
+  TOGGLE_MUSIC_LIKE: 'toggle_music_like',
+  CREATE_REMINDER: 'create_reminder',
+  UPDATE_REMINDER: 'update_reminder',
+  DELETE_REMINDER: 'delete_reminder',
+  REMINDER_ACTION: 'reminder_action', // Accept, Reject, Complete, Snooze
 };
 
 /**
@@ -281,10 +286,11 @@ const executeQueueAction = async (item) => {
 
     case QUEUE_ACTIONS.UPDATE_PRESENCE: {
       const { status, lastSeen } = data;
+      const { data: { session } } = await supabase.auth.getSession();
       const { error } = await supabase.from('users').update({
         is_online: status === 'online',
         last_seen: lastSeen
-      }).eq('id', supabase.auth.user()?.id);
+      }).eq('id', session?.user?.id);
       if (error) throw error;
       break;
     }
@@ -293,6 +299,63 @@ const executeQueueAction = async (item) => {
       const { tempId, payload } = data;
       const groupData = await safeInsert('groups', payload, taskId);
       // Optional: Add logic to update local group ID if tempId was used
+      break;
+    }
+
+    case QUEUE_ACTIONS.TOGGLE_MUSIC_LIKE: {
+      const { userId, songId, songMetadata, isLiked } = data;
+      if (isLiked) {
+        // We are unliking
+        const { error } = await supabase
+          .from('music_likes')
+          .delete()
+          .eq('user_id', userId)
+          .eq('song_id', songId);
+        if (error) throw error;
+      } else {
+        // We are liking
+        await safeInsert('music_likes', {
+          user_id: userId,
+          song_id: songId,
+          song_metadata: songMetadata,
+          created_at: new Date().toISOString()
+        }, taskId);
+      }
+      break;
+    }
+
+    case QUEUE_ACTIONS.CREATE_REMINDER: {
+      await safeInsert('reminders', data, taskId);
+      break;
+    }
+
+    case QUEUE_ACTIONS.UPDATE_REMINDER: {
+      const { id, ...updates } = data;
+      const { error } = await supabase
+        .from('reminders')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      break;
+    }
+
+    case QUEUE_ACTIONS.DELETE_REMINDER: {
+      const { id } = data;
+      const { error } = await supabase
+        .from('reminders')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      break;
+    }
+
+    case QUEUE_ACTIONS.REMINDER_ACTION: {
+      const { id, updates } = data;
+      const { error } = await supabase
+        .from('reminders')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
       break;
     }
 

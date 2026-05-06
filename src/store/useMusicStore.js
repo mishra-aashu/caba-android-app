@@ -142,7 +142,7 @@ const useMusicStore = create(
         const { likedSongs } = get();
         const isLiked = likedSongs.some((s) => s.id === song.id);
 
-        // Optimistic update
+        // 1. Optimistic UI update
         set({
           likedSongs: isLiked
             ? likedSongs.filter((s) => s.id !== song.id)
@@ -150,36 +150,33 @@ const useMusicStore = create(
         });
 
         if (userId) {
+          const { queueAction, QUEUE_ACTIONS } = await import('../services/offlineQueue');
+          
           try {
-            if (isLiked) {
-              await supabase
-                .from('music_likes')
-                .delete()
-                .eq('user_id', userId)
-                .eq('song_id', song.id);
-            } else {
-              await supabase
-                .from('music_likes')
-                .upsert(
-                  {
-                    user_id: userId,
-                    song_id: song.id,
-                    song_metadata: song,
-                    created_at: new Date().toISOString(),
-                  },
-                  { onConflict: 'user_id,song_id' }
-                );
-            }
-            console.log(`[MusicStore] Song ${isLiked ? 'unliked' : 'liked'} successfully`);
-          } catch (err) {
-            console.error('[MusicStore] Sync failed:', err);
-            // Safe rollback: only revert the exact song, preserving any concurrent changes
-            set((state) => {
-              if (isLiked) {
-                return { likedSongs: [song, ...state.likedSongs] };
-              } else {
-                return { likedSongs: state.likedSongs.filter((s) => s.id !== song.id) };
+            // 2. Queue the action instead of direct call
+            await queueAction(
+              QUEUE_ACTIONS.TOGGLE_MUSIC_LIKE,
+              'music_likes',
+              {
+                userId,
+                songId: song.id,
+                songMetadata: song,
+                isLiked // Pass current state so processor knows whether to insert or delete
               }
+            );
+            
+            console.log(`[MusicStore] Song ${isLiked ? 'unlike' : 'like'} queued successfully`);
+          } catch (err) {
+            console.error('[MusicStore] Failed to queue like action:', err);
+            // Rollback optimistic update on queue failure (rare)
+            set((state) => ({
+              likedSongs: isLiked
+                ? [song, ...state.likedSongs]
+                : state.likedSongs.filter((s) => s.id !== song.id),
+            }));
+            
+            import('react-hot-toast').then(({ toast }) => {
+              toast.error('Failed to save like action');
             });
           }
         }

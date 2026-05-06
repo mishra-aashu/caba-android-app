@@ -22,38 +22,36 @@ export const coerceDataTypes = (data, tableName) => {
       break;
 
     case 'chats':
-      // Ensure unread_count is always a number
-      if (coerced.unread_count !== undefined) {
-        coerced.unread_count = parseInt(coerced.unread_count) || 0;
+      // Ensure unreadCount is always a number (Mapped from unread_count)
+      if (coerced.unreadCount !== undefined) {
+        coerced.unreadCount = parseInt(coerced.unreadCount) || 0;
       }
       break;
 
     case 'call_history':
-      // Ensure call_duration is a number
-      if (coerced.call_duration !== undefined) {
-        coerced.call_duration = parseInt(coerced.call_duration) || null;
-      }
-      break;
-      // Ensure call_duration is a number
-      if (coerced.call_duration !== undefined) {
-        coerced.call_duration = parseInt(coerced.call_duration) || null;
+      // Ensure callDuration is a number (Mapped from call_duration)
+      if (coerced.callDuration !== undefined) {
+        coerced.callDuration = parseInt(coerced.callDuration) || null;
       }
       break;
 
     case 'users':
       // Ensure boolean fields are actually boolean
-      if (coerced.is_admin !== undefined) {
-        coerced.is_admin = Boolean(coerced.is_admin);
+      if (coerced.isAdmin !== undefined) {
+        coerced.isAdmin = Boolean(coerced.isAdmin);
       }
-      if (coerced.is_online !== undefined) {
-        coerced.is_online = Boolean(coerced.is_online);
+      if (coerced.isOnline !== undefined) {
+        coerced.isOnline = Boolean(coerced.isOnline);
       }
       break;
 
     case 'reminders':
       // Ensure boolean fields
-      if (coerced.is_completed !== undefined) {
-        coerced.is_completed = Boolean(coerced.is_completed);
+      if (coerced.isCompleted !== undefined) {
+        coerced.isCompleted = Boolean(coerced.isCompleted);
+      }
+      if (coerced.snoozeCount !== undefined) {
+        coerced.snoozeCount = parseInt(coerced.snoozeCount) || 0;
       }
       break;
   }
@@ -95,7 +93,6 @@ export const validateRequiredFields = (data, tableName) => {
  * Sanitize data before sending to database
  */
 export const sanitizeDataForDB = (data, tableName) => {
-  // Remove frontend-only fields
   const sanitized = { ...data };
   
   // Remove fields that don't exist in database
@@ -108,15 +105,8 @@ export const sanitizeDataForDB = (data, tableName) => {
     delete sanitized[field];
   });
 
-  // Convert frontend field names to database field names
-  const converted = {};
-  Object.entries(sanitized).forEach(([key, value]) => {
-    // Keep the field as-is if it's already in database format
-    converted[key] = value;
-  });
-
   // Coerce data types
-  return coerceDataTypes(converted, tableName);
+  return coerceDataTypes(sanitized, tableName);
 };
 
 /**
