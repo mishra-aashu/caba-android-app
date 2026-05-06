@@ -370,6 +370,61 @@ const CreateReminder = ({ onBack, editingReminder = null }) => {
       }
 
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      
+      // Notify recipient via chat message if it's a new reminder for someone else
+      if (!editingReminder && selectedRecipient.id !== currentUser.id) {
+        try {
+          // Try to find existing chat ID locally first
+          const allChats = await db.chats_list.toArray();
+          const existingChat = allChats.find(c => c.otherUserId === selectedRecipient.id);
+          
+          let chatId = existingChat?.id;
+          
+          // If not found locally, check Supabase
+          if (!chatId) {
+            const { data: remoteChat } = await supabase
+              .from('chats')
+              .select('id')
+              .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${selectedRecipient.id}),and(user1_id.eq.${selectedRecipient.id},user2_id.eq.${currentUser.id})`)
+              .maybeSingle();
+            chatId = remoteChat?.id;
+          }
+
+          // If still no chat, create one
+          if (!chatId) {
+            const { data: newChat } = await supabase
+              .from('chats')
+              .insert([{ user1_id: currentUser.id, user2_id: selectedRecipient.id }])
+              .select()
+              .single();
+            chatId = newChat?.id;
+          }
+
+          if (chatId) {
+            const messageTempId = crypto.randomUUID();
+            await queueAction(
+              QUEUE_ACTIONS.INSERT_MESSAGE,
+              'messages',
+              {
+                tempId: messageTempId,
+                chat_id: chatId,
+                sender_id: currentUser.id,
+                content: `Scheduled a reminder: ${formData.title}`,
+                message_type: 'reminder',
+                metadata: {
+                  reminder: { ...reminderData }
+                },
+                created_at: new Date().toISOString(),
+                status: 'sent'
+              }
+            );
+          }
+        } catch (msgErr) {
+          console.error('[CreateReminder] Failed to send chat notification:', msgErr);
+          // Don't fail the whole reminder creation if just the chat message fails
+        }
+      }
+
       toast.success(editingReminder ? 'Reminder updated!' : 'Reminder created!');
       onBack?.();
     } catch (err) {

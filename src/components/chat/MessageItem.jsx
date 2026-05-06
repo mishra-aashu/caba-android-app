@@ -3,6 +3,7 @@ import MediaMessage from './MediaMessage';
 import VoiceMessage from './VoiceMessage';
 import { formatBubbleTime } from '../../utils/dateFormatter';
 import SongMessage from './SongMessage';
+import ReminderMessage from './ReminderMessage';
 import { Check, Reply } from 'lucide-react';
 
 import MessageBubble from './MessageBubble';
@@ -282,6 +283,15 @@ const MessageItem = ({
     if (message.messageType === 'song') {
       return (
         <SongMessage
+          message={message}
+          isMine={isSent}
+        />
+      );
+    }
+
+    if (message.messageType === 'reminder') {
+      return (
+        <ReminderMessage
           message={message}
           isMine={isSent}
         />
