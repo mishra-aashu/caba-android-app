@@ -54,22 +54,20 @@ const MusicPage = () => {
 
   const [sessionMode, setSessionMode] = React.useState(null);
   const [selectedCategory, setSelectedCategory] = React.useState(null);
-  const { 
-    currentSong, 
-    activeSection,
-    setActiveSection,
-    isPlaying,
-    setIsPlaying,
-    progress,
-    setProgress,
-    duration,
-    roomId, 
-    joinRoom, 
-    leaveRoom,
-    isHost,
-    setPlayerExpanded,
-    backgroundImages
-  } = useMusicStore();
+  
+  const currentSong = useMusicStore(state => state.currentSong);
+  const activeSection = useMusicStore(state => state.activeSection);
+  const setActiveSection = useMusicStore(state => state.setActiveSection);
+  const songToShare = useMusicStore(state => state.songToShare);
+  const setSongToShare = useMusicStore(state => state.setSongToShare);
+  const isPlaying = useMusicStore(state => state.isPlaying);
+  const setIsPlaying = useMusicStore(state => state.setIsPlaying);
+  const setProgress = useMusicStore(state => state.setProgress);
+  const roomId = useMusicStore(state => state.roomId);
+  const joinRoom = useMusicStore(state => state.joinRoom);
+  const leaveRoom = useMusicStore(state => state.leaveRoom);
+  const user = useAuthStore(state => state.user);
+  const backgroundImages = useMusicStore(state => state.backgroundImages);
 
   const handleSeek = (e) => {
     const time = parseFloat(e.target.value);
@@ -81,14 +79,12 @@ const MusicPage = () => {
       toast.error("No active session to share");
       return;
     }
+    setSongToShare(null); 
     setActiveSection('share');
   };
 
-  const handleShareToChat = async (targetChat) => {
-    if (!roomId || !targetChat) return;
-    
-    const { user } = useAuthStore.getState();
-    if (!user) return;
+  const handleShareSessionToChat = async (targetChat) => {
+    if (!roomId || !targetChat || !user) return;
 
     const tempId = String(Date.now());
     const taskId = crypto.randomUUID();
@@ -115,6 +111,13 @@ const MusicPage = () => {
     try {
       await db.transaction('rw', [db.messages, db.chats_list], async () => {
         await db.messages.put({ ...shareMsg, id: `temp_${tempId}` });
+        // Update chat list recency
+        await db.chats_list.update(String(targetChat.id), {
+          lastMessageAt: shareMsg.createdAt,
+          timestamp: shareMsg.createdAt,
+          lastMessage: `🎧 Music Session Invite`,
+          status: 'sending'
+        }).catch(() => {});
       });
       
       const dbData = frontendToDb(shareMsg);
@@ -129,6 +132,54 @@ const MusicPage = () => {
       toast.error("Failed to share room");
     }
   };
+
+  const handleShareToChat = async (chat) => {
+    // If we have a specific song to share, share that. Otherwise share the session.
+    if (songToShare) {
+      const tempId = String(Date.now());
+      const taskId = crypto.randomUUID();
+
+      const frontendMsg = {
+        chatId: chat.id,
+        senderId: user.id,
+        receiverId: chat.isGroup ? user.id : chat.otherUserId,
+        content: `Shared a song: ${songToShare.title}`,
+        metadata: {
+          song: songToShare,
+          type: 'music_share',
+          roomId: roomId
+        },
+        isGroupMessage: Boolean(chat.isGroup),
+        messageType: 'song',
+        createdAt: new Date().toISOString(),
+        status: 'sending',
+        tempId,
+      };
+
+      try {
+        await db.transaction('rw', [db.messages, db.chats_list], async () => {
+          await db.messages.put({ ...frontendMsg, id: `temp_${tempId}` });
+          await db.chats_list.update(String(chat.id), {
+            lastMessageAt: frontendMsg.createdAt,
+            timestamp: frontendMsg.createdAt,
+            lastMessage: `🎵 ${songToShare.title}`,
+            status: 'sending'
+          }).catch(() => {});
+        });
+
+        const dbData = frontendToDb(frontendMsg);
+        await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData, { taskId });
+        
+        toast.success(`Shared to ${chat.resolvedName || 'Chat'}!`);
+      } catch (error) {
+        console.error("Music share failed:", error);
+        toast.error("Failed to share");
+      }
+    } else {
+      await handleShareSessionToChat(chat);
+    }
+  };
+
 
   const handleJoinManual = (e) => {
     e.preventDefault();
@@ -152,7 +203,7 @@ const MusicPage = () => {
                 loading="lazy"
               />
             ) : (backgroundImages || []).length > 0 ? (
-              backgroundImages.slice(0, 3).map((song, i) => (
+              backgroundImages.slice(0, 2).map((song, i) => (
                 <img 
                   key={`bg-root-${song.id}-${i}`} 
                   src={song.image || (song.images?.['500x500'])} 
@@ -273,8 +324,8 @@ const styles = `
   left: 0;
   right: 0;
   height: 75px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(25px) saturate(180%);
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(15px) saturate(160%);
   display: flex;
   justify-content: space-around;
   align-items: center;

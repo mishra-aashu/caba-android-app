@@ -7,18 +7,16 @@ import useAuthStore from '../../store/authStore';
 
 const MusicHome = ({ onShareSession, onSelectCategory }) => {
   const { user } = useAuthStore();
-  const { 
-    playbackHistory, 
-    likedSongs, 
-    setCurrentSong, 
-    setIsPlaying,
-    setActiveTab,
-    setActiveSection,
-    setSearchQuery,
-    joinRoom,
-    leaveRoom,
-    roomId
-  } = useMusicStore();
+  const playbackHistory = useMusicStore(state => state.playbackHistory);
+  const likedSongs = useMusicStore(state => state.likedSongs);
+  const setCurrentSong = useMusicStore(state => state.setCurrentSong);
+  const setIsPlaying = useMusicStore(state => state.setIsPlaying);
+  const setActiveTab = useMusicStore(state => state.setActiveTab);
+  const setActiveSection = useMusicStore(state => state.setActiveSection);
+  const setSearchQuery = useMusicStore(state => state.setSearchQuery);
+  const joinRoom = useMusicStore(state => state.joinRoom);
+  const leaveRoom = useMusicStore(state => state.leaveRoom);
+  const roomId = useMusicStore(state => state.roomId);
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -240,10 +238,9 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '12px',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease',
                 textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                backdropFilter: 'blur(12px)'
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}
             >
               <div style={{ 

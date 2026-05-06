@@ -1,13 +1,22 @@
-import React from 'react';
-import { Heart, ListMusic, User, ChevronRight, Play } from 'lucide-react';
+import { Heart, ListMusic, User, ChevronRight, Play, Share2 } from 'lucide-react';
 import useMusicStore from '../../store/useMusicStore';
 
 const MusicLibrary = () => {
-  const { likedSongs, setCurrentSong, setIsPlaying } = useMusicStore();
+  const likedSongs = useMusicStore(state => state.likedSongs);
+  const setCurrentSong = useMusicStore(state => state.setCurrentSong);
+  const setIsPlaying = useMusicStore(state => state.setIsPlaying);
+  const setActiveSection = useMusicStore(state => state.setActiveSection);
+  const setSongToShare = useMusicStore(state => state.setSongToShare);
 
   const handleSongClick = (song) => {
     setCurrentSong(song);
     setIsPlaying(true);
+  };
+
+  const handleShare = (e, song) => {
+    e.stopPropagation();
+    setSongToShare(song);
+    setActiveSection('share');
   };
 
   return (
@@ -93,10 +102,16 @@ const MusicLibrary = () => {
                     <Play size={18} fill="white" />
                   </div>
                 </div>
-                <div style={{ overflow: 'hidden' }}>
+                <div style={{ overflow: 'hidden', flex: 1 }}>
                   <h4 style={{ margin: 0, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{song.title}</h4>
                   <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{song.artist}</p>
                 </div>
+                <button 
+                  onClick={(e) => handleShare(e, song)}
+                  style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.3, padding: '8px' }}
+                >
+                  <Share2 size={18} />
+                </button>
               </div>
             ))}
           </div>

@@ -31,27 +31,24 @@ const formatTime = (sec) => {
 
 // ─── component ────────────────────────────────────────────────────
 const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
-  const {
-    currentSong,
-    isPlaying,
-    setIsPlaying,
-    progress,
-    setProgress,
-    duration,
-    setDuration,
-    volume,
-    togglePanel,
-    isPanelOpen,
-    isPlayerExpanded,
-    refreshCurrentSongMetadata,
-    setCurrentSong,
-    roomId,
-    isHost,
-    setPlayerExpanded,
-    lastSeekTo,
-    extractedColors,
-    setExtractedColors,
-  } = useMusicStore();
+  const currentSong = useMusicStore(state => state.currentSong);
+  const isPlaying = useMusicStore(state => state.isPlaying);
+  const setIsPlaying = useMusicStore(state => state.setIsPlaying);
+  const progress = useMusicStore(state => state.progress);
+  const setProgress = useMusicStore(state => state.setProgress);
+  const duration = useMusicStore(state => state.duration);
+  const setDuration = useMusicStore(state => state.setDuration);
+  const volume = useMusicStore(state => state.volume);
+  const isPanelOpen = useMusicStore(state => state.isPanelOpen);
+  const isPlayerExpanded = useMusicStore(state => state.isPlayerExpanded);
+  const refreshCurrentSongMetadata = useMusicStore(state => state.refreshCurrentSongMetadata);
+  const setCurrentSong = useMusicStore(state => state.setCurrentSong);
+  const roomId = useMusicStore(state => state.roomId);
+  const isHost = useMusicStore(state => state.isHost);
+  const setPlayerExpanded = useMusicStore(state => state.setPlayerExpanded);
+  const lastSeekTo = useMusicStore(state => state.lastSeekTo);
+  const extractedColors = useMusicStore(state => state.extractedColors);
+  const setExtractedColors = useMusicStore(state => state.setExtractedColors);
 
   const isDesktop = useIsDesktop();
   const location = useLocation();

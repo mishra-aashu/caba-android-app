@@ -4,15 +4,12 @@ import MusicSearch from './MusicSearch';
 import useMusicStore from '../../store/useMusicStore';
 
 const MusicSearchPage = () => {
-  const { 
-    searchQuery, 
-    setSearchQuery, 
-    recentSearches, 
-    addToRecentSearches, 
-    clearRecentSearches,
-    isSearchLoading,
-    joinRoom
-  } = useMusicStore();
+  const searchQuery = useMusicStore(state => state.searchQuery);
+  const setSearchQuery = useMusicStore(state => state.setSearchQuery);
+  const recentSearches = useMusicStore(state => state.recentSearches);
+  const addToRecentSearches = useMusicStore(state => state.addToRecentSearches);
+  const clearRecentSearches = useMusicStore(state => state.clearRecentSearches);
+  const isSearchLoading = useMusicStore(state => state.isSearchLoading);
   
   const [localQuery, setLocalQuery] = useState(searchQuery);
   
@@ -35,19 +32,30 @@ const MusicSearchPage = () => {
   }, [localQuery]);
 
   return (
-    <div className="music-search-page-fade-in" style={{ paddingBottom: '100px' }}>
+    <div className="music-search-page-fade-in" style={{ padding: '20px 0 120px 0' }}>
       {/* Prominent Search Bar */}
-      <div style={{ position: 'sticky', top: '-10px', zIndex: 100, background: 'transparent', paddingBottom: '12px' }}>
+      <div style={{ 
+        position: 'sticky', 
+        top: '0px', 
+        zIndex: 100, 
+        background: 'rgba(11, 20, 26, 0.4)', 
+        backdropFilter: 'blur(10px)',
+        margin: '0 -16px',
+        padding: '0 16px 16px 16px',
+        borderBottom: '1px solid rgba(255,255,255,0.03)'
+      }}>
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
           gap: '12px', 
-          background: 'rgba(255,255,255,0.05)', 
-          padding: '16px 20px', 
-          borderRadius: '20px',
-          border: '1px solid rgba(255,255,255,0.1)'
+          background: 'rgba(255,255,255,0.03)', 
+          padding: '14px 20px', 
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+          transition: 'all 0.3s ease'
         }}>
-          <Search size={20} style={{ opacity: 0.5 }} />
+          <Search size={20} style={{ color: 'var(--brand-primary)', opacity: 0.7 }} />
           <input 
             type="text" 
             placeholder="Search songs, artists, podcasts..." 
@@ -113,8 +121,22 @@ const MusicSearchPage = () => {
           )}
 
           <div className="trending-suggestions">
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00ff88' }} />
+            <h3 style={{ 
+              margin: '0 0 20px 0', 
+              fontSize: '1.2rem', 
+              fontWeight: 900, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              letterSpacing: '-0.02em'
+            }}>
+              <div style={{ 
+                width: '10px', 
+                height: '10px', 
+                borderRadius: '50%', 
+                background: '#00ff88',
+                boxShadow: '0 0 12px #00ff88' 
+              }} />
               Trending Now
             </h3>
             <MusicSearch hideHeader={true} />

@@ -5,35 +5,57 @@
 .songContainer {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 260px;
+  gap: 12px;
+  width: 280px;
   max-width: 100%;
-  padding: 4px;
+  padding: 16px;
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  margin: 6px 0;
+  transition: transform 0.2s ease;
+}
+
+/* --- Type Specific Themes --- */
+.directCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sessionCard {
+  background: rgba(255, 71, 87, 0.06);
+  border: 1px solid rgba(255, 71, 87, 0.25);
+  animation: sessionGlow 3s infinite alternate;
+}
+
+@keyframes sessionGlow {
+  0% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+  100% { box-shadow: 0 8px 32px rgba(255, 71, 87, 0.15); }
 }
 
 .songCard {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   align-items: center;
 }
 
 /* --- Artwork --- */
 .artworkWrapper {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   flex-shrink: 0;
-  border-radius: 14px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-  background: #1a1a1a;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .artwork {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
 }
 
 .playBtn {
@@ -44,38 +66,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
   transition: all 0.3s ease;
   cursor: pointer;
   backdrop-filter: blur(2px);
 }
 
-.artworkWrapper:hover .playBtn {
-  opacity: 1;
-}
-
-.artworkWrapper:hover .artwork {
-  transform: scale(1.1);
-}
-
 .playIconCircle {
-  width: 38px;
-  height: 38px;
-  background: #fff;
-  color: #0b141a;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #000;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: scale(0.7);
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.playBtn:hover .playIconCircle {
-  transform: scale(1);
-  background: var(--brand-primary, #00a884);
-  color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
 /* --- Meta Info --- */
@@ -85,65 +90,107 @@
 }
 
 .songTitle {
-  font-size: 0.95rem;
-  font-weight: 800;
+  font-size: 1.05rem;
+  font-weight: 900;
   color: #fff;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .songArtist {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 3px 0 8px 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 4px 0 12px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 600;
 }
 
 .platformBadge {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px 10px;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 5px 12px;
+  border-radius: 12px;
   width: fit-content;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .badgeIcon {
-  color: var(--brand-primary, #00a884);
+  color: var(--brand-primary, #00ff88);
   display: flex;
 }
 
+.sessionCard .badgeIcon {
+  color: #ff4757;
+}
+
 .platformBadge span {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   font-weight: 900;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
 }
 
 /* --- Action Footer --- */
 .joinAction {
-  background: rgba(0, 210, 255, 0.1);
-  border: 1px solid rgba(0, 210, 255, 0.2);
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 18px;
+  padding: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 800;
+  gap: 12px;
+  font-size: 0.8rem;
+  font-weight: 900;
   cursor: pointer;
-  transition: all 0.3s ease;
-  letter-spacing: 0.05em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  margin-top: 6px;
+  border: none;
+}
+
+.directCard .joinAction {
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.sessionCard .joinAction {
+  background: rgba(255, 71, 87, 0.18);
+  color: #ff4757;
+  border: 1px solid rgba(255, 71, 87, 0.4);
+}
+
+.joinAction:active {
+  transform: scale(0.96);
+}
+
+.radioIcon {
+  animation: pulseRadio 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseRadio {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .songContainer {
+    width: 260px;
+  }
+  .artworkWrapper {
+    width: 70px;
+    height: 70px;
+  }
 }
 
 .joinAction:hover {

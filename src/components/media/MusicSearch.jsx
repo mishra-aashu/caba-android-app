@@ -343,13 +343,26 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
     { id: "Liked", query: "" }
   ], []);
   
-  const { 
-    currentSong, setCurrentSong, isPlaying, setIsPlaying, roomId, isHost, 
-    playbackHistory, clearHistory, tabCache, setTabCache,
-    likedSongs, toggleLikeSong, fetchLikedSongs,
-    searchResults, setSearchResults, recommendations,
-    activeTab, setActiveTab, searchQuery, setSearchQuery, isSearchLoading, setSearchLoading
-  } = useMusicStore();
+  const currentSong = useMusicStore(state => state.currentSong);
+  const setCurrentSong = useMusicStore(state => state.setCurrentSong);
+  const isPlaying = useMusicStore(state => state.isPlaying);
+  const setIsPlaying = useMusicStore(state => state.setIsPlaying);
+  const roomId = useMusicStore(state => state.roomId);
+  const playbackHistory = useMusicStore(state => state.playbackHistory);
+  const tabCache = useMusicStore(state => state.tabCache);
+  const setTabCache = useMusicStore(state => state.setTabCache);
+  const likedSongs = useMusicStore(state => state.likedSongs);
+  const toggleLikeSong = useMusicStore(state => state.toggleLikeSong);
+  const fetchLikedSongs = useMusicStore(state => state.fetchLikedSongs);
+  const searchResults = useMusicStore(state => state.searchResults);
+  const setSearchResults = useMusicStore(state => state.setSearchResults);
+  const activeTab = useMusicStore(state => state.activeTab);
+  const setActiveTab = useMusicStore(state => state.setActiveTab);
+  const searchQuery = useMusicStore(state => state.searchQuery);
+  const isSearchLoading = useMusicStore(state => state.isSearchLoading);
+  const setSearchLoading = useMusicStore(state => state.setSearchLoading);
+  const setActiveSection = useMusicStore(state => state.setActiveSection);
+  const setSongToShare = useMusicStore(state => state.setSongToShare);
 
   const activeChatId = useChatStore(selectActiveChatId);
   const activeChat = useChatStore(state => state.activeChat);
@@ -632,11 +645,6 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
   }, [currentSong?.id, isPlaying, setIsPlaying, selectSong]);
 
   const handleInvite = async (song) => {
-    if (!activeChatId || !user) {
-      toast.error("Open a chat to share music");
-      return;
-    }
-
     // Enrich song data for better metadata (image, etc.)
     const enriched = await enrichSongDetail(song);
     const imgObj = enriched.images || {};
@@ -653,45 +661,8 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
       media_url: mediaUrl
     };
 
-    const tempId = String(Date.now());
-    const taskId = crypto.randomUUID();
-
-    const frontendMsg = {
-      chatId: activeChatId,
-      senderId: user.id,
-      receiverId: activeChat.isGroup ? user.id : activeChat.otherUserId,
-      content: `Shared a song: ${finalSong.title}`,
-      metadata: {
-        song: finalSong,
-        type: 'music_share',
-        roomId: roomId
-      },
-      isGroupMessage: Boolean(activeChat.isGroup),
-      messageType: 'song',
-      createdAt: new Date().toISOString(),
-      status: 'sending',
-      tempId,
-    };
-
-    try {
-      await db.transaction('rw', [db.messages, db.chats_list], async () => {
-        await db.messages.put({ ...frontendMsg, id: `temp_${tempId}` });
-        await db.chats_list.update(String(activeChatId), {
-          lastMessageAt: frontendMsg.createdAt,
-          timestamp: frontendMsg.createdAt,
-          lastMessage: `🎵 ${finalSong.title}`,
-          status: 'sending'
-        }).catch(() => {});
-      });
-
-      const dbData = frontendToDb(frontendMsg);
-      await queueAction(QUEUE_ACTIONS.INSERT_MESSAGE, 'messages', dbData, { taskId });
-      
-      toast.success("Shared to chat!");
-    } catch (error) {
-      console.error("Music share failed:", error);
-      toast.error("Failed to share");
-    }
+    setSongToShare(finalSong);
+    setActiveSection('share');
   };
 
   // ----------------------------------------------------------------

@@ -36,8 +36,9 @@ const useMusicStore = create(
       isHost: false,
       syncStatus: 'disconnected',
       activeTab: 'Trending',
-      activeSection: 'home', // 'home', 'search', 'library'
+      activeSection: 'home', // 'home', 'search', 'library', 'share'
       recentSearches: [],
+      songToShare: null,
 
       // ─── Actions ───
 
@@ -98,10 +99,10 @@ const useMusicStore = create(
 
       setTabCache: (tabId, results) => {
         if (!tabId) return;
-        set((state) => ({
-          tabCache: { ...state.tabCache, [tabId]: results },
-        }));
+        set((state) => ({ tabCache: { ...state.tabCache, [tabId]: results } }));
       },
+
+      setSongToShare: (song) => set({ songToShare: song }),
 
       // ─── Liked Songs Management ───
       fetchLikedSongs: async (userId) => {

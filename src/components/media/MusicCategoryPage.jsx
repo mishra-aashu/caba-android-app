@@ -23,17 +23,16 @@ const MusicCategoryPage = ({ category, onBack }) => {
   const [songs, setSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingSongId, setLoadingSongId] = useState(null);
-  const { 
-    currentSong, 
-    setCurrentSong, 
-    isPlaying, 
-    setIsPlaying,
-    likedSongs,
-    toggleLikeSong,
-    activeChatId,
-    tabCache,
-    setTabCache
-  } = useMusicStore();
+  const currentSong = useMusicStore(state => state.currentSong);
+  const setCurrentSong = useMusicStore(state => state.setCurrentSong);
+  const isPlaying = useMusicStore(state => state.isPlaying);
+  const setIsPlaying = useMusicStore(state => state.setIsPlaying);
+  const likedSongs = useMusicStore(state => state.likedSongs);
+  const toggleLikeSong = useMusicStore(state => state.toggleLikeSong);
+  const setActiveSection = useMusicStore(state => state.setActiveSection);
+  const setSongToShare = useMusicStore(state => state.setSongToShare);
+  const tabCache = useMusicStore(state => state.tabCache);
+  const setTabCache = useMusicStore(state => state.setTabCache);
   const { user } = useAuthStore();
   const activeChat = useChatStore(state => state.activeChat);
 
@@ -120,50 +119,16 @@ const MusicCategoryPage = ({ category, onBack }) => {
   };
 
   const handleShare = async (song) => {
-    if (!activeChatId) {
-      toast.error("Open a chat to share");
-      return;
-    }
-
     const finalSong = {
       id: song.id,
       title: song.title || song.name,
       artist: song.singers || song.primary_artists || song.artist,
-      image: song.image,
+      image: song.image || song.images?.['500x500'],
       media_url: song.media_url || ''
     };
 
-    const tempId = String(Date.now());
-    const taskId = crypto.randomUUID();
-
-    const frontendMsg = {
-      id: tempId,
-      chatId: activeChatId,
-      senderId: user.id,
-      receiverId: activeChat.isGroup ? user.id : activeChat.otherUserId,
-      content: `Shared a song: ${finalSong.title}`,
-      metadata: { song: finalSong, type: 'music_share', category: category.id },
-      status: 'sending',
-      createdAt: new Date().toISOString()
-    };
-
-    await db.messages.add(frontendMsg);
-    
-    // Background sync task
-    await db.sync_tasks.add({
-        id: taskId,
-        type: 'SEND_MESSAGE',
-        payload: {
-            chat_id: activeChatId,
-            content: frontendMsg.content,
-            metadata: frontendMsg.metadata,
-            temp_id: tempId
-        },
-        status: 'pending',
-        created_at: new Date().toISOString()
-    });
-
-    toast.success(`Shared "${finalSong.title}" to chat`, { icon: <Send size={18} /> });
+    setSongToShare(finalSong);
+    setActiveSection('share');
   };
 
   return (
@@ -205,8 +170,7 @@ const MusicCategoryPage = ({ category, onBack }) => {
             width: '100px',
             height: '100px',
             borderRadius: '24px',
-            background: 'rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(10px)',
+            background: 'rgba(255,255,255,0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -265,7 +229,7 @@ const MusicCategoryPage = ({ category, onBack }) => {
                   alignItems: 'center',
                   gap: '14px',
                   border: currentSong?.id === song.id ? '1px solid rgba(0, 255, 136, 0.2)' : '1px solid rgba(255,255,255,0.03)',
-                  transition: 'all 0.2s ease'
+                  transition: 'background 0.2s ease, transform 0.2s ease'
                 }}
               >
                 <div style={{ position: 'relative', width: '52px', height: '52px' }}>
