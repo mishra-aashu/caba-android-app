@@ -314,7 +314,7 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: var(--spacing-xxs, 2px);
+  margin-bottom: 0px;
 }
 
 .chat-name {
@@ -346,12 +346,14 @@
 }
 
 .chat-last-message {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
+  margin: 0;
+  line-height: 1.2;
 }
 
 /* ✅ Emerald badge with rounded pill shape */

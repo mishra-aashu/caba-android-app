@@ -5,22 +5,23 @@
 }
 
 .reminderCard {
-  width: 260px;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
+  width: 280px;
+  background: var(--card-bg-glass);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border-glass);
+  border-radius: var(--card-radius-xl);
   overflow: hidden;
   position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  margin: 2px 0;
-  transition: transform 0.2s ease;
+  box-shadow: var(--card-shadow);
+  margin: 4px 0;
+  transition: var(--card-transition);
 }
 
 .reminderCard:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-4px) scale(1.01);
+  background: var(--card-hover-bg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }
 
 /* Priority Accent Bar */
@@ -43,21 +44,21 @@
   display: flex;
   padding: 16px 14px;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  background: var(--card-accent-bg);
+  border-bottom: 1px solid var(--card-accent-border);
 }
 
 .iconWrapper {
-  width: 42px;
-  height: 42px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  background: var(--card-accent-bg);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   flex-shrink: 0;
-  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.05);
 }
 
 .categoryIcon {
@@ -75,7 +76,7 @@
 .reminderTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--card-text-primary);
   margin: 0;
   line-height: 1.2;
   white-space: nowrap;
@@ -87,8 +88,9 @@
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.8px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--card-text-secondary);
   margin-top: 4px;
+  opacity: 0.7;
 }
 
 .cardBody {
@@ -97,7 +99,7 @@
 
 .description {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--card-text-secondary);
   margin: 0 0 12px 0;
   line-height: 1.5;
   display: -webkit-box;
@@ -117,11 +119,11 @@
   align-items: center;
   gap: 10px;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--card-text-secondary);
 }
 
 .metaIcon {
-  color: #22d3ee;
+  color: var(--card-accent-text);
   opacity: 0.8;
 }
 
@@ -133,33 +135,36 @@
 
 .actionBtn {
   width: 100%;
-  padding: 12px;
-  background: rgba(34, 211, 238, 0.08);
+  padding: 14px;
+  background: var(--card-accent-bg);
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  color: #22d3ee;
-  font-size: 0.8rem;
-  font-weight: 700;
+  border-top: 1px solid var(--card-border-glass);
+  color: var(--card-accent-text);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: all 0.2s ease;
+  gap: 8px;
+  transition: var(--card-transition);
 }
 
 .actionBtn:hover {
   background: rgba(34, 211, 238, 0.15);
   color: #ffffff;
+  letter-spacing: 0.1em;
 }
 
 .cardFooter {
   padding: 8px 14px;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--card-text-secondary);
   font-weight: 500;
 }

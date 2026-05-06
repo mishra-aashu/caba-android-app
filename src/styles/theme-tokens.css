@@ -39,7 +39,7 @@
   --theme-backdrop-blur: blur(16px);
   --theme-text-contrast: 0 2px 4px rgba(0, 0, 0, 0.15);
   --theme-icon-shadow: 0 1px 3px rgba(0, 60, 40, 0.2);
-  --theme-message-shadow: 0 1px 4px rgba(0, 60, 40, 0.08);
+  --theme-message-shadow: 0 4px 12px rgba(0, 60, 40, 0.12);
 
 
   /* ── 2. Chat Background ── */
@@ -53,17 +53,17 @@
   /* ── 3. Sent Message — Emerald Gradient ── */
   --sent-message-bg: linear-gradient(135deg, #00a884 0%, #00876a 100%);
   --sent-message-text: #ffffff;
-  --sent-message-border: 1px solid rgba(255, 255, 255, 0.18);
-  --sent-message-shadow: 0 2px 10px rgba(0, 168, 132, 0.25);
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.25);
+  --sent-message-shadow: 0 4px 14px rgba(0, 168, 132, 0.3);
   --sent-message-meta: rgba(255, 255, 255, 0.85);
 
 
   /* ── 4. Received Message ── */
   --received-message-bg: #ffffff;
   --received-message-text: #111b21;
-  --received-message-border: 1px solid rgba(0, 60, 40, 0.06);
-  --received-message-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  --received-message-meta: rgba(0, 0, 0, 0.45);
+  --received-message-border: 1px solid rgba(0, 60, 40, 0.18);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --received-message-meta: rgba(0, 0, 0, 0.5);
 
 
   /* ── 5. Ticks ── */

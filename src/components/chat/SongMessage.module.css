@@ -9,23 +9,41 @@
   width: 280px;
   max-width: 100%;
   padding: 16px;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 28px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-  margin: 6px 0;
-  transition: transform 0.2s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  margin: 10px 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.songContainer:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
 }
 
 /* --- Type Specific Themes --- */
 .directCard {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, var(--card-bg-glass, rgba(255, 255, 255, 0.1)), rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--card-border-glass, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .directCard {
+  background: linear-gradient(135deg, rgba(30, 40, 50, 0.8), rgba(15, 20, 25, 0.6));
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sessionCard {
-  background: rgba(255, 71, 87, 0.06);
-  border: 1px solid rgba(255, 71, 87, 0.25);
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.15), rgba(255, 71, 87, 0.05));
+  border: 1.5px solid rgba(255, 71, 87, 0.3);
   animation: sessionGlow 3s infinite alternate;
+}
+
+[data-theme='dark'] .sessionCard {
+  background: linear-gradient(135deg, rgba(42, 10, 15, 0.8), rgba(20, 5, 8, 0.6));
+  border: 1.5px solid rgba(255, 71, 87, 0.4);
 }
 
 @keyframes sessionGlow {
@@ -62,7 +80,6 @@
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,22 +109,31 @@
 .songTitle {
   font-size: 1.05rem;
   font-weight: 900;
-  color: #fff;
+  color: var(--text-primary, #ffffff);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+}
+
+[data-theme='dark'] .songTitle {
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .songArtist {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
   margin: 4px 0 12px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 600;
+}
+
+[data-theme='dark'] .songArtist {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .platformBadge {
@@ -131,10 +157,10 @@
 }
 
 .platformBadge span {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 900;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
   text-transform: uppercase;
 }
 
@@ -157,15 +183,22 @@
 }
 
 .directCard .joinAction {
-  background: rgba(0, 255, 136, 0.15);
-  color: #00ff88;
-  border: 1px solid rgba(0, 255, 136, 0.3);
+  background: linear-gradient(135deg, #00ff88 0%, #00d16f 100%);
+  color: #00331a; /* High contrast dark green text on bright green */
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 15px rgba(0, 255, 136, 0.25);
+}
+
+[data-theme='dark'] .directCard .joinAction {
+  background: #00ff88;
+  color: #000000;
 }
 
 .sessionCard .joinAction {
-  background: rgba(255, 71, 87, 0.18);
-  color: #ff4757;
-  border: 1px solid rgba(255, 71, 87, 0.4);
+  background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
+  color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 15px rgba(255, 71, 87, 0.25);
 }
 
 .joinAction:active {

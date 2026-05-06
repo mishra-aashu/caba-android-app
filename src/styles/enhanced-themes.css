@@ -51,16 +51,16 @@
   /* ── Sent Messages ── */
   --sent-message-bg: #d9fdd3;
   --sent-message-text: #111b21;
-  --sent-message-border: none;
-  --sent-message-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+  --sent-message-border: 1px solid rgba(0, 60, 40, 0.1);
+  --sent-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --sent-message-meta: rgba(17, 27, 33, 0.55);
   --sent-message-radius: 7.5px;
 
   /* ── Received Messages ── */
   --received-message-bg: #ffffff;
   --received-message-text: #111b21;
-  --received-message-border: none;
-  --received-message-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+  --received-message-border: 1px solid rgba(0, 60, 40, 0.15);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --received-message-meta: rgba(17, 27, 33, 0.5);
   --received-message-radius: 7.5px;
 
@@ -178,15 +178,15 @@
   /* ── Sent Messages ── */
   --sent-message-bg: #005c4b;
   --sent-message-text: #e9edef;
-  --sent-message-border: none;
-  --sent-message-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
+  --sent-message-border: 1px solid rgba(255, 255, 255, 0.08);
+  --sent-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   --sent-message-meta: rgba(233, 237, 239, 0.6);
 
   /* ── Received Messages ── */
   --received-message-bg: #202c33;
   --received-message-text: #e9edef;
-  --received-message-border: none;
-  --received-message-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
+  --received-message-border: 1px solid rgba(255, 255, 255, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(233, 237, 239, 0.5);
 
   /* ── Bubble Shadow ── */
@@ -297,7 +297,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
   --received-message-text: #065f46;
   --received-message-border: 1px solid rgba(5, 150, 105, 0.12);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(6, 95, 70, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -375,7 +375,7 @@
   --received-message-bg: #0f2a20;
   --received-message-text: #d1fae5;
   --received-message-border: 1px solid rgba(52, 211, 153, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(209, 250, 229, 0.5);
 
   --tick-color: rgba(209, 250, 229, 0.3);
@@ -461,7 +461,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
   --received-message-text: #0c4a6e;
   --received-message-border: 1px solid rgba(2, 132, 199, 0.1);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(12, 74, 110, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -537,7 +537,7 @@
   --received-message-bg: #0d2137;
   --received-message-text: #e0f2fe;
   --received-message-border: 1px solid rgba(56, 189, 248, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(224, 242, 254, 0.5);
 
   --tick-color: rgba(224, 242, 254, 0.3);
@@ -613,7 +613,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
   --received-message-text: #881337;
   --received-message-border: 1px solid rgba(225, 29, 72, 0.1);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(136, 19, 55, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -686,7 +686,7 @@
   --received-message-bg: #2a0f18;
   --received-message-text: #ffe4e6;
   --received-message-border: 1px solid rgba(251, 113, 133, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(255, 228, 230, 0.5);
 
   --tick-color: rgba(255, 228, 230, 0.3);
@@ -762,7 +762,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
   --received-message-text: #78350f;
   --received-message-border: 1px solid rgba(217, 119, 6, 0.12);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(120, 53, 15, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.5);
@@ -835,7 +835,7 @@
   --received-message-bg: #2a2010;
   --received-message-text: #fef3c7;
   --received-message-border: 1px solid rgba(251, 191, 36, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(254, 243, 199, 0.5);
 
   --tick-color: rgba(254, 243, 199, 0.3);
@@ -911,7 +911,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
   --received-message-text: #7c2d12;
   --received-message-border: 1px solid rgba(234, 88, 12, 0.1);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(124, 45, 18, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -986,7 +986,7 @@
   --received-message-bg: #2a1a0e;
   --received-message-text: #ffedd5;
   --received-message-border: 1px solid rgba(251, 146, 60, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(255, 237, 213, 0.5);
 
   --tick-color: rgba(255, 237, 213, 0.3);
@@ -1062,7 +1062,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #ecfeff 100%);
   --received-message-text: #164e63;
   --received-message-border: 1px solid rgba(8, 145, 178, 0.1);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(22, 78, 99, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -1135,7 +1135,7 @@
   --received-message-bg: #0d2530;
   --received-message-text: #cffafe;
   --received-message-border: 1px solid rgba(34, 211, 238, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(207, 250, 254, 0.5);
 
   --tick-color: rgba(207, 250, 254, 0.3);
@@ -1366,7 +1366,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
   --received-message-text: #3b0764;
   --received-message-border: 1px solid rgba(168, 85, 247, 0.12);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(59, 7, 100, 0.6);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -1437,7 +1437,7 @@
   --received-message-bg: rgba(13, 13, 21, 0.9);
   --received-message-text: #e0f2fe;
   --received-message-border: 1px solid rgba(0, 255, 234, 0.1);
-  --received-message-shadow: 0 0 8px rgba(0, 255, 234, 0.04), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 0 8px rgba(0, 255, 234, 0.04), 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(0, 255, 234, 0.4);
 
   --tick-color: rgba(0, 255, 234, 0.25);
@@ -1528,7 +1528,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
   --received-message-text: #4c1d95;
   --received-message-border: 1px solid rgba(124, 58, 237, 0.1);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(76, 29, 149, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -1598,7 +1598,7 @@
   --received-message-bg: #1a1030;
   --received-message-text: #ede9fe;
   --received-message-border: 1px solid rgba(167, 139, 250, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(237, 233, 254, 0.5);
 
   --tick-color: rgba(237, 233, 254, 0.3);
@@ -1675,7 +1675,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
   --received-message-text: #881337;
   --received-message-border: 1px solid rgba(225, 29, 72, 0.1);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(136, 19, 55, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -1744,7 +1744,7 @@
   --received-message-bg: #2a0e16;
   --received-message-text: #ffe4e6;
   --received-message-border: 1px solid rgba(253, 164, 175, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(255, 228, 230, 0.5);
 
   --tick-color: rgba(255, 228, 230, 0.3);
@@ -1821,7 +1821,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
   --received-message-text: #14532d;
   --received-message-border: 1px solid rgba(22, 163, 74, 0.1);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(20, 83, 45, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -1890,7 +1890,7 @@
   --received-message-bg: #0f2a18;
   --received-message-text: #dcfce7;
   --received-message-border: 1px solid rgba(74, 222, 128, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(220, 252, 231, 0.5);
 
   --tick-color: rgba(220, 252, 231, 0.3);
@@ -1967,7 +1967,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
   --received-message-text: #1e3a5f;
   --received-message-border: 1px solid rgba(37, 99, 235, 0.1);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(30, 58, 95, 0.65);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -2036,7 +2036,7 @@
   --received-message-bg: #0d1a35;
   --received-message-text: #dbeafe;
   --received-message-border: 1px solid rgba(96, 165, 250, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(219, 234, 254, 0.5);
 
   --tick-color: rgba(219, 234, 254, 0.3);
@@ -2555,7 +2555,7 @@
   --received-message-bg: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
   --received-message-text: #7c2d12;
   --received-message-border: 1px solid rgba(220, 38, 38, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --received-message-meta: rgba(124, 45, 18, 0.6);
 
   --tick-color: rgba(255, 255, 255, 0.45);
@@ -2624,7 +2624,7 @@
   --received-message-bg: #2a150e;
   --received-message-text: #fef2f2;
   --received-message-border: 1px solid rgba(252, 165, 165, 0.08);
-  --received-message-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --received-message-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --received-message-meta: rgba(254, 242, 242, 0.5);
 
   --tick-color: rgba(254, 242, 242, 0.3);

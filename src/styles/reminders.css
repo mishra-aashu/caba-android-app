@@ -353,19 +353,19 @@
   align-items: center;
   gap: var(--spacing-sm);
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--card-bg-glass);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border-glass);
   border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: var(--card-transition);
   flex-shrink: 0;
   min-width: 110px;
 }
 
 .stat-filter-item:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--card-hover-bg);
   transform: translateY(-2px);
 }
 

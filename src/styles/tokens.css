@@ -73,6 +73,20 @@
     --glass-bg: rgba(255, 255, 255, 0.65);
     --glass-border: rgba(255, 255, 255, 0.35);
     --glass-blur: 20px;
+
+    /* Premium Card Tokens */
+    --card-bg-glass: rgba(0, 0, 0, 0.03);
+    --card-border-glass: rgba(0, 0, 0, 0.08);
+    --card-text-primary: #0c1e17;
+    --card-text-secondary: #4a6e5c;
+    --card-accent-text: #00876a;
+    --card-accent-bg: rgba(0, 0, 0, 0.05);
+    --card-accent-border: rgba(0, 0, 0, 0.1);
+    --card-blur: 16px;
+    --card-radius-xl: 24px;
+    --card-shadow: 0 12px 40px rgba(0, 60, 40, 0.12);
+    --card-hover-bg: rgba(0, 0, 0, 0.05);
+    --card-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     --sidebar-bg: rgba(255, 255, 255, 0.75);
     --sidebar-border: rgba(0, 0, 0, 0.08);
@@ -94,6 +108,17 @@
     --glass-bg: rgba(17, 27, 33, 0.6);
     --glass-border: rgba(255, 255, 255, 0.06);
     
+    /* Dark Mode Premium Card Tokens */
+    --card-bg-glass: rgba(255, 255, 255, 0.03);
+    --card-border-glass: rgba(255, 255, 255, 0.08);
+    --card-text-primary: #ffffff;
+    --card-text-secondary: rgba(255, 255, 255, 0.7);
+    --card-accent-text: #22d3ee;
+    --card-accent-bg: rgba(255, 255, 255, 0.08);
+    --card-accent-border: rgba(255, 255, 255, 0.12);
+    --card-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+    --card-hover-bg: rgba(255, 255, 255, 0.06);
+
     --sidebar-bg: rgba(17, 27, 33, 0.75);
     --sidebar-border: rgba(255, 255, 255, 0.06);
 

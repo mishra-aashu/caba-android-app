@@ -88,7 +88,7 @@
 /* --- THE UNIQUE MEDIA BUBBLE --- */
 .message-row .media-bubble {
   position: relative;
-  max-width: 82%;
+  max-width: 75%;
   width: fit-content;
   overflow: hidden;
 
@@ -145,7 +145,7 @@
 /* --- Desktop Max Width --- */
 @media (min-width: 768px) {
   .media-bubble {
-    max-width: 380px;
+    max-width: 320px;
   }
 }
 
@@ -164,32 +164,31 @@
 
 .actual-image {
   width: 100%;
-  aspect-ratio: 1 / 1;
-  max-height: 450px;
+  max-height: 380px;
   object-fit: cover;
   display: block;
+  border-radius: 12px;
 }
 
 /* Placeholder Styling */
 .media-placeholder {
   width: 100%;
   aspect-ratio: 1 / 1;
-  max-width: 320px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  max-width: 280px;
+  background: var(--card-bg-glass);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 20px;
-  /* Better internal breathing room */
+  transition: var(--card-transition);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+  border: 1px solid var(--card-border-glass);
+  border-radius: var(--card-radius-xl);
+  padding: 24px;
 }
 
 .media-placeholder::before {
@@ -212,17 +211,24 @@
 }
 
 .media-content:hover .media-placeholder {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--card-hover-bg);
+  border-color: var(--card-accent-text);
+  transform: scale(1.01);
 }
 
 .media-placeholder .icon {
-  font-size: 2.4rem;
-  /* Slightly smaller for better fit */
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+  font-size: 3rem;
+  padding: 20px;
+  background: var(--card-accent-bg);
+  border-radius: 50%;
+  border: 1px solid var(--card-accent-border);
+  filter: drop-shadow(var(--shadow-sm));
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   margin: 0;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .media-content:hover .media-placeholder .icon {
@@ -235,46 +241,32 @@
   justify-content: center;
   width: fit-content;
   max-width: 90%;
-  /* Prevent hitting edges */
   height: auto;
 
-  font-size: 13px;
-  /* Slightly smaller */
-  font-weight: 800;
-  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: var(--card-accent-text);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.1em;
   white-space: nowrap;
-  /* PREVENT WRAPPING */
 
-  padding: 8px 18px;
-  /* Balanced padding */
-  background: rgba(255, 255, 255, 0.12);
+  padding: 10px 22px;
+  background: var(--card-accent-bg);
   border-radius: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--card-accent-border);
   backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
 
-  transition: all 0.3s ease;
+  transition: var(--card-transition);
 }
 
 .media-content:hover .media-placeholder .text {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: scale(1.02);
+  background: var(--card-accent-text);
+  color: #ffffff;
+  transform: translateY(-2px);
 }
 
-/* Light theme overrides for placeholder */
-[data-theme='light'] .media-placeholder {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.02) 100%);
-  border-color: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme='light'] .media-placeholder .text {
-  color: #111b21;
-  background: rgba(0, 0, 0, 0.08);
-  border-color: rgba(0, 0, 0, 0.12);
-}
+/* Light theme overrides for placeholder - Removed as tokens handle this now */
 
 /* Timestamp Overlay */
 .media-time-overlay {
