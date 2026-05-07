@@ -15,6 +15,7 @@ import useOnlineStatus from './hooks/useOnlineStatus';
 import useNetworkSync from './hooks/useNetworkSync';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import usePlatformInit from './hooks/usePlatformInit';
+import OfflineMusicManager from './services/OfflineMusicManager';
 
 import { DialogProvider } from './contexts/DialogProvider';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
@@ -276,6 +277,9 @@ const App = () => {
     usePlatformInit();
     useCapacitorPlugins();
     useNetworkSync();
+    useEffect(() => {
+        OfflineMusicManager.init();
+    }, []);
 
     return (
         <Suspense fallback={<div className="loading" />}>

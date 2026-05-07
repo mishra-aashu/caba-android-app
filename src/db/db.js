@@ -172,6 +172,11 @@ db.version(14).stores({
     messages: 'id, chatId, createdAt, senderId, tempId, vanishAt, retryCount, isPinned, [chatId+createdAt]',
     sync_queue: '++id, status, action, createdAt, nextRetryAt, scheduledAt, dependencyId, retryCount'
 });
+// Version 15: Offline Music Support
+// Stores local file paths and download status for offline playback
+db.version(15).stores({
+    offline_music_store: 'song_id, download_status, local_file_path'
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS

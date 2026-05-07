@@ -1344,3 +1344,33 @@
     background: linear-gradient(135deg, #05080f 0%, #0a0e1a 50%, #08090f 100%);
   }
 }
+/* --- Download Button Styles --- */
+.fs-action-btn.download-btn-fs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-progress-mini {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-progress-mini .progress-text {
+  position: absolute;
+  font-size: 8px;
+  font-weight: bold;
+  color: #00ff88;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -5,9 +5,9 @@ import useAuthStore from '../../store/authStore';
 import {
   ChevronDown, MoreHorizontal, SkipBack, SkipForward,
   Play, Pause, Share2, ListMusic, Heart, ChevronRight,
-  Repeat, Repeat1,
+  Repeat, Repeat1, Download, CheckCircle, Loader2
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import OfflineMusicManager from '../../services/OfflineMusicManager';
 import './FullscreenPlayer.css';
 
 const FullscreenPlayer = () => {
@@ -23,6 +23,7 @@ const FullscreenPlayer = () => {
     recommendations,
     repeatMode, toggleRepeatMode,
     extractedColors,
+    downloadProgress,
   } = useMusicStore();
 
   const dragControls = useDragControls();
@@ -158,6 +159,11 @@ const FullscreenPlayer = () => {
     recommendationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleDownload = () => {
+    if (!currentSong) return;
+    OfflineMusicManager.downloadSong(currentSong);
+  };
+
   // ─── Render helpers ────────────────────────────────────────────
   const isLiked = likedSongs.some((s) => s.id === currentSong.id);
 
@@ -248,6 +254,22 @@ const FullscreenPlayer = () => {
               </button>
               <button className="fs-action-btn" onClick={handleShare}>
                 <Share2 size={20} />
+              </button>
+              <button 
+                className="fs-action-btn download-btn-fs" 
+                onClick={handleDownload}
+                title={downloadProgress[currentSong.id] === 100 ? 'Downloaded' : 'Download'}
+              >
+                {downloadProgress[currentSong.id] === 100 ? (
+                  <CheckCircle size={20} color="#00ff88" />
+                ) : downloadProgress[currentSong.id] > 0 ? (
+                  <div className="download-progress-mini">
+                    <Loader2 size={20} className="animate-spin" />
+                    <span className="progress-text">{Math.round(downloadProgress[currentSong.id])}%</span>
+                  </div>
+                ) : (
+                  <Download size={20} />
+                )}
               </button>
               <button className="fs-action-btn" onClick={scrollToRecommendations}>
                 <ListMusic size={20} />

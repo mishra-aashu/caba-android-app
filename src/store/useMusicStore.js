@@ -30,6 +30,7 @@ const useMusicStore = create(
       backgroundImages: [],
       recommendations: [],
       repeatMode: 'off', // 'off', 'all', 'one'
+      downloadProgress: {}, // songId -> percentage
 
       // ─── Listen Together (Sync) State ───
       roomId: null,
@@ -429,6 +430,12 @@ const useMusicStore = create(
           console.error('[MusicStore] Metadata refresh failed:', err);
           return false;
         }
+      },
+
+      setDownloadProgress: (songId, progress) => {
+        set(state => ({
+          downloadProgress: { ...state.downloadProgress, [songId]: progress }
+        }));
       },
 
       // ─── User Cleanup (call on logout) ───
