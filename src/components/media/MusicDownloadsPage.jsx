@@ -61,11 +61,11 @@ const MusicDownloadsPage = ({ onBack }) => {
 
   return (
     <div className="music-downloads-page">
-      <header className="library-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={onBack} className="action-btn" style={{ padding: '8px', opacity: 1 }}>
+      <header className="library-header">
+        <button onClick={onBack} className="action-btn">
           <ArrowLeft size={24} />
         </button>
-        <h1 style={{ margin: 0 }}>Downloads</h1>
+        <h1>Downloads</h1>
       </header>
 
       <div className="library-content" style={{ marginTop: '20px' }}>
@@ -78,15 +78,19 @@ const MusicDownloadsPage = ({ onBack }) => {
                 : song.image;
 
               return (
-                <div 
+                <motion.div 
                   key={song.id} 
                   className="song-list-item"
                   onClick={() => handlePlay(item)}
+                  whileHover={{ x: 5 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
                 >
                   <div className="song-artwork-wrapper">
                     <img src={artworkUrl} alt="" className="song-artwork" />
                     <div className="play-overlay">
-                      <Play size={20} fill="white" color="white" />
+                      <Play size={24} fill="white" color="white" />
                     </div>
                   </div>
                   <div className="song-info">
@@ -94,7 +98,7 @@ const MusicDownloadsPage = ({ onBack }) => {
                     <p className="song-artist" dangerouslySetInnerHTML={{ __html: song.artist }} />
                     <div className="offline-badge">
                       <Zap size={10} fill="currentColor" />
-                      {(item.file_size / (1024 * 1024)).toFixed(1)} MB • Offline
+                      {(item.file_size / (1024 * 1024)).toFixed(1)} MB • Cached
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '4px' }}>
@@ -105,7 +109,7 @@ const MusicDownloadsPage = ({ onBack }) => {
                       <Trash2 size={18} />
                     </button>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -122,10 +126,9 @@ const MusicDownloadsPage = ({ onBack }) => {
               <button 
                 className="empty-action-btn" 
                 onClick={() => setActiveSection('search')}
-                style={{ padding: '14px 32px', fontSize: '1rem' }}
               >
-                <Search size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                Browse Songs
+                <Search size={20} />
+                Find Music
               </button>
             </div>
           )

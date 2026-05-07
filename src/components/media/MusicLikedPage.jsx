@@ -24,26 +24,30 @@ const MusicLikedPage = ({ onBack }) => {
 
   return (
     <div className="music-liked-page">
-      <header className="library-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={onBack} className="action-btn" style={{ padding: '8px', opacity: 1 }}>
+      <header className="library-header">
+        <button onClick={onBack} className="action-btn">
           <ArrowLeft size={24} />
         </button>
-        <h1 style={{ margin: 0 }}>Liked Songs</h1>
+        <h1>Liked Songs</h1>
       </header>
 
       <div className="library-content" style={{ marginTop: '20px' }}>
         {likedSongs.length > 0 ? (
           <div className="song-list">
             {likedSongs.map(song => (
-              <div 
+              <motion.div 
                 key={song.id} 
                 className="song-list-item"
                 onClick={() => handlePlay(song)}
+                whileHover={{ x: 5 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
               >
                 <div className="song-artwork-wrapper">
                   <img src={song.image} alt="" className="song-artwork" />
                   <div className="play-overlay">
-                    <Play size={20} fill="white" color="white" />
+                    <Play size={24} fill="white" color="white" />
                   </div>
                 </div>
                 <div className="song-info">
@@ -53,7 +57,7 @@ const MusicLikedPage = ({ onBack }) => {
                 <button className="action-btn" onClick={(e) => handleShare(e, song)}>
                   <Share2 size={18} />
                 </button>
-              </div>
+              </motion.div>
             ))}
           </div>
         ) : (
@@ -68,10 +72,9 @@ const MusicLikedPage = ({ onBack }) => {
             <button 
               className="empty-action-btn" 
               onClick={() => setActiveSection('search')}
-              style={{ padding: '14px 32px', fontSize: '1rem', background: '#ff416c', color: '#fff' }}
             >
-              <Search size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-              Discover Music
+              <Search size={20} />
+              Find Music
             </button>
           </div>
         )}
