@@ -11,7 +11,7 @@ import { frontendToDb } from '../../utils/dbFieldMapping';
 import { queueAction, QUEUE_ACTIONS } from '../../services/offlineQueue';
 import { 
   Search, Play, Pause, Users, Music, Loader2, Send, Heart, 
-  MoreVertical, List, User, Disc, CloudDownload
+  MoreVertical, List, User, Disc, CloudDownload, X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { spotifyService } from '../../services/spotifyService';
@@ -363,6 +363,10 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
   const setSearchLoading = useMusicStore(state => state.setSearchLoading);
   const setActiveSection = useMusicStore(state => state.setActiveSection);
   const setSongToShare = useMusicStore(state => state.setSongToShare);
+  const recentSearches = useMusicStore(state => state.recentSearches);
+  const clearRecentSearches = useMusicStore(state => state.clearRecentSearches);
+  const clearHistory = useMusicStore(state => state.clearHistory);
+  const addToRecentSearches = useMusicStore(state => state.addToRecentSearches);
 
   const activeChatId = useChatStore(selectActiveChatId);
   const activeChat = useChatStore(state => state.activeChat);
@@ -402,10 +406,14 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
   // 3. Search handler (used for both tabs and manual search)
   // ----------------------------------------------------------------
   const handleSearch = useCallback(async (query, tabId = null, page = 1) => {
-    if (!query || !query.trim()) return;
+    const isTabRefresh = tabId && tabCache[tabId];
     
-    if (page === 1) setSearchLoading(true);
-    else setMoreLoading(true);
+    if (page === 1 && !isTabRefresh) setSearchLoading(true);
+    else if (page > 1) setMoreLoading(true);
+
+    if (!tabId && page === 1) {
+      addToRecentSearches(query);
+    }
 
     try {
       const res = await fetch(`${MUSIC_API_BASE}/search?query=${encodeURIComponent(query)}&page=${page}`);
@@ -455,7 +463,7 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
       }
     } catch (error) {
       console.error("Search error:", error);
-      if (page === 1) {
+      if (page === 1 && !isTabRefresh) {
         setSearchResults([]);
         setHeroSongs([]);
       }
@@ -463,7 +471,7 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
       setSearchLoading(false);
       setMoreLoading(false);
     }
-  }, [setSearchLoading, setSearchResults, setTabCache]);
+  }, [setSearchLoading, setSearchResults, setTabCache, addToRecentSearches, tabCache]);
 
   // 4. Unified effect for tab switching and data synchronisation
   useEffect(() => {
@@ -494,7 +502,7 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
       return;
     }
 
-    // Normal music tabs
+    // Normal music tabs: Show cache for speed, but always fetch fresh in background
     const cachedResults = tabCache[activeTab];
     if (cachedResults) {
       if (activeTab === "Trending") {
@@ -503,11 +511,12 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
         setHeroSongs([]);
       }
       setSearchResults(cachedResults);
-    } else {
-      const tab = tabs.find(t => t.id === activeTab);
-      if (tab) {
-        handleSearch(tab.query, activeTab);
-      }
+    }
+    
+    // Always trigger a fresh search for the current tab in the background
+    const tab = tabs.find(t => t.id === activeTab);
+    if (tab && tab.query) {
+      handleSearch(tab.query, activeTab);
     }
   }, [
     activeTab,

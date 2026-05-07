@@ -183,19 +183,34 @@ export default defineConfig(({ mode }) => {
             },
             {
               // Audio files caching (Range Request Support)
-              // Matches common audio extensions and the JioSaavn CDN pattern
-              urlPattern: /.*\.mp3|.*\.m4a|.*\.aac|.*\.ogg|.*\.wav|.*saavncdn\.com.*/i,
+              // Matches common audio extensions
+              urlPattern: /.*\.mp3|.*\.m4a|.*\.aac|.*\.ogg|.*\.wav/i,
               handler: 'CacheFirst',
               options: {
                 cacheName: 'audio-cache',
                 expiration: {
-                  maxEntries: 100, // Sufficient for a large library
+                  maxEntries: 100,
                   maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
                 },
                 cacheableResponse: {
-                  statuses: [0, 200], // 0 for opaque (CORS) responses
+                  statuses: [0, 200],
                 },
                 rangeRequests: true, // CRITICAL: Handles partial content for audio playback
+              },
+            },
+            {
+              // JioSaavn CDN Images (Opaque responses, NO range requests)
+              urlPattern: /.*saavncdn\.com.*/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'saavn-images-cache',
+                expiration: {
+                  maxEntries: 200,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
               },
             },
           ],

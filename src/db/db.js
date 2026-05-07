@@ -182,6 +182,13 @@ db.version(16).stores({
     liked_songs: 'id, created_at'
 });
 
+// Version 17: Group Members Caching
+// Support for offline group details and member lists
+db.version(17).stores({
+    groups: 'id, name, created_by',
+    group_members: '[groupId+userId], groupId, userId'
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
