@@ -159,9 +159,21 @@ const MusicLibrary = () => {
                   </div>
                   <div className="song-info">
                     <h4 className="song-title" dangerouslySetInnerHTML={{ __html: song.title }} />
-                    <p className="song-artist" dangerouslySetInnerHTML={{ __html: song.artist }} />
-                    <div className="offline-badge">
-                      <Zap size={12} fill="currentColor" />
+                    <div className="song-info-row" style={{ marginTop: 0 }}>
+                      <p className="song-artist" style={{ fontSize: '0.75rem', margin: 0 }} dangerouslySetInnerHTML={{ __html: song.artist }} />
+                      {song.album && <span className="song-meta-dot">•</span>}
+                      {song.album && <span className="song-album-text" style={{ fontSize: '0.75rem', maxWidth: '80px' }} dangerouslySetInnerHTML={{ __html: song.album }} />}
+                    </div>
+                    <div className="song-stats-row" style={{ marginTop: '4px' }}>
+                      {song.year && <span className="song-year-tag" style={{ fontSize: '0.6rem' }}>{song.year}</span>}
+                      {song.duration && (
+                        <span className="song-duration-tag" style={{ fontSize: '0.6rem' }}>
+                          {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="offline-badge" style={{ marginTop: '6px' }}>
+                      <Zap size={10} fill="currentColor" />
                       Cached
                     </div>
                   </div>
@@ -210,7 +222,19 @@ const MusicLibrary = () => {
                 </div>
                 <div className="song-info">
                   <h4 className="song-title" dangerouslySetInnerHTML={{ __html: song.title }} />
-                  <p className="song-artist" dangerouslySetInnerHTML={{ __html: song.artist }} />
+                  <div className="song-info-row" style={{ marginTop: 0 }}>
+                    <p className="song-artist" style={{ fontSize: '0.75rem', margin: 0 }} dangerouslySetInnerHTML={{ __html: song.artist }} />
+                    {song.album && <span className="song-meta-dot">•</span>}
+                    {song.album && <span className="song-album-text" style={{ fontSize: '0.75rem', maxWidth: '100px' }} dangerouslySetInnerHTML={{ __html: song.album }} />}
+                  </div>
+                  <div className="song-stats-row" style={{ marginTop: '4px' }}>
+                    {song.year && <span className="song-year-tag" style={{ fontSize: '0.6rem' }}>{song.year}</span>}
+                    {song.duration && (
+                      <span className="song-duration-tag" style={{ fontSize: '0.6rem' }}>
+                        {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button className="action-btn" onClick={(e) => handleShare(e, song)}>
                   <Share2 size={18} />

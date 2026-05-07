@@ -249,7 +249,7 @@ const MusicCategoryPage = ({ category, onBack }) => {
                   )}
                 </div>
                 
-                <div style={{ flex: 1, overflow: 'hidden' }}>
+                <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   <div style={{ 
                     fontSize: '0.95rem', 
                     fontWeight: 800, 
@@ -258,14 +258,21 @@ const MusicCategoryPage = ({ category, onBack }) => {
                     overflow: 'hidden',
                     textOverflow: 'ellipsis'
                   }} dangerouslySetInnerHTML={{ __html: song.title }} />
-                  <div style={{ 
-                    fontSize: '0.8rem', 
-                    opacity: 0.5, 
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }} dangerouslySetInnerHTML={{ __html: song.artist || song.singers }} />
+                  
+                  <div className="song-info-row" style={{ marginTop: 0 }}>
+                    <span className="song-artist-text" style={{ fontSize: '0.75rem' }} dangerouslySetInnerHTML={{ __html: song.artist || song.singers }} />
+                    {song.album && <span className="song-meta-dot">•</span>}
+                    {song.album && <span className="song-album-text" style={{ fontSize: '0.75rem', maxWidth: '100px' }} dangerouslySetInnerHTML={{ __html: song.album }} />}
+                  </div>
+
+                  <div className="song-stats-row" style={{ marginTop: '4px' }}>
+                    {song.year && <span className="song-year-tag" style={{ fontSize: '0.6rem' }}>{song.year}</span>}
+                    {song.duration && (
+                      <span className="song-duration-tag" style={{ fontSize: '0.6rem' }}>
+                        {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

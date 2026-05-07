@@ -2042,3 +2042,51 @@ body,
 .p-1 {
   padding: 0.25rem;
 }
+
+/* --- Global Music Metadata Styles --- */
+.song-info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.song-meta-dot {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.8rem;
+}
+
+.song-album-text {
+  font-size: 0.75rem;
+  color: var(--brand-primary, #00a884);
+  opacity: 0.8;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 150px;
+}
+
+.song-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.song-year-tag, .song-duration-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.02em;
+}
+
+.song-duration-tag {
+  background: rgba(0, 168, 132, 0.1);
+  color: var(--brand-primary, #00a884);
+  border-color: rgba(0, 168, 132, 0.2);
+}

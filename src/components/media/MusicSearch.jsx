@@ -126,7 +126,7 @@ const SongItem = memo(({
       </div>
 
       <div className="song-meta" onClick={() => onSelect(song)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
           <h4 className="song-title-text" dangerouslySetInnerHTML={{ __html: song.title || song.name }} />
           {isCurrent && isPlaying && (
             <div className="live-visualizer-mini list-v">
@@ -137,7 +137,19 @@ const SongItem = memo(({
             </div>
           )}
         </div>
-        <p className="song-artist-text" dangerouslySetInnerHTML={{ __html: song.singers || song.artist || song.subtitle || song.primaryArtists }} />
+        <div className="song-info-row">
+          <span className="song-artist-text" dangerouslySetInnerHTML={{ __html: song.singers || song.artist || song.subtitle || song.primaryArtists }} />
+          {song.album && <span className="song-meta-dot">•</span>}
+          {song.album && <span className="song-album-text" dangerouslySetInnerHTML={{ __html: song.album }} />}
+        </div>
+        <div className="song-stats-row">
+          {song.year && <span className="song-year-tag">{song.year}</span>}
+          {song.duration && (
+            <span className="song-duration-tag">
+              {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="song-item-actions">
@@ -298,6 +310,10 @@ const MusicHero = memo(({ songs, onPlay }) => {
                   <div className="hero-meta">
                     <h5 dangerouslySetInnerHTML={{ __html: song.title }} />
                     <p dangerouslySetInnerHTML={{ __html: song.artist || song.subtitle }} />
+                    <div className="hero-stats">
+                      {song.album && <span className="hero-album-tag" dangerouslySetInnerHTML={{ __html: song.album }} />}
+                      {song.year && <span className="hero-year-tag">{song.year}</span>}
+                    </div>
                   </div>
                 </div>
             </div>
@@ -367,6 +383,13 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
   const clearRecentSearches = useMusicStore(state => state.clearRecentSearches);
   const clearHistory = useMusicStore(state => state.clearHistory);
   const addToRecentSearches = useMusicStore(state => state.addToRecentSearches);
+  
+  // Use ref for tabCache to avoid infinite loops in effects
+  const tabCacheRef = useRef(tabCache);
+  useEffect(() => {
+    tabCacheRef.current = tabCache;
+  }, [tabCache]);
+
 
   const activeChatId = useChatStore(selectActiveChatId);
   const activeChat = useChatStore(state => state.activeChat);
@@ -406,7 +429,8 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
   // 3. Search handler (used for both tabs and manual search)
   // ----------------------------------------------------------------
   const handleSearch = useCallback(async (query, tabId = null, page = 1) => {
-    const isTabRefresh = tabId && tabCache[tabId];
+    const isTabRefresh = tabId && tabCacheRef.current[tabId];
+
     
     if (page === 1 && !isTabRefresh) setSearchLoading(true);
     else if (page > 1) setMoreLoading(true);
@@ -471,7 +495,25 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
       setSearchLoading(false);
       setMoreLoading(false);
     }
-  }, [setSearchLoading, setSearchResults, setTabCache, addToRecentSearches, tabCache]);
+  }, [setSearchLoading, setSearchResults, setTabCache, addToRecentSearches]);
+  
+  // ----------------------------------------------------------------
+  // 3b. Spotify Fetcher
+  // ----------------------------------------------------------------
+  const handleFetchSpotifyTracks = useCallback(async () => {
+    if (!spotifyToken) return;
+    setIsSpotifyLoading(true);
+    try {
+      const tracks = await spotifyService.getLikedTracks(spotifyToken);
+      setSpotifyTracks(tracks);
+      setSearchResults(tracks); // temporarily show them in the list
+    } catch (err) {
+      toast.error("Failed to fetch Spotify tracks");
+    } finally {
+      setIsSpotifyLoading(false);
+    }
+  }, [spotifyToken, setIsSpotifyLoading, setSpotifyTracks, setSearchResults]);
+
 
   // 4. Unified effect for tab switching and data synchronisation
   useEffect(() => {
@@ -524,10 +566,8 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
     playbackHistory,
     likedSongs,
     spotifyToken,
-    tabCache,
     tabs,
-    handleSearch,
-    setSearchResults,
+    handleFetchSpotifyTracks
   ]);
 
   // 5. Debounced Search Effect
@@ -545,20 +585,6 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
 
   // ----------------------------------------------------------------
   // 6. Spotify helpers
-  // ----------------------------------------------------------------
-  const handleFetchSpotifyTracks = async () => {
-    if (!spotifyToken) return;
-    setIsSpotifyLoading(true);
-    try {
-      const tracks = await spotifyService.getLikedTracks(spotifyToken);
-      setSpotifyTracks(tracks);
-      setSearchResults(tracks); // temporarily show them in the list
-    } catch (err) {
-      toast.error("Failed to fetch Spotify tracks");
-    } finally {
-      setIsSpotifyLoading(false);
-    }
-  };
 
   const handleImportSpotifyTracks = async () => {
     if (spotifyTracks.length === 0) return;
