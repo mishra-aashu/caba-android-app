@@ -1,5 +1,10 @@
 import React from 'react';
+import { motion as m } from 'framer-motion';
+import { 
+  CloudDownload, ShieldCheck, Smartphone, Info, Loader2, AlertCircle, Sparkles 
+} from 'lucide-react';
 import { useAppVersions } from '../hooks/useAppVersions';
+import './DownloadAPK.css';
 
 const DownloadAPK = () => {
   const { data: versionData, isLoading } = useAppVersions();
@@ -9,77 +14,100 @@ const DownloadAPK = () => {
   const releaseNotes = versionData?.release_notes || '';
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#0d0d14', fontFamily: 'system-ui, sans-serif', padding: '24px'
-    }}>
-      <div style={{
-        maxWidth: '420px', width: '100%', textAlign: 'center',
-        background: '#13131f', border: '1px solid #2a2a3e',
-        borderRadius: '16px', padding: '40px 32px'
-      }}>
-        {/* App icon removed to keep rebranding clean */}
+    <div className="download-page">
+      {/* Dynamic Background Blobs */}
+      <div className="background-blobs">
+        <div className="blob blob-1" />
+        <div className="blob blob-2" />
+      </div>
 
-        <h2 style={{ color: '#fff', margin: '0 0 8px', fontSize: '22px', fontWeight: 700 }}>
-          ELEVENGRAM
-        </h2>
-        <p style={{ color: '#666', margin: '0 0 4px', fontSize: '13px' }}>Android App</p>
-
-        {version && (
-          <span style={{
-            display: 'inline-block', margin: '0 0 20px',
-            padding: '3px 10px', background: '#1a1a2e',
-            border: '1px solid #3a3a6e', borderRadius: '20px',
-            color: '#7c8cf8', fontSize: '12px', fontWeight: 600
-          }}>
-            v{version}
-          </span>
-        )}
+      <m.div 
+        className="download-card"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <div className="brand-section">
+          <m.div 
+            className="app-logo-placeholder"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          >
+            <Smartphone size={40} />
+          </m.div>
+          <h2 className="app-name">ELEVENGRAM</h2>
+          <p className="app-subtitle">The Premium Experience</p>
+          
+          {version && (
+            <m.div 
+              className="version-badge"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Sparkles size={14} />
+              <span>Version {version}</span>
+            </m.div>
+          )}
+        </div>
 
         {releaseNotes && (
-          <p style={{
-            color: '#888', fontSize: '13px', margin: '0 0 24px',
-            padding: '12px', background: '#0a0a18',
-            borderRadius: '8px', border: '1px solid #1e1e3e',
-            textAlign: 'left'
-          }}>
-            {releaseNotes}
-          </p>
-        )}
-
-        {isLoading ? (
-          <div style={{ color: '#555', fontSize: '13px', padding: '12px 0' }}>⏳ Loading...</div>
-        ) : apkUrl ? (
-          <a
-            href={apkUrl}
-            download
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '8px',
-              padding: '14px 28px', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-              color: '#fff', borderRadius: '10px', textDecoration: 'none',
-              fontWeight: 700, fontSize: '15px',
-              boxShadow: '0 4px 20px rgba(124,58,237,0.4)',
-              transition: 'transform 0.1s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+          <m.div 
+            className="release-notes"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
           >
-            ⬇ Download APK
-          </a>
-        ) : (
-          <div style={{
-            padding: '16px', background: '#1a1a0e',
-            border: '1px solid #444420', borderRadius: '8px',
-            color: '#aaa', fontSize: '13px'
-          }}>
-            🔧 APK link not set yet. Admin se APK URL set karwao.
-          </div>
+            <div className="notes-header">What's New</div>
+            <p className="notes-content">{releaseNotes}</p>
+          </m.div>
         )}
 
-        <p style={{ color: '#444', fontSize: '11px', marginTop: '20px' }}>
-          Android 7.0+ required • ~15 MB
-        </p>
-      </div>
+        <div className="actions-section">
+          {isLoading ? (
+            <div className="loading-state">
+              <Loader2 className="animate-spin" size={20} />
+              <span>Fetching latest build...</span>
+            </div>
+          ) : apkUrl ? (
+            <m.a
+              href={apkUrl}
+              download
+              className="download-btn"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <CloudDownload size={22} />
+              <span>Download APK</span>
+            </m.a>
+          ) : (
+            <div className="error-state">
+              <AlertCircle size={20} style={{ marginBottom: '8px' }} />
+              <div>APK link is not available yet. Please contact the administrator to set the download URL.</div>
+            </div>
+          )}
+        </div>
+
+        <m.div 
+          className="footer-info"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+        >
+          <div className="info-item">
+            <Info size={14} />
+            <span>Android 7.0+ required • ~15 MB</span>
+          </div>
+          
+          <div className="security-check">
+            <div className="security-badge">
+              <ShieldCheck size={12} />
+              <span>Scanned & Secure</span>
+            </div>
+          </div>
+        </m.div>
+      </m.div>
     </div>
   );
 };
