@@ -165,6 +165,14 @@
   width: 56px;
   height: 56px;
   flex-shrink: 0;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+
+.song-list-item:hover .song-artwork-wrapper,
+.song-list-item:active .song-artwork-wrapper {
+  transform: scale(1.5);
+  z-index: 10;
 }
 
 .song-artwork {
@@ -173,7 +181,10 @@
   border-radius: 14px;
   object-fit: cover;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s ease;
 }
+
+
 
 .play-overlay {
   position: absolute;

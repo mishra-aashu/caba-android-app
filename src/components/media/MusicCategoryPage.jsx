@@ -220,23 +220,19 @@ const MusicCategoryPage = ({ category, onBack }) => {
               <div 
                 key={song.id}
                 onClick={() => selectSong(song)}
-                className="song-item-row"
+                className={`song-item ${currentSong?.id === song.id ? 'active' : ''}`}
                 style={{
-                  background: currentSong?.id === song.id ? 'rgba(0, 255, 136, 0.08)' : 'rgba(255,255,255,0.03)',
                   padding: '12px 14px',
                   borderRadius: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
+                  background: currentSong?.id === song.id ? 'rgba(0, 255, 136, 0.08)' : 'rgba(255,255,255,0.03)',
                   border: currentSong?.id === song.id ? '1px solid rgba(0, 255, 136, 0.2)' : '1px solid rgba(255,255,255,0.03)',
-                  transition: 'background 0.2s ease, transform 0.2s ease'
+                  transition: 'all 0.3s ease'
                 }}
               >
-                <div style={{ position: 'relative', width: '52px', height: '52px' }}>
+                <div className="song-art">
                   <img 
                     src={song.image} 
                     alt="" 
-                    style={{ width: '100%', height: '100%', borderRadius: '14px', objectFit: 'cover' }} 
                   />
                   {currentSong?.id === song.id && (
                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: '14px', display: 'flex', alignItems: 'center', justify: 'center' }}>
