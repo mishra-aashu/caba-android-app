@@ -849,6 +849,10 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
           {!searchQuery && <MusicHero songs={heroSongs} onPlay={selectSong} />}
 
           <div className="sticky-search-wrapper">
+            <div className="brand-header">
+              <div className="brand-dot" />
+              <span className="brand-name">ELEVENgram Music</span>
+            </div>
             <div className="search-input-wrapper">
               <Search className="search-icon" size={18} />
               <input 
@@ -864,7 +868,6 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
                   size={18} 
                   className="search-clear-icon" 
                   onClick={() => setSearchQuery("")} 
-                  style={{ cursor: 'pointer', opacity: 0.5 }}
                 />
               )}
             </div>

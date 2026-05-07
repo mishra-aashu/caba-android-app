@@ -16,6 +16,13 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: ['**/android/**', '**/dist/**', '**/node_modules/**'],
       },
+      proxy: {
+        '/music-api': {
+          target: 'https://listen-together-steel.vercel.app/api',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/music-api/, ''),
+        },
+      },
     },
 
     plugins: [

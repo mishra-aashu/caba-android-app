@@ -202,17 +202,17 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
           {[
             { id: 'Trending', label: 'Charts', icon: TrendingUp, color: '#3b82f6', gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' },
-            { id: 'Hindi', label: 'Hindi', icon: Sparkles, color: '#f59e0b', gradient: 'linear-gradient(135deg, #78350f 0%, #f59e0b 100%)' },
+            { id: 'Hindi', label: 'Hindi', icon: Sparkles, color: '#00a884', gradient: 'linear-gradient(135deg, #064e3b 0%, #00a884 100%)' },
             { id: 'Punjabi', label: 'Punjabi', icon: Disc, color: '#c2410c', gradient: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)' },
-            { id: 'Haryanvi', label: 'Haryanvi', icon: Zap, color: '#10b981', gradient: 'linear-gradient(135deg, #064e3b 0%, #10b981 100%)' },
-            { id: 'Bhojpuri', label: 'Bhojpuri', icon: Music, color: '#f43f5e', gradient: 'linear-gradient(135deg, #881337 0%, #f43f5e 100%)' },
-            { id: 'South', label: 'South', icon: Radio, color: '#0ea5e9', gradient: 'linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 100%)' },
-            { id: 'Romantic', label: 'Love', icon: Heart, color: '#ec4899', gradient: 'linear-gradient(135deg, #831843 0%, #ec4899 100%)' },
-            { id: '90s', label: '90s', icon: Mic2, color: '#06b6d4', gradient: 'linear-gradient(135deg, #164e63 0%, #06b6d4 100%)' },
-            { id: 'Party', label: 'Party', icon: Music, color: '#eab308', gradient: 'linear-gradient(135deg, #713f12 0%, #eab308 100%)' },
-            { id: 'Lofi', label: 'Lofi', icon: Clock, color: '#0f766e', gradient: 'linear-gradient(135deg, #134e4a 0%, #0d9488 100%)' },
-            { id: 'Global', label: 'Global', icon: Users, color: '#15803d', gradient: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)' },
-            { id: 'Devotional', label: 'Bhakti', icon: Sparkles, color: '#f97316', gradient: 'linear-gradient(135deg, #7c2d12 0%, #f97316 100%)' }
+            { id: 'Haryanvi', label: 'Haryanvi', icon: Zap, color: '#10b981', gradient: 'linear-gradient(135deg, #052e16 0%, #10b981 100%)' },
+            { id: 'Bhojpuri', label: 'Bhojpuri', icon: Music, color: '#dc2626', gradient: 'linear-gradient(135deg, #450a0a 0%, #dc2626 100%)' },
+            { id: 'South', label: 'South', icon: Radio, color: '#0891b2', gradient: 'linear-gradient(135deg, #083344 0%, #0891b2 100%)' },
+            { id: 'Romantic', label: 'Love', icon: Heart, color: '#db2777', gradient: 'linear-gradient(135deg, #500724 0%, #db2777 100%)' },
+            { id: '90s', label: '90s', icon: Mic2, color: '#0284c7', gradient: 'linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%)' },
+            { id: 'Party', label: 'Party', icon: Music, color: '#ca8a04', gradient: 'linear-gradient(135deg, #422006 0%, #ca8a04 100%)' },
+            { id: 'Lofi', label: 'Lofi', icon: Clock, color: '#0d9488', gradient: 'linear-gradient(135deg, #134e4a 0%, #0d9488 100%)' },
+            { id: 'Global', label: 'Global', icon: Users, color: '#16a34a', gradient: 'linear-gradient(135deg, #064e3b 0%, #16a34a 100%)' },
+            { id: 'Devotional', label: 'Bhakti', icon: Sparkles, color: '#ea580c', gradient: 'linear-gradient(135deg, #431407 0%, #ea580c 100%)' }
           ].map((cat) => (
             <motion.div 
               key={cat.id}
@@ -227,39 +227,18 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
                   setActiveSection('search'); 
                 }
               }}
-              style={{ 
-                padding: '22px 10px', 
-                borderRadius: '26px', 
-                background: 'rgba(255, 255, 255, 0.03)', 
-                cursor: 'pointer',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px',
-                transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease',
-                textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-              }}
+              className="music-category-card"
             >
-              <div style={{ 
-                width: '50px', 
-                height: '50px', 
-                borderRadius: '18px', 
-                background: cat.gradient, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: '#fff',
-                boxShadow: `0 8px 15px ${cat.color}22`,
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)' }} />
+              <div 
+                className="category-icon-box"
+                style={{ 
+                  background: cat.gradient, 
+                  boxShadow: `0 8px 15px ${cat.color}22`,
+                }}
+              >
                 <cat.icon size={24} style={{ position: 'relative', zIndex: 1 }} />
               </div>
-              <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#fff', opacity: 0.85, letterSpacing: '0.01em' }}>{cat.label}</h4>
+              <h4 className="category-label">{cat.label}</h4>
             </motion.div>
           ))}
         </div>

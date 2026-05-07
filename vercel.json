@@ -71,7 +71,7 @@
       "destination": "/assets/$1"
     },
     {
-      "source": "/((?!api/|assets/|favicon.ico|manifest.webmanifest|sw.js|workbox-|version.json|native-integrity.json|reset-password.html|shared-profile.html).*)",
+      "source": "/((?!music-api/|api/|assets/|favicon.ico|manifest.webmanifest|sw.js|workbox-|version.json|native-integrity.json|reset-password.html|shared-profile.html).*)",
       "destination": "/index.html"
     }
   ]
