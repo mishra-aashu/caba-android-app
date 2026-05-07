@@ -14,7 +14,7 @@
     display: grid !important;
     place-items: center !important;
     z-index: 2147483647 !important;
-    background: radial-gradient(circle at 30% 10%, #1a1a2e, #0d0d14, #0a0a0f) !important;
+    background: radial-gradient(circle at 30% 10%, #0b141a, #0d0d14, #050505) !important;
     backdrop-filter: blur(15px) !important;
     -webkit-backdrop-filter: blur(15px) !important;
     margin: 0 !important;

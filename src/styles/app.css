@@ -16,6 +16,21 @@
   transition: padding-bottom 0.4s ease;
 }
 
+/* Hide main bottom elements when keyboard is active to prevent overlap */
+body.keyboard-open .bottom-nav-container,
+body.keyboard-open .global-player-root,
+body.keyboard-open .music-hub-nav {
+  display: none !important;
+}
+
+body.keyboard-open .music-search-page-fade-in {
+  padding-bottom: 20px !important;
+}
+
+body.keyboard-open .panel-body-scrollable {
+  padding-bottom: 40px !important;
+}
+
 .layout-hidden-for-player {
   display: none !important;
 }

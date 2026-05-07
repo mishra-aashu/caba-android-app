@@ -1,8 +1,8 @@
 :root {
-  --primary-color: #7c3aed;
-  --primary-hover: #6b2fcc;
-  --secondary-color: #22d3ee;
-  --accent-color: #f472b6;
+  --primary-color: #00a884;
+  --primary-hover: #00876a;
+  --secondary-color: #128c7e;
+  --accent-color: #25d362;
   --text-primary: #eef2ff;
   --text-secondary: #cbd5e1;
   --bg-primary: #0b0f14;
@@ -160,7 +160,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 168, 132, 0.4);
   animation: pulse 4s ease-in-out infinite;
 }
 
@@ -253,10 +253,10 @@
 }
 
 .sidebar-nav li.active button {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(34, 211, 238, 0.2));
+  background: linear-gradient(135deg, rgba(0, 168, 132, 0.2), rgba(34, 211, 238, 0.2));
   color: var(--text-primary);
-  border-color: rgba(124, 58, 237, 0.5);
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+  border-color: rgba(0, 168, 132, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 168, 132, 0.3);
 }
 
 .sidebar-nav li button svg {
@@ -312,7 +312,7 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
-  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 168, 132, 0.4);
 }
 
 .card-icon svg {
@@ -412,7 +412,7 @@
   font-weight: 800;
   margin: 0 auto 12px;
   color: white;
-  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 4px 10px rgba(0, 168, 132, 0.4);
 }
 
 .step-card h4 {
@@ -662,12 +662,12 @@
   transition: all var(--transition-fast);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 168, 132, 0.4);
 }
 
 .support-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 168, 132, 0.6);
 }
 
 /* Animations */

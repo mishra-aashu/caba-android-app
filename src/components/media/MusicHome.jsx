@@ -203,15 +203,15 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
           {[
             { id: 'Trending', label: 'Charts', icon: TrendingUp, color: '#3b82f6', gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' },
             { id: 'Hindi', label: 'Hindi', icon: Sparkles, color: '#f59e0b', gradient: 'linear-gradient(135deg, #78350f 0%, #f59e0b 100%)' },
-            { id: 'Punjabi', label: 'Punjabi', icon: Disc, color: '#a855f7', gradient: 'linear-gradient(135deg, #581c87 0%, #a855f7 100%)' },
+            { id: 'Punjabi', label: 'Punjabi', icon: Disc, color: '#c2410c', gradient: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)' },
             { id: 'Haryanvi', label: 'Haryanvi', icon: Zap, color: '#10b981', gradient: 'linear-gradient(135deg, #064e3b 0%, #10b981 100%)' },
             { id: 'Bhojpuri', label: 'Bhojpuri', icon: Music, color: '#f43f5e', gradient: 'linear-gradient(135deg, #881337 0%, #f43f5e 100%)' },
             { id: 'South', label: 'South', icon: Radio, color: '#0ea5e9', gradient: 'linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 100%)' },
             { id: 'Romantic', label: 'Love', icon: Heart, color: '#ec4899', gradient: 'linear-gradient(135deg, #831843 0%, #ec4899 100%)' },
             { id: '90s', label: '90s', icon: Mic2, color: '#06b6d4', gradient: 'linear-gradient(135deg, #164e63 0%, #06b6d4 100%)' },
             { id: 'Party', label: 'Party', icon: Music, color: '#eab308', gradient: 'linear-gradient(135deg, #713f12 0%, #eab308 100%)' },
-            { id: 'Lofi', label: 'Lofi', icon: Clock, color: '#6366f1', gradient: 'linear-gradient(135deg, #312e81 0%, #6366f1 100%)' },
-            { id: 'Global', label: 'Global', icon: Users, color: '#8b5cf6', gradient: 'linear-gradient(135deg, #4c1d95 0%, #8b5cf6 100%)' },
+            { id: 'Lofi', label: 'Lofi', icon: Clock, color: '#0f766e', gradient: 'linear-gradient(135deg, #134e4a 0%, #0d9488 100%)' },
+            { id: 'Global', label: 'Global', icon: Users, color: '#15803d', gradient: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)' },
             { id: 'Devotional', label: 'Bhakti', icon: Sparkles, color: '#f97316', gradient: 'linear-gradient(135deg, #7c2d12 0%, #f97316 100%)' }
           ].map((cat) => (
             <motion.div 

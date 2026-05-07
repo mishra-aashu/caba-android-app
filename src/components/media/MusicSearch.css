@@ -149,6 +149,11 @@
   overflow: visible;
   position: relative;
   z-index: 1;
+  transition: padding-bottom 0.3s ease;
+}
+
+body.keyboard-open .search-results-list {
+  padding-bottom: 40px;
 }
 
 .search-results-list::-webkit-scrollbar {

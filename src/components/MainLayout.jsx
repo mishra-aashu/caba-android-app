@@ -625,7 +625,11 @@ const MainLayout = () => {
                   </Suspense>
                 </ErrorBoundary>
               </div>
-              {!isChatViewActive && <BottomNavigation />}
+              {!isChatViewActive && (
+                <div className="bottom-nav-container">
+                  <BottomNavigation />
+                </div>
+              )}
             </>
           )}
 

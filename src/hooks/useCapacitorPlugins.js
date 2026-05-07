@@ -2,7 +2,7 @@
  * useCapacitorPlugins
  *
  * Single hook that sets up all native-device integrations on app mount:
- *  1. StatusBar  → matches dark theme color (#1a1a2e), style DARK
+ *  1. StatusBar  → matches dark theme color (#0b141a), style DARK
  *  2. Keyboard   → sets resizeOnFullScreen so the webview shrinks, not overlaps
  *
  * Uses isNativeWithPlugins() instead of Capacitor.isNativePlatform()
@@ -23,8 +23,8 @@ export function useCapacitorPlugins() {
       try {
         const { StatusBar, Style } = await import('@capacitor/status-bar');
 
-        // Match the app's dark background (#1a1a2e)
-        await StatusBar.setBackgroundColor({ color: '#1a1a2e' });
+        // Match the app's dark background (#0b141a)
+        await StatusBar.setBackgroundColor({ color: '#0b141a' });
 
         // DARK style = light text/icons on dark background
         await StatusBar.setStyle({ style: Style.Dark });

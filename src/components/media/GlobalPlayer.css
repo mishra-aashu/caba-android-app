@@ -55,6 +55,11 @@
   pointer-events: none;
 }
 
+/* Hide player when keyboard is open to avoid overlap on mobile */
+body.keyboard-open .global-player-root {
+  display: none !important;
+}
+
 /* --- Progress Bar --- */
 .player-progress-container {
   position: absolute;

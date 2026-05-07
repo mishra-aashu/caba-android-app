@@ -63,6 +63,10 @@
   ],
   "rewrites": [
     {
+      "source": "/music-api/:path*",
+      "destination": "https://listen-together-steel.vercel.app/api/:path*"
+    },
+    {
       "source": "/assets/(.*)",
       "destination": "/assets/$1"
     },
