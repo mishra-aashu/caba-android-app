@@ -67,7 +67,7 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
   // Floating bubble position (for drag)
   const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 });
   const [isCached, setIsCached] = useState(false);
-  const isFloating = !showBottomNav;
+  const isFloating = !showBottomNav && !isDesktop;
 
   // ── 0. Caching Awareness ───────────────────────────────────────
   useEffect(() => {
@@ -500,7 +500,7 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
             onClick={() => setPlayerExpanded(true)}
             style={{
               cursor: 'pointer',
-              bottom: isDesktop ? undefined : isMusicHub ? '75px' : showBottomNav ? 'var(--bottom-nav-total-height)' : '0px',
+              bottom: isDesktop ? '24px' : (isMusicHub || showBottomNav) ? 'calc(var(--bottom-nav-total-height, 60px) + 14px)' : '14px',
             }}
           >
             <div className="player-progress-container">

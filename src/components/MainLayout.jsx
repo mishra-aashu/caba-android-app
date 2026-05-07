@@ -687,7 +687,7 @@ const MainLayout = () => {
   return (
     <UserDetailsContext.Provider value={userDetailsContextValue}>
       <VersionUpdateModal />
-      <GlobalPlayer />
+      <GlobalPlayer isMusicHub={location.pathname === '/listen-together'} />
 
 
       

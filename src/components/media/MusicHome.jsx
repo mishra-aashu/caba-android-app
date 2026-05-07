@@ -31,7 +31,7 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
   };
 
   return (
-    <div className="music-home-fade-in">
+    <div className="music-home-fade-in" style={{ paddingBottom: '120px' }}>
       {/* Personalized Header - Premium Overhaul */}
       <header style={{ marginBottom: '44px', padding: '0 4px' }}>
         <h1 style={{ 

@@ -408,7 +408,7 @@
     /* Shifted right to avoid covering the Chat List (380px) and Side Navbar (80px) */
     left: calc(460px + (100% - 460px) / 2);
     transform: translateX(-50%) translateZ(0) !important;
-    width: calc(100% - 500px); /* Leave some breathing room */
+    width: calc(100% - 540px); /* Increased clearance for sidebars */
     max-width: 1000px;
     height: 72px;
     border-radius: 20px;
