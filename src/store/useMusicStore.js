@@ -107,8 +107,19 @@ const useMusicStore = create(
 
       // ─── Liked Songs Management ───
       fetchLikedSongs: async (userId) => {
+        // Always try to load from Dexie first for instant UI response (Offline First)
+        try {
+          const { db } = await import('../db/db');
+          const localLiked = await db.liked_songs.orderBy('created_at').reverse().toArray();
+          if (localLiked.length > 0) {
+            set({ likedSongs: localLiked });
+            console.log(`[MusicStore] Loaded ${localLiked.length} liked songs from Dexie`);
+          }
+        } catch (err) {
+          console.warn('[MusicStore] Dexie load failed:', err);
+        }
+
         if (!userId) {
-          // Clear liked songs when no user is provided (e.g., logout)
           set({ likedSongs: [] });
           return;
         }
@@ -116,45 +127,59 @@ const useMusicStore = create(
         try {
           const { data, error } = await supabase
             .from('music_likes')
-            .select('song_metadata')
+            .select('song_metadata, created_at')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
           if (error) throw error;
 
           const liked = (data || [])
-            .map((item) => item.song_metadata)
+            .map((item) => ({ ...item.song_metadata, created_at: item.created_at }))
             .filter((song) => song && song.id);
 
           set({ likedSongs: liked });
-          console.log(`[MusicStore] Fetched ${liked.length} liked songs`);
+          
+          // Update Dexie cache
+          const { db } = await import('../db/db');
+          await db.liked_songs.clear();
+          await db.liked_songs.bulkPut(liked);
+          
+          console.log(`[MusicStore] Synced ${liked.length} liked songs from Supabase`);
         } catch (err) {
-          console.error('[MusicStore] Failed to fetch liked songs:', err);
-          set({ likedSongs: [] });
+          console.error('[MusicStore] Supabase fetch failed, staying with local cache:', err);
         }
       },
 
       toggleLikeSong: async (song, userId) => {
-        if (!song?.id) {
-          console.warn('[MusicStore] Invalid song object');
-          return;
-        }
+        if (!song?.id) return;
 
         const { likedSongs } = get();
         const isLiked = likedSongs.some((s) => s.id === song.id);
+        const now = new Date().toISOString();
 
         // 1. Optimistic UI update
-        set({
-          likedSongs: isLiked
-            ? likedSongs.filter((s) => s.id !== song.id)
-            : [song, ...likedSongs],
-        });
+        const updatedLiked = isLiked
+          ? likedSongs.filter((s) => s.id !== song.id)
+          : [{ ...song, created_at: now }, ...likedSongs];
 
+        set({ likedSongs: updatedLiked });
+
+        // 2. Update Dexie Cache
+        try {
+          const { db } = await import('../db/db');
+          if (isLiked) {
+            await db.liked_songs.delete(song.id);
+          } else {
+            await db.liked_songs.put({ ...song, created_at: now });
+          }
+        } catch (err) {
+          console.warn('[MusicStore] Dexie update failed:', err);
+        }
+
+        // 3. Queue for Supabase
         if (userId) {
-          const { queueAction, QUEUE_ACTIONS } = await import('../services/offlineQueue');
-          
           try {
-            // 2. Queue the action instead of direct call
+            const { queueAction, QUEUE_ACTIONS } = await import('../services/offlineQueue');
             await queueAction(
               QUEUE_ACTIONS.TOGGLE_MUSIC_LIKE,
               'music_likes',
@@ -162,23 +187,11 @@ const useMusicStore = create(
                 userId,
                 songId: song.id,
                 songMetadata: song,
-                isLiked // Pass current state so processor knows whether to insert or delete
+                isLiked 
               }
             );
-            
-            console.log(`[MusicStore] Song ${isLiked ? 'unlike' : 'like'} queued successfully`);
           } catch (err) {
             console.error('[MusicStore] Failed to queue like action:', err);
-            // Rollback optimistic update on queue failure (rare)
-            set((state) => ({
-              likedSongs: isLiked
-                ? [song, ...state.likedSongs]
-                : state.likedSongs.filter((s) => s.id !== song.id),
-            }));
-            
-            import('react-hot-toast').then(({ toast }) => {
-              toast.error('Failed to save like action');
-            });
           }
         }
       },
