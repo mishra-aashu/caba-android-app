@@ -1,0 +1,239 @@
+.music-library-container {
+  padding: 20px;
+  color: #fff;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.library-header {
+  margin-bottom: 32px;
+}
+
+.library-header h1 {
+  font-size: 2rem;
+  font-weight: 900;
+  background: linear-gradient(to right, #fff, #888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.quick-access-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.quick-access-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quick-access-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.02);
+  border-color: rgba(0, 255, 136, 0.2);
+}
+
+.card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-content h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.card-content p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  opacity: 0.5;
+}
+
+.library-section {
+  margin-bottom: 40px;
+}
+
+.section-title {
+  margin: 0 0 20px 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.song-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.song-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.song-artwork-wrapper {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+}
+
+.song-artwork {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.play-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.song-list-item:hover .play-overlay {
+  opacity: 1;
+}
+
+.song-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.song-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-artist {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  opacity: 0.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offline-badge {
+  color: #00ff88;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  opacity: 0.3;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+}
+
+.action-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.storage-info {
+  font-size: 0.75rem;
+  opacity: 0.4;
+  margin-top: 4px;
+}
+
+.empty-state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  text-align: center;
+}
+
+.empty-icon-circle {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.empty-text h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.empty-text p {
+  margin: 4px 0 20px;
+  font-size: 0.9rem;
+  opacity: 0.5;
+}
+
+.empty-action-btn {
+  background: var(--brand-primary);
+  color: #000;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.empty-action-btn:hover {
+  transform: scale(1.05);
+}

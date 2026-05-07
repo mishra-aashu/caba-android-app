@@ -31,8 +31,10 @@ import { toast } from 'react-hot-toast';
 import MusicHome from './MusicHome';
 import MusicSearchPage from './MusicSearchPage';
 import MusicLibrary from './MusicLibrary';
+import MusicLikedPage from './MusicLikedPage';
 import MusicSharePage from './MusicSharePage';
 import MusicCategoryPage from './MusicCategoryPage';
+import MusicDownloadsPage from './MusicDownloadsPage';
 import './MusicPage.css';
 
 /**
@@ -270,6 +272,21 @@ const MusicPage = () => {
                     )}
                     {activeSection === 'search' && <MusicSearchPage />}
                     {activeSection === 'library' && <MusicLibrary />}
+                    {activeSection === 'downloads' && <MusicDownloadsPage onBack={() => setActiveSection('library')} />}
+                    {activeSection === 'liked' && <MusicLikedPage onBack={() => setActiveSection('library')} />}
+                    {activeSection === 'playlists' && (
+                      <div className="music-library-container">
+                        <header className="library-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <button onClick={() => setActiveSection('library')} className="action-btn" style={{ padding: '8px', opacity: 1 }}><ArrowLeft size={24} /></button>
+                          <h1 style={{ margin: 0 }}>Playlists</h1>
+                        </header>
+                        <div className="empty-state-card" style={{ marginTop: '40px' }}>
+                          <LayoutGrid size={32} color="rgba(255,255,255,0.2)" style={{ marginBottom: '16px' }} />
+                          <h4>Coming Soon</h4>
+                          <p>We are building a powerful playlist engine for you.</p>
+                        </div>
+                      </div>
+                    )}
                     {activeSection === 'share' && <MusicSharePage onShare={handleShareToChat} onBack={() => setActiveSection('home')} />}
                   </>
                 )}

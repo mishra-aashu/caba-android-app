@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Downloader } from '@capgo/capacitor-downloader';
+import { CapacitorDownloader } from '@capgo/capacitor-downloader';
 import { db } from '../db/db';
 import { supabase } from '../config/supabase';
 import useMusicStore from '../store/useMusicStore';
@@ -154,18 +154,18 @@ class OfflineMusicManager {
                 notificationDescription: song.artist,
             };
 
-            const res = await Downloader.download(downloadOptions);
+            const res = await CapacitorDownloader.download(downloadOptions);
             const downloadId = res.id;
             this.activeDownloads.set(song.id, downloadId);
 
             // Listen for progress
-            const progressListener = await Downloader.addListener('progress', (progress) => {
+            const progressListener = await CapacitorDownloader.addListener('progress', (progress) => {
                 if (progress.id === downloadId) {
                     useMusicStore.getState().setDownloadProgress(song.id, progress.value);
                 }
             });
 
-            const completionListener = await Downloader.addListener('completed', async (result) => {
+            const completionListener = await CapacitorDownloader.addListener('completed', async (result) => {
                 if (result.id === downloadId) {
                     this.activeDownloads.delete(song.id);
                     await this.handleDownloadSuccess(song, path);
@@ -179,7 +179,7 @@ class OfflineMusicManager {
                 }
             });
 
-            const errorListener = await Downloader.addListener('failed', async (error) => {
+            const errorListener = await CapacitorDownloader.addListener('failed', async (error) => {
                 if (error.id === downloadId) {
                     this.activeDownloads.delete(song.id);
                     
@@ -211,10 +211,28 @@ class OfflineMusicManager {
             directory: Directory.Data
         });
 
+        // Try to download artwork for full offline experience
+        let localArtworkPath = null;
+        if (song.image) {
+            try {
+                const imgFileName = `${song.id}_thumb.jpg`;
+                const imgPath = `${OFFLINE_DIR}/${imgFileName}`;
+                await CapacitorDownloader.download({
+                    url: song.image,
+                    path: imgPath,
+                    directory: Directory.Data
+                });
+                localArtworkPath = imgPath;
+            } catch (e) {
+                console.warn('[OfflineManager] Artwork download failed:', e);
+            }
+        }
+
         const updateData = {
             song_id: song.id,
             download_status: 'completed',
             local_file_path: localPath,
+            local_artwork_path: localArtworkPath,
             file_size: stats.size,
             downloaded_at: new Date().toISOString()
         };
@@ -222,17 +240,21 @@ class OfflineMusicManager {
         // Update Dexie
         await db.offline_music_store.update(song.id, updateData);
 
-        // Update Supabase
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            await supabase.from('user_downloaded_songs').upsert({
-                user_id: user.id,
-                song_id: song.id,
-                song_metadata: song,
-                download_status: 'completed',
-                local_file_path: localPath,
-                file_size: stats.size
-            });
+        // Update Supabase (Optional, don't block if offline)
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await supabase.from('user_downloaded_songs').upsert({
+                    user_id: user.id,
+                    song_id: song.id,
+                    song_metadata: song,
+                    download_status: 'completed',
+                    local_file_path: localPath,
+                    file_size: stats.size
+                });
+            }
+        } catch (e) {
+            console.log('[OfflineManager] Supabase sync skipped (offline)');
         }
 
         useMusicStore.getState().setDownloadProgress(song.id, 100);
@@ -247,7 +269,7 @@ class OfflineMusicManager {
     async pauseDownload(songId) {
         const downloadId = this.activeDownloads.get(songId);
         if (downloadId) {
-            await Downloader.pause({ id: downloadId });
+            await CapacitorDownloader.pause({ id: downloadId });
             this.updateStatus(songId, 'paused');
         }
     }
@@ -255,7 +277,7 @@ class OfflineMusicManager {
     async resumeDownload(songId) {
         const downloadId = this.activeDownloads.get(songId);
         if (downloadId) {
-            await Downloader.resume({ id: downloadId });
+            await CapacitorDownloader.resume({ id: downloadId });
             this.updateStatus(songId, 'downloading');
         }
     }
