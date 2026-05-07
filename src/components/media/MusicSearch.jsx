@@ -340,6 +340,8 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
   const [spotifyTracks, setSpotifyTracks] = useState([]);
   const [isSpotifyLoading, setIsSpotifyLoading] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  const lastTabRef = useRef(null);
+
 
   const tabs = useMemo(() => [
     { id: "Trending", query: "Bollywood Top Hits 2024" },
@@ -555,12 +557,14 @@ const MusicSearch = ({ hideHeader = false, defaultTab = 'Trending' }) => {
       setSearchResults(cachedResults);
     }
     
-    // Always trigger a fresh search for the current tab in the background
+    // Trigger a fresh search ONLY if the tab has changed or we have no cache
     const tab = tabs.find(t => t.id === activeTab);
-    if (tab && tab.query) {
+    if (tab && tab.query && (lastTabRef.current !== activeTab || !cachedResults)) {
       handleSearch(tab.query, activeTab);
+      lastTabRef.current = activeTab;
     }
   }, [
+
     activeTab,
     searchQuery,
     playbackHistory,
