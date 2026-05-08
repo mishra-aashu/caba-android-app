@@ -1,0 +1,234 @@
+.category-view-container {
+  min-height: 100vh;
+  background: transparent;
+  padding-bottom: 140px;
+}
+
+/* Category Header */
+.category-hero-header {
+  padding: calc(var(--safe-top, 0px) + 24px) 24px 48px 24px;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.category-back-btn {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.category-back-btn:active {
+  transform: scale(0.9);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.category-hero-content {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  position: relative;
+  z-index: 2;
+}
+
+.category-hero-icon-box {
+  width: 110px;
+  height: 110px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.category-hero-info span {
+  font-size: 0.8rem;
+  font-weight: 900;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #fff;
+}
+
+.category-hero-info h1 {
+  margin: 6px 0 0 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  font-weight: 900;
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.category-ambient-glow {
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 250px;
+  height: 250px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* Songs List Section */
+.category-songs-section {
+  padding: 32px 16px 0 16px;
+}
+
+.category-section-label {
+  margin-bottom: 20px;
+  opacity: 0.6;
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding-left: 8px;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.category-song-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Song Item Overrides for Category Page */
+.category-song-item {
+  padding: 14px 16px;
+  border-radius: 22px;
+  background: var(--music-card-bg);
+  border: 1px solid var(--music-card-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.category-song-item.active {
+  background: rgba(0, 255, 136, 0.08);
+  border-color: rgba(0, 255, 136, 0.2);
+}
+
+.category-song-item:active {
+  transform: scale(0.98);
+}
+
+.song-play-indicator {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-bar {
+  width: 4px;
+  height: 16px;
+  background: var(--brand-primary);
+  border-radius: 2px;
+}
+
+.category-song-details {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.category-song-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.category-song-item.active .category-song-title {
+  color: var(--brand-primary);
+}
+
+.category-song-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.category-song-tags {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.category-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.category-song-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.category-action-btn {
+  background: var(--bg-hover);
+  border: none;
+  color: var(--text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-action-btn.active {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--brand-primary);
+}
+
+.category-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-icon-btn.liked {
+  color: #ff4b4b;
+  opacity: 1;
+}

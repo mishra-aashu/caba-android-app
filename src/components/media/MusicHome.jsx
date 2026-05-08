@@ -4,6 +4,7 @@ import { Play, Clock, TrendingUp, Sparkles, Heart, Users, Music, Disc, Mic2, Zap
 import { toast } from 'react-hot-toast';
 import useMusicStore from '../../store/useMusicStore';
 import useAuthStore from '../../store/authStore';
+import './MusicHome.css';
 
 const MusicHome = ({ onShareSession, onSelectCategory }) => {
   const { user } = useAuthStore();
@@ -31,68 +32,34 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
   };
 
   return (
-    <div className="music-home-fade-in" style={{ paddingBottom: '120px' }}>
+    <div className="music-home-container">
       {/* Personalized Header - Premium Overhaul */}
-      <header style={{ marginBottom: '44px', padding: '0 4px' }}>
-        <h1 style={{ 
-          fontSize: '2.6rem', 
-          lineHeight: 1.1,
-          fontWeight: 900, 
-          margin: 0, 
-          color: '#fff', 
-          letterSpacing: '-0.04em' 
-        }}>
+      <header className="music-home-header">
+        <h1>
           {greeting()}, <br/>
-          <span style={{ 
-            background: 'linear-gradient(90deg, var(--brand-primary, #00ff88), #fff)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
+          <span className="greeting-name">
             {user?.display_name || user?.full_name?.split(' ')[0] || 'there'}
           </span>
         </h1>
-        <p style={{ margin: '14px 0 0 0', opacity: 0.4, fontSize: '1.05rem', fontWeight: 500, letterSpacing: '0.01em' }}>
-          What's your vibe today?
-        </p>
+        <p>What's your vibe today?</p>
       </header>
 
 
       {/* Session Management - Integrated */}
-      <section style={{ 
-        marginBottom: '40px', 
-        padding: '20px', 
-        borderRadius: '24px', 
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.05)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <Users size={20} style={{ color: '#00ff88' }} />
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>
-            {roomId ? 'Session Active' : 'Listen Together'}
-          </h3>
+      <section className="music-session-section">
+        <div className="session-header">
+          <Users size={20} className="text-brand" />
+          <h3>{roomId ? 'Session Active' : 'Listen Together'}</h3>
           {roomId && (
             <div 
               onClick={() => {
                 navigator.clipboard.writeText(roomId);
                 toast.success("Room ID Copied!", { 
                   icon: <Copy size={18} />,
-                  style: { background: '#0b141a', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }
+                  style: { background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)' }
                 });
               }}
-              style={{ 
-                marginLeft: 'auto', 
-                background: 'rgba(0, 255, 136, 0.15)', 
-                color: '#00ff88', 
-                padding: '6px 12px', 
-                borderRadius: '12px', 
-                fontSize: '0.8rem', 
-                fontWeight: 900,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-                border: '1px solid rgba(0, 255, 136, 0.2)'
-              }}
+              className="room-id-badge"
             >
               <Copy size={12} />
               {roomId}
@@ -101,93 +68,34 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
         </div>
 
         {roomId ? (
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={onShareSession}
-                style={{ 
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '14px', 
-                  borderRadius: '16px', 
-                  background: 'var(--brand-primary)', 
-                  color: '#0b141a',
-                  border: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-              >
+            <div className="session-actions">
+              <button onClick={onShareSession} className="session-btn-primary">
                 <Send size={18} />
                 Share to Chat
               </button>
-              <button 
-                onClick={() => leaveRoom()}
-                style={{ 
-                  padding: '14px 20px', 
-                  borderRadius: '16px', 
-                  background: 'rgba(255, 75, 75, 0.1)', 
-                  color: '#ff4b4b',
-                  border: '1px solid rgba(255, 75, 75, 0.2)',
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-              >
+              <button onClick={() => leaveRoom()} className="session-btn-secondary">
                 End
               </button>
             </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button 
-              onClick={() => joinRoom(null, true)}
-              style={{ 
-                padding: '16px', 
-                borderRadius: '16px', 
-                background: 'rgba(0, 255, 136, 0.15)', 
-                color: '#00ff88',
-                border: '1px solid rgba(0, 255, 136, 0.3)',
-                fontWeight: 800,
-                fontSize: '0.9rem',
-                cursor: 'pointer'
-              }}
-            >
+            <button onClick={() => joinRoom(null, true)} className="session-btn-primary">
               Create New Room
             </button>
             
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="session-join-input-group">
               <input 
                 id="room-join-input"
                 type="text" 
                 placeholder="Enter Room ID..."
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '14px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#fff',
-                  fontSize: '0.85rem',
-                  outline: 'none'
-                }}
+                className="session-join-input"
               />
               <button 
                 onClick={() => {
                   const id = document.getElementById('room-join-input').value.trim();
                   if (id) joinRoom(id, false);
                 }}
-                style={{ 
-                  padding: '12px 20px', 
-                  borderRadius: '14px', 
-                  background: 'var(--brand-primary)', 
-                  color: '#0b141a',
-                  border: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
+                className="session-join-btn"
               >
                 Join
               </button>
@@ -198,8 +106,8 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
 
       {/* Quick Picks - Refined (3-Column Discovery Grid) */}
       <section style={{ marginBottom: '40px' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 800 }}>Explore by Category</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+        <h3 className="category-section-title">Explore by Category</h3>
+        <div className="category-grid">
           {[
             { id: 'Trending', label: 'Charts', icon: TrendingUp, color: '#3b82f6', gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' },
             { id: 'Hindi', label: 'Hindi', icon: Sparkles, color: '#00a884', gradient: 'linear-gradient(135deg, #064e3b 0%, #00a884 100%)' },
@@ -245,19 +153,7 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
       </section>
 
       <style>{`
-        .horizontal-scroll-container::-webkit-scrollbar { display: none; }
-        .carousel-play-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(0,0,0,0.4);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 16px;
-          opacity: 0;
-          transition: opacity 0.2s ease;
-        }
-        div:hover .carousel-play-overlay { opacity: 1; }
+        .session-btn-primary:hover { opacity: 0.9; }
         .text-brand { color: var(--brand-primary); }
       `}</style>
     </div>

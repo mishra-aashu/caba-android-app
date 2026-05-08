@@ -18,6 +18,7 @@ import useChatStore from '../../store/useChatStore';
 import { MUSIC_API_BASE } from '../../config/musicConfig';
 import { db } from '../../db/db';
 import './MusicSearch.css'; // Reuse song item styles
+import './MusicCategoryPage.css';
 
 const MusicCategoryPage = ({ category, onBack }) => {
   const [songs, setSongs] = useState([]);
@@ -132,73 +133,31 @@ const MusicCategoryPage = ({ category, onBack }) => {
   };
 
   return (
-    <div className="category-view-container" style={{
-      minHeight: '100vh',
-      background: '#0b141a',
-      paddingBottom: '140px'
-    }}>
+    <div className="category-view-container">
       {/* Category Header */}
-      <header style={{
-        padding: '24px 20px 40px 20px',
-        background: category.gradient,
-        borderBottomLeftRadius: '40px',
-        borderBottomRightRadius: '40px',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <button 
-          onClick={onBack}
-          style={{
-            background: 'rgba(0,0,0,0.3)',
-            border: 'none',
-            color: '#fff',
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '24px',
-            cursor: 'pointer'
-          }}
-        >
+      <header 
+        className="category-hero-header"
+        style={{ background: category.gradient }}
+      >
+        <button onClick={onBack} className="category-back-btn">
           <ArrowLeft size={20} />
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px' }}>
-          <div style={{
-            width: '100px',
-            height: '100px',
-            borderRadius: '24px',
-            background: 'rgba(255,255,255,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
-          }}>
+        <div className="category-hero-content">
+          <div className="category-hero-icon-box">
             {React.createElement(category.icon, { size: 48, color: '#fff' })}
           </div>
-          <div>
-            <span style={{ fontSize: '0.85rem', fontWeight: 900, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Playlist</span>
-            <h1 style={{ margin: '4px 0 0 0', fontSize: '2.4rem', fontWeight: 900 }}>{category.label}</h1>
+          <div className="category-hero-info">
+            <span>Playlist</span>
+            <h1>{category.label}</h1>
           </div>
         </div>
 
-        {/* Ambient Decorative Circle */}
-        <div style={{
-          position: 'absolute',
-          top: '-20%',
-          right: '-10%',
-          width: '200px',
-          height: '200px',
-          background: 'rgba(255,255,255,0.1)',
-          borderRadius: '50%',
-          filter: 'blur(60px)'
-        }} />
+        <div className="category-ambient-glow" />
       </header>
 
       {/* Songs List */}
-      <div style={{ padding: '30px 16px 0 16px' }}>
+      <div className="category-songs-section">
         {isLoading ? (
           <div className="shimmer-container">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -212,66 +171,52 @@ const MusicCategoryPage = ({ category, onBack }) => {
             ))}
           </div>
         ) : songs.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ marginBottom: '16px', opacity: 0.5, fontSize: '0.85rem', fontWeight: 800, paddingLeft: '8px' }}>
+          <div className="category-song-list">
+            <div className="category-section-label">
               POPULAR IN {category.label.toUpperCase()}
             </div>
             {songs.map((song, index) => (
               <div 
                 key={song.id}
                 onClick={() => selectSong(song)}
-                className={`song-item ${currentSong?.id === song.id ? 'active' : ''}`}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '20px',
-                  background: currentSong?.id === song.id ? 'rgba(0, 255, 136, 0.08)' : 'rgba(255,255,255,0.03)',
-                  border: currentSong?.id === song.id ? '1px solid rgba(0, 255, 136, 0.2)' : '1px solid rgba(255,255,255,0.03)',
-                  transition: 'all 0.3s ease'
-                }}
+                className={`category-song-item ${currentSong?.id === song.id ? 'active' : ''}`}
               >
                 <div className="song-art">
-                  <img 
-                    src={song.image} 
-                    alt="" 
-                  />
+                  <img src={song.image} alt="" />
                   {currentSong?.id === song.id && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: '14px', display: 'flex', alignItems: 'center', justify: 'center' }}>
+                    <div className="song-play-indicator">
                       <motion.div 
                         animate={{ scale: [1, 1.2, 1] }} 
                         transition={{ repeat: Infinity, duration: 1 }}
-                        style={{ width: '4px', height: '16px', background: '#00ff88', borderRadius: '2px' }}
+                        className="play-bar"
                       />
                     </div>
                   )}
                 </div>
                 
-                <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <div style={{ 
-                    fontSize: '0.95rem', 
-                    fontWeight: 800, 
-                    color: currentSong?.id === song.id ? '#00ff88' : '#fff',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }} dangerouslySetInnerHTML={{ __html: song.title }} />
+                <div className="category-song-details">
+                  <div 
+                    className="category-song-title" 
+                    dangerouslySetInnerHTML={{ __html: song.title }} 
+                  />
                   
-                  <div className="song-info-row" style={{ marginTop: 0 }}>
-                    <span className="song-artist-text" style={{ fontSize: '0.75rem' }} dangerouslySetInnerHTML={{ __html: song.artist || song.singers }} />
+                  <div className="category-song-meta">
+                    <span dangerouslySetInnerHTML={{ __html: song.artist || song.singers }} />
                     {song.album && <span className="song-meta-dot">•</span>}
-                    {song.album && <span className="song-album-text" style={{ fontSize: '0.75rem', maxWidth: '100px' }} dangerouslySetInnerHTML={{ __html: song.album }} />}
+                    {song.album && <span className="song-album-text" dangerouslySetInnerHTML={{ __html: song.album }} />}
                   </div>
 
-                  <div className="song-stats-row" style={{ marginTop: '4px' }}>
-                    {song.year && <span className="song-year-tag" style={{ fontSize: '0.6rem' }}>{song.year}</span>}
+                  <div className="category-song-tags">
+                    {song.year && <span className="category-tag">{song.year}</span>}
                     {song.duration && (
-                      <span className="song-duration-tag" style={{ fontSize: '0.6rem' }}>
+                      <span className="category-tag">
                         {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div className="category-song-actions">
                   <button 
                     onClick={(e) => { 
                       e.stopPropagation(); 
@@ -281,18 +226,7 @@ const MusicCategoryPage = ({ category, onBack }) => {
                         selectSong(song);
                       }
                     }}
-                    style={{ 
-                      background: currentSong?.id === song.id ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255,255,255,0.05)', 
-                      border: 'none', 
-                      color: currentSong?.id === song.id ? '#00ff88' : '#fff',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer'
-                    }}
+                    className={`category-action-btn ${currentSong?.id === song.id ? 'active' : ''}`}
                   >
                     {loadingSongId === song.id ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -305,13 +239,13 @@ const MusicCategoryPage = ({ category, onBack }) => {
 
                   <button 
                     onClick={(e) => { e.stopPropagation(); toggleLikeSong(song, user?.id); }}
-                    style={{ background: 'none', border: 'none', color: likedSongs.some(ls => ls.id === song.id) ? '#ff4b4b' : '#fff', opacity: likedSongs.some(ls => ls.id === song.id) ? 1 : 0.3, padding: '8px' }}
+                    className={`category-icon-btn ${likedSongs.some(ls => ls.id === song.id) ? 'liked' : ''}`}
                   >
                     <Heart size={18} fill={likedSongs.some(ls => ls.id === song.id) ? 'currentColor' : 'none'} />
                   </button>
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleShare(song); }}
-                    style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.3, padding: '8px' }}
+                    className="category-icon-btn"
                   >
                     <Share2 size={18} />
                   </button>
@@ -320,8 +254,8 @@ const MusicCategoryPage = ({ category, onBack }) => {
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', paddingTop: '60px', opacity: 0.4 }}>
-            <Music size={48} style={{ marginBottom: '16px' }} />
+          <div className="category-empty-state">
+            <Music size={48} />
             <p>No songs found for this category</p>
           </div>
         )}

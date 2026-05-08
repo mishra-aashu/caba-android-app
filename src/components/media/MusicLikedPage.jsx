@@ -61,12 +61,12 @@ const MusicLikedPage = ({ onBack }) => {
             ))}
           </div>
         ) : (
-          <div className="empty-state-card" style={{ marginTop: '40px' }}>
+          <div className="empty-state-card">
             <div className="empty-icon-circle">
-              <Heart size={32} fill="rgba(255,255,255,0.1)" color="rgba(255,255,255,0.2)" />
+              <Heart size={32} />
             </div>
             <div className="empty-text">
-              <h4 style={{ fontSize: '1.4rem' }}>No Liked Songs</h4>
+              <h4>No Liked Songs</h4>
               <p>Tap the heart icon on any song to save it here.</p>
             </div>
             <button 

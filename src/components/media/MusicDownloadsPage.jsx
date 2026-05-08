@@ -115,12 +115,12 @@ const MusicDownloadsPage = ({ onBack }) => {
           </div>
         ) : (
           !isLoading && (
-            <div className="empty-state-card" style={{ marginTop: '40px' }}>
+            <div className="empty-state-card">
               <div className="empty-icon-circle">
-                <Download size={32} color="rgba(255,255,255,0.2)" />
+                <Download size={32} />
               </div>
               <div className="empty-text">
-                <h4 style={{ fontSize: '1.4rem' }}>No Offline Music</h4>
+                <h4>No Offline Music</h4>
                 <p>Download your favorite tracks to listen without internet.</p>
               </div>
               <button 

@@ -36,6 +36,7 @@ import MusicSharePage from './MusicSharePage';
 import MusicCategoryPage from './MusicCategoryPage';
 import MusicDownloadsPage from './MusicDownloadsPage';
 import './MusicPage.css';
+import './MusicHubNav.css';
 
 /**
  * MusicPage Component
@@ -225,29 +226,39 @@ const MusicPage = () => {
         
         {/* Content Layers */}
         <div className="music-page-content-wrapper">
-          {/* Header remains but is simplified for sub-pages */}
-          <div className="panel-header-glass">
-            <div className="header-top">
-              <div className="brand-badge">
-                <div className="brand-dot" />
-                <span style={{ fontWeight: 800, letterSpacing: '0.05em' }}>
-                  {activeSection === 'share' ? 'SELECT CHAT' : 'ELEVENgram'}
-                </span>
+          {/* Main header only shows when NOT in a specific category */}
+          {!selectedCategory && (
+            <div className="panel-header-glass">
+              {currentSong && (
+                <img 
+                  key={`header-bg-${currentSong.id}`}
+                  src={currentSong.image} 
+                  className="header-dynamic-bg" 
+                  alt="" 
+                />
+              )}
+              <div className="header-top">
+                <div className="brand-badge">
+                  <div className="brand-dot" />
+                  <span style={{ fontWeight: 800, letterSpacing: '0.05em' }}>
+                    {activeSection === 'share' ? 'SELECT CHAT' : 'ELEVENgram'}
+                  </span>
+                </div>
+                <button className="panel-close-btn" onClick={() => activeSection === 'share' ? setActiveSection('home') : navigate(-1)}>
+                  {activeSection === 'share' ? <ArrowLeft size={24} /> : <X size={24} />}
+                </button>
               </div>
-              <button className="panel-close-btn" onClick={() => activeSection === 'share' ? setActiveSection('home') : navigate(-1)}>
-                {activeSection === 'share' ? <ArrowLeft size={24} /> : <X size={24} />}
-              </button>
+              
+              {activeSection === 'home' && (
+                <h2 className="panel-title" style={{ marginTop: '8px', fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.02em' }}>
+                  <Compass size={24} className="title-icon" style={{ color: 'var(--brand-primary, #00ff88)' }} />
+                  Discovery
+                </h2>
+              )}
             </div>
-            
-            {activeSection === 'home' && (
-              <h2 className="panel-title" style={{ marginTop: '8px', fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.02em' }}>
-                <Compass size={24} className="title-icon" style={{ color: 'var(--brand-primary, #00ff88)' }} />
-                Discovery
-              </h2>
-            )}
-          </div>
+          )}
 
-          <div className="panel-body-scrollable">
+          <div className="panel-body-scrollable" style={{ paddingTop: selectedCategory ? '0' : '' }}>
             <AnimatePresence mode="wait">
               <motion.div 
                 key={selectedCategory ? `cat-${selectedCategory.id}` : activeSection}
@@ -276,14 +287,18 @@ const MusicPage = () => {
                     {activeSection === 'liked' && <MusicLikedPage onBack={() => setActiveSection('library')} />}
                     {activeSection === 'playlists' && (
                       <div className="music-library-container">
-                        <header className="library-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <button onClick={() => setActiveSection('library')} className="action-btn" style={{ padding: '8px', opacity: 1 }}><ArrowLeft size={24} /></button>
-                          <h1 style={{ margin: 0 }}>Playlists</h1>
+                        <header className="library-header">
+                          <button onClick={() => setActiveSection('library')} className="action-btn"><ArrowLeft size={24} /></button>
+                          <h1>Playlists</h1>
                         </header>
-                        <div className="empty-state-card" style={{ marginTop: '40px' }}>
-                          <LayoutGrid size={32} color="rgba(255,255,255,0.2)" style={{ marginBottom: '16px' }} />
-                          <h4>Coming Soon</h4>
-                          <p>We are building a powerful playlist engine for you.</p>
+                        <div className="empty-state-card">
+                          <div className="empty-icon-circle">
+                            <LayoutGrid size={32} />
+                          </div>
+                          <div className="empty-text">
+                            <h4>Coming Soon</h4>
+                            <p>We are building a powerful playlist engine for you.</p>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -332,74 +347,3 @@ const MusicPage = () => {
 };
 
 export default MusicPage;
-
-// Add styles for the new sub-navigation
-const styles = `
-.music-hub-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 75px;
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(15px) saturate(160%);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding-bottom: env(safe-area-inset-bottom);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 1000;
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
-}
-
-.hub-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: #94a3b8;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.6;
-  flex: 1;
-  padding: 10px 0;
-  cursor: pointer;
-}
-
-.hub-nav-item.active {
-  color: #00ff88;
-  opacity: 1;
-  transform: translateY(-4px);
-}
-
-.hub-nav-item span {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.hub-nav-item svg {
-  filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0));
-  transition: filter 0.3s ease;
-}
-
-.hub-nav-item.active svg {
-  filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.4));
-}
-
-.music-home-fade-in, .music-search-page-fade-in, .music-library-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-`;
-
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement("style");
-  styleSheet.innerText = styles;
-  document.head.appendChild(styleSheet);
-}

@@ -66,6 +66,20 @@
     --sab: var(--safe-area-bottom);
     --sal: var(--safe-area-left);
     --sar: var(--safe-area-right);
+
+    /* Music Specific Tokens */
+    --music-glass-bg: rgba(255, 255, 255, 0.7);
+    --music-glass-border: rgba(0, 0, 0, 0.08);
+    --music-text-primary: #111b21;
+    --music-text-secondary: #54656f;
+    --music-card-bg: rgba(0, 0, 0, 0.03);
+    --music-card-border: rgba(0, 0, 0, 0.06);
+    --music-overlay: rgba(255, 255, 255, 0.85);
+
+    /* Shimmer Tokens */
+    --shimmer-base: #f0f2f5;
+    --shimmer-highlight: #e1e4e8;
+    --music-vignette: rgba(0, 0, 0, 0.05);
 }
 
 /* Glassmorphism & UI Accents */
@@ -162,4 +176,18 @@
 
     /* Status overrides */
     --status-success: #00a884;
+
+    /* Music Specific Tokens (Dark) */
+    --music-glass-bg: rgba(11, 20, 26, 0.6);
+    --music-glass-border: rgba(255, 255, 255, 0.08);
+    --music-text-primary: #e9edef;
+    --music-text-secondary: #8696a0;
+    --music-card-bg: rgba(255, 255, 255, 0.03);
+    --music-card-border: rgba(255, 255, 255, 0.06);
+    --music-overlay: rgba(11, 20, 26, 0.85);
+
+    /* Shimmer Tokens (Dark) */
+    --shimmer-base: #1c272d;
+    --shimmer-highlight: #2a3942;
+    --music-vignette: rgba(0, 0, 0, 0.4);
 }
