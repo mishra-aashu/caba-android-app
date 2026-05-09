@@ -56,7 +56,7 @@ const useMusicStore = create(
 
       clearRecentSearches: () => set({ recentSearches: [] }),
 
-      setCurrentSong: (song) => {
+      setCurrentSong: (song, forceReset = false) => {
         const state = get();
 
         if (!song) {
@@ -73,12 +73,12 @@ const useMusicStore = create(
 
         set({
           currentSong: song,
-          progress: isNewSong ? 0 : state.progress,
+          progress: (isNewSong || forceReset) ? 0 : state.progress,
           duration: song.duration || 0,
-          isPlaying: isNewSong ? true : state.isPlaying, // keep playing state for same song
+          isPlaying: (isNewSong || forceReset) ? true : state.isPlaying, // keep playing state for same song unless forced
         });
 
-        if (isNewSong) {
+        if (isNewSong || forceReset) {
           get().addToHistory(song);
           get().fetchRecommendations(song.id);
 
@@ -265,8 +265,8 @@ const useMusicStore = create(
         const { currentSong, searchResults, recommendations, repeatMode } = get();
 
         if (repeatMode === 'one' && currentSong) {
-          // Restart current song (addToHistory will deduplicate)
-          get().setCurrentSong(currentSong);
+          // Restart current song from beginning
+          get().setCurrentSong(currentSong, true);
           return currentSong;
         }
 

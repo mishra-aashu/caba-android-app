@@ -64,7 +64,20 @@ class MusicPlayerService {
     async play(song) {
         if (!song) return;
 
-        const { progress } = useMusicStore.getState();
+        const { progress, isPlaying } = useMusicStore.getState();
+        
+        // 0. If same song is already loaded, just resume/seek
+        const isSameSong = useMusicStore.getState().currentSong?.id === song.id;
+        if (isSameSong && this.currentEngine) {
+            console.log(`[MusicPlayerService] Resuming current song: ${song.title}`);
+            if (isPlaying) {
+                await this.resume();
+                await this.seekTo(progress);
+            } else {
+                await this.pause();
+            }
+            return;
+        }
 
         // 1. Check if song is downloaded
         const offlineData = await db.offline_music_store.get(song.id);
@@ -83,12 +96,19 @@ class MusicPlayerService {
         if (this.currentEngine === 'native') {
             await this.stopNative();
         }
+        
+        const isSameUrl = this.html5Audio.src === url;
         this.currentEngine = 'html5';
-        if (this.html5Audio.src !== url) {
+        
+        if (!isSameUrl) {
             this.html5Audio.src = url;
             this.html5Audio.load();
-            if (startAt > 0) this.html5Audio.currentTime = startAt;
         }
+
+        if (startAt > 0) {
+            this.html5Audio.currentTime = startAt;
+        }
+
         try {
             await this.html5Audio.play();
         } catch (e) {
@@ -100,29 +120,34 @@ class MusicPlayerService {
         if (this.currentEngine === 'html5') {
             this.html5Audio.pause();
         }
+        
+        const isAlreadyPlayingPath = this.currentNativePath === localPath;
         this.currentEngine = 'native';
 
         try {
-            // Unload previous if any
-            if (this.isNativePreloaded) {
-                await NativeAudio.unload({ assetId: this.nativeAssetId });
+            if (!isAlreadyPlayingPath) {
+                // Unload previous if any
+                if (this.isNativePreloaded) {
+                    await NativeAudio.unload({ assetId: this.nativeAssetId });
+                }
+
+                // Get full URI for native player
+                const { uri } = await Filesystem.getUri({
+                    path: localPath,
+                    directory: Directory.Data
+                });
+
+                const assetPath = Capacitor.convertFileSrc(uri);
+
+                await NativeAudio.preload({
+                    assetId: this.nativeAssetId,
+                    assetPath: assetPath,
+                    audioChannelNum: 1,
+                    isUrl: true
+                });
+                this.isNativePreloaded = true;
+                this.currentNativePath = localPath;
             }
-
-            // Get full URI for native player
-            const { uri } = await Filesystem.getUri({
-                path: localPath,
-                directory: Directory.Data
-            });
-
-            const assetPath = Capacitor.convertFileSrc(uri);
-
-            await NativeAudio.preload({
-                assetId: this.nativeAssetId,
-                assetPath: assetPath,
-                audioChannelNum: 1,
-                isUrl: true
-            });
-            this.isNativePreloaded = true;
 
             if (startAt > 0 && NativeAudio.seekTo) {
                 await NativeAudio.seekTo({ assetId: this.nativeAssetId, time: startAt });
@@ -140,6 +165,7 @@ class MusicPlayerService {
 
         } catch (err) {
             console.error('[MusicPlayerService] Native play failed, falling back to HTML5:', err);
+            this.currentNativePath = null;
             const currentSong = useMusicStore.getState().currentSong;
             if (currentSong?.media_url) {
                 await this.playHTML5(currentSong.media_url, startAt);

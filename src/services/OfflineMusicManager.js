@@ -104,11 +104,13 @@ class OfflineMusicManager {
         }
 
         // 2. Add to queue
+        const now = Date.now();
         this.queue.push(song);
         await db.offline_music_store.put({
             song_id: song.id,
             download_status: 'pending',
-            song_metadata: song
+            song_metadata: song,
+            added_at: now
         });
 
         toast.success('Added to download queue');
@@ -154,23 +156,20 @@ class OfflineMusicManager {
                 notificationDescription: song.artist,
             };
 
-            const res = await CapacitorDownloader.download(downloadOptions);
-            const downloadId = res.id;
-            this.activeDownloads.set(song.id, downloadId);
+            // Listen for progress (Attach BEFORE starting download to avoid missing events)
+            let progressListener, completionListener, errorListener;
 
-            // Listen for progress
-            const progressListener = await CapacitorDownloader.addListener('progress', (progress) => {
-                if (progress.id === downloadId) {
+            progressListener = await CapacitorDownloader.addListener('progress', (progress) => {
+                if (progress.url === url) {
                     useMusicStore.getState().setDownloadProgress(song.id, progress.value);
                 }
             });
-
-            const completionListener = await CapacitorDownloader.addListener('completed', async (result) => {
-                if (result.id === downloadId) {
+            
+            completionListener = await CapacitorDownloader.addListener('completed', async (result) => {
+                if (result.url === url) {
                     this.activeDownloads.delete(song.id);
                     await this.handleDownloadSuccess(song, path);
                     
-                    // Cleanup
                     progressListener.remove();
                     completionListener.remove();
                     errorListener.remove();
@@ -179,11 +178,10 @@ class OfflineMusicManager {
                 }
             });
 
-            const errorListener = await CapacitorDownloader.addListener('failed', async (error) => {
-                if (error.id === downloadId) {
+            errorListener = await CapacitorDownloader.addListener('failed', async (error) => {
+                if (error.url === url) {
                     this.activeDownloads.delete(song.id);
                     
-                    // Cleanup
                     progressListener.remove();
                     completionListener.remove();
                     errorListener.remove();
@@ -197,6 +195,9 @@ class OfflineMusicManager {
                     }
                 }
             });
+
+            const res = await CapacitorDownloader.download(downloadOptions);
+            this.activeDownloads.set(song.id, res.id);
 
         } catch (err) {
             console.error('[OfflineManager] Download task failed:', err);

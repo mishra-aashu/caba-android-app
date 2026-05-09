@@ -24,7 +24,11 @@ const MusicDownloadsPage = ({ onBack }) => {
         .equals('completed')
         .toArray();
       
-      const sorted = downloads.sort((a, b) => (b.added_at || 0) - (a.added_at || 0));
+      const sorted = downloads.sort((a, b) => {
+        const timeA = a.added_at || (a.downloaded_at ? new Date(a.downloaded_at).getTime() : 0);
+        const timeB = b.added_at || (b.downloaded_at ? new Date(b.downloaded_at).getTime() : 0);
+        return timeB - timeA;
+      });
       setDownloadedSongs(sorted);
     } catch (error) {
       console.error('Failed to fetch downloads:', error);
