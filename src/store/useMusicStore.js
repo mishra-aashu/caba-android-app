@@ -346,7 +346,7 @@ const useMusicStore = create(
         })),
 
       // ─── Listen Together Actions ───
-      joinRoom: (id, isHost = false) => {
+      joinRoom: async (id, isHost = false) => {
         let finalId = id;
         if (!finalId && isHost) {
           // Generate a random 6-character room ID for host
@@ -359,14 +359,42 @@ const useMusicStore = create(
         console.log(`[MusicStore] ${isHost ? 'Created' : 'Joined'} room: ${finalId}`);
         
         if (isHost) {
+          // Register room in DB
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase.from('music_rooms').upsert({
+                id: finalId,
+                host_id: user.id,
+                status: 'active',
+                song_metadata: get().currentSong,
+                created_at: new Date().toISOString()
+              });
+            }
+          } catch (err) {
+            console.error('[MusicStore] Failed to register room in DB:', err);
+          }
+
           import('react-hot-toast').then(({ toast }) => {
             toast.success(`Music Room Created: ${finalId}`, { icon: '🔥' });
           });
         }
       },
 
-      leaveRoom: () => {
-        const { roomId } = get();
+      leaveRoom: async () => {
+        const { roomId, isHost } = get();
+        
+        if (isHost && roomId) {
+          // Mark room as ended in DB
+          try {
+            await supabase.from('music_rooms')
+              .update({ status: 'ended', ended_at: new Date().toISOString() })
+              .eq('id', roomId);
+          } catch (err) {
+            console.error('[MusicStore] Failed to end room in DB:', err);
+          }
+        }
+
         set({
           roomId: null,
           isHost: false,
