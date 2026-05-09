@@ -138,7 +138,14 @@ const useMusicSync = () => {
     const drift = Math.abs(progress - targetPos);
     if (drift > 2.0 || (!isPlaying && drift > 0.5)) {
       // Significant drift or host stopped at different position
+      console.log(`[MusicSync] Correcting drift: ${drift.toFixed(2)}s`);
       setProgress(targetPos);
+      
+      // Physically seek the player
+      import('../../services/MusicPlayerService').then(m => {
+        m.default.seekTo(targetPos);
+      });
+
       setSyncStatus('lagging');
       setTimeout(() => setSyncStatus('synced'), 500);
     } else {
