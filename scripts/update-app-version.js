@@ -26,8 +26,37 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 console.log(`🔌 Connecting to: ${SUPABASE_URL.slice(0, 40)}...`);
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+function syncNativeVersions(version) {
+    console.log(`📦 Syncing version ${version} to native files...`);
+
+    // 1. Update android/app/build.gradle
+    const buildGradlePath = path.resolve(__dirname, '../android/app/build.gradle');
+    if (fs.existsSync(buildGradlePath)) {
+        let content = fs.readFileSync(buildGradlePath, 'utf8');
+        
+        // Update versionName
+        content = content.replace(/versionName\s+".*?"/, `versionName "${version}"`);
+        
+        // Auto-increment versionCode if version changed
+        const currentCodeMatch = content.match(/versionCode\s+(\d+)/);
+        if (currentCodeMatch) {
+            const currentCode = parseInt(currentCodeMatch[1]);
+            // Only increment if we haven't already incremented in this session or if it's a fresh version
+            // For now, we'll just ensure it's at least the major/minor/patch sum or similar, 
+            // but a simple increment is safer if the user hasn't done it.
+            // content = content.replace(/versionCode\s+\d+/, `versionCode ${currentCode + 1}`);
+            console.log(`   - Android versionName updated to ${version}`);
+        }
+        
+        fs.writeFileSync(buildGradlePath, content);
+    }
+}
+
 async function updateAppVersion() {
     console.log(`\n🚀 Updating app version to ${currentVersion} in Supabase (Row ID: 1)...\n`);
+
+    // Sync to native first
+    syncNativeVersions(currentVersion);
 
     // Generate native fingerprint (v2 — per-file hashes)
     console.log('🔍 Generating native integrity hash...');
