@@ -98,21 +98,12 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
     }
   }, [progress, duration]);
 
-  // ── 5. Media Session API (Simplified) ──────────────────────────
+  // ── 5. Media Session API Sync ──────────────────────────
   useEffect(() => {
-    if (!('mediaSession' in navigator) || !currentSong) return;
-
-    navigator.mediaSession.metadata = new window.MediaMetadata({
-      title: currentSong.title?.replace(/&quot;/g, '"') || 'Unknown Title',
-      artist: currentSong.artist?.replace(/&quot;/g, '"') || 'Unknown Artist',
-      artwork: [{ src: currentSong.image || '', sizes: '512x512', type: 'image/png' }],
-    });
-
-    navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
-    navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
-    navigator.mediaSession.setActionHandler('previoustrack', () => useMusicStore.getState().playPrevious());
-    navigator.mediaSession.setActionHandler('nexttrack', () => useMusicStore.getState().playNext());
-  }, [currentSong, setIsPlaying]);
+    if (currentSong) {
+      MusicPlayerService.updateMediaSession(currentSong);
+    }
+  }, [currentSong?.id, isPlaying]);
 
   if (!currentSong) return null;
 

@@ -14,6 +14,12 @@ class MusicPlayerService {
         this.nativeTimer = null;
         this.animFrameId = null;
         
+        // Silent audio to keep MediaSession alive during native playback
+        this.silentAudio = new Audio();
+        this.silentAudio.loop = true;
+        // 1-pixel silent base64 mp3
+        this.silentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAD//w==';
+        
         this.setupHTML5Listeners();
         this.setupNativeListeners();
         this.startUIUpdateLoop();
@@ -111,6 +117,8 @@ class MusicPlayerService {
 
         try {
             await this.html5Audio.play();
+            this.updateMediaSession(useMusicStore.getState().currentSong);
+            this.silentAudio.pause(); // No need for silent audio during HTML5 playback
         } catch (e) {
             console.warn('[MusicPlayerService] HTML5 play failed:', e);
         }
@@ -158,6 +166,14 @@ class MusicPlayerService {
             
             // Start a timer for progress updates
             this.startNativeProgressTimer();
+            
+            // Sync MediaSession by playing silent audio in WebView
+            try {
+                this.silentAudio.play().catch(() => {});
+            } catch (e) {}
+
+            // Update MediaSession metadata manually just in case
+            this.updateMediaSession(useMusicStore.getState().currentSong);
             
             // Get duration
             const duration = await NativeAudio.getDuration({ assetId: this.nativeAssetId });
@@ -217,19 +233,27 @@ class MusicPlayerService {
     async pause() {
         if (this.currentEngine === 'native') {
             await NativeAudio.pause({ assetId: this.nativeAssetId });
+            this.silentAudio.pause();
         } else {
             this.html5Audio.pause();
         }
         useMusicStore.getState().setIsPlaying(false);
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'paused';
+        }
     }
 
     async resume() {
         if (this.currentEngine === 'native') {
             await NativeAudio.resume({ assetId: this.nativeAssetId });
+            try { this.silentAudio.play().catch(() => {}); } catch(e) {}
         } else {
             await this.html5Audio.play();
         }
         useMusicStore.getState().setIsPlaying(true);
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'playing';
+        }
     }
 
     async seekTo(time) {
@@ -261,6 +285,33 @@ class MusicPlayerService {
         if (this.isNativePreloaded) {
             NativeAudio.setVolume({ assetId: this.nativeAssetId, volume });
         }
+    }
+
+    updateMediaSession(song) {
+        if (!song || !('mediaSession' in navigator)) return;
+
+        navigator.mediaSession.metadata = new window.MediaMetadata({
+            title: song.title?.replace(/&quot;/g, '"') || 'Unknown Title',
+            artist: song.artist?.replace(/&quot;/g, '"') || 'Unknown Artist',
+            artwork: [
+                { src: song.image || '', sizes: '96x96', type: 'image/png' },
+                { src: song.image || '', sizes: '128x128', type: 'image/png' },
+                { src: song.image || '', sizes: '192x192', type: 'image/png' },
+                { src: song.image || '', sizes: '256x256', type: 'image/png' },
+                { src: song.image || '', sizes: '384x384', type: 'image/png' },
+                { src: song.image || '', sizes: '512x512', type: 'image/png' },
+            ],
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => useMusicStore.getState().setIsPlaying(true));
+        navigator.mediaSession.setActionHandler('pause', () => useMusicStore.getState().setIsPlaying(false));
+        navigator.mediaSession.setActionHandler('previoustrack', () => useMusicStore.getState().playPrevious());
+        navigator.mediaSession.setActionHandler('nexttrack', () => useMusicStore.getState().playNext());
+        
+        // Also handle seek
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+            this.seekTo(details.seekTime);
+        });
     }
 }
 
