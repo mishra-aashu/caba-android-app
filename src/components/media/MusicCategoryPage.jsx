@@ -145,7 +145,7 @@ const MusicCategoryPage = ({ category, onBack }) => {
 
         <div className="category-hero-content">
           <div className="category-hero-icon-box">
-            {React.createElement(category.icon, { size: 48, color: '#fff' })}
+            {React.createElement(category.icon, { size: 64, color: '#fff' })}
           </div>
           <div className="category-hero-info">
             <span>Playlist</span>
@@ -171,13 +171,28 @@ const MusicCategoryPage = ({ category, onBack }) => {
             ))}
           </div>
         ) : songs.length > 0 ? (
-          <div className="category-song-list">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: {
+                transition: {
+                  staggerChildren: 0.05
+                }
+              }
+            }}
+            className="category-song-list"
+          >
             <div className="category-section-label">
               POPULAR IN {category.label.toUpperCase()}
             </div>
             {songs.map((song, index) => (
-              <div 
+              <motion.div 
                 key={song.id}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 }
+                }}
                 onClick={() => selectSong(song)}
                 className={`category-song-item ${currentSong?.id === song.id ? 'active' : ''}`}
               >
@@ -185,11 +200,20 @@ const MusicCategoryPage = ({ category, onBack }) => {
                   <img src={song.image} alt="" />
                   {currentSong?.id === song.id && (
                     <div className="song-play-indicator">
-                      <motion.div 
-                        animate={{ scale: [1, 1.2, 1] }} 
-                        transition={{ repeat: Infinity, duration: 1 }}
-                        className="play-bar"
-                      />
+                      <div className="play-bars">
+                        {[1, 2, 3].map(i => (
+                          <motion.div 
+                            key={i}
+                            animate={{ height: isPlaying ? [6, 16, 8, 16, 6] : 6 }} 
+                            transition={{ 
+                              repeat: Infinity, 
+                              duration: 0.6 + (i * 0.2),
+                              ease: "easeInOut"
+                            }}
+                            className="play-bar-pill"
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -201,9 +225,13 @@ const MusicCategoryPage = ({ category, onBack }) => {
                   />
                   
                   <div className="category-song-meta">
-                    <span dangerouslySetInnerHTML={{ __html: song.artist || song.singers }} />
-                    {song.album && <span className="song-meta-dot">•</span>}
-                    {song.album && <span className="song-album-text" dangerouslySetInnerHTML={{ __html: song.album }} />}
+                    <span className="song-artist-list" dangerouslySetInnerHTML={{ __html: (song.artist || song.singers || '').replace(/,/g, ', ') }} />
+                    {song.album && (
+                      <div className="song-album-info">
+                        <span className="song-meta-dot">•</span>
+                        <span className="song-album-text" dangerouslySetInnerHTML={{ __html: song.album }} />
+                      </div>
+                    )}
                   </div>
 
                   <div className="category-song-tags">
@@ -250,9 +278,9 @@ const MusicCategoryPage = ({ category, onBack }) => {
                     <Share2 size={18} />
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : (
           <div className="category-empty-state">
             <Music size={48} />

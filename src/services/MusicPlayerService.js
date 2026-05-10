@@ -10,6 +10,8 @@ const CabaNative = registerPlugin('CabaNative');
 class MusicPlayerService {
     constructor() {
         this.html5Audio = new Audio();
+        this.html5Audio.crossOrigin = 'anonymous';
+        this.html5Audio.preload = 'auto';
         this.currentEngine = 'html5'; 
         this.nativeAssetId = 'current_offline_song';
         this.preloadAssetId = 'preload_offline_song';
@@ -75,18 +77,36 @@ class MusicPlayerService {
                 useMusicStore.getState().setDuration(this.html5Audio.duration);
             }
         };
+        this.html5Audio.onerror = async (e) => {
+            console.error('[MusicPlayerService] HTML5 audio error:', e);
+            const song = useMusicStore.getState().currentSong;
+            if (song && this.currentEngine === 'html5') {
+                console.log('[MusicPlayerService] Attempting to refresh metadata due to error...');
+                const success = await useMusicStore.getState().refreshCurrentSongMetadata();
+                if (success) {
+                    const updatedSong = useMusicStore.getState().currentSong;
+                    if (updatedSong?.media_url) {
+                        this.playHTML5(updatedSong.media_url, useMusicStore.getState().progress);
+                    }
+                }
+            }
+        };
     }
 
     async play(song) {
         if (!song) return;
 
         const { progress, isPlaying } = useMusicStore.getState();
-        const isSameSong = useMusicStore.getState().currentSong?.id === song.id;
+        const currentSongInStore = useMusicStore.getState().currentSong;
+        const isSameSong = currentSongInStore?.id === song.id;
+        const isSameUrl = this.html5Audio.src === song.media_url;
         
-        if (isSameSong && this.currentEngine) {
+        if (isSameSong && this.currentEngine === 'html5' && isSameUrl) {
             if (isPlaying) {
                 await this.resume();
-                await this.seekTo(progress);
+                if (Math.abs(this.html5Audio.currentTime - progress) > 2) {
+                    await this.seekTo(progress);
+                }
             } else {
                 await this.pause();
             }
@@ -103,13 +123,32 @@ class MusicPlayerService {
         }
     }
 
-    async playHTML5(url, startAt = 0) {
+    async playHTML5(url, startAt = 0, retryCount = 0) {
         if (this.currentEngine === 'native') {
             await this.stopNative();
         }
         
-        const isSameUrl = this.html5Audio.src === url;
         this.currentEngine = 'html5';
+
+        if (!url) {
+            if (retryCount >= 2) {
+                console.error('[MusicPlayerService] Max retries reached for missing URL');
+                useMusicStore.getState().setIsPlaying(false);
+                return;
+            }
+            console.warn('[MusicPlayerService] No URL provided, refreshing (Attempt ' + (retryCount + 1) + ')...');
+            const success = await useMusicStore.getState().refreshCurrentSongMetadata();
+            if (success) {
+                const refreshedSong = useMusicStore.getState().currentSong;
+                if (refreshedSong?.media_url) {
+                    return this.playHTML5(refreshedSong.media_url, startAt, retryCount + 1);
+                }
+            }
+            useMusicStore.getState().setIsPlaying(false);
+            return;
+        }
+
+        const isSameUrl = this.html5Audio.src === url;
         
         if (!isSameUrl) {
             this.html5Audio.src = url;
@@ -121,12 +160,36 @@ class MusicPlayerService {
         }
 
         try {
-            await this.html5Audio.play();
+            this.playPromise = this.html5Audio.play();
+            await this.playPromise;
+            this.playPromise = null;
+            
             const song = useMusicStore.getState().currentSong;
             this.updateMediaSession(song, 'playing');
             this.updateNativeForeground(song, 'playing');
         } catch (e) {
+            this.playPromise = null;
             console.warn('[MusicPlayerService] HTML5 play failed:', e);
+            
+            if (e.name === 'AbortError') {
+                console.log('[MusicPlayerService] Play aborted');
+            } else if (e.name === 'NotAllowedError') {
+                console.warn('[MusicPlayerService] Playback blocked by browser policy');
+                useMusicStore.getState().setIsPlaying(false);
+            } else if (retryCount < 2) {
+                console.log('[MusicPlayerService] Play failed, trying refresh...');
+                const success = await useMusicStore.getState().refreshCurrentSongMetadata();
+                if (success) {
+                    const refreshedSong = useMusicStore.getState().currentSong;
+                    if (refreshedSong?.media_url) {
+                        this.playHTML5(refreshedSong.media_url, startAt, retryCount + 1);
+                    }
+                } else {
+                    useMusicStore.getState().setIsPlaying(false);
+                }
+            } else {
+                useMusicStore.getState().setIsPlaying(false);
+            }
         }
     }
 
@@ -159,6 +222,10 @@ class MusicPlayerService {
                 });
                 this.isNativePreloaded = true;
                 this.currentNativePath = localPath;
+                
+                // Get and set duration for native files
+                const durationInfo = await NativeAudio.getDuration({ assetId: this.nativeAssetId });
+                useMusicStore.getState().setDuration(durationInfo.duration);
             }
 
             if (startAt > 0 && NativeAudio.seekTo) {
@@ -173,9 +240,6 @@ class MusicPlayerService {
             const song = useMusicStore.getState().currentSong;
             this.updateMediaSession(song, 'playing');
             this.updateNativeForeground(song, 'playing');
-            
-            const duration = await NativeAudio.getDuration({ assetId: this.nativeAssetId });
-            useMusicStore.getState().setDuration(duration.duration);
 
         } catch (err) {
             console.error('[MusicPlayerService] Native play failed, falling back to HTML5:', err);
@@ -191,6 +255,13 @@ class MusicPlayerService {
         if (this.currentEngine === 'native') {
             await NativeAudio.pause({ assetId: this.nativeAssetId });
         } else {
+            if (this.playPromise) {
+                try {
+                    await this.playPromise;
+                } catch (e) {
+                    // Play was likely aborted, which is fine as we are pausing
+                }
+            }
             this.html5Audio.pause();
         }
         useMusicStore.getState().setIsPlaying(false);

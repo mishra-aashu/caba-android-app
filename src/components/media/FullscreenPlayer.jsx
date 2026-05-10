@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useState } from 'react';
+import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import { motion, useDragControls } from 'framer-motion';
 import useMusicStore from '../../store/useMusicStore';
 import useAuthStore from '../../store/authStore';
