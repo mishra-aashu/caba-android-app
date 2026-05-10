@@ -111,7 +111,6 @@ const SongItem = memo(({
       onClick={() => !isLoadingDetails && onSelect(song)}
       style={{ animationDelay: `${index * 0.05}s` }}
     >
-      <div className="song-item-vibe" style={{ backgroundImage: `url(${thumbnail})` }} />
       <div className="song-art">
         <img src={thumbnail} alt={song.title} loading="lazy" />
         {isLoadingDetails ? (
@@ -126,7 +125,7 @@ const SongItem = memo(({
       </div>
 
       <div className="song-meta" onClick={() => onSelect(song)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0px' }}>
           <h4 className="song-title-text" dangerouslySetInnerHTML={{ __html: song.title || song.name }} />
           {isCurrent && isPlaying && (
             <div className="live-visualizer-mini list-v">
@@ -139,8 +138,6 @@ const SongItem = memo(({
         </div>
         <div className="song-info-row">
           <span className="song-artist-text" dangerouslySetInnerHTML={{ __html: song.singers || song.artist || song.subtitle || song.primaryArtists }} />
-          {song.album && <span className="song-meta-dot">•</span>}
-          {song.album && <span className="song-album-text" dangerouslySetInnerHTML={{ __html: song.album }} />}
         </div>
         <div className="song-stats-row">
           {song.year && <span className="song-year-tag">{song.year}</span>}

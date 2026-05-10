@@ -104,17 +104,14 @@
 .panel-header-glass {
   padding: 14px 18px;
   padding-top: calc(14px + var(--safe-top, 0px));
-  background: linear-gradient(180deg, 
-    rgba(13, 13, 20, 0.95) 0%, 
-    rgba(13, 13, 20, 0.4) 70%,
-    transparent 100%
-  );
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  background: transparent;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: none;
   position: relative;
   overflow: hidden;
   transition: all 0.5s ease;
+  z-index: 100;
 }
 
 .header-dynamic-bg {
@@ -395,10 +392,10 @@
 /* --- Category Cards (MusicHome) --- */
 .music-category-card {
   padding: 24px 12px;
-  border-radius: 28px;
-  background: var(--music-card-bg);
+  border-radius: 20px;
+  background: transparent;
   cursor: pointer;
-  border: 1px solid var(--music-card-border);
+  border: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -406,21 +403,18 @@
   gap: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
-  box-shadow: var(--card-shadow);
   position: relative;
   overflow: hidden;
 }
 
 .music-category-card:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-subtle);
-  transform: translateY(-5px) scale(1.02);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-4px);
 }
 
 .music-category-card:active {
   transform: scale(0.96);
-  background: var(--bg-active);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .category-icon-box {

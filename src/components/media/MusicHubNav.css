@@ -4,16 +4,15 @@
   left: 0;
   right: 0;
   height: 75px;
-  background: var(--music-glass-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: transparent;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding-bottom: env(safe-area-inset-bottom);
-  border-top: 1px solid var(--music-glass-border);
+  border-top: none;
   z-index: 1000;
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
 }
 
 .hub-nav-item {

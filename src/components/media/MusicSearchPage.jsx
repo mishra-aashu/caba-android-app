@@ -34,7 +34,7 @@ const MusicSearchPage = () => {
   return (
     <div className="music-search-page-fade-in" style={{ padding: '20px 0 120px 0' }}>
       {/* Prominent Search Bar */}
-      <div className="sticky-search-wrapper" style={{ top: '0', background: 'rgba(11, 20, 26, 0.6)' }}>
+      <div className="sticky-search-wrapper" style={{ top: '0', background: 'transparent' }}>
         <div className="brand-header">
           <div className="brand-dot" />
           <span className="brand-name">ELEVENgram Search</span>

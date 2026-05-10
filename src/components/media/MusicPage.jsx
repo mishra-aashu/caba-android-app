@@ -266,7 +266,7 @@ const MusicPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                style={{ padding: selectedCategory ? '0' : '0 16px 120px 16px' }}
+                style={{ padding: selectedCategory ? '0' : '0 8px 120px 8px' }}
               >
                 {selectedCategory ? (
                   <MusicCategoryPage 
