@@ -35,6 +35,14 @@ export class IDatabase {
      * @returns {Promise<void>}
      */
     async delete(table, id) { throw new Error('Not implemented'); }
+
+    /**
+     * @param {string} table 
+     * @param {string|number} id 
+     * @param {any} data 
+     * @returns {Promise<void>}
+     */
+    async update(table, id, data) { throw new Error('Not implemented'); }
     
     /**
      * @param {string} table 

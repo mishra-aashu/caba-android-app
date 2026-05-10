@@ -1,4 +1,4 @@
-import { db } from '../db/db';
+import { getDatabase } from '../db/DatabaseFactory';
 import { supabase } from '../config/supabase';
 import { addDbBreadcrumb } from '../config/sentry';
 
@@ -55,14 +55,15 @@ export const queueAction = async (action, table, data, options = {}) => {
   };
 
   try {
+    const db = await getDatabase();
     // Check for existing task with same ID (Idempotency check)
-    const existing = await db.sync_queue.get(taskId);
+    const existing = await db.get('sync_queue', taskId);
     if (existing) {
       console.log('[OfflineQueue] Duplicate task ignored:', taskId);
       return taskId;
     }
 
-    await db.sync_queue.add(queueItem);
+    await db.set('sync_queue', queueItem);
     addDbBreadcrumb('sync_queue', 'queued', { action, table, taskId, scheduledAt: options.scheduledAt });
     
     // Trigger processing (async)
@@ -99,10 +100,11 @@ export const processSyncQueue = async () => {
 
   try {
     const now = Date.now();
+    const db = await getDatabase();
     
-    // Find items that are PENDING, WAITING, or stuck in PROCESSING
-    const pendingItems = await db.sync_queue
-      .filter(item => {
+    // Find items that are not COMPLETED or FAILED
+    const allItems = await db.getAll('sync_queue');
+    const pendingItems = allItems.filter(item => {
         if (item.status === QUEUE_STATUS.COMPLETED || item.status === QUEUE_STATUS.FAILED) return false;
         
         // If it's processing, check if it's stuck (older than 30s)
@@ -117,8 +119,7 @@ export const processSyncQueue = async () => {
         if (item.scheduledAt && item.scheduledAt > now) return false;
 
         return !item.nextRetryAt || item.nextRetryAt <= now;
-      })
-      .toArray();
+    });
 
     if (pendingItems.length === 0) return { processed: 0, failed: 0 };
 
@@ -131,21 +132,21 @@ export const processSyncQueue = async () => {
     try {
       // 1. Dependency Check
       if (item.dependencyId) {
-        const dep = await db.sync_queue.get(item.dependencyId);
+        const dep = await db.get('sync_queue', item.dependencyId);
         if (dep && dep.status !== QUEUE_STATUS.COMPLETED) {
-          await db.sync_queue.update(item.id, { status: QUEUE_STATUS.WAITING });
+          await db.update('sync_queue', item.id, { status: QUEUE_STATUS.WAITING });
           continue;
         }
       }
 
       // 2. Mark as processing
-      await db.sync_queue.update(item.id, { status: QUEUE_STATUS.PROCESSING });
+      await db.update('sync_queue', item.id, { status: QUEUE_STATUS.PROCESSING });
 
       // 3. Execute action
       await executeQueueAction(item);
 
       // 4. Mark as completed
-      await db.sync_queue.update(item.id, {
+      await db.update('sync_queue', item.id, {
         status: QUEUE_STATUS.COMPLETED,
         completedAt: Date.now(),
       });
@@ -153,10 +154,13 @@ export const processSyncQueue = async () => {
       processed++;
       
       // 5. Wake up dependent tasks
-      await db.sync_queue.where('dependencyId').equals(item.id).modify({
-        status: QUEUE_STATUS.PENDING,
-        nextRetryAt: Date.now()
-      });
+      const dependents = await db.getAll('sync_queue', { dependencyId: item.id });
+      for (const dep of dependents) {
+        await db.update('sync_queue', dep.id, {
+            status: QUEUE_STATUS.PENDING,
+            nextRetryAt: Date.now()
+        });
+      }
 
     } catch (error) {
       console.error('[OfflineQueue] ❌ Execution failed:', item.id, error);
@@ -165,7 +169,7 @@ export const processSyncQueue = async () => {
       const isFatal = error.status === 400 || error.status === 403; // Bad Request/Forbidden are usually fatal
 
       if (newRetries >= item.maxRetries || isFatal) {
-        await db.sync_queue.update(item.id, {
+        await db.update('sync_queue', item.id, {
           status: QUEUE_STATUS.FAILED,
           error: error.message,
           failedAt: Date.now(),
@@ -174,11 +178,13 @@ export const processSyncQueue = async () => {
         
         // Root Fix for messages
         if (item.action === QUEUE_ACTIONS.INSERT_MESSAGE && item.data?.tempId) {
-          await db.messages.where('tempId').equals(item.data.tempId).modify({ status: 'failed' }).catch(() => {});
+          // This is still a bit Dexie specific but we'll leave it for now or use db.modify if we had it
+          const msgs = await db.getAll('messages', { tempId: item.data.tempId });
+          for (const m of msgs) await db.update('messages', m.id, { status: 'failed' });
         }
       } else {
         // Schedule Retry with Backoff
-        await db.sync_queue.update(item.id, {
+        await db.update('sync_queue', item.id, {
           status: QUEUE_STATUS.PENDING,
           retries: newRetries,
           lastRetryAt: Date.now(),
@@ -187,10 +193,11 @@ export const processSyncQueue = async () => {
 
         // Visual Healing: Update message retry count
         if (item.action === QUEUE_ACTIONS.INSERT_MESSAGE && item.data?.tempId) {
-          await db.messages.where('tempId').equals(item.data.tempId).modify({ 
+          const msgs = await db.getAll('messages', { tempId: item.data.tempId });
+          for (const m of msgs) await db.update('messages', m.id, { 
             retryCount: newRetries,
-            status: 'repairing' // New status for visual healing
-          }).catch(() => {});
+            status: 'repairing'
+          });
         }
       }
     }
@@ -203,10 +210,11 @@ export const processSyncQueue = async () => {
 };
 
 export const getQueueStats = async () => {
-  const pending = await db.sync_queue.where('status').equals(QUEUE_STATUS.PENDING).count();
-  const processing = await db.sync_queue.where('status').equals(QUEUE_STATUS.PROCESSING).count();
-  const failed = await db.sync_queue.where('status').equals(QUEUE_STATUS.FAILED).count();
-  const completed = await db.sync_queue.where('status').equals(QUEUE_STATUS.COMPLETED).count();
+  const db = await getDatabase();
+  const pending = (await db.getAll('sync_queue', { status: QUEUE_STATUS.PENDING })).length;
+  const processing = (await db.getAll('sync_queue', { status: QUEUE_STATUS.PROCESSING })).length;
+  const failed = (await db.getAll('sync_queue', { status: QUEUE_STATUS.FAILED })).length;
+  const completed = (await db.getAll('sync_queue', { status: QUEUE_STATUS.COMPLETED })).length;
   
   return { pending, processing, failed, completed };
 };
@@ -367,13 +375,15 @@ const executeQueueAction = async (item) => {
 const swapMessageInDexie = async (tempId, serverMsg) => {
   const { safeDbConversion } = await import('../utils/dbFieldMapping');
   const normalizedMsg = safeDbConversion(serverMsg);
+  const db = await getDatabase();
 
-  await db.transaction('rw', [db.messages], async () => {
-    if (tempId) {
-      await db.messages.where('tempId').equals(tempId).delete();
+  if (tempId) {
+    const msgs = await db.getAll('messages', { tempId });
+    for (const m of msgs) {
+        await db.delete('messages', m.id);
     }
-    await db.messages.put(normalizedMsg);
-  });
+  }
+  await db.set('messages', normalizedMsg);
 };
 
 /**
@@ -405,10 +415,13 @@ if (typeof window !== 'undefined') {
 }
 
 export const cleanupQueue = async () => {
+  const db = await getDatabase();
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  return await db.sync_queue
-    .where('status')
-    .equals(QUEUE_STATUS.COMPLETED)
-    .and(item => item.completedAt < cutoff)
-    .delete();
+  const completedItems = await db.getAll('sync_queue', { status: QUEUE_STATUS.COMPLETED });
+  
+  for (const item of completedItems) {
+    if (item.completedAt < cutoff) {
+      await db.delete('sync_queue', item.id);
+    }
+  }
 };

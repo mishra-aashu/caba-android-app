@@ -24,82 +24,47 @@ if (Capacitor.isNativePlatform()) {
 
 /**
  * Add an item to the sync queue. 
- * Maps to the new SyncEngine logic or direct DB access.
  */
 export const addToSyncQueue = async (action, data, table = 'messages') => {
-    if (db.queueChange) {
-        // If it's a SyncEngine-aware DB (or we use the SyncEngine directly)
-        return await db.set('sync_queue', {
-            table_name: table,
-            action,
-            data: JSON.stringify(data),
-            createdAt: Date.now(),
-            status: 'pending'
-        });
-    }
-    
-    // Dexie fallback
-    return await db.sync_queue.add({
-        action,
-        data,
+    return await db.set('sync_queue', {
+        id: crypto.randomUUID(),
         table,
-        status: 'pending',
+        operation: action,
+        data: typeof data === 'object' ? JSON.stringify(data) : data,
         createdAt: Date.now(),
-        retries: 0,
-        retryCount: 0,
-        maxRetries: 3
+        status: 'pending',
+        retries: 0
     });
 };
 
 export const getPendingSyncItems = async () => {
-    if (db.getAll) {
-        return await db.getAll('sync_queue', { status: 'pending' });
-    }
-    return await db.sync_queue.where('status').equals('pending').toArray();
+    return await db.getAll('sync_queue', { status: 'pending' });
 };
 
 export const markSyncItemCompleted = async (id) => {
-    if (db.set && db.get) {
-        const item = await db.get('sync_queue', id);
-        if (item) {
-            return await db.set('sync_queue', { ...item, status: 'completed' });
-        }
-    }
-    return await db.sync_queue.update(id, { status: 'completed' });
+    return await db.update('sync_queue', id, { status: 'completed', completedAt: Date.now() });
 };
 
 export const manualRetrySyncItem = async (tempId) => {
-    // Ported from original db.js
-    if (!Capacitor.isNativePlatform()) {
-        const failedItems = await db.sync_queue
-            .where('status')
-            .equals('failed')
-            .filter(item => {
-                const d = item.data || item.payload;
-                return d?.tempId === tempId || d?.client_id === tempId;
-            })
-            .toArray();
+    const allItems = await db.getAll('sync_queue');
+    const failedItems = allItems.filter(item => {
+        if (item.status !== 'failed') return false;
+        const d = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+        return d?.tempId === tempId || d?.client_id === tempId;
+    });
 
-        for (const item of failedItems) {
-            await db.sync_queue.update(item.id, {
-                status: 'pending',
-                retries: 0,
-                retryCount: 0,
-                failedAt: null,
-                nextRetryAt: null
-            });
-        }
-
-        await db.messages.where('tempId').equals(tempId).modify({ status: 'pending' });
-        await db.groups.where('id').equals(tempId).modify({ status: 'pending' });
-        await db.chats_list.where('id').equals(tempId).modify({ status: 'pending' });
-    } else {
-        // Native SQLite implementation for retry
-        await db.execute(
-            "UPDATE sync_queue SET status = 'pending', retries = 0 WHERE data LIKE ?",
-            [`%${tempId}%`]
-        );
+    for (const item of failedItems) {
+        await db.update('sync_queue', item.id, {
+            status: 'pending',
+            retries: 0,
+            failedAt: null,
+            nextRetryAt: null
+        });
     }
+
+    // Update message status if applicable
+    const msgs = await db.getAll('messages', { tempId });
+    for (const m of msgs) await db.update('messages', m.id, { status: 'pending' });
 };
 
 export const requestPersistentStorage = async () => {

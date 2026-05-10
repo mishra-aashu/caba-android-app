@@ -90,13 +90,14 @@ export class FastSQLDB extends IDatabase {
 
         await this.conn.execute(`
             CREATE TABLE IF NOT EXISTS sync_queue (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT PRIMARY KEY,
                 "table" TEXT,
                 operation TEXT,
                 data TEXT,
-                createdAt INTEGER,
                 retries INTEGER DEFAULT 0,
-                status TEXT DEFAULT 'pending'
+                status TEXT DEFAULT 'pending',
+                dependencyId TEXT,
+                createdAt INTEGER
             )
         `);
 
@@ -167,7 +168,22 @@ export class FastSQLDB extends IDatabase {
 
     async delete(table, id) {
         const pk = (table === 'offline_music_store') ? 'song_id' : 'id';
-        await this.conn.execute(`DELETE FROM ${table} WHERE ${pk} = ?`, [id]);
+        await this.conn.execute(`DELETE FROM [${table}] WHERE [${pk}] = ?`, [id]);
+    }
+
+    async update(table, id, data) {
+        if (!this.conn) await this.init();
+        
+        const keys = Object.keys(data);
+        const values = Object.values(data);
+        const setClause = keys.map(k => `[${k}] = ?`).join(', ');
+        
+        const pk = (table === 'offline_music_store') ? 'song_id' : 'id';
+        
+        await this.conn.execute(
+            `UPDATE [${table}] SET ${setClause} WHERE [${pk}] = ?`,
+            [...values, id]
+        );
     }
 
     async getAll(table, where) {

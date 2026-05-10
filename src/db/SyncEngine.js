@@ -45,7 +45,7 @@ export class SyncEngine {
                 console.error(`[SyncEngine] Failed to sync item ${item.id}:`, err);
                 const retries = (item.retries || 0) + 1;
                 const status = retries >= 3 ? 'failed' : 'pending';
-                await this.db.set('sync_queue', { ...item, status, retries });
+                await this.db.update('sync_queue', item.id, { status, retries });
             }
         }
     }
@@ -57,9 +57,10 @@ export class SyncEngine {
         if (!this.db) await this.init();
 
         await this.db.set('sync_queue', {
+            id: crypto.randomUUID(),
             table: table,
             operation: operation,
-            data: JSON.stringify(data),
+            data: typeof data === 'object' ? JSON.stringify(data) : data,
             createdAt: Date.now(),
             retries: 0,
             status: 'pending'

@@ -186,6 +186,10 @@ export class DexieDB extends Dexie {
                 console.warn('[DexieDB] Failed to migrate sync_queue:', e);
             }
         });
+
+        this.version(19).stores({
+            sync_queue: 'id, table, operation, status, dependencyId'
+        });
     }
 
     /**
@@ -211,6 +215,10 @@ export class DexieDB extends Dexie {
 
     async delete(table, id) {
         await this[table].delete(id);
+    }
+
+    async update(table, id, data) {
+        await this[table].update(id, data);
     }
 
     async getAll(table, where) {
