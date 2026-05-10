@@ -76,7 +76,8 @@
   inset: 0;
   background: linear-gradient(to bottom, 
     transparent 0%, 
-    var(--bg-primary) 80%, 
+    rgba(10, 10, 15, 0.2) 40%,
+    var(--bg-primary) 90%, 
     var(--bg-primary) 100%
   );
   z-index: 1;
@@ -104,12 +105,13 @@
   padding: 14px 18px;
   padding-top: calc(14px + var(--safe-top, 0px));
   background: linear-gradient(180deg, 
-    var(--music-glass-bg) 0%, 
+    rgba(13, 13, 20, 0.95) 0%, 
+    rgba(13, 13, 20, 0.4) 70%,
     transparent 100%
   );
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-bottom: none;
   position: relative;
   overflow: hidden;
   transition: all 0.5s ease;
@@ -143,17 +145,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--music-card-bg);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 8px 16px;
   border-radius: 24px;
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--text-primary);
-  border: 1px solid var(--music-card-border);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .brand-dot {

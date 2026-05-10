@@ -5,41 +5,30 @@
 .bottomNav {
     display: flex;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 0 4px;
-    padding-bottom: var(--safe-bottom, env(safe-area-inset-bottom, 0px));
-    padding-left: calc(4px + var(--safe-left, 0px));
-    padding-right: calc(4px + var(--safe-right, 0px));
-    height: calc(60px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
-    background: var(--surface-color, #ffffff);
-    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    padding: 0 8px;
+    padding-bottom: var(--safe-bottom, 0px);
+    height: 64px;
+    background: rgba(30, 30, 30, 0.85);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
     justify-content: space-around;
     align-items: stretch;
-    z-index: 100;
-
-    /* Subtle top shadow */
-    box-shadow:
-        0 -1px 0 rgba(0, 0, 0, 0.04),
-        0 -4px 12px rgba(0, 0, 0, 0.03);
-
-    /* Smooth show/hide transitions */
+    z-index: 10000;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Performance: GPU acceleration hints */
     transform: translateZ(0);
     will-change: transform;
-    contain: layout style;
 }
 
 /* ─── Dark Mode ─── */
 [data-theme="dark"] .bottomNav {
-    background: var(--surface-color, #1e1e1e);
-    border-top-color: rgba(255, 255, 255, 0.06);
-    box-shadow:
-        0 -1px 0 rgba(255, 255, 255, 0.04),
-        0 -4px 12px rgba(0, 0, 0, 0.2);
+    background: rgba(20, 20, 20, 0.8);
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ─── Hide when music hub is open ─── */

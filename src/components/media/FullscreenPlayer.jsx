@@ -68,7 +68,7 @@ const FullscreenPlayer = () => {
 
   const nextSong = useMemo(() => {
     if (!currentSong || playlist.length === 0) return null;
-    const idx = playlist.findIndex((s) => s.id === currentSong.id);
+    const idx = playlist.findIndex((s) => s.id === currentSong?.id);
     const nextIdx = idx === -1 || idx === playlist.length - 1 ? 0 : idx + 1;
     return playlist[nextIdx];
   }, [currentSong?.id, playlist]);   // depends only on ID
@@ -412,7 +412,7 @@ const FullscreenPlayer = () => {
                 playlist.map((song, i) => (
                   <motion.div
                     key={song.id + i}
-                    className={`recommendation-item ${currentSong.id === song.id ? 'active' : ''}`}
+                    className={`recommendation-item ${currentSong?.id === song.id ? 'active' : ''}`}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -424,7 +424,7 @@ const FullscreenPlayer = () => {
                   >
                     <div className="rec-art">
                       <img src={song.image} alt="" />
-                      {currentSong.id === song.id && isPlaying && (
+                      {currentSong?.id === song.id && isPlaying && (
                         <div className="rec-visualizer">
                           <div className="v-bar" />
                           <div className="v-bar" />
@@ -437,7 +437,7 @@ const FullscreenPlayer = () => {
                       <p dangerouslySetInnerHTML={{ __html: song.artist }} />
                     </div>
                     <button className="rec-play-btn">
-                      {currentSong.id === song.id && isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+                      {currentSong?.id === song.id && isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
                     </button>
                   </motion.div>
                 ))

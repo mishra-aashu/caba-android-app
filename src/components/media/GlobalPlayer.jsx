@@ -45,7 +45,10 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
   const isDesktop = useIsDesktop();
   const progressBarRef = useRef(null);
   const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
-  const isFloating = !showBottomNav && !isDesktop;
+  
+  // Use floating bubble whenever bottom nav is hidden (e.g. Chat, Profile)
+  // This keeps the screen clean and focused.
+  const isFloating = !showBottomNav;
 
   // ── 0. Offline Awareness ───────────────────────────────────────
   useEffect(() => {
@@ -139,7 +142,7 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setPlayerExpanded(true)}
-            style={{ bottom: isMusicHub ? '160px' : '100px' }}
+            style={{ bottom: isMusicHub ? '140px' : '30px' }}
           >
             <svg className="bubble-progress-svg" viewBox="0 0 100 100">
               <circle className="bubble-bg-circle" cx="50" cy="50" r="46" />
@@ -186,7 +189,6 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
             onClick={() => setPlayerExpanded(true)}
             style={{
               cursor: 'pointer',
-              bottom: isDesktop ? '24px' : (isMusicHub || showBottomNav) ? 'calc(var(--bottom-nav-total-height, 60px) + 14px)' : '14px',
             }}
           >
             <div className="player-progress-container">
