@@ -149,13 +149,13 @@ class MusicPlayerService {
         }
 
         const isSameUrl = this.html5Audio.src === url;
-        
         if (!isSameUrl) {
             this.html5Audio.src = url;
             this.html5Audio.load();
-        }
-
-        if (startAt > 0) {
+            // Explicitly reset progress in store and engine to prevent stale carry-over
+            useMusicStore.getState().setProgress(startAt);
+            this.html5Audio.currentTime = startAt;
+        } else if (Math.abs(this.html5Audio.currentTime - startAt) > 1) {
             this.html5Audio.currentTime = startAt;
         }
 
@@ -228,9 +228,10 @@ class MusicPlayerService {
                 useMusicStore.getState().setDuration(durationInfo.duration);
             }
 
-            if (startAt > 0 && NativeAudio.seekTo) {
+            if (NativeAudio.seekTo) {
                 await NativeAudio.seekTo({ assetId: this.nativeAssetId, time: startAt });
             }
+            useMusicStore.getState().setProgress(startAt);
 
             await NativeAudio.play({ assetId: this.nativeAssetId });
             useMusicStore.getState().setIsPlaying(true);

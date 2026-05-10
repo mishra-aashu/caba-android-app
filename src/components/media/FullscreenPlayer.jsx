@@ -5,7 +5,7 @@ import useAuthStore from '../../store/authStore';
 import {
   ChevronDown, MoreHorizontal, SkipBack, SkipForward,
   Play, Pause, Share2, ListMusic, Heart, ChevronRight,
-  Repeat, Repeat1, Download, CheckCircle, Loader2
+  Repeat, Repeat1, Download, CheckCircle, Loader2, Sparkles
 } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -30,6 +30,7 @@ const FullscreenPlayer = () => {
   } = useMusicStore();
 
   const [isFullyExpanded, setIsFullyExpanded] = useState(false);
+  const [isRecsDrawerOpen, setIsRecsDrawerOpen] = useState(false);
   const dragControls = useDragControls();
   const user = useAuthStore((state) => state.user);
   const progressBarRef = useRef(null);
@@ -285,6 +286,13 @@ const FullscreenPlayer = () => {
         >
           {repeatMode === 'one' ? <Repeat1 size={20} /> : <Repeat size={20} />}
         </button>
+        <button
+          className={`header-btn ${isRecsDrawerOpen ? 'active-mode' : ''}`}
+          onClick={() => setIsRecsDrawerOpen(!isRecsDrawerOpen)}
+          aria-label="Toggle recommendations"
+        >
+          <Sparkles size={22} color={isRecsDrawerOpen ? '#00ff88' : 'currentColor'} />
+        </button>
         <button className="header-btn" aria-label="More options">
           <MoreHorizontal size={24} />
         </button>
@@ -451,6 +459,58 @@ const FullscreenPlayer = () => {
           </div>
         </div>
       </div>
+
+      {/* Recommendations Side Drawer */}
+      <div className={`recs-side-drawer ${isRecsDrawerOpen ? 'open' : ''}`}>
+        <div className="drawer-header">
+          <h3>Up Next & Recommended</h3>
+          <button className="drawer-close-btn" onClick={() => setIsRecsDrawerOpen(false)}>
+            <ChevronRight size={24} />
+          </button>
+        </div>
+        <div className="drawer-content">
+          {playlist.length > 0 ? (
+            playlist.map((song, i) => (
+              <div
+                key={song.id + i}
+                className={`recommendation-item ${currentSong?.id === song.id ? 'active' : ''}`}
+                onClick={() => {
+                  useMusicStore.getState().setCurrentSong(song);
+                  if (window.innerWidth < 900) setIsRecsDrawerOpen(false); // Close on mobile after selection
+                }}
+              >
+                <div className="rec-art">
+                  <img src={song.image} alt="" />
+                  {currentSong?.id === song.id && isPlaying && (
+                    <div className="rec-visualizer">
+                      <div className="v-bar" />
+                      <div className="v-bar" />
+                      <div className="v-bar" />
+                    </div>
+                  )}
+                </div>
+                <div className="rec-info">
+                  <h4 dangerouslySetInnerHTML={{ __html: song.title }} />
+                  <p dangerouslySetInnerHTML={{ __html: song.artist }} />
+                </div>
+                <button className="rec-play-btn">
+                  {currentSong?.id === song.id && isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="recs-loading">
+              <div className="loading-dots"><span /><span /><span /></div>
+              <p>Finding more music for you...</p>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Backdrop for mobile drawer */}
+      {isRecsDrawerOpen && (
+        <div className="recs-drawer-backdrop" onClick={() => setIsRecsDrawerOpen(false)} />
+      )}
     </motion.div>
   );
 };

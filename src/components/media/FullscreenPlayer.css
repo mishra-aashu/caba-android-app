@@ -751,3 +751,208 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+
+/* --- Desktop Optimization — Refined Grid Layout --- */
+@media (min-width: 900px) {
+  .fullscreen-player-scrollable {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  .scroll-content-inner {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    grid-template-areas: 
+      "artwork info"
+      "artwork actions"
+      "artwork progress"
+      "artwork controls";
+    grid-template-rows: 1.2fr auto auto 1fr;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    gap: 20px 80px;
+    padding: 60px 80px;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  /* Break containers to allow children to use the main grid */
+  .player-main-content, 
+  .player-controls-footer {
+    display: contents;
+  }
+
+  .artwork-container {
+    grid-area: artwork;
+    width: min(520px, 38vw);
+    height: min(520px, 38vw);
+    justify-self: center;
+    margin-bottom: 40px;
+  }
+
+  .song-info-expanded {
+    grid-area: info;
+    text-align: left;
+    max-width: 100%;
+    align-self: flex-end;
+    padding-bottom: 10px;
+  }
+
+  .song-info-expanded h2 {
+    font-size: clamp(2.5rem, 4vw, 4rem);
+    margin-bottom: 12px;
+    text-align: left;
+    line-height: 1.1;
+  }
+
+  .song-info-expanded p {
+    font-size: clamp(1.2rem, 2vw, 2rem);
+    text-align: left;
+    opacity: 0.7;
+    font-weight: 500;
+  }
+
+  .song-actions-row {
+    grid-area: actions;
+    justify-content: flex-start;
+    margin: 10px 0 30px 0;
+    gap: 24px;
+    align-self: flex-start;
+  }
+
+  .progress-section {
+    grid-area: progress;
+    width: 100%;
+    align-self: center;
+    margin-bottom: 20px;
+  }
+
+  .main-controls-row {
+    grid-area: controls;
+    justify-content: flex-start;
+    gap: 48px;
+    margin-top: 20px;
+    align-self: flex-start;
+  }
+
+  .player-recommendations-section {
+    display: none;
+  }
+
+  .fully-expanded .player-header {
+    background: transparent;
+    backdrop-filter: none;
+    border-bottom: none;
+  }
+  
+  .player-drag-handle {
+    display: none;
+  }
+}
+
+/* --- Recommendations Drawer — Premium Side Panel --- */
+.recs-side-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 90vw;
+  background: rgba(11, 20, 26, 0.75);
+  backdrop-filter: blur(45px);
+  -webkit-backdrop-filter: blur(45px);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.6);
+}
+
+.recs-side-drawer.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.drawer-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--text-primary);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drawer-close-btn:active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recs-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.header-btn.active-mode {
+  background: rgba(0, 255, 136, 0.12) !important;
+  border-color: rgba(0, 255, 136, 0.35) !important;
+}
+
+/* Ensure drawer items look good in a narrow sidebar */
+.recs-side-drawer .recommendation-item {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+@media (max-width: 900px) {
+  .recs-side-drawer {
+    width: 100%;
+    max-width: 100%;
+    border-left: none;
+    box-shadow: none;
+  }
+}
