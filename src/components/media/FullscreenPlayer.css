@@ -20,16 +20,23 @@
   overflow: hidden;
   z-index: 0;
   background: var(--bg-primary);
+  opacity: 0;
+  transition: opacity 0.8s ease-out;
+  pointer-events: none;
+}
+
+.fully-expanded .dynamic-gradient-bg {
+  opacity: 1;
 }
 
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(40px); /* Reduced from 80px */
   opacity: 0;
   mix-blend-mode: screen;
-  animation: blobFloat 25s ease-in-out infinite;
-  will-change: transform, opacity;
+  animation: blobFloat 15s ease-in-out infinite; /* Faster, simpler */
+  will-change: transform; /* Removed opacity from will-change */
 }
 
 .blob-1 {
@@ -80,20 +87,12 @@
 
 @keyframes blobFloat {
   0%, 100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-    opacity: 0.4;
-  }
-  25% {
-    transform: translate(30px, -40px) scale(1.1) rotate(90deg);
-    opacity: 0.6;
+    transform: translate(0, 0);
+    opacity: 0.3;
   }
   50% {
-    transform: translate(-25px, 30px) scale(0.95) rotate(180deg);
+    transform: translate(20px, -20px);
     opacity: 0.5;
-  }
-  75% {
-    transform: translate(40px, 20px) scale(1.05) rotate(270deg);
-    opacity: 0.7;
   }
 }
 
@@ -124,18 +123,22 @@
 
 /* --- Header Section --- */
 .player-header {
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative; /* Changed from sticky to avoid layout thrashing */
   z-index: 100;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: max(env(safe-area-inset-top), 24px) 20px 16px;
-  background: linear-gradient(180deg, var(--bg-primary) 0%, transparent 100%);
+  background: rgba(11, 20, 26, 0.4);
+  transition: background 0.5s ease, backdrop-filter 0.5s ease;
+}
+
+.fully-expanded .player-header {
+  position: sticky;
+  top: 0;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  background: rgba(11, 20, 26, 0.6);
 }
 
 .player-drag-handle {
@@ -194,7 +197,6 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   z-index: 10;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 50px);
 }
 
 .fullscreen-player-scrollable::-webkit-scrollbar {
@@ -329,8 +331,12 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(8px);
   -webkit-tap-highlight-color: transparent;
+}
+
+.fully-expanded .fs-action-btn {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .fs-action-btn:active {

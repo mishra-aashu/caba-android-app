@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
-import { motion, useDragControls } from 'framer-motion';
+import { motion, useDragControls, AnimatePresence } from 'framer-motion';
 import useMusicStore from '../../store/useMusicStore';
 import useAuthStore from '../../store/authStore';
 import {
@@ -29,11 +29,19 @@ const FullscreenPlayer = () => {
     downloadProgress,
   } = useMusicStore();
 
+  const [isFullyExpanded, setIsFullyExpanded] = useState(false);
   const dragControls = useDragControls();
   const user = useAuthStore((state) => state.user);
   const progressBarRef = useRef(null);
   const timeCurrentRef = useRef(null);
   const recommendationsRef = useRef(null);
+
+  // Reset fully expanded state when player closes
+  useEffect(() => {
+    if (!isPlayerExpanded) {
+      setIsFullyExpanded(false);
+    }
+  }, [isPlayerExpanded]);
 
   // ─── Helpers ──────────────────────────────────────────────────
   const formatTime = (seconds) => {
@@ -121,7 +129,8 @@ const FullscreenPlayer = () => {
       }
     };
 
-    updateStatusBar();
+    const timer = setTimeout(updateStatusBar, 400);
+    return () => clearTimeout(timer);
   }, [isPlayerExpanded, colors]);
 
   // ─── Handlers ─────────────────────────────────────────────────
@@ -180,7 +189,7 @@ const FullscreenPlayer = () => {
   };
 
   const handleShare = () => {
-    const text = `Listening to ${currentSong.title} by ${currentSong.artist} on Elevengram Music!`;
+    const text = `Listening to ${currentSong?.title} by ${currentSong?.artist} on Elevengram Music!`;
     navigator.clipboard.writeText(text);
     toast.success('Song info copied to clipboard!', { icon: '🔗' });
   };
@@ -199,42 +208,65 @@ const FullscreenPlayer = () => {
     OfflineMusicManager.downloadSong(currentSong);
   };
 
-  // ─── Render helpers ────────────────────────────────────────────
-  const isLiked = likedSongs.some((s) => s.id === currentSong.id);
-
-  if (!isPlayerExpanded || !currentSong) return null;
+  // Remove the exit early return to keep it always in DOM for smoothness
+  const isLiked = currentSong ? likedSongs.some((s) => s.id === currentSong.id) : false;
 
   return (
     <motion.div
       key="fullscreen-player"
-      className="fullscreen-player-overlay"
+      className={`fullscreen-player-overlay ${isFullyExpanded ? 'fully-expanded' : ''}`}
+      animate={isPlayerExpanded ? 'animate' : 'initial'}
       variants={{
-        initial: { y: '100%', opacity: 0, transition: { duration: 0 } },
-        animate: { y: 0, opacity: 1, transition: { type: 'spring', damping: 30, stiffness: 300, mass: 0.8 } },
-        exit: { y: '100%', opacity: 0, transition: { type: 'tween', ease: 'easeIn', duration: 0.25 } },
+        initial: { 
+          y: '100%', 
+          opacity: 0,
+          pointerEvents: 'none',
+          visibility: 'hidden',
+          transition: { duration: 0.3 }
+        },
+        animate: { 
+          y: 0, 
+          opacity: 1, 
+          pointerEvents: 'auto',
+          visibility: 'visible',
+          transition: { 
+            type: 'tween', 
+            ease: [0.32, 0.72, 0, 1],
+            duration: 0.35
+          } 
+        }
       }}
       initial="initial"
-      animate="animate"
-      exit="exit"
+      onAnimationComplete={(definition) => {
+        if (definition === 'animate') {
+          setIsFullyExpanded(true);
+        } else {
+          setIsFullyExpanded(false);
+        }
+      }}
       drag="y"
       dragControls={dragControls}
       dragListener={false}
       dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={0.2}
+      dragElastic={0.02}
       onDragEnd={(_, info) => {
         if (info.offset.y > 100 || info.velocity.y > 500) {
           setPlayerExpanded(false);
         }
       }}
-      style={{ '--artwork-dominant-color': colors[0] }}
+      style={{ 
+        '--artwork-dominant-color': colors[0],
+        willChange: 'transform',
+        transform: 'translateZ(0)',
+        background: isFullyExpanded ? 'transparent' : 'var(--bg-primary)',
+        display: currentSong ? 'flex' : 'none' // Still hide if no song exists at all
+      }}
     >
-      {/* Dynamic Animated Background */}
+      {/* Dynamic Animated Background - CSS Transition handled via .fully-expanded class */}
       <div className="dynamic-gradient-bg">
         <div className="blob blob-1" style={{ backgroundColor: colors[0] }} />
         <div className="blob blob-2" style={{ backgroundColor: colors[1] }} />
         <div className="blob blob-3" style={{ backgroundColor: colors[2] }} />
-        <div className="blob blob-4" style={{ backgroundColor: colors[3] }} />
-        <div className="blob blob-5" style={{ backgroundColor: colors[4] }} />
       </div>
 
       {/* Header */}
@@ -264,12 +296,12 @@ const FullscreenPlayer = () => {
           {/* Main Content: Artwork & Title */}
           <div className="player-main-content">
             <div className={`artwork-container ${isPlaying ? 'playing' : ''}`}>
-              <img src={currentSong.image} alt={currentSong.title} loading="eager" />
+              <img src={currentSong?.image} alt={currentSong?.title} loading="eager" />
             </div>
 
             <div className="song-info-expanded">
-              <h2 dangerouslySetInnerHTML={{ __html: currentSong.title }} />
-              <p dangerouslySetInnerHTML={{ __html: currentSong.artist }} />
+              <h2 dangerouslySetInnerHTML={{ __html: currentSong?.title || '' }} />
+              <p dangerouslySetInnerHTML={{ __html: currentSong?.artist || '' }} />
             </div>
 
             <div className="song-actions-row">
@@ -293,11 +325,11 @@ const FullscreenPlayer = () => {
               <button 
                 className="fs-action-btn download-btn-fs" 
                 onClick={handleDownload}
-                title={downloadProgress[currentSong.id] === 100 ? 'Downloaded' : 'Download'}
+                title={currentSong && downloadProgress[currentSong.id] === 100 ? 'Downloaded' : 'Download'}
               >
-                {downloadProgress[currentSong.id] === 100 ? (
+                {currentSong && downloadProgress[currentSong.id] === 100 ? (
                   <CheckCircle size={20} color="#00ff88" />
-                ) : downloadProgress[currentSong.id] > 0 ? (
+                ) : (currentSong && downloadProgress[currentSong.id] > 0) ? (
                   <div className="download-progress-mini">
                     <Loader2 size={20} className="animate-spin" />
                     <span className="progress-text">{Math.round(downloadProgress[currentSong.id])}%</span>

@@ -607,9 +607,7 @@ const MainLayout = () => {
     return (
       <UserDetailsContext.Provider value={userDetailsContextValue}>
         <VersionUpdateModal />
-        <AnimatePresence>
-          {isPlayerExpanded && <FullscreenPlayer />}
-        </AnimatePresence>
+        <FullscreenPlayer />
 
         <div className={`mobile-layout ${currentSong ? 'has-global-player' : ''} ${isPlayerExpanded ? 'layout-hidden-for-player' : ''}`}>
           {/* ✅ PERFORMANCE: Skip rendering background elements when player is full screen */}
@@ -711,9 +709,7 @@ const MainLayout = () => {
         </Suspense>
       </ErrorBoundary>
 
-      <AnimatePresence>
-        {isPlayerExpanded && <FullscreenPlayer />}
-      </AnimatePresence>
+      <FullscreenPlayer />
     </UserDetailsContext.Provider>
   );
 };
