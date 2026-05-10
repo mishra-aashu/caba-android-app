@@ -7,6 +7,9 @@ import {
   Play, Pause, Share2, ListMusic, Heart, ChevronRight,
   Repeat, Repeat1, Download, CheckCircle, Loader2
 } from 'lucide-react';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 import OfflineMusicManager from '../../services/OfflineMusicManager';
 import './FullscreenPlayer.css';
 
@@ -98,7 +101,36 @@ const FullscreenPlayer = () => {
     ];
   }, [currentSong?.id, extractedColors]);
 
+  // ─── Native UI Polish (Status Bar) ───────────────────────────
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const updateStatusBar = async () => {
+      try {
+        if (isPlayerExpanded) {
+          // Set to dominant color of artwork
+          await StatusBar.setBackgroundColor({ color: colors[0] || '#13131f' });
+          await StatusBar.setStyle({ style: Style.Dark });
+        } else {
+          // Reset to default dark
+          await StatusBar.setBackgroundColor({ color: '#0b141a' });
+          await StatusBar.setStyle({ style: Style.Dark });
+        }
+      } catch (e) {
+        console.warn('[StatusBar] Update failed:', e);
+      }
+    };
+
+    updateStatusBar();
+  }, [isPlayerExpanded, colors]);
+
   // ─── Handlers ─────────────────────────────────────────────────
+  const triggerHaptic = useCallback((style = ImpactStyle.Light) => {
+    if (Capacitor.isNativePlatform()) {
+      Haptics.impact({ style });
+    }
+  }, []);
+
   const handleSeek = (e) => {
     if (roomId && !isHost) {
       toast.error('Only Host can seek', { id: 'fs-seek-warn' });
@@ -125,6 +157,7 @@ const FullscreenPlayer = () => {
       toast.error('You are listening together. Only Host controls playback.', { id: 'fs-play-warn' });
       return;
     }
+    triggerHaptic(ImpactStyle.Medium);
     setIsPlaying(!isPlaying);
   };
 
@@ -133,6 +166,7 @@ const FullscreenPlayer = () => {
       toast.error('Only Host can change songs', { id: 'fs-next-warn' });
       return;
     }
+    triggerHaptic(ImpactStyle.Light);
     playNext();
   };
 
@@ -141,6 +175,7 @@ const FullscreenPlayer = () => {
       toast.error('Only Host can change songs', { id: 'fs-prev-warn' });
       return;
     }
+    triggerHaptic(ImpactStyle.Light);
     playPrevious();
   };
 

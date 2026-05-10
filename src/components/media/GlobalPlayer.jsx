@@ -8,6 +8,8 @@ import { Play, Pause, SkipBack, SkipForward, Maximize2, Music, X, Zap } from 'lu
 import { toast } from 'react-hot-toast';
 import { extractColorsFromImage } from '../../utils/colorExtractor';
 import MusicPlayerService from '../../services/MusicPlayerService';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
 import { db } from '../../db/db';
 import './GlobalPlayer.css';
 
@@ -107,6 +109,12 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
 
   if (!currentSong) return null;
 
+  const triggerHaptic = (style = ImpactStyle.Light) => {
+    if (Capacitor.isNativePlatform()) {
+      Haptics.impact({ style });
+    }
+  };
+
   const isHidden = isPanelOpen || isPlayerExpanded;
   const themeColor = extractedColors ? extractedColors[0] : '#00ff88';
 
@@ -161,6 +169,7 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
               className="bubble-play-overlay"
               onClick={(e) => {
                 e.stopPropagation();
+                triggerHaptic(ImpactStyle.Light);
                 setIsPlaying(!isPlaying);
               }}
             >
@@ -226,7 +235,10 @@ const GlobalPlayer = ({ showBottomNav = false, isMusicHub = false }) => {
                 </button>
                 <button
                   className={`player-btn-main ${!isHost && roomId ? 'disabled' : ''}`}
-                  onClick={() => setIsPlaying(!isPlaying)}
+                  onClick={() => {
+                    triggerHaptic(ImpactStyle.Medium);
+                    setIsPlaying(!isPlaying);
+                  }}
                 >
                   {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="play-icon-offset" />}
                 </button>

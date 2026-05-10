@@ -1,15 +1,7 @@
 /**
  * useAutoRefresh.jsx
  *
- * Detects new version availability and handles the update flow.
- *
- * NATIVE:
- *   Detection: Supabase ota_updates (via otaService)
- *   Update: SILENT Background Download → Apply on Next Restart (Next Strategy)
- *
- * WEB/VERCEL:
- *   Detection: SW events + version.json polling
- *   Update: Show Banner → User Clicks → Page reloads
+ * Detects new version availability and handles the update flow with concurrency locks and deduping.
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -42,6 +34,10 @@ export const useAutoRefresh = () => {
 
   const isLocalNativeRef = useRef(isNativeWithPlugins());
   const isUpdatingSilentRef = useRef(false);
+  const isCheckingRef = useRef(false);
+  const lastCheckTimeRef = useRef(0);
+  const lastToastTimeRef = useRef(0);
+  const lastShownVersionRef = useRef(null);
 
   // ─── Initialize ───
   useEffect(() => {
@@ -56,7 +52,7 @@ export const useAutoRefresh = () => {
       }
       
       console.log('[AutoRefresh] Service Worker detected new content. Applying silent update...');
-      handleRefresh(true); // Silent activation for Web
+      handleRefresh(true); 
     });
 
     if (sessionStorage.getItem(OTA_SESSION_GUARD)) {
@@ -78,15 +74,13 @@ export const useAutoRefresh = () => {
     sessionStorage.setItem(OTA_SESSION_GUARD, 'true');
 
     let progressListener = null;
-    let toastId = null;
+    const toastId = isSilent ? null : 'ota-activation';
 
-    // We only show progress and toasts for NON-SILENT updates (Web)
     if (!isSilent) {
-      toastId = toast.loading('Activating update...');
+      toast.loading('Activating update...', { id: toastId });
     }
 
     if (isLocalNativeRef.current) {
-      // Progress listener for native background download
       progressListener = await CapacitorUpdater.addListener('downloadProgress', (state) => {
         setDownloadProgress(state.percent);
       });
@@ -94,7 +88,7 @@ export const useAutoRefresh = () => {
 
     try {
       if (isLocalNativeRef.current) {
-        console.log('[AutoRefresh] Starting silent background OTA update...');
+        console.log('[AutoRefresh] Starting background OTA update...');
         
         let info = updateInfo;
         if (!info) {
@@ -104,10 +98,10 @@ export const useAutoRefresh = () => {
         if (info) {
           await otaService.performUpdate(info);
           clearUpdateDismissal('ota', info.version);
-          console.log('[AutoRefresh] Silent update ready for next restart');
+          console.log('[AutoRefresh] Update ready for next restart');
+          if (toastId) toast.success('Update ready! It will be applied on next restart.', { id: toastId });
         }
       } else {
-        // WEB: This is always manual via banner
         console.log('[AutoRefresh] Web update — activating new SW...');
         if (swUpdateReadyRef.current) {
           activateSWUpdate();
@@ -130,61 +124,78 @@ export const useAutoRefresh = () => {
   // ─── Unified Update Check ───
   const checkForUpdates = useCallback(async () => {
     if (isRefreshing || isDismissed || !navigator.onLine) return;
-    if (Date.now() - mountTimeRef.current < FRESHNESS_WINDOW) return;
+    if (isCheckingRef.current) return;
+    
+    const now = Date.now();
+    // Minimum 30s between checks to avoid spamming during visibility changes
+    if (now - lastCheckTimeRef.current < 30000) return;
+    
+    if (now - mountTimeRef.current < FRESHNESS_WINDOW) return;
+
+    isCheckingRef.current = true;
+    lastCheckTimeRef.current = now;
 
     try {
       if (isLocalNativeRef.current) {
         // NATIVE: SILENT STRATEGY
         const latest = await otaService.getLatestUpdate();
         if (latest && !isUpdatingSilentRef.current) {
-          console.log(`[AutoRefresh] ✨ Silent OTA update detected: ${latest.version}. Starting background download...`);
+          console.log(`[AutoRefresh] ✨ OTA update detected: ${latest.version}`);
           setUpdateInfo(latest);
           
-          // Auto-trigger background download ONLY on WiFi
           const status = await Network.getStatus();
           if (status.connectionType === 'wifi') {
-            handleRefresh(true); // true = isSilent
+            handleRefresh(true);
           } else {
-            // Mobile data: Don't auto-download, but ask the user
-            console.log('[AutoRefresh] ℹ️ Update detected on cellular data. Asking user...');
-            toast((t) => (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 500 }}>
-                  Update Available ({latest.version}). Download now? (Uses mobile data)
-                </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    onClick={() => {
-                      toast.dismiss(t.id);
-                      handleRefresh(true);
-                    }}
-                    style={{
-                      padding: '4px 12px', background: '#3fcf8e', border: 'none',
-                      borderRadius: '4px', color: '#fff', fontSize: '12px', fontWeight: 600
-                    }}
-                  >
-                    Download
-                  </button>
-                  <button 
-                    onClick={() => toast.dismiss(t.id)}
-                    style={{
-                      padding: '4px 12px', background: 'transparent', border: '1px solid #444',
-                      borderRadius: '4px', color: '#888', fontSize: '12px'
-                    }}
-                  >
-                    Later
-                  </button>
+            // Mobile data: Ask user, but deduplicate toasts
+            const shouldShowToast = 
+                lastShownVersionRef.current !== latest.version || 
+                (now - lastToastTimeRef.current > 10 * 60 * 1000); // 10 min cooldown
+
+            if (shouldShowToast) {
+              lastToastTimeRef.current = now;
+              lastShownVersionRef.current = latest.version;
+
+              toast((t) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                    Update Available ({latest.version}). Download now? (Uses mobile data)
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={() => {
+                        toast.dismiss(t.id);
+                        handleRefresh(true);
+                      }}
+                      style={{
+                        padding: '4px 12px', background: '#3fcf8e', border: 'none',
+                        borderRadius: '4px', color: '#fff', fontSize: '12px', fontWeight: 600
+                      }}
+                    >
+                      Download
+                    </button>
+                    <button 
+                      onClick={() => toast.dismiss(t.id)}
+                      style={{
+                        padding: '4px 12px', background: 'transparent', border: '1px solid #444',
+                        borderRadius: '4px', color: '#888', fontSize: '12px'
+                      }}
+                    >
+                      Later
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ), { 
-              duration: 10000,
-              position: 'bottom-center',
-              style: { background: '#1a1a2e', color: '#fff', border: '1px solid #333' }
-            });
+              ), { 
+                id: `ota-prompt-${latest.version}`, // Stable ID for this version
+                duration: 10000,
+                position: 'bottom-center',
+                style: { background: '#1a1a2e', color: '#fff', border: '1px solid #333' }
+              });
+            }
           }
         }
       } else {
-        // WEB/VERCEL: Poll version.json
+        // WEB/VERCEL
         if (!currentBuildTimeRef.current) return;
         
         const response = await fetch(
@@ -197,13 +208,14 @@ export const useAutoRefresh = () => {
           const remoteBuildTime = data.buildTime ? String(data.buildTime) : null;
 
           if (remoteBuildTime && remoteBuildTime !== String(currentBuildTimeRef.current)) {
-            console.log('[AutoRefresh] ✨ Web update available. Applying silent reload...');
-            handleRefresh(true); // Silent activation for Web
+            handleRefresh(true);
           }
         }
       }
     } catch (error) {
       console.warn('[AutoRefresh] Check failed:', error.message);
+    } finally {
+        isCheckingRef.current = false;
     }
 
     if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
@@ -238,7 +250,7 @@ export const useAutoRefresh = () => {
 
   return {
     needsRefresh: needsRefresh && !isDismissed,
-    handleRefresh: () => handleRefresh(false), // User manual click is never silent
+    handleRefresh: () => handleRefresh(false), 
     handleDismiss,
     checkForUpdates,
     isRefreshing,
