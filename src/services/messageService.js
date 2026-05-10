@@ -1,6 +1,6 @@
 import { dbToFrontend, safeDbConversion } from '../utils/dbFieldMapping';
 import { validateAndSanitize, coerceDataTypes } from '../utils/dataValidation';
-import { db } from '../db/db';
+// import { db } from '../db/db'; // Removed in favor of DatabaseFactory
 import { EncryptionService } from './EncryptionService';
 import useAuthStore from '../store/authStore';
 import { driftCorrectionService } from './driftCorrectionService';
@@ -126,8 +126,9 @@ export const searchMessagesLocally = async (query) => {
     const lowerQuery = query.toLowerCase();
     
     // 1. Get all local messages
-    // Note: This is a linear scan. For very large local DBs, this might need optimization.
-    const allMessages = await db.messages.toArray();
+    const { getDatabase } = await import('../db/DatabaseFactory');
+    const db = await getDatabase();
+    const allMessages = await db.getAll('messages');
     
     // 2. Decrypt and filter
     const results = [];
@@ -149,14 +150,11 @@ export const searchMessagesLocally = async (query) => {
     }
 
     // 2.5 Deduplicate results
-    // Sometimes messages are duplicated in local DB (e.g. tempId vs real ID)
     const seenSignatures = new Set();
     const uniqueResults = [];
     
     for (const res of results) {
-        // Create a unique signature for the message
-        // Using content (lowercase), chatId, senderId, and a fuzzy timestamp (60 second window)
-        const timestamp = new Date(res.createdAt || res.created_at).getTime();
+        const timestamp = new Date(res.createdAt || res.created_at || res.timestamp).getTime();
         const fuzzyTs = Math.floor(timestamp / 60000); 
         const signature = `${res.chatId}_${res.senderId}_${res.content.toLowerCase()}_${fuzzyTs}`;
         
@@ -174,7 +172,7 @@ export const searchMessagesLocally = async (query) => {
     // 3. Enrich with chat and sender info
     const currentUser = useAuthStore.getState().user;
     const enrichedResults = await Promise.all(uniqueResults.map(async (msg) => {
-        const chat = await db.chats_list.get(msg.chatId);
+        const chat = await db.get('chats_list', msg.chatId);
         
         // Correct decryption - Re-decrypt if needed with correct otherUserId
         let decryptedContent = msg.content;
@@ -190,16 +188,15 @@ export const searchMessagesLocally = async (query) => {
             senderName = 'You';
         } else {
             // Try contacts first
-            const contact = await db.contacts.get(msg.senderId);
+            const contact = await db.get('contacts', msg.senderId);
             if (contact?.contactName) {
                 senderName = contact.contactName;
             } else {
                 // Fallback to user_profiles
-                const profile = await db.user_profiles.get(msg.senderId);
+                const profile = await db.get('user_profiles', msg.senderId);
                 if (profile?.name) {
                     senderName = profile.name;
                 } else if (msg.senderName) {
-                    // Sometimes senderName might be cached in the message object itself
                     senderName = msg.senderName;
                 }
             }

@@ -10,8 +10,58 @@ const useChatStore = create((set, get) => ({
     selectedMessageIds: new Set(),
     activeChat: null,
     activeChatId: null, // ✅ Add separate primitive value
+    messages: [],
 
     // ─── ACTIONS ─────────────────────────────────────────────────
+
+    loadMessages: async (chatId) => {
+        if (!chatId) return;
+        const { getDatabase } = await import('../db/DatabaseFactory');
+        const db = await getDatabase();
+        
+        // Load messages from local DB
+        const results = await db.getAll('messages', { chatId });
+        
+        // Sort by timestamp (newest first)
+        const sorted = results.sort((a, b) => 
+            (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0)
+        );
+        
+        set({ messages: sorted });
+    },
+
+    sendMessage: async (chatId, content, senderId) => {
+        const { uuid } = await import('../utils/idGenerators');
+        const { getDatabase } = await import('../db/DatabaseFactory');
+        const { getSyncEngine } = await import('../db/SyncEngine');
+        const { supabase } = await import('../config/supabase');
+
+        const message = {
+            id: uuid(),
+            chatId,
+            content,
+            senderId,
+            timestamp: Date.now(),
+            createdAt: new Date().toISOString(),
+            syncStatus: 'pending'
+        };
+
+        // 1. Save to Local DB
+        const db = await getDatabase();
+        await db.set('messages', message);
+
+        // 2. Queue for Sync
+        const syncEngine = getSyncEngine(supabase);
+        await syncEngine.queueChange('messages', 'INSERT', message);
+
+        // 3. Optimistic UI Update
+        set((state) => ({
+            messages: [message, ...state.messages]
+        }));
+
+        // 4. Trigger Sync
+        syncEngine.pushPendingChanges();
+    },
 
     setCachedMessages: (chatId, messages) => set((state) => ({
         chatMessagesCache: {

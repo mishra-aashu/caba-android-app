@@ -107,16 +107,24 @@ const useMusicStore = create(
 
       // ─── Liked Songs Management ───
       fetchLikedSongs: async (userId) => {
-        // Always try to load from Dexie first for instant UI response (Offline First)
+        // Always try to load from local DB first for instant UI response (Offline First)
         try {
-          const { db } = await import('../db/db');
-          const localLiked = await db.liked_songs.orderBy('created_at').reverse().toArray();
-          if (localLiked.length > 0) {
-            set({ likedSongs: localLiked });
-            console.log(`[MusicStore] Loaded ${localLiked.length} liked songs from Dexie`);
+          const { getDatabase } = await import('../db/DatabaseFactory');
+          const db = await getDatabase();
+          // Using the new music_likes table
+          const localLiked = await db.getAll('music_likes');
+          
+          // Sort by created_at descending if possible
+          const sorted = localLiked.sort((a, b) => 
+            new Date(b.created_at || 0) - new Date(a.created_at || 0)
+          );
+
+          if (sorted.length > 0) {
+            set({ likedSongs: sorted });
+            console.log(`[MusicStore] Loaded ${sorted.length} liked songs from Local DB`);
           }
         } catch (err) {
-          console.warn('[MusicStore] Dexie load failed:', err);
+          console.warn('[MusicStore] Local DB load failed:', err);
         }
 
         if (!userId) {
@@ -134,15 +142,27 @@ const useMusicStore = create(
           if (error) throw error;
 
           const liked = (data || [])
-            .map((item) => ({ ...item.song_metadata, created_at: item.created_at }))
+            .map((item) => ({ 
+                ...item.song_metadata, 
+                created_at: item.created_at,
+                songId: item.song_metadata.id,
+                userId: userId,
+                synced: true
+            }))
             .filter((song) => song && song.id);
 
           set({ likedSongs: liked });
           
-          // Update Dexie cache
-          const { db } = await import('../db/db');
-          await db.liked_songs.clear();
-          await db.liked_songs.bulkPut(liked);
+          // Update local cache
+          const { getDatabase } = await import('../db/DatabaseFactory');
+          const db = await getDatabase();
+          
+          // Clear and re-fill using abstraction
+          const existing = await db.getAll('music_likes');
+          for (const item of existing) {
+            await db.delete('music_likes', item.id);
+          }
+          await db.bulkPut('music_likes', liked);
           
           console.log(`[MusicStore] Synced ${liked.length} liked songs from Supabase`);
         } catch (err) {
@@ -164,32 +184,36 @@ const useMusicStore = create(
 
         set({ likedSongs: updatedLiked });
 
-        // 2. Update Dexie Cache
+        // 2. Update Local DB
         try {
-          const { db } = await import('../db/db');
+          const { getDatabase } = await import('../db/DatabaseFactory');
+          const db = await getDatabase();
           if (isLiked) {
-            await db.liked_songs.delete(song.id);
+            await db.delete('music_likes', song.id);
           } else {
-            await db.liked_songs.put({ ...song, created_at: now });
+            await db.set('music_likes', { 
+                ...song, 
+                id: song.id,
+                songId: song.id,
+                userId: userId || '',
+                created_at: now,
+                synced: false 
+            });
           }
         } catch (err) {
-          console.warn('[MusicStore] Dexie update failed:', err);
+          console.warn('[MusicStore] Local DB update failed:', err);
         }
 
         // 3. Queue for Supabase
         if (userId) {
           try {
-            const { queueAction, QUEUE_ACTIONS } = await import('../services/offlineQueue');
-            await queueAction(
-              QUEUE_ACTIONS.TOGGLE_MUSIC_LIKE,
-              'music_likes',
-              {
-                userId,
-                songId: song.id,
-                songMetadata: song,
-                isLiked 
-              }
-            );
+            const { getSyncEngine } = await import('../db/SyncEngine');
+            const syncEngine = getSyncEngine(supabase);
+            await syncEngine.queueChange('music_likes', isLiked ? 'DELETE' : 'INSERT', {
+              user_id: userId,
+              song_id: song.id,
+              song_metadata: song
+            });
           } catch (err) {
             console.error('[MusicStore] Failed to queue like action:', err);
           }
