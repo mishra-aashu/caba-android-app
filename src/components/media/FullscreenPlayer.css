@@ -314,7 +314,8 @@
 .song-actions-row {
   display: flex;
   justify-content: center;
-  gap: 28px;
+  align-items: center;
+  gap: clamp(12px, 6vw, 28px);
   margin-top: 24px;
   width: 100%;
 }
@@ -325,6 +326,8 @@
   color: var(--text-secondary);
   width: 48px;
   height: 48px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -454,6 +457,8 @@
   color: var(--text-primary);
   width: 64px;
   height: 64px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -470,6 +475,9 @@
 .fs-play-btn {
   width: 84px;
   height: 84px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  border-radius: 50%;
   background: var(--text-primary);
   color: var(--bg-surface);
   border: none;
@@ -539,6 +547,7 @@
 .bottom-actions {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 24px;
 }
 
