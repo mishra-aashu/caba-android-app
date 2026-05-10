@@ -19,6 +19,8 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
   const leaveRoom = useMusicStore(state => state.leaveRoom);
   const roomId = useMusicStore(state => state.roomId);
 
+  const [roomInput, setRoomInput] = React.useState('');
+
   const greeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -80,22 +82,28 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button onClick={() => joinRoom(null, true)} className="session-btn-primary">
+              <Sparkles size={18} />
               Create New Room
             </button>
             
             <div className="session-join-input-group">
               <input 
-                id="room-join-input"
                 type="text" 
                 placeholder="Enter Room ID..."
                 className="session-join-input"
+                value={roomInput}
+                onChange={(e) => setRoomInput(e.target.value.toUpperCase())}
+                maxLength={8}
               />
               <button 
                 onClick={async () => {
-                  const id = document.getElementById('room-join-input').value.trim();
-                  if (id) await joinRoom(id, false);
+                  if (roomInput.trim()) {
+                    const success = await joinRoom(roomInput.trim(), false);
+                    if (success) setRoomInput('');
+                  }
                 }}
                 className="session-join-btn"
+                disabled={!roomInput.trim()}
               >
                 Join
               </button>
