@@ -16,6 +16,7 @@ import useNetworkSync from './hooks/useNetworkSync';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import usePlatformInit from './hooks/usePlatformInit';
 import { useBackButton } from './hooks/useBackButton';
+import { useNativeEvents } from './hooks/useNativeEvents';
 import OfflineMusicManager from './services/OfflineMusicManager';
 
 import { DialogProvider } from './contexts/DialogProvider';
@@ -278,6 +279,7 @@ const App = () => {
     usePlatformInit();
     useCapacitorPlugins();
     useBackButton();
+    useNativeEvents();
     useNetworkSync();
     useEffect(() => {
         OfflineMusicManager.init();

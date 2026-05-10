@@ -51,16 +51,17 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
     queryFn: async () => {
       if (!authUser) return null;
 
-      const { data: existingUser, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", authUser.id)
-        .single();
+        const { data: users, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", authUser.id);
+        
+        const existingUser = users?.[0];
 
       let currentUser;
       if (error && error.code === "PGRST116") {
         // User doesn't exist, create new profile
-        const { data: newProfile, error: createError } = await supabase
+        const { data: newProfiles, error: createError } = await supabase
           .from("users")
           .insert([
             {
@@ -76,8 +77,9 @@ const Profile = ({ isModal = false, isSidebar = false }) => {
               updated_at: new Date().toISOString(),
             },
           ])
-          .select()
-          .single();
+          .select();
+        
+        const newProfile = newProfiles?.[0];
 
         if (createError) throw createError;
         currentUser = newProfile;

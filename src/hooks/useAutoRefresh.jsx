@@ -127,8 +127,12 @@ export const useAutoRefresh = () => {
     if (isCheckingRef.current) return;
     
     const now = Date.now();
-    // Minimum 30s between checks to avoid spamming during visibility changes
-    if (now - lastCheckTimeRef.current < 30000) return;
+    
+    // Check if dismissed in this session
+    if (sessionStorage.getItem('ota-dismissed-session')) return;
+
+    // Minimum 2 minutes between checks
+    if (now - lastCheckTimeRef.current < 120000) return;
     
     if (now - mountTimeRef.current < FRESHNESS_WINDOW) return;
 
@@ -147,10 +151,11 @@ export const useAutoRefresh = () => {
           if (status.connectionType === 'wifi') {
             handleRefresh(true);
           } else {
-            // Mobile data: Ask user, but deduplicate toasts
+            // Mobile data: Ask user, but deduplicate toasts strictly
+            const toastId = `ota-prompt-${latest.version}`;
             const shouldShowToast = 
                 lastShownVersionRef.current !== latest.version || 
-                (now - lastToastTimeRef.current > 10 * 60 * 1000); // 10 min cooldown
+                (now - lastToastTimeRef.current > 30 * 60 * 1000); // 30 min cooldown
 
             if (shouldShowToast) {
               lastToastTimeRef.current = now;
@@ -159,7 +164,7 @@ export const useAutoRefresh = () => {
               toast((t) => (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <span style={{ fontSize: '14px', fontWeight: 500 }}>
-                    Update Available ({latest.version}). Download now? (Uses mobile data)
+                    Update v{latest.version} available (Uses mobile data).
                   </span>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button 
@@ -168,28 +173,31 @@ export const useAutoRefresh = () => {
                         handleRefresh(true);
                       }}
                       style={{
-                        padding: '4px 12px', background: '#3fcf8e', border: 'none',
-                        borderRadius: '4px', color: '#fff', fontSize: '12px', fontWeight: 600
+                        padding: '6px 14px', background: '#3fcf8e', border: 'none',
+                        borderRadius: '6px', color: '#fff', fontSize: '12px', fontWeight: 600
                       }}
                     >
-                      Download
+                      Download Now
                     </button>
                     <button 
-                      onClick={() => toast.dismiss(t.id)}
+                      onClick={() => {
+                        toast.dismiss(t.id);
+                        sessionStorage.setItem('ota-dismissed-session', 'true');
+                      }}
                       style={{
-                        padding: '4px 12px', background: 'transparent', border: '1px solid #444',
-                        borderRadius: '4px', color: '#888', fontSize: '12px'
+                        padding: '6px 14px', background: 'transparent', border: '1px solid #444',
+                        borderRadius: '6px', color: '#888', fontSize: '12px'
                       }}
                     >
-                      Later
+                      Maybe Later
                     </button>
                   </div>
                 </div>
               ), { 
-                id: `ota-prompt-${latest.version}`, // Stable ID for this version
-                duration: 10000,
+                id: toastId, 
+                duration: 15000,
                 position: 'bottom-center',
-                style: { background: '#1a1a2e', color: '#fff', border: '1px solid #333' }
+                style: { background: '#1a1a2e', color: '#fff', border: '1px solid #333', padding: '16px' }
               });
             }
           }

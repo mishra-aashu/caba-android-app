@@ -60,33 +60,35 @@ export const useBackButton = () => {
                     pathname 
                 } = stateRef.current;
 
-                console.log(`[BackButton] Pressed. Path: ${pathname}, canGoBack: ${canGoBack}`);
+                console.log(`[BackButton] Pressed. Path: ${pathname}, activeChatId: ${activeChatId}`);
 
-                // 1. Highest Priority: Close selection mode/modals
+                // 1. Highest Priority: Clear Selection
                 if (isSelectionMode) {
-                    console.log('[BackButton] Clearing chat selection');
                     useChatStore.getState().clearSelection();
                     return;
                 }
 
                 // 2. Music Player Expansion
                 if (isPlayerExpanded) {
-                    console.log('[BackButton] Minimizing music player');
                     useMusicStore.getState().setPlayerExpanded(false);
                     return;
                 }
 
-                // 3. Music Panel (Playlist/Search Overlay)
+                // 3. Music Panel
                 if (isPanelOpen) {
-                    console.log('[BackButton] Closing music panel');
                     useMusicStore.getState().togglePanel(false);
                     return;
                 }
 
-                // 4. Music Hub Navigation (Internal)
-                if (pathname === '/listen-together' && activeSection !== 'home') {
-                    console.log('[BackButton] Returning to Music Home');
-                    useMusicStore.getState().setActiveSection('home');
+                // 4. Overlays (UserDetails, Settings, Profile, etc.)
+                const OVERLAY_ROUTES = [
+                    '/contacts', '/profile', '/settings', '/theme', '/history', '/games', '/reminders', '/create-reminder', '/user-details/'
+                ];
+                const isOverlay = OVERLAY_ROUTES.some(r => pathname.startsWith(r));
+
+                if (isOverlay) {
+                    console.log('[BackButton] Closing overlay route');
+                    navigate('/', { replace: true });
                     return;
                 }
 
@@ -98,15 +100,21 @@ export const useBackButton = () => {
                     return;
                 }
 
-                // 6. Generic Navigation Back
-                if (canGoBack || window.history.length > 1) {
-                    console.log('[BackButton] Standard navigate back');
-                    navigate(-1);
+                // 6. Music Hub Navigation (Internal)
+                if (pathname === '/listen-together' && activeSection !== 'home') {
+                    useMusicStore.getState().setActiveSection('home');
+                    return;
+                }
+
+                // 7. Generic Navigation Back
+                if (canGoBack) {
+                    window.history.back();
+                } else if (pathname !== '/') {
+                    navigate('/', { replace: true });
                 } else {
-                    // 7. Home Screen - Double Back to Exit
+                    // 8. Exit App (Double Back)
                     const now = Date.now();
                     if (now - lastBackPressTime.current < 2000) {
-                        console.log('[BackButton] Exiting app');
                         App.exitApp();
                     } else {
                         lastBackPressTime.current = now;
@@ -114,12 +122,7 @@ export const useBackButton = () => {
                             id: 'exit-toast',
                             position: 'bottom-center',
                             duration: 2000,
-                            style: {
-                                background: '#333',
-                                color: '#fff',
-                                borderRadius: '50px',
-                                fontSize: '14px'
-                            }
+                            style: { background: '#333', color: '#fff', borderRadius: '50px' }
                         });
                     }
                 }

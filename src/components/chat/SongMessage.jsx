@@ -29,11 +29,10 @@ const SongMessage = ({ message, isMine }) => {
       const { data, error } = await supabase
         .from('music_rooms')
         .select('status')
-        .eq('id', roomId)
-        .single();
+        .eq('id', roomId);
       
-      if (!error && data) {
-        setRoomStatus(data.status);
+      if (!error && data && data.length > 0) {
+        setRoomStatus(data[0].status);
       }
     };
 

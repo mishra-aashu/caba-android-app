@@ -617,7 +617,7 @@ const MainLayout = () => {
             <>
               <div 
                 className={`list-view ${isChatViewActive ? 'list-view--behind' : ''}`}
-                inert={isChatViewActive ? '' : undefined}
+                inert={isChatViewActive ? true : undefined}
               >
                 <ErrorBoundary>
                   <Suspense fallback={<LoadingFallback />}>

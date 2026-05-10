@@ -213,24 +213,22 @@ const useChatRoom = () => {
 
             try {
                 if (isGroupChat) {
-                    const { data: group, error } = await supabase
+                    const { data: groups, error } = await supabase
                         .from('groups')
                         .select('id')
-                        .eq('id', chatId)
-                        .single();
+                        .eq('id', chatId);
 
-                    if (error || !group) {
+                    if (error || !groups || groups.length === 0) {
                         setAuthError('Unauthorized: You are not a member of this group.');
                         return;
                     }
                 } else {
-                    const { data: chat, error } = await supabase
+                    const { data: chats, error } = await supabase
                         .from('chats')
                         .select('id')
-                        .eq('id', chatId)
-                        .single();
+                        .eq('id', chatId);
 
-                    if (error || !chat) {
+                    if (error || !chats || chats.length === 0) {
                         setAuthError('Unauthorized: You are not a participant of this chat.');
                         return;
                     }

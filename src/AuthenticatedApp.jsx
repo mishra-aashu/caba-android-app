@@ -115,14 +115,18 @@ const ProtectedLayout = ({ children }) => {
 
   const handleCollectSuccess = async ({ phone, name }) => {
     try {
-      const { data: updatedUser, error } = await supabase
+      const { data, error } = await supabase
         .from('users')
         .update({ phone, name })
         .eq('id', dbUser.id)
-        .select()
-        .single();
+        .select();
+      
       if (error) throw error;
-      useAuthStore.getState().updateDbUser(dbToFrontend(updatedUser));
+      
+      const updatedUser = data?.[0];
+      if (updatedUser) {
+        useAuthStore.getState().updateDbUser(dbToFrontend(updatedUser));
+      }
       setShowPhoneCollect(false);
       toast.success('Profile updated successfully!');
     } catch (error) {

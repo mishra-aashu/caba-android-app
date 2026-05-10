@@ -24,11 +24,10 @@ export const useGroupDetails = (groupId) => {
                         users (id, name, avatar)
                     )
                 `)
-                .eq('id', groupId)
-                .single();
-
+                .eq('id', groupId);
+                
             if (error) throw error;
-            return data;
+            return data?.[0] || null;
         },
         enabled: Boolean(groupId),
         // Extremely aggressive caching to stop infinite fetch loops

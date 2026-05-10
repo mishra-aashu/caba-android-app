@@ -1,24 +1,23 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { NativeAudio } from '@capgo/native-audio';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import useMusicStore from '../store/useMusicStore';
 import { db } from '../db/db';
 
+// Define the custom native plugin interface
+const CabaNative = registerPlugin('CabaNative');
+
 class MusicPlayerService {
     constructor() {
         this.html5Audio = new Audio();
-        this.currentEngine = 'html5'; // 'html5' or 'native'
+        this.currentEngine = 'html5'; 
         this.nativeAssetId = 'current_offline_song';
         this.preloadAssetId = 'preload_offline_song';
         this.isNativePreloaded = false;
         this.nativeTimer = null;
         this.animFrameId = null;
         
-        // Silent audio to keep MediaSession alive during native playback
-        this.silentAudio = new Audio();
-        this.silentAudio.loop = true;
-        // 1-pixel silent base64 mp3
-        this.silentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAD//w==';
+        // Removed silent audio hack as we now use real Native Foreground Service
         
         this.setupHTML5Listeners();
         this.setupNativeListeners();
@@ -42,6 +41,18 @@ class MusicPlayerService {
             NativeAudio.addListener('complete', (assetId) => {
                 if (assetId === this.nativeAssetId) {
                     useMusicStore.getState().playNext();
+                }
+            });
+
+            // Handle Audio Focus changes from Java side
+            CabaNative.addListener('audioFocusChange', ({ value }) => {
+                console.log('[MusicPlayerService] Audio Focus Change:', value);
+                const { isPlaying } = useMusicStore.getState();
+                
+                if (value === 'pause' || value === 'duck') {
+                    if (isPlaying) this.pause();
+                } else if (value === 'resume') {
+                    if (!isPlaying) this.resume();
                 }
             });
         }
@@ -70,8 +81,8 @@ class MusicPlayerService {
         if (!song) return;
 
         const { progress, isPlaying } = useMusicStore.getState();
-        
         const isSameSong = useMusicStore.getState().currentSong?.id === song.id;
+        
         if (isSameSong && this.currentEngine) {
             if (isPlaying) {
                 await this.resume();
@@ -111,8 +122,9 @@ class MusicPlayerService {
 
         try {
             await this.html5Audio.play();
-            this.updateMediaSession(useMusicStore.getState().currentSong, 'playing');
-            this.silentAudio.pause();
+            const song = useMusicStore.getState().currentSong;
+            this.updateMediaSession(song, 'playing');
+            this.updateNativeForeground(song, 'playing');
         } catch (e) {
             console.warn('[MusicPlayerService] HTML5 play failed:', e);
         }
@@ -158,11 +170,9 @@ class MusicPlayerService {
             
             this.startNativeProgressTimer();
             
-            try {
-                this.silentAudio.play().catch(() => {});
-            } catch (e) {}
-
-            this.updateMediaSession(useMusicStore.getState().currentSong, 'playing');
+            const song = useMusicStore.getState().currentSong;
+            this.updateMediaSession(song, 'playing');
+            this.updateNativeForeground(song, 'playing');
             
             const duration = await NativeAudio.getDuration({ assetId: this.nativeAssetId });
             useMusicStore.getState().setDuration(duration.duration);
@@ -177,23 +187,84 @@ class MusicPlayerService {
         }
     }
 
-    async preloadNext(song) {
-        if (!song || !Capacitor.isNativePlatform()) return;
-        const offlineData = await db.offline_music_store.get(song.id);
-        if (offlineData?.download_status === 'completed' && offlineData?.local_file_path) {
+    async pause() {
+        if (this.currentEngine === 'native') {
+            await NativeAudio.pause({ assetId: this.nativeAssetId });
+        } else {
+            this.html5Audio.pause();
+        }
+        useMusicStore.getState().setIsPlaying(false);
+        const song = useMusicStore.getState().currentSong;
+        this.updateMediaSession(song, 'paused');
+        this.updateNativeForeground(song, 'paused');
+    }
+
+    async resume() {
+        if (this.currentEngine === 'native') {
+            await NativeAudio.resume({ assetId: this.nativeAssetId });
+        } else {
+            await this.html5Audio.play();
+        }
+        useMusicStore.getState().setIsPlaying(true);
+        const song = useMusicStore.getState().currentSong;
+        this.updateMediaSession(song, 'playing');
+        this.updateNativeForeground(song, 'playing');
+    }
+
+    async stop() {
+        if (this.currentEngine === 'native') {
+            await this.stopNative();
+        } else {
+            this.html5Audio.pause();
+            this.html5Audio.src = '';
+        }
+        this.updateMediaSession(null, 'none');
+        this.updateNativeForeground(null, 'none');
+    }
+
+    async updateNativeForeground(song, state) {
+        if (!Capacitor.isNativePlatform()) return;
+        
+        try {
+            if (!song || state === 'none') {
+                await CabaNative.stopForegroundService();
+            } else {
+                await CabaNative.startForegroundService({
+                    title: song.title?.replace(/&quot;/g, '"'),
+                    artist: song.artist?.replace(/&quot;/g, '"'),
+                    imageUrl: song.image
+                });
+            }
+        } catch (e) {
+            console.warn('[MusicPlayerService] Native Foreground update failed:', e);
+        }
+    }
+
+    async seekTo(time) {
+        if (this.currentEngine === 'native') {
             try {
-                const { uri } = await Filesystem.getUri({
-                    path: offlineData.local_file_path,
-                    directory: Directory.Data
-                });
-                const assetPath = Capacitor.convertFileSrc(uri);
-                await NativeAudio.preload({
-                    assetId: this.preloadAssetId,
-                    assetPath: assetPath,
-                    audioChannelNum: 1,
-                    isUrl: true
-                });
+                if (NativeAudio.seekTo) {
+                    await NativeAudio.seekTo({ assetId: this.nativeAssetId, time });
+                }
             } catch (e) {}
+        } else {
+            this.html5Audio.currentTime = time;
+        }
+        useMusicStore.getState().setProgress(time);
+    }
+
+    async stopNative() {
+        try {
+            await NativeAudio.stop({ assetId: this.nativeAssetId });
+            await NativeAudio.unload({ assetId: this.nativeAssetId });
+            this.isNativePreloaded = false;
+        } catch (e) {}
+    }
+
+    setVolume(volume) {
+        this.html5Audio.volume = volume;
+        if (this.isNativePreloaded) {
+            NativeAudio.setVolume({ assetId: this.nativeAssetId, volume });
         }
     }
 
@@ -213,67 +284,6 @@ class MusicPlayerService {
         }, 1000);
     }
 
-    async pause() {
-        if (this.currentEngine === 'native') {
-            await NativeAudio.pause({ assetId: this.nativeAssetId });
-            this.silentAudio.pause();
-        } else {
-            this.html5Audio.pause();
-        }
-        useMusicStore.getState().setIsPlaying(false);
-        this.updateMediaSession(useMusicStore.getState().currentSong, 'paused');
-    }
-
-    async resume() {
-        if (this.currentEngine === 'native') {
-            await NativeAudio.resume({ assetId: this.nativeAssetId });
-            try { this.silentAudio.play().catch(() => {}); } catch(e) {}
-        } else {
-            await this.html5Audio.play();
-        }
-        useMusicStore.getState().setIsPlaying(true);
-        this.updateMediaSession(useMusicStore.getState().currentSong, 'playing');
-    }
-
-    async seekTo(time) {
-        if (this.currentEngine === 'native') {
-            try {
-                if (NativeAudio.seekTo) {
-                    await NativeAudio.seekTo({ assetId: this.nativeAssetId, time });
-                }
-            } catch (e) {}
-        } else {
-            this.html5Audio.currentTime = time;
-        }
-        useMusicStore.getState().setProgress(time);
-    }
-
-    async stop() {
-        if (this.currentEngine === 'native') {
-            await this.stopNative();
-            this.silentAudio.pause();
-        } else {
-            this.html5Audio.pause();
-            this.html5Audio.src = '';
-        }
-        this.updateMediaSession(null, 'none');
-    }
-
-    async stopNative() {
-        try {
-            await NativeAudio.stop({ assetId: this.nativeAssetId });
-            await NativeAudio.unload({ assetId: this.nativeAssetId });
-            this.isNativePreloaded = false;
-        } catch (e) {}
-    }
-
-    setVolume(volume) {
-        this.html5Audio.volume = volume;
-        if (this.isNativePreloaded) {
-            NativeAudio.setVolume({ assetId: this.nativeAssetId, volume });
-        }
-    }
-
     updateMediaSession(song, state = 'none') {
         if (!('mediaSession' in navigator)) return;
 
@@ -290,10 +300,6 @@ class MusicPlayerService {
             album: 'CABA Music',
             artwork: [
                 { src: song.image || '', sizes: '96x96', type: 'image/png' },
-                { src: song.image || '', sizes: '128x128', type: 'image/png' },
-                { src: song.image || '', sizes: '192x192', type: 'image/png' },
-                { src: song.image || '', sizes: '256x256', type: 'image/png' },
-                { src: song.image || '', sizes: '384x384', type: 'image/png' },
                 { src: song.image || '', sizes: '512x512', type: 'image/png' },
             ],
         });

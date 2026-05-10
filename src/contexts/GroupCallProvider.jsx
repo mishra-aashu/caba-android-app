@@ -203,10 +203,13 @@ export function GroupCallProvider({ children, currentUser }) {
       if (!isMember) return;
 
       try {
-        const [{ data: group }, { data: caller }] = await Promise.all([
-          supabase.from('groups').select('name').eq('id', newCall.group_id).single(),
-          supabase.from('users').select('name, avatar').eq('id', newCall.caller_id).single()
+        const [{ data: groups }, { data: callers }] = await Promise.all([
+          supabase.from('groups').select('name').eq('id', newCall.group_id),
+          supabase.from('users').select('name, avatar').eq('id', newCall.caller_id)
         ]);
+
+        const group = groups?.[0];
+        const caller = callers?.[0];
 
         if (mountedRef.current) {
           dispatch({
@@ -293,11 +296,12 @@ export function GroupCallProvider({ children, currentUser }) {
       if (error) throw error;
 
       // Fetch user details
-      const { data: user } = await supabase
+      const { data: users } = await supabase
         .from('users')
         .select('id, name, avatar')
-        .eq('id', userId)
-        .single();
+        .eq('id', userId);
+        
+      const user = users?.[0];
 
       if (user) {
         dispatch({
@@ -491,7 +495,7 @@ export function GroupCallProvider({ children, currentUser }) {
       dispatch({ type: ACTIONS.SET_LOCAL_STREAM, payload: localStream });
 
       // Create call record in database
-      const { data: call, error } = await supabase
+      const { data: callData, error: callError } = await supabase
         .from('calls')
         .insert({
           group_id: groupId,
@@ -504,8 +508,10 @@ export function GroupCallProvider({ children, currentUser }) {
           call_participants: [],
           max_participants: 50
         })
-        .select()
-        .single();
+        .select();
+
+      const call = callData?.[0];
+      const error = callError;
 
       if (error) {
         console.error('Database error creating call:', error);
@@ -541,11 +547,13 @@ export function GroupCallProvider({ children, currentUser }) {
     try {
       if (!currentUser?.id) throw new Error('Auth required');
       // Get call details
-      const { data: call, error } = await supabase
+      const { data: callData, error: callError } = await supabase
         .from('calls')
         .select('*')
-        .eq('id', callId)
-        .maybeSingle();
+        .eq('id', callId);
+
+      const call = callData?.[0];
+      const error = callError;
 
       if (error || !call) throw new Error('Call not found');
 

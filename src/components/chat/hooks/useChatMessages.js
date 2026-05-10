@@ -74,8 +74,10 @@ export const useChatMessages = (chatId, currentUserId) => {
       if (page === 0 && processed.length > 0) {
         const otherId = processed[0].sender_id === currentUserId ? processed[0].receiver_id : processed[0].sender_id;
         if (otherId) {
-          supabase.from('users').select('id, name, avatar, is_online, last_seen').eq('id', otherId).single()
-            .then(({ data: user }) => { if (mountedRef.current && user) setOtherUser(user); });
+          supabase.from('users').select('id, name, avatar, is_online, last_seen').eq('id', otherId)
+            .then(({ data: users }) => { 
+              if (mountedRef.current && users && users.length > 0) setOtherUser(users[0]); 
+            });
         }
       }
       return data;
@@ -231,11 +233,12 @@ export const useChatMessages = (chatId, currentUserId) => {
     setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      const { data, error: insertError } = await supabase
+      const { data: insertData, error: insertError } = await supabase
         .from('messages')
         .insert([preparedData])
-        .select()
-        .single();
+        .select();
+
+      const data = insertData?.[0];
 
       if (insertError) {
         const errInfo = handleDatabaseError(insertError, 'messages');

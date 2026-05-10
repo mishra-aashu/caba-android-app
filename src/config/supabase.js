@@ -107,8 +107,12 @@ const createResilientFetch = () => {
 
         // Handle specific HTTP errors
         if (response.status === 401) {
-          console.warn('[Supabase] 401 Unauthorized - Session may have expired');
-          notifySessionExpired();
+          console.warn(`[Supabase] 401 Unauthorized on ${url} - Retry ${attempt + 1}`);
+          // Don't notify session expired immediately on the first failure
+          // to avoid logging out users during temporary proxy glitches
+          if (attempt === MAX_RETRIES - 1) {
+             notifySessionExpired();
+          }
         }
 
         if (response.status === 403) {
