@@ -377,7 +377,42 @@ const useMusicStore = create(
           finalId = Math.random().toString(36).substring(2, 8).toUpperCase();
         }
         
-        if (!finalId) return;
+        if (!finalId) return false;
+
+        // Validation for listeners joining an existing room
+        if (!isHost) {
+          try {
+            const { data, error } = await supabase
+              .from('music_rooms')
+              .select('status, song_metadata')
+              .eq('id', finalId)
+              .maybeSingle();
+
+            if (error) throw error;
+
+            if (!data) {
+              const { toast } = await import('react-hot-toast');
+              toast.error("Room not found!");
+              return false;
+            }
+
+            if (data.status === 'ended') {
+              const { toast } = await import('react-hot-toast');
+              toast.error("This session has ended", { icon: '🚫' });
+              return false;
+            }
+
+            // Sync song metadata if available
+            if (data.song_metadata) {
+              set({ currentSong: data.song_metadata });
+            }
+          } catch (err) {
+            console.error('[MusicStore] Failed to verify room status:', err);
+            const { toast } = await import('react-hot-toast');
+            toast.error("Connection error while joining room");
+            return false;
+          }
+        }
         
         set({ roomId: String(finalId), isHost: Boolean(isHost), syncStatus: 'synced' });
         console.log(`[MusicStore] ${isHost ? 'Created' : 'Joined'} room: ${finalId}`);
@@ -403,6 +438,8 @@ const useMusicStore = create(
             toast.success(`Music Room Created: ${finalId}`, { icon: '🔥' });
           });
         }
+
+        return true;
       },
 
       leaveRoom: async () => {

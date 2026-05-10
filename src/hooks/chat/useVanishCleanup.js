@@ -16,34 +16,29 @@ export function useVanishCleanup(chatId, intervalMs = 10000) {
                 const now = new Date().toISOString();
                 
                 // Find messages that have expired
-                const expiredMessages = await db.messages
-                    .where('chatId')
-                    .equals(chatId)
-                    .filter(msg => msg.vanishAt && msg.vanishAt < now)
-                    .toArray();
+                const allMsgs = await db.getAll('messages', { chatId: String(chatId) });
+                const expiredMessages = allMsgs.filter(msg => msg.vanishAt && msg.vanishAt < now);
 
                 if (expiredMessages.length > 0) {
                     console.log(`[Vanish] Cleaning up ${expiredMessages.length} expired messages in chat ${chatId}`);
-                    const expiredIds = expiredMessages.map(m => m.id);
-                    
-                    // Delete from local DB
-                    await db.messages.bulkDelete(expiredIds);
+                    for (const m of expiredMessages) {
+                        await db.delete('messages', m.id);
+                    }
 
                     // Optional: Update chat list preview if the latest message was deleted
-                    const remaining = await db.messages
-                        .where('chatId').equals(chatId)
-                        .reverse().sortBy('createdAt');
+                    const remainingRaw = await db.getAll('messages', { chatId: String(chatId) });
+                    const remaining = remainingRaw.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
                     
                     const latestMsg = remaining[0];
                     if (latestMsg) {
-                        await db.chats_list.update(chatId, {
+                        await db.update('chats_list', String(chatId), {
                             lastMessage: latestMsg.content || '📎 Media',
                             lastMessageAt: latestMsg.createdAt,
                             timestamp: latestMsg.createdAt,
                         }).catch(() => {});
                     } else {
                         // If no messages left, clear preview
-                        await db.chats_list.update(chatId, {
+                        await db.update('chats_list', String(chatId), {
                             lastMessage: '',
                             lastMessageAt: null,
                             timestamp: null,

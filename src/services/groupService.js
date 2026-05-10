@@ -30,12 +30,14 @@ export const createGroup = async ({ name, description, avatarUrl: avatarUrlParam
             tempId,
         };
 
-        // Step 2: Insert into local Dexie immediately
-        await db.groups.put(localGroup);
+        // Step 2: Insert into local DB immediately
+        await db.set('groups', localGroup);
 
         // [FIX #9] Ensure unified chat list view also sees the new group locally
         // This prevents the chat from "disappearing" until the next sync
-        await db.chats_list.put({
+        // [FIX #9] Ensure unified chat list view also sees the new group locally
+        // This prevents the chat from "disappearing" until the next sync
+        await db.set('chats_list', {
             id: tempId,
             name,
             avatar_url: avatarUrl,

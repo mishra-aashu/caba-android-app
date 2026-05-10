@@ -166,9 +166,15 @@ export class FastSQLDB extends IDatabase {
         );
     }
 
-    async delete(table, id) {
-        const pk = (table === 'offline_music_store') ? 'song_id' : 'id';
-        await this.conn.execute(`DELETE FROM [${table}] WHERE [${pk}] = ?`, [id]);
+    async delete(table, idOrWhere) {
+        if (typeof idOrWhere === 'object') {
+            const conditions = Object.keys(idOrWhere).map(k => `[${k}] = ?`).join(' AND ');
+            const params = Object.values(idOrWhere);
+            await this.conn.execute(`DELETE FROM [${table}] WHERE ${conditions}`, params);
+        } else {
+            const pk = (table === 'offline_music_store') ? 'song_id' : 'id';
+            await this.conn.execute(`DELETE FROM [${table}] WHERE [${pk}] = ?`, [idOrWhere]);
+        }
     }
 
     async update(table, id, data) {
@@ -205,6 +211,18 @@ export class FastSQLDB extends IDatabase {
 
     async execute(sql, params) {
         await this.conn.execute(sql, params);
+    }
+
+    async transaction(mode, tables, callback) {
+        await this.beginTransaction();
+        try {
+            const result = await callback();
+            await this.commit();
+            return result;
+        } catch (err) {
+            await this.rollback();
+            throw err;
+        }
     }
 
     async beginTransaction() {

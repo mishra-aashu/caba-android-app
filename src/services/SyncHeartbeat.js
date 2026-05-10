@@ -350,11 +350,9 @@ class SyncHeartbeat {
   async _patchChat(chatId, signal) {
     try {
       // Get latest local message
-      const latestLocal = await db.messages
-        .where('[chatId+createdAt]')
-        .between([chatId, ''], [chatId, '\uffff'])
-        .reverse()
-        .first();
+      const messages = await db.getAll('messages', { chatId: String(chatId) });
+      const sorted = messages.sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at));
+      const latestLocal = sorted[0];
 
       const since = latestLocal?.createdAt || new Date(0).toISOString();
 
@@ -381,13 +379,13 @@ class SyncHeartbeat {
       const converted = safeDbConversion(decrypted);
 
       // Single transaction write
-      await db.transaction('rw', [db.messages, db.chats_list], async () => {
-        await db.messages.bulkPut(converted);
+      await db.transaction('rw', ['messages', 'chats_list'], async () => {
+        await db.bulkPut('messages', converted);
 
         // Update chat head
         const newest = converted[converted.length - 1];
         if (newest) {
-          await db.chats_list.update(chatId, {
+          await db.update('chats_list', String(chatId), {
             lastMessage: newest.content,
             lastMessageAt: newest.createdAt,
             timestamp: newest.createdAt,
@@ -419,7 +417,7 @@ class SyncHeartbeat {
       if (!data?.length) return;
 
       // Get local chats
-      const localChats = await db.chats_list.toArray();
+      const localChats = await db.getAll('chats_list');
       const localMap = new Map(
         localChats.map(c => [String(c.id), c])
       );
@@ -446,9 +444,9 @@ class SyncHeartbeat {
 
         if (toPatch.length > 0) {
           // ═══ Smart Merge (Heartbeat Version) ═══
-          await db.transaction('rw', db.chats_list, async () => {
+          await db.transaction('rw', ['chats_list'], async () => {
             for (const sChat of toPatch) {
-              const localChat = await db.chats_list.get(sChat.id);
+              const localChat = await db.get('chats_list', String(sChat.id));
               if (localChat) {
                 const merged = {
                   ...sChat,
@@ -456,9 +454,9 @@ class SyncHeartbeat {
                   isMuted: localChat.isMuted !== undefined ? localChat.isMuted : sChat.isMuted,
                   draft: localChat.draft || sChat.draft,
                 };
-                await db.chats_list.put(merged);
+                await db.set('chats_list', merged);
               } else {
-                await db.chats_list.put(sChat);
+                await db.set('chats_list', sChat);
               }
             }
           });

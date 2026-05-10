@@ -229,17 +229,22 @@ const safeInsert = async (table, payload, taskId) => {
   }).select().single();
 
   if (error) {
-    // 1. Column missing fallback
-    if (error.message?.includes("idempotency_key")) {
-      console.warn(`⚠️ [OfflineQueue] Column 'idempotency_key' missing on ${table}.`);
+    // 1. Column missing fallback (Postgres code 42703 is undefined_column)
+    if (error.code === '42703' || (error.message && error.message.includes('column "idempotency_key" does not exist'))) {
+      console.warn(`⚠️ [OfflineQueue] Column 'idempotency_key' missing on ${table}. Falling back...`);
       const { data: retryData, error: retryError } = await supabase.from(table).insert(payload).select().single();
       if (retryError) throw retryError;
       return retryData;
     }
-    // 2. Conflict handling
-    if (error.code === '23505') {
-      const { data: existing } = await supabase.from(table).select().eq('idempotency_key', taskId).single();
-      if (existing) return existing;
+    
+    // 2. Conflict handling (Postgres code 23505 is unique_violation)
+    if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('already exists')) {
+      console.log(`ℹ️ [OfflineQueue] Conflict detected on ${table}, checking for existing record via idempotency_key...`);
+      const { data: existing } = await supabase.from(table).select().eq('idempotency_key', taskId).maybeSingle();
+      if (existing) {
+        console.log(`✅ [OfflineQueue] Found existing record for taskId: ${taskId}`);
+        return existing;
+      }
     }
     throw error;
   }
@@ -254,7 +259,8 @@ const executeQueueAction = async (item) => {
 
   switch (action) {
     case QUEUE_ACTIONS.INSERT_MESSAGE: {
-      const { tempId, fileData, fileName, fileType, ...payload } = data;
+      const { tempId: tId, client_id: cId, fileData, fileName, fileType, ...payload } = data;
+      const tempId = tId || cId;
       
       // Handle media upload
       if (fileData && fileName) {
@@ -373,16 +379,26 @@ const executeQueueAction = async (item) => {
 };
 
 const swapMessageInDexie = async (tempId, serverMsg) => {
+  if (!tempId) return;
   const { safeDbConversion } = await import('../utils/dbFieldMapping');
   const normalizedMsg = safeDbConversion(serverMsg);
   const db = await getDatabase();
 
-  if (tempId) {
+  // 1. Delete all temporary versions (handles both temp_ID and records with the tempId field)
+  try {
+    // Delete by ID if it followed the temp_ID pattern
+    await db.delete('messages', `temp_${tempId}`).catch(() => {});
+    
+    // Also delete any other records that might have this tempId indexed
     const msgs = await db.getAll('messages', { tempId });
     for (const m of msgs) {
         await db.delete('messages', m.id);
     }
+  } catch (err) {
+    console.warn('[OfflineQueue] Swap deletion failed:', err);
   }
+
+  // 2. Insert/Update with real server record
   await db.set('messages', normalizedMsg);
 };
 

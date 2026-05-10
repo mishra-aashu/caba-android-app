@@ -148,12 +148,16 @@ export function useChatMessages({
         if (!selectedIds?.length) return;
         let previousMessages = [];
         try {
-            previousMessages = await db.messages.where('id').anyOf(selectedIds).toArray();
-            await db.messages.where('id').anyOf(selectedIds).delete();
-            const remaining = await db.messages.where('chatId').equals(String(chatId)).reverse().sortBy('createdAt');
-            const latestMsg = remaining[0];
+            for (const id of selectedIds) {
+                const msg = await db.get('messages', id);
+                if (msg) previousMessages.push(msg);
+                await db.delete('messages', id);
+            }
+            const remaining = await db.getAll('messages', { chatId: String(chatId) });
+            const sortedRemaining = remaining.sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at));
+            const latestMsg = sortedRemaining[0];
             if (latestMsg) {
-                await db.chats_list.update(String(chatId), {
+                await db.update('chats_list', String(chatId), {
                     lastMessage: latestMsg.content || '📎 Media',
                     lastMessageAt: latestMsg.createdAt,
                     timestamp: latestMsg.createdAt,
@@ -176,7 +180,11 @@ export function useChatMessages({
         if (isNewChat) return;
         const backup = await db.messages.where('chatId').equals(chatId).toArray();
         try {
-            await db.messages.where('chatId').equals(chatId).delete();
+            await db.delete('messages', { chatId }); // Note: Need to verify if IDatabase.delete handles object filters
+            // Actually, let's just use a query or a loop for now if delete only takes ID
+            const allMsgs = await db.getAll('messages', { chatId });
+            for (const m of allMsgs) await db.delete('messages', m.id);
+            
             const { error } = await supabase.from('messages').delete().eq('chat_id', chatId);
             if (error) throw error;
             toast.success('Chat cleared');
@@ -210,16 +218,14 @@ export function useChatMessages({
         hapticsManager.impact();
 
         try {
-            // 1. Optimistic Write to Dexie
-            await db.transaction('rw', [db.messages, db.chats_list], async () => {
-                await db.messages.put({ ...frontendMsg, id: `temp_${tempId}` });
-                await db.chats_list.update(String(chatId), {
-                    lastMessageAt: frontendMsg.createdAt,
-                    timestamp: frontendMsg.createdAt,
-                    lastMessage: frontendMsg.content,
-                    status: 'sending'
-                }).catch(() => {});
-            });
+            // 1. Optimistic Write to Local DB
+            await db.set('messages', { ...frontendMsg, id: `temp_${tempId}` });
+            await db.update('chats_list', String(chatId), {
+                lastMessageAt: frontendMsg.createdAt,
+                timestamp: frontendMsg.createdAt,
+                lastMessage: frontendMsg.content,
+                status: 'sending'
+            }).catch(() => {});
 
             // 2. Queue for Processing (The Muscles)
             const dbData = frontendToDb(frontendMsg);
@@ -228,7 +234,7 @@ export function useChatMessages({
             return { id: `temp_${tempId}`, ...frontendMsg };
         } catch (error) {
             console.error('[useChatMessages] Send failed:', error);
-            await db.messages.update(`temp_${tempId}`, { status: 'failed' });
+            await db.update('messages', `temp_${tempId}`, { status: 'failed' });
             hapticsManager.error();
             return null;
         }

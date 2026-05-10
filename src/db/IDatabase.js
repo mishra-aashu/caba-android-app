@@ -67,20 +67,17 @@ export class IDatabase {
     async execute(sql, params) { throw new Error('Not implemented'); }
 
     /**
-     * Transactions
-     * @returns {Promise<void>}
+     * transaction
+     * Standardized transaction wrapper.
+     * @param {string} mode - 'rw' or 'r'
+     * @param {string[]} tables - List of tables involved
+     * @param {Function} callback - Async function to execute
      */
-    async beginTransaction() { throw new Error('Not implemented'); }
-    
-    /**
-     * @returns {Promise<void>}
-     */
-    async commit() { throw new Error('Not implemented'); }
-    
-    /**
-     * @returns {Promise<void>}
-     */
-    async rollback() { throw new Error('Not implemented'); }
+    async transaction(mode, tables, callback) {
+        // Default implementation for engines that don't support true transactions
+        // just runs the callback as-is. Subclasses should override.
+        return await callback();
+    }
 
     /**
      * Batch Operations

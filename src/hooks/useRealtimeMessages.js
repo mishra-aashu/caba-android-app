@@ -119,23 +119,42 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
                 finalMsg.status = 'sent';
             }
 
+            // ── [DB SYNC] ──
             try {
-                await db.transaction('rw', [db.messages, db.chats_list], async () => {
-                    if (newRecord.client_id) {
-                        await db.messages.delete(`temp_${newRecord.client_id}`).catch(() => {});
+                const tempId = newRecord.client_id || newRecord.tempId;
+                
+                // Use a standard sequence instead of db.transaction for cross-engine compatibility
+                // (or if db.transaction exists, use it)
+                const runSync = async () => {
+                    if (tempId) {
+                        // 1. Delete by temp ID pattern
+                        await db.delete('messages', `temp_${tempId}`).catch(() => {});
+                        
+                        // 2. Delete by searching tempId field (redundancy for safety)
+                        const existingTemp = await db.getAll('messages', { tempId });
+                        for (const m of existingTemp) {
+                            await db.delete('messages', m.id);
+                        }
                     }
-                    // Store normalized message
-                    await db.messages.put(finalMsg);
+                    
+                    // 3. Store normalized message
+                    await db.set('messages', finalMsg);
 
-                    // Update chat list head (Ensure String ID for Dexie)
-                    await db.chats_list.update(String(finalMsg.chatId), {
+                    // 4. Update chat list head
+                    await db.update('chats_list', String(finalMsg.chatId), {
                         lastMessageAt: finalMsg.createdAt,
                         timestamp: finalMsg.createdAt,
                         lastMessage: finalMsg.content
                     }).catch(() => {});
-                });
+                };
+
+                if (typeof db.transaction === 'function') {
+                    await db.transaction('rw', ['messages', 'chats_list'], runSync);
+                } else {
+                    await runSync();
+                }
             } catch (err) {
-                console.error('Failed to save realtime msg to Dexie', err);
+                console.error('[RT] Failed to sync message to local DB:', err);
             }
 
             if (mountedRef.current && handlersRef.current.onNewMessage) {
@@ -152,9 +171,9 @@ export const useRealtimeMessages = (chatId, handlers = {}, currentUserId, otherU
                     );
                 }
                 const normalized = safeDbConversion(newRecord);
-                await db.messages.update(newRecord.id, normalized);
+                await db.update('messages', newRecord.id, normalized);
             } catch (err) {
-                console.error('Failed to update realtime msg in Dexie', err);
+                console.error('[RT] Failed to update message in local DB:', err);
             }
 
             if (mountedRef.current && handlersRef.current.onUpdateMessage) {

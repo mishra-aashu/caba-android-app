@@ -188,7 +188,23 @@ export class DexieDB extends Dexie {
         });
 
         this.version(19).stores({
-            sync_queue: 'id, table, operation, status, dependencyId'
+            sync_queue: '++id, table, operation, status, dependencyId'
+        });
+
+        this.version(20).stores({
+            chats_list: 'id, lastMessageAt, timestamp',
+            messages: 'id, chatId, createdAt, senderId, tempId, vanishAt, retryCount, isPinned, [chatId+createdAt]',
+            contacts: 'id, contactName',
+            user_profiles: 'id, name',
+            groups: 'id, name, created_by',
+            group_members: '[groupId+userId], groupId, userId',
+            blocked_users: '++id, userId, blockedUserId',
+            reports: '++id, reporterId, reportedId',
+            call_history: 'id, startedAt, callerId, receiverId',
+            reminders: 'id, userId, reminderTime, synced',
+            sync_queue: '++id, table, operation, status, dependencyId',
+            offline_music_store: 'song_id, download_status, local_file_path',
+            music_likes: 'id, songId, userId, synced'
         });
     }
 
@@ -238,17 +254,14 @@ export class DexieDB extends Dexie {
         throw new Error('Raw SQL execution is not supported on Web engine. Use IDatabase methods instead.');
     }
 
-    async beginTransaction() {
-        // Dexie uses implicit transactions mostly, but we can implement this if needed for compatibility
-        console.warn('beginTransaction not explicitly implemented for Dexie');
-    }
-
-    async commit() {
-        console.warn('commit not explicitly implemented for Dexie');
-    }
-
-    async rollback() {
-        console.warn('rollback not explicitly implemented for Dexie');
+    /**
+     * @param {string} mode - 'rw' or 'r'
+     * @param {string[]} tables - List of tables involved
+     * @param {Function} callback - Async function to execute
+     */
+    async transaction(mode, tables, callback) {
+        // Use Dexie's native transaction (super refers to Dexie class)
+        return await super.transaction(mode, tables, callback);
     }
 
     async bulkPut(table, items) {

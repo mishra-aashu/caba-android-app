@@ -291,3 +291,13 @@
   box-shadow: none !important;
   transform: none !important;
 }
+.activeAction {
+  background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.4) !important;
+}
+
+.activeAction .radioIcon {
+  color: white;
+}

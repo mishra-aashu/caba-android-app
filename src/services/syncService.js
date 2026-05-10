@@ -58,10 +58,9 @@ class SyncService {
             await this.syncChatList(userId);
 
             // 2. Find the latest message timestamp across ALL chats locally
-            const latestMsg = await db.messages
-                .orderBy('createdAt')
-                .reverse()
-                .first();
+            const allMsgs = await db.getAll('messages');
+            const sorted = allMsgs.sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at));
+            const latestMsg = sorted[0];
             
             const lastSyncTimestamp = latestMsg ? latestMsg.createdAt : new Date(0).toISOString();
 
@@ -82,7 +81,7 @@ class SyncService {
             if (data && data.length > 0) {
                 console.log(`[Sync] Found ${data.length} new messages globally`);
 
-                const allChats = await db.chats_list.toArray();
+                const allChats = await db.getAll('chats_list');
                 const chatMap = new Map(allChats.map(c => [c.id, c]));
 
                 const processedData = data.map(msg => {
@@ -103,7 +102,7 @@ class SyncService {
                 });
 
                 const converted = safeDbConversion(processedData);
-                await db.messages.bulkPut(converted);
+                await db.bulkPut('messages', converted);
                 await this.updateChatListHeads(converted);
             }
 
@@ -134,7 +133,7 @@ class SyncService {
 
         for (const [chatId, lastMsgAt] of chatsToUpdate.entries()) {
             const lastMsg = messages.find(m => m.chatId === chatId && m.createdAt === lastMsgAt);
-            await db.chats_list.update(chatId, { 
+            await db.update('chats_list', String(chatId), { 
                 lastMessageAt: lastMsgAt,
                 timestamp: lastMsgAt,
                 lastMessage: lastMsg?.content || 'New message'
@@ -157,9 +156,9 @@ class SyncService {
                 const serverChats = data.map(rawItem => normalizeChat(rawItem, userId));
                 
                 // ═══ Smart Merge: Preserve Local Metadata ═══
-                await db.transaction('rw', [db.chats_list], async () => {
+                await db.transaction('rw', ['chats_list'], async () => {
                     for (const sChat of serverChats) {
-                        const localChat = await db.chats_list.get(sChat.id);
+                        const localChat = await db.get('chats_list', String(sChat.id));
                         if (localChat) {
                             // Keep local fields that don't exist on server
                             const merged = {
@@ -172,9 +171,9 @@ class SyncService {
                                     ...(localChat.metadata || {})
                                 }
                             };
-                            await db.chats_list.put(merged);
+                            await db.set('chats_list', merged);
                         } else {
-                            await db.chats_list.put(sChat);
+                            await db.set('chats_list', sChat);
                         }
                     }
                 });
@@ -192,11 +191,9 @@ class SyncService {
         if (!navigator.onLine || !chatId) return [];
 
         try {
-            const latestMsg = await db.messages
-                .where('[chatId+createdAt]')
-                .between([chatId, db.constructor.minKey], [chatId, db.constructor.maxKey])
-                .reverse()
-                .first();
+            const msgs = await db.getAll('messages', { chatId: String(chatId) });
+            const sorted = msgs.sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at));
+            const latestMsg = sorted[0];
 
             const lastSync = latestMsg ? latestMsg.createdAt : new Date(0).toISOString();
 
@@ -231,7 +228,7 @@ class SyncService {
                 });
 
                 const converted = safeDbConversion(processedData);
-                await db.messages.bulkPut(converted);
+                await db.bulkPut('messages', converted);
                 
                 // Also update the chat head if we found new messages
                 await this.updateChatListHeads(converted);

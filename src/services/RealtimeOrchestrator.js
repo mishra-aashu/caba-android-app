@@ -118,7 +118,7 @@ class RealtimeOrchestrator {
             // Decrypt for local storage
             let decryptedContent = newRecord.content;
             try {
-                const chat = await db.chats_list.get(chatId);
+                const chat = await db.get('chats_list', chatId);
                 decryptedContent = EncryptionService.decrypt(
                     newRecord.content,
                     chatId,
@@ -129,14 +129,25 @@ class RealtimeOrchestrator {
             }
 
             const frontendMsg = dbToFrontend({ ...newRecord, content: decryptedContent });
+            const tempId = newRecord.client_id || newRecord.tempId;
 
             // Atomic update: Message + Chat Head
-            await db.transaction('rw', [db.messages, db.chats_list], async () => {
-                await db.messages.put(frontendMsg);
+            await db.transaction('rw', ['messages', 'chats_list'], async () => {
+                // 1. Cleanup optimistic message if it exists
+                if (tempId) {
+                    await db.delete('messages', `temp_${tempId}`).catch(() => {});
+                    const existingTemp = await db.getAll('messages', { tempId });
+                    for (const m of existingTemp) {
+                        await db.delete('messages', m.id);
+                    }
+                }
+
+                // 2. Store normalized message
+                await db.set('messages', frontendMsg);
                 
-                const existingChat = await db.chats_list.get(chatId);
+                const existingChat = await db.get('chats_list', chatId);
                 if (existingChat) {
-                    await db.chats_list.update(chatId, {
+                    await db.update('chats_list', chatId, {
                         lastMessage: decryptedContent,
                         lastMessageAt: frontendMsg.createdAt,
                         timestamp: frontendMsg.createdAt,
@@ -152,11 +163,11 @@ class RealtimeOrchestrator {
             });
         } 
         else if (eventType === 'DELETE') {
-            await db.messages.delete(oldRecord.id);
+            await db.delete('messages', oldRecord.id);
         }
         else if (eventType === 'UPDATE') {
             const updated = dbToFrontend(newRecord);
-            await db.messages.update(updated.id, updated).catch(() => {});
+            await db.update('messages', updated.id, updated).catch(() => {});
         }
     }
 
@@ -166,9 +177,11 @@ class RealtimeOrchestrator {
         if (eventType === 'DELETE') {
             const chatId = String(oldRecord.id);
             console.log('[RealtimeOrchestrator] Chat deleted on server:', chatId);
-            await db.transaction('rw', [db.chats_list, db.messages], async () => {
-                await db.chats_list.delete(chatId);
-                await db.messages.where('chatId').equals(chatId).delete();
+            await db.transaction('rw', ['chats_list', 'messages'], async () => {
+                await db.delete('chats_list', chatId);
+                // Bulk delete messages for this chat
+                const msgs = await db.getAll('messages', { chatId });
+                for (const m of msgs) await db.delete('messages', m.id);
             });
             return;
         }
@@ -185,9 +198,10 @@ class RealtimeOrchestrator {
         if (eventType === 'DELETE') {
             const chatId = String(oldRecord.id);
             console.log('[RealtimeOrchestrator] Group deleted on server:', chatId);
-            await db.transaction('rw', [db.chats_list, db.messages], async () => {
-                await db.chats_list.delete(chatId);
-                await db.messages.where('chatId').equals(chatId).delete();
+            await db.transaction('rw', ['chats_list', 'messages'], async () => {
+                await db.delete('chats_list', chatId);
+                const msgs = await db.getAll('messages', { chatId });
+                for (const m of msgs) await db.delete('messages', m.id);
             });
             return;
         }
@@ -210,20 +224,18 @@ class RealtimeOrchestrator {
     async _handleProfileEvent(payload) {
         const { new: profile } = payload;
         // Update user_profiles table for cache
-        await db.user_profiles.update(profile.id, {
+        await db.update('user_profiles', profile.id, {
             name: profile.name,
             avatar: profile.avatar_url,
             lastSeen: profile.last_seen
         }).catch(() => {});
         
         // Also update any chats where this user is the "other user"
-        const affectedChats = await db.chats_list
-            .where('otherUserId')
-            .equals(profile.id)
-            .toArray();
+        const allChats = await db.getAll('chats_list');
+        const affectedChats = allChats.filter(c => c.otherUserId === profile.id);
             
         for (const chat of affectedChats) {
-            await db.chats_list.update(chat.id, {
+            await db.update('chats_list', chat.id, {
                 otherUserName: profile.name,
                 otherUserAvatar: profile.avatar_url,
                 isOnline: profile.is_online

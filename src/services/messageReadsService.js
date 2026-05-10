@@ -61,17 +61,19 @@ class MessageReadsService {
             .filter(m => vanishChatIds.includes(m.chat_id))
             .map(m => m.id);
 
-          if (vanishMsgIds.length > 0) {
-            // Update Supabase: Set vanish_at for these messages
-            await supabase
-              .from('messages')
-              .update({ vanish_at: vanishAt })
-              .in('id', vanishMsgIds);
+            if (vanishMsgIds.length > 0) {
+              // Update Supabase: Set vanish_at for these messages
+              await supabase
+                .from('messages')
+                .update({ vanish_at: vanishAt })
+                .in('id', vanishMsgIds);
 
-            // Update local Dexie: Ensure local cleanup hook picks it up immediately
-            const { db } = await import('../db/db');
-            await db.messages.where('id').anyOf(vanishMsgIds).modify({ vanishAt });
-          }
+              // Update local DB
+              const { db } = await import('../db/db');
+              for (const id of vanishMsgIds) {
+                await db.update('messages', id, { vanishAt });
+              }
+            }
         }
       }
 
@@ -140,9 +142,9 @@ class MessageReadsService {
       const messageIds = unreadMessages.map((m) => m.id);
       await this.markAsRead(messageIds, userId);
 
-      // [FIX] Update local Dexie count immediately for instant UI feedback
+      // [FIX] Update local DB count immediately for instant UI feedback
       const { db } = await import('../db/db');
-      await db.chats_list.update(chatId, { unreadCount: 0 }).catch(() => {});
+      await db.update('chats_list', String(chatId), { unreadCount: 0 }).catch(() => {});
 
       return true;
     } catch (error) {

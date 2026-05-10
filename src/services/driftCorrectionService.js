@@ -19,22 +19,20 @@ export const driftCorrectionService = {
     console.log('🛡️ [ImmuneSystem] Checking for zombie tasks...');
     const now = Date.now();
     
-    const zombies = await db.sync_queue
-      .where('status')
-      .equals('processing')
-      .filter(task => (now - task.updatedAt) > ZOMBIE_TIMEOUT)
-      .toArray();
+    const allTasks = await db.getAll('sync_queue');
+    const zombies = allTasks.filter(task => 
+      task.status === 'processing' && (now - (task.updatedAt || task.createdAt)) > ZOMBIE_TIMEOUT
+    );
 
     if (zombies.length > 0) {
       console.warn(`🛡️ [ImmuneSystem] Found ${zombies.length} zombies. Resetting to pending.`);
-      await db.sync_queue.bulkUpdate(zombies.map(z => ({
-        key: z.id,
-        changes: { 
+      for (const z of zombies) {
+        await db.update('sync_queue', z.id, {
           status: 'pending',
           updatedAt: now,
           retries: (z.retries || 0) + 1 
-        }
-      })));
+        });
+      }
     }
   },
 
@@ -51,12 +49,11 @@ export const driftCorrectionService = {
     try {
       console.log('🛡️ [ImmuneSystem] Starting snapshot reconciliation...');
     
-    // 1. Get last 5 active chats from Dexie
-    const activeChats = await db.chats_list
-      .orderBy('lastMessageAt')
-      .reverse()
-      .limit(5)
-      .toArray();
+    // 1. Get last 5 active chats from DB
+    const allChats = await db.getAll('chats_list');
+    const activeChats = allChats
+      .sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0))
+      .slice(0, 5);
 
     for (const chat of activeChats) {
       try {
@@ -71,12 +68,10 @@ export const driftCorrectionService = {
         if (error) continue;
 
         // 3. Compare with local messages
-        const localMsgs = await db.messages
-          .where('chatId')
-          .equals(chat.id)
-          .reverse()
-          .limit(20)
-          .toArray();
+        const localMsgsRaw = await db.getAll('messages', { chatId: String(chat.id) });
+        const localMsgs = localMsgsRaw
+          .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at))
+          .slice(0, 20);
 
         const localIds = new Set(localMsgs.map(m => m.id));
         const missingFromLocal = serverMsgs.filter(sm => !localIds.has(sm.id));
@@ -85,7 +80,7 @@ export const driftCorrectionService = {
           console.log(`🛡️ [ImmuneSystem] Found ${missingFromLocal.length} missing messages in chat ${chat.id}. Patching...`);
           
           const frontendMsgs = missingFromLocal.map(m => dbToFrontend(m));
-          await db.messages.bulkPut(frontendMsgs);
+          await db.bulkPut('messages', frontendMsgs);
           
           // Trigger UI update (optional: broadcast event)
         }
@@ -105,7 +100,7 @@ export const driftCorrectionService = {
   async cleanupDuplicateMessages() {
     console.log('🛡️ [ImmuneSystem] Running duplicate message cleanup...');
     try {
-      const allMessages = await db.messages.toArray();
+      const allMessages = await db.getAll('messages');
       const seenSignatures = new Map();
       const idsToDelete = [];
 
@@ -132,7 +127,7 @@ export const driftCorrectionService = {
             // We'll use ciphertext as a secondary check if decryption fails.
             try {
                 // Try to get otherUserId from chat
-                const chat = await db.chats_list.get(msg.chatId);
+                const chat = await db.get('chats_list', String(msg.chatId));
                 const isGroup = msg.isGroupMessage || chat?.is_group || chat?.isGroup;
                 const otherUserId = isGroup ? null : (chat?.otherUserId || chat?.metadata?.otherUserId);
                 const decrypted = EncryptionService.decrypt(content, msg.chatId, otherUserId);
@@ -165,7 +160,9 @@ export const driftCorrectionService = {
 
       if (idsToDelete.length > 0) {
         console.warn(`🛡️ [ImmuneSystem] Deleting ${idsToDelete.length} duplicate messages.`);
-        await db.messages.bulkDelete(idsToDelete);
+        for (const id of idsToDelete) {
+          await db.delete('messages', id);
+        }
       }
     } catch (err) {
       console.error('🛡️ [ImmuneSystem] Duplicate cleanup failed:', err);

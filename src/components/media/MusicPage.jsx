@@ -184,11 +184,11 @@ const MusicPage = () => {
   };
 
 
-  const handleJoinManual = (e) => {
+  const handleJoinManual = async (e) => {
     e.preventDefault();
     const id = e.target.roomInput.value.trim().toUpperCase();
     if (id) {
-      joinRoom(id, false);
+      await joinRoom(id, false);
     }
   };
 

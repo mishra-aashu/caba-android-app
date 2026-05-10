@@ -91,9 +91,9 @@ const MusicHome = ({ onShareSession, onSelectCategory }) => {
                 className="session-join-input"
               />
               <button 
-                onClick={() => {
+                onClick={async () => {
                   const id = document.getElementById('room-join-input').value.trim();
-                  if (id) joinRoom(id, false);
+                  if (id) await joinRoom(id, false);
                 }}
                 className="session-join-btn"
               >

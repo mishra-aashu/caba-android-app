@@ -21,18 +21,29 @@ const SongMessage = ({ message, isMine }) => {
   const isSessionShare = message.metadata?.type === 'music_session_share' || 
                         (roomId && message.metadata?.type !== 'music_share');
 
+  const currentRoomId = useMusicStore(state => state.roomId);
+  const isInThisRoom = roomId && currentRoomId === roomId;
+
   // 1. Fetch & Subscribe to Room Status
   useEffect(() => {
     if (!isSessionShare || !roomId) return;
 
     const fetchStatus = async () => {
-      const { data, error } = await supabase
-        .from('music_rooms')
-        .select('status')
-        .eq('id', roomId);
-      
-      if (!error && data && data.length > 0) {
-        setRoomStatus(data[0].status);
+      try {
+        const { data, error } = await supabase
+          .from('music_rooms')
+          .select('status')
+          .eq('id', roomId)
+          .maybeSingle();
+        
+        if (!error && data) {
+          setRoomStatus(data.status);
+        } else if (!error && !data) {
+          // Room no longer exists = ended
+          setRoomStatus('ended');
+        }
+      } catch (err) {
+        console.warn('[SongMessage] Failed to fetch room status:', err);
       }
     };
 
@@ -47,7 +58,9 @@ const SongMessage = ({ message, isMine }) => {
         table: 'music_rooms', 
         filter: `id=eq.${roomId}` 
       }, (payload) => {
-        setRoomStatus(payload.new.status);
+        if (payload.new && payload.new.status) {
+          setRoomStatus(payload.new.status);
+        }
       })
       .subscribe();
 
@@ -63,13 +76,20 @@ const SongMessage = ({ message, isMine }) => {
   let displayArtist = song?.artist || (isSessionShare ? 'Join and listen together' : 'Tap to play');
   if (isSessionShare && isEnded) {
     displayArtist = 'This session has ended';
+  } else if (isSessionShare && isInThisRoom) {
+    displayArtist = 'You are in this session';
   }
 
   const displayImage = song?.image || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop';
 
-  const handlePlayAndSync = () => {
+  const handlePlayAndSync = async () => {
     if (isEnded) {
       toast.error("This session has ended");
+      return;
+    }
+
+    if (isInThisRoom) {
+      navigate('/listen-together');
       return;
     }
 
@@ -79,11 +99,15 @@ const SongMessage = ({ message, isMine }) => {
     
     if (roomId) {
       console.log(`[SongMessage] Joining room from chat: ${roomId}`);
-      joinRoom(roomId, false);
-      toast.success(`Joined Session!`, { icon: '🎧' });
+      const success = await joinRoom(roomId, false);
+      if (success) {
+        toast.success(`Joined Session!`, { icon: '🎧' });
+        navigate('/listen-together');
+      }
+    } else {
+      // Direct song share, no room
+      navigate('/listen-together');
     }
-    
-    navigate('/listen-together');
   };
 
   return (
@@ -96,7 +120,7 @@ const SongMessage = ({ message, isMine }) => {
           {!isEnded && (
             <button className={styles.playBtn} onClick={handlePlayAndSync}>
               <div className={styles.playIconCircle}>
-                <Play size={20} fill="currentColor" />
+                {isInThisRoom ? <Radio size={20} className={styles.radioIcon} /> : <Play size={20} fill="currentColor" />}
               </div>
             </button>
           )}
@@ -116,7 +140,7 @@ const SongMessage = ({ message, isMine }) => {
             <div className={styles.badgeIcon}>
               {isSessionShare && isEnded ? <Radio size={10} style={{ opacity: 0.5 }} /> : <Music size={10} />}
             </div>
-            <span>{isSessionShare && isEnded ? 'SESSION EXPIRED' : 'ELEVENGRAM MUSIC'}</span>
+            <span>{isSessionShare && isEnded ? 'SESSION EXPIRED' : (isInThisRoom ? 'LIVE NOW' : 'ELEVENGRAM MUSIC')}</span>
           </div>
         </div>
 
@@ -124,18 +148,18 @@ const SongMessage = ({ message, isMine }) => {
 
       {/* Action Footer */}
       <button 
-        className={`${styles.joinAction} ${isEnded ? styles.disabledAction : ''}`} 
+        className={`${styles.joinAction} ${isEnded ? styles.disabledAction : ''} ${isInThisRoom ? styles.activeAction : ''}`} 
         onClick={handlePlayAndSync}
         disabled={isEnded}
       >
         {isSessionShare ? (
-          isEnded ? <XCircle size={14} /> : <Radio size={14} className={styles.radioIcon} />
+          isEnded ? <XCircle size={14} /> : (isInThisRoom ? <Radio size={14} className={styles.radioIcon} /> : <Radio size={14} className={styles.radioIcon} />)
         ) : (
           <Play size={14} className={styles.radioIcon} />
         )}
         <span>
           {isSessionShare 
-            ? (isEnded ? 'SESSION ENDED' : 'JOIN SESSION') 
+            ? (isEnded ? 'SESSION ENDED' : (isInThisRoom ? 'IN SESSION' : 'JOIN SESSION')) 
             : 'PLAY SONG'
           }
         </span>
