@@ -11,24 +11,25 @@
     padding: 0 8px;
     padding-bottom: var(--safe-bottom, 0px);
     height: 64px;
-    background: rgba(30, 30, 30, 0.85);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(25px) saturate(180%);
     -webkit-backdrop-filter: blur(25px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 24px;
     justify-content: space-around;
     align-items: stretch;
     z-index: 10000;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform: translateZ(0);
     will-change: transform;
 }
 
-/* ─── Dark Mode ─── */
+/* ─── Dark Mode Override ─── */
 [data-theme="dark"] .bottomNav {
     background: rgba(20, 20, 20, 0.8);
     border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
 /* ─── Hide when music hub is open ─── */
@@ -65,7 +66,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    color: var(--text-secondary, #8696a0);
+    color: #667781; /* Darker secondary text for light mode */
     cursor: pointer;
     position: relative;
     -webkit-tap-highlight-color: transparent;
@@ -234,7 +235,7 @@
 }
 
 .navItem:active .ripple {
-    opacity: 0.08;
+    opacity: 0.05;
     transform: scale(1);
     transition-duration: 0.05s;
 }

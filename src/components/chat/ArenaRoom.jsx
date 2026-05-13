@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import TruthDareGame from './TruthDareGame';
+import ChessGame from './ChessGame';
 import styles from './ArenaRoom.module.css';
 import MessageInput from './MessageInput';
 import { useAuth } from '../../hooks/useAuth';
@@ -118,12 +119,21 @@ const ArenaRoom = ({
             <span>GAME BOARD</span>
           </div>
           <div className={styles.gameBoardScroll}>
-            <TruthDareGame 
-              {...gameProps.gameState} 
-              {...gameProps} 
-              userId={userId} 
-              isEmbedded={true} 
-            />
+            {gameProps.gameType === 'chess' ? (
+              <ChessGame 
+                {...gameProps.gameState}
+                {...gameProps}
+                userId={userId}
+                isEmbedded={true}
+              />
+            ) : (
+              <TruthDareGame 
+                {...gameProps.gameState} 
+                {...gameProps} 
+                userId={userId} 
+                isEmbedded={true} 
+              />
+            )}
           </div>
         </div>
 
@@ -215,12 +225,21 @@ const ArenaRoom = ({
               exit={{ opacity: 0, x: -10 }}
               className={styles.mobileGameArea}
             >
-            <TruthDareGame 
-              {...gameProps.gameState} 
-              {...gameProps} 
-              userId={userId} 
-              isEmbedded={true} 
-            />
+            {gameProps.gameType === 'chess' ? (
+              <ChessGame 
+                {...gameProps.gameState}
+                {...gameProps}
+                userId={userId}
+                isEmbedded={true}
+              />
+            ) : (
+              <TruthDareGame 
+                {...gameProps.gameState} 
+                {...gameProps} 
+                userId={userId} 
+                isEmbedded={true} 
+              />
+            )}
             </motion.div>
           )}
         </AnimatePresence>

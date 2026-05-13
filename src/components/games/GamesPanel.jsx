@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import PlayerAvatar from '../common/PlayerAvatar';
 import { useTruthDareGame } from '../../hooks/useTruthDareGame';
+import { useChessGame } from '../../hooks/useChessGame';
+import { GAME_TYPES } from '../../constants/gameData';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import ArenaRoom from '../chat/ArenaRoom';
@@ -120,9 +122,15 @@ const GamesPanel = () => {
   const isSubscribedRef = useRef(true);
 
   // Unified Battle Context
-  const [battleContext, setBattleContext] = useState(null); // { chatId, opponentId }
+  const [battleContext, setBattleContext] = useState(null); // { chatId, opponentId, gameType }
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const game = useTruthDareGame(battleContext?.chatId, dbUser, supabase);
+  const [showGameSelector, setShowGameSelector] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const tdGame = useTruthDareGame(battleContext?.chatId, dbUser, supabase);
+  const chessGame = useChessGame(battleContext?.chatId, dbUser, supabase);
+
+  const activeGame = battleContext?.gameType === GAME_TYPES.CHESS ? chessGame : tdGame;
 
   // ── Load pending invitations ───────────────────────────
   const loadInvites = useCallback(async () => {
@@ -191,20 +199,26 @@ const GamesPanel = () => {
   };
 
   useEffect(() => {
-    if (!game.isActive && battleContext) {
+    if (!activeGame.isActive && battleContext) {
       const timer = setTimeout(() => {
         setBattleContext(null);
         hasAutoJoinedRef.current = false;
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [game.isActive, battleContext]);
+  }, [activeGame.isActive, battleContext]);
 
 
   // ── Handlers ──────────────────────────────────────────
-  const handleInviteUser = useCallback(async (targetUser) => {
+  const handleInviteUser = (user) => {
+    setSelectedUser(user);
+    setShowGameSelector(true);
+  };
+
+  const handleConfirmInvite = useCallback(async (targetUser, gameType) => {
     if (!dbUser?.id || !targetUser?.id) return;
-    const loadingToast = toast.loading('Sending invitation...');
+    setShowGameSelector(false);
+    const loadingToast = toast.loading(`Sending ${gameType.replace('_', ' ')} invitation...`);
     try {
       const [user1_id, user2_id] = normalizeUserIds(dbUser.id, targetUser.id);
       
@@ -236,7 +250,7 @@ const GamesPanel = () => {
           chat_id: chatId,
           sender_id: dbUser.id,
           receiver_id: targetUser.id,
-          game_type: 'truth_or_dare',
+          game_type: gameType,
           status: 'pending',
           created_at: new Date().toISOString()
         })
@@ -252,12 +266,15 @@ const GamesPanel = () => {
       setBattleContext({ 
         chatId, 
         opponentId: targetUser.id,
+        gameType: gameType,
         opponentMetadata: {
           name: targetUser.name,
           avatar: targetUser.avatar
         }
       });
-      game.joinBattle(invite.id, true, invite.status, targetUser.id, { 
+      
+      const targetGame = gameType === GAME_TYPES.CHESS ? chessGame : tdGame;
+      targetGame.joinBattle(invite.id, true, invite.status, targetUser.id, { 
         name: targetUser.name, 
         avatar: targetUser.avatar 
       }); // true = isHost
@@ -269,7 +286,7 @@ const GamesPanel = () => {
       toast.dismiss(loadingToast);
       toast.error('Could not send invitation.');
     }
-  }, [dbUser?.id, supabase, game.joinBattle, loadInvites]);
+  }, [dbUser?.id, supabase, tdGame.joinBattle, chessGame.joinBattle, loadInvites]);
 
   const handleAcceptInvite = useCallback(async (invite) => {
     if (!invite.chat_id) return;
@@ -280,19 +297,21 @@ const GamesPanel = () => {
       setBattleContext({ 
         chatId: invite.chat_id, 
         opponentId: invite.sender_id,
+        gameType: invite.game_type,
         opponentMetadata: {
           name: invite.sender?.name,
           avatar: invite.sender?.avatar
         }
       });
-      game.acceptGame(invite);
+      const targetGame = invite.game_type === GAME_TYPES.CHESS ? chessGame : tdGame;
+      targetGame.acceptGame(invite);
     } catch (err) {
       toast.dismiss(loadingToast);
       toast.error('Failed to join battle');
     } finally {
       setProcessingInviteId(null);
     }
-  }, [game.acceptGame]);
+  }, [tdGame.acceptGame, chessGame.acceptGame]);
 
   // ── Handle Auto-Join from Notification (Moved after handleAcceptInvite) ──
   useEffect(() => {
@@ -307,7 +326,7 @@ const GamesPanel = () => {
   // ── Auto-Join Logic (Restored) ─────────────────────────
   const hasAutoJoinedRef = useRef(false);
   useEffect(() => {
-    if (game.isActive || loadingInvites || hasAutoJoinedRef.current) return;
+    if (activeGame.isActive || loadingInvites || hasAutoJoinedRef.current) return;
     if (!dbUser?.id || pendingInvites.length === 0) return;
 
     const acceptedInv = pendingInvites.find(inv => 
@@ -319,10 +338,11 @@ const GamesPanel = () => {
     if (acceptedInv) {
       hasAutoJoinedRef.current = true;
       const opponentId = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver_id : acceptedInv.sender_id;
-      setBattleContext({ chatId: acceptedInv.chat_id, opponentId });
-      game.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, acceptedInv.status, opponentId);
+      setBattleContext({ chatId: acceptedInv.chat_id, opponentId, gameType: acceptedInv.game_type });
+      const targetGame = acceptedInv.game_type === GAME_TYPES.CHESS ? chessGame : tdGame;
+      targetGame.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, acceptedInv.status, opponentId);
     }
-  }, [pendingInvites, game.isActive, dbUser?.id, loadingInvites, game.joinBattle]);
+  }, [pendingInvites, activeGame.isActive, dbUser?.id, loadingInvites, tdGame.joinBattle, chessGame.joinBattle]);
 
   const handleRejectInvite = useCallback(async (invite) => {
     setProcessingInviteId(invite.id);
@@ -345,46 +365,54 @@ const GamesPanel = () => {
     setBattleContext({ 
       chatId: invite.chat_id, 
       opponentId,
+      gameType: invite.game_type,
       opponentMetadata: {
         name: opponent?.name,
         avatar: opponent?.avatar
       }
     });
-    game.joinBattle(invite.id, invite.sender_id === dbUser?.id, invite.status, opponentId, {
+    const targetGame = invite.game_type === GAME_TYPES.CHESS ? chessGame : tdGame;
+    targetGame.joinBattle(invite.id, invite.sender_id === dbUser?.id, invite.status, opponentId, {
       name: opponent?.name,
       avatar: opponent?.avatar
     });
-  }, [dbUser?.id, game.joinBattle]);
+  }, [dbUser?.id, tdGame.joinBattle, chessGame.joinBattle]);
 
   const gameProps = useMemo(() => ({
-    ...game.gameState,
+    ...activeGame.gameState,
+    gameType: battleContext?.gameType,
     userId: dbUser?.id,
     partnerId: battleContext?.opponentId,
-    onPick: game.pickType,
-    onSend: game.sendChallenge,
-    onComplete: game.completeTurn,
-    onStart: () => game.startGame(battleContext?.opponentId),
+    // Truth or Dare handlers
+    onPick: tdGame.pickType,
+    onSend: tdGame.sendChallenge,
+    onComplete: tdGame.completeTurn,
+    onStart: () => activeGame.startGame(battleContext?.opponentId),
     onAccept: () => {
-      // Find the invitation in pendingInvites that matches this chat
       const invite = pendingInvites.find(inv => inv.chat_id === battleContext?.chatId && inv.status === 'pending');
-      if (invite) game.acceptGame(invite);
+      if (invite) activeGame.acceptGame(invite);
     },
     onReject: () => {
       const invite = pendingInvites.find(inv => inv.chat_id === battleContext?.chatId && inv.status === 'pending');
       if (invite) handleRejectInvite(invite);
     },
-    onJoin: game.joinBattle,
-    onSkip: game.skipTurn,
-    onSwitch: game.switchType,
-    onConfirmSettings: game.confirmSettings,
-    onStartSpin: game.startSpin,
-    completeSpin: game.completeSpin,
-    askTD: game.askTD,
-    updateSettingsDraft: game.updateSettingsDraft,
-    onExit: () => game.closeGame(),
-    isHost: game.isHost,
-    isMyTurn: game.isMyTurn
-  }), [game, dbUser?.id, battleContext?.opponentId, pendingInvites, handleRejectInvite]);
+    onJoin: activeGame.joinBattle,
+    onSkip: tdGame.skipTurn,
+    onSwitch: tdGame.switchType,
+    onConfirmSettings: tdGame.confirmSettings,
+    onStartSpin: tdGame.startSpin,
+    completeSpin: tdGame.completeSpin,
+    askTD: tdGame.askTD,
+    updateSettingsDraft: tdGame.updateSettingsDraft,
+    
+    // Chess handlers
+    makeMove: chessGame.makeMove,
+    
+    onExit: () => activeGame.closeGame(),
+    isHost: activeGame.isHost,
+    isMyTurn: activeGame.isMyTurn,
+    webrtc: activeGame.webrtc
+  }), [activeGame, tdGame, chessGame, dbUser?.id, battleContext, pendingInvites, handleRejectInvite]);
 
   const pendingForMe = useMemo(() => 
     pendingInvites.filter(inv => inv.status === 'pending' && inv.receiver_id === dbUser?.id),
@@ -397,7 +425,7 @@ const GamesPanel = () => {
   );
 
   // ─── Render View ────────────────────────────────────────
-  if (battleContext && game.isActive) {
+  if (battleContext && activeGame.isActive) {
     return createPortal(
       <div className={styles.fullScreenPanel}>
         <ArenaRoom 
@@ -405,8 +433,8 @@ const GamesPanel = () => {
           userId={dbUser?.id}
           userName={dbUser?.name}
           gameProps={gameProps}
-          webrtcProps={game.webrtc}
-          onExit={game.closeGame}
+          webrtcProps={activeGame.webrtc}
+          onExit={activeGame.closeGame}
         />
       </div>,
       document.body
@@ -415,6 +443,40 @@ const GamesPanel = () => {
 
   return (
     <div className={styles.panel}>
+      <AnimatePresence>
+        {showGameSelector && selectedUser && (
+            <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                className={styles.modalOverlay}
+                onClick={() => setShowGameSelector(false)}
+            >
+                <motion.div 
+                    initial={{ y: 20, opacity: 0 }} 
+                    animate={{ y: 0, opacity: 1 }} 
+                    exit={{ y: 20, opacity: 0 }} 
+                    className={styles.selectionModal}
+                    onClick={e => e.stopPropagation()}
+                >
+                    <h3>Choose Game</h3>
+                    <p>Invite {selectedUser.name} to play:</p>
+                    <div className={styles.gameOptions}>
+                        <button className={styles.gameOption} onClick={() => handleConfirmInvite(selectedUser, GAME_TYPES.TRUTH_OR_DARE)}>
+                            <Flame size={24} color="#f59e0b" />
+                            <span>Truth or Dare</span>
+                        </button>
+                        <button className={styles.gameOption} onClick={() => handleConfirmInvite(selectedUser, GAME_TYPES.CHESS)}>
+                            <Swords size={24} color="#3b82f6" />
+                            <span>Chess Match</span>
+                        </button>
+                    </div>
+                    <button className={styles.closeBtn} onClick={() => setShowGameSelector(false)}>Cancel</button>
+                </motion.div>
+            </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <div className={styles.headerIcon}><Gamepad2 size={20} /></div>

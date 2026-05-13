@@ -4,6 +4,11 @@ export const GAME_MODES = {
     SPICY: 'spicy'
 };
 
+export const GAME_TYPES = {
+    TRUTH_OR_DARE: 'truth_or_dare',
+    CHESS: 'chess'
+};
+
 export const TRUTHS = {
     [GAME_MODES.CLASSIC]: [
         "What's the last lie you told?",
