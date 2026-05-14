@@ -62,3 +62,6 @@ messagingsystem.markdown
 # Generated at build time by Vite plugins — never commit
 public/version.json
 public/native-integrity.json
+
+# AI Configuration
+AI_CONSTITUTION.md
