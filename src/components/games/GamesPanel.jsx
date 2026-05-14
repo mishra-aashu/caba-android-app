@@ -6,7 +6,8 @@ import { useSupabase } from '../../contexts/SupabaseContext';
 
 import {
   Gamepad2, Sword, Users, Clock, ChevronRight,
-  Zap, Trophy, Circle, RefreshCw, Bell
+  Zap, Trophy, Circle, RefreshCw, Bell,
+  Flame, Swords
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
