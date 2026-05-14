@@ -44,6 +44,19 @@ const ChessGame = ({
     };
 
     const result = makeMove(move);
+    
+    // If move was successful and we are guest, optimistically update local game 
+    // to prevent piece snap-back before the sync event arrives.
+    if (result && !isHost) {
+        try {
+            const newGame = new Chess(game.fen());
+            newGame.move(move);
+            setGame(newGame);
+        } catch (e) {
+            console.error('[ChessGame] Optimistic update failed:', e);
+        }
+    }
+    
     return result;
   };
 

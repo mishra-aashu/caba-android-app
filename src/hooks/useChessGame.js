@@ -109,21 +109,35 @@ export const useChessGame = (roomId, dbUser, supabase) => {
   }, [broadcastState]);
 
   const makeMove = useCallback((move) => {
-    if (state.stage !== CHESS_STATES.PLAYING) return;
+    if (state.stage !== CHESS_STATES.PLAYING) return false;
     
     // Check if it's my turn
     const mySide = state.players[userId]?.side;
     if (state.turn !== mySide) {
         toast.error("It's not your turn!");
-        return;
+        return false;
     }
 
     if (state.isHost) {
-      handleMove(move);
+      return handleMove(move);
     } else {
-      sendGameEvent({ type: 'CHESS_MOVE', move });
+      // Validate locally before sending to host
+      try {
+        const testGame = new Chess();
+        if (state.fen && state.fen !== 'start') {
+            testGame.load(state.fen);
+        }
+        const result = testGame.move(move);
+        if (result) {
+          sendGameEvent({ type: 'CHESS_MOVE', move });
+          return true;
+        }
+      } catch (e) {
+        return false;
+      }
+      return false;
     }
-  }, [state.stage, state.turn, state.players, userId, state.isHost, handleMove, sendGameEvent]);
+  }, [state.stage, state.turn, state.players, userId, state.isHost, handleMove, sendGameEvent, state.fen]);
 
   const startGame = useCallback(async (targetPartnerId) => {
     dispatch({ type: 'SET_HOST', payload: true });

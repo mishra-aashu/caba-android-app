@@ -343,7 +343,12 @@ const GamesPanel = () => {
   // ── Auto-Join Logic (Restored) ─────────────────────────
   const hasAutoJoinedRef = useRef(false);
   useEffect(() => {
-    if (activeGame.isActive || loadingInvites || hasAutoJoinedRef.current) return;
+    // We only return if we are ALREADY in a playing/active state.
+    // If we are in 'inviting' or 'joining', we might still need to transition to 'playing'.
+    const isActuallyPlaying = activeGame.isActive && 
+      !['inviting', 'joining', 'idle'].includes(activeGame.gameState?.stage);
+
+    if (isActuallyPlaying || loadingInvites) return;
     if (!dbUser?.id || pendingInvites.length === 0) return;
 
     const acceptedInv = pendingInvites.find(inv => 
@@ -353,13 +358,33 @@ const GamesPanel = () => {
     );
 
     if (acceptedInv) {
+      // If we are already the host or guest of this specific game and it's in inviting/joining stage, 
+      // transition it to playing now that the status is 'accepted'.
+      if (activeGame.isActive && activeGame.gameState?.gameId === acceptedInv.id) {
+         if (activeGame.gameState.stage === 'inviting' || activeGame.gameState.stage === 'joining') {
+            const opponentId = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver_id : acceptedInv.sender_id;
+            activeGame.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, 'accepted', opponentId);
+            return;
+         }
+      }
+
+      if (hasAutoJoinedRef.current) return;
+      
       hasAutoJoinedRef.current = true;
       const opponentId = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver_id : acceptedInv.sender_id;
-      setBattleContext({ chatId: acceptedInv.chat_id, opponentId, gameType: acceptedInv.game_type });
+      setBattleContext({ 
+        chatId: acceptedInv.chat_id, 
+        opponentId, 
+        gameType: acceptedInv.game_type,
+        opponentMetadata: {
+           name: acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver?.name : acceptedInv.sender?.name,
+           avatar: acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver?.avatar : acceptedInv.sender?.avatar
+        }
+      });
       const targetGame = acceptedInv.game_type === GAME_TYPES.CHESS ? chessGame : tdGame;
       targetGame.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, acceptedInv.status, opponentId);
     }
-  }, [pendingInvites, activeGame.isActive, dbUser?.id, loadingInvites, tdGame.joinBattle, chessGame.joinBattle]);
+  }, [pendingInvites, activeGame.isActive, activeGame.gameState?.stage, activeGame.gameState?.gameId, dbUser?.id, loadingInvites, tdGame.joinBattle, chessGame.joinBattle]);
 
   const handleRejectInvite = useCallback(async (invite) => {
     setProcessingInviteId(invite.id);
