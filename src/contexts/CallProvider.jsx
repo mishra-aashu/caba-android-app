@@ -4,6 +4,8 @@ import { isNativeWithPlugins, safePluginCall } from '../utils/platformCheck';
 import { callService } from '../services/callService';
 import { webRTCService } from '../services/webrtcService';
 import useUserStore from '../store/userStore';
+import useAuthStore from '../store/authStore';
+import { toast } from 'react-hot-toast';
 import { CallContext } from './CallContext';
 
 // Action Types
@@ -253,22 +255,29 @@ export function CallProvider({ children, currentUser }) {
     console.log('📨 Signal received in context:', signal.signal_type, 'Call ID:', signal.call_id, 'From:', signal.from_user_id);
 
     try {
-      // 1. Deduplication check - prevents loops and redundant processing
-      if (processedSignalsRef.current.has(signal.id || signal.call_id)) {
-        return;
-      }
-      processedSignalsRef.current.add(signal.id || signal.call_id);
-      
-      // Keep cache small
-      if (processedSignalsRef.current.size > 50) {
-        const firstValue = processedSignalsRef.current.values().next().value;
-        processedSignalsRef.current.delete(firstValue);
-      }
+    // 1. Deduplication check - prevents loops and redundant processing
+    // [FIX] Use signal_type in key if ID is missing to allow different signals (offer, ice) for same call
+    const dedupKey = signal.id || `${signal.call_id}_${signal.signal_type}`;
+    
+    if (processedSignalsRef.current.has(dedupKey)) {
+      console.log('♻️ [CallProvider] Ignoring duplicate signal:', signal.signal_type, 'Key:', dedupKey);
+      return;
+    }
+    processedSignalsRef.current.add(dedupKey);
+    
+    // Keep cache small
+    if (processedSignalsRef.current.size > 50) {
+      const firstValue = processedSignalsRef.current.values().next().value;
+      processedSignalsRef.current.delete(firstValue);
+    }
 
       if (signal.signal_type === 'offer') {
+        console.log('📞 [CallProvider] Incoming OFFER received! Current state:', currentState.callState);
+        toast.success('Incoming Call!');
+        
         // Incoming call - check if we are already in a call
         if (currentState.callState !== 'idle' && currentState.callState !== 'ringing') {
-          console.log(`📞 Busy: Current state is ${currentState.callState}. Ignoring new offer.`);
+          console.warn(`📞 Busy: Current state is ${currentState.callState}. Ignoring new offer.`);
           return;
         }
 
@@ -460,10 +469,12 @@ export function CallProvider({ children, currentUser }) {
 
       // 2. Setup stable realtime subscriptions
       const stableSignalHandler = (signal) => {
+        console.log('📡 [CallProvider] Raw signal from channel:', signal.signal_type);
         if (handleSignalRef.current) handleSignalRef.current(signal);
       };
 
       const stableHistoryHandler = (payload) => {
+        console.log('📜 [CallProvider] Call history update:', payload.eventType, payload.new?.call_status);
         if (handleCallHistoryUpdateRef.current) handleCallHistoryUpdateRef.current(payload);
       };
 
@@ -493,8 +504,16 @@ export function CallProvider({ children, currentUser }) {
   // Start outgoing call
   const startCall = useCallback(async (receiverId, callType = 'video') => {
     try {
-      if (!currentUser?.id) {
-        throw new Error('Authentication required to start a call');
+      // Use prop if available, fallback to store if not (prevents race conditions)
+      const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
+      
+      if (!activeUser?.id) {
+        console.error('❌ [CallProvider] Cannot start call: No authenticated user found.', {
+          propUser: currentUser,
+          storeDbUser: useAuthStore.getState().dbUser,
+          storeUser: useAuthStore.getState().user
+        });
+        throw new Error('Authentication required: Please sign in again to start a call');
       }
 
       dispatch({
@@ -510,7 +529,7 @@ export function CallProvider({ children, currentUser }) {
       });
 
       const { callId, localStream } = await webRTCService.startCall(
-        currentUser.id,
+        activeUser.id,
         receiverId,
         callType
       );
@@ -533,7 +552,9 @@ export function CallProvider({ children, currentUser }) {
   // Answer incoming call
   const answerCall = useCallback(async () => {
     try {
-      if (!currentUser?.id) {
+      const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
+      
+      if (!activeUser?.id) {
         throw new Error('Authentication required to answer a call');
       }
       const { incomingCall } = state;
@@ -555,7 +576,7 @@ export function CallProvider({ children, currentUser }) {
       const { localStream, remoteStream } = await webRTCService.answerCall(
         incomingCall.call_id,
         incomingCall.from_user_id,
-        currentUser.id,
+        activeUser.id,
         incomingCall.signal_data
       );
 
@@ -590,9 +611,10 @@ export function CallProvider({ children, currentUser }) {
       const { incomingCall } = state;
 
       if (incomingCall) {
+        const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
         await webRTCService.rejectCall(
           incomingCall.call_id,
-          currentUser.id,
+          activeUser?.id,
           incomingCall.from_user_id
         );
         await callService.markSignalProcessed(incomingCall.id);

@@ -2,6 +2,7 @@ import React, { useReducer, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../config/supabase';
 import { realtimeManager } from '../utils/realtimeManager';
 import { useAuth } from '../hooks/useAuth';
+import useAuthStore from '../store/authStore';
 import { toast } from 'react-hot-toast';
 import { GroupCallContext } from './GroupCallContext';
 import { ICE_SERVERS } from '../constants/webrtcConfig';
@@ -191,16 +192,48 @@ export function GroupCallProvider({ children, currentUser }) {
 
     if (payload.eventType === 'INSERT') {
       const newCall = payload.new;
-      console.log('[GroupCallProvider] Global call INSERT:', newCall);
+      console.log('📞 [GroupCallProvider] Global call INSERT detected:', newCall.id, 'Group:', newCall.group_id, 'Status:', newCall.status);
 
-      if (!newCall.is_group_call) return;
-      if (newCall.caller_id === currentId) return;
-      if (newCall.status !== 'initiated') return;
+      if (!newCall.is_group_call) {
+        console.log('ℹ️ [GroupCallProvider] Ignoring non-group call INSERT');
+        return;
+      }
+      if (newCall.caller_id === currentId) {
+        console.log('ℹ️ [GroupCallProvider] Ignoring own call INSERT');
+        return;
+      }
+      if (newCall.status !== 'initiated') {
+        console.log('ℹ️ [GroupCallProvider] Ignoring call with status:', newCall.status);
+        return;
+      }
 
-      const isMember = userGroupsRef.current.includes(newCall.group_id);
-      console.log(`[GroupCallProvider] Group membership for ${newCall.group_id}: ${isMember}`, userGroupsRef.current);
+      let isMember = userGroupsRef.current.includes(newCall.group_id);
+      console.log(`📡 [GroupCallProvider] Group membership check for ${newCall.group_id}: ${isMember}. My groups:`, userGroupsRef.current);
 
-      if (!isMember) return;
+      if (!isMember) {
+        // Fallback check in case ref is stale or not loaded yet
+        console.log('🔄 [GroupCallProvider] Membership ref check failed - performing DB fallback check...');
+        const { data: membership } = await supabase
+          .from('group_members')
+          .select('id')
+          .eq('group_id', newCall.group_id)
+          .eq('user_id', currentId)
+          .maybeSingle();
+        
+        if (membership) {
+          console.log('✅ [GroupCallProvider] DB check confirmed membership!');
+          isMember = true;
+          // Update ref for future use
+          userGroupsRef.current = [...userGroupsRef.current, newCall.group_id];
+        }
+      }
+
+      if (!isMember) {
+        console.log('🚫 [GroupCallProvider] Not a member of group:', newCall.group_id);
+        return;
+      }
+
+      toast.success('Incoming Group Call!');
 
       try {
         const [{ data: groups }, { data: callers }] = await Promise.all([
@@ -240,7 +273,7 @@ export function GroupCallProvider({ children, currentUser }) {
     if (!currentUser?.id) return;
 
     const channelName = 'global_group_calls';
-    console.log('[GroupCallProvider] Setting up global group call listener...');
+    console.log('🔔 [GroupCallProvider] Setting up global group call listener for user:', currentUser.id);
 
     realtimeManager.subscribe(
       channelName,
@@ -357,10 +390,11 @@ export function GroupCallProvider({ children, currentUser }) {
   // Send WebRTC signal
   const sendWebRTCSignal = useCallback(async (toUserId, signalType, signalData) => {
     try {
+      const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
       await supabase
         .from('webrtc_signals')
         .insert({
-          from_user_id: currentUser?.id,
+          from_user_id: activeUser?.id,
           to_user_id: toUserId,
           call_id: state.callId,
           group_id: state.groupId,
@@ -480,7 +514,8 @@ export function GroupCallProvider({ children, currentUser }) {
   // Initialize group call
   const initializeGroupCall = useCallback(async (groupId, callType = 'video') => {
     try {
-      if (!currentUser?.id) throw new Error('Auth required');
+      const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
+      if (!activeUser?.id) throw new Error('Auth required');
       dispatch({
         type: ACTIONS.SET_GROUP_CALL_STATE,
         payload: { state: 'initiating', data: { groupId, callType } }
@@ -499,8 +534,8 @@ export function GroupCallProvider({ children, currentUser }) {
         .from('calls')
         .insert({
           group_id: groupId,
-          caller_id: currentUser.id,
-          host_id: currentUser.id,
+          caller_id: activeUser.id,
+          host_id: activeUser.id,
           call_type: callType,
           status: 'initiated',
           is_group_call: true,
@@ -523,12 +558,12 @@ export function GroupCallProvider({ children, currentUser }) {
         type: ACTIONS.SET_GROUP_CALL_STATE,
         payload: {
           state: 'connecting',
-          data: { callId: call.id, hostId: currentUser.id }
+          data: { callId: call.id, hostId: activeUser.id }
         }
       });
 
       // Add host as first participant
-      await addParticipantToCall(call.id, currentUser.id, 'host');
+      await addParticipantToCall(call.id, activeUser.id, 'host');
 
       // Setup room signaling
       await setupRoomSignaling(call.id, call.room_id);
@@ -545,7 +580,8 @@ export function GroupCallProvider({ children, currentUser }) {
   // Join group call
   const joinGroupCall = useCallback(async (callId, withVideo = true) => {
     try {
-      if (!currentUser?.id) throw new Error('Auth required');
+      const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
+      if (!activeUser?.id) throw new Error('Auth required');
       // Get call details
       const { data: callData, error: callError } = await supabase
         .from('calls')
@@ -584,7 +620,7 @@ export function GroupCallProvider({ children, currentUser }) {
       dispatch({ type: ACTIONS.SET_LOCAL_STREAM, payload: localStream });
 
       // Add participant to call
-      await addParticipantToCall(callId, currentUser.id, 'participant', withVideo);
+      await addParticipantToCall(callId, activeUser.id, 'participant', withVideo);
 
       // Setup room signaling
       await setupRoomSignaling(callId, call.room_id);
@@ -594,7 +630,7 @@ export function GroupCallProvider({ children, currentUser }) {
         .from('group_call_participants')
         .select('user_id')
         .eq('call_id', callId)
-        .neq('user_id', currentUser.id);
+        .neq('user_id', activeUser.id);
 
       if (participants) {
         for (const participant of participants) {
@@ -627,12 +663,13 @@ export function GroupCallProvider({ children, currentUser }) {
       stopDurationTimer();
 
       // Update participant record
-      if (state.callId && currentUser?.id) {
+      const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
+      if (state.callId && activeUser?.id) {
         await supabase
           .from('group_call_participants')
           .update({ left_at: new Date().toISOString() })
           .eq('call_id', state.callId)
-          .eq('user_id', currentUser.id);
+          .eq('user_id', activeUser.id);
       }
 
       // Close all peer connections
@@ -671,12 +708,13 @@ export function GroupCallProvider({ children, currentUser }) {
       dispatch({ type: ACTIONS.TOGGLE_MUTE, payload: newMuteState });
 
       // Update database
-      if (state.callId && currentUser?.id) {
+      const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
+      if (state.callId && activeUser?.id) {
         supabase
           .from('group_call_participants')
           .update({ is_muted: newMuteState })
           .eq('call_id', state.callId)
-          .eq('user_id', currentUser.id);
+          .eq('user_id', activeUser.id);
       }
     }
   }, [state.localStream, state.isMuted, state.callId, currentUser?.id]);
@@ -694,12 +732,13 @@ export function GroupCallProvider({ children, currentUser }) {
       dispatch({ type: ACTIONS.TOGGLE_VIDEO, payload: newVideoState });
 
       // Update database
-      if (state.callId && currentUser?.id) {
+      const activeUser = currentUser || useAuthStore.getState().dbUser || useAuthStore.getState().user;
+      if (state.callId && activeUser?.id) {
         supabase
           .from('group_call_participants')
           .update({ is_video_enabled: !newVideoState })
           .eq('call_id', state.callId)
-          .eq('user_id', currentUser.id);
+          .eq('user_id', activeUser.id);
       }
     }
   }, [state.localStream, state.isVideoOff, state.callId, currentUser?.id]);

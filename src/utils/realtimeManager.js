@@ -63,6 +63,23 @@ class RealtimeManager {
       this._setupAuthListener();
       this._setupNetworkListeners();
       this._setupVisibilityListener();
+      this._setupCapacitorListener();
+    }
+  }
+
+  async _setupCapacitorListener() {
+    try {
+      const { App } = await import('@capacitor/app');
+      
+      this._listeners = this._listeners || {};
+      this._listeners.capacitor = await App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive && !this._killed) {
+          this._log('App resumed (Capacitor) — checking connection health', { force: true });
+          this._checkAllConnectionHealth();
+        }
+      });
+    } catch (err) {
+      // Not a Capacitor environment
     }
   }
 
