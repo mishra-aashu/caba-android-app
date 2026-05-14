@@ -58,6 +58,8 @@ export default class WebRTCRoomManager extends EventTarget {
     // ── State Guards ────────────────────────────────────────
     this._destroyed = false;
     this._signalingChannel = null;
+    this._makingOffer = new Map(); // peerId -> boolean
+    this._ignoreOffer = new Map(); // peerId -> boolean
 
     // ── Boot ────────────────────────────────────────────────
     this._initSignaling();
@@ -145,10 +147,8 @@ export default class WebRTCRoomManager extends EventTarget {
         this._onPeerLeave(senderId);
         break;
       case 'sdp-offer':
-        await this._onSDPOffer(senderId, senderName, signal.sdp);
-        break;
       case 'sdp-answer':
-        await this._onSDPAnswer(senderId, signal.sdp);
+        await this._onSDP(senderId, senderName, signal.sdp);
         break;
       case 'ice-candidate':
         await this._onICECandidate(senderId, signal.candidate);
@@ -165,37 +165,22 @@ export default class WebRTCRoomManager extends EventTarget {
   async _onPeerJoin(peerId, peerName) {
     if (this.peers.has(peerId)) return;
 
-    // Polite peer pattern: lower userId creates the offer
-    // This prevents "glare" (simultaneous offers)
+    // Polite peer pattern: lower userId starts the negotiation
     const iAmPolite = this.userId < peerId;
+    
+    // Create the connection regardless; if impolite, we just wait for their offer.
+    // If polite, we'll trigger negotiation by adding channels/tracks.
+    const pc = this._createPeerConnection(peerId, peerName);
 
     if (iAmPolite) {
-      // I create the offer
-      const pc = this._createPeerConnection(peerId, peerName);
-      
-      // Data channels will follow the audio m-line
+      // Trigger negotiation by creating data channels
       this._createDataChannels(pc, peerId);
-
+      
       // If audio is already active, enable the transceiver
       if (this.localStream) {
-        const audioTrack = this.localStream.getAudioTracks()[0];
-        const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
-        if (transceiver && audioTrack) {
-          transceiver.sender.replaceTrack(audioTrack);
-          if (transceiver.sender.setStreams) {
-            transceiver.sender.setStreams(this.localStream);
-          }
-          transceiver.direction = 'sendrecv';
-        }
+        this._updateTransceiverWithStream(pc);
       }
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await this._sendTo(peerId, 'sdp-offer', {
-        sdp: pc.localDescription.toJSON(),
-      });
     }
-    // If not polite, we wait for THEIR offer
   }
 
   _onPeerLeave(peerId) {
@@ -210,7 +195,8 @@ export default class WebRTCRoomManager extends EventTarget {
   _createPeerConnection(peerId, peerName) {
     const pc = new RTCPeerConnection({ 
       iceServers: ICE_SERVERS,
-      iceCandidatePoolSize: 10
+      iceCandidatePoolSize: 10,
+      bundlePolicy: 'max-bundle'
     });
 
     const peerState = {
@@ -220,6 +206,9 @@ export default class WebRTCRoomManager extends EventTarget {
       userName: peerName || 'Unknown',
     };
     this.peers.set(peerId, peerState);
+
+    this._makingOffer.set(peerId, false);
+    this._ignoreOffer.set(peerId, false);
 
     // ── ICE Candidates ────────────────────────────────────
     pc.onicecandidate = ({ candidate }) => {
@@ -266,19 +255,27 @@ export default class WebRTCRoomManager extends EventTarget {
       this._emit('track-received', { peerId, stream });
     };
 
-    // ── Negotiation ───────────────────────────────────────
+    // ── Negotiation (Perfect Negotiation Pattern) ─────────
     pc.onnegotiationneeded = async () => {
-      console.log(`[WebRTC] 🔄 Negotiation needed for ${peerId}`);
       try {
-        if (pc.signalingState !== 'stable') return;
+        // Prevent concurrent or invalid negotiation attempts
+        if (this._makingOffer.get(peerId) || pc.signalingState !== 'stable') {
+          // console.log(`[WebRTC] 🔄 Negotiation skipped for ${peerId} (state: ${pc.signalingState})`);
+          return;
+        }
+
+        this._makingOffer.set(peerId, true);
         
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
+        // Modern setLocalDescription() creates and sets an offer automatically
+        await pc.setLocalDescription();
+        
         await this._sendTo(peerId, 'sdp-offer', {
           sdp: pc.localDescription.toJSON(),
         });
       } catch (err) {
-        console.error('[WebRTC] ❌ Negotiation failed:', err);
+        console.error(`[WebRTC] ❌ Negotiation failed for ${peerId}:`, err);
+      } finally {
+        this._makingOffer.set(peerId, false);
       }
     };
 
@@ -297,8 +294,14 @@ export default class WebRTCRoomManager extends EventTarget {
 
   _createDataChannels(pc, peerId) {
     const peer = this.peers.get(peerId);
+    if (!peer) return;
 
-    for (const [name, config] of Object.entries(CHANNEL_CONFIG)) {
+    // Explicit order for m-lines consistency
+    const channelNames = ['game-events', 'chat-text', 'media-transfer'];
+
+    for (const name of channelNames) {
+      if (peer.channels.has(name)) continue;
+      const config = CHANNEL_CONFIG[name];
       const channel = pc.createDataChannel(name, config);
       this._attachChannelHandlers(channel, peerId);
       peer.channels.set(name, channel);
@@ -369,83 +372,81 @@ export default class WebRTCRoomManager extends EventTarget {
   // SDP HANDLING
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  async _onSDPOffer(peerId, peerName, sdp) {
-    // We received an offer — create connection and answer
+  async _onSDP(peerId, peerName, sdp) {
     let peer = this.peers.get(peerId);
-
     if (!peer) {
-      const pc = this._createPeerConnection(peerId, peerName);
+      peer = this._createPeerConnection(peerId, peerName);
       
       // If audio is already active, prepare the transceiver
       if (this.localStream) {
-        const audioTrack = this.localStream.getAudioTracks()[0];
-        const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
-        if (transceiver && audioTrack) {
-          transceiver.sender.replaceTrack(audioTrack);
-          if (transceiver.sender.setStreams) {
-            transceiver.sender.setStreams(this.localStream);
-          }
-          transceiver.direction = 'sendrecv';
-        }
+        this._updateTransceiverWithStream(peer.pc);
       }
-      
-      peer = this.peers.get(peerId);
     }
 
     const { pc } = peer;
+    try {
+      const description = new RTCSessionDescription(sdp);
+      const isOffer = description.type === 'offer';
+      
+      // Collision detection (Glare)
+      const isCollision = isOffer && (this._makingOffer.get(peerId) || pc.signalingState !== 'stable');
+      
+      // Polite peer (lower userId) yields to the impolite one
+      const iAmPolite = this.userId < peerId;
+      this._ignoreOffer.set(peerId, isCollision && !iAmPolite);
 
-    // --- Glare/Collision Handling ---
-    const isCollision = (pc.signalingState !== 'stable' || pc.remoteDescription !== null);
-    const iAmPolite = this.userId < peerId;
-    
-    if (isCollision && !iAmPolite) {
-      // console.log(`[WebRTC] Glare detected, ignoring offer from ${peerId} (I am impolite)`);
-      return; 
+      if (this._ignoreOffer.get(peerId)) {
+        console.log(`[WebRTC] Glare detected, ignoring offer from ${peerId} (I am impolite)`);
+        return;
+      }
+
+      if (isCollision && iAmPolite) {
+        console.log(`[WebRTC] Glare detected, rolling back for ${peerId} (I am polite)`);
+        await pc.setLocalDescription({ type: 'rollback' });
+      }
+
+      await pc.setRemoteDescription(description);
+
+      if (isOffer) {
+        // Create and set answer
+        await pc.setLocalDescription(await pc.createAnswer());
+        await this._sendTo(peerId, 'sdp-answer', {
+          sdp: pc.localDescription.toJSON(),
+        });
+      }
+
+      // Flush any ICE candidates that arrived before the description
+      for (const candidate of peer.pendingCandidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          if (!this._ignoreOffer.get(peerId)) {
+            console.warn(`[WebRTC] Failed to add cached ICE candidate:`, e);
+          }
+        }
+      }
+      peer.pendingCandidates = [];
+
+    } catch (err) {
+      console.error(`[WebRTC] ❌ SDP Error for ${peerId}:`, err);
     }
-    
-    if (isCollision && iAmPolite) {
-      // console.log(`[WebRTC] Glare detected, rolling back for ${peerId} (I am polite)`);
-      await pc.setLocalDescription({ type: 'rollback' });
-    }
-
-    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-
-    // Flush any ICE candidates that arrived before the offer
-    for (const candidate of peer.pendingCandidates) {
-      await pc.addIceCandidate(new RTCIceCandidate(candidate));
-    }
-    peer.pendingCandidates = [];
-
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    await this._sendTo(peerId, 'sdp-answer', {
-      sdp: pc.localDescription.toJSON(),
-    });
-  }
-
-  async _onSDPAnswer(peerId, sdp) {
-    const peer = this.peers.get(peerId);
-    if (!peer) return;
-
-    await peer.pc.setRemoteDescription(new RTCSessionDescription(sdp));
-
-    // Flush pending ICE candidates
-    for (const candidate of peer.pendingCandidates) {
-      await peer.pc.addIceCandidate(new RTCIceCandidate(candidate));
-    }
-    peer.pendingCandidates = [];
   }
 
   async _onICECandidate(peerId, candidate) {
     const peer = this.peers.get(peerId);
     if (!peer) return;
 
-    if (peer.pc.remoteDescription) {
-      await peer.pc.addIceCandidate(new RTCIceCandidate(candidate));
-    } else {
-      // Queue it — remote description hasn't been set yet
-      peer.pendingCandidates.push(candidate);
+    try {
+      if (peer.pc.remoteDescription && peer.pc.remoteDescription.type) {
+        await peer.pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } else {
+        // Queue it — remote description hasn't been set yet
+        peer.pendingCandidates.push(candidate);
+      }
+    } catch (err) {
+      if (!this._ignoreOffer.get(peerId)) {
+        console.warn(`[WebRTC] 🧊 ICE Candidate failed for ${peerId}:`, err);
+      }
     }
   }
 
@@ -529,20 +530,27 @@ export default class WebRTCRoomManager extends EventTarget {
       const audioTrack = this.localStream.getAudioTracks()[0];
       
       for (const [, peer] of this.peers) {
-        const transceiver = peer.pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
-        if (transceiver) {
-          transceiver.sender.replaceTrack(audioTrack);
-          if (transceiver.sender.setStreams) {
-            transceiver.sender.setStreams(this.localStream);
-          }
-          transceiver.direction = 'sendrecv';
-        }
+        this._updateTransceiverWithStream(peer.pc);
       }
       this._emit('local-stream-changed', { stream: this.localStream });
       return this.localStream;
     } catch (err) {
       console.error('[WebRTC] Failed to start audio:', err);
       throw err;
+    }
+  }
+
+  _updateTransceiverWithStream(pc) {
+    if (!this.localStream) return;
+    const audioTrack = this.localStream.getAudioTracks()[0];
+    const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
+    
+    if (transceiver && audioTrack) {
+      transceiver.sender.replaceTrack(audioTrack);
+      if (transceiver.sender.setStreams) {
+        transceiver.sender.setStreams(this.localStream);
+      }
+      transceiver.direction = 'sendrecv';
     }
   }
 
