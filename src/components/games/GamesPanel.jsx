@@ -63,56 +63,68 @@ const GamesPanel = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ── Contacts Filtering ────────────────────────────────
+  // ── Contacts & Chats Filtering ───────────────────────
   const myContacts = useLiveQuery(() => db.contacts.toArray()) || [];
-  const contactIds = useMemo(() => new Set(myContacts.map(c => String(c.contactUserId))), [myContacts]);
-
+  const myChats = useLiveQuery(() => db.chats_list.toArray()) || [];
+  
   const onlineUsersMap = usePresenceStore(state => state.onlineUsers);
   
   // ── All Opponents (Unified List) ──────────────────────
   const allOpponents = useMemo(() => {
-    if (!myContacts) return [];
-    
-    return myContacts.map(contact => {
+    const opponentsMap = new Map();
+
+    // 1. Process Contacts
+    myContacts.forEach(contact => {
       const u = contact.otherUser;
-      if (!u) return null;
+      if (u && u.id) {
+        opponentsMap.set(String(u.id), {
+          id: u.id,
+          name: contact.contactName || u.name || 'Unknown',
+          avatar: u.avatar,
+          isOnline: u.is_online || u.isOnline || false,
+          lastSeen: u.last_seen || u.lastSeen || null
+        });
+      }
+    });
 
-      // 1. Check Live Presence (Zustand/Supabase Realtime) — single source of truth
-      const presence = onlineUsersMap[String(u.id)];
-      const isLiveOnline = presence?.isOnline || false;
+    // 2. Process Recent Chats (to include people not in contacts)
+    myChats.forEach(chat => {
+      const u = chat.otherUser || chat.participant;
+      if (u && u.id && !opponentsMap.has(String(u.id))) {
+        opponentsMap.set(String(u.id), {
+          id: u.id,
+          name: u.name || 'Unknown',
+          avatar: u.avatar,
+          isOnline: u.is_online || u.isOnline || false,
+          lastSeen: u.last_seen || u.lastSeen || null
+        });
+      }
+    });
 
-      // 2. DB fallback: only used if not live-present (handles brief disconnects)
-      const isDbOnline = isUserOnline(Boolean(u.is_online || u.isOnline), u.last_seen || u.lastSeen);
-
-      const isOnline = isLiveOnline || isDbOnline;
-
-      // For offline users: use DB last_seen for formatting via unified formatLastSeen
-      // For online users:  use live presence onlineAt (when they joined the presence channel)
-      const lastSeenTs = u.last_seen || u.lastSeen || null;
+    // 3. Final List with sorting
+    // We include onlineUsersMap in dependencies to ensure the list re-sorts
+    // automatically when someone's status changes in the store.
+    return Array.from(opponentsMap.values()).sort((a, b) => {
+      const isOnlineA = onlineUsersMap[String(a.id)]?.isOnline || isUserOnline(a.isOnline, a.lastSeen);
+      const isOnlineB = onlineUsersMap[String(b.id)]?.isOnline || isUserOnline(b.isOnline, b.lastSeen);
       
-      return {
-        id: u.id,
-        name: contact.contactName || u.name || 'Unknown',
-        avatar: u.avatar,
-        // onlineAt = live presence join time (for online users)
-        // lastSeen = DB last_seen (for offline display via unified formatLastSeen)
-        onlineAt: presence?.onlineAt || null,
-        lastSeen: lastSeenTs,
-        isOnline: isOnline
-      };
-    }).filter(u => u !== null).sort((a, b) => {
-      // Online users first, then by last seen
-      if (a.isOnline && !b.isOnline) return -1;
-      if (!a.isOnline && b.isOnline) return 1;
+      if (isOnlineA && !isOnlineB) return -1;
+      if (!isOnlineA && isOnlineB) return 1;
       
-      // Sort offline users by last seen (most recent first)
       const dateA = new Date(a.lastSeen || 0);
       const dateB = new Date(b.lastSeen || 0);
       return dateB - dateA;
     });
-  }, [myContacts, onlineUsersMap]);
+  }, [myContacts, myChats, onlineUsersMap]); // Added onlineUsersMap dependency
 
-  const onlineCount = useMemo(() => allOpponents.filter(u => u.isOnline).length, [allOpponents]);
+  // Reactive online count from the store
+  const onlineCount = useMemo(() => {
+    return allOpponents.filter(u => {
+        const isLive = onlineUsersMap[String(u.id)]?.isOnline;
+        const isDb = isUserOnline(u.isOnline, u.lastSeen);
+        return isLive || isDb;
+    }).length;
+  }, [allOpponents, onlineUsersMap]);
 
   const [pendingInvites, setPendingInvites] = useState([]);
 
@@ -190,11 +202,15 @@ const GamesPanel = () => {
     setIsRefreshing(true);
     console.log('[GamesPanel] Manual refresh triggered');
     
-    // We'll just wait a bit to simulate refresh since the 
-    // presence channel handles updates automatically
-    await new Promise(r => setTimeout(r, 1000));
+    // Attempt to refresh the global presence channel via the manager
+    try {
+        const { realtimeManager } = await import('../../utils/realtimeManager');
+        await realtimeManager.refreshChannel('game_lobby_presence');
+        toast.success('Player list updated');
+    } catch (err) {
+        console.error('Refresh failed:', err);
+    }
     
-    toast.success('Player list updated');
     setIsRefreshing(false);
   };
 
@@ -515,7 +531,6 @@ const GamesPanel = () => {
                       <OnlineUserCard 
                         key={user.id} 
                         user={user} 
-                        isOffline={!user.isOnline} 
                         onInvite={() => handleInviteUser(user)} 
                       />
                     ))}
@@ -555,37 +570,58 @@ const GamesPanel = () => {
 };
 
 // ─── Online User Card ──────────────────────────────────────
-// Uses unified formatLastSeen (same as ChatHeader & UserDetails) for consistent display.
-const OnlineUserCard = React.memo(({ user, onInvite, isOffline }) => (
-  <motion.div className={`${styles.userCard} ${isOffline ? styles.userCardOffline : ''}`} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-    <div className={styles.userCardLeft}>
-      <div className={styles.avatarWrap}>
-        <PlayerAvatar avatar={user.avatar} name={user.name} size={38} />
-        <span className={isOffline ? styles.offlineDot : styles.onlineDot} />
-      </div>
-      <div className={styles.userInfo}>
-        <p className={styles.userName}>{user.name}</p>
-        <p className={styles.userSub}>
-          {isOffline ? (
-            // Offline: show "Last seen X" using the unified formatLastSeen (same as ChatHeader)
-            user.lastSeen ? (
-              <><Clock size={10} /> Last seen {formatLastSeen(user.lastSeen)}</>
+// Now uses a live selector from usePresenceStore for maximum reactivity.
+const OnlineUserCard = React.memo(({ user, onInvite }) => {
+  // 1. Check Live Presence Store first (reactive)
+  const isOnlineLive = usePresenceStore(state => state.isUserOnline(user.id));
+  
+  // 2. Check Database Fallback
+  const isOnlineDb = isUserOnline(user.isOnline, user.lastSeen);
+  
+  const isOnline = isOnlineLive || isOnlineDb;
+  const isOffline = !isOnline;
+
+  return (
+    <motion.div 
+      className={`${styles.userCard} ${isOffline ? styles.userCardOffline : ''}`} 
+      whileHover={{ scale: 1.01 }} 
+      whileTap={{ scale: 0.99 }}
+    >
+      <div className={styles.userCardLeft}>
+        <div className={styles.avatarWrap}>
+          <PlayerAvatar avatar={user.avatar} name={user.name} size={38} />
+          <span className={isOffline ? styles.offlineDot : styles.onlineDot} />
+        </div>
+        <div className={styles.userInfo}>
+          <p className={styles.userName}>{user.name}</p>
+          <div className={styles.userSub}>
+            {isOffline ? (
+              // Offline: show "Last seen X" using the unified formatLastSeen
+              user.lastSeen ? (
+                <span className={styles.statusText}>
+                  <Clock size={10} /> Last seen {formatLastSeen(user.lastSeen)}
+                </span>
+              ) : (
+                <span className={styles.statusText}>
+                  <Clock size={10} /> Offline
+                </span>
+              )
             ) : (
-              <><Clock size={10} /> Offline</>
-            )
-          ) : (
-            // Online: confirmed by live Supabase Realtime presence channel
-            <><Circle size={6} fill="currentColor" /> Online</>
-          )}
-        </p>
+              // Online: confirmed by live presence or recent DB activity
+              <span className={`${styles.statusText} ${styles.statusOnline}`}>
+                <Circle size={6} fill="currentColor" /> Online
+              </span>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-    <button className={styles.inviteBtn} onClick={onInvite}>
-      {isOffline ? <Bell size={14} /> : <Zap size={14} />}
-      <span>{isOffline ? 'Notify' : 'Invite'}</span>
-    </button>
-  </motion.div>
-));
+      <button className={styles.inviteBtn} onClick={onInvite}>
+        {isOffline ? <Bell size={14} /> : <Zap size={14} />}
+        <span>{isOffline ? 'Notify' : 'Invite'}</span>
+      </button>
+    </motion.div>
+  );
+});
 
 // ─── Invite Card ───────────────────────────────────────────
 const InviteCard = React.memo(({ invite, currentUserId, isProcessing, onAccept, onReject, onResume }) => {
