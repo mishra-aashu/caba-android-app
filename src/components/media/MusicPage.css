@@ -2,6 +2,7 @@
    MUSIC PAGE STYLES — Standalone Page UI
    ============================================= */
 
+/* ── Mobile: full-screen fixed overlay ─────────────────── */
 .music-page-container {
   width: 100%;
   height: 100dvh;
@@ -11,6 +12,17 @@
   z-index: 1000;
   overflow: hidden;
   background: var(--bg-primary);
+}
+
+/* ── Desktop: fill parent container, NOT full viewport ─── */
+@media (min-width: 1025px) {
+  .music-page-container {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    z-index: 10; /* below desktop-navbar (99999) */
+  }
 }
 
 .music-page-inner {
