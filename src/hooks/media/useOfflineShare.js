@@ -120,6 +120,13 @@ export const useOfflineShare = () => {
   const receivedBytesRef = useRef(0);
   const sendOffsetRef = useRef(0);
 
+  // Multi-file streaming refs
+  const currentFileIndexRef = useRef(0);
+  const currentFileOffsetRef = useRef(0);
+  const totalBytesSentRef = useRef(0);
+  const receivedFilesRef = useRef([]);
+  const currentReceivingFileRef = useRef(null);
+
   const CHUNK_SIZE = 64 * 1024; // 64KB chunks (safe and super fast)
   const BUFFER_CEILING = 1024 * 1024 * 3; // 3MB backpressure limit
 
@@ -145,6 +152,13 @@ export const useOfflineShare = () => {
     receivedBytesRef.current = 0;
     sendOffsetRef.current = 0;
     
+    // Reset multi-file refs
+    currentFileIndexRef.current = 0;
+    currentFileOffsetRef.current = 0;
+    totalBytesSentRef.current = 0;
+    receivedFilesRef.current = [];
+    currentReceivingFileRef.current = null;
+
     setConnectionState('idle');
     setActiveRole(null);
     setLocalOffer('');
@@ -183,18 +197,28 @@ export const useOfflineShare = () => {
   /**
    * Sender Flow: 1. Setup Connection and generate Offer QR
    */
-  const startSending = useCallback(async (file) => {
-    if (!file) return;
+  const startSending = useCallback(async (filesList) => {
+    const files = Array.isArray(filesList) ? filesList : [filesList];
+    if (files.length === 0) return;
     cleanup();
 
-    console.log('📡 [OfflineShare] Initializing sender flow for file:', file.name);
-    fileRef.current = file;
+    console.log('📡 [OfflineShare] Initializing sender flow for files count:', files.length);
+    fileRef.current = files;
     setActiveRole('sender');
-    setFileMeta({
-      name: file.name,
-      size: file.size,
-      type: file.type || 'application/octet-stream'
-    });
+
+    const totalCombinedSize = files.reduce((acc, f) => acc + f.size, 0);
+    const metaBundle = {
+      name: files.length === 1 ? files[0].name : `${files.length} files`,
+      size: totalCombinedSize,
+      type: files.length === 1 ? (files[0].type || 'application/octet-stream') : 'application/x-multiple-files',
+      files: files.map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.type || 'application/octet-stream'
+      }))
+    };
+
+    setFileMeta(metaBundle);
     setConnectionState('preparing');
 
     try {
@@ -234,11 +258,7 @@ export const useOfflineShare = () => {
           const bundle = {
             sdp: prunedSdp,
             type: 'offer',
-            file: {
-              name: file.name,
-              size: file.size,
-              type: file.type || 'application/octet-stream'
-            }
+            file: metaBundle
           };
           const compressed = await compressData(JSON.stringify(bundle));
           setLocalOffer(compressed);
@@ -377,15 +397,22 @@ export const useOfflineShare = () => {
       // Initialize speed tracking
       lastTimeRef.current = Date.now();
       lastBytesRef.current = 0;
-      sendOffsetRef.current = 0;
+      currentFileIndexRef.current = 0;
+      currentFileOffsetRef.current = 0;
+      totalBytesSentRef.current = 0;
       setProgress(0);
+
+      const files = fileRef.current;
+      const isMulti = Array.isArray(files);
+      const totalSize = isMulti ? files.reduce((acc, f) => acc + f.size, 0) : files.size;
 
       // Send initial metadata details
       const meta = {
         type: 'meta',
-        name: fileRef.current.name,
-        size: fileRef.current.size,
-        mime: fileRef.current.type || 'application/octet-stream'
+        name: isMulti ? (files.length === 1 ? files[0].name : `${files.length} files`) : files.name,
+        size: totalSize,
+        mime: isMulti ? (files.length === 1 ? (files[0].type || 'application/octet-stream') : 'application/x-multiple-files') : (files.type || 'application/octet-stream'),
+        files: isMulti ? files.map(f => ({ name: f.name, size: f.size, type: f.type || 'application/octet-stream' })) : null
       };
       dc.send(JSON.stringify(meta));
       
@@ -406,48 +433,101 @@ export const useOfflineShare = () => {
 
   /**
    * SENDER: Highly optimized async chunk sender with buffer backpressure.
-   * Uses slice().arrayBuffer() (Promise-based) instead of FileReader inside a while loop
-   * to guarantee correct ordering and offset tracking.
+   * Streams multiple files sequentially or single files with exact offset tracking.
    */
   const sendChunks = async (dc) => {
-    const file = fileRef.current;
-    if (!file || !dc || dc.readyState !== 'open') return;
+    const files = fileRef.current;
+    if (!files || !dc || dc.readyState !== 'open') return;
+
+    const isMulti = Array.isArray(files);
+    const totalSize = isMulti ? files.reduce((acc, f) => acc + f.size, 0) : files.size;
 
     try {
-      while (sendOffsetRef.current < file.size) {
-        // Backpressure: pause if buffer is too full
-        if (dc.bufferedAmount > BUFFER_CEILING) {
-          return; // 'onbufferedamountlow' will call sendChunks again
+      if (!isMulti) {
+        // Single file fallback mode (compatible)
+        const file = files;
+        while (sendOffsetRef.current < file.size) {
+          if (dc.bufferedAmount > BUFFER_CEILING) {
+            return;
+          }
+          const currentOffset = sendOffsetRef.current;
+          const currentSize = Math.min(CHUNK_SIZE, file.size - currentOffset);
+          sendOffsetRef.current += currentSize;
+          totalBytesSentRef.current += currentSize;
+
+          const arrayBuffer = await file.slice(currentOffset, currentOffset + currentSize).arrayBuffer();
+          if (dc.readyState !== 'open') return;
+
+          dc.send(arrayBuffer);
+
+          const currentProgress = Math.min(100, Math.round((totalBytesSentRef.current / totalSize) * 100));
+          setProgress(currentProgress);
+          updateMetrics(totalBytesSentRef.current, totalSize);
         }
-
-        const currentOffset = sendOffsetRef.current;
-        const currentSize = Math.min(CHUNK_SIZE, file.size - currentOffset);
-
-        // Advance offset BEFORE await to prevent re-entrancy from onbufferedamountlow
-        sendOffsetRef.current += currentSize;
-
-        // Read the slice as ArrayBuffer using the Promise API (no FileReader race condition!)
-        const arrayBuffer = await file.slice(currentOffset, currentOffset + currentSize).arrayBuffer();
-
-        if (dc.readyState !== 'open') return; // Connection dropped during await
-
-        dc.send(arrayBuffer);
-
-        const totalBytesSent = currentOffset + currentSize;
-        const currentProgress = Math.min(100, Math.round((totalBytesSent / file.size) * 100));
-        setProgress(currentProgress);
-        updateMetrics(totalBytesSent, file.size);
-
-        if (totalBytesSent >= file.size) {
-          console.log('📡 [OfflineShare] File sending complete! Sending done signal...');
-          dc.send(JSON.stringify({ type: 'done' }));
-          setConnectionState('completed');
-          return;
-        }
+        console.log('📡 [OfflineShare] Single file sending complete! Sending done signal...');
+        dc.send(JSON.stringify({ type: 'done' }));
+        setConnectionState('completed');
+        return;
       }
+
+      // Multi-file state loop
+      while (currentFileIndexRef.current < files.length) {
+        const fileIdx = currentFileIndexRef.current;
+        const file = files[fileIdx];
+
+        // 1. If we are at the very beginning of this file, send the 'start_file' signal
+        if (currentFileOffsetRef.current === 0) {
+          console.log(`📡 [OfflineShare] Starting transfer of file ${fileIdx + 1}/${files.length}: ${file.name}`);
+          dc.send(JSON.stringify({
+            type: 'start_file',
+            index: fileIdx,
+            name: file.name,
+            size: file.size,
+            mime: file.type || 'application/octet-stream'
+          }));
+        }
+
+        // 2. Stream the file chunks
+        while (currentFileOffsetRef.current < file.size) {
+          if (dc.bufferedAmount > BUFFER_CEILING) {
+            return; // Pause. Re-entered on low buffer event
+          }
+
+          const currentOffset = currentFileOffsetRef.current;
+          const currentSize = Math.min(CHUNK_SIZE, file.size - currentOffset);
+
+          // Advance offsets BEFORE await to prevent re-entrant race issues
+          currentFileOffsetRef.current += currentSize;
+          totalBytesSentRef.current += currentSize;
+
+          const arrayBuffer = await file.slice(currentOffset, currentOffset + currentSize).arrayBuffer();
+          if (dc.readyState !== 'open') return;
+
+          dc.send(arrayBuffer);
+
+          const currentProgress = Math.min(100, Math.round((totalBytesSentRef.current / totalSize) * 100));
+          setProgress(currentProgress);
+          updateMetrics(totalBytesSentRef.current, totalSize);
+        }
+
+        // 3. File completed, send the 'end_file' signal
+        dc.send(JSON.stringify({
+          type: 'end_file',
+          index: fileIdx
+        }));
+
+        // Move to the next file in the list
+        currentFileIndexRef.current += 1;
+        currentFileOffsetRef.current = 0;
+      }
+
+      // 4. All files transferred successfully
+      console.log('📡 [OfflineShare] All files sent successfully! Sending done signal...');
+      dc.send(JSON.stringify({ type: 'done' }));
+      setConnectionState('completed');
     } catch (err) {
       console.error('📡 [OfflineShare] Error during chunk send:', err);
-      setError('Error encountered while sending file.');
+      setError('Error encountered while sending files.');
       setConnectionState('failed');
     }
   };
@@ -465,6 +545,8 @@ export const useOfflineShare = () => {
       lastBytesRef.current = 0;
       receivedBytesRef.current = 0;
       receivedChunksRef.current = [];
+      receivedFilesRef.current = [];
+      currentReceivingFileRef.current = null;
       setProgress(0);
     };
 
@@ -474,19 +556,38 @@ export const useOfflineShare = () => {
           const msg = JSON.parse(event.data);
           
           if (msg.type === 'meta') {
-            console.log('📡 [OfflineShare] Metadata received:', msg);
+            console.log('📡 [OfflineShare] Overall Metadata received:', msg);
             setFileMeta(msg);
+            receivedFilesRef.current = [];
+          } else if (msg.type === 'start_file') {
+            console.log('📡 [OfflineShare] Starting receipt of file:', msg.name);
+            currentReceivingFileRef.current = msg;
+            receivedChunksRef.current = [];
+          } else if (msg.type === 'end_file') {
+            console.log('📡 [OfflineShare] Completed receipt of file:', currentReceivingFileRef.current.name);
+            const finalBlob = new Blob(receivedChunksRef.current, {
+              type: currentReceivingFileRef.current.mime || 'application/octet-stream'
+            });
+            receivedFilesRef.current.push({
+              name: currentReceivingFileRef.current.name,
+              blob: finalBlob
+            });
           } else if (msg.type === 'done') {
             console.log('📡 [OfflineShare] Stream complete! Rebuilding Blob...');
-            const finalBlob = new Blob(receivedChunksRef.current, {
-              type: fileMetadata.type || 'application/octet-stream'
-            });
-            setReceivedFileBlob(finalBlob);
+            if (receivedFilesRef.current.length === 0) {
+              // Backward compatible fallback for single file stream
+              const finalBlob = new Blob(receivedChunksRef.current, {
+                type: fileMetadata.type || 'application/octet-stream'
+              });
+              setReceivedFileBlob(finalBlob);
+            } else {
+              setReceivedFileBlob(receivedFilesRef.current);
+            }
             setConnectionState('completed');
             setProgress(100);
           }
         } else {
-          // Add binary chunk to memory buffer
+          // Add binary chunk to current file's memory buffer
           receivedChunksRef.current.push(event.data);
           receivedBytesRef.current += event.data.byteLength;
 

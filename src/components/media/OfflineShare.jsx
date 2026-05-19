@@ -15,7 +15,11 @@ import {
   ChevronUp, 
   HelpCircle,
   File, 
-  AlertCircle
+  AlertCircle,
+  Image,
+  Video,
+  Music,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -104,20 +108,116 @@ const OfflineShare = () => {
     cleanup
   } = useOfflineShare();
 
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const selectedFile = selectedFiles[0] || null;
   const [showScanner, setShowScanner] = useState(false);
   const [scannerPurpose, setScannerPurpose] = useState(null);
   const [manualInputOpen, setManualInputOpen] = useState(false);
   const [manualCode, setManualCode] = useState('');
+  const [imageUrls, setImageUrls] = useState({});
+
+  // Generate object URLs for image previews safely with cleanup to prevent memory leaks
+  useEffect(() => {
+    const newUrls = {};
+    const oldUrls = { ...imageUrls };
+
+    selectedFiles.forEach((file, index) => {
+      const key = `${file.name}-${file.size}-${index}`;
+      if (file && typeof window !== 'undefined' && window.File && file instanceof window.File && file.type.startsWith('image/')) {
+        if (oldUrls[key]) {
+          newUrls[key] = oldUrls[key];
+          delete oldUrls[key];
+        } else {
+          newUrls[key] = URL.createObjectURL(file);
+        }
+      } else if (file.type?.startsWith('image/') || file.name?.match(/\.(png|jpe?g|gif|webp)$/i)) {
+        newUrls[key] = file.uri || file.path || null;
+      }
+    });
+
+    // Revoke old unused object URLs
+    Object.values(oldUrls).forEach(url => {
+      if (url && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+
+    setImageUrls(newUrls);
+
+    return () => {
+      Object.values(newUrls).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [selectedFiles]);
+
+  // Helper to render high-fidelity file previews and type-colored premium icons
+  const renderFileThumbnail = (fileObj, metaObj, index = 0) => {
+    const fileName = fileObj?.name || metaObj?.name || '';
+    const key = `${fileName}-${fileObj?.size || metaObj?.size || 0}-${index}`;
+    const localUrl = imageUrls[key];
+
+    // 1. If we have a local object URL (sender side preview)
+    if (localUrl && fileObj) {
+      return (
+        <div className="file-thumbnail-icon image-preview">
+          <img src={localUrl} alt="" className="file-image-thumb" />
+        </div>
+      );
+    }
+
+    // 2. Identify the file type from object or metadata name
+    const isImg = fileName.match(/\.(png|jpe?g|gif|webp|svg)$/i);
+    const isVideo = fileName.match(/\.(mp4|webm|mkv|mov|avi)$/i);
+    const isAudio = fileName.match(/\.(mp3|wav|ogg|m4a|aac)$/i);
+    const isPdf = fileName.match(/\.pdf$/i);
+
+    if (isImg) {
+      return (
+        <div className="file-thumbnail-icon img-type">
+          <Image size={20} />
+        </div>
+      );
+    }
+    if (isVideo) {
+      return (
+        <div className="file-thumbnail-icon video-type">
+          <Video size={20} />
+        </div>
+      );
+    }
+    if (isAudio) {
+      return (
+        <div className="file-thumbnail-icon audio-type">
+          <Music size={20} />
+        </div>
+      );
+    }
+    if (isPdf) {
+      return (
+        <div className="file-thumbnail-icon pdf-type">
+          <FileText size={20} />
+        </div>
+      );
+    }
+
+    return (
+      <div className="file-thumbnail-icon default-type">
+        <File size={20} />
+      </div>
+    );
+  };
 
   // 📡 Auto-start when navigated here from Android share intent
   useEffect(() => {
     const { incomingFile, autoStart } = location.state || {};
     if (incomingFile && autoStart && connectionState === 'idle') {
-      setSelectedFile(incomingFile);
+      setSelectedFiles([incomingFile]);
       // Small delay to let the component mount completely before starting P2P
       const timer = setTimeout(() => {
-        startSending(incomingFile);
+        startSending([incomingFile]);
       }, 600);
       return () => clearTimeout(timer);
     }
@@ -163,18 +263,22 @@ const OfflineShare = () => {
   }, [localOffer, localAnswer]);
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...files]);
     }
   };
 
+  const handleRemoveFile = (index) => {
+    setSelectedFiles((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
   const handleStartSending = () => {
-    if (!selectedFile) {
-      toast.error('Please select a file to share first.');
+    if (selectedFiles.length === 0) {
+      toast.error('Please select at least one file to share.');
       return;
     }
-    startSending(selectedFile);
+    startSending(selectedFiles);
   };
 
   const handleStartReceiving = () => {
@@ -215,47 +319,60 @@ const OfflineShare = () => {
   };
 
   const saveFile = async () => {
-    if (!receivedFileBlob || !fileMeta) return;
+    if (!receivedFileBlob) return;
 
-    const filename = fileMeta.name;
+    const filesToSave = Array.isArray(receivedFileBlob)
+      ? receivedFileBlob
+      : [{ name: fileMeta?.name || 'downloaded_file', blob: receivedFileBlob }];
 
-    // Trigger Android Native filesystem write if on android wrapper
-    if (isNativeWithPlugins()) {
-      try {
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64data = reader.result.split(',')[1];
-          await safePluginCall(
-            () => import('@capacitor/filesystem'),
-            (mod) => mod.Filesystem.writeFile({
-              path: `CaBa/Downloads/${filename}`,
-              data: base64data,
-              directory: mod.Directory.Data,
-              recursive: true
-            })
-          );
-          toast.success(`Saved to device: CaBa/Downloads/${filename}`, { duration: 5000 });
-        };
-        reader.readAsDataURL(receivedFileBlob);
-      } catch (err) {
-        console.error('📡 [OfflineShare] Native save failed, falling back:', err);
-        triggerBrowserDownload();
+    for (let i = 0; i < filesToSave.length; i++) {
+      const { name: filename, blob: fileBlob } = filesToSave[i];
+
+      if (isNativeWithPlugins()) {
+        try {
+          await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              const base64data = reader.result.split(',')[1];
+              try {
+                await safePluginCall(
+                  () => import('@capacitor/filesystem'),
+                  (mod) => mod.Filesystem.writeFile({
+                    path: `CaBa/Downloads/${filename}`,
+                    data: base64data,
+                    directory: mod.Directory.Data,
+                    recursive: true
+                  })
+                );
+                toast.success(`Saved to device: CaBa/Downloads/${filename}`, { duration: 4000 });
+                resolve();
+              } catch (e) {
+                reject(e);
+              }
+            };
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(fileBlob);
+          });
+        } catch (err) {
+          console.error('📡 [OfflineShare] Native save failed, falling back:', err);
+          triggerBrowserDownloadForBlob(fileBlob, filename);
+        }
+      } else {
+        triggerBrowserDownloadForBlob(fileBlob, filename);
       }
-    } else {
-      triggerBrowserDownload();
     }
   };
 
-  const triggerBrowserDownload = () => {
-    const url = URL.createObjectURL(receivedFileBlob);
+  const triggerBrowserDownloadForBlob = (fileBlob, filename) => {
+    const url = URL.createObjectURL(fileBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = fileMeta.name;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Downloaded to device!');
+    toast.success(`Downloaded: ${filename}`);
   };
 
   const formatSize = (bytes) => {
@@ -382,23 +499,43 @@ const OfflineShare = () => {
               />
 
               {/* File box after selection */}
-              {selectedFile && (
-                <div className="selected-file-box" style={{ marginTop: '20px', marginBottom: '0' }}>
-                  <div className="file-thumbnail-icon">
-                    <File size={20} />
+              {selectedFiles && selectedFiles.length > 0 && (
+                <div className="selected-files-list" style={{ marginTop: '20px', width: '100%' }}>
+                  <div className="files-scroll-area" style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {selectedFiles.map((file, idx) => (
+                      <div className="selected-file-box" key={idx} style={{ marginBottom: '0', display: 'flex', flexDirection: 'column' }}>
+                        {renderFileThumbnail(file, null, idx)}
+                        <div className="selected-file-details-row">
+                          <div className="selected-file-details">
+                            <h4>{file.name}</h4>
+                            <p>{formatSize(file.size)}</p>
+                          </div>
+                          <button className="file-remove-btn" onClick={() => handleRemoveFile(idx)} aria-label="Remove file">
+                            <X size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="selected-file-details">
-                    <h4>{selectedFile.name}</h4>
-                    <p>{formatSize(selectedFile.size)}</p>
+
+                  {/* Summary Bar */}
+                  <div className="selected-files-summary-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '12.5px', color: '#94a3b8' }}>
+                      <strong>{selectedFiles.length}</strong> {selectedFiles.length === 1 ? 'file' : 'files'} ({formatSize(selectedFiles.reduce((acc, f) => acc + f.size, 0))})
+                    </div>
+                    <button 
+                      className="btn-add-more-glass" 
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px dashed rgba(255,255,255,0.2)', padding: '6px 12.5px', borderRadius: '8px', fontSize: '12px', color: '#f8fafc', cursor: 'pointer', transition: 'all 0.2s' }}
+                    >
+                      + Add More
+                    </button>
                   </div>
-                  <button className="file-remove-btn" onClick={() => setSelectedFile(null)}>
-                    <X size={18} />
-                  </button>
                 </div>
               )}
 
               {/* Trigger send button */}
-              {selectedFile && (
+              {selectedFiles.length > 0 && (
                 <button
                   className="camera-trigger-btn"
                   onClick={handleStartSending}
@@ -450,12 +587,12 @@ const OfflineShare = () => {
               </div>
 
               <div className="selected-file-box" style={{ width: '100%', marginBottom: '16px' }}>
-                <div className="file-thumbnail-icon">
-                  <File size={18} />
-                </div>
-                <div className="selected-file-details">
-                  <h4>{fileMeta?.name}</h4>
-                  <p>{formatSize(fileMeta?.size)}</p>
+                {renderFileThumbnail(selectedFile, fileMeta)}
+                <div className="selected-file-details-row">
+                  <div className="selected-file-details">
+                    <h4>{fileMeta?.name}</h4>
+                    <p>{formatSize(fileMeta?.size)}</p>
+                  </div>
                 </div>
               </div>
 
@@ -515,12 +652,12 @@ const OfflineShare = () => {
               </div>
 
               <div className="selected-file-box" style={{ width: '100%', marginBottom: '16px' }}>
-                <div className="file-thumbnail-icon" style={{ color: '#00f2fe', background: 'rgba(0, 242, 254, 0.1)' }}>
-                  <Wifi size={18} />
-                </div>
-                <div className="selected-file-details">
-                  <h4>Incoming File Connection</h4>
-                  <p>{fileMeta?.name} ({formatSize(fileMeta?.size)})</p>
+                {renderFileThumbnail(selectedFile, fileMeta)}
+                <div className="selected-file-details-row">
+                  <div className="selected-file-details">
+                    <h4>Incoming File Connection</h4>
+                    <p>{fileMeta?.name} ({formatSize(fileMeta?.size)})</p>
+                  </div>
                 </div>
               </div>
 
@@ -576,12 +713,12 @@ const OfflineShare = () => {
               </div>
 
               <div className="selected-file-box" style={{ width: '100%', marginBottom: '0' }}>
-                <div className="file-thumbnail-icon" style={{ color: '#00f2fe', background: 'rgba(0, 242, 254, 0.1)' }}>
-                  <File size={18} />
-                </div>
-                <div className="selected-file-details">
-                  <h4>{fileMeta?.name}</h4>
-                  <p>{formatSize(fileMeta?.size)}</p>
+                {renderFileThumbnail(selectedFile, fileMeta)}
+                <div className="selected-file-details-row">
+                  <div className="selected-file-details">
+                    <h4>{fileMeta?.name}</h4>
+                    <p>{formatSize(fileMeta?.size)}</p>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -603,28 +740,54 @@ const OfflineShare = () => {
               <p>{activeRole === 'sender' ? 'The file was sent successfully!' : 'The file has been received successfully!'}</p>
 
               <div className="success-file-card">
-                <div className="success-file-row">
-                  <span className="success-file-label">Name:</span>
-                  <span className="success-file-value">{fileMeta?.name}</span>
-                </div>
-                <div className="success-file-row">
-                  <span className="success-file-label">Size:</span>
-                  <span className="success-file-value">{formatSize(fileMeta?.size)}</span>
-                </div>
-                <div className="success-file-row">
-                  <span className="success-file-label">Role:</span>
-                  <span className="success-file-value" style={{ textTransform: 'capitalize' }}>{activeRole}</span>
-                </div>
+                {fileMeta?.files && fileMeta.files.length > 1 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#94a3b8', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '6px', marginBottom: '4px' }}>
+                      TRANSFERRED FILES ({fileMeta.files.length})
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }} className="files-scroll-area">
+                      {fileMeta.files.map((file, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                          <span style={{ fontSize: '12px', color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%', fontWeight: '600' }}>
+                            {file.name}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                            {formatSize(file.size)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px', marginTop: '4px', fontSize: '12px', fontWeight: '700' }}>
+                      <span style={{ color: '#cbd5e1' }}>Total Combined Size:</span>
+                      <span style={{ color: '#00f2fe' }}>{formatSize(fileMeta.size)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="success-file-row">
+                      <span className="success-file-label">Name:</span>
+                      <span className="success-file-value">{fileMeta?.name}</span>
+                    </div>
+                    <div className="success-file-row">
+                      <span className="success-file-label">Size:</span>
+                      <span className="success-file-value">{formatSize(fileMeta?.size)}</span>
+                    </div>
+                    <div className="success-file-row">
+                      <span className="success-file-label">Role:</span>
+                      <span className="success-file-value" style={{ textTransform: 'capitalize' }}>{activeRole}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {activeRole === 'receiver' && receivedFileBlob && (
                 <button className="camera-trigger-btn" onClick={saveFile} style={{ marginBottom: '10px' }}>
                   <Download size={18} />
-                  Save / Download File
+                  Save / Download Files
                 </button>
               )}
 
-              <button className="btn-glass" onClick={() => { cleanup(); setSelectedFile(null); }}>
+              <button className="btn-glass" onClick={() => { cleanup(); setSelectedFiles([]); }}>
                 Share Another File
               </button>
             </motion.div>
@@ -645,7 +808,7 @@ const OfflineShare = () => {
               <h2 style={{ color: '#ef4444' }}>Transfer Failed</h2>
               <p style={{ color: '#cbd5e1', marginBottom: '24px' }}>{error || 'Connection timed out or lost. Please try again.'}</p>
 
-              <button className="camera-trigger-btn" onClick={() => { cleanup(); setSelectedFile(null); }} style={{ background: 'rgba(255,255,255,0.06)', color: 'white', boxShadow: 'none' }}>
+              <button className="camera-trigger-btn" onClick={() => { cleanup(); setSelectedFiles([]); }} style={{ background: 'rgba(255,255,255,0.06)', color: 'white', boxShadow: 'none' }}>
                 Try Again
               </button>
             </motion.div>

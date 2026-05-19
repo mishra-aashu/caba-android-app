@@ -6,7 +6,6 @@
   /* Let parent PageTransition handle vertical scroll to avoid nested scroll locks */
   overflow-y: visible;
   background: radial-gradient(circle at 50% 0%, #1a1b36 0%, #0d0e1b 60%, #05060b 100%);
-  background-attachment: fixed;
   color: #f8fafc;
   font-family: 'Outfit', 'Inter', sans-serif;
   padding: 24px 16px 140px 16px;
@@ -287,65 +286,159 @@
   margin-top: 4px;
 }
 
-/* Selected File Box */
+/* Selected File Box (Upgraded to Large Visual Card) */
 .selected-file-box {
   width: 100%;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 16px;
+  background: rgba(13, 14, 27, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 12px;
   display: flex;
-  align-items: center;
+  flex-direction: column; /* Vertical card layout! */
+  gap: 12px;
   margin-bottom: 20px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .file-thumbnail-icon {
-  background: linear-gradient(135deg, rgba(58, 237, 162, 0.15) 0%, rgba(0, 242, 254, 0.15) 100%);
-  color: #3aeda2;
-  border-radius: 12px;
-  width: 44px;
-  height: 44px;
+  width: 100%; /* Spans full width! */
+  height: 180px; /* Big visual size! */
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.file-thumbnail-icon svg {
+  width: 48px; /* Large beautiful icon! */
+  height: 48px;
+}
+
+.file-thumbnail-icon.image-preview {
+  padding: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.file-image-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Beautifully covers the big block! */
+  border-radius: 14px;
+}
+
+/* Premium gradient icons based on file types - upgraded to large cards */
+.file-thumbnail-icon.img-type {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.12) 0%, rgba(239, 68, 68, 0.12) 100%);
+  color: #ec4899;
+  border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+.file-thumbnail-icon.video-type {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(59, 130, 246, 0.12) 100%);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.file-thumbnail-icon.audio-type {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(239, 68, 68, 0.12) 100%);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.file-thumbnail-icon.pdf-type {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(220, 38, 38, 0.12) 100%);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.file-thumbnail-icon.default-type {
+  background: linear-gradient(135deg, rgba(58, 237, 162, 0.12) 0%, rgba(0, 242, 254, 0.12) 100%);
+  color: #3aeda2;
+  border: 1px solid rgba(58, 237, 162, 0.2);
+}
+
+/* File Details Row (Placed Below Thumbnail) */
+.selected-file-details-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px 4px 4px;
 }
 
 .selected-file-details {
   flex: 1;
   min-width: 0;
+  margin-right: 12px;
 }
 
 .selected-file-details h4 {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 600;
-  margin: 0;
-  color: #e2e8f0;
+  margin: 0 0 2px 0;
+  color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .selected-file-details p {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: #94a3b8;
-  margin: 2px 0 0 0;
+  margin: 0;
+  font-weight: 500;
 }
 
 .file-remove-btn {
-  background: transparent;
-  border: none;
-  color: #64748b;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border-radius: 50%; /* Rounded circle close button! */
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 8px;
+  flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
 .file-remove-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
   color: #ef4444;
+  transform: scale(1.05);
+}
+
+/* Multi-file selection area scrollbars */
+.files-scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.files-scroll-area::-webkit-scrollbar {
+  width: 5px;
+}
+
+.files-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.files-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+.files-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 242, 254, 0.4);
 }
 
 /* QR Code Section */

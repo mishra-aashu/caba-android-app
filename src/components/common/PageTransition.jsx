@@ -38,9 +38,7 @@ const PageTransition = ({ children, className }) => {
                 zIndex: 10,
                 background: 'var(--bg-color)',
                 overflowY: 'auto',
-                WebkitOverflowScrolling: 'touch',
-                display: 'flex',
-                flexDirection: 'column'
+                WebkitOverflowScrolling: 'touch'
             }}
         >
             {children}

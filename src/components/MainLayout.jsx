@@ -84,6 +84,7 @@ const ACTIVE_CHAT_PATHS = new Set([
   '/emoji-settings',
   '/theme',
   '/shared-media/',
+  '/offline-share',
 ]);
 
 // ══════════════════════════════════════════════════════════════
