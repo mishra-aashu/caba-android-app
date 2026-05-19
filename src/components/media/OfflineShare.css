@@ -1,14 +1,15 @@
 /* Offline Direct Share Premium Style System */
 
 .offline-share-container {
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  min-height: 100%;
+  width: 100%;
+  /* Let parent PageTransition handle vertical scroll to avoid nested scroll locks */
+  overflow-y: visible;
   background: radial-gradient(circle at 50% 0%, #1a1b36 0%, #0d0e1b 60%, #05060b 100%);
   background-attachment: fixed;
   color: #f8fafc;
   font-family: 'Outfit', 'Inter', sans-serif;
-  padding: 24px 16px 80px 16px;
+  padding: 24px 16px 140px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;

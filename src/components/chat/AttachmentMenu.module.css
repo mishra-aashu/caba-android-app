@@ -91,6 +91,10 @@
   background: linear-gradient(135deg, #00d2ff, #3a7bd5);
 }
 
+.shareme-option {
+  background: linear-gradient(135deg, #00f2fe, #4facfe);
+}
+
 .attachment-menu-overlay {
   position: fixed;
   top: 0;

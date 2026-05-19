@@ -10,11 +10,14 @@
     line-height: 1.5;
     color: var(--text-primary, #e9edef);
     margin: 0;
+    text-align: left; /* Guarantee clean professional left alignment */
+    white-space: pre-line; /* Support clean line breaks and list vertical spacing */
 }
 
 .dialog-footer {
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap; /* Prevent button clipping on ultra-small viewports */
     gap: 12px;
     margin-top: 24px;
 }
@@ -41,40 +44,53 @@
 }
 
 .dialog-btn {
-    padding: var(--spacing-md) var(--spacing-xl);
+    padding: 10px 20px; /* Safe standard padding */
     border-radius: 20px;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: none;
+    white-space: nowrap; /* Prevent button text from wrapping */
+    flex-shrink: 0;      /* Prevent button from compression */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.confirm-btn {
+.dialog-footer .confirm-btn {
     background: var(--brand-primary, #00BFA5);
     color: white;
+    width: auto !important; /* Force override settings.css glob pollution */
+    height: auto !important; /* Force override settings.css glob pollution */
+    border-radius: 20px !important; /* Force override settings.css glob pollution */
+    padding: 10px 20px !important; /* Force override settings.css glob pollution */
 }
 
-.confirm-btn.destructive {
+.dialog-footer .confirm-btn.destructive {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-.confirm-btn:hover {
+.dialog-footer .confirm-btn:hover {
     opacity: 0.9;
     transform: translateY(-1px);
 }
 
-.confirm-btn.destructive:hover {
+.dialog-footer .confirm-btn.destructive:hover {
     box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
 }
 
-.cancel-btn {
+.dialog-footer .cancel-btn {
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-secondary, #8696a0);
+    width: auto !important; /* Force override settings.css glob pollution */
+    height: auto !important; /* Force override settings.css glob pollution */
+    border-radius: 20px !important; /* Force override settings.css glob pollution */
+    padding: 10px 20px !important; /* Force override settings.css glob pollution */
 }
 
-.cancel-btn:hover {
+.dialog-footer .cancel-btn:hover {
     background: rgba(255, 255, 255, 0.1);
 }
 
