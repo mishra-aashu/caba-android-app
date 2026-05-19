@@ -1,6 +1,6 @@
 /**
  * Music Engine Configuration
- * This defines the base URL for the JioSaavn proxy server.
+ * This defines the base URL for the music proxy server.
  */
 export const MUSIC_API_URL = import.meta.env.VITE_MUSIC_API_URL || '/music-api';
 export const MUSIC_API_BASE = MUSIC_API_URL;

@@ -206,11 +206,11 @@ export default defineConfig(({ mode }) => {
               },
             },
             {
-              // JioSaavn CDN Images (Opaque responses, NO range requests)
+              // Music CDN Images (Opaque responses, NO range requests)
               urlPattern: /.*saavncdn\.com.*/i,
               handler: 'StaleWhileRevalidate',
               options: {
-                cacheName: 'saavn-images-cache',
+                cacheName: 'music-images-cache',
                 expiration: {
                   maxEntries: 200,
                   maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
