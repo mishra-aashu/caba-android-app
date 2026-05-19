@@ -6,7 +6,7 @@
   
   **[🌐 Experience Elevengram Live Here](https://caba-android-app.vercel.app/)**
   
-  <img src="https://api.iconify.design/lucide:award.svg?height=24&color=%23ffcc00" vertical-align="middle" /> **Proudly Pioneering as India's First Open-Source Chatting Application** <img src="https://api.iconify.design/twemoji:flag-india.svg?height=24" vertical-align="middle" />
+  <img src="https://api.iconify.design/lucide:award.svg?height=24&color=%23ffcc00" vertical-align="middle" /> **Proudly building a next-generation, Indian-origin Open-Source communication platform.** <img src="https://api.iconify.design/twemoji:flag-india.svg?height=24" vertical-align="middle" />
   
   **Crafted by [Aashutosh Mishra](https://github.com/mishra-aashu) | IIT Madras**
 
@@ -45,6 +45,15 @@
 
 ---
 
+## 🛡️ Security & Privacy
+
+ELEVENGRAM is committed to radical transparency as an open-source platform.
+* **Current Status:** Image and video sharing currently utilize data transformation/obfuscation techniques.
+* **Roadmap:** We are actively developing full end-to-end encryption (E2EE) for all media and messages.
+* **Contribution:** Since we are open-source, we invite security researchers and developers to audit our codebase and contribute to strengthening our encryption protocols.
+
+---
+
 ## <img src="https://api.iconify.design/lucide:layers.svg?height=24&color=%23646cff" vertical-align="middle" /> Tech Stack
 
 ### Frontend
@@ -68,6 +77,9 @@
 - **GitHub Actions** - CI/CD
 
 ### Architecture
+
+ELEVENGRAM utilizes a local-first architecture powered by **Dexie.js**, ensuring that your messages are instantly accessible offline and sync seamlessly to **Supabase** once a connection is re-established.
+
 - **Local-First Sync**: Powered by Dexie.js for instant UI and offline reliability
 - **Real-time Backend**: Supabase for secure data persistence and live updates
 
@@ -306,6 +318,12 @@ Refer to the `.env.example` file for the required keys.
 1. Build release APK: `./android/gradlew assembleRelease`
 2. Sign the APK
 3. Upload to Google Play Console
+
+---
+
+## 💬 Join the Community
+
+Want to discuss features, report bugs, or contribute to the project? Join our community here: [GitHub Discussions](https://github.com/mishra-aashu/caba-android-app/discussions)
 
 ---
 
