@@ -4,7 +4,7 @@
   # ELEVENGRAM
   ### Cross-Platform Native Messenger
   
-  🏆 **Proudly Pioneering as India's First Open-Source Chatting Application** 🇮🇳
+  <img src="https://api.iconify.design/lucide:award.svg?height=24&color=%23ffcc00" vertical-align="middle" /> **Proudly Pioneering as India's First Open-Source Chatting Application** <img src="https://api.iconify.design/twemoji:flag-india.svg?height=24" vertical-align="middle" />
   
   **Crafted by [Aashutosh Mishra](https://github.com/mishra-aashu) | IIT Madras**
 
