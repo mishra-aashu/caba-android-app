@@ -211,29 +211,34 @@ caba-android-app/
 ├── android/                   # Native Android Project (Capacitor generated)
 │   ├── app/                   # Main Android application source
 │   └── build.gradle           # Native build configuration
+├── api/                       # Serverless backend functions & APIs
+│   └── _utils/                # Backend utilities (Encryption, Helpers)
+├── docs/                      # Documentation (System Architecture, Healing)
 ├── public/                    # Static assets
 │   ├── icons/                 # PWA and App icons
-│   ├── audio/                 # Sound effects for calls/messages
-│   └── manifests/             # PWA and Web App manifests
+│   └── audio/                 # Sound effects for calls/messages
 ├── src/                       # Frontend Source Code
 │   ├── components/            # UI Components
+│   │   ├── admin/             # Admin Dashboard UI
 │   │   ├── auth/              # Login, Register, Recovery
-│   │   ├── chat/              # Message lists, Input area, Bubbles
 │   │   ├── calls/             # WebRTC Call screens (Audio/Video)
-│   │   ├── settings/          # User preferences & Theme toggles
+│   │   ├── chat/              # Message lists, Input area, Bubbles
+│   │   ├── games/             # Arena games integration
 │   │   ├── layout/            # Sidebar, BottomNav, Shell
-│   │   └── games/             # Arena games integration
-│   ├── contexts/              # React Context API (Auth, Notifications, Audio)
+│   │   ├── media/             # Media player and Offline Sharing
+│   │   └── settings/          # User preferences & Theme toggles
+│   ├── config/                # App Configurations (API URLs, Envs)
+│   ├── constants/             # Shared constants and static enums
+│   ├── contexts/              # React Context API (Auth, Theme, Sound)
+│   ├── db/                    # Local-first synchronization (Dexie.js)
 │   ├── hooks/                 # Custom React Hooks
 │   │   ├── chat/              # Messaging logic & Realtime subscriptions
-│   │   └── media/             # Camera, Gallery, and File handling
-│   ├── services/              # Core Logic & API Integrations
-│   │   ├── supabase/          # Database, Storage & Auth logic
-│   │   ├── firebase/          # Push Notifications (FCM)
-│   │   └── webrtc/            # Real-time Call signaling
-│   ├── store/                 # Zustand State Management
+│   │   └── media/             # Camera, Gallery, and Audio sync
+│   ├── pages/                 # Full-page routing components
+│   ├── services/              # External APIs & core integration logic
+│   ├── store/                 # Global State Management (Zustand)
 │   ├── styles/                # Global CSS, Animations & Themes
-│   ├── utils/                 # Helper functions & Constants
+│   ├── utils/                 # General Helper functions
 │   └── main.jsx               # App entry point & Router setup
 ├── supabase/                  # Backend Infrastructure
 │   ├── migrations/            # SQL Database Schema versions
