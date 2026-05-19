@@ -7,3 +7,4 @@ export { useAvatarUpload } from './useAvatarUpload';
 export { useStorageFallback } from './useStorageFallback';
 export { useTURNConfig } from './useTURNConfig';
 export { useWebRTCCalling } from './useWebRTCCalling';
+export { useOfflineShare } from './useOfflineShare';

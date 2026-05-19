@@ -25,6 +25,7 @@ import useOnlineStatus from './hooks/useOnlineStatus';
 import useNetworkSync from './hooks/useNetworkSync';
 import { useCapacitorPlugins } from './hooks/useCapacitorPlugins';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { useShareIntent } from './hooks/useShareIntent';
 import { isNativeWithPlugins } from './utils/platformCheck';
 import useSessionManager from './hooks/useSessionManager';
 import SafeSuspense from './components/common/SafeSuspense';
@@ -68,6 +69,7 @@ const Terms = lazy(() => import('./components/legal/Terms'));
 const Privacy = lazy(() => import('./components/legal/Privacy'));
 const GamesPanel = lazy(() => import('./components/games/GamesPanel'));
 const MusicPage = lazy(() => import('./components/media/MusicPage'));
+const OfflineShare = lazy(() => import('./components/media/OfflineShare'));
 import PageTransition from './components/common/PageTransition';
 
 
@@ -210,6 +212,7 @@ const AppContent = () => {
   const location = useLocation();
   const isDesktop = useIsDesktop();
   useOnlineStatus();
+  useShareIntent(); // 📡 Listens for Android share intents (files shared TO Elevengram)
 
   if (loading) return null;
 
@@ -265,6 +268,7 @@ const AppContent = () => {
               <Route path="/create-reminder" element={<PageTransition><CreateReminder /></PageTransition>} />
               <Route path="/calls" element={<PageTransition><Calls /></PageTransition>} />
               <Route path="/qr" element={<PageTransition><QRPage /></PageTransition>} />
+              <Route path="/offline-share" element={<PageTransition><OfflineShare /></PageTransition>} />
               <Route path="/admin" element={<PageTransition><Admin /></PageTransition>} />
               <Route path="/call/:callId" element={<PageTransition><CallScreen /></PageTransition>} />
             </Route>

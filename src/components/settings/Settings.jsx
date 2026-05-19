@@ -54,7 +54,8 @@ import {
     Upload,
     CloudUpload,
     CloudDownload,
-    ShieldCheck
+    ShieldCheck,
+    Share2
 } from 'lucide-react';
 import { BackupRestoreService } from '../../services/BackupRestoreService';
 import BottomNavigation from '../common/BottomNavigation';
@@ -879,6 +880,20 @@ const Settings = ({ isSidebar = false }) => {
                         label="Auto-download (Wi-Fi)"
                         checked={settings.autoDownloadWifi}
                         onChange={() => handleSettingToggle('autoDownloadWifi')}
+                    />
+                </section>
+
+                {/* Offline File Sharing */}
+                <section className="settings-section">
+                    <SectionHeader title="Direct Offline Share" />
+                    <p className="section-description" style={{ padding: '0 16px 12px', fontSize: '13px', color: 'var(--text-secondary)', opacity: 0.8 }}>
+                        Transfer big files directly to near-by devices using local Wi-Fi chips. 100% offline, blazing fast, and secure.
+                    </p>
+
+                    <SettingItem
+                        icon={Share2}
+                        label="ShareMe (Near-by Share)"
+                        onClick={() => navigate('/offline-share')}
                     />
                 </section>
 

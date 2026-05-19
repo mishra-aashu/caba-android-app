@@ -7,3 +7,4 @@ export { default as AvatarUpload } from './AvatarUpload';
 export { default as StorageFallback } from './StorageFallback';
 export { default as TURNConfig } from './TURNConfig';
 export { default as WebRTCCalling } from './WebRTCCalling';
+export { default as OfflineShare } from './OfflineShare';
