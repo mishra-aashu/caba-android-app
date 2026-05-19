@@ -1,8 +1,11 @@
 /* Offline Direct Share Premium Style System */
 
 .offline-share-container {
-  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: radial-gradient(circle at 50% 0%, #1a1b36 0%, #0d0e1b 60%, #05060b 100%);
+  background-attachment: fixed;
   color: #f8fafc;
   font-family: 'Outfit', 'Inter', sans-serif;
   padding: 24px 16px 80px 16px;
