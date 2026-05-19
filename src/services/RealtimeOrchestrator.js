@@ -172,29 +172,54 @@ class RealtimeOrchestrator {
     }
 
     async _handleChatEvent(payload) {
-        const { eventType, old: oldRecord } = payload;
-        
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+
         if (eventType === 'DELETE') {
             const chatId = String(oldRecord.id);
             console.log('[RealtimeOrchestrator] Chat deleted on server:', chatId);
             await db.transaction('rw', ['chats_list', 'messages'], async () => {
                 await db.delete('chats_list', chatId);
-                // Bulk delete messages for this chat
                 const msgs = await db.getAll('messages', { chatId });
                 for (const m of msgs) await db.delete('messages', m.id);
             });
             return;
         }
 
-        // For other events (INSERT/UPDATE), trigger a sync
-        window.dispatchEvent(new CustomEvent('app:sync-required', { 
-            detail: { reason: 'chat-update' } 
-        }));
+        if (eventType === 'INSERT' && newRecord?.id) {
+            // A brand-new chat appeared — check if we already have it locally.
+            // If yes, the message handler already updated it. No REST call needed.
+            // If not, we genuinely need to sync (e.g. someone else started a chat with us).
+            const chatId = String(newRecord.id);
+            const existingChat = await db.get('chats_list', chatId).catch(() => null);
+            if (!existingChat) {
+                console.log('[RealtimeOrchestrator] New unknown chat detected, syncing:', chatId);
+                window.dispatchEvent(new CustomEvent('app:sync-required', {
+                    detail: { reason: 'new-chat', chatId }
+                }));
+            }
+            // If we already have it — do nothing. The message handler keeps Dexie fresh.
+            return;
+        }
+
+        // UPDATE on chats table: metadata change (e.g. vanish mode toggle, archive).
+        // No need for a full global sync — the local Dexie record will be corrected
+        // on the next periodic heartbeat. Firing a REST call here causes a request
+        // cascade on every message send (messages update chat's last_message_at → chat UPDATE event).
+        // So we intentionally skip the sync dispatch here.
+        if (eventType === 'UPDATE') {
+            // Lightweight: only update fields we care about in Dexie
+            if (newRecord?.id) {
+                const chatId = String(newRecord.id);
+                await db.update('chats_list', chatId, {
+                    isVanishEnabled: newRecord.is_vanish_enabled ?? undefined,
+                }).catch(() => {}); // silent — record may not exist locally yet
+            }
+        }
     }
 
     async _handleGroupEvent(payload) {
-        const { eventType, old: oldRecord } = payload;
-        
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+
         if (eventType === 'DELETE') {
             const chatId = String(oldRecord.id);
             console.log('[RealtimeOrchestrator] Group deleted on server:', chatId);
@@ -206,9 +231,26 @@ class RealtimeOrchestrator {
             return;
         }
 
-        window.dispatchEvent(new CustomEvent('app:sync-required', { 
-            detail: { reason: 'group-update' } 
-        }));
+        if (eventType === 'INSERT' && newRecord?.id) {
+            // New group — check local
+            const chatId = String(newRecord.id);
+            const existingChat = await db.get('chats_list', chatId).catch(() => null);
+            if (!existingChat) {
+                window.dispatchEvent(new CustomEvent('app:sync-required', {
+                    detail: { reason: 'new-group', chatId }
+                }));
+            }
+            return;
+        }
+
+        // UPDATE (name/avatar/settings change) — update Dexie in-place, skip full REST sync
+        if (eventType === 'UPDATE' && newRecord?.id) {
+            const chatId = String(newRecord.id);
+            await db.update('chats_list', chatId, {
+                ...(newRecord.name && { name: newRecord.name }),
+                ...(newRecord.avatar_url && { avatar: newRecord.avatar_url }),
+            }).catch(() => {});
+        }
     }
 
 

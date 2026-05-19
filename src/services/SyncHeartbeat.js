@@ -29,7 +29,12 @@ const CONFIG = {
   MAX_MESSAGES_PER_FETCH: 50,   // Pagination limit
   DEBOUNCE_DELAY: 2_000,        // Beat debounce (Increased from 1s)
   REQUEST_TIMEOUT: 30_000,      // Network timeout
+  // WHATSAPP-STYLE: Only do a REST catch-up sync on visibility if the app was
+  // hidden for longer than this threshold. For shorter hides, WebSocket Realtime
+  // already delivers everything — no extra REST call needed.
+  VISIBILITY_SYNC_THRESHOLD: 3 * 60 * 1000, // 3 minutes
 };
+
 
 class SyncHeartbeat {
   constructor() {
@@ -45,10 +50,13 @@ class SyncHeartbeat {
     this._isRunning = false;
     this._isSyncing = false;
     this._lastHeartbeatAt = 0;
-    
+
+    // Track when app was hidden to calculate hide duration on resume
+    this._hiddenAt = 0;
+
     // Request cancellation
     this._abortController = null;
-    
+
     // Debounce timer
     this._debounceTimer = null;
 
@@ -68,6 +76,7 @@ class SyncHeartbeat {
       emptyBeats: 0,
     };
   }
+
 
   // ═══════════════════════════════════════════════════════════
   // Public API
@@ -210,11 +219,21 @@ class SyncHeartbeat {
   async _attachCapacitorListener() {
     try {
       const { App } = await import('@capacitor/app');
-      
+
       this._listeners.capacitor = await App.addListener('appStateChange', ({ isActive }) => {
         if (isActive && this._isRunning) {
-          console.log('[SyncHeartbeat] App resumed - scheduling beat');
-          this._scheduleBeat('capacitor-resume', true);
+          const hiddenDuration = this._hiddenAt > 0 ? Date.now() - this._hiddenAt : 0;
+          this._hiddenAt = 0;
+
+          // Same WhatsApp-style threshold — only catch-up if gone for >3 minutes
+          if (hiddenDuration >= CONFIG.VISIBILITY_SYNC_THRESHOLD) {
+            console.log(`[SyncHeartbeat] App resumed after ${Math.round(hiddenDuration / 1000)}s — scheduling catch-up beat`);
+            this._scheduleBeat('capacitor-resume', true);
+          } else {
+            console.log(`[SyncHeartbeat] App resumed after ${Math.round(hiddenDuration / 1000)}s — WebSocket covers, skipping REST beat`);
+          }
+        } else if (!isActive) {
+          this._hiddenAt = Date.now();
         }
       });
     } catch (err) {
@@ -222,20 +241,33 @@ class SyncHeartbeat {
     }
   }
 
+
   // ═══════════════════════════════════════════════════════════
   // Event Handlers
   // ═══════════════════════════════════════════════════════════
 
   _onVisibilityChange() {
     if (document.visibilityState === 'visible') {
-      console.log('[SyncHeartbeat] App visible - scheduling immediate beat');
-      this._scheduleBeat('visibility-shown', true);
+      const hiddenDuration = this._hiddenAt > 0 ? Date.now() - this._hiddenAt : 0;
+      this._hiddenAt = 0;
+
+      // WHATSAPP-STYLE: Only do a REST catch-up beat if the app was hidden for
+      // a meaningful duration. WebSocket Realtime handles short-gap delivery.
+      if (hiddenDuration >= CONFIG.VISIBILITY_SYNC_THRESHOLD) {
+        console.log(`[SyncHeartbeat] App visible after ${Math.round(hiddenDuration / 1000)}s — scheduling catch-up beat`);
+        this._scheduleBeat('visibility-long-absence', true);
+      } else {
+        console.log(`[SyncHeartbeat] App visible after ${Math.round(hiddenDuration / 1000)}s — WebSocket covers this gap, skipping REST beat`);
+      }
+
       this._startForegroundPolling();
     } else {
-      console.log('[SyncHeartbeat] App hidden - switching to background mode');
+      this._hiddenAt = Date.now();
+      console.log('[SyncHeartbeat] App hidden — switching to background mode');
       this._startBackgroundPolling();
     }
   }
+
 
   _onNetworkOnline() {
     console.log('[SyncHeartbeat] Network reconnected - scheduling beat');

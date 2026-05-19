@@ -44,7 +44,9 @@ export const mapChat = (raw, currentUserId = null) => {
   const chatType = raw.chat_type || raw.type || (raw.group_id ? 'group' : 'chat');
   const isGroup = chatType === 'group' || (raw.is_group === true);
 
-  // Resolve Name
+  // ── Resolve Name ────────────────────────────────────────────
+  // SECURITY: Phone numbers must NEVER be used as display name fallbacks.
+  // If server returns no name, show a generic placeholder only.
   const rawName =
     raw.name ||
     raw.other_user_name ||
@@ -55,15 +57,12 @@ export const mapChat = (raw, currentUserId = null) => {
     (raw.other_user?.name || raw.other_user?.full_name);
 
   const idForFallback = raw.chat_id || raw.id || raw.group_id || 'unknown';
-  
-  const finalName = rawName ||
-    raw.other_user_phone ||
-    raw.phone ||
-    raw.phone_number ||
-    (raw.other_user?.phone || raw.other_user?.phone_number) ||
-    (isGroup ? 'Unnamed Group' : `User ${idForFallback.toString().slice(0, 4)}`);
 
-  // Resolve Avatar
+  // Generic fallback — no phone number, no partial ID exposure
+  const finalName = rawName ||
+    (isGroup ? 'Unnamed Group' : 'Unknown User');
+
+  // ── Resolve Avatar ───────────────────────────────────────────
   const avatar =
     raw.avatar ||
     raw.other_user_avatar ||
@@ -72,10 +71,11 @@ export const mapChat = (raw, currentUserId = null) => {
     raw.group_avatar ||
     (raw.other_user?.avatar || raw.other_user?.avatar_url || raw.other_user?.profile_image);
 
-  // Unread Count
+  // ── Unread Count ─────────────────────────────────────────────
   const unreadCount = parseInt(raw.unread_count || raw.unread_messages_count || 0) || 0;
 
-  // Online Status
+  // ── Online Status ─────────────────────────────────────────────
+  // Only compute for DMs, groups never have "online" status
   const isOnline = !isGroup && (
     raw.other_user_online === true ||
     raw.is_online === true ||
@@ -92,7 +92,7 @@ export const mapChat = (raw, currentUserId = null) => {
     isGroup,
     name: finalName,
     avatar: avatar,
-    lastMessage: raw.last_message || raw.last_message_content || (isGroup ? "No messages yet" : ""),
+    lastMessage: raw.last_message || raw.last_message_content || (isGroup ? 'No messages yet' : ''),
     lastMessageAt: raw.last_message_at || raw.last_message_time || raw.created_at || raw.lastMessageAt,
     unreadCount,
     isOnline,
@@ -100,6 +100,7 @@ export const mapChat = (raw, currentUserId = null) => {
     status: raw.status, // pending, failed, synced
     isVanishEnabled: raw.is_vanish_enabled || raw.isVanishEnabled || false,
     memberCount: raw.member_count || raw.memberCount || 0,
+    // SECURITY: otherUserId stored only for routing (chat URL), never exposed in UI
     otherUserId: raw.other_user_id || raw.other_user?.id || null
   };
 };
