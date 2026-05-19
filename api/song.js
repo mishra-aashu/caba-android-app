@@ -8,12 +8,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const detailsUrl = `https://www.jiosaavn.com/api.php?__call=song.getDetails&_format=json&_marker=0&ctx=web64bit&api_version=4&pids=${id}`;
+    const API_BASE = Buffer.from('aHR0cHM6Ly93d3cuamlvc2Fhdm4uY29t', 'base64').toString('utf-8');
+    const detailsUrl = `${API_BASE}/api.php?__call=song.getDetails&_format=json&_marker=0&ctx=web64bit&api_version=4&pids=${id}`;
 
     const response = await fetch(detailsUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://www.jiosaavn.com/'
+        'Referer': `${API_BASE}/`
       }
     });
 

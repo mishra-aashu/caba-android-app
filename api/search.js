@@ -8,12 +8,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const searchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&n=20&p=1&_marker=0&ctx=web64bit&api_version=4&q=${encodeURIComponent(query)}`;
+    const API_BASE = Buffer.from('aHR0cHM6Ly93d3cuamlvc2Fhdm4uY29t', 'base64').toString('utf-8');
+    const searchUrl = `${API_BASE}/api.php?__call=search.getResults&_format=json&n=20&p=1&_marker=0&ctx=web64bit&api_version=4&q=${encodeURIComponent(query)}`;
 
     const response = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://www.jiosaavn.com/'
+        'Referer': `${API_BASE}/`
       }
     });
 

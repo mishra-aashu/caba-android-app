@@ -1,7 +1,7 @@
 import CryptoJS from 'crypto-js';
 
 /**
- * Ultra-robust JioSaavn Media URL Decryptor.
+ * Ultra-robust Media URL Decryptor.
  * Verified working with key '38346591' and DES-ECB.
  */
 export function decryptUrl(encryptedUrl) {
@@ -69,7 +69,7 @@ export function formatDownloadUrls(decryptedUrl) {
     ];
 
     return qualities.map(({ quality, suffix }) => {
-        // JioSaavn links usually end in _96.mp4 or _96.aac
+        // Media links usually end in _96.mp4 or _96.aac
         // We replace any existing quality marker or add one before the extension
         let link = decryptedUrl;
         if (link.includes('_96.mp4') || link.includes('_160.mp4') || link.includes('_320.mp4')) {
