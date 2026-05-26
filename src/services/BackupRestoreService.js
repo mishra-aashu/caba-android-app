@@ -1,5 +1,4 @@
 import { db } from '../db/db';
-import { exportDB, importDB } from 'dexie-export-import';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -11,8 +10,26 @@ import toast from 'react-hot-toast';
 // A constant salt to make the encryption key unique to this app
 const ENCRYPTION_SALT = 'CaBa_Secure_Chat_Backup_v1';
 
+const BACKUP_TABLES = [
+    'chats_list',
+    'messages',
+    'contacts',
+    'user_profiles',
+    'groups',
+    'group_members',
+    'blocked_users',
+    'reports',
+    'call_history',
+    'reminders',
+    'sync_queue',
+    'offline_music_store',
+    'music_likes',
+    'ratchet_sessions'
+];
+
 /**
  * Service to handle chat database backup and restore with Encryption and Cloud Sync.
+ * Uses a platform-agnostic JSON structure for cross-compatibility.
  */
 export const BackupRestoreService = {
     /**
@@ -45,25 +62,64 @@ export const BackupRestoreService = {
     },
 
     /**
+     * Exports all database tables to a JSON string.
+     */
+    async _exportDatabaseAsJSON() {
+        const backup = {
+            format: 'caba_backup_json_v1',
+            version: 21,
+            tables: {}
+        };
+        for (const table of BACKUP_TABLES) {
+            try {
+                if (db[table]) {
+                    const rows = await db[table].toArray();
+                    backup.tables[table] = rows;
+                }
+            } catch (err) {
+                console.warn(`[Backup] Failed to export table ${table}:`, err);
+            }
+        }
+        return JSON.stringify(backup);
+    },
+
+    /**
+     * Imports database tables from a decrypted JSON string.
+     */
+    async _importDatabaseFromJSON(jsonString) {
+        const backup = JSON.parse(jsonString);
+        if (backup.format !== 'caba_backup_json_v1') {
+            throw new Error('Unsupported backup file format.');
+        }
+
+        for (const [table, rows] of Object.entries(backup.tables)) {
+            if (!rows || rows.length === 0) continue;
+            try {
+                if (db[table]) {
+                    await db[table].clear();
+                    await db[table].bulkPut(rows);
+                }
+            } catch (err) {
+                console.error(`[Backup] Failed to import table ${table}:`, err);
+            }
+        }
+    },
+
+    /**
      * Exports, ENCRYPTS, and shares the backup file.
      */
     async createBackup() {
         const toastId = toast.loading('Securing backup...');
         try {
-            // 1. Export database to a Blob
-            const blob = await exportDB(db, {
-                prettyJson: false, // Save space for encryption
-            });
+            // 1. Export database to JSON
+            const text = await this._exportDatabaseAsJSON();
 
-            // 2. Read blob as text
-            const text = await blob.text();
-
-            // 3. ENCRYPT
+            // 2. ENCRYPT
             const encryptedData = this._encrypt(text);
             const fileName = `caba_backup_${new Date().toISOString().split('T')[0]}_enc.json`;
 
             if (Capacitor.isNativePlatform()) {
-                // 4. Save to temporary directory
+                // 3. Save to temporary directory
                 const savedFile = await Filesystem.writeFile({
                     path: fileName,
                     data: encryptedData,
@@ -73,7 +129,7 @@ export const BackupRestoreService = {
 
                 toast.dismiss(toastId);
 
-                // 5. Share the file
+                // 4. Share the file
                 await Share.share({
                     title: 'Encrypted Chat Backup',
                     text: 'Keep this encrypted file safe. Only your account can decrypt it.',
@@ -112,12 +168,10 @@ export const BackupRestoreService = {
             if (!user?.id) throw new Error('Please login to backup to cloud');
 
             // 1. Export and Encrypt
-            const blob = await exportDB(db);
-            const text = await blob.text();
+            const text = await this._exportDatabaseAsJSON();
             const encryptedData = this._encrypt(text);
 
             // 2. Upload to Supabase Storage
-            // Path: user_id/latest_backup.json
             const { error } = await supabase.storage
                 .from('backups')
                 .upload(`${user.id}/latest_backup.json`, new Blob([encryptedData]), {
@@ -166,9 +220,8 @@ export const BackupRestoreService = {
             const encryptedText = await data.text();
             const decryptedText = this._decrypt(encryptedText);
 
-            // 3. Import to Dexie
-            const importBlob = new Blob([decryptedText], { type: 'application/json' });
-            await importDB(importBlob, { overwriteValues: true });
+            // 3. Import JSON data
+            await this._importDatabaseFromJSON(decryptedText);
 
             toast.dismiss(toastId);
             toast.success('Restored from cloud! Restarting...');
@@ -194,13 +247,10 @@ export const BackupRestoreService = {
             try {
                 decryptedText = this._decrypt(encryptedText);
             } catch (e) {
-                // If decryption fails, maybe it's an old unencrypted backup?
-                // Or wrong user account.
                 throw new Error('Could not decrypt file. Ensure you are logged into the same account used for backup.');
             }
 
-            const importBlob = new Blob([decryptedText], { type: 'application/json' });
-            await importDB(importBlob, { overwriteValues: true });
+            await this._importDatabaseFromJSON(decryptedText);
 
             toast.dismiss(toastId);
             toast.success('Restore successful! Restarting...');

@@ -206,6 +206,10 @@ export class DexieDB extends Dexie {
             offline_music_store: 'song_id, download_status, local_file_path',
             music_likes: 'id, songId, userId, synced'
         });
+
+        this.version(21).stores({
+            ratchet_sessions: 'chatId'
+        });
     }
 
     /**

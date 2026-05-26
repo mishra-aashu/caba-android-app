@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js';
+import { db } from '../db/db';
 
 /**
  * A rudimentary implementation of a Symmetric-Key Ratchet providing Perfect Forward Secrecy (PFS).
@@ -9,6 +10,60 @@ import CryptoJS from 'crypto-js';
 class DoubleRatchetService {
   constructor() {
     this.sessions = new Map(); // chatId -> { chainKey, messageKeys: Map(messageNumber -> key) }
+  }
+
+  /**
+   * Loads all ratchet sessions from the database on startup.
+   */
+  async loadAllSessions() {
+    try {
+      const records = await db.getAll('ratchet_sessions');
+      if (records && records.length > 0) {
+        for (const record of records) {
+          try {
+            const chainKey = CryptoJS.enc.Hex.parse(record.chainKey);
+            const savedKeys = JSON.parse(record.savedMessageKeys || '[]');
+            const savedMessageKeysMap = new Map();
+            for (const [num, hex] of savedKeys) {
+              savedMessageKeysMap.set(Number(num), CryptoJS.enc.Hex.parse(hex));
+            }
+            this.sessions.set(record.chatId, {
+              chainKey,
+              messageNumber: Number(record.messageNumber),
+              savedMessageKeys: savedMessageKeysMap,
+            });
+          } catch (itemErr) {
+            console.error(`[Ratchet] Failed to parse session for chat ${record.chatId}:`, itemErr);
+          }
+        }
+        console.log(`[Ratchet] Restored ${this.sessions.size} sessions from database`);
+      }
+    } catch (err) {
+      console.error('[Ratchet] Failed to load all sessions from database:', err);
+    }
+  }
+
+  /**
+   * Asynchronously persists a session state to the database.
+   */
+  async persistSession(chatId) {
+    const session = this.sessions.get(chatId);
+    if (!session) return;
+    try {
+      const savedKeysArray = Array.from(session.savedMessageKeys.entries()).map(([num, key]) => [
+        num,
+        CryptoJS.enc.Hex.stringify(key)
+      ]);
+      const record = {
+        chatId,
+        chainKey: CryptoJS.enc.Hex.stringify(session.chainKey),
+        messageNumber: session.messageNumber,
+        savedMessageKeys: JSON.stringify(savedKeysArray)
+      };
+      await db.set('ratchet_sessions', record);
+    } catch (err) {
+      console.error(`[Ratchet] Save failed for ${chatId}:`, err);
+    }
   }
 
   /**
@@ -29,6 +84,7 @@ class DoubleRatchetService {
     });
     
     console.log(`[Ratchet] Initialized session for chat ${chatId}`);
+    this.persistSession(chatId);
   }
 
   /**
@@ -55,6 +111,7 @@ class DoubleRatchetService {
     session.chainKey = nextChainKey;
     const currentMsgNumber = session.messageNumber++;
     
+    this.persistSession(chatId);
     return { messageKey, messageNumber: currentMsgNumber };
   }
 
@@ -93,6 +150,7 @@ class DoubleRatchetService {
     if (session.savedMessageKeys.has(ratchetNumber)) {
       messageKey = session.savedMessageKeys.get(ratchetNumber);
       session.savedMessageKeys.delete(ratchetNumber);
+      this.persistSession(chatId);
     } else {
       // If the message is in the future, ratchet forward and save skipped keys
       while (session.messageNumber < ratchetNumber) {
@@ -119,6 +177,7 @@ class DoubleRatchetService {
    */
   clearSession(chatId) {
     this.sessions.delete(chatId);
+    db.delete('ratchet_sessions', chatId).catch(() => {});
   }
 }
 

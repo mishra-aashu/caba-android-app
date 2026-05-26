@@ -1,4 +1,5 @@
 import { getDatabase } from './DatabaseFactory';
+import { uuid } from '../utils/idGenerators';
 
 export class SyncEngine {
     constructor(apiClient) {
@@ -57,7 +58,7 @@ export class SyncEngine {
         if (!this.db) await this.init();
 
         await this.db.set('sync_queue', {
-            id: crypto.randomUUID(),
+            id: uuid(),
             table: table,
             operation: operation,
             data: typeof data === 'object' ? JSON.stringify(data) : data,

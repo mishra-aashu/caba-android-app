@@ -1,11 +1,213 @@
 import { FastSQL, NativeSQLConnection } from '@capgo/capacitor-fast-sql';
 import { IDatabase } from './IDatabase';
 
+class FastSQLTableWrapper {
+    constructor(db, tableName) {
+        this.db = db;
+        this.tableName = tableName;
+    }
+
+    async get(id) {
+        return await this.db.get(this.tableName, id);
+    }
+
+    async put(item) {
+        await this.db.set(this.tableName, item);
+        return item.id || (this.tableName === 'offline_music_store' ? item.song_id : undefined);
+    }
+
+    async add(item) {
+        await this.db.set(this.tableName, item);
+        return item.id || (this.tableName === 'offline_music_store' ? item.song_id : undefined);
+    }
+
+    async update(id, changes) {
+        return await this.db.update(this.tableName, id, changes);
+    }
+
+    async delete(id) {
+        return await this.db.delete(this.tableName, id);
+    }
+
+    async bulkPut(items) {
+        return await this.db.bulkPut(this.tableName, items);
+    }
+
+    async bulkDelete(ids) {
+        await this.db.transaction('rw', [this.tableName], async () => {
+            for (const id of ids) {
+                await this.db.delete(this.tableName, id);
+            }
+        });
+    }
+
+    async bulkAdd(items) {
+        return await this.db.bulkPut(this.tableName, items);
+    }
+
+    async clear() {
+        await this.db.execute(`DELETE FROM [${this.tableName}]`);
+    }
+
+    async toArray() {
+        return await this.db.getAll(this.tableName);
+    }
+
+    async count() {
+        const pk = (this.tableName === 'offline_music_store') ? 'song_id' : 'id';
+        const res = await this.db.query(`SELECT COUNT(${pk}) as count FROM [${this.tableName}]`);
+        return res[0]?.count || 0;
+    }
+
+    orderBy(field) {
+        const self = this;
+        let isReverse = false;
+        return {
+            reverse() {
+                isReverse = true;
+                return this;
+            },
+            async toArray() {
+                let sql = `SELECT * FROM [${self.tableName}] ORDER BY [${field}] ${isReverse ? 'DESC' : 'ASC'}`;
+                return await self.db.query(sql);
+            }
+        };
+    }
+
+    where(fieldOrObj) {
+        const self = this;
+        
+        if (typeof fieldOrObj === 'object') {
+            return {
+                async toArray() {
+                    return await self.db.getAll(self.tableName, fieldOrObj);
+                }
+            };
+        }
+
+        let conditions = [];
+        let params = [];
+
+        if (fieldOrObj === '[chatId+createdAt]') {
+            return {
+                between(lower, upper) {
+                    const actualChatId = lower[0];
+                    conditions.push(`[chatId] = ?`);
+                    params.push(actualChatId);
+                    return buildCollection('createdAt');
+                }
+            };
+        }
+
+        const buildCollection = (defaultSortField = null) => {
+            let isReverse = false;
+            let sortByField = defaultSortField;
+            let limitVal = null;
+            let filters = [];
+
+            const collection = {
+                or(nextField) {
+                    return {
+                        equals(nextVal) {
+                            conditions.push(`[${nextField}] = ?`);
+                            params.push(nextVal);
+                            return collection;
+                        }
+                    };
+                },
+                reverse() {
+                    isReverse = true;
+                    return collection;
+                },
+                sortBy(field) {
+                    sortByField = field;
+                    return this.toArray();
+                },
+                limit(n) {
+                    limitVal = n;
+                    return collection;
+                },
+                filter(fn) {
+                    filters.push(fn);
+                    return collection;
+                },
+                async count() {
+                    let sql = `SELECT COUNT(*) as count FROM [${self.tableName}]`;
+                    if (conditions.length > 0) {
+                        sql += ` WHERE ` + conditions.join(' OR ');
+                    }
+                    const res = await self.db.query(sql, params);
+                    return res[0]?.count || 0;
+                },
+                async toArray() {
+                    let sql = `SELECT * FROM [${self.tableName}]`;
+                    if (conditions.length > 0) {
+                        sql += ` WHERE ` + conditions.join(' OR ');
+                    }
+                    if (sortByField) {
+                        sql += ` ORDER BY [${sortByField}] ${isReverse ? 'DESC' : 'ASC'}`;
+                    }
+                    let results = await self.db.query(sql, params);
+                    for (const fn of filters) {
+                        results = results.filter(fn);
+                    }
+                    if (limitVal !== null) {
+                        results = results.slice(0, limitVal);
+                    }
+                    return results;
+                },
+                async first() {
+                    let sql = `SELECT * FROM [${self.tableName}]`;
+                    if (conditions.length > 0) {
+                        sql += ` WHERE ` + conditions.join(' OR ');
+                    }
+                    if (sortByField) {
+                        sql += ` ORDER BY [${sortByField}] ${isReverse ? 'DESC' : 'ASC'}`;
+                    }
+                    let results = await self.db.query(sql, params);
+                    for (const fn of filters) {
+                        results = results.filter(fn);
+                    }
+                    return results[0] || null;
+                },
+                async delete() {
+                    let sql = `DELETE FROM [${self.tableName}]`;
+                    if (conditions.length > 0) {
+                        sql += ` WHERE ` + conditions.join(' OR ');
+                    }
+                    await self.db.execute(sql, params);
+                }
+            };
+            return collection;
+        };
+
+        return {
+            equals(val) {
+                conditions.push(`[${fieldOrObj}] = ?`);
+                params.push(val);
+                return buildCollection();
+            }
+        };
+    }
+}
+
 export class FastSQLDB extends IDatabase {
+    static minKey = 'minKey_placeholder';
+    static maxKey = 'maxKey_placeholder';
+
     constructor() {
         super();
         this.conn = null;
         this.dbName = 'elevengram_db';
+        return new Proxy(this, {
+            get(target, prop) {
+                if (prop in target) return target[prop];
+                if (typeof prop === 'string' && !prop.startsWith('_') && prop !== 'then' && prop !== 'toJSON') {
+                    return new FastSQLTableWrapper(target, prop);
+                }
+                return target[prop];
+            }
+        });
     }
 
     async init() {
@@ -134,6 +336,58 @@ export class FastSQLDB extends IDatabase {
                 song_id TEXT PRIMARY KEY,
                 download_status TEXT,
                 local_file_path TEXT
+            )
+        `);
+
+        await this.conn.execute(`
+            CREATE TABLE IF NOT EXISTS blocked_users (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                blocked_user_id TEXT,
+                created_at TEXT,
+                is_syncing INTEGER DEFAULT 0
+            )
+        `);
+
+        await this.conn.execute(`
+            CREATE TABLE IF NOT EXISTS reports (
+                id TEXT PRIMARY KEY,
+                reporter_id TEXT,
+                reported_id TEXT,
+                report_type TEXT,
+                reason TEXT,
+                message_id TEXT,
+                report_status TEXT,
+                created_at TEXT
+            )
+        `);
+
+        await this.conn.execute(`
+            CREATE TABLE IF NOT EXISTS call_history (
+                id TEXT PRIMARY KEY,
+                callerId TEXT,
+                receiverId TEXT,
+                callId TEXT,
+                callType TEXT,
+                callStatus TEXT,
+                callDuration INTEGER,
+                startedAt TEXT,
+                endedAt TEXT,
+                answeredAt TEXT,
+                roomId TEXT,
+                groupId TEXT,
+                otherUserId TEXT,
+                otherUserName TEXT,
+                otherUserAvatar TEXT
+            )
+        `);
+
+        await this.conn.execute(`
+            CREATE TABLE IF NOT EXISTS ratchet_sessions (
+                chatId TEXT PRIMARY KEY,
+                chainKey TEXT,
+                messageNumber INTEGER,
+                savedMessageKeys TEXT
             )
         `);
     }

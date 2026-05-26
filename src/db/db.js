@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { DexieDB } from './DexieDB';
 import { FastSQLDB } from './FastSQLDB';
+import { uuid } from '../utils/idGenerators';
 
 /**
  * Global database instance. 
@@ -12,10 +13,22 @@ export const db = Capacitor.isNativePlatform()
 
 // Initialize the database connection
 if (Capacitor.isNativePlatform()) {
-    db.init().catch(err => console.error('[Database] Native init failed:', err));
+    db.init()
+        .then(() => {
+            import('../services/DoubleRatchetService').then(({ doubleRatchetService }) => {
+                doubleRatchetService.loadAllSessions().catch(err => console.error('[Ratchet] Init failed:', err));
+            });
+        })
+        .catch(err => console.error('[Database] Native init failed:', err));
 } else {
     // Dexie opens automatically on first access, but we can call init for consistency
-    db.init().catch(err => console.error('[Database] Web init failed:', err));
+    db.init()
+        .then(() => {
+            import('../services/DoubleRatchetService').then(({ doubleRatchetService }) => {
+                doubleRatchetService.loadAllSessions().catch(err => console.error('[Ratchet] Init failed:', err));
+            });
+        })
+        .catch(err => console.error('[Database] Web init failed:', err));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,7 +40,7 @@ if (Capacitor.isNativePlatform()) {
  */
 export const addToSyncQueue = async (action, data, table = 'messages') => {
     return await db.set('sync_queue', {
-        id: crypto.randomUUID(),
+        id: uuid(),
         table,
         operation: action,
         data: typeof data === 'object' ? JSON.stringify(data) : data,

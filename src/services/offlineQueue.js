@@ -1,6 +1,7 @@
 import { getDatabase } from '../db/DatabaseFactory';
 import { supabase } from '../config/supabase';
 import { addDbBreadcrumb } from '../config/sentry';
+import { uuid } from '../utils/idGenerators';
 
 /**
  * Bulletproof Offline Queue (The Muscles)
@@ -36,7 +37,7 @@ export const QUEUE_ACTIONS = {
  * Add action to offline queue with Idempotency Key
  */
 export const queueAction = async (action, table, data, options = {}) => {
-  const taskId = options.taskId || crypto.randomUUID();
+  const taskId = options.taskId || uuid();
   
   const queueItem = {
     id: taskId, // This is our Idempotency Key
