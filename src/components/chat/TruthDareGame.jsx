@@ -76,7 +76,7 @@ const TruthDareGame = ({
                 setIsSpinning(false);
                 if (isHostRef.current) {
                     const whoStartsVal = spinDataRef.current?.whoStarts;
-                    const firstAsker = whoStartsVal === 'me' ? userIdRef.current : partnerIdRef.current;
+                    const firstAsker = whoStartsVal === 'me' ? partnerIdRef.current : userIdRef.current;
                     console.log('[TruthDareGame] Spin complete, calling completeSpin for:', firstAsker);
                     completeSpinRef.current(firstAsker);
                 }

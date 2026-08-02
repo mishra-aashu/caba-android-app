@@ -69,64 +69,71 @@ const DesktopNavbar = () => {
   return (
     <>
       <nav className="desktop-navbar">
+        <div className="desktop-navbar-brand">
+          <span className="brand-logo-dot" />
+          <span className="brand-name">ELEVENGRAM</span>
+        </div>
         <ul className="desktop-navbar-nav">
           <li className="desktop-nav-item">
-            <Link to="/" className="desktop-nav-link" data-tooltip="Home">
+            <Link to="/" className={`desktop-nav-link${location.pathname === '/' && !location.search.includes('view=create-group') ? ' active' : ''}`} data-tooltip="Home">
               <Home className="desktop-nav-icon home-icon" />
+              <span className="desktop-nav-text">Home</span>
             </Link>
           </li>
           <li className="desktop-nav-item">
             <button
-              className="desktop-nav-link"
+              className={`desktop-nav-link${location.search.includes('view=create-group') ? ' active' : ''}`}
               data-tooltip="Create Group"
               onClick={handleGroupsClick}
             >
               <Users className="desktop-nav-icon groups-icon" />
+              <span className="desktop-nav-text">Create Group</span>
             </button>
           </li>
-          <li className="desktop-nav-item" style={{ position: 'relative' }}>
+          <li className="desktop-nav-item">
             <Link to="/games" className={`desktop-nav-link${location.pathname === '/games' ? ' active' : ''}`} data-tooltip="Game Hub">
               <Gamepad2 className="desktop-nav-icon" style={{ color: location.pathname === '/games' ? '#00a884' : undefined }} />
+              <span className="desktop-nav-text">Game Hub</span>
               {gameInviteCount > 0 && (
-                <span className="nav-notif-dot" style={{
-                  position: 'absolute', top: '2px', right: '2px',
-                  background: '#ff4b4b', // Red dot for better visibility
-                  borderRadius: '50%', width: '10px', height: '10px',
-                  border: '2px solid #111',
-                  boxShadow: '0 0 10px rgba(255, 75, 75, 0.5)',
-                  animation: 'pulse 2s infinite'
-                }} />
+                <span className="nav-notif-badge">
+                  {gameInviteCount}
+                </span>
               )}
             </Link>
           </li>
           <li className="desktop-nav-item">
             <button 
-              className="desktop-nav-link" 
+              className={`desktop-nav-link${location.pathname === '/listen-together' ? ' active' : ''}`} 
               data-tooltip="Music Discovery"
               onClick={() => navigate('/listen-together')}
             >
               <Music className="desktop-nav-icon music-icon" />
+              <span className="desktop-nav-text">Music Hub</span>
             </button>
           </li>
 
           <li className="desktop-nav-item">
-            <Link to="/profile" className="desktop-nav-link" data-tooltip="Profile">
+            <Link to="/profile" className={`desktop-nav-link${location.pathname === '/profile' ? ' active' : ''}`} data-tooltip="Profile">
               <User className="desktop-nav-icon profile-nav-icon" />
+              <span className="desktop-nav-text">Profile</span>
             </Link>
           </li>
           <li className="desktop-nav-item">
-            <Link to="/history" className="desktop-nav-link" data-tooltip="Call History">
+            <Link to="/history" className={`desktop-nav-link${location.pathname === '/history' ? ' active' : ''}`} data-tooltip="Call History">
               <History className="desktop-nav-icon history-icon" />
+              <span className="desktop-nav-text">Call History</span>
             </Link>
           </li>
           <li className="desktop-nav-item">
-            <Link to="/reminders" className="desktop-nav-link" data-tooltip="Reminders">
+            <Link to="/reminders" className={`desktop-nav-link${location.pathname === '/reminders' ? ' active' : ''}`} data-tooltip="Reminders">
               <Bell className="desktop-nav-icon reminders-nav-icon" />
+              <span className="desktop-nav-text">Reminders</span>
             </Link>
           </li>
           <li className="desktop-nav-item">
-            <Link to="/settings" className="desktop-nav-link" data-tooltip="Settings">
+            <Link to="/settings" className={`desktop-nav-link${location.pathname === '/settings' ? ' active' : ''}`} data-tooltip="Settings">
               <Settings className="desktop-nav-icon settings-nav-icon" />
+              <span className="desktop-nav-text">Settings</span>
             </Link>
           </li>
         </ul>
