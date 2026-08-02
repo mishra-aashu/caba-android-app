@@ -45,6 +45,10 @@ const ChessGame = ({
 
     const result = makeMove(move);
     
+    // Clear selection on drag drop
+    setMoveFrom('');
+    setOptionSquares({});
+    
     // If move was successful and we are guest, optimistically update local game 
     // to prevent piece snap-back before the sync event arrives.
     if (result && !isHost) {
@@ -58,6 +62,45 @@ const ChessGame = ({
     }
     
     return result;
+  };
+
+  const onSquareClick = (square) => {
+    if (!isMyTurn) return;
+
+    const piece = game.get(square);
+
+    // If clicking own piece, select/change selection
+    if (piece && piece.color === mySide) {
+      setMoveFrom(square);
+      setOptionSquares({
+        [square]: { backgroundColor: 'rgba(0, 168, 132, 0.4)' }
+      });
+      return;
+    }
+
+    // If a piece was already selected and clicking somewhere else, try to move
+    if (moveFrom) {
+      const move = {
+        from: moveFrom,
+        to: square,
+        promotion: 'q'
+      };
+
+      const result = makeMove(move);
+
+      if (result && !isHost) {
+        try {
+          const newGame = new Chess(game.fen());
+          newGame.move(move);
+          setGame(newGame);
+        } catch (e) {
+          console.error('[ChessGame] Click optimistic update failed:', e);
+        }
+      }
+
+      setMoveFrom('');
+      setOptionSquares({});
+    }
   };
 
   const mySide = players[userId]?.side || (isHost ? 'w' : 'b');
@@ -133,14 +176,18 @@ const ChessGame = ({
       </div>
 
       <div className={styles.boardWrapper}>
-        <Chessboard 
-            position={fen} 
-            onPieceDrop={onDrop} 
-            boardOrientation={mySide === 'w' ? 'white' : 'black'}
-            customDarkSquareStyle={{ backgroundColor: '#2a2a2a' }}
-            customLightSquareStyle={{ backgroundColor: '#4a4a4a' }}
-            animationDuration={200}
-        />
+        <div className={styles.boardContainer}>
+          <Chessboard 
+              position={fen} 
+              onPieceDrop={onDrop} 
+              onSquareClick={onSquareClick}
+              customSquareStyles={optionSquares}
+              boardOrientation={mySide === 'w' ? 'white' : 'black'}
+              customDarkSquareStyle={{ backgroundColor: '#2a2a2a' }}
+              customLightSquareStyle={{ backgroundColor: '#4a4a4a' }}
+              animationDuration={200}
+          />
+        </div>
       </div>
 
       <div className={styles.playerBar}>

@@ -113,6 +113,13 @@
   width: 100%;
 }
 
+.boardContainer {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  max-height: 80vh;
+}
+
 .turnIndicator {
   font-size: 11px;
   padding: 4px 8px;
