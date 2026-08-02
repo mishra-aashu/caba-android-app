@@ -71,78 +71,6 @@ export const useChessGame = (roomId, dbUser, supabase) => {
     sendGameEvent({ type: 'CHESS_UPDATE', gameState: payload });
   }, [sendGameEvent]);
 
-  useEffect(() => {
-    if (!lastGameEvent) return;
-    if (lastGameEvent.type === 'CHESS_UPDATE' && !stateRef.current.isHost) {
-      dispatch({ type: 'SYNC_STATE', payload: lastGameEvent.gameState });
-    } else if (lastGameEvent.type === 'CHESS_MOVE' && stateRef.current.isHost) {
-      handleMove(lastGameEvent.move);
-    } else if (lastGameEvent.type === 'SYNC_REQUEST' && stateRef.current.isHost) {
-      if (stateRef.current.stage === CHESS_STATES.INVITING) {
-        console.log('[useChessGame] Received SYNC_REQUEST while inviting, transitioning to PLAYING...');
-        dispatch({
-          type: 'SYNC_STATE',
-          payload: {
-            stage: CHESS_STATES.PLAYING
-          }
-        });
-        const updatedState = { ...stateRef.current, stage: CHESS_STATES.PLAYING };
-        broadcastState(updatedState);
-      } else {
-        broadcastState(stateRef.current);
-      }
-    }
-  }, [lastGameEvent, handleMove, broadcastState]);
-
-  // ─── Sync Request Loop (Client in JOINING) ─────────────────
-  useEffect(() => {
-    if (state.stage !== CHESS_STATES.JOINING || state.isHost) return;
-
-    // Send initial sync request
-    sendGameEvent({ type: 'SYNC_REQUEST' });
-    
-    // Periodic sync requests
-    const interval = setInterval(() => {
-      if (stateRef.current.stage === CHESS_STATES.JOINING) {
-        sendGameEvent({ type: 'SYNC_REQUEST' });
-      }
-    }, 2000);
-
-    // Timeout fallback
-    const timeout = setTimeout(() => {
-      if (stateRef.current.stage === CHESS_STATES.JOINING) {
-        console.warn('⏱️ Chess JOINING timeout — host did not respond');
-        toast.error('Could not connect to host. Returning to lobby...', { duration: 4000 });
-        dispatch({ type: 'RESET' });
-      }
-    }, 15000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [state.stage, state.isHost, sendGameEvent]);
-
-  // Broadcast state when peer connects (for robustness during mid-game reconnection)
-  useEffect(() => {
-    if (state.isHost && webrtc.peers.length > 0) {
-      if (state.stage === CHESS_STATES.INVITING) {
-        console.log('[useChessGame] Peer connected while inviting, transitioning to PLAYING...');
-        dispatch({
-          type: 'SYNC_STATE',
-          payload: {
-            stage: CHESS_STATES.PLAYING
-          }
-        });
-        const updatedState = { ...stateRef.current, stage: CHESS_STATES.PLAYING };
-        broadcastState(updatedState);
-      } else {
-        console.log('[useChessGame] Peer connected, broadcasting state...');
-        broadcastState(stateRef.current);
-      }
-    }
-  }, [webrtc.peers.length, state.isHost, state.stage, broadcastState]);
-
   const handleMove = useCallback((move) => {
     const game = chessRef.current;
     try {
@@ -171,6 +99,29 @@ export const useChessGame = (roomId, dbUser, supabase) => {
     }
     return false;
   }, [broadcastState]);
+
+  useEffect(() => {
+    if (!lastGameEvent) return;
+    if (lastGameEvent.type === 'CHESS_UPDATE' && !stateRef.current.isHost) {
+      dispatch({ type: 'SYNC_STATE', payload: lastGameEvent.gameState });
+    } else if (lastGameEvent.type === 'CHESS_MOVE' && stateRef.current.isHost) {
+      handleMove(lastGameEvent.move);
+    } else if (lastGameEvent.type === 'SYNC_REQUEST' && stateRef.current.isHost) {
+      if (stateRef.current.stage === CHESS_STATES.INVITING) {
+        console.log('[useChessGame] Received SYNC_REQUEST while inviting, transitioning to PLAYING...');
+        dispatch({
+          type: 'SYNC_STATE',
+          payload: {
+            stage: CHESS_STATES.PLAYING
+          }
+        });
+        const updatedState = { ...stateRef.current, stage: CHESS_STATES.PLAYING };
+        broadcastState(updatedState);
+      } else {
+        broadcastState(stateRef.current);
+      }
+    }
+  }, [lastGameEvent, handleMove, broadcastState]);
 
   const makeMove = useCallback((move) => {
     if (state.stage !== CHESS_STATES.PLAYING) return false;
