@@ -250,7 +250,6 @@ export const useChessGame = (roomId, dbUser, supabase) => {
         }
       }
     });
-
     if (isHost && stage === CHESS_STATES.PLAYING) {
       setTimeout(() => {
         broadcastState(stateRef.current);
@@ -258,16 +257,33 @@ export const useChessGame = (roomId, dbUser, supabase) => {
     }
   }, [userId, dbUser, broadcastState]);
 
+  const closeGame = useCallback(async () => {
+    const currentId = stateRef.current.gameId;
+    if (currentId) {
+      try {
+        await supabase
+          .from(DB_TABLES.GAME_INVITATIONS)
+          .update({ 
+            status: 'rejected',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentId);
+      } catch (err) {
+        console.error('Error closing chess game:', err);
+      }
+    }
+    
+    dispatch({ type: 'RESET' });
+    sendGameEvent({ type: 'CHESS_UPDATE', gameState: INITIAL_CHESS_STATE });
+  }, [supabase, sendGameEvent]);
+
   return {
     gameState: state,
     makeMove,
     startGame,
     acceptGame,
     joinBattle,
-    closeGame: () => {
-        dispatch({ type: 'RESET' });
-        sendGameEvent({ type: 'CHESS_UPDATE', gameState: INITIAL_CHESS_STATE });
-    },
+    closeGame,
     isActive: state.stage !== CHESS_STATES.IDLE,
     webrtc
   };

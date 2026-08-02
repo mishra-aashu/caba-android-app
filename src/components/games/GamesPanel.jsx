@@ -177,7 +177,19 @@ const GamesPanel = () => {
         .limit(MAX_INVITES);
 
       if (error) throw error;
-      if (isSubscribedRef.current) setPendingInvites(data || []);
+      
+      // Deduplicate to only keep the latest invite per (chat_id, game_type)
+      const uniqueInvites = [];
+      const keys = new Set();
+      (data || []).forEach(inv => {
+        const key = `${inv.chat_id}_${inv.game_type}`;
+        if (!keys.has(key)) {
+          keys.add(key);
+          uniqueInvites.push(inv);
+        }
+      });
+
+      if (isSubscribedRef.current) setPendingInvites(uniqueInvites);
     } catch (error) {
       console.error('Error loading invites:', error);
     } finally {
@@ -274,21 +286,49 @@ const GamesPanel = () => {
         chatId = newChat.id;
       }
 
-      // 2. Create the game invitation record
-      const { data: invite, error: inviteError } = await supabase
+      // 2. Check if a game invitation already exists between these two users for this game type
+      const { data: existingInvite } = await supabase
         .from(DB_TABLES.GAME_INVITATIONS)
-        .insert({
-          chat_id: chatId,
-          sender_id: dbUser.id,
-          receiver_id: targetUser.id,
-          game_type: gameType,
-          status: 'pending',
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('chat_id', chatId)
+        .eq('game_type', gameType)
+        .maybeSingle();
 
-      if (inviteError) throw inviteError;
+      let invite;
+      if (existingInvite?.id) {
+        // Reuse the existing invitation, resetting its status to pending, updating sender/receiver
+        const { data: reusedInvite, error: updateError } = await supabase
+          .from(DB_TABLES.GAME_INVITATIONS)
+          .update({
+            sender_id: dbUser.id,
+            receiver_id: targetUser.id,
+            status: 'pending',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingInvite.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        invite = reusedInvite;
+      } else {
+        // Create a new game invitation record
+        const { data: newInvite, error: inviteError } = await supabase
+          .from(DB_TABLES.GAME_INVITATIONS)
+          .insert({
+            chat_id: chatId,
+            sender_id: dbUser.id,
+            receiver_id: targetUser.id,
+            game_type: gameType,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (inviteError) throw inviteError;
+        invite = newInvite;
+      }
 
       toast.dismiss(loadingToast);
       toast.success('Invitation sent!');
