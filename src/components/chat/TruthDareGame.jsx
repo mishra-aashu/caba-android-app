@@ -301,16 +301,10 @@ const TruthDareGame = ({
             <div className={styles['ask-bubble']}>
                 <p>"Truth or Dare?"</p>
             </div>
-            {isAsker ? (
-                <button onClick={askTD} className={styles['launch-btn']}>
-                    ASK {opponent.name.toUpperCase()}
-                </button>
-            ) : (
-                <div className={styles['selection-status']}>
-                    <span className={styles['selection-dot']} />
-                    <span>{opponent.name} is asking you...</span>
-                </div>
-            )}
+            <div className={styles['selection-status']}>
+                <span className={styles['selection-dot']} />
+                <span>{isAsker ? `Preparing to ask ${opponent.name}...` : `${opponent.name} is asking you...`}</span>
+            </div>
         </div>
     );
 

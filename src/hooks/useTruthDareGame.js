@@ -53,6 +53,7 @@ const INITIAL_GAME_STATE = {
 };
 
 const TURN_ANNOUNCE_DELAY = 2500;
+const TURN_ASKS_DELAY = 3000;
 const TURN_RESULT_DELAY = 3000;
 const SYNC_REQUEST_INTERVAL = 2000;
 const SYNC_TIMEOUT = 15000;
@@ -266,6 +267,15 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
           hostTransition(GAME_STATES.TURN_ASKS);
         }
       }, TURN_ANNOUNCE_DELAY);
+    }
+
+    // Turn asks auto-advance (no manual ask button needed)
+    if (nextStage === GAME_STATES.TURN_ASKS) {
+      timerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          hostTransition(GAME_STATES.TURN_CHOOSES);
+        }
+      }, TURN_ASKS_DELAY);
     }
 
     // Initial spin auto-advance (after spin animation)
