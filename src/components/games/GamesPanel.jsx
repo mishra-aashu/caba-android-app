@@ -483,6 +483,7 @@ const GamesPanel = () => {
   }, [dbUser?.id, tdGame.joinBattle, chessGame.joinBattle]);
 
   const gameProps = useMemo(() => ({
+    gameState: activeGame.gameState,
     ...activeGame.gameState,
     gameType: battleContext?.gameType,
     userId: dbUser?.id,
