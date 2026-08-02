@@ -65,6 +65,8 @@ export default class WebRTCRoomManager extends EventTarget {
     // ── Boot ────────────────────────────────────────────────
     this._initSignaling();
     this._startHeartbeat();
+    this._pingInterval = null;
+    this._startPingInterval();
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -126,6 +128,26 @@ export default class WebRTCRoomManager extends EventTarget {
     this._heartbeatInterval = setInterval(() => {
       this._broadcast('heartbeat').catch(() => {});
     }, 10000);
+  }
+
+  _startPingInterval() {
+    this._pingInterval = setInterval(() => {
+      if (this._destroyed) return;
+      const now = Date.now();
+      for (const [peerId, peer] of this.peers) {
+        const channel = peer.channels.get('game-events');
+        if (channel && channel.readyState === 'open') {
+          try {
+            channel.send(JSON.stringify({
+              type: 'system-ping',
+              sentAt: now
+            }));
+          } catch (err) {
+            // Silence silent errors
+          }
+        }
+      }
+    }, 3000);
   }
 
   async _broadcast(type, data = {}) {
@@ -374,10 +396,32 @@ export default class WebRTCRoomManager extends EventTarget {
   _routeMessage(channelName, peerId, data) {
     switch (channelName) {
       case 'game-events':
-        this._emit('game-event', {
-          peerId,
-          ...JSON.parse(data),
-        });
+        try {
+          const msg = JSON.parse(data);
+          if (msg.type === 'system-ping') {
+            const channel = this.peers.get(peerId)?.channels.get('game-events');
+            if (channel && channel.readyState === 'open') {
+              try {
+                channel.send(JSON.stringify({
+                  type: 'system-pong',
+                  sentAt: msg.sentAt
+                }));
+              } catch (err) {
+                // Silence
+              }
+            }
+          } else if (msg.type === 'system-pong') {
+            const latency = Date.now() - msg.sentAt;
+            this._emit('ping-updated', { peerId, ping: latency });
+          } else {
+            this._emit('game-event', {
+              peerId,
+              ...msg,
+            });
+          }
+        } catch (e) {
+          console.error('[WebRTC] Error routing game-event:', e);
+        }
         break;
 
       case 'chat-text':
@@ -825,6 +869,11 @@ export default class WebRTCRoomManager extends EventTarget {
     if (this._heartbeatInterval) {
       clearInterval(this._heartbeatInterval);
       this._heartbeatInterval = null;
+    }
+
+    if (this._pingInterval) {
+      clearInterval(this._pingInterval);
+      this._pingInterval = null;
     }
 
     // Notify peers

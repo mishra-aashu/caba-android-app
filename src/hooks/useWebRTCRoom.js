@@ -25,6 +25,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState({}); // { [peerId]: MediaStream }
+  const [ping, setPing] = useState(null);
 
   // Track signaling and WebRTC activity to determine peer connection state
   const peerActivityRef = useRef(new Map()); // peerId -> { userName, lastSeen, isWebRTC }
@@ -174,6 +175,10 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
       }));
     };
 
+    const onPingUpdated = (e) => {
+      setPing(e.detail.ping);
+    };
+
     manager.addEventListener('peer-connected', onPeerConnected);
     manager.addEventListener('peer-disconnected', onPeerDisconnected);
     manager.addEventListener('peer-left', onPeerLeft);
@@ -185,6 +190,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     manager.addEventListener('media-received', onMediaReceived);
     manager.addEventListener('local-stream-changed', onLocalStreamChanged);
     manager.addEventListener('track-received', onTrackReceived);
+    manager.addEventListener('ping-updated', onPingUpdated);
 
     setConnectionState(hasConnectedPeer ? 'connected' : 'waiting');
 
@@ -217,6 +223,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
       manager.removeEventListener('media-received', onMediaReceived);
       manager.removeEventListener('local-stream-changed', onLocalStreamChanged);
       manager.removeEventListener('track-received', onTrackReceived);
+      manager.removeEventListener('ping-updated', onPingUpdated);
 
       // Release singleton reference — destroys only when refCount hits 0
       releaseManager(roomId);
@@ -270,6 +277,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     isAudioEnabled,
     localStream,
     remoteStreams,
+    ping,
     sendChat,
     sendGameEvent,
     sendMedia,
