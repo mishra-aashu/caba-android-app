@@ -71,33 +71,6 @@ const GamesPanel = () => {
   const onlineUsersMap = usePresenceStore(state => state.onlineUsers);
   
   // ── All Opponents (Unified List) ──────────────────────
-  const [suggestedUsers, setSuggestedUsers] = useState([]);
-
-  useEffect(() => {
-    if (!dbUser?.id || !supabase) return;
-    const fetchSuggestedUsers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, name, avatar, is_online, last_seen')
-          .neq('id', dbUser.id)
-          .limit(15);
-        if (!error && data) {
-          setSuggestedUsers(data.map(u => ({
-            id: u.id,
-            name: u.name || 'Unknown',
-            avatar: u.avatar,
-            isOnline: u.is_online || false,
-            lastSeen: u.last_seen || null
-          })));
-        }
-      } catch (err) {
-        console.error('Failed to fetch suggested users:', err);
-      }
-    };
-    fetchSuggestedUsers();
-  }, [dbUser?.id, supabase]);
-
   const allOpponents = useMemo(() => {
     const opponentsMap = new Map();
 
@@ -143,20 +116,7 @@ const GamesPanel = () => {
       }
     });
 
-    // 4. Process Suggested Users (from Supabase users table)
-    suggestedUsers.forEach(u => {
-      if (u && u.id && u.id !== dbUser?.id && !opponentsMap.has(String(u.id))) {
-        opponentsMap.set(String(u.id), {
-          id: u.id,
-          name: u.name || 'Unknown',
-          avatar: u.avatar,
-          isOnline: u.isOnline || false,
-          lastSeen: u.lastSeen || null
-        });
-      }
-    });
-
-    // 5. Final List with sorting
+    // 4. Final List with sorting
     // We include onlineUsersMap in dependencies to ensure the list re-sorts
     // automatically when someone's status changes in the store.
     return Array.from(opponentsMap.values()).sort((a, b) => {
@@ -170,7 +130,7 @@ const GamesPanel = () => {
       const dateB = new Date(b.lastSeen || 0);
       return dateB - dateA;
     });
-  }, [myContacts, myChats, onlineUsersMap, suggestedUsers, dbUser?.id]); // Added onlineUsersMap and suggestedUsers dependencies
+  }, [myContacts, myChats, onlineUsersMap, dbUser?.id]);
 
   // Reactive online count from the store
   const onlineCount = useMemo(() => {
