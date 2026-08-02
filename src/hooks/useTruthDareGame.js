@@ -459,10 +459,28 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
     } else if (lastGameEvent.type === 'SYNC_REQUEST') {
       // Host responds to sync requests
       if (current.isHost) {
-        broadcastState(current, true);
+        if (current.stage === GAME_STATES.INVITING) {
+          console.log('[useTruthDareGame] Received SYNC_REQUEST while inviting, transitioning to SETUP...');
+          hostTransition(GAME_STATES.SETUP);
+        } else {
+          broadcastState(current, true);
+        }
       }
     }
-  }, [lastGameEvent, handleAction, broadcastState]);
+  }, [lastGameEvent, handleAction, broadcastState, hostTransition]);
+
+  // Broadcast state when peer connects or transition to SETUP if inviting
+  useEffect(() => {
+    if (state.isHost && webrtc.peers.length > 0) {
+      if (state.stage === GAME_STATES.INVITING) {
+        console.log('[useTruthDareGame] Peer detected while inviting, transitioning to SETUP...');
+        hostTransition(GAME_STATES.SETUP);
+      } else {
+        console.log('[useTruthDareGame] Peer connected, broadcasting state...');
+        broadcastState(stateRef.current);
+      }
+    }
+  }, [webrtc.peers.length, state.isHost, state.stage, hostTransition, broadcastState]);
 
   // ─── Sync Request Loop (Client in JOINING) ─────────────────
   useEffect(() => {

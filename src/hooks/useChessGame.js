@@ -78,9 +78,21 @@ export const useChessGame = (roomId, dbUser, supabase) => {
     } else if (lastGameEvent.type === 'CHESS_MOVE' && stateRef.current.isHost) {
       handleMove(lastGameEvent.move);
     } else if (lastGameEvent.type === 'SYNC_REQUEST' && stateRef.current.isHost) {
+      if (stateRef.current.stage === CHESS_STATES.INVITING) {
+        console.log('[useChessGame] Received SYNC_REQUEST while inviting, transitioning to PLAYING...');
+        dispatch({
+          type: 'SYNC_STATE',
+          payload: {
+            stage: CHESS_STATES.PLAYING
+          }
+        });
+        const updatedState = { ...stateRef.current, stage: CHESS_STATES.PLAYING };
+        broadcastState(updatedState);
+      } else {
         broadcastState(stateRef.current);
+      }
     }
-  }, [lastGameEvent]);
+  }, [lastGameEvent, handleMove, broadcastState]);
 
   // ─── Sync Request Loop (Client in JOINING) ─────────────────
   useEffect(() => {
@@ -114,10 +126,22 @@ export const useChessGame = (roomId, dbUser, supabase) => {
   // Broadcast state when peer connects (for robustness during mid-game reconnection)
   useEffect(() => {
     if (state.isHost && webrtc.peers.length > 0) {
-      console.log('[useChessGame] Peer connected, broadcasting state...');
-      broadcastState(stateRef.current);
+      if (state.stage === CHESS_STATES.INVITING) {
+        console.log('[useChessGame] Peer connected while inviting, transitioning to PLAYING...');
+        dispatch({
+          type: 'SYNC_STATE',
+          payload: {
+            stage: CHESS_STATES.PLAYING
+          }
+        });
+        const updatedState = { ...stateRef.current, stage: CHESS_STATES.PLAYING };
+        broadcastState(updatedState);
+      } else {
+        console.log('[useChessGame] Peer connected, broadcasting state...');
+        broadcastState(stateRef.current);
+      }
     }
-  }, [webrtc.peers.length, state.isHost, broadcastState]);
+  }, [webrtc.peers.length, state.isHost, state.stage, broadcastState]);
 
   const handleMove = useCallback((move) => {
     const game = chessRef.current;
