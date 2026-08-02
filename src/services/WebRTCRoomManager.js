@@ -528,13 +528,14 @@ export default class WebRTCRoomManager extends EventTarget {
   // PUBLIC API: Send Chat Message
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  async sendChatMessage(text) {
+  async sendChatMessage(text, replyingTo = null) {
     const msg = {
       id: uuid(),
       text,
       senderId: this.userId,
       senderName: this.userName,
       timestamp: Date.now(),
+      replyingTo
     };
     const sent = this._broadcastOnChannel('chat-text', JSON.stringify(msg));
     

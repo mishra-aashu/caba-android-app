@@ -203,8 +203,8 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
 
   // ── Exposed Actions ─────────────────────────────────────
 
-  const sendChat = useCallback((text) => {
-    managerRef.current?.sendChatMessage(text);
+  const sendChat = useCallback((text, replyingTo = null) => {
+    managerRef.current?.sendChatMessage(text, replyingTo);
   }, []);
 
   const sendGameEvent = useCallback((event) => {

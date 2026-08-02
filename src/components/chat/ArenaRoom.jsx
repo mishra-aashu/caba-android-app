@@ -28,6 +28,30 @@ const ArenaRoom = ({
   const scrollRef = useRef(null);
   const { user: currentUser } = useAuth();
 
+  const [isReplyDismissed, setIsReplyDismissed] = useState(false);
+
+  // Reset reply dismiss state when the game stage or content changes
+  const lastContentRef = useRef(gameProps.gameState?.content);
+  const lastStageRef = useRef(gameProps.gameState?.stage);
+
+  useEffect(() => {
+    const currentContent = gameProps.gameState?.content;
+    const currentStage = gameProps.gameState?.stage;
+    if (currentContent !== lastContentRef.current || currentStage !== lastStageRef.current) {
+      setIsReplyDismissed(false);
+      lastContentRef.current = currentContent;
+      lastStageRef.current = currentStage;
+    }
+  }, [gameProps.gameState?.content, gameProps.gameState?.stage]);
+
+  const isTarget = String(userId) === String(gameProps.gameState?.targetId);
+  const activeChallengeReply = (!isReplyDismissed && gameProps.gameType === 'truth_or_dare' && gameProps.gameState?.stage === 'turn-responding' && gameProps.gameState?.content && isTarget)
+    ? {
+        sender_id: gameProps.gameState.askerId,
+        content: `[${gameProps.gameState.type?.toUpperCase()}]: ${gameProps.gameState.content}`
+      }
+    : null;
+
   const { 
     chatMessages, sendChat, sendMedia, peers, connectionState,
     isAudioEnabled, toggleAudio, remoteStreams
@@ -216,7 +240,9 @@ const ArenaRoom = ({
             <MessageInput 
               chatId={chatId}
               currentUser={currentUser}
-              onSendMessage={(text) => sendChat(text)}
+              replyingTo={activeChallengeReply}
+              onCancelReply={() => setIsReplyDismissed(true)}
+              onSendMessage={(text) => sendChat(text, activeChallengeReply)}
               onSendMedia={(file, type) => sendMedia(file, type)}
               onTyping={() => {}}
             />
@@ -285,7 +311,9 @@ const ArenaRoom = ({
                 <MessageInput 
                   chatId={chatId}
                   currentUser={currentUser}
-                  onSendMessage={(text) => sendChat(text)}
+                  replyingTo={activeChallengeReply}
+                  onCancelReply={() => setIsReplyDismissed(true)}
+                  onSendMessage={(text) => sendChat(text, activeChallengeReply)}
                   onSendMedia={(file, type) => sendMedia(file, type)}
                   onTyping={() => {}}
                 />
@@ -419,6 +447,15 @@ const ChatMessage = React.memo(({ msg, isMe, onExpand }) => {
       <div className={styles.messageBubble}>
         {!isMe && <span className={styles.senderName}>{msg.senderName}</span>}
         
+        {msg.replyingTo && (
+          <div className={styles.replyContextBubble}>
+            <div className={styles.replyContextBorder} />
+            <div className={styles.replyContextText}>
+              {msg.replyingTo.content}
+            </div>
+          </div>
+        )}
+
         {msg.type === 'text' && <p>{msg.text}</p>}
         
         {msg.type === 'media' && (
