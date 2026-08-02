@@ -210,6 +210,10 @@ export class DexieDB extends Dexie {
         this.version(21).stores({
             ratchet_sessions: 'chatId'
         });
+
+        this.version(22).stores({
+            reminders: 'id, userId, reminderTime, senderId, receiverId, synced'
+        });
     }
 
     /**
