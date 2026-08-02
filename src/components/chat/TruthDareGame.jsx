@@ -306,7 +306,10 @@ const TruthDareGame = ({
                     ASK {opponent.name.toUpperCase()}
                 </button>
             ) : (
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>{opponent.name} is asking you...</p>
+                <div className={styles['selection-status']}>
+                    <span className={styles['selection-dot']} />
+                    <span>{opponent.name} is asking you...</span>
+                </div>
             )}
         </div>
     );
@@ -333,7 +336,10 @@ const TruthDareGame = ({
                 </button>
             </div>
             {!isTarget && (
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>{opponent.name} is choosing...</p>
+                <div className={styles['selection-status']}>
+                    <span className={styles['selection-dot']} />
+                    <span>{opponent.name} is choosing...</span>
+                </div>
             )}
         </div>
     );
@@ -373,6 +379,10 @@ const TruthDareGame = ({
                     <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
                         <RotateCcw size={32} style={{ color: '#00a884' }} />
                     </motion.div>
+                    <div className={styles['selection-status']} style={{ marginTop: '1.5rem' }}>
+                        <span className={styles['selection-dot']} />
+                        <span>{opponent.name} is writing your challenge...</span>
+                    </div>
                 </div>
             )}
         </div>
@@ -396,7 +406,10 @@ const TruthDareGame = ({
                     </button>
                 </div>
             ) : (
-                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>Waiting for {opponent.name} to complete the {type}...</p>
+                <div className={styles['selection-status']}>
+                    <span className={styles['selection-dot']} />
+                    <span>Waiting for {opponent.name} to complete the {type}...</span>
+                </div>
             )}
         </div>
     );
