@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Send, Image, Mic, MicOff, Video, X, Maximize2, 
+import {
+  Send, Image, Mic, MicOff, Video, X, Maximize2,
   Gamepad2, MessageSquare, ChevronUp, ChevronDown,
   Volume2, Play, Pause, Download, Clock, Camera
 } from 'lucide-react';
@@ -12,9 +12,9 @@ import styles from './ArenaRoom.module.css';
 import MessageInput from './MessageInput';
 import { useAuth } from '../../hooks/useAuth';
 
-const ArenaRoom = ({ 
-  chatId, 
-  userId, 
+const ArenaRoom = ({
+  chatId,
+  userId,
   userName,
   opponentMetadata,
   gameProps, // { gameState, isHost, ...handlers }
@@ -49,9 +49,9 @@ const ArenaRoom = ({
   const isTarget = String(userId) === String(gameProps.gameState?.targetId);
   const activeChallengeReply = manualReply || ((!isReplyDismissed && gameProps.gameType === 'truth_or_dare' && gameProps.gameState?.stage === 'turn-responding' && gameProps.gameState?.content && isTarget)
     ? {
-        sender_id: gameProps.gameState.askerId,
-        content: `[${gameProps.gameState.type?.toUpperCase()}]: ${gameProps.gameState.content}`
-      }
+      sender_id: gameProps.gameState.askerId,
+      content: `[${gameProps.gameState.type?.toUpperCase()}]: ${gameProps.gameState.content}`
+    }
     : null);
 
   const handleReplyChallenge = () => {
@@ -65,12 +65,31 @@ const ArenaRoom = ({
     }
   };
 
-  const { 
+  const {
     chatMessages, sendChat, sendMedia, peers, connectionState,
     isAudioEnabled, toggleAudio, remoteStreams
   } = webrtcProps;
   const peerCount = (peers || []).length;
   const isConnected = connectionState === 'connected' || peerCount > 0;
+
+  const [unreadCount, setUnreadCount] = useState(0);
+  const lastMessageCountRef = useRef(chatMessages?.length || 0);
+
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      setUnreadCount(0);
+    } else {
+      const currentCount = chatMessages?.length || 0;
+      if (currentCount > lastMessageCountRef.current) {
+        const newMessages = chatMessages.slice(lastMessageCountRef.current);
+        const incomingCount = newMessages.filter(msg => msg.senderId !== userId).length;
+        if (incomingCount > 0) {
+          setUnreadCount(prev => prev + incomingCount);
+        }
+      }
+    }
+    lastMessageCountRef.current = chatMessages?.length || 0;
+  }, [chatMessages, activeTab, userId]);
 
   const opponentId = gameProps.partnerId;
   const opponentInfo = gameProps.players?.[opponentId] || gameProps.gameState?.players?.[opponentId];
@@ -110,7 +129,7 @@ const ArenaRoom = ({
     <div className={styles.arenaContainer}>
       {onExit && (
         <div className={styles.topActions}>
-          <button 
+          <button
             className={`${styles.voiceToggleBtn} ${isAudioEnabled ? styles.voiceActive : ''}`}
             onClick={toggleAudio}
             title={isAudioEnabled ? "Stop Voice Chat" : "Join Voice Chat"}
@@ -128,13 +147,13 @@ const ArenaRoom = ({
 
       <AnimatePresence>
         {showExitConfirm && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className={styles.modalOverlay}
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -153,7 +172,7 @@ const ArenaRoom = ({
 
       <AnimatePresence>
         {fullscreenMedia && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -177,7 +196,7 @@ const ArenaRoom = ({
 
           <AnimatePresence>
             {!isConnected ? (
-              <motion.div 
+              <motion.div
                 key="offline-banner"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -188,7 +207,7 @@ const ArenaRoom = ({
                 <span>{opponentName} is not in the room. Waiting to reconnect...</span>
               </motion.div>
             ) : showConnectedBanner ? (
-              <motion.div 
+              <motion.div
                 key="online-banner"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -203,18 +222,18 @@ const ArenaRoom = ({
 
           <div className={styles.gameBoardScroll}>
             {gameProps.gameType === 'chess' ? (
-              <ChessGame 
+              <ChessGame
                 {...gameProps.gameState}
                 {...gameProps}
                 userId={userId}
                 isEmbedded={true}
               />
             ) : (
-              <TruthDareGame 
-                {...gameProps.gameState} 
-                {...gameProps} 
-                userId={userId} 
-                isEmbedded={true} 
+              <TruthDareGame
+                {...gameProps.gameState}
+                {...gameProps}
+                userId={userId}
+                isEmbedded={true}
                 onReplyToChallenge={handleReplyChallenge}
               />
             )}
@@ -223,15 +242,15 @@ const ArenaRoom = ({
 
         <div className={styles.chatSection}>
           <div className={styles.sectionHeader}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-               <MessageSquare size={20} />
-               <span>LIVE P2P CHAT</span>
-             </div>
-             <div className={`${styles.statusBadge} ${isConnected ? styles.online : styles.offline}`}>
-               <div className={styles.statusDot} />
-             </div>
-           </div>
-          
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MessageSquare size={20} />
+              <span>LIVE P2P CHAT</span>
+            </div>
+            <div className={`${styles.statusBadge} ${isConnected ? styles.online : styles.offline}`}>
+              <div className={styles.statusDot} />
+            </div>
+          </div>
+
           <div className={styles.chatFeed} ref={scrollRef}>
             {chatMessages.length === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.3, fontSize: '12px', padding: '40px 0' }}>
@@ -241,17 +260,17 @@ const ArenaRoom = ({
               </div>
             )}
             {chatMessages.map(msg => (
-              <ChatMessage 
-                key={msg.id || msg.transferId} 
-                msg={msg} 
-                isMe={msg.senderId === userId} 
+              <ChatMessage
+                key={msg.id || msg.transferId}
+                msg={msg}
+                isMe={msg.senderId === userId}
                 onExpand={setFullscreenMedia}
               />
             ))}
           </div>
 
           <div className={styles.arenaInputSection}>
-            <MessageInput 
+            <MessageInput
               chatId={chatId}
               currentUser={currentUser}
               replyingTo={activeChallengeReply}
@@ -265,7 +284,7 @@ const ArenaRoom = ({
                 setManualReply(null);
               }}
               onSendMedia={(file, type) => sendMedia(file, type)}
-              onTyping={() => {}}
+              onTyping={() => { }}
             />
           </div>
         </div>
@@ -275,7 +294,7 @@ const ArenaRoom = ({
       <div className={styles.mobileLayout}>
         <AnimatePresence mode="wait">
           {activeTab === 'chat' ? (
-            <motion.div 
+            <motion.div
               key="chat"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -284,7 +303,7 @@ const ArenaRoom = ({
             >
               <AnimatePresence>
                 {!isConnected ? (
-                  <motion.div 
+                  <motion.div
                     key="mobile-chat-offline-banner"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -296,7 +315,7 @@ const ArenaRoom = ({
                     <span>{opponentName} has left the room.</span>
                   </motion.div>
                 ) : showConnectedBanner ? (
-                  <motion.div 
+                  <motion.div
                     key="mobile-chat-online-banner"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -319,17 +338,17 @@ const ArenaRoom = ({
                   </div>
                 )}
                 {chatMessages.map(msg => (
-                  <ChatMessage 
-                    key={msg.id || msg.transferId} 
-                    msg={msg} 
-                    isMe={msg.senderId === userId} 
+                  <ChatMessage
+                    key={msg.id || msg.transferId}
+                    msg={msg}
+                    isMe={msg.senderId === userId}
                     onExpand={setFullscreenMedia}
                   />
                 ))}
               </div>
-              
+
               <div className={styles.arenaInputSection}>
-                <MessageInput 
+                <MessageInput
                   chatId={chatId}
                   currentUser={currentUser}
                   replyingTo={activeChallengeReply}
@@ -343,12 +362,12 @@ const ArenaRoom = ({
                     setManualReply(null);
                   }}
                   onSendMedia={(file, type) => sendMedia(file, type)}
-                  onTyping={() => {}}
+                  onTyping={() => { }}
                 />
               </div>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="game"
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -357,7 +376,7 @@ const ArenaRoom = ({
             >
               <AnimatePresence>
                 {!isConnected ? (
-                  <motion.div 
+                  <motion.div
                     key="mobile-game-offline-banner"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -369,7 +388,7 @@ const ArenaRoom = ({
                     <span>{opponentName} is not in the room.</span>
                   </motion.div>
                 ) : showConnectedBanner ? (
-                  <motion.div 
+                  <motion.div
                     key="mobile-game-online-banner"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -383,35 +402,40 @@ const ArenaRoom = ({
                 ) : null}
               </AnimatePresence>
 
-            {gameProps.gameType === 'chess' ? (
-              <ChessGame 
-                {...gameProps.gameState}
-                {...gameProps}
-                userId={userId}
-                isEmbedded={true}
-              />
-            ) : (
-              <TruthDareGame 
-                {...gameProps.gameState} 
-                {...gameProps} 
-                userId={userId} 
-                isEmbedded={true} 
-                onReplyToChallenge={handleReplyChallenge}
-              />
-            )}
+              {gameProps.gameType === 'chess' ? (
+                <ChessGame
+                  {...gameProps.gameState}
+                  {...gameProps}
+                  userId={userId}
+                  isEmbedded={true}
+                />
+              ) : (
+                <TruthDareGame
+                  {...gameProps.gameState}
+                  {...gameProps}
+                  userId={userId}
+                  isEmbedded={true}
+                  onReplyToChallenge={handleReplyChallenge}
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
         <div className={styles.bottomNav}>
-          <button 
+          <button
             className={`${styles.navBtn} ${activeTab === 'chat' ? styles.navBtnActive : ''}`}
             onClick={() => setActiveTab('chat')}
           >
             <MessageSquare size={20} />
             <span>CHAT</span>
+            {unreadCount > 0 && (
+              <div className={styles.unreadBadge}>
+                {unreadCount}
+              </div>
+            )}
           </button>
-          <button 
+          <button
             className={`${styles.navBtn} ${activeTab === 'game' ? styles.navBtnActive : ''}`}
             onClick={() => setActiveTab('game')}
           >
@@ -442,7 +466,7 @@ const RemoteAudio = React.memo(({ peerId, stream }) => {
   useEffect(() => {
     if (audioRef.current && stream) {
       audioRef.current.srcObject = stream;
-      
+
       const playAudio = () => {
         audioRef.current.play().catch(err => {
           if (err.name !== 'AbortError') {
@@ -450,32 +474,32 @@ const RemoteAudio = React.memo(({ peerId, stream }) => {
           }
         });
       };
-      
+
       playAudio();
     }
   }, [stream, peerId]);
 
   return (
-    <audio 
-      ref={audioRef} 
-      autoPlay 
-      playsInline 
+    <audio
+      ref={audioRef}
+      autoPlay
+      playsInline
       controls={false}
-      style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }} 
+      style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
     />
   );
 });
 
 const ChatMessage = React.memo(({ msg, isMe, onExpand }) => {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={`${styles.messageWrapper} ${isMe ? styles.me : styles.them}`}
     >
       <div className={styles.messageBubble}>
         {!isMe && <span className={styles.senderName}>{msg.senderName}</span>}
-        
+
         {msg.replyingTo && (
           <div className={styles.replyContextBubble}>
             <div className={styles.replyContextBorder} />
@@ -486,23 +510,23 @@ const ChatMessage = React.memo(({ msg, isMe, onExpand }) => {
         )}
 
         {msg.type === 'text' && <p>{msg.text}</p>}
-        
+
         {msg.type === 'media' && (
           <div className={styles.mediaContent}>
             {msg.mediaType === 'image' && (
-              <img 
-                src={msg.url} 
-                alt="Shared" 
+              <img
+                src={msg.url}
+                alt="Shared"
                 onClick={() => onExpand(msg)}
                 className={styles.tappableMedia}
                 loading="lazy"
               />
             )}
             {msg.mediaType === 'video' && (
-               <div className={styles.videoThumbnail} onClick={() => onExpand(msg)}>
-                 <video src={msg.url} muted />
-                 <div className={styles.playOverlay}><Play /></div>
-               </div>
+              <div className={styles.videoThumbnail} onClick={() => onExpand(msg)}>
+                <video src={msg.url} muted />
+                <div className={styles.playOverlay}><Play /></div>
+              </div>
             )}
             {msg.mediaType === 'voice' && <VoicePlayer url={msg.url} />}
           </div>
