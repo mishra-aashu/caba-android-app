@@ -111,6 +111,14 @@ export const useChessGame = (roomId, dbUser, supabase) => {
     };
   }, [state.stage, state.isHost, sendGameEvent]);
 
+  // Broadcast state when peer connects (for robustness during mid-game reconnection)
+  useEffect(() => {
+    if (state.isHost && webrtc.peers.length > 0) {
+      console.log('[useChessGame] Peer connected, broadcasting state...');
+      broadcastState(stateRef.current);
+    }
+  }, [webrtc.peers.length, state.isHost, broadcastState]);
+
   const handleMove = useCallback((move) => {
     const game = chessRef.current;
     try {

@@ -536,6 +536,7 @@ const GamesPanel = () => {
           chatId={battleContext.chatId}
           userId={dbUser?.id}
           userName={dbUser?.name}
+          opponentMetadata={battleContext.opponentMetadata}
           gameProps={gameProps}
           webrtcProps={activeGame.webrtc}
           onExit={activeGame.closeGame}

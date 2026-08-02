@@ -499,3 +499,19 @@
 .spin-btn:active {
   transform: scale(0.95);
 }
+
+.timer-container {
+  width: 100%;
+  max-width: 200px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin: 1.5rem auto 0;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  background: linear-gradient(135deg, #00a884, #00c39a);
+  border-radius: 2px;
+}

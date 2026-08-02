@@ -283,6 +283,14 @@ const TruthDareGame = ({
                     />
                     <div className={styles['turn-badge']}>ASKER</div>
                 </div>
+                <div className={styles['timer-container']}>
+                    <motion.div 
+                        className={styles['timer-bar']}
+                        initial={{ width: '100%' }}
+                        animate={{ width: '0%' }}
+                        transition={{ duration: 2.5, ease: 'linear' }}
+                    />
+                </div>
             </motion.div>
         </div>
     );

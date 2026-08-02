@@ -189,7 +189,7 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
   const webrtc = useWebRTCRoom({ 
     roomId, 
     userId, 
-    userName: 'Player',
+    userName: dbUser?.name || 'Player',
     supabase 
   });
 
@@ -482,6 +482,14 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
       clearTimeout(timeout);
     };
   }, [state.stage, state.isHost, sendGameEvent]);
+
+  // Broadcast state when peer connects (for robustness during mid-game reconnection)
+  useEffect(() => {
+    if (state.isHost && webrtc.peers.length > 0) {
+      console.log('[useTruthDareGame] Peer connected, broadcasting state...');
+      broadcastState(stateRef.current, true);
+    }
+  }, [webrtc.peers.length, state.isHost, broadcastState]);
 
   // ─── Database Operations ───────────────────────────────────
   const startGame = useCallback(async (targetPartnerId) => {

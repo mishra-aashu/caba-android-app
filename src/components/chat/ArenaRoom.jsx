@@ -16,6 +16,7 @@ const ArenaRoom = ({
   chatId, 
   userId, 
   userName,
+  opponentMetadata,
   gameProps, // { gameState, isHost, ...handlers }
   webrtcProps, // { chatMessages, sendChat, sendMedia, mediaProgress, peers }
   onExit
@@ -36,7 +37,7 @@ const ArenaRoom = ({
 
   const opponentId = gameProps.partnerId;
   const opponentInfo = gameProps.players?.[opponentId] || gameProps.gameState?.players?.[opponentId];
-  const opponentName = opponentInfo?.name || 'Opponent';
+  const opponentName = opponentInfo?.name || opponentMetadata?.name || 'Opponent';
 
   const [showConnectedBanner, setShowConnectedBanner] = useState(true);
 
