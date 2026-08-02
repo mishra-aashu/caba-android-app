@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Check, Send, Gamepad2, Flame, Sparkles, Zap, 
   Swords, Trophy, RotateCcw, X, AlertCircle
@@ -48,26 +48,43 @@ const TruthDareGame = ({
     const [isSpinning, setIsSpinning] = useState(false);
     const [rotation, setRotation] = useState(0);
     
+    // Refs to capture unstable callbacks and properties
+    const completeSpinRef = useRef(completeSpin);
+    const spinDataRef = useRef(props.spinData);
+    const isHostRef = useRef(isHost);
+    const userIdRef = useRef(userId);
+    const partnerIdRef = useRef(partnerId);
+
+    useEffect(() => {
+        completeSpinRef.current = completeSpin;
+        spinDataRef.current = props.spinData;
+        isHostRef.current = isHost;
+        userIdRef.current = userId;
+        partnerIdRef.current = partnerId;
+    });
+
     // Sync local rotation with game state spinData
     useEffect(() => {
-        if (props.spinData?.rotation && !isSpinning) {
-            console.log('[TruthDareGame] Starting spin animation:', props.spinData.rotation);
+        const rotationVal = spinDataRef.current?.rotation;
+        if (rotationVal && !isSpinning) {
+            console.log('[TruthDareGame] Starting spin animation:', rotationVal);
             setIsSpinning(true);
-            setRotation(props.spinData.rotation);
+            setRotation(rotationVal);
             
             // Auto-complete spin after animation duration
             const timer = setTimeout(() => {
                 setIsSpinning(false);
-                if (isHost) {
-                    const firstAsker = props.spinData.whoStarts === 'me' ? userId : partnerId;
+                if (isHostRef.current) {
+                    const whoStartsVal = spinDataRef.current?.whoStarts;
+                    const firstAsker = whoStartsVal === 'me' ? userIdRef.current : partnerIdRef.current;
                     console.log('[TruthDareGame] Spin complete, calling completeSpin for:', firstAsker);
-                    completeSpin(firstAsker);
+                    completeSpinRef.current(firstAsker);
                 }
             }, 2800); // 2.5s animation + 300ms buffer
             
             return () => clearTimeout(timer);
         }
-    }, [props.spinData?.rotation, isHost, userId, partnerId, completeSpin]);
+    }, [props.spinData?.rotation]);
     
     const isAsker = String(askerId) === String(userId);
     const isTarget = String(targetId) === String(userId);

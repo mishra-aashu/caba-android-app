@@ -742,6 +742,18 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
     return { isMyTurn, isActive, opponentId };
   }, [state.stage, state.turn, state.partnerId, state.players, userId]);
 
+  // Game actions
+  const pickType = useCallback((val) => handleAction({ type: 'PICK_TYPE', payload: val }), [handleAction]);
+  const sendChallenge = useCallback((val) => handleAction({ type: 'SEND_CHALLENGE', payload: val }), [handleAction]);
+  const completeTurn = useCallback(() => handleAction({ type: 'COMPLETE_TURN' }), [handleAction]);
+  const skipTurn = useCallback(() => handleAction({ type: 'SKIP_TURN' }), [handleAction]);
+  const switchType = useCallback(() => handleAction({ type: 'SWITCH_TYPE' }), [handleAction]);
+  const confirmSettings = useCallback((s) => handleAction({ type: 'CONFIRM_SETTINGS', payload: s }), [handleAction]);
+  const updateSettingsDraft = useCallback((s) => handleAction({ type: 'UPDATE_SETTINGS_DRAFT', payload: s }), [handleAction]);
+  const completeSpin = useCallback((winnerId) => handleAction({ type: 'COMPLETE_SPIN', payload: winnerId }), [handleAction]);
+  const startSpin = useCallback((data) => handleAction({ type: 'START_SPIN', payload: data }), [handleAction]);
+  const askTD = useCallback(() => handleAction({ type: 'ASK_TD' }), [handleAction]);
+
   // ─── Public API ────────────────────────────────────────────
   return {
     gameState: state,
@@ -756,16 +768,16 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
     joinBattle,
     
     // Game actions
-    pickType: (val) => handleAction({ type: 'PICK_TYPE', payload: val }),
-    sendChallenge: (val) => handleAction({ type: 'SEND_CHALLENGE', payload: val }),
-    completeTurn: () => handleAction({ type: 'COMPLETE_TURN' }),
-    skipTurn: () => handleAction({ type: 'SKIP_TURN' }),
-    switchType: () => handleAction({ type: 'SWITCH_TYPE' }),
-    confirmSettings: (s) => handleAction({ type: 'CONFIRM_SETTINGS', payload: s }),
-    updateSettingsDraft: (s) => handleAction({ type: 'UPDATE_SETTINGS_DRAFT', payload: s }),
-    completeSpin: (winnerId) => handleAction({ type: 'COMPLETE_SPIN', payload: winnerId }),
-    startSpin: (data) => handleAction({ type: 'START_SPIN', payload: data }),
-    askTD: () => handleAction({ type: 'ASK_TD' }),
+    pickType,
+    sendChallenge,
+    completeTurn,
+    skipTurn,
+    switchType,
+    confirmSettings,
+    updateSettingsDraft,
+    completeSpin,
+    startSpin,
+    askTD,
     
     // WebRTC
     webrtc
