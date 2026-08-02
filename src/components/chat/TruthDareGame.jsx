@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Check, Send, Gamepad2, Flame, Sparkles, Zap, 
-  Swords, Trophy, RotateCcw, X, AlertCircle
+  Swords, Trophy, RotateCcw, X, AlertCircle, Reply
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PlayerAvatar from '../common/PlayerAvatar';
@@ -40,6 +40,7 @@ const TruthDareGame = ({
     askTD,
     isHost,
     userId,
+    onReplyToChallenge,
     ...props
 }) => {
     const [challengeText, setChallengeText] = useState('');
@@ -388,6 +389,15 @@ const TruthDareGame = ({
                 {type?.toUpperCase()} TIME!
             </h2>
             <div className={styles['challenge-box']}>
+                {onReplyToChallenge && (
+                    <button 
+                        className={styles['challenge-reply-btn']} 
+                        onClick={onReplyToChallenge}
+                        title="Reply to this challenge in chat"
+                    >
+                        <Reply size={16} />
+                    </button>
+                )}
                 <p className={styles['challenge-text']}>{content}</p>
             </div>
             {isTarget ? (

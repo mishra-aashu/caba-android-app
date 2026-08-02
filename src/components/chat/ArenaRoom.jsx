@@ -29,6 +29,7 @@ const ArenaRoom = ({
   const { user: currentUser } = useAuth();
 
   const [isReplyDismissed, setIsReplyDismissed] = useState(false);
+  const [manualReply, setManualReply] = useState(null);
 
   // Reset reply dismiss state when the game stage or content changes
   const lastContentRef = useRef(gameProps.gameState?.content);
@@ -39,18 +40,30 @@ const ArenaRoom = ({
     const currentStage = gameProps.gameState?.stage;
     if (currentContent !== lastContentRef.current || currentStage !== lastStageRef.current) {
       setIsReplyDismissed(false);
+      setManualReply(null);
       lastContentRef.current = currentContent;
       lastStageRef.current = currentStage;
     }
   }, [gameProps.gameState?.content, gameProps.gameState?.stage]);
 
   const isTarget = String(userId) === String(gameProps.gameState?.targetId);
-  const activeChallengeReply = (!isReplyDismissed && gameProps.gameType === 'truth_or_dare' && gameProps.gameState?.stage === 'turn-responding' && gameProps.gameState?.content && isTarget)
+  const activeChallengeReply = manualReply || ((!isReplyDismissed && gameProps.gameType === 'truth_or_dare' && gameProps.gameState?.stage === 'turn-responding' && gameProps.gameState?.content && isTarget)
     ? {
         sender_id: gameProps.gameState.askerId,
         content: `[${gameProps.gameState.type?.toUpperCase()}]: ${gameProps.gameState.content}`
       }
-    : null;
+    : null);
+
+  const handleReplyChallenge = () => {
+    if (gameProps.gameState?.content) {
+      setManualReply({
+        sender_id: gameProps.gameState.askerId,
+        content: `[${gameProps.gameState.type?.toUpperCase()}]: ${gameProps.gameState.content}`
+      });
+      setIsReplyDismissed(false);
+      setActiveTab('chat');
+    }
+  };
 
   const { 
     chatMessages, sendChat, sendMedia, peers, connectionState,
@@ -202,6 +215,7 @@ const ArenaRoom = ({
                 {...gameProps} 
                 userId={userId} 
                 isEmbedded={true} 
+                onReplyToChallenge={handleReplyChallenge}
               />
             )}
           </div>
@@ -241,8 +255,15 @@ const ArenaRoom = ({
               chatId={chatId}
               currentUser={currentUser}
               replyingTo={activeChallengeReply}
-              onCancelReply={() => setIsReplyDismissed(true)}
-              onSendMessage={(text) => sendChat(text, activeChallengeReply)}
+              onCancelReply={() => {
+                setIsReplyDismissed(true);
+                setManualReply(null);
+              }}
+              onSendMessage={(text) => {
+                sendChat(text, activeChallengeReply);
+                setIsReplyDismissed(true);
+                setManualReply(null);
+              }}
               onSendMedia={(file, type) => sendMedia(file, type)}
               onTyping={() => {}}
             />
@@ -312,8 +333,15 @@ const ArenaRoom = ({
                   chatId={chatId}
                   currentUser={currentUser}
                   replyingTo={activeChallengeReply}
-                  onCancelReply={() => setIsReplyDismissed(true)}
-                  onSendMessage={(text) => sendChat(text, activeChallengeReply)}
+                  onCancelReply={() => {
+                    setIsReplyDismissed(true);
+                    setManualReply(null);
+                  }}
+                  onSendMessage={(text) => {
+                    sendChat(text, activeChallengeReply);
+                    setIsReplyDismissed(true);
+                    setManualReply(null);
+                  }}
                   onSendMedia={(file, type) => sendMedia(file, type)}
                   onTyping={() => {}}
                 />
@@ -368,6 +396,7 @@ const ArenaRoom = ({
                 {...gameProps} 
                 userId={userId} 
                 isEmbedded={true} 
+                onReplyToChallenge={handleReplyChallenge}
               />
             )}
             </motion.div>
