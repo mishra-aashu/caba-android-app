@@ -237,8 +237,10 @@ export const useChessGame = (roomId, dbUser, supabase) => {
       .update({ status: 'accepted', updated_at: new Date().toISOString() })
       .eq('id', invite.id);
 
+    await webrtc.reAnnounce?.();
+
     sendGameEvent({ type: 'SYNC_REQUEST' });
-  }, [userId, dbUser, supabase, sendGameEvent]);
+  }, [userId, dbUser, supabase, sendGameEvent, webrtc]);
 
   const joinBattle = useCallback((id, isHost = false, initialStatus = 'pending', partnerId = null, opponentMetadata = null) => {
     const stage = isHost 
@@ -258,12 +260,15 @@ export const useChessGame = (roomId, dbUser, supabase) => {
         }
       }
     });
+
+    webrtc.reAnnounce?.();
+
     if (isHost && stage === CHESS_STATES.PLAYING) {
       setTimeout(() => {
         broadcastState(stateRef.current);
       }, 500);
     }
-  }, [userId, dbUser, broadcastState]);
+  }, [userId, dbUser, broadcastState, webrtc]);
 
   const closeGame = useCallback(async () => {
     const currentId = stateRef.current.gameId;

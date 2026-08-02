@@ -740,6 +740,8 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
       }
     });
 
+    webrtc.reAnnounce?.();
+
     if (isHost && (stage === GAME_STATES.TURN_ANNOUNCE || stage === GAME_STATES.SETUP)) {
        // Need to ensure partnerId is set for turn logic
        // The host will eventually get this from the DB or sync
@@ -747,7 +749,7 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
          if (isMountedRef.current) broadcastState(stateRef.current);
        }, 500);
     }
-  }, [broadcastState]);
+  }, [broadcastState, userId, webrtc]);
 
   // ─── Derived State ─────────────────────────────────────────
   const derived = useMemo(() => {

@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getOrCreateManager, releaseManager } from '../services/webrtcSingleton';
+import toast from 'react-hot-toast';
 
 export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
   const managerRef = useRef(null);
@@ -53,6 +54,28 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
       }
       setPeers(list);
     };
+
+    // Sync existing manager state to React state
+    setLocalStream(manager.localStream);
+    setIsAudioEnabled(!!manager.localStream);
+    
+    const initialStreams = {};
+    for (const [peerId, stream] of manager.remoteStreams.entries()) {
+      initialStreams[peerId] = stream;
+    }
+    setRemoteStreams(initialStreams);
+
+    let hasConnectedPeer = false;
+    for (const [peerId, peer] of manager.peers.entries()) {
+      const isWebRTC = peer.pc.connectionState === 'connected';
+      if (isWebRTC) hasConnectedPeer = true;
+      peerActivityRef.current.set(peerId, {
+        userName: peer.userName,
+        lastSeen: Date.now() + 1000 * 3600 * 24, // keep indefinitely
+        isWebRTC
+      });
+    }
+    updatePeersList();
 
     // ── Event Listeners ────────────────────────────────
     const onPeerConnected = (e) => {
@@ -163,7 +186,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     manager.addEventListener('local-stream-changed', onLocalStreamChanged);
     manager.addEventListener('track-received', onTrackReceived);
 
-    setConnectionState('waiting');
+    setConnectionState(hasConnectedPeer ? 'connected' : 'waiting');
 
     // Periodically prune signaling peers that have gone silent
     const pruneInterval = setInterval(() => {

@@ -461,7 +461,7 @@ const RemoteAudio = React.memo(({ peerId, stream }) => {
       autoPlay 
       playsInline 
       controls={false}
-      style={{ display: 'none', position: 'absolute', opacity: 0 }} 
+      style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }} 
     />
   );
 });
