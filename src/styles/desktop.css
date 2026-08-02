@@ -30,15 +30,15 @@
     left: 0;
     width: 240px;
     height: var(--app-height);
-    padding: 20px 12px;
-    background-color: var(--sidebar-background-color);
-    color: var(--sidebar-text-color);
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    padding: 16px 12px;
+    background-color: var(--sidebar-background-color, #0b141a);
+    color: var(--sidebar-text-color, #e9edef);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     z-index: 99999;
     overflow: visible;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     box-sizing: border-box;
 
     /* GPU Acceleration */
@@ -49,25 +49,25 @@
   .desktop-navbar-brand {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 16px 20px 16px;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 8px;
+    gap: 10px;
+    padding: 8px 12px 16px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 4px;
   }
 
   .brand-logo-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--brand-primary);
-    box-shadow: 0 0 10px var(--brand-primary);
+    box-shadow: 0 0 8px var(--brand-primary);
     flex-shrink: 0;
   }
 
   .brand-name {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 900;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     color: var(--text-primary);
     background: linear-gradient(135deg, var(--text-primary) 0%, var(--brand-primary) 100%);
     -webkit-background-clip: text;
@@ -84,7 +84,7 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
   }
 
   .desktop-nav-item {
@@ -99,32 +99,41 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 14px;
+    gap: 12px;
     width: 100%;
-    padding: 12px 16px;
+    padding: 10px 12px;
     border: none;
-    border-radius: 12px;
-    background: none;
-    color: var(--sidebar-text-color);
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(233, 237, 239, 0.65);
     text-decoration: none;
     cursor: pointer;
     position: relative;
     box-sizing: border-box;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Hover + Focus + Active States */
   .desktop-nav-link:hover,
-  .desktop-nav-link:focus-visible,
+  .desktop-nav-link:focus-visible {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+  }
+
   .desktop-nav-link.active {
-    background-color: var(--sidebar-hover-background-color);
+    background-color: rgba(0, 168, 132, 0.1);
+    color: var(--brand-primary);
+  }
+
+  .desktop-nav-link.active:hover {
+    background-color: rgba(0, 168, 132, 0.15);
     color: var(--brand-primary);
   }
 
   /* Keyboard focus ring */
   .desktop-nav-link:focus-visible {
-    outline: 2px solid var(--brand-primary);
-    outline-offset: -2px;
+    outline: 1.5px solid var(--brand-primary);
+    outline-offset: -1.5px;
   }
 
   /* Remove default focus outline */
@@ -132,15 +141,15 @@
     outline: none;
   }
 
-  /* Active indicator bar (left edge) */
+  /* Active indicator bar (left edge inside pill) */
   .desktop-nav-link.active::before {
     content: '';
     position: absolute;
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    width: 4px;
-    height: 60%;
+    width: 3px;
+    height: 16px;
     background: var(--brand-primary);
     border-radius: 0 4px 4px 0;
   }
@@ -150,15 +159,20 @@
      ============================================= */
 
   .desktop-nav-icon {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
+    transition: color 0.2s ease;
+  }
+
+  .desktop-nav-link.active .desktop-nav-icon {
+    color: var(--brand-primary);
   }
 
   .desktop-nav-text {
     display: block;
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 0.875rem;
+    font-weight: 500;
     white-space: nowrap;
     color: inherit;
   }
@@ -168,8 +182,8 @@
     background: #ff4b4b;
     color: #fff;
     border-radius: 12px;
-    padding: 2px 8px;
-    font-size: 11px;
+    padding: 2px 6px;
+    font-size: 10px;
     font-weight: 700;
     box-shadow: 0 0 10px rgba(255, 75, 75, 0.3);
     flex-shrink: 0;
@@ -218,7 +232,12 @@
   body.light-mode .desktop-navbar {
     background-color: #ffffff;
     color: #1a1a1a;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+    border-right: 1px solid var(--border-color, #e1e8da);
+    box-shadow: none;
+  }
+
+  body.light-mode .desktop-navbar-brand {
+    border-bottom: 1px solid var(--border-color, #e1e8da);
   }
 
   body.light-mode .desktop-nav-link {
@@ -227,11 +246,17 @@
 
   body.light-mode .desktop-nav-link:hover,
   body.light-mode .desktop-nav-link:focus-visible {
-    background-color: #f0f2f5;
+    background-color: rgba(0, 0, 0, 0.04);
+    color: #1a1a1a;
   }
 
   body.light-mode .desktop-nav-link.active {
-    background-color: #e8f5e9;
+    background-color: rgba(0, 168, 132, 0.08);
+    color: var(--brand-primary);
+  }
+
+  body.light-mode .desktop-nav-link.active:hover {
+    background-color: rgba(0, 168, 132, 0.12);
   }
 
   body.light-mode .desktop-nav-link[data-tooltip]::after {
