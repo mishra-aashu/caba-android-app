@@ -2,9 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Swords, RotateCcw, AlertCircle, X, ChevronLeft } from 'lucide-react';
+import { Trophy, Swords, RotateCcw, AlertCircle, X, ChevronLeft, Palette } from 'lucide-react';
 import PlayerAvatar from '../common/PlayerAvatar';
 import styles from './ChessGame.module.css';
+
+const BOARD_THEMES = {
+  green: { name: 'Emerald', light: '#eeeed2', dark: '#769656' },
+  wood: { name: 'Woodland', light: '#f0d9b5', dark: '#b58863' },
+  ice: { name: 'Ice Blue', light: '#e2e8f0', dark: '#3b82f6' },
+  midnight: { name: 'Midnight', light: '#4a4a4a', dark: '#2a2a2a' },
+  cyberpunk: { name: 'Cyberpunk', light: '#251a2e', dark: '#0c0517' }
+};
+
+const PIECE_THEMES = {
+  classic: { name: 'Classic' },
+  neon: { name: 'Neon Glow' },
+  goldsilver: { name: 'Gold/Silver' },
+  cyberpunk: { name: 'Cyberpunk' }
+};
 
 const ChessGame = ({
   stage,
@@ -25,6 +40,9 @@ const ChessGame = ({
   const [game, setGame] = useState(new Chess(fen === 'start' ? undefined : fen));
   const [moveFrom, setMoveFrom] = useState('');
   const [optionSquares, setOptionSquares] = useState({});
+  const [boardTheme, setBoardTheme] = useState(() => localStorage.getItem('chess_board_theme') || 'green');
+  const [pieceTheme, setPieceTheme] = useState(() => localStorage.getItem('chess_piece_theme') || 'classic');
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
 
   useEffect(() => {
     const newGame = new Chess();
@@ -175,7 +193,11 @@ const ChessGame = ({
         {turn === opponentSide && <div className={styles.turnIndicator}>Thinking...</div>}
       </div>
 
-      <div className={styles.boardWrapper}>
+      <button className={styles.themeToggleBtn} onClick={() => setShowThemeMenu(true)}>
+        <Palette size={14} /> Customize Theme
+      </button>
+
+      <div className={`${styles.boardWrapper} ${styles['pieceTheme_' + pieceTheme]}`}>
         <div className={styles.boardContainer}>
           <Chessboard 
               position={fen} 
@@ -183,8 +205,8 @@ const ChessGame = ({
               onSquareClick={onSquareClick}
               customSquareStyles={optionSquares}
               boardOrientation={mySide === 'w' ? 'white' : 'black'}
-              customDarkSquareStyle={{ backgroundColor: '#2a2a2a' }}
-              customLightSquareStyle={{ backgroundColor: '#4a4a4a' }}
+              customDarkSquareStyle={{ backgroundColor: BOARD_THEMES[boardTheme].dark }}
+              customLightSquareStyle={{ backgroundColor: BOARD_THEMES[boardTheme].light }}
               animationDuration={200}
           />
         </div>
@@ -202,6 +224,67 @@ const ChessGame = ({
       <div className={styles.statusFooter}>
          {game.isCheck() && <div className={styles.checkAlert}><AlertCircle size={14} /> CHECK!</div>}
       </div>
+
+      <AnimatePresence>
+        {showThemeMenu && (
+          <motion.div 
+            initial={{ translateY: '100%' }}
+            animate={{ translateY: 0 }}
+            exit={{ translateY: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+            className={styles.themeMenuContainer}
+          >
+            <div className={styles.themeMenuHeader}>
+              <span>BOARD THEME</span>
+              <button className={styles.closeMenuBtn} onClick={() => setShowThemeMenu(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className={styles.themeOptionsGrid}>
+              {Object.entries(BOARD_THEMES).map(([key, themeOpt]) => (
+                <button 
+                  key={key} 
+                  className={`${styles.themeOption} ${boardTheme === key ? styles.activeOption : ''}`}
+                  onClick={() => {
+                    setBoardTheme(key);
+                    localStorage.setItem('chess_board_theme', key);
+                  }}
+                >
+                  <div className={styles.themeColorPreview}>
+                    <div style={{ backgroundColor: themeOpt.light }} />
+                    <div style={{ backgroundColor: themeOpt.dark }} />
+                  </div>
+                  <span className={styles.themeOptionName}>{themeOpt.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.themeMenuDivider} />
+
+            <div className={styles.themeMenuHeader}>
+              <span>PIECE COLORS</span>
+            </div>
+            <div className={styles.themeOptionsGrid}>
+              {Object.entries(PIECE_THEMES).map(([key, themeOpt]) => (
+                <button 
+                  key={key} 
+                  className={`${styles.themeOption} ${pieceTheme === key ? styles.activeOption : ''}`}
+                  onClick={() => {
+                    setPieceTheme(key);
+                    localStorage.setItem('chess_piece_theme', key);
+                  }}
+                >
+                  <div className={`${styles.piecePreview} ${styles['piecePreview_' + key]}`}>
+                    <span>♔</span>
+                    <span>♚</span>
+                  </div>
+                  <span className={styles.themeOptionName}>{themeOpt.name}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
