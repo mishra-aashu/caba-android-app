@@ -558,11 +558,11 @@ const GamesPanel = () => {
                     <h3>Choose Game</h3>
                     <p>Invite {selectedUser.name} to play:</p>
                     <div className={styles.gameOptions}>
-                        <button className={styles.gameOption} onClick={() => handleConfirmInvite(selectedUser, GAME_TYPES.TRUTH_OR_DARE)}>
+                        <button className={`${styles.gameOption} ${styles.gameOptionTruth}`} onClick={() => handleConfirmInvite(selectedUser, GAME_TYPES.TRUTH_OR_DARE)}>
                             <Flame size={24} color="#f59e0b" />
                             <span>Truth or Dare</span>
                         </button>
-                        <button className={styles.gameOption} onClick={() => handleConfirmInvite(selectedUser, GAME_TYPES.CHESS)}>
+                        <button className={`${styles.gameOption} ${styles.gameOptionChess}`} onClick={() => handleConfirmInvite(selectedUser, GAME_TYPES.CHESS)}>
                             <Swords size={24} color="#3b82f6" />
                             <span>Chess Match</span>
                         </button>
