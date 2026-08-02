@@ -26,6 +26,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState({}); // { [peerId]: MediaStream }
   const [ping, setPing] = useState(null);
+  const [isServerPing, setIsServerPing] = useState(false);
 
   // Track signaling and WebRTC activity to determine peer connection state
   const peerActivityRef = useRef(new Map()); // peerId -> { userName, lastSeen, isWebRTC }
@@ -177,6 +178,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
 
     const onPingUpdated = (e) => {
       setPing(e.detail.ping);
+      setIsServerPing(!!e.detail.isServer);
     };
 
     manager.addEventListener('peer-connected', onPeerConnected);
@@ -278,6 +280,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     localStream,
     remoteStreams,
     ping,
+    isServerPing,
     sendChat,
     sendGameEvent,
     sendMedia,

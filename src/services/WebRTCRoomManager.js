@@ -131,20 +131,57 @@ export default class WebRTCRoomManager extends EventTarget {
   }
 
   _startPingInterval() {
-    this._pingInterval = setInterval(() => {
+    this._pingInterval = setInterval(async () => {
       if (this._destroyed) return;
+      
+      let hasOpenP2P = false;
       const now = Date.now();
+
       for (const [peerId, peer] of this.peers) {
         const channel = peer.channels.get('game-events');
         if (channel && channel.readyState === 'open') {
+          hasOpenP2P = true;
           try {
             channel.send(JSON.stringify({
               type: 'system-ping',
               sentAt: now
             }));
           } catch (err) {
-            // Silence silent errors
+            // Silence
           }
+        }
+      }
+
+      let pingUrl = '';
+      if (this.supabase?.rest?.url) {
+        pingUrl = `${this.supabase.rest.url}/`;
+      } else if (this.supabase?.supabaseUrl) {
+        pingUrl = `${this.supabase.supabaseUrl}/rest/v1/`;
+      }
+
+      if (!hasOpenP2P && pingUrl) {
+        try {
+          const start = Date.now();
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          
+          const headers = {};
+          if (this.supabase.supabaseKey) {
+            headers['apikey'] = this.supabase.supabaseKey;
+          }
+          
+          await fetch(pingUrl, {
+            method: 'HEAD',
+            headers,
+            signal: controller.signal
+          }).catch(() => {});
+
+          clearTimeout(timeoutId);
+          const latency = Date.now() - start;
+          
+          this._emit('ping-updated', { peerId: 'server', ping: latency, isServer: true });
+        } catch (err) {
+          // Silence
         }
       }
     }, 3000);

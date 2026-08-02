@@ -67,7 +67,7 @@ const ArenaRoom = ({
 
   const {
     chatMessages, sendChat, sendMedia, peers, connectionState,
-    isAudioEnabled, toggleAudio, remoteStreams, ping
+    isAudioEnabled, toggleAudio, remoteStreams, ping, isServerPing
   } = webrtcProps;
   const peerCount = (peers || []).length;
   const isConnected = connectionState === 'connected' || peerCount > 0;
@@ -129,15 +129,15 @@ const ArenaRoom = ({
     <div className={styles.arenaContainer}>
       {onExit && (
         <div className={styles.topActions}>
-          {isConnected && ping !== null && ping !== undefined && (
+          {ping !== null && ping !== undefined && (
             <div 
               className={styles.pingBadge}
-              title="Connection Latency (Ping)" 
+              title={isServerPing ? "Server Latency (Relayed)" : "Direct P2P Latency"} 
               style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 backdropFilter: 'blur(15px)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: ping < 90 ? '#10b981' : ping < 200 ? '#f59e0b' : '#ef4444',
+                color: isServerPing ? '#94a3b8' : ping < 90 ? '#10b981' : ping < 200 ? '#f59e0b' : '#ef4444',
                 padding: '6px 12px',
                 borderRadius: '12px',
                 display: 'flex',
@@ -157,11 +157,11 @@ const ArenaRoom = ({
                   width: '6px', 
                   height: '6px', 
                   borderRadius: '50%', 
-                  background: ping < 90 ? '#10b981' : ping < 200 ? '#f59e0b' : '#ef4444',
-                  boxShadow: ping < 90 ? '0 0 6px #10b981' : ping < 200 ? '0 0 6px #f59e0b' : '0 0 6px #ef4444' 
+                  background: isServerPing ? '#3b82f6' : ping < 90 ? '#10b981' : ping < 200 ? '#f59e0b' : '#ef4444',
+                  boxShadow: isServerPing ? '0 0 6px #3b82f6' : ping < 90 ? '0 0 6px #10b981' : ping < 200 ? '0 0 6px #f59e0b' : '0 0 6px #ef4444' 
                 }} 
               />
-              <span>{ping} ms</span>
+              <span>{isServerPing ? 'SRV' : 'P2P'}: {ping} ms</span>
             </div>
           )}
 
@@ -283,20 +283,20 @@ const ArenaRoom = ({
               <span>LIVE P2P CHAT</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {isConnected && ping !== null && ping !== undefined && (
+              {ping !== null && ping !== undefined && (
                 <span 
                   style={{
                     fontSize: '9px',
                     fontFamily: 'monospace',
                     fontWeight: '800',
-                    color: ping < 90 ? '#10b981' : ping < 200 ? '#f59e0b' : '#ef4444',
-                    background: ping < 90 ? 'rgba(16, 185, 129, 0.1)' : ping < 200 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    color: isServerPing ? '#94a3b8' : ping < 90 ? '#10b981' : ping < 200 ? '#f59e0b' : '#ef4444',
+                    background: isServerPing ? 'rgba(148, 163, 184, 0.1)' : ping < 90 ? 'rgba(16, 185, 129, 0.1)' : ping < 200 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                     padding: '2px 6px',
                     borderRadius: '6px',
-                    border: ping < 90 ? '1px solid rgba(16, 185, 129, 0.2)' : ping < 200 ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+                    border: isServerPing ? '1px solid rgba(148, 163, 184, 0.2)' : ping < 90 ? '1px solid rgba(16, 185, 129, 0.2)' : ping < 200 ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
                   }}
                 >
-                  {ping} ms
+                  {isServerPing ? 'SRV' : 'P2P'}: {ping} ms
                 </span>
               )}
               <div className={`${styles.statusBadge} ${isConnected ? styles.online : styles.offline}`}>
