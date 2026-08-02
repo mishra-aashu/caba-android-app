@@ -9,7 +9,7 @@
   }
 
   .app-content {
-    margin-left: 240px;
+    margin-left: 68px;
     flex-grow: 1;
     height: calc(var(--vh, 1vh) * 100);
     overflow: hidden;
@@ -28,36 +28,46 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 240px;
+    width: 68px;
     height: var(--app-height);
-    padding: 16px 12px;
+    padding: 16px 10px;
     background-color: var(--sidebar-background-color, #0b141a);
     color: var(--sidebar-text-color, #e9edef);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     z-index: 99999;
-    overflow: visible;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 12px;
     box-sizing: border-box;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --sidebar-bg: var(--sidebar-background-color, #0b141a);
 
     /* GPU Acceleration */
     transform: translateZ(0);
     backface-visibility: hidden;
   }
 
+  .desktop-navbar:hover {
+    width: 240px;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+  }
+
   .desktop-navbar-brand {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px 16px 12px;
+    gap: 12px;
+    padding: 8px 14px 16px 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     margin-bottom: 4px;
+    width: 220px;
+    box-sizing: border-box;
+    flex-shrink: 0;
   }
 
   .brand-logo-dot {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: var(--brand-primary);
     box-shadow: 0 0 8px var(--brand-primary);
@@ -72,6 +82,17 @@
     background: linear-gradient(135deg, var(--text-primary) 0%, var(--brand-primary) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    opacity: 0;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+
+  .desktop-navbar:hover .brand-name {
+    opacity: 1;
+    pointer-events: auto;
+    transition-delay: 0.08s;
   }
 
   /* =============================================
@@ -85,6 +106,8 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    width: 220px;
+    box-sizing: border-box;
   }
 
   .desktop-nav-item {
@@ -99,9 +122,9 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 12px;
+    gap: 14px;
     width: 100%;
-    padding: 10px 12px;
+    padding: 10px 14px;
     border: none;
     border-radius: 8px;
     background: transparent;
@@ -175,6 +198,15 @@
     font-weight: 500;
     white-space: nowrap;
     color: inherit;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+
+  .desktop-navbar:hover .desktop-nav-text {
+    opacity: 1;
+    pointer-events: auto;
+    transition-delay: 0.08s;
   }
 
   .nav-notif-badge {
@@ -187,6 +219,21 @@
     font-weight: 700;
     box-shadow: 0 0 10px rgba(255, 75, 75, 0.3);
     flex-shrink: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* When collapsed (navbar NOT hovered) */
+  .desktop-navbar:not(:hover) .nav-notif-badge {
+    position: absolute;
+    top: 6px;
+    left: 24px;
+    margin-left: 0;
+    padding: 0;
+    width: 8px;
+    height: 8px;
+    font-size: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--sidebar-bg);
   }
 
   /* =============================================
