@@ -417,7 +417,11 @@ const GamesPanel = () => {
       if (activeGame.isActive && activeGame.gameState?.gameId === acceptedInv.id) {
          if (activeGame.gameState.stage === 'inviting' || activeGame.gameState.stage === 'joining') {
             const opponentId = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver_id : acceptedInv.sender_id;
-            activeGame.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, 'accepted', opponentId);
+            const opponentMeta = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver : acceptedInv.sender;
+            activeGame.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, 'accepted', opponentId, {
+               name: opponentMeta?.name,
+               avatar: opponentMeta?.avatar
+            });
             return;
          }
       }
@@ -426,17 +430,21 @@ const GamesPanel = () => {
       
       hasAutoJoinedRef.current = true;
       const opponentId = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver_id : acceptedInv.sender_id;
+      const opponentMeta = acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver : acceptedInv.sender;
       setBattleContext({ 
         chatId: acceptedInv.chat_id, 
         opponentId, 
         gameType: acceptedInv.game_type,
         opponentMetadata: {
-           name: acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver?.name : acceptedInv.sender?.name,
-           avatar: acceptedInv.sender_id === dbUser.id ? acceptedInv.receiver?.avatar : acceptedInv.sender?.avatar
+           name: opponentMeta?.name,
+           avatar: opponentMeta?.avatar
         }
       });
       const targetGame = acceptedInv.game_type === GAME_TYPES.CHESS ? chessGame : tdGame;
-      targetGame.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, acceptedInv.status, opponentId);
+      targetGame.joinBattle(acceptedInv.id, acceptedInv.sender_id === dbUser.id, acceptedInv.status, opponentId, {
+         name: opponentMeta?.name,
+         avatar: opponentMeta?.avatar
+      });
     }
   }, [pendingInvites, activeGame.isActive, activeGame.gameState?.stage, activeGame.gameState?.gameId, dbUser?.id, loadingInvites, tdGame.joinBattle, chessGame.joinBattle]);
 

@@ -690,7 +690,7 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
     }
     
     const stage = isHost 
-      ? (initialStatus === 'accepted' ? GAME_STATES.TURN_ANNOUNCE : GAME_STATES.INVITING)
+      ? (initialStatus === 'accepted' ? GAME_STATES.SETUP : GAME_STATES.INVITING)
       : GAME_STATES.JOINING;
 
     dispatch({ 
@@ -722,7 +722,7 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
       }
     });
 
-    if (isHost && stage === GAME_STATES.TURN_ANNOUNCE) {
+    if (isHost && (stage === GAME_STATES.TURN_ANNOUNCE || stage === GAME_STATES.SETUP)) {
        // Need to ensure partnerId is set for turn logic
        // The host will eventually get this from the DB or sync
        setTimeout(() => {
