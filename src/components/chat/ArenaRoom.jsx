@@ -34,6 +34,24 @@ const ArenaRoom = ({
   const peerCount = (peers || []).length;
   const isConnected = connectionState === 'connected' || peerCount > 0;
 
+  const opponentId = gameProps.partnerId;
+  const opponentInfo = gameProps.players?.[opponentId] || gameProps.gameState?.players?.[opponentId];
+  const opponentName = opponentInfo?.name || 'Opponent';
+
+  const [showConnectedBanner, setShowConnectedBanner] = useState(true);
+
+  useEffect(() => {
+    if (isConnected) {
+      setShowConnectedBanner(true);
+      const timer = setTimeout(() => {
+        setShowConnectedBanner(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowConnectedBanner(false);
+    }
+  }, [isConnected]);
+
   // Auto-scroll chat
   useEffect(() => {
     if (scrollRef.current) {
@@ -118,6 +136,33 @@ const ArenaRoom = ({
             <Gamepad2 size={20} />
             <span>GAME BOARD</span>
           </div>
+
+          <AnimatePresence>
+            {!isConnected ? (
+              <motion.div 
+                key="offline-banner"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className={styles.connectionAlertBanner}
+              >
+                <div className={styles.pulseRedDot} />
+                <span>{opponentName} is not in the room. Waiting to reconnect...</span>
+              </motion.div>
+            ) : showConnectedBanner ? (
+              <motion.div 
+                key="online-banner"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className={styles.connectionSuccessBanner}
+              >
+                <div className={styles.pulseGreenDot} />
+                <span>{opponentName} is in the room. Connected!</span>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
           <div className={styles.gameBoardScroll}>
             {gameProps.gameType === 'chess' ? (
               <ChessGame 
@@ -189,6 +234,34 @@ const ArenaRoom = ({
               exit={{ opacity: 0, x: 10 }}
               className={styles.mobileChatArea}
             >
+              <AnimatePresence>
+                {!isConnected ? (
+                  <motion.div 
+                    key="mobile-chat-offline-banner"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={styles.connectionAlertBanner}
+                    style={{ margin: '8px 10px 0' }}
+                  >
+                    <div className={styles.pulseRedDot} />
+                    <span>{opponentName} has left the room.</span>
+                  </motion.div>
+                ) : showConnectedBanner ? (
+                  <motion.div 
+                    key="mobile-chat-online-banner"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={styles.connectionSuccessBanner}
+                    style={{ margin: '8px 10px 0' }}
+                  >
+                    <div className={styles.pulseGreenDot} />
+                    <span>{opponentName} joined the room.</span>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
               <div className={styles.chatFeed} ref={scrollRef}>
                 {chatMessages.length === 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.3, fontSize: '12px', padding: '40px 0' }}>
@@ -225,6 +298,34 @@ const ArenaRoom = ({
               exit={{ opacity: 0, x: -10 }}
               className={styles.mobileGameArea}
             >
+              <AnimatePresence>
+                {!isConnected ? (
+                  <motion.div 
+                    key="mobile-game-offline-banner"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={styles.connectionAlertBanner}
+                    style={{ margin: '8px 10px 8px' }}
+                  >
+                    <div className={styles.pulseRedDot} />
+                    <span>{opponentName} is not in the room.</span>
+                  </motion.div>
+                ) : showConnectedBanner ? (
+                  <motion.div 
+                    key="mobile-game-online-banner"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={styles.connectionSuccessBanner}
+                    style={{ margin: '8px 10px 8px' }}
+                  >
+                    <div className={styles.pulseGreenDot} />
+                    <span>{opponentName} is in the room. Connected!</span>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
             {gameProps.gameType === 'chess' ? (
               <ChessGame 
                 {...gameProps.gameState}
