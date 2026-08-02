@@ -216,6 +216,10 @@ const TruthDareGame = ({
             });
         };
 
+        const opponentFirstName = opponent.name?.split(' ')[0] || 'THEM';
+        const topLabel = isHost ? "YOU" : opponentFirstName.toUpperCase();
+        const bottomLabel = isHost ? opponentFirstName.toUpperCase() : "YOU";
+
         return (
             <div className={styles['td-container']}>
                 <h2 className={styles['td-title']}>{isHost ? 'SPIN TO DECIDE WHO STARTS' : `${opponent.name.toUpperCase()} IS SPINNING...`}</h2>
@@ -225,8 +229,8 @@ const TruthDareGame = ({
                         animate={{ rotate: rotation }}
                         transition={{ duration: 2.5, ease: "circOut" }}
                     >
-                        <div className={`${styles['spinner-label']} ${styles['label-truth']}`}>YOU</div>
-                        <div className={`${styles['spinner-label']} ${styles['label-dare']}`}>THEM</div>
+                        <div className={`${styles['spinner-label']} ${styles['label-truth']}`}>{topLabel}</div>
+                        <div className={`${styles['spinner-label']} ${styles['label-dare']}`}>{bottomLabel}</div>
                         <div className={styles['spinner-line']} />
                     </motion.div>
                     <div className={styles['spinner-pointer']} />
