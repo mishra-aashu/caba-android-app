@@ -82,6 +82,21 @@ export default class WebRTCRoomManager extends EventTarget {
         if (payload.targetId && payload.targetId !== this.userId) return;
         this._handleSignal(payload);
       })
+      .on('broadcast', { event: 'chat-fallback' }, ({ payload }) => {
+        if (this._destroyed) return;
+        if (payload.targetId && payload.targetId !== this.userId) return;
+        if (payload.senderId === this.userId) return;
+
+        // Emit activity event for presence tracking
+        this._emit('peer-activity', { peerId: payload.senderId, userName: payload.message.senderName || 'Opponent', type: 'fallback' });
+
+        // Emit as a regular chat message
+        this._emit('chat-message', {
+          peerId: payload.senderId,
+          peerName: payload.message.senderName,
+          ...payload.message,
+        });
+      })
       .on('broadcast', { event: 'game-fallback' }, ({ payload }) => {
         if (this._destroyed) return;
         if (payload.targetId && payload.targetId !== this.userId) return;
@@ -513,7 +528,7 @@ export default class WebRTCRoomManager extends EventTarget {
   // PUBLIC API: Send Chat Message
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  sendChatMessage(text) {
+  async sendChatMessage(text) {
     const msg = {
       id: uuid(),
       text,
@@ -523,11 +538,23 @@ export default class WebRTCRoomManager extends EventTarget {
     };
     const sent = this._broadcastOnChannel('chat-text', JSON.stringify(msg));
     
-    // Fallback: If P2P fails, we could potentially use Supabase Broadcast as a backup, 
-    // but for now we just emit locally so the user sees their message.
+    // Fallback: If P2P fails, use Supabase Broadcast as a backup
+    if (!sent && this._signalingChannel) {
+      console.log('[WebRTC] Chat P2P not ready, using Supabase Broadcast fallback');
+      await this._signalingChannel.send({
+        type: 'broadcast',
+        event: 'chat-fallback',
+        payload: {
+          senderId: this.userId,
+          message: msg
+        }
+      });
+    }
+    
+    // Emit locally so the sender immediately sees it
     this._emit('chat-message', { ...msg, isLocal: true });
     
-    return sent;
+    return sent || !!this._signalingChannel;
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
