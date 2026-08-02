@@ -83,7 +83,7 @@ class AuthFeatureTests {
       }
       
       if (timeUntilExpiry < 300) { // Less than 5 minutes
-        throw new Warning('JWT token expires soon');
+        throw new Error('JWT token expires soon');
       }
       
       return {

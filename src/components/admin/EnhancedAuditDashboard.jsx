@@ -316,96 +316,102 @@ const EnhancedAuditDashboard = () => {
   );
 
   // Render Self-Healing section
-  const renderSelfHealing = () => (
-    <div className="space-y-6">
-      <div className="grid-2">
-        <div className="data-container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h3 style={{ margin: 0 }}>Healing Performance</h3>
-            <span className="status-badge success">Live Engine Active</span>
-          </div>
-          
-          {healingHistory.length > 0 ? (
-            <div className="grid-2">
-              <ResponsiveContainer width="100%" height={200}>
-                <RePieChart>
-                  <Pie 
-                    data={getHealingStats().total > 0 ? getHealingStats().data : [{ name: 'Ready', value: 1, color: '#e2e8f0' }]} 
-                    cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
-                  >
-                    {getHealingStats().data?.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </RePieChart>
-              </ResponsiveContainer>
-              <div className="space-y-3">
-                <div className="investigation-step" style={{ background: 'rgba(16, 185, 129, 0.1)', color: COLORS.success }}>
-                  <span style={{ flex: 1 }}>Success Rate</span>
-                  <strong>{selfHealing.getHealingStats().successRate}%</strong>
-                </div>
-                <div className="investigation-step" style={{ background: 'rgba(59, 130, 246, 0.1)', color: COLORS.primary }}>
-                  <span style={{ flex: 1 }}>Total Restorations</span>
-                  <strong>{selfHealing.getHealingStats().total}</strong>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <Zap size={48} color={COLORS.primary} style={{ opacity: 0.2, marginBottom: '16px' }} />
-              <p style={{ opacity: 0.6, fontSize: '14px' }}>Waiting for system anomalies...</p>
-              <div className="pulse-loader" style={{ margin: '20px auto' }}></div>
-            </div>
-          )}
-        </div>
+  const renderSelfHealing = () => {
+    const healingChartData = selfHealing.getHealingStats().total > 0 
+      ? getHealingStats() 
+      : [{ name: 'Ready', value: 1, color: '#e2e8f0' }];
 
-        <div className="data-container">
-          <h3 style={{ marginBottom: '20px' }}>Recent Restorations</h3>
-          {healingHistory.length > 0 ? (
-            <div className="space-y-2" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {healingHistory.map((healing, index) => (
-                <div key={index} className="investigation-step">
-                  <div style={{ flex: 1 }}>
-                    <strong>{healing.issueName}</strong>
-                    <div style={{ fontSize: '11px', opacity: 0.5 }}>{healing.timestamp}</div>
+    return (
+      <div className="space-y-6">
+        <div className="grid-2">
+          <div className="data-container">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ margin: 0 }}>Healing Performance</h3>
+              <span className="status-badge success">Live Engine Active</span>
+            </div>
+            
+            {healingHistory.length > 0 ? (
+              <div className="grid-2">
+                <ResponsiveContainer width="100%" height={200}>
+                  <RePieChart>
+                    <Pie 
+                      data={healingChartData} 
+                      cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                    >
+                      {healingChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip />
+                  </RePieChart>
+                </ResponsiveContainer>
+                <div className="space-y-3">
+                  <div className="investigation-step" style={{ background: 'rgba(16, 185, 129, 0.1)', color: COLORS.success }}>
+                    <span style={{ flex: 1 }}>Success Rate</span>
+                    <strong>{selfHealing.getHealingStats().successRate}%</strong>
                   </div>
-                  <span className={`status-badge ${healing.status === 'SUCCESS' ? 'success' : 'error'}`}>{healing.status}</span>
+                  <div className="investigation-step" style={{ background: 'rgba(59, 130, 246, 0.1)', color: COLORS.primary }}>
+                    <span style={{ flex: 1 }}>Total Restorations</span>
+                    <strong>{selfHealing.getHealingStats().total}</strong>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ opacity: 0.4, textAlign: 'center', padding: '40px 0' }}>
-              <Clock size={32} style={{ marginBottom: '12px' }} />
-              <p style={{ fontSize: '13px' }}>No healing events recorded yet.</p>
-            </div>
-          )}
-        </div>
-      </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Zap size={48} color={COLORS.primary} style={{ opacity: 0.2, marginBottom: '16px' }} />
+                <p style={{ opacity: 0.6, fontSize: '14px' }}>Waiting for system anomalies...</p>
+                <div className="pulse-loader" style={{ margin: '20px auto' }}></div>
+              </div>
+            )}
+          </div>
 
-      <div className="data-container">
-        <h3 style={{ marginBottom: '24px' }}>Automated Healing Capabilities</h3>
-        <div className="capabilities-grid">
-          {selfHealing.getAvailableFixes().map((fix, idx) => (
-            <div key={idx} className="capability-card">
-              <div className="capability-header">
-                <div className="capability-icon">
-                  {fix.priority === 'HIGH' ? <Zap size={16} /> : <Wrench size={16} />}
+          <div className="data-container">
+            <h3 style={{ marginBottom: '20px' }}>Recent Restorations</h3>
+            {healingHistory.length > 0 ? (
+              <div className="space-y-2" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                {healingHistory.map((healing, index) => (
+                  <div key={index} className="investigation-step">
+                    <div style={{ flex: 1 }}>
+                      <strong>{healing.issueName}</strong>
+                      <div style={{ fontSize: '11px', opacity: 0.5 }}>{healing.timestamp}</div>
+                    </div>
+                    <span className={`status-badge ${healing.status === 'SUCCESS' ? 'success' : 'error'}`}>{healing.status}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.4, textAlign: 'center', padding: '40px 0' }}>
+                <Clock size={32} style={{ marginBottom: '12px' }} />
+                <p style={{ fontSize: '13px' }}>No healing events recorded yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="data-container">
+          <h3 style={{ marginBottom: '24px' }}>Automated Healing Capabilities</h3>
+          <div className="capabilities-grid">
+            {selfHealing.getAvailableFixes().map((fix, idx) => (
+              <div key={idx} className="capability-card">
+                <div className="capability-header">
+                  <div className="capability-icon">
+                    {fix.priority === 'HIGH' ? <Zap size={16} /> : <Wrench size={16} />}
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: '13px' }}>{fix.name}</span>
                 </div>
-                <span style={{ fontWeight: 700, fontSize: '13px' }}>{fix.name}</span>
+                <div className="capability-meta">
+                  <span className={`priority-dot ${fix.priority.toLowerCase()}`}></span>
+                  <span style={{ fontSize: '11px', opacity: 0.6 }}>{fix.estimatedTime} fix time</span>
+                </div>
+                <div className="capability-badges">
+                  {fix.autoFix && <span className="mini-badge">AUTO</span>}
+                  <span className="mini-badge risk">{fix.risk} RISK</span>
+                </div>
               </div>
-              <div className="capability-meta">
-                <span className={`priority-dot ${fix.priority.toLowerCase()}`}></span>
-                <span style={{ fontSize: '11px', opacity: 0.6 }}>{fix.estimatedTime} fix time</span>
-              </div>
-              <div className="capability-badges">
-                {fix.autoFix && <span className="mini-badge">AUTO</span>}
-                <span className="mini-badge risk">{fix.risk} RISK</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPredictive = () => (
     <div className="space-y-6">

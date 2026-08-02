@@ -1,18 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // Service role for admin access
-);
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.warn('⚠️ Warning: Supabase URL and Key are required. Please ensure VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or VITE_SUPABASE_ANON_KEY) are set in your environment or .env file.');
+  process.exit(0); // Exit gracefully during build/CI steps if env is missing
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  global: {
+    headers: {
+      'Origin': 'http://localhost:5173',
+      'Referer': 'http://localhost:5173/'
+    }
+  }
+});
 
 const CRITICAL_TABLES = [
   'users',
   'messages',
-  'chats_list', // Fixed from 'chats' to match existing schema
+  'chats', // Matches the Supabase table name queried in frontend
   'groups',
   'group_members',
-  'call_history', // Fixed from 'calls'
+  'call_history',
   'reminders',
 ];
 
@@ -26,7 +38,7 @@ const checkRLSPolicies = async () => {
       });
 
       if (error) {
-        console.error(`❌ ${table}: Error fetching policies -`, error.message);
+        console.error(`❌ ${table}: Error fetching policies -`, error.message || error);
         continue;
       }
 

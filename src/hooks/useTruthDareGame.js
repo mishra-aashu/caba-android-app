@@ -204,9 +204,9 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
   }, []);
 
   // ─── State Broadcasting ────────────────────────────────────
-  const broadcastState = useCallback((newState) => {
+  const broadcastState = useCallback((newState, force = false) => {
     // Deduplicate broadcasts
-    if (isStateEqual(newState, lastBroadcastRef.current)) {
+    if (!force && isStateEqual(newState, lastBroadcastRef.current)) {
       return;
     }
     
@@ -449,7 +449,7 @@ export const useTruthDareGame = (roomId, dbUser, supabase) => {
     } else if (lastGameEvent.type === 'SYNC_REQUEST') {
       // Host responds to sync requests
       if (current.isHost) {
-        broadcastState(current);
+        broadcastState(current, true);
       }
     }
   }, [lastGameEvent, handleAction, broadcastState]);

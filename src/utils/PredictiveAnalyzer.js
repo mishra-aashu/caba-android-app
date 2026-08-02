@@ -184,7 +184,7 @@ class PredictiveAnalyzer {
       const futurePredictions = this.extrapolate(trend, 7); // Next 7 days
       
       // Check if any threshold will be crossed
-      const warnings = this.checkThresholds(futurePredictions, threshold, metricName);
+      const warnings = this.checkThresholds(futurePredictions, threshold, metricName, trend);
       
       if (warnings.length > 0) {
         predictions.push({
@@ -298,7 +298,7 @@ class PredictiveAnalyzer {
   }
 
   // Check if thresholds will be crossed
-  checkThresholds(predictions, threshold, metricName) {
+  checkThresholds(predictions, threshold, metricName, trend) {
     const warnings = [];
 
     predictions.forEach(prediction => {

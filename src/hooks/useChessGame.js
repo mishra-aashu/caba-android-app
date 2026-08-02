@@ -49,6 +49,9 @@ export const useChessGame = (roomId, dbUser, supabase) => {
 
   useEffect(() => {
     stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
     if (state.fen && state.fen !== 'start') {
         try {
             chessRef.current.load(state.fen);
@@ -78,6 +81,35 @@ export const useChessGame = (roomId, dbUser, supabase) => {
         broadcastState(stateRef.current);
     }
   }, [lastGameEvent]);
+
+  // ─── Sync Request Loop (Client in JOINING) ─────────────────
+  useEffect(() => {
+    if (state.stage !== CHESS_STATES.JOINING || state.isHost) return;
+
+    // Send initial sync request
+    sendGameEvent({ type: 'SYNC_REQUEST' });
+    
+    // Periodic sync requests
+    const interval = setInterval(() => {
+      if (stateRef.current.stage === CHESS_STATES.JOINING) {
+        sendGameEvent({ type: 'SYNC_REQUEST' });
+      }
+    }, 2000);
+
+    // Timeout fallback
+    const timeout = setTimeout(() => {
+      if (stateRef.current.stage === CHESS_STATES.JOINING) {
+        console.warn('⏱️ Chess JOINING timeout — host did not respond');
+        toast.error('Could not connect to host. Returning to lobby...', { duration: 4000 });
+        dispatch({ type: 'RESET' });
+      }
+    }, 15000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [state.stage, state.isHost, sendGameEvent]);
 
   const handleMove = useCallback((move) => {
     const game = chessRef.current;
@@ -218,7 +250,13 @@ export const useChessGame = (roomId, dbUser, supabase) => {
         }
       }
     });
-  }, [userId, dbUser]);
+
+    if (isHost && stage === CHESS_STATES.PLAYING) {
+      setTimeout(() => {
+        broadcastState(stateRef.current);
+      }, 500);
+    }
+  }, [userId, dbUser, broadcastState]);
 
   return {
     gameState: state,
