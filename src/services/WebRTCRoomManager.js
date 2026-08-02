@@ -60,9 +60,11 @@ export default class WebRTCRoomManager extends EventTarget {
     this._signalingChannel = null;
     this._makingOffer = new Map(); // peerId -> boolean
     this._ignoreOffer = new Map(); // peerId -> boolean
+    this._heartbeatInterval = null;
 
     // ── Boot ────────────────────────────────────────────────
     this._initSignaling();
+    this._startHeartbeat();
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -85,6 +87,9 @@ export default class WebRTCRoomManager extends EventTarget {
         if (payload.targetId && payload.targetId !== this.userId) return;
         if (payload.senderId === this.userId) return;
         
+        // Emit activity event for presence tracking
+        this._emit('peer-activity', { peerId: payload.senderId, userName: payload.event.senderName || 'Opponent', type: 'fallback' });
+
         // Emit as a regular game event
         this._emit('game-event', {
           peerId: payload.senderId,
@@ -100,6 +105,12 @@ export default class WebRTCRoomManager extends EventTarget {
           });
         }
       });
+  }
+
+  _startHeartbeat() {
+    this._heartbeatInterval = setInterval(() => {
+      this._broadcast('heartbeat').catch(() => {});
+    }, 10000);
   }
 
   async _broadcast(type, data = {}) {
@@ -138,6 +149,9 @@ export default class WebRTCRoomManager extends EventTarget {
   async _handleSignal(signal) {
     const { type, senderId, senderName } = signal;
     if (senderId === this.userId) return;
+
+    // Emit activity event for presence tracking
+    this._emit('peer-activity', { peerId: senderId, userName: senderName || 'Opponent', type });
 
     switch (type) {
       case 'peer-join':
@@ -779,6 +793,11 @@ export default class WebRTCRoomManager extends EventTarget {
 
   async destroy() {
     this._destroyed = true;
+
+    if (this._heartbeatInterval) {
+      clearInterval(this._heartbeatInterval);
+      this._heartbeatInterval = null;
+    }
 
     // Notify peers
     await this._broadcast('peer-leave').catch(() => {});

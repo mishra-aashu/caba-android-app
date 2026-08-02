@@ -25,6 +25,9 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState({}); // { [peerId]: MediaStream }
 
+  // Track signaling and WebRTC activity to determine peer connection state
+  const peerActivityRef = useRef(new Map()); // peerId -> { userName, lastSeen, isWebRTC }
+
   // ── Initialize Manager (via Singleton) ─────────────────
   useEffect(() => {
     if (!roomId || !userId || !supabase) return;
@@ -38,21 +41,51 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     });
     managerRef.current = manager;
 
+    // Helper to calculate the active list of peers from signaling + WebRTC
+    const updatePeersList = () => {
+      const now = Date.now();
+      const list = [];
+      for (const [peerId, info] of peerActivityRef.current.entries()) {
+        // Consider peer active if connected via WebRTC OR active in signaling within past 22 seconds
+        if (info.isWebRTC || (now - info.lastSeen < 22000)) {
+          list.push({ peerId, userName: info.userName });
+        }
+      }
+      setPeers(list);
+    };
+
     // ── Event Listeners ────────────────────────────────
     const onPeerConnected = (e) => {
       setLastPeerId(e.detail.peerId);
-      setPeers((prev) => {
-        if (prev.some((p) => p.peerId === e.detail.peerId)) return prev;
-        return [...prev, { peerId: e.detail.peerId, userName: e.detail.userName }];
+      peerActivityRef.current.set(e.detail.peerId, {
+        userName: e.detail.userName,
+        lastSeen: Date.now() + 1000 * 3600 * 24, // keep indefinitely
+        isWebRTC: true
       });
+      updatePeersList();
     };
 
     const onPeerDisconnected = (e) => {
-      setPeers((prev) => prev.filter((p) => p.peerId !== e.detail.peerId));
+      peerActivityRef.current.delete(e.detail.peerId);
+      updatePeersList();
     };
 
     const onPeerLeft = (e) => {
-      setPeers((prev) => prev.filter((p) => p.peerId !== e.detail.peerId));
+      peerActivityRef.current.delete(e.detail.peerId);
+      updatePeersList();
+    };
+
+    const onPeerActivity = (e) => {
+      const existing = peerActivityRef.current.get(e.detail.peerId);
+      // WebRTC connection takes priority
+      if (existing?.isWebRTC) return;
+
+      peerActivityRef.current.set(e.detail.peerId, {
+        userName: e.detail.userName,
+        lastSeen: Date.now(),
+        isWebRTC: false
+      });
+      updatePeersList();
     };
 
     const onConnectionState = (e) => {
@@ -121,6 +154,7 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
     manager.addEventListener('peer-connected', onPeerConnected);
     manager.addEventListener('peer-disconnected', onPeerDisconnected);
     manager.addEventListener('peer-left', onPeerLeft);
+    manager.addEventListener('peer-activity', onPeerActivity);
     manager.addEventListener('connection-state', onConnectionState);
     manager.addEventListener('chat-message', onChatMessage);
     manager.addEventListener('game-event', onGameEvent);
@@ -131,11 +165,28 @@ export default function useWebRTCRoom({ roomId, userId, userName, supabase }) {
 
     setConnectionState('waiting');
 
+    // Periodically prune signaling peers that have gone silent
+    const pruneInterval = setInterval(() => {
+      let changed = false;
+      const now = Date.now();
+      for (const [peerId, info] of peerActivityRef.current.entries()) {
+        if (!info.isWebRTC && (now - info.lastSeen >= 22000)) {
+          peerActivityRef.current.delete(peerId);
+          changed = true;
+        }
+      }
+      if (changed) {
+        updatePeersList();
+      }
+    }, 5000);
+
     // ── Cleanup on unmount ─────────────────────────────
     return () => {
+      clearInterval(pruneInterval);
       manager.removeEventListener('peer-connected', onPeerConnected);
       manager.removeEventListener('peer-disconnected', onPeerDisconnected);
       manager.removeEventListener('peer-left', onPeerLeft);
+      manager.removeEventListener('peer-activity', onPeerActivity);
       manager.removeEventListener('connection-state', onConnectionState);
       manager.removeEventListener('chat-message', onChatMessage);
       manager.removeEventListener('game-event', onGameEvent);
