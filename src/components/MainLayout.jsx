@@ -567,7 +567,7 @@ const MainLayout = () => {
         )}
       </Suspense>
     </ErrorBoundary>
-  ), [isDesktop, routeInfo.isOverlay, activeChatId]);
+  ), [isDesktop, routeInfo.isOverlay, activeChatId, location.pathname]);
 
   const sidebarPanel = useMemo(() => (
     <ErrorBoundary>
